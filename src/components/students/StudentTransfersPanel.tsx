@@ -65,6 +65,7 @@ interface TransferOutForm {
 }
 
 interface StudentTransfersPanelProps {
+  lowBandwidthMode?: boolean;
   activeStudents: TransferStudent[];
   transferredIn: TransferStudent[];
   transferredInCount: number;
@@ -93,6 +94,7 @@ interface StudentTransfersPanelProps {
 }
 
 export default function StudentTransfersPanel({
+  lowBandwidthMode = false,
   activeStudents,
   transferredIn,
   transferredInCount,
@@ -121,6 +123,12 @@ export default function StudentTransfersPanel({
 }: StudentTransfersPanelProps) {
   return (
     <>
+      {lowBandwidthMode && (
+        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          Data saver mode is active. Transfer lists are simplified for slower connections.
+        </div>
+      )}
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <Card className="p-4">
           <div className="flex items-center gap-3 mb-2">
@@ -202,17 +210,17 @@ export default function StudentTransfersPanel({
               <thead>
                 <tr className="bg-[var(--surface-container)]">
                   <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">Student</th>
-                  <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">Student No.</th>
+                  {!lowBandwidthMode && <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">Student No.</th>}
                   <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">Class</th>
-                  <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">Previous School</th>
-                  <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">Reason</th>
-                  <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">Parent Phone</th>
+                  <th className="hidden p-4 text-left text-sm font-semibold text-[var(--on-surface)] md:table-cell">Previous School</th>
+                  {!lowBandwidthMode && <th className="hidden p-4 text-left text-sm font-semibold text-[var(--on-surface)] lg:table-cell">Reason</th>}
+                  <th className="hidden p-4 text-left text-sm font-semibold text-[var(--on-surface)] md:table-cell">Parent Phone</th>
                 </tr>
               </thead>
               <tbody>
                 {transferredIn.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="text-center py-8 text-[var(--t3)]">
+                    <td colSpan={lowBandwidthMode ? 4 : 6} className="text-center py-8 text-[var(--t3)]">
                       No transfer-in students recorded yet
                     </td>
                   </tr>
@@ -232,15 +240,15 @@ export default function StudentTransfersPanel({
                           </div>
                         </div>
                       </td>
-                      <td className="p-4 text-sm font-mono">{student.student_number || "-"}</td>
+                      {!lowBandwidthMode && <td className="p-4 text-sm font-mono">{student.student_number || "-"}</td>}
                       <td className="p-4">
                         <span className="px-2.5 py-1 bg-gray-100 rounded-full text-xs font-semibold">
                           {student.classes?.name || "-"}
                         </span>
                       </td>
-                      <td className="p-4 text-sm">{student.transfer_from || "-"}</td>
-                      <td className="p-4 text-sm">{student.transfer_reason || "-"}</td>
-                      <td className="p-4 text-sm font-mono">{student.parent_phone || "-"}</td>
+                      <td className="hidden p-4 text-sm md:table-cell">{student.transfer_from || "-"}</td>
+                      {!lowBandwidthMode && <td className="hidden p-4 text-sm lg:table-cell">{student.transfer_reason || "-"}</td>}
+                      <td className="hidden p-4 text-sm font-mono md:table-cell">{student.parent_phone || "-"}</td>
                     </tr>
                   ))
                 )}
@@ -266,18 +274,18 @@ export default function StudentTransfersPanel({
               <thead>
                 <tr className="bg-[var(--surface-container)]">
                   <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">Student</th>
-                  <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">Student No.</th>
+                  {!lowBandwidthMode && <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">Student No.</th>}
                   <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">Former Class</th>
                   <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">Transferred To</th>
-                  <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">Reason</th>
-                  <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">Date</th>
+                  {!lowBandwidthMode && <th className="hidden p-4 text-left text-sm font-semibold text-[var(--on-surface)] lg:table-cell">Reason</th>}
+                  <th className="hidden p-4 text-left text-sm font-semibold text-[var(--on-surface)] md:table-cell">Date</th>
                   <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {transferHistory.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="text-center py-8 text-[var(--t3)]">
+                    <td colSpan={lowBandwidthMode ? 4 : 7} className="text-center py-8 text-[var(--t3)]">
                       No transfer-out records yet
                     </td>
                   </tr>
@@ -285,15 +293,15 @@ export default function StudentTransfersPanel({
                   transferHistory.map((record) => (
                     <tr key={record.id} className="border-b border-[var(--border)]">
                       <td className="p-4 font-semibold text-sm">{record.student_name}</td>
-                      <td className="p-4 text-sm font-mono">{record.student_number || "-"}</td>
+                      {!lowBandwidthMode && <td className="p-4 text-sm font-mono">{record.student_number || "-"}</td>}
                       <td className="p-4">
                         <span className="px-2.5 py-1 bg-gray-100 rounded-full text-xs font-semibold">
                           {record.class_name}
                         </span>
                       </td>
                       <td className="p-4 text-sm">{record.transfer_to}</td>
-                      <td className="p-4 text-sm">{record.reason || "-"}</td>
-                      <td className="p-4 text-sm">
+                      {!lowBandwidthMode && <td className="hidden p-4 text-sm lg:table-cell">{record.reason || "-"}</td>}
+                      <td className="hidden p-4 text-sm md:table-cell">
                         {record.transfer_date
                           ? new Date(record.transfer_date).toLocaleDateString()
                           : "-"}

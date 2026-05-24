@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'skoolmate-v9';
+const CACHE_VERSION = 'skoolmate-v10';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
@@ -26,7 +26,6 @@ function isNavigationRequest(request) {
 
 function isStaticAsset(url) {
   return (
-    url.pathname.startsWith('/_next/static/') ||
     url.pathname.match(/\.(js|css|woff2?|ttf|eot)$/i)
   );
 }
@@ -73,6 +72,12 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (url.hostname.includes('googleapis') || url.hostname.includes('gstatic')) {
+    return;
+  }
+
+  // Never cache Next.js/Turbopack runtime chunks from SW to avoid stale module graphs.
+  if (url.hostname === location.hostname && url.pathname.startsWith('/_next/')) {
+    event.respondWith(fetch(request, { cache: 'no-store' }));
     return;
   }
 

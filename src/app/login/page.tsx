@@ -120,6 +120,18 @@ export default function LoginPage() {
     return () => clearTimeout(timer);
   }, [loading, user, authInitialized, router]);
 
+  // Deterministic UI recovery: if auth initialized but user is still null,
+  // stop the spinner and surface a clear retry message.
+  useEffect(() => {
+    if (!loading || !authInitialized || user) return;
+    const timer = setTimeout(() => {
+      setLoading(false);
+      setShowSlowMessage(false);
+      toast.error("Login could not be completed. Please try again.");
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, [loading, authInitialized, user, toast]);
+
   // Show helpful toasts when arriving from registration or session expiry
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -223,7 +235,11 @@ export default function LoginPage() {
       }
 
       setLoading(true);
-      const loginTimeout = setTimeout(() => setLoading((prev) => prev ? false : prev), 15000);
+      const loginTimeout = setTimeout(() => {
+        setLoading(false);
+        setShowSlowMessage(false);
+        toast.error("Login timed out. Please try again.");
+      }, 15000);
       const slowMsgTimeout = setTimeout(() => setShowSlowMessage(true), 5000);
       localStorage.removeItem(DEMO_KEY);
 
@@ -280,7 +296,9 @@ export default function LoginPage() {
     // Safety valve: if signIn doesn't resolve in 15s, stop the spinner
     // so the user isn't stuck with a spinning button forever
     const loginTimeout = setTimeout(() => {
-      setLoading((prev) => prev ? false : prev);
+      setLoading(false);
+      setShowSlowMessage(false);
+      toast.error("Login timed out. Please try again.");
     }, 15000);
 
     // Show a friendly message after 5s so users on slow networks know
@@ -351,9 +369,9 @@ export default function LoginPage() {
       }
 
       const { error: authError } = await signIn(normalizedIdentifier, password);
-      clearTimeout(loginTimeout);
-      clearTimeout(slowMsgTimeout);
       if (authError) {
+        clearTimeout(loginTimeout);
+        clearTimeout(slowMsgTimeout);
         const newAttempts = failedAttempts + 1;
         setFailedAttempts(newAttempts);
         const rawMsg =
@@ -415,7 +433,8 @@ export default function LoginPage() {
       }
       setFailedAttempts(0);
       setLockoutUntil(null);
-      setShowSlowMessage(false);
+      // Keep safety timers running until redirect/auth state settles.
+      // This guarantees the button does not stay stuck forever.
       // Don't set loading=false here - wait for auth redirect to happen
       // The redirect effect (line 51-63) handles the transition
       return;

@@ -25,6 +25,7 @@ interface AtRiskStudent {
 }
 
 interface StudentRetentionPanelProps {
+  lowBandwidthMode?: boolean;
   atRiskCount: number;
   likelyDropoutCount: number;
   activeStudentsCount: number;
@@ -45,6 +46,7 @@ interface StudentRetentionPanelProps {
 }
 
 export default function StudentRetentionPanel({
+  lowBandwidthMode = false,
   atRiskCount,
   likelyDropoutCount,
   activeStudentsCount,
@@ -65,6 +67,12 @@ export default function StudentRetentionPanel({
 }: StudentRetentionPanelProps) {
   return (
     <>
+      {lowBandwidthMode && (
+        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          Data saver mode is active. Showing essential retention fields only.
+        </div>
+      )}
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         <Card className="p-4">
           <div className="flex items-center gap-3 mb-2">
@@ -141,9 +149,9 @@ export default function StudentRetentionPanel({
                 <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">Student</th>
                 <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">Class</th>
                 <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">Days Absent</th>
-                <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">Last Attendance</th>
+                <th className="hidden p-4 text-left text-sm font-semibold text-[var(--on-surface)] md:table-cell">Last Attendance</th>
                 <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">Risk Level</th>
-                <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">Parent Phone</th>
+                <th className="hidden p-4 text-left text-sm font-semibold text-[var(--on-surface)] md:table-cell">Parent Phone</th>
                 <th className="p-4 text-left text-sm font-semibold text-[var(--on-surface)]">Actions</th>
               </tr>
             </thead>
@@ -184,7 +192,7 @@ export default function StudentRetentionPanel({
                         {student.consecutive_absent} days
                       </span>
                     </td>
-                    <td className="p-4 text-sm">
+                    <td className="hidden p-4 text-sm md:table-cell">
                       {student.last_attendance_date ? new Date(student.last_attendance_date).toLocaleDateString() : "No record"}
                     </td>
                     <td className="p-4">
@@ -192,7 +200,7 @@ export default function StudentRetentionPanel({
                         {student.risk_level === "likely_dropout" ? "Likely Dropout" : "At Risk"}
                       </span>
                     </td>
-                    <td className="p-4 text-sm font-mono">{student.parent_phone || "-"}</td>
+                    <td className="hidden p-4 text-sm font-mono md:table-cell">{student.parent_phone || "-"}</td>
                     <td className="p-4">
                       <div className="flex gap-1">
                         <button

@@ -285,6 +285,22 @@ export async function proxy(request: NextRequest) {
     return response;
   }
 
+  // Dev-only fallback: browser auth can be valid in local/session storage even
+  // when SSR cookies are missing. Allow dashboard requests through so the
+  // client auth context can hydrate and avoid login redirect loops locally.
+  if (
+    process.env.NODE_ENV !== "production" &&
+    pathname.startsWith("/dashboard") &&
+    !hasAuthSessionCookie(request)
+  ) {
+    const response = NextResponse.next({ request });
+    applySecurityHeaders(response);
+    if (!request.cookies.get("csrf-token")) {
+      issueCSRFToken(response);
+    }
+    return response;
+  }
+
   const middlewareClient = createMiddlewareClient(request, {
     supabaseUrl,
     supabaseKey: supabaseAnonKey,

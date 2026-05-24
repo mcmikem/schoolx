@@ -22,6 +22,7 @@ interface PromotionStudent {
 }
 
 interface StudentPromotionPanelProps {
+  lowBandwidthMode?: boolean;
   onAutoPromote: () => void;
   autoPromoting: boolean;
   autoPromoteResult: any;
@@ -53,6 +54,7 @@ interface StudentPromotionPanelProps {
 }
 
 export default function StudentPromotionPanel({
+  lowBandwidthMode = false,
   onAutoPromote,
   autoPromoting,
   autoPromoteResult,
@@ -84,6 +86,12 @@ export default function StudentPromotionPanel({
 }: StudentPromotionPanelProps) {
   return (
     <>
+      {lowBandwidthMode && (
+        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+          Data saver mode is active. Student action controls are condensed for faster loading.
+        </div>
+      )}
+
       <div className="flex gap-3 mb-6 flex-wrap">
         <Button onClick={onAutoPromote} disabled={autoPromoting} className="bg-gradient-to-r from-teal-600 to-cyan-600 hover:from-teal-700 hover:to-cyan-700 text-white">
           <MaterialIcon icon="auto_fix_high" style={{ fontSize: 18 }} />
@@ -211,7 +219,7 @@ export default function StudentPromotionPanel({
                       <tr>
                         <th style={{ width: 40 }}>#</th>
                         <th>Name</th>
-                        <th>Gender</th>
+                        {!lowBandwidthMode && <th>Gender</th>}
                         <th>Current Status</th>
                         <th>Action</th>
                       </tr>
@@ -223,14 +231,14 @@ export default function StudentPromotionPanel({
                           <tr key={student.id}>
                             <td><input type="checkbox" checked={selectedStudents.has(student.id)} onChange={() => toggleStudent(student.id)} className="w-4 h-4" /></td>
                             <td className="font-medium text-sm">{student.first_name} {student.last_name}</td>
-                            <td className="text-sm">{student.gender}</td>
+                            {!lowBandwidthMode && <td className="text-sm">{student.gender}</td>}
                             <td>
                               <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${student.repeating ? "bg-yellow-100 text-yellow-800" : "bg-green-100 text-green-800"}`}>
                                 {student.repeating ? "Repeating" : "Active"}
                               </span>
                             </td>
                             <td>
-                              <div className="flex gap-1">
+                              <div className="flex gap-1 flex-wrap">
                                 <button onClick={() => setAction(student.id, "promote")} className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${action === "promote" ? "bg-green-100 border-green-300 text-green-800" : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"}`}>Promote</button>
                                 <button onClick={() => setAction(student.id, "repeat")} className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${action === "repeat" ? "bg-yellow-100 border-yellow-300 text-yellow-800" : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"}`}>Repeat</button>
                                 <button onClick={() => setAction(student.id, "demote")} className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${action === "demote" ? "bg-red-100 border-red-300 text-red-800" : "bg-white border-gray-200 text-gray-500 hover:border-gray-300"}`}>Demote</button>
@@ -241,7 +249,7 @@ export default function StudentPromotionPanel({
                       })}
                       {promotionStudents.length === 0 && (
                         <tr>
-                          <td colSpan={5}>
+                          <td colSpan={lowBandwidthMode ? 4 : 5}>
                             <EmptyState icon="group" title="No active students in this class" description="Select a class with active students to proceed" />
                           </td>
                         </tr>

@@ -54,6 +54,7 @@ interface ImportSummary {
 
 interface StudentRegistryPanelProps {
   schoolId?: string;
+  lowBandwidthMode: boolean;
   totalStudents: number;
   boysCount: number;
   girlsCount: number;
@@ -99,6 +100,7 @@ interface StudentRegistryPanelProps {
 
 export default function StudentRegistryPanel({
   schoolId,
+  lowBandwidthMode,
   totalStudents,
   boysCount,
   girlsCount,
@@ -141,6 +143,8 @@ export default function StudentRegistryPanel({
   onEditStudent,
   onDeleteStudent,
 }: StudentRegistryPanelProps) {
+  const showPhotos = !lowBandwidthMode;
+
   const resolveHouse = (student: StudentRow) => {
     if (student.house_id && houseMap[student.house_id]) {
       return houseMap[student.house_id];
@@ -163,6 +167,12 @@ export default function StudentRegistryPanel({
         <div className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--navy)] mb-2">
           Quick import
         </div>
+        {lowBandwidthMode && (
+          <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-[var(--amber-soft)] px-3 py-1 text-xs font-semibold text-[var(--amber)]">
+            <MaterialIcon icon="network_check" className="text-sm" />
+            Data saver mode enabled for slower connections
+          </div>
+        )}
         <div className="flex flex-wrap gap-3 text-sm text-[var(--t3)]">
           <p className="flex-1 min-w-[220px]">
             Download the structured templates, drop your data, and we&apos;ll
@@ -284,7 +294,7 @@ export default function StudentRegistryPanel({
                             }}
                           >
                             <div>
-                              {student.photo_url ? (
+                              {student.photo_url && showPhotos ? (
                                 <Image
                                   src={student.photo_url}
                                   alt={`${student.first_name} ${student.last_name}`}
@@ -774,7 +784,7 @@ export default function StudentRegistryPanel({
                                 : "var(--red)",
                           }}
                         >
-                          {student.photo_url ? (
+                          {student.photo_url && showPhotos ? (
                             <Image
                               src={student.photo_url}
                               alt={`${student.first_name} ${student.last_name}`}

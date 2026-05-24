@@ -56,14 +56,30 @@ export function NotificationsProvider({
 
       const canSeeFees = userRole !== "teacher" && userRole !== "parent";
 
+      const { data: schoolStudents, error: schoolStudentsError } = await supabase
+        .from("students")
+        .select("id, status")
+        .eq("school_id", schoolId);
+
+      if (schoolStudentsError) throw schoolStudentsError;
+
+      const schoolStudentIds = (schoolStudents || []).map((student) => student.id);
+      const activeStudentIds = (schoolStudents || [])
+        .filter((student) => student.status === "active")
+        .map((student) => student.id);
+
       try {
-        const { data: absentStudents, error } = await supabase
-          .from("attendance")
-          .select("student_id")
-          .eq("school_id", schoolId)
-          .eq("date", today)
-          .eq("status", "absent");
-        if (error) throw error;
+        let absentStudents: Array<{ student_id: string }> = [];
+        if (schoolStudentIds.length > 0) {
+          const { data, error } = await supabase
+            .from("attendance")
+            .select("student_id")
+            .in("student_id", schoolStudentIds)
+            .eq("date", today)
+            .eq("status", "absent");
+          if (error) throw error;
+          absentStudents = data || [];
+        }
 
         if (absentStudents?.length) {
           generated.push({
@@ -82,17 +98,21 @@ export function NotificationsProvider({
 
       if (canSeeFees) {
         try {
-          const [{ data: students, error: studentsError }, { data: feeStructure, error: feeError }, { data: payments, error: paymentsError }] = await Promise.all([
-            supabase.from("students").select("id").eq("school_id", schoolId).eq("status", "active"),
+          const [{ data: feeStructure, error: feeError }, { data: payments, error: paymentsError }] = await Promise.all([
             supabase.from("fee_structure").select("amount").eq("school_id", schoolId),
-            supabase.from("fee_payments").select("amount_paid").eq("school_id", schoolId),
+            activeStudentIds.length > 0
+              ? supabase.from("fee_payments").select("amount_paid").in("student_id", activeStudentIds)
+              : Promise.resolve({ data: [], error: null }),
           ]);
 
-          if (studentsError) throw studentsError;
           if (feeError) throw feeError;
           if (paymentsError) throw paymentsError;
 
-          const totalExpected = (feeStructure || []).reduce((sum, fee) => sum + Number(fee.amount || 0), 0) * (students || []).length;
+          const totalExpected =
+            (feeStructure || []).reduce(
+              (sum, fee) => sum + Number(fee.amount || 0),
+              0,
+            ) * activeStudentIds.length;
           const totalCollected = (payments || []).reduce((sum, payment) => sum + Number(payment.amount_paid || 0), 0);
           const balance = totalExpected - totalCollected;
 

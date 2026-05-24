@@ -102,6 +102,35 @@ export default function RootLayout({
           fontFamily: "'Inter', sans-serif",
         }}
       >
+        {process.env.NODE_ENV !== "production" && (
+          <Script
+            id="dev-sw-reset"
+            strategy="beforeInteractive"
+            dangerouslySetInnerHTML={{
+              __html: `
+                (function () {
+                  try {
+                    if (!('serviceWorker' in navigator)) return;
+                    navigator.serviceWorker.getRegistrations().then(function (registrations) {
+                      registrations.forEach(function (registration) {
+                        registration.unregister();
+                      });
+                    }).catch(function () {});
+                    if ('caches' in window) {
+                      caches.keys().then(function (keys) {
+                        keys.forEach(function (key) {
+                          if (key.indexOf('skoolmate-') === 0) {
+                            caches.delete(key);
+                          }
+                        });
+                      }).catch(function () {});
+                    }
+                  } catch (e) {}
+                })();
+              `,
+            }}
+          />
+        )}
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-[var(--navy)] focus:text-white focus:rounded-lg"

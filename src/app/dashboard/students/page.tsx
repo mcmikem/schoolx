@@ -1,6 +1,6 @@
 "use client";
-import { useState, useMemo, useEffect, useRef } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
 import { useStudents, useClasses } from "@/lib/hooks";
@@ -95,12 +95,18 @@ export default function StudentHubPage() {
   const { academicYear, currentTerm } = useAcademic();
   const toast = useToast();
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
 
   const { preferences: tablePrefs, updatePreferences: updateTablePrefs } =
     useTablePreferences("students-registry");
 
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = tablePrefs.pageSize || 50;
+  const [isConstrainedNetwork, setIsConstrainedNetwork] = useState(false);
+  const preferredPageSize = tablePrefs.pageSize || (isConstrainedNetwork ? 20 : 50);
+  const itemsPerPage = isConstrainedNetwork
+    ? Math.min(preferredPageSize, 20)
+    : preferredPageSize;
   const offset = (currentPage - 1) * itemsPerPage;
 
   const {
@@ -114,6 +120,18 @@ export default function StudentHubPage() {
   const { classes } = useClasses(school?.id);
 
   const [activeTab, setActiveTab] = useState<StudentWorkspaceTab>("registry");
+
+  const handleTabChange = useCallback((tab: StudentWorkspaceTab) => {
+    setActiveTab(tab);
+    const params = new URLSearchParams(searchParams?.toString() || "");
+    if (tab === "registry") {
+      params.delete("tab");
+    } else {
+      params.set("tab", tab);
+    }
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname);
+  }, [pathname, router, searchParams]);
 
   const transfers = useStudentTransfers(
     school?.id, students, isDemo, createStudent, updateStudent, toast,
@@ -150,7 +168,40 @@ export default function StudentHubPage() {
   const templateImport = useStudentImport(classes, createStudent, toast);
 
   useEffect(() => {
+    if (typeof navigator === "undefined") return;
+
+    const nav = navigator as Navigator & {
+      connection?: {
+        effectiveType?: string;
+        saveData?: boolean;
+        addEventListener?: (type: string, listener: () => void) => void;
+        removeEventListener?: (type: string, listener: () => void) => void;
+      };
+    };
+
+    const connection = nav.connection;
+    if (!connection) return;
+
+    const evaluateConnection = () => {
+      const type = (connection.effectiveType || "").toLowerCase();
+      const constrained = !!connection.saveData || type.includes("2g") || type.includes("3g");
+      setIsConstrainedNetwork(constrained);
+    };
+
+    evaluateConnection();
+    connection.addEventListener?.("change", evaluateConnection);
+    return () => connection.removeEventListener?.("change", evaluateConnection);
+  }, []);
+
+  useEffect(() => {
     if (searchParams?.get("action") === "add") setShowAddModal(true);
+  }, [searchParams]);
+
+  useEffect(() => {
+    const tab = searchParams?.get("tab");
+    if (tab === "registry" || tab === "transfers" || tab === "dropouts" || tab === "promotion") {
+      setActiveTab(tab);
+    }
   }, [searchParams]);
 
   useEffect(() => {
@@ -261,7 +312,7 @@ export default function StudentHubPage() {
     sortBy,
   ]);
 
-  const pageSize = tablePrefs.pageSize || 50;
+  const pageSize = itemsPerPage;
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
 
   useEffect(() => {
@@ -389,7 +440,7 @@ export default function StudentHubPage() {
           atRiskCount={dropouts.atRiskCount}
           likelyDropoutCount={dropouts.likelyDropoutCount}
           activeTab={activeTab}
-          onTabChange={setActiveTab}
+          onTabChange={handleTabChange}
           onImport={() => setShowBulkImportModal(true)}
           onAddStudent={() => setShowAddModal(true)}
           onGeneratePle={generatePLEIndexNumbers}
@@ -405,6 +456,7 @@ export default function StudentHubPage() {
             classesCount={classes.length}
             classes={classes}
             houseMap={houseMap}
+            lowBandwidthMode={isConstrainedNetwork}
             {...templateImport}
             searchInputRef={searchInputRef}
             searchTerm={searchTerm}
@@ -482,6 +534,7 @@ export default function StudentHubPage() {
 
         <TabPanel activeTab={activeTab} tabId="transfers">
           <StudentTransfersPanel
+            lowBandwidthMode={isConstrainedNetwork}
             activeStudents={transfers.activeStudents}
             transferredIn={transfers.transferredIn}
             transferredInCount={transfers.transferredInCount}
@@ -515,6 +568,7 @@ export default function StudentHubPage() {
 
         <TabPanel activeTab={activeTab} tabId="dropouts">
           <StudentRetentionPanel
+            lowBandwidthMode={isConstrainedNetwork}
             atRiskCount={dropouts.atRiskCount}
             likelyDropoutCount={dropouts.likelyDropoutCount}
             activeStudentsCount={
@@ -541,6 +595,7 @@ export default function StudentHubPage() {
 
         <TabPanel activeTab={activeTab} tabId="promotion">
           <StudentPromotionPanel
+            lowBandwidthMode={isConstrainedNetwork}
             onAutoPromote={promotion.handleAutoPromote}
             autoPromoting={promotion.autoPromoting}
             autoPromoteResult={promotion.autoPromoteResult}

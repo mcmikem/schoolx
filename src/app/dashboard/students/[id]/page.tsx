@@ -69,7 +69,7 @@ type GradeRecord = {
   subjects?: { name: string | null } | { name: string | null }[] | null;
 };
 
-function useStudentData(studentId: string, isDemo: boolean) {
+function useStudentData(studentId: string, isDemo: boolean, isConstrainedNetwork: boolean) {
   const [attendancePct, setAttendancePct] = useState(0);
   const [feePosition, setFeePosition] = useState({ paid: 0, total: 0 });
   const [gradeHistory, setGradeHistory] = useState<
@@ -122,7 +122,9 @@ function useStudentData(studentId: string, isDemo: boolean) {
           supabase
             .from("attendance")
             .select("status, date")
-            .eq("student_id", studentId),
+            .eq("student_id", studentId)
+            .order("date", { ascending: false })
+            .limit(isConstrainedNetwork ? 45 : 180),
           supabase
             .from("student_fees")
             .select("amount_paid, total_fees")
@@ -131,7 +133,8 @@ function useStudentData(studentId: string, isDemo: boolean) {
           supabase
             .from("grades")
             .select("subject_id, score, term, subjects(name)")
-            .eq("student_id", studentId),
+            .eq("student_id", studentId)
+            .limit(isConstrainedNetwork ? 24 : 120),
         ]);
 
         if (attendanceError) throw attendanceError;
@@ -148,7 +151,7 @@ function useStudentData(studentId: string, isDemo: boolean) {
             ? Math.round((present / safeAttendance.length) * 100)
             : 0,
         );
-        setAttendanceRecords(safeAttendance);
+        setAttendanceRecords([...safeAttendance].reverse());
 
         setFeePosition({
           paid: Number(feeData?.amount_paid || 0),
@@ -212,7 +215,7 @@ function useStudentData(studentId: string, isDemo: boolean) {
     return () => {
       cancelled = true;
     };
-  }, [studentId, isDemo]);
+  }, [studentId, isDemo, isConstrainedNetwork]);
 
   return {
     attendancePct,
@@ -498,6 +501,34 @@ export default function StudentProfilePage() {
   const params = useParams<{ id: string }>();
   const studentId = params?.id || "";
   const { isDemo, school } = useAuth();
+  const [isConstrainedNetwork, setIsConstrainedNetwork] = useState(false);
+
+  useEffect(() => {
+    if (typeof navigator === "undefined") return;
+
+    const nav = navigator as Navigator & {
+      connection?: {
+        effectiveType?: string;
+        saveData?: boolean;
+        addEventListener?: (type: string, listener: () => void) => void;
+        removeEventListener?: (type: string, listener: () => void) => void;
+      };
+    };
+
+    const connection = nav.connection;
+    if (!connection) return;
+
+    const evaluateConnection = () => {
+      const type = (connection.effectiveType || "").toLowerCase();
+      const constrained = !!connection.saveData || type.includes("2g") || type.includes("3g");
+      setIsConstrainedNetwork(constrained);
+    };
+
+    evaluateConnection();
+    connection.addEventListener?.("change", evaluateConnection);
+    return () => connection.removeEventListener?.("change", evaluateConnection);
+  }, []);
+
   const toast = useToast();
   const router = useRouter();
   const { student, loading: studentLoading, error, refetch } = useStudent(studentId);
@@ -525,7 +556,7 @@ export default function StudentProfilePage() {
     attendanceRecords,
     detailsLoading,
     detailsError,
-  } = useStudentData(analyticsStudentId, isDemo);
+  } = useStudentData(analyticsStudentId, isDemo, isConstrainedNetwork);
 
   const [activeTab, setActiveTab] = useState("overview");
   const [smsOpen, setSmsOpen] = useState(false);
@@ -579,6 +610,11 @@ export default function StudentProfilePage() {
   return (
     <PageErrorBoundary>
       <div className="space-y-6">
+                {isConstrainedNetwork && (
+                  <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200">
+                    Data saver mode is active. This profile is showing lightweight analytics for faster loading.
+                  </div>
+                )}
         {detailsError && (
           <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200">
             Some student analytics could not be loaded: {detailsError}
@@ -669,9 +705,15 @@ export default function StudentProfilePage() {
             ) : (
               <>
                 <AttendanceRing percentage={attendancePct} />
-                <div className="mt-4">
-                  <AttendanceHeatmap records={attendanceRecords} isDemo={isDemo} />
-                </div>
+                {!isConstrainedNetwork ? (
+                  <div className="mt-4">
+                    <AttendanceHeatmap records={attendanceRecords} isDemo={isDemo} />
+                  </div>
+                ) : (
+                  <div className="mt-4 rounded-xl bg-gray-50 p-3 text-xs text-gray-600 dark:bg-gray-700/40 dark:text-gray-300">
+                    Heatmap hidden to reduce data and rendering costs on slower connections.
+                  </div>
+                )}
               </>
             )}
           </div>
@@ -703,7 +745,13 @@ export default function StudentProfilePage() {
             {detailsLoading ? (
               <Skeleton className="h-48 w-full rounded-2xl" />
             ) : gradeHistory.length > 0 ? (
-              <GradeSparkline data={gradeHistory} />
+              !isConstrainedNetwork ? (
+                <GradeSparkline data={gradeHistory} />
+              ) : (
+                <div className="rounded-xl bg-blue-50 px-3 py-3 text-sm text-blue-800 dark:bg-blue-950/40 dark:text-blue-200">
+                  Current average: {latestGrade}%
+                </div>
+              )
             ) : (
               <p className="text-sm text-[var(--t3)]">No grade history yet.</p>
             )}

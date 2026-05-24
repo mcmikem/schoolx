@@ -53,6 +53,23 @@ function ServiceWorkerRegistration({ children }: { children: ReactNode }) {
   useEffect(() => {
     setupErrorLogging()
     if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      const shouldDisableServiceWorker = process.env.NODE_ENV !== 'production' || isLocalhost
+
+      if (shouldDisableServiceWorker) {
+        navigator.serviceWorker.getRegistrations()
+          .then((registrations) => Promise.all(registrations.map((registration) => registration.unregister())))
+          .catch(() => {})
+
+        if ('caches' in window) {
+          caches.keys()
+            .then((keys) => Promise.all(keys.filter((key) => key.startsWith('skoolmate-')).map((key) => caches.delete(key))))
+            .catch(() => {})
+        }
+
+        return
+      }
+
       const authRoutePattern = /^\/(login|register|forgot-password)(\/|$)/
       const shouldForceAuthRouteUpdate = authRoutePattern.test(window.location.pathname)
       let hasReloadedForUpdate = false

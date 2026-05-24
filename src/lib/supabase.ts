@@ -1,9 +1,10 @@
-import { SupabaseClient } from "@supabase/supabase-js";
-import { createBrowserClient } from "@supabase/ssr";
+import { SupabaseClient, createClient } from "@supabase/supabase-js";
 import { logger } from "@/lib/logger";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseKey =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 const allowMockClient =
   process.env.NODE_ENV !== "production" ||
   process.env.ALLOW_SUPABASE_MOCK === "true";
@@ -25,9 +26,12 @@ const isValidAnonKey = (key?: string) => {
 };
 
 const hasUsableSupabaseConfig =
-  isValidHttpUrl(supabaseUrl) && isValidAnonKey(supabaseAnonKey);
-const SESSION_COOKIE_LIFETIME = 60 * 60 * 24 * 30; // 30 days
+  isValidHttpUrl(supabaseUrl) && isValidAnonKey(supabaseKey);
 const REMEMBER_SESSION_KEY = "remember_session";
+
+declare global {
+  var __skoolmateSupabaseClient: SupabaseClient | undefined;
+}
 
 const browserAuthStorage = {
   getItem(key: string): string | null {
@@ -111,7 +115,7 @@ const createMockClient = (): SupabaseClient => {
     logger.warn(
       "[Supabase] WARNING: Using mock Supabase client. " +
       "Data operations will silently return empty results. " +
-      "Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY for real data.",
+      "Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY (or NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) for real data.",
     );
   }
   const mock = {
@@ -146,7 +150,7 @@ const createMockClient = (): SupabaseClient => {
 const createUnavailableClient = (): SupabaseClient => {
   const error = () =>
     new Error(
-      "Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY, or explicitly enable ALLOW_SUPABASE_MOCK for non-production demo use.",
+      "Supabase is not configured. Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY (or NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY), or explicitly enable ALLOW_SUPABASE_MOCK for non-production demo use.",
     );
 
   const throwUnavailable = async () => {
@@ -219,19 +223,21 @@ if (!hasUsableSupabaseConfig && process.env.NODE_ENV === "production") {
   // rather than rendering a user-friendly configuration page.
   logger.error(
     "[Supabase] CRITICAL: Supabase configuration missing/invalid. " +
-      "Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY.",
+    "Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY (or NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY).",
   );
 }
 
-const realClient = hasUsableSupabaseConfig
-  ? createBrowserClient(supabaseUrl as string, supabaseAnonKey as string, {
+let realClient: SupabaseClient | null = null;
+
+if (hasUsableSupabaseConfig) {
+  if (typeof window !== "undefined" && globalThis.__skoolmateSupabaseClient) {
+    realClient = globalThis.__skoolmateSupabaseClient;
+  } else {
+    realClient = createClient(supabaseUrl as string, supabaseKey as string, {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
         storage: browserAuthStorage,
-      },
-      cookieOptions: {
-        maxAge: SESSION_COOKIE_LIFETIME,
       },
       // CRITICAL: Must be false. When true (default), Supabase extracts auth
       // tokens from URL fragments on every page load. If the URL contains a
@@ -241,8 +247,13 @@ const realClient = hasUsableSupabaseConfig
       // detectSessionInUrl is removed - not a valid option in this Supabase version.
       // Browser-side fragment-based session detection is handled by the client by default.
       // We rely on cookie-based auth to avoid the stale-token overwrite issue.
-    })
-  : null;
+    });
+
+    if (typeof window !== "undefined") {
+      globalThis.__skoolmateSupabaseClient = realClient;
+    }
+  }
+}
 
 // Debug output
 export const supabase =
