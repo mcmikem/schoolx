@@ -328,7 +328,7 @@ export default function TopBar({
           if (isOpen) closeSidebar();
           else openSidebar();
         }}
-        className="bg-transparent border-none cursor-pointer p-1.5 w-9 h-9 flex items-center justify-center rounded-lg hover:bg-[var(--bg)] transition-colors shrink-0"
+        className="bg-transparent border-none cursor-pointer p-1.5 w-9 h-9 flex items-center justify-center rounded-lg hover:bg-[var(--bg)] transition-colors shrink-0 xl:hidden"
         aria-label="Toggle sidebar"
         aria-expanded={isOpen}
         aria-controls="dashboard-sidebar"

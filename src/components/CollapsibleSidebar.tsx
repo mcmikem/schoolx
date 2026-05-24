@@ -9,9 +9,10 @@ import { cn } from '@/lib/utils'
 interface CollapsibleSidebarProps {
   groups: readonly NavGroup[]
   onNavigate?: () => void
+  compact?: boolean
 }
 
-export default function CollapsibleSidebar({ groups, onNavigate }: CollapsibleSidebarProps) {
+export default function CollapsibleSidebar({ groups, onNavigate, compact = false }: CollapsibleSidebarProps) {
   const pathname = usePathname()
   const path = pathname ?? ''
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({})
@@ -75,6 +76,45 @@ export default function CollapsibleSidebar({ groups, onNavigate }: CollapsibleSi
     const updated = [{ href, label, icon }, ...recentPages.filter(p => p.href !== href)].slice(0, 4)
     setRecentPages(updated)
     localStorage.setItem('skoolmate_recent_pages', JSON.stringify(updated))
+  }
+
+  if (compact) {
+    return (
+      <nav className="sidebar-nav overflow-y-auto flex-1 px-2 py-3" role="navigation" aria-label="Main navigation">
+        <div className="space-y-2">
+          {groups.map((group) => {
+            const groupIcon = group.icon || group.items[0]?.icon || 'dashboard'
+            const groupHref = group.items[0]?.href || '/dashboard'
+            const hasActive = group.items.some(item => item.href === activeHref)
+
+            return (
+              <Link
+                key={group.label}
+                href={groupHref}
+                title={group.label}
+                onClick={() => {
+                  const firstItem = group.items[0]
+                  if (firstItem) {
+                    trackRecentPage(firstItem.href, firstItem.label, firstItem.icon)
+                  }
+                  onNavigate?.()
+                }}
+                className={cn(
+                  "mx-auto flex h-11 w-11 items-center justify-center rounded-xl border transition-all",
+                  hasActive
+                    ? "border-[var(--primary)] bg-[var(--primary)] text-white shadow-[0_10px_20px_rgba(0,92,230,0.18)]"
+                    : "border-[var(--border)] bg-white text-[var(--t3)] hover:bg-[var(--surface-container-low)] hover:text-[var(--t2)]"
+                )}
+                aria-label={group.label}
+                aria-current={hasActive ? 'page' : undefined}
+              >
+                <MaterialIcon icon={groupIcon} className="text-[18px]" />
+              </Link>
+            )
+          })}
+        </div>
+      </nav>
+    )
   }
 
   return (

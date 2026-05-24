@@ -27,6 +27,7 @@ html {
 
   /* Light Theme - Surface & Background */
   --sidebar-width: 264px;
+  --sidebar-collapsed-width: 74px;
   --logo-size: 36px;
   --shell-max-width: 1680px;
   --topbar-height: 56px;
@@ -1124,14 +1125,26 @@ table tr {
 /* Desktop: sidebar overlays content, no backdrop overlay */
 @media (min-width: 1280px) {
   .sidebar {
-    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+    transform: translateX(0) !important;
+    pointer-events: auto !important;
+    opacity: 1 !important;
+    transition: width 220ms var(--ease), box-shadow 220ms var(--ease);
+  }
+  .sidebar.desktop-rail {
+    width: var(--sidebar-collapsed-width) !important;
+    min-width: var(--sidebar-collapsed-width) !important;
+  }
+  .sidebar.desktop-rail.rail-expanded {
+    width: var(--sidebar-width) !important;
+    min-width: var(--sidebar-width) !important;
+    box-shadow: 0 20px 40px rgba(2, 24, 43, 0.14);
   }
   .sidebar:not(.open) + .sidebar-overlay {
     display: none !important;
   }
   .main-content {
-    margin-left: 0 !important;
-    width: 100% !important;
+    margin-left: var(--sidebar-collapsed-width) !important;
+    width: calc(100% - var(--sidebar-collapsed-width)) !important;
   }
   .sidebar-close-btn {
     display: flex !important;

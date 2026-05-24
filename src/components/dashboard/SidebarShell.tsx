@@ -11,6 +11,7 @@ import { MODULE_FOR_ROUTE, roleBasedRoutes } from "@/components/dashboard/Access
 import MaterialIcon from "@/components/MaterialIcon";
 import { useSidebar } from "@/contexts/SidebarContext";
 import { APP_NAME } from "@/lib/app-name";
+import { useEffect, useState } from "react";
 
 const ROUTE_TO_MODULE: Record<string, ModuleKey> = {};
 for (const [route, mod] of Object.entries(MODULE_FOR_ROUTE)) {
@@ -77,6 +78,21 @@ export default function SidebarShell({
   const { user, school } = useAuth();
   const { currentTerm } = useAcademic();
   const { isOpen, close } = useSidebar();
+  const [isDesktop, setIsDesktop] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [isPinnedOpen, setIsPinnedOpen] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const checkDesktop = () => setIsDesktop(window.innerWidth >= 1280);
+    checkDesktop();
+    window.addEventListener("resize", checkDesktop);
+    return () => window.removeEventListener("resize", checkDesktop);
+  }, []);
+
+  const showExpanded = !isDesktop ? isOpen : isHovered || isPinnedOpen;
+  const isVisible = isDesktop || isOpen;
   const rawGroups = user?.role ? getNavigationForRole(user.role) : [];
   const navigationGroups = filterGroupsByFeatureStage(
     rawGroups,
@@ -86,10 +102,24 @@ export default function SidebarShell({
 
   const schoolName = school?.name || "My School";
 
-  const sidebarClasses = `sidebar bg-[var(--surface)] border-r border-[var(--border)] w-[var(--sidebar-width)] min-w-[var(--sidebar-width)] flex flex-col fixed top-0 left-0 bottom-0 z-100 shadow-[var(--sh2)] ${isOpen ? "open" : ""}`;
+  const sidebarClasses = [
+    "sidebar bg-[var(--surface)] border-r border-[var(--border)] flex flex-col fixed top-0 left-0 bottom-0 z-100 shadow-[var(--sh2)]",
+    isVisible ? "open" : "",
+    isDesktop ? "desktop-rail" : "",
+    isDesktop && showExpanded ? "rail-expanded" : "",
+  ].join(" ");
 
   return (
-    <aside id="dashboard-sidebar" className={sidebarClasses}>
+    <aside
+      id="dashboard-sidebar"
+      className={sidebarClasses}
+      onMouseEnter={() => {
+        if (isDesktop) setIsHovered(true);
+      }}
+      onMouseLeave={() => {
+        if (isDesktop) setIsHovered(false);
+      }}
+    >
       <div className="sidebar-brand-header">
         <div className="flex items-center gap-2.5 mb-0.5">
           <div className="w-9 h-9 rounded-xl bg-white/15 flex items-center justify-center flex-shrink-0 ring-1 ring-white/20">
@@ -111,34 +141,57 @@ export default function SidebarShell({
               />
             )}
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="font-['Sora'] text-[14px] font-bold text-white tracking-[-.15px] leading-tight truncate">
-              {schoolName}
+          {showExpanded && (
+            <div className="flex-1 min-w-0">
+              <div className="font-['Sora'] text-[14px] font-bold text-white tracking-[-.15px] leading-tight truncate">
+                {schoolName}
+              </div>
+              <div className="text-[11px] text-white/55 mt-0.5 flex items-center gap-1.5">
+                <span className="inline-block w-[5px] h-[5px] rounded-full bg-[var(--green)] flex-shrink-0" />
+                {user?.role?.replace("_", " ") || "User"}
+                {currentTerm ? ` · Term ${currentTerm}` : ""}
+              </div>
             </div>
-            <div className="text-[11px] text-white/55 mt-0.5 flex items-center gap-1.5">
-              <span className="inline-block w-[5px] h-[5px] rounded-full bg-[var(--green)] flex-shrink-0" />
-              {user?.role?.replace("_", " ") || "User"}
-              {currentTerm ? ` · Term ${currentTerm}` : ""}
-            </div>
-          </div>
-          <button
-            onClick={() => close()}
-            className="w-8 h-8 rounded-lg border-none bg-white/10 hover:bg-white/20 cursor-pointer items-center justify-center transition-colors flex"
-            aria-label="Close sidebar"
-          >
-            <MaterialIcon
-              icon="close"
-              style={{ fontSize: 18, color: "rgba(255,255,255,0.8)" }}
-            />
-          </button>
+          )}
+          {!isDesktop && (
+            <button
+              onClick={() => close()}
+              className="w-8 h-8 rounded-lg border-none bg-white/10 hover:bg-white/20 cursor-pointer items-center justify-center transition-colors flex"
+              aria-label="Close sidebar"
+            >
+              <MaterialIcon
+                icon="close"
+                style={{ fontSize: 18, color: "rgba(255,255,255,0.8)" }}
+              />
+            </button>
+          )}
+          {isDesktop && (
+            <button
+              onClick={() => setIsPinnedOpen((prev) => !prev)}
+              className="w-8 h-8 rounded-lg border-none bg-white/10 hover:bg-white/20 cursor-pointer items-center justify-center transition-colors flex"
+              aria-label={isPinnedOpen ? "Collapse sidebar" : "Pin sidebar open"}
+              title={isPinnedOpen ? "Collapse" : "Pin open"}
+            >
+              <MaterialIcon
+                icon={isPinnedOpen ? "left_panel_close" : "left_panel_open"}
+                style={{ fontSize: 18, color: "rgba(255,255,255,0.85)" }}
+              />
+            </button>
+          )}
         </div>
       </div>
 
-      <CollapsibleSidebar groups={navigationGroups} onNavigate={onNavigate} />
+      <CollapsibleSidebar
+        groups={navigationGroups}
+        onNavigate={onNavigate}
+        compact={isDesktop && !showExpanded}
+      />
 
-      <div className="px-4 py-3 border-t border-[var(--border)]">
-        <SyncStatus />
-      </div>
+      {showExpanded && (
+        <div className="px-4 py-3 border-t border-[var(--border)]">
+          <SyncStatus />
+        </div>
+      )}
     </aside>
   );
 }
