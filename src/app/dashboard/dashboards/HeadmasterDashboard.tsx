@@ -50,6 +50,7 @@ function HeadmasterDashboardContent() {
   const { feeStructure = [] } = useFeeStructure(school?.id);
   const { classes = [] } = useClasses(school?.id);
   const { staff = [] } = useStaff(school?.id);
+  const [loadingTimedOut, setLoadingTimedOut] = useState(false);
 
   const {
     classAttendance,
@@ -374,8 +375,19 @@ function HeadmasterDashboardContent() {
   const pendingTaskCount = tasks.filter((task) => !task.done).length;
 
   const isDataLoading = statsLoading || loadingExtra;
+  
+  useEffect(() => {
+    if (!isDataLoading) {
+      setLoadingTimedOut(false);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      setLoadingTimedOut(true);
+    }, 12000);
+    return () => window.clearTimeout(timer);
+  }, [isDataLoading]);
 
-  if (isDataLoading) {
+  if (isDataLoading && !loadingTimedOut) {
     return (
       <div className="min-h-screen bg-[var(--bg)] flex flex-col">
         <TopLoadingBar />

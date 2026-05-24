@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { DashboardSkeleton } from "@/components/Skeletons";
@@ -125,6 +125,7 @@ function DormMasterDashboard() {
 export default function DashboardRouter() {
   const { user, school, loading, authInitialized } = useAuth();
   const router = useRouter();
+  const [loadingTimedOut, setLoadingTimedOut] = useState(false);
 
   const requiresSetup =
     !!user &&
@@ -141,7 +142,19 @@ export default function DashboardRouter() {
     return () => window.clearTimeout(redirectTimer);
   }, [authInitialized, requiresSetup, router]);
 
-  if (loading) {
+  useEffect(() => {
+    if (!loading) {
+      setLoadingTimedOut(false);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      setLoadingTimedOut(true);
+      logger.warn("[DashboardRouter] loading timed out, continuing with best available state");
+    }, 12000);
+    return () => window.clearTimeout(timer);
+  }, [loading]);
+
+  if (loading && !loadingTimedOut) {
     return <DashboardSkeleton />;
   }
 

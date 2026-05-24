@@ -10,7 +10,7 @@ import {
   useDashboardStats,
 } from "@/lib/hooks";
 import { withTimeout } from "@/lib/hooks/utils";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import {
   buildDefaultClasses,
@@ -36,7 +36,19 @@ function TeacherDashboardContent() {
   const { subjects, loading: subjectsLoading } = useSubjects(school?.id);
   const { stats, loading: statsLoading } = useDashboardStats(school?.id);
   const [settingUp, setSettingUp] = useState(false);
+  const [loadingTimedOut, setLoadingTimedOut] = useState(false);
   const dataLoading = studentsLoading || classesLoading || subjectsLoading || statsLoading;
+
+  useEffect(() => {
+    if (!dataLoading) {
+      setLoadingTimedOut(false);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      setLoadingTimedOut(true);
+    }, 12000);
+    return () => window.clearTimeout(timer);
+  }, [dataLoading]);
 
   const currentDate = new Date();
   const greeting =
@@ -93,7 +105,7 @@ function TeacherDashboardContent() {
     },
   ];
 
-  if (dataLoading) {
+  if (dataLoading && !loadingTimedOut) {
     return (
       <div className="min-h-screen bg-[var(--bg)] flex flex-col">
         <TopLoadingBar />
