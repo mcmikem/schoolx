@@ -157,6 +157,9 @@ export default function CalendarPage() {
   const filteredMonthEvents = monthEvents.filter((evt) => typeFilter === 'all' || evt.event_type === typeFilter)
   const sortedMonthEvents = [...filteredMonthEvents].sort((a, b) => a.start_date.localeCompare(b.start_date))
   const featuredEvent = sortedMonthEvents[0]
+  const upcomingEvent = [...events]
+    .filter((evt) => evt.start_date >= todayKey)
+    .sort((a, b) => a.start_date.localeCompare(b.start_date))[0]
 
   const activeDate = selectedDate
   const selectedDateEvents = getEventsForDate(activeDate)
@@ -178,6 +181,26 @@ export default function CalendarPage() {
       events: getEventsForDate(dateKey).slice(0, 4),
     }
   })
+
+  const weekEventCount = weekColumns.reduce((total, col) => total + col.events.length, 0)
+
+  const statCards = [
+    {
+      label: 'This month',
+      value: String(filteredMonthEvents.length),
+      note: typeFilter === 'all' ? 'All event types' : `${typeFilter} only`,
+    },
+    {
+      label: 'This week',
+      value: String(weekEventCount),
+      note: 'Visible on week board',
+    },
+    {
+      label: 'Next up',
+      value: upcomingEvent ? new Date(upcomingEvent.start_date).toLocaleDateString('en-UG', { month: 'short', day: 'numeric' }) : 'None',
+      note: upcomingEvent?.title || 'No future events',
+    },
+  ]
 
   return (
     <PageErrorBoundary>
@@ -327,6 +350,19 @@ export default function CalendarPage() {
                     })}
                   </div>
                 </div>
+
+                <div className="rounded-2xl border border-[#d7e6ea] bg-[#f8fcfd] p-4">
+                  <h3 className="text-sm font-bold text-[#243f4f]">Snapshot</h3>
+                  <div className="mt-3 space-y-2">
+                    {statCards.map((stat) => (
+                      <div key={stat.label} className="rounded-xl border border-[#e0ecef] bg-white px-3 py-2">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#78909c]">{stat.label}</p>
+                        <p className="mt-1 text-base font-semibold text-[#1f3949]">{stat.value}</p>
+                        <p className="mt-0.5 truncate text-xs text-[#7a909d]">{stat.note}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </aside>
 
               <section className="rounded-[22px] border border-[#d4e3e7] bg-white/90 p-4 sm:p-5">
@@ -389,10 +425,12 @@ export default function CalendarPage() {
                       <p className="text-sm text-[#7b919d]">No events on this date.</p>
                     ) : (
                       selectedDateEvents.map((event) => (
-                        <div key={`selected-${event.id}`} className="flex items-center justify-between rounded-lg bg-white px-3 py-2">
-                          <div>
-                            <p className="text-sm font-semibold text-[#243f4f]">{event.title}</p>
-                            <p className="text-[11px] capitalize text-[#748b98]">{event.event_type}</p>
+                        <div key={`selected-${event.id}`} className="flex items-center justify-between rounded-lg border border-[#e3edf0] bg-white px-3 py-2">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-[#243f4f]">{event.title}</p>
+                            <p className="text-[11px] capitalize text-[#748b98]">
+                              {event.event_type} • {new Date(event.start_date).toLocaleDateString('en-UG', { month: 'short', day: 'numeric' })}
+                            </p>
                           </div>
                           <Button variant="ghost" size="sm" onClick={() => setPendingDeleteId(event.id)}>
                             <MaterialIcon icon="close" style={{ fontSize: 16 }} />

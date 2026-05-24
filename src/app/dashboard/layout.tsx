@@ -218,6 +218,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       currentPath.startsWith("/dashboard/fees") ||
       currentPath.startsWith("/dashboard/payment-plans"),
   );
+  const isDashboardHome = currentPath === "/dashboard" || currentPath === "/dashboard/";
 
   const schoolData = (school as unknown as Record<string, unknown>) || null;
   const hasOperationalStudentData =
@@ -259,12 +260,18 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       school &&
       !onboardingCompleted &&
       user?.role === "school_admin" &&
-      !isBillingPath
+      !isBillingPath &&
+      isDashboardHome
     ) {
       // Required setup cannot be dismissed.
       setShowOnboarding(true);
       setShowPostSetup(false);
-    } else if (school && onboardingCompleted && user?.role === "school_admin") {
+    } else if (
+      school &&
+      onboardingCompleted &&
+      user?.role === "school_admin" &&
+      isDashboardHome
+    ) {
       setShowOnboarding(false);
 
       // Only auto-open the post-setup panel once per browser session.
@@ -285,7 +292,12 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     }
 
     // Show go-live gate once per session for school_admins who completed onboarding
-    if (school && onboardingCompleted && user?.role === "school_admin") {
+    if (
+      school &&
+      onboardingCompleted &&
+      user?.role === "school_admin" &&
+      isDashboardHome
+    ) {
       const goLiveKey = user?.id
         ? `golive_shown_${school.id}|${user.id}`
         : null;
@@ -305,7 +317,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPath, onboardingCompleted, user?.role, user?.id]);
+  }, [currentPath, isDashboardHome, onboardingCompleted, user?.role, user?.id]);
 
 // Show minimal loading bar while auth is initializing.
   if (!authInitialized) {
