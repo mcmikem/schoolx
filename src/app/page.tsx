@@ -59,8 +59,13 @@ export default function HomePage() {
   useEffect(() => {
     const isCapacitor =
       typeof window !== "undefined" && (window as any).Capacitor?.isNative;
-    if (isCapacitor) {
-      router.push("/login");
+    const isStandalone =
+      typeof window !== "undefined" &&
+      (window.matchMedia("(display-mode: standalone)").matches ||
+        (window.navigator as Navigator & { standalone?: boolean }).standalone ===
+          true);
+    if (isCapacitor || isStandalone) {
+      router.replace("/login");
     }
   }, [router]);
 

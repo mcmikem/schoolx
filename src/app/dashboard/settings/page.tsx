@@ -44,6 +44,10 @@ const ALL_SETTINGS_TABS = [
   { id: "subscription", label: "Billing & Plans", badge: "Active" },
 ];
 
+const ANDROID_APP_URL = process.env.NEXT_PUBLIC_ANDROID_APP_URL || "";
+const WINDOWS_APP_URL = process.env.NEXT_PUBLIC_WINDOWS_APP_URL || "";
+const MAC_APP_URL = process.env.NEXT_PUBLIC_MAC_APP_URL || "";
+
 const ROLE_TAB_ACCESS: Record<string, string[]> = {
   school_admin: ["general", "config", "users", "notifications", "checklist", "backup", "subscription"],
   admin: ["general", "config", "users", "notifications", "checklist", "backup", "subscription"],
@@ -83,6 +87,11 @@ export default function SettingsPage() {
   const [savingConfig, setSavingConfig] = useState(false);
   const [houses, setHouses] = useState<{ id: string; name: string; color: string; motto?: string | null }[]>([]);
   const [loadingHouses, setLoadingHouses] = useState(false);
+  const [isStandaloneApp, setIsStandaloneApp] = useState(false);
+  const [isNativeApp, setIsNativeApp] = useState(false);
+  const [checkingUpdates, setCheckingUpdates] = useState(false);
+  const [updateAvailable, setUpdateAvailable] = useState(false);
+  const [updateMessage, setUpdateMessage] = useState("Updates are checked automatically when the app opens.");
   const schoolType = school?.school_type || "primary";
 
   useEffect(() => {
@@ -110,6 +119,25 @@ export default function SettingsPage() {
 
   useEffect(() => { if (school?.feature_stage) setSelectedStage(school.feature_stage as FeatureStage); }, [school?.feature_stage]);
   useEffect(() => { if (school?.id) fetchSettings(); }, [school?.id, fetchSettings]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const standalone =
+      window.matchMedia("(display-mode: standalone)").matches ||
+      (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
+    const nativeApp = Boolean((window as Window & { Capacitor?: { isNative?: boolean } }).Capacitor?.isNative);
+
+    setIsStandaloneApp(standalone);
+    setIsNativeApp(nativeApp);
+
+    const handleSwUpdate = () => {
+      setUpdateAvailable(true);
+      setUpdateMessage("A newer version is ready. Click Update now to refresh.");
+    };
+
+    window.addEventListener("sw-update-available", handleSwUpdate);
+    return () => window.removeEventListener("sw-update-available", handleSwUpdate);
+  }, []);
 
   useEffect(() => {
     const plan = searchParams?.get("plan");
@@ -323,6 +351,75 @@ export default function SettingsPage() {
     } catch (err) { logger.error(err); toast.error("Photo export failed"); }
   };
 
+  const checkForAppUpdates = async () => {
+    if (typeof window === "undefined") return;
+    if (!("serviceWorker" in navigator)) {
+      setUpdateMessage("This browser does not support service worker updates.");
+      return;
+    }
+
+    setCheckingUpdates(true);
+    try {
+      const registration =
+        (await navigator.serviceWorker.getRegistration()) ||
+        (await navigator.serviceWorker.getRegistration("/"));
+
+      if (!registration) {
+        setUpdateMessage("Update service is not ready yet. Reload this page and try again.");
+        return;
+      }
+
+      await registration.update();
+
+      if (registration.waiting) {
+        setUpdateAvailable(true);
+        setUpdateMessage("A newer version is ready. Click Update now to apply.");
+        return;
+      }
+
+      setUpdateAvailable(false);
+      setUpdateMessage("You are already on the latest version.");
+    } catch (err: unknown) {
+      logger.error("Failed to check app updates:", err);
+      setUpdateMessage("Could not check for updates. Please try again in a moment.");
+    } finally {
+      setCheckingUpdates(false);
+    }
+  };
+
+  const applyAppUpdateNow = async () => {
+    if (typeof window === "undefined" || !("serviceWorker" in navigator)) return;
+    try {
+      const registration =
+        (await navigator.serviceWorker.getRegistration()) ||
+        (await navigator.serviceWorker.getRegistration("/"));
+
+      if (!registration?.waiting) {
+        setUpdateAvailable(false);
+        setUpdateMessage("No pending update found. You are on the latest version.");
+        return;
+      }
+
+      let refreshed = false;
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if (refreshed) return;
+        refreshed = true;
+        window.location.reload();
+      });
+
+      registration.waiting.postMessage({ type: "SKIP_WAITING" });
+      setUpdateMessage("Applying update...");
+
+      // Fallback refresh in case controllerchange is delayed.
+      setTimeout(() => {
+        if (!refreshed) window.location.reload();
+      }, 1500);
+    } catch (err: unknown) {
+      logger.error("Failed to apply app update:", err);
+      setUpdateMessage("Update failed to apply. Please reload and try again.");
+    }
+  };
+
   return (
     <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8">
@@ -398,6 +495,55 @@ export default function SettingsPage() {
 
       <TabPanel activeTab={activeTab} tabId="backup">
         <div className="space-y-6">
+          <Card>
+            <CardBody>
+              <h2 className="text-lg font-semibold text-[var(--on-surface)] mb-4">App Updates</h2>
+              <div className="space-y-4">
+                <div className="p-4 bg-[var(--surface-container-low)] rounded-xl border border-[var(--border)]">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                    <div>
+                      <div className="font-medium text-[var(--on-surface)]">
+                        {isStandaloneApp || isNativeApp ? "Installed App Update" : "Web App Update"}
+                      </div>
+                      <div className="text-sm text-[var(--t3)]">{updateMessage}</div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button variant="secondary" loading={checkingUpdates} onClick={checkForAppUpdates}>
+                        <MaterialIcon icon="refresh" className="text-lg" />
+                        Check for updates
+                      </Button>
+                      <Button onClick={applyAppUpdateNow} disabled={!updateAvailable}>
+                        <MaterialIcon icon="system_update" className="text-lg" />
+                        Update now
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-[var(--blue-soft)] rounded-xl border border-blue-200">
+                  <div className="flex items-start gap-3">
+                    <MaterialIcon icon="info" className="text-blue-600 mt-0.5" />
+                    <div className="text-sm text-blue-900">
+                      <p className="font-semibold">Using installed desktop/mobile builds?</p>
+                      <p className="mt-1">If your installed app does not auto-update, download the latest build below and reinstall. Your cloud data remains intact.</p>
+                    </div>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {ANDROID_APP_URL && (
+                      <a className="btn btn-secondary btn-sm" href={ANDROID_APP_URL} target="_blank" rel="noopener noreferrer">Android latest build</a>
+                    )}
+                    {WINDOWS_APP_URL && (
+                      <a className="btn btn-secondary btn-sm" href={WINDOWS_APP_URL} target="_blank" rel="noopener noreferrer">Windows latest build</a>
+                    )}
+                    {MAC_APP_URL && (
+                      <a className="btn btn-secondary btn-sm" href={MAC_APP_URL} target="_blank" rel="noopener noreferrer">macOS latest build</a>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </CardBody>
+          </Card>
+
           <Card>
             <CardBody>
               <h2 className="text-lg font-semibold text-[var(--on-surface)] mb-6">Data Backup</h2>

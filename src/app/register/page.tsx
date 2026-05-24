@@ -51,6 +51,9 @@ const DISTRICT_OPTIONS = [
   ...getDistrictOptions(),
 ];
 
+const SUPPORT_PHONE = "+256700000000";
+const SUPPORT_WHATSAPP_URL = "https://wa.me/256700000000";
+
 // Package is always defaulted to starter at registration; user upgrades later
 
 export default function RegisterPage() {
@@ -61,6 +64,8 @@ export default function RegisterPage() {
   const [apiError, setApiError] = useState("");
   const [manualLocationEntry, setManualLocationEntry] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [showAdvancedSchoolDetails, setShowAdvancedSchoolDetails] = useState(false);
+  const [showOptionalContacts, setShowOptionalContacts] = useState(false);
 
   const googleRegisterMode = searchParams?.get("oauth") === "1";
 
@@ -196,6 +201,14 @@ export default function RegisterPage() {
     if (newStep === 2 && !validateStep1()) return;
     if (newStep === 3 && !validateStep2()) return;
     setStep(newStep);
+  };
+
+  const useSuggestedPassword = () => {
+    const firstName = form.adminName.trim().split(" ")[0] || "School";
+    const normalized = firstName.replace(/[^a-zA-Z]/g, "") || "School";
+    const suggestedPassword = `${normalized}2026A`;
+    updateForm("password", suggestedPassword);
+    updateForm("confirmPassword", suggestedPassword);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -353,10 +366,11 @@ router.replace("/dashboard/");
               </div>
             </div>
             <h1 className="font-['Sora'] text-[30px] font-semibold tracking-[-0.03em] text-[#102341] mb-3">
-              Start your school account
+              Set up your school in a few simple steps
             </h1>
             <p className="text-[15px] leading-6 text-[#53657f] mb-4">
-              Join Uganda&apos;s leading school operating system
+              No technical skills needed. We guide you step by step, and you can
+              finish the basics in about 3 minutes.
             </p>
             <p className="text-sm text-[var(--t3)]">
               Already have an account?{" "}
@@ -381,6 +395,20 @@ router.replace("/dashboard/");
                 </Button>
               </div>
             )}
+
+            <div className="mt-4 rounded-xl border border-[var(--border)] bg-[var(--bg)] p-3 text-sm text-[var(--t2)]">
+              <p className="font-semibold text-[var(--t1)]">Need help while setting up?</p>
+              <p className="mt-1">Call {SUPPORT_PHONE} or message us on WhatsApp and we can guide you live.</p>
+              <a
+                href={SUPPORT_WHATSAPP_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 inline-flex items-center gap-1.5 text-[var(--primary)] font-semibold hover:underline"
+              >
+                <MaterialIcon icon="chat" className="text-base" />
+                Open WhatsApp support
+              </a>
+            </div>
           </div>
 
           <div className="mb-6">
@@ -406,6 +434,13 @@ router.replace("/dashboard/");
                 : step === 2
                   ? "Step 2 of 3 — Location"
                   : "Step 3 of 3 — Admin Account"}
+            </p>
+            <p className="mt-2 text-center text-xs text-[var(--t3)]">
+              {step === 1
+                ? "Start with your school name. Extra details can be added later."
+                : step === 2
+                  ? "Pick your district and sub-county. Use manual entry if needed."
+                  : "Create your login details. We recommend saving your password in a notebook."}
             </p>
           </div>
 
@@ -435,21 +470,39 @@ router.replace("/dashboard/");
                     onTouched={() => formValidation.markTouched("schoolName")}
                   />
 
-                  <Select
-                    label="School Type"
-                    options={SCHOOL_TYPE_OPTIONS}
-                    value={form.schoolType}
-                    onChange={(e) => updateForm("schoolType", e.target.value)}
-                    required
-                  />
+                  <p className="text-xs text-[var(--t3)] -mt-2">
+                    Example: St. Mary Primary School, Gulu High School, Bright Future Academy.
+                  </p>
 
-                  <Select
-                    label="Ownership"
-                    options={OWNERSHIP_OPTIONS}
-                    value={form.ownership}
-                    onChange={(e) => updateForm("ownership", e.target.value)}
-                    required
-                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowAdvancedSchoolDetails((prev) => !prev)}
+                    className="w-full text-left rounded-xl border border-[var(--border)] px-4 py-3 text-sm font-semibold text-[var(--t1)] hover:bg-[var(--bg)]"
+                  >
+                    {showAdvancedSchoolDetails
+                      ? "Hide advanced school details"
+                      : "Set school type and ownership (optional now)"}
+                  </button>
+
+                  {showAdvancedSchoolDetails && (
+                    <div className="space-y-4 rounded-xl border border-[var(--border)] p-4 bg-[var(--bg)]">
+                      <Select
+                        label="School Type"
+                        options={SCHOOL_TYPE_OPTIONS}
+                        value={form.schoolType}
+                        onChange={(e) => updateForm("schoolType", e.target.value)}
+                        required
+                      />
+
+                      <Select
+                        label="Ownership"
+                        options={OWNERSHIP_OPTIONS}
+                        value={form.ownership}
+                        onChange={(e) => updateForm("ownership", e.target.value)}
+                        required
+                      />
+                    </div>
+                  )}
 
                   <Button
                     type="button"
@@ -467,6 +520,11 @@ router.replace("/dashboard/");
 
               {step === 2 && (
                 <div className="space-y-5">
+                  <p className="text-sm text-[var(--t3)]">
+                    Select from common Uganda locations to reduce typing. If your area is missing,
+                    switch to manual entry.
+                  </p>
+
                   {!manualLocationEntry ? (
                     <Select
                       label="District"
@@ -632,28 +690,42 @@ router.replace("/dashboard/");
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <ValidatedInput
-                      label="School Phone (Optional)"
-                      type="tel"
-                      placeholder="0700000000"
-                      value={form.phone}
-                      onChange={(e) => updateForm("phone", e.target.value)}
-                      autoComplete="tel"
-                      error={formValidation.getFieldError("phone")}
-                      touched={formValidation.isTouched("phone")}
-                      onTouched={() => formValidation.markTouched("phone")}
-                    />
-                    <ValidatedInput
-                      label="School Email (Optional)"
-                      type="email"
-                      placeholder="school@email.com"
-                      value={form.email}
-                      onChange={(e) => updateForm("email", e.target.value)}
-                      autoComplete="email"
-                      error={formValidation.getFieldError("email")}
-                      touched={formValidation.isTouched("email")}
-                      onTouched={() => formValidation.markTouched("email")}
-                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowOptionalContacts((prev) => !prev)}
+                      className="sm:col-span-2 text-left rounded-xl border border-[var(--border)] px-4 py-3 text-sm font-semibold text-[var(--t1)] hover:bg-[var(--bg)]"
+                    >
+                      {showOptionalContacts
+                        ? "Hide optional school contacts"
+                        : "Add school phone and email (optional)"}
+                    </button>
+
+                    {showOptionalContacts && (
+                      <>
+                        <ValidatedInput
+                          label="School Phone (Optional)"
+                          type="tel"
+                          placeholder="0700000000"
+                          value={form.phone}
+                          onChange={(e) => updateForm("phone", e.target.value)}
+                          autoComplete="tel"
+                          error={formValidation.getFieldError("phone")}
+                          touched={formValidation.isTouched("phone")}
+                          onTouched={() => formValidation.markTouched("phone")}
+                        />
+                        <ValidatedInput
+                          label="School Email (Optional)"
+                          type="email"
+                          placeholder="school@email.com"
+                          value={form.email}
+                          onChange={(e) => updateForm("email", e.target.value)}
+                          autoComplete="email"
+                          error={formValidation.getFieldError("email")}
+                          touched={formValidation.isTouched("email")}
+                          onTouched={() => formValidation.markTouched("email")}
+                        />
+                      </>
+                    )}
                   </div>
 
                   <div className="flex gap-3">
@@ -720,6 +792,10 @@ router.replace("/dashboard/");
                     onTouched={() => formValidation.markTouched("adminPhone")}
                   />
 
+                  <p className="text-xs text-[var(--t3)] -mt-2">
+                    Use a number you always access. Example: 0700000000.
+                  </p>
+
                   {!googleRegisterMode && (
                     <>
                       <ValidatedInput
@@ -735,6 +811,14 @@ router.replace("/dashboard/");
                         touched={formValidation.isTouched("password")}
                         onTouched={() => formValidation.markTouched("password")}
                       />
+
+                      <button
+                        type="button"
+                        onClick={useSuggestedPassword}
+                        className="text-sm font-semibold text-[var(--primary)] hover:underline"
+                      >
+                        Use a suggested password for me
+                      </button>
 
                       <Input
                         label="Confirm Password"

@@ -2,7 +2,7 @@
   "name": "SkoolMate OS - School Management",
   "short_name": "SkoolMate OS",
   "description": "Your Digital School Partner - Complete school management for Ugandan schools",
-  "start_url": "/",
+  "start_url": "/login/",
   "display": "standalone",
   "background_color": "#001F3F",
   "theme_color": "#001F3F",

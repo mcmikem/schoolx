@@ -27,6 +27,44 @@ const isValidAnonKey = (key?: string) => {
 const hasUsableSupabaseConfig =
   isValidHttpUrl(supabaseUrl) && isValidAnonKey(supabaseAnonKey);
 const SESSION_COOKIE_LIFETIME = 60 * 60 * 24 * 30; // 30 days
+const REMEMBER_SESSION_KEY = "remember_session";
+
+const browserAuthStorage = {
+  getItem(key: string): string | null {
+    if (typeof window === "undefined") return null;
+    try {
+      const sessionValue = window.sessionStorage.getItem(key);
+      if (sessionValue !== null) return sessionValue;
+      return window.localStorage.getItem(key);
+    } catch {
+      return null;
+    }
+  },
+  setItem(key: string, value: string): void {
+    if (typeof window === "undefined") return;
+    try {
+      const shouldRemember = window.localStorage.getItem(REMEMBER_SESSION_KEY) !== "false";
+      if (shouldRemember) {
+        window.localStorage.setItem(key, value);
+        window.sessionStorage.removeItem(key);
+      } else {
+        window.sessionStorage.setItem(key, value);
+        window.localStorage.removeItem(key);
+      }
+    } catch {
+      // Ignore browser storage errors; Supabase will surface auth failures.
+    }
+  },
+  removeItem(key: string): void {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.removeItem(key);
+      window.sessionStorage.removeItem(key);
+    } catch {
+      // Ignore browser storage errors.
+    }
+  },
+};
 
 const createMockQueryBuilder = () => {
   const listResult = { data: [], error: null, count: 0 };
@@ -187,6 +225,11 @@ if (!hasUsableSupabaseConfig && process.env.NODE_ENV === "production") {
 
 const realClient = hasUsableSupabaseConfig
   ? createBrowserClient(supabaseUrl as string, supabaseAnonKey as string, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        storage: browserAuthStorage,
+      },
       cookieOptions: {
         maxAge: SESSION_COOKIE_LIFETIME,
       },

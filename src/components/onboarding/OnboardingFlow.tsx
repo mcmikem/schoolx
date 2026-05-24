@@ -1012,21 +1012,25 @@ export default function OnboardingFlow({
                   <OwlStage
                     eyebrow="Launch setup"
                     title={`Welcome to ${APP_NAME}`}
-                    description="The owl will walk you through school essentials, curriculum defaults, feature activation, and launch settings in one clear flow."
+                    description="We will guide you one step at a time. Most schools finish this setup in 10-15 minutes, and you can update anything later."
                     chips={[
-                      "School identity",
-                      "Curriculum defaults",
-                      "Launch-ready modules",
+                      "Simple school profile",
+                      "Ready-to-use curriculum",
+                      "Guided launch checklist",
                     ]}
                     className="mb-8"
                   />
+                  <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+                    <p className="font-semibold text-slate-900">Need a guided setup call?</p>
+                    <p className="mt-1">If this feels too technical, our team can help you complete setup by phone or WhatsApp.</p>
+                  </div>
                   <Button
                     variant="primary"
                     onClick={() => handleNext(2)}
                     className="w-max"
                     icon={<MaterialIcon icon="arrow_forward" />}
                   >
-                    Let&apos;s Begin
+                    Start Simple Setup
                   </Button>
                 </motion.div>
               )}
@@ -1043,8 +1047,8 @@ export default function OnboardingFlow({
                   <OwlStage
                     compact
                     eyebrow="School identity"
-                    title="School branding"
-                    description="Set the details staff and parents recognize immediately. These choices carry through receipts, report cards, and daily communication."
+                    title="School details"
+                    description="Enter the basic details your staff and parents know. You can change these later in Settings."
                     chips={[
                       "Official school name",
                       "Local area details",
