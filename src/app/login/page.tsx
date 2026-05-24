@@ -121,15 +121,16 @@ export default function LoginPage() {
   }, [loading, user, authInitialized, router]);
 
   // Deterministic UI recovery: if auth initialized but user is still null,
-  // stop the spinner so the user can retry manually.
+  // stop the spinner and surface a clear retry message.
   useEffect(() => {
     if (!loading || !authInitialized || user) return;
     const timer = setTimeout(() => {
       setLoading(false);
       setShowSlowMessage(false);
-    }, 9000);
+      toast.error("Login could not be completed. Please try again.");
+    }, 3000);
     return () => clearTimeout(timer);
-  }, [loading, authInitialized, user]);
+  }, [loading, authInitialized, user, toast]);
 
   // Show helpful toasts when arriving from registration or session expiry
   useEffect(() => {
@@ -234,7 +235,12 @@ export default function LoginPage() {
       }
 
       setLoading(true);
-      const slowMsgTimeout = setTimeout(() => setShowSlowMessage(true), 4000);
+      const loginTimeout = setTimeout(() => {
+        setLoading(false);
+        setShowSlowMessage(false);
+        toast.error("Login timed out. Please try again.");
+      }, 15000);
+      const slowMsgTimeout = setTimeout(() => setShowSlowMessage(true), 5000);
       localStorage.removeItem(DEMO_KEY);
 
       try {
@@ -264,6 +270,7 @@ export default function LoginPage() {
       } catch {
         toast.error("Login failed");
       } finally {
+        clearTimeout(loginTimeout);
         clearTimeout(slowMsgTimeout);
         setShowSlowMessage(false);
         setLoading(false);
@@ -286,11 +293,19 @@ export default function LoginPage() {
 
     setLoading(true);
 
+    // Safety valve: if signIn doesn't resolve in 15s, stop the spinner
+    // so the user isn't stuck with a spinning button forever
+    const loginTimeout = setTimeout(() => {
+      setLoading(false);
+      setShowSlowMessage(false);
+      toast.error("Login timed out. Please try again.");
+    }, 15000);
+
     // Show a friendly message after 5s so users on slow networks know
     // the app is still working and they should not refresh or re-tap.
     const slowMsgTimeout = setTimeout(() => {
       setShowSlowMessage(true);
-    }, 4000);
+    }, 5000);
 
     const normalizedIdentifier = isEmailLogin
       ? rawIdentifier.toLowerCase()
@@ -338,12 +353,14 @@ export default function LoginPage() {
                   : "/dashboard";
 
             router.replace(redirectPath);
+            clearTimeout(loginTimeout);
             clearTimeout(slowMsgTimeout);
             return;
           }
         } else {
           const errorData = await demoResponse.json().catch(() => null);
           toast.error(errorData?.error || "Demo login failed. Check DEMO_ADMIN_PASSWORD in .env.local");
+          clearTimeout(loginTimeout);
           clearTimeout(slowMsgTimeout);
           setLoading(false);
           setShowSlowMessage(false);
@@ -353,6 +370,7 @@ export default function LoginPage() {
 
       const { error: authError } = await signIn(normalizedIdentifier, password);
       if (authError) {
+        clearTimeout(loginTimeout);
         clearTimeout(slowMsgTimeout);
         const newAttempts = failedAttempts + 1;
         setFailedAttempts(newAttempts);
@@ -421,6 +439,7 @@ export default function LoginPage() {
       // The redirect effect (line 51-63) handles the transition
       return;
     } catch (err: unknown) {
+      clearTimeout(loginTimeout);
       clearTimeout(slowMsgTimeout);
       logger.error("Login exception:", err);
       const errorMessage =

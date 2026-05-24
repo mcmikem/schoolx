@@ -703,7 +703,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const userRef = useRef(user);
   userRef.current = user;
 
-  useEffect(() => {
+useEffect(() => {
     if (!supabase) return;
     const handleVisibilityChange = () => {
       if (document.visibilityState !== "visible") return;
@@ -734,6 +734,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (!freshUser && !isNetworkError(freshError)) {
             setUser(null);
             setSchool(null);
+            router.replace("/login");
           }
         } catch (err) {
           // Never log out on network errors — poor internet is common in Uganda.
@@ -751,7 +752,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () =>
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-  }, []);
+  }, [router]);
 
   const SESSION_TIMEOUT_MS_REF = useRef(30 * 60 * 1000);
   const CHECK_INTERVAL_MS_REF = useRef(60 * 1000);
@@ -775,35 +776,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       signInLock.current = true;
       // Safety: if a request hangs forever (poor internet), auto-release the
-      // lock so the user can retry without refreshing the page.
-      signInLockTimer.current = setTimeout(() => {
+      // lock after 25s so the user can retry without refreshing the page.
+signInLockTimer.current = setTimeout(() => {
         logger.warn("[Auth] signInLock auto-released after timeout");
         signInLock.current = false;
         signInLockTimer.current = null;
-      }, 30000);
+  }, 20000);
 
-      const attempts = buildAuthLoginAttempts(phone).slice(0, 2);
+      const attempts = buildAuthLoginAttempts(phone);
       let lastError: unknown = null;
 
       for (let i = 0; i < attempts.length; i++) {
         const attempt = attempts[i];
-        // Keep one short pause before fallback attempt.
+        // Short delay between attempts to avoid hammering Supabase and
+        // triggering rate limits on poor networks.
         if (i > 0) {
-          await new Promise((resolve) => setTimeout(resolve, 150));
+          await new Promise((resolve) => setTimeout(resolve, 300));
         }
 
         try {
-          const { data, error } = await withSupabaseLockRetry(async () =>
-            attempt.type === "email"
-              ? await supabase!.auth.signInWithPassword({
-                  email: attempt.value,
-                  password,
-                })
-              : await supabase!.auth.signInWithPassword({
-                  phone: attempt.value,
-                  password,
-                }),
-          );
+          const { data, error } = await Promise.race([
+            withSupabaseLockRetry(async () =>
+              attempt.type === "email"
+                ? await supabase!.auth.signInWithPassword({
+                    email: attempt.value,
+                    password,
+                  })
+                : await supabase!.auth.signInWithPassword({
+                    phone: attempt.value,
+                    password,
+                  }),
+            ),
+            new Promise<never>((_, reject) =>
+              setTimeout(
+                () => reject(new Error("Login attempt timed out")),
+                5000,
+              ),
+            ),
+          ]);
 
           if (error) {
             lastError = error;
@@ -881,7 +891,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             role: data.user.user_metadata?.role || "admin",
           };
         } catch (attemptError) {
-          lastError = attemptError;
+          if (
+            attemptError instanceof Error &&
+            attemptError.message === "Login attempt timed out"
+          ) {
+            lastError = {
+              message:
+                "Connection timed out. Please check your internet and try again.",
+            };
+          } else {
+            lastError = attemptError;
+          }
         }
       }
 

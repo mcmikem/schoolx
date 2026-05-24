@@ -202,11 +202,11 @@ export default function StudentRetentionPanel({
                     </td>
                     <td className="hidden p-4 text-sm font-mono md:table-cell">{student.parent_phone || "-"}</td>
                     <td className="p-4">
-                      <div className="flex gap-1 flex-col sm:flex-row">
+                      <div className="flex gap-1">
                         <button
                           onClick={() => onContactParent(student)}
                           disabled={sendingSms === student.id || !student.parent_phone}
-                          className="px-2 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors disabled:opacity-40 min-w-[88px]"
+                          className="px-2 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors disabled:opacity-40"
                           title="Send SMS to parent"
                         >
                           <MaterialIcon icon="sms" className="text-sm mr-0.5" />
@@ -214,7 +214,7 @@ export default function StudentRetentionPanel({
                         </button>
                         <button
                           onClick={() => setShowDropoutModal(student.id)}
-                          className="px-2 py-1 rounded-lg text-xs font-semibold bg-red-50 text-red-700 hover:bg-red-100 transition-colors min-w-[88px]"
+                          className="px-2 py-1 rounded-lg text-xs font-semibold bg-red-50 text-red-700 hover:bg-red-100 transition-colors"
                           title="Mark as dropout"
                         >
                           <MaterialIcon icon="person_remove" className="text-sm mr-0.5" />
