@@ -1,9 +1,26 @@
 import { createClient } from "@supabase/supabase-js";
 import { logger } from "@/lib/logger";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+let supabaseAdminClient: any = null;
+
+function getSupabaseAdminClient() {
+  if (supabaseAdminClient) return supabaseAdminClient;
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    logger.error(
+      "Parent notifications disabled: missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY",
+    );
+    return null;
+  }
+
+  supabaseAdminClient = createClient(supabaseUrl, supabaseServiceKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  return supabaseAdminClient;
+}
 
 export type NotificationType = 
   | "grade_posted" 
@@ -33,6 +50,11 @@ export async function createParentNotification({
   actionUrl,
 }: CreateNotificationParams) {
   try {
+    const supabaseAdmin = getSupabaseAdminClient();
+    if (!supabaseAdmin) {
+      return { success: false, error: "Supabase service is not configured" };
+    }
+
     const { data, error } = await supabaseAdmin
       .from("parent_notifications")
       .insert({
@@ -60,6 +82,9 @@ export async function createParentNotification({
 }
 
 export async function notifyGradePosted(schoolId: string, studentId: string, subjectName: string, term: number) {
+  const supabaseAdmin = getSupabaseAdminClient();
+  if (!supabaseAdmin) return;
+
   const { data: student } = await supabaseAdmin
     .from("students")
     .select("parent_id, first_name")
@@ -80,6 +105,9 @@ export async function notifyGradePosted(schoolId: string, studentId: string, sub
 }
 
 export async function notifyPaymentReceived(schoolId: string, studentId: string, amount: number, paymentMethod: string) {
+  const supabaseAdmin = getSupabaseAdminClient();
+  if (!supabaseAdmin) return;
+
   const { data: student } = await supabaseAdmin
     .from("students")
     .select("parent_id, first_name")
@@ -102,6 +130,9 @@ export async function notifyPaymentReceived(schoolId: string, studentId: string,
 }
 
 export async function notifyAttendanceAlert(schoolId: string, studentId: string, date: string, status: string) {
+  const supabaseAdmin = getSupabaseAdminClient();
+  if (!supabaseAdmin) return;
+
   const { data: student } = await supabaseAdmin
     .from("students")
     .select("parent_id, first_name")

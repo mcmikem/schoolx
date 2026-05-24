@@ -3,9 +3,6 @@ import { createClient } from "@supabase/supabase-js";
 import { logger } from "@/lib/logger";
 import { createHmac, timingSafeEqual } from "crypto";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 const webhookSecret = process.env.AFRICAS_TALKING_WEBHOOK_SECRET || "";
 
 interface IncomingSMS {
@@ -42,6 +39,19 @@ function hasValidWebhookSignature(rawBody: string, signatureHeader: string): boo
   );
 }
 
+function createSupabaseAdminClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    return null;
+  }
+
+  return createClient(supabaseUrl, supabaseServiceKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Africa's Talking sends payload as application/x-www-form-urlencoded.
@@ -70,6 +80,12 @@ export async function POST(request: NextRequest) {
 
     if (!from || !message) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    const supabaseAdmin = createSupabaseAdminClient();
+    if (!supabaseAdmin) {
+      logger.error("Incoming SMS webhook rejected: missing Supabase service configuration");
+      return NextResponse.json({ error: "Server configuration error" }, { status: 503 });
     }
 
     logger.info(`Incoming SMS from ${from}: ${message}`);
