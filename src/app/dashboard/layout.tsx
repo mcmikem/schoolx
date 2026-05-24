@@ -27,7 +27,6 @@ import OwlMascot from "@/components/brand/OwlMascot";
 import OwlAssistant from "@/components/OwlAssistant";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import CommandPalette from "@/components/CommandPalette";
-import PageUtilityRail from "@/components/dashboard/PageUtilityRail";
 
 function hasCompletedSetupProgress(value: unknown): boolean {
   if (!value) return false;
@@ -157,17 +156,17 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   // (e.g. token refresh, visibility change) which would cause redirect loops.
   useEffect(() => {
     if (hasRedirectedRef.current) return;
-    if (!authInitialized) return;
+    if (!authInitialized || loading) return;
     if (!user && !isDemo) {
       hasRedirectedRef.current = true;
       router.replace("/login");
     }
-  }, [authInitialized, user, isDemo, router]);
+  }, [authInitialized, loading, user, isDemo, router]);
 
   // Role-based redirect — parents and super_admin should not see dashboard.
   useEffect(() => {
     if (hasRedirectedRef.current) return;
-    if (!authInitialized || !user || isDemo) return;
+    if (!authInitialized || loading || !user || isDemo) return;
 
     if (user.role === "parent") {
       hasRedirectedRef.current = true;
@@ -180,7 +179,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       router.replace("/super-admin");
       return;
     }
-  }, [authInitialized, user, isDemo, router]);
+  }, [authInitialized, loading, user, isDemo, router]);
 
   const handleSignOut = async () => {
     sessionStorage.removeItem("lastDeniedPath");
@@ -257,6 +256,11 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   }, [loading]);
 
   useEffect(() => {
+    const onboardingSessionKey =
+      typeof window !== "undefined" && school?.id && user?.id
+        ? `onboarding_shown_${school.id}|${user.id}`
+        : null;
+
     if (
       school &&
       !onboardingCompleted &&
@@ -264,8 +268,18 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       !isBillingPath &&
       isDashboardHome
     ) {
-      // Required setup cannot be dismissed.
-      setShowOnboarding(true);
+      // Avoid reopening onboarding on every refresh/navigation in a session.
+      const alreadyShown =
+        typeof window !== "undefined" && onboardingSessionKey
+          ? sessionStorage.getItem(onboardingSessionKey)
+          : null;
+
+      if (!alreadyShown && onboardingSessionKey) {
+        sessionStorage.setItem(onboardingSessionKey, "1");
+        setShowOnboarding(true);
+      } else {
+        setShowOnboarding(false);
+      }
       setShowPostSetup(false);
     } else if (
       school &&
@@ -274,6 +288,9 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       isDashboardHome
     ) {
       setShowOnboarding(false);
+      if (typeof window !== "undefined" && onboardingSessionKey) {
+        sessionStorage.removeItem(onboardingSessionKey);
+      }
 
       // Only auto-open the post-setup panel once per browser session.
       const sessionKey = user?.id
@@ -369,7 +386,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             setShowPostSetup(true);
           }}
           onDismiss={() => {
-            toast.info("Complete setup to continue. Required setup appears once and is saved to your account.");
+            setShowOnboarding(false);
+            toast.info("Setup is hidden for this session. You can continue and complete it later.");
           }}
         />
       )}
@@ -404,10 +422,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             </div>
           )}
           <TrialBanner />
-          <div className="flex-1 xl:grid xl:grid-cols-[56px,1fr] xl:gap-4">
-            <PageUtilityRail />
-            <div className="min-w-0">{children}</div>
-          </div>
+          {children}
           <footer className="mt-auto px-4 py-3 border-t border-[var(--border)] bg-[var(--surface)] text-center">
             <p className="text-[11px] text-[var(--t4)]">
               Developed by{" "}
