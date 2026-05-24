@@ -2,22 +2,104 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import MaterialIcon from "@/components/MaterialIcon";
+import { useAuth } from "@/lib/auth-context";
+import { getNavigationForRole, type NavGroup, type NavItem } from "@/lib/navigation";
+import { canAccess, type UserRole } from "@/lib/roles";
+import { canUseModule, type FeatureStage, type ModuleKey, DEFAULT_FEATURE_STAGE } from "@/lib/featureStages";
+import { MODULE_FOR_ROUTE, roleBasedRoutes } from "@/components/dashboard/AccessControlGuard";
 
-const railItems = [
-  { href: "/dashboard", icon: "home", label: "Home" },
-  { href: "/dashboard/calendar", icon: "calendar_month", label: "Calendar" },
-  { href: "/dashboard/messages", icon: "notifications", label: "Alerts" },
-  { href: "/dashboard/staff", icon: "group", label: "Teams" },
-  { href: "/dashboard/settings", icon: "settings", label: "Settings" },
+const ROUTE_TO_MODULE: Record<string, ModuleKey> = {};
+for (const [route, mod] of Object.entries(MODULE_FOR_ROUTE)) {
+  ROUTE_TO_MODULE[route] = mod;
+}
+
+const preferredRoutes = [
+  "/dashboard",
+  "/dashboard/calendar",
+  "/dashboard/messages",
+  "/dashboard/staff",
+  "/dashboard/settings",
 ] as const;
+
+function filterGroupsByFeatureStage(
+  groups: readonly NavGroup[],
+  featureStage: FeatureStage | undefined,
+  role: string | undefined,
+): NavGroup[] {
+  const stage = featureStage || DEFAULT_FEATURE_STAGE;
+  const typedRole = role as UserRole | undefined;
+
+  const canAccessRoute = (href: string): boolean => {
+    if (!typedRole) return false;
+    const routeKey = Object.keys(roleBasedRoutes).find((key) => href.startsWith(key));
+    if (!routeKey) return true;
+    return canAccess(typedRole, roleBasedRoutes[routeKey]);
+  };
+
+  return groups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) => {
+        const mod = ROUTE_TO_MODULE[item.href];
+        const moduleAllowed = !mod || canUseModule(stage, mod);
+        return moduleAllowed && canAccessRoute(item.href);
+      }),
+    }))
+    .filter((group) => group.items.length > 0);
+}
+
+function dedupeByHref(items: readonly NavItem[]) {
+  const seen = new Set<string>();
+  const out: NavItem[] = [];
+  for (const item of items) {
+    if (seen.has(item.href)) continue;
+    seen.add(item.href);
+    out.push(item);
+  }
+  return out;
+}
+
+function buildRailItems(groups: readonly NavGroup[]) {
+  const all = dedupeByHref(groups.flatMap((g) => g.items));
+  const preferred = preferredRoutes
+    .map((href) => all.find((i) => i.href === href))
+    .filter((i): i is NavItem => Boolean(i));
+
+  if (preferred.length >= 4) {
+    return preferred.slice(0, 5).map((item) => ({
+      href: item.href,
+      icon: item.icon,
+      label: item.label,
+    }));
+  }
+
+  return all.slice(0, 5).map((item) => ({
+    href: item.href,
+    icon: item.icon,
+    label: item.label,
+  }));
+}
 
 function isActivePath(path: string, href: string) {
   if (href === "/dashboard") return path === href;
-  return path === href || path.startsWith(`${href}/`);
+  const pathOnly = href.split("?")[0];
+  if (!pathOnly) return path === href;
+  return path === pathOnly || path.startsWith(`${pathOnly}/`);
 }
 
 export default function PageUtilityRail() {
+  const { user, school } = useAuth();
   const pathname = usePathname() || "/dashboard";
+
+  const rawGroups = user?.role ? getNavigationForRole(user.role) : [];
+  const groups = filterGroupsByFeatureStage(
+    rawGroups,
+    school?.feature_stage as FeatureStage | undefined,
+    user?.role,
+  );
+  const railItems = buildRailItems(groups);
+
+  if (railItems.length === 0) return null;
 
   return (
     <div className="px-4 pt-3 sm:px-6 xl:px-0 xl:pt-4">
