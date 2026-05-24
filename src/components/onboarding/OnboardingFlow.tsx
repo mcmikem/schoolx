@@ -38,6 +38,25 @@ interface StepConfig {
   icon: string;
 }
 
+interface HouseDraft {
+  name: string;
+  color: string;
+}
+
+interface FeeDraft {
+  name: string;
+  amount: string;
+  category: string;
+  class_id: string;
+  term: 1 | 2 | 3;
+}
+
+interface FeeClassOption {
+  id: string;
+  name: string;
+  stream?: string | null;
+}
+
 export default function OnboardingFlow({
   onComplete,
   onDismiss,
@@ -112,7 +131,7 @@ export default function OnboardingFlow({
     dormitories: [{ name: "", type: "boys" as "boys" | "girls", capacity: 40 }],
     hasHouses: false,
     houseCount: 1,
-    houses: [""],
+    houses: [{ name: "", color: "#3b82f6" }] as HouseDraft[],
   });
 
   // Step 5: Academic Calendar
@@ -127,12 +146,23 @@ export default function OnboardingFlow({
   );
 
   // Step 6: Fee Structure
-  const [fees, setFees] = useState<
-    { name: string; amount: string; category: string }[]
-  >([
-    { name: "Tuition", amount: "150000", category: "Tuition" },
-    { name: "Development", amount: "50000", category: "Development" },
+  const [fees, setFees] = useState<FeeDraft[]>([
+    {
+      name: "Tuition",
+      amount: "150000",
+      category: "Tuition",
+      class_id: "all",
+      term: 1,
+    },
+    {
+      name: "Development",
+      amount: "50000",
+      category: "Development",
+      class_id: "all",
+      term: 1,
+    },
   ]);
+  const [feeClassOptions, setFeeClassOptions] = useState<FeeClassOption[]>([]);
 
   // Step 7: Grading
   const [gradingPrefs, setGradingPrefs] = useState({
@@ -243,6 +273,101 @@ export default function OnboardingFlow({
     });
   }, []);
 
+  const ensureFeeClassOptions = useCallback(async (): Promise<FeeClassOption[]> => {
+    if (!school?.id) return [];
+
+    const academicYear = new Date().getFullYear().toString();
+    const fetchClasses = async () => {
+      const { data } = await supabase
+        .from("classes")
+        .select("id, name, stream")
+        .eq("school_id", school.id)
+        .eq("academic_year", academicYear)
+        .order("name", { ascending: true });
+      return (data || []) as FeeClassOption[];
+    };
+
+    let classesForFees = await fetchClasses();
+    if (classesForFees.length === 0) {
+      const defaults = buildDefaultClasses(school.id, localSchoolType, academicYear);
+      await supabase.from("classes").upsert(defaults, {
+        onConflict: "school_id,name,academic_year",
+      });
+      classesForFees = await fetchClasses();
+    }
+
+    setFeeClassOptions(classesForFees);
+    return classesForFees;
+  }, [school?.id, localSchoolType]);
+
+  const buildFeeRows = useCallback(
+    (classOptions: FeeClassOption[]) => {
+      const schoolId = school?.id;
+      if (!schoolId) return [];
+
+      const year = new Date().getFullYear().toString();
+      const rows: Array<{
+        school_id: string;
+        name: string;
+        amount: number;
+        category: string;
+        class_id: string | null;
+        term: 1 | 2 | 3;
+        academic_year: string;
+      }> = [];
+
+      fees
+        .filter((fee) => fee.name && parseFloat(fee.amount) > 0)
+        .forEach((fee) => {
+          if (fee.class_id === "all") {
+            if (classOptions.length > 0) {
+              classOptions.forEach((classOption) => {
+                rows.push({
+                  school_id: schoolId,
+                  name: fee.name,
+                  amount: parseFloat(fee.amount),
+                  category: fee.category,
+                  class_id: classOption.id,
+                  term: fee.term,
+                  academic_year: year,
+                });
+              });
+            } else {
+              rows.push({
+                school_id: schoolId,
+                name: fee.name,
+                amount: parseFloat(fee.amount),
+                category: fee.category,
+                class_id: null,
+                term: fee.term,
+                academic_year: year,
+              });
+            }
+            return;
+          }
+
+          rows.push({
+            school_id: schoolId,
+            name: fee.name,
+            amount: parseFloat(fee.amount),
+            category: fee.category,
+            class_id: fee.class_id,
+            term: fee.term,
+            academic_year: year,
+          });
+        });
+
+      return rows;
+    },
+    [fees, school?.id],
+  );
+
+  useEffect(() => {
+    if (step === 6 && school?.id) {
+      void ensureFeeClassOptions();
+    }
+  }, [step, school?.id, ensureFeeClassOptions]);
+
   const compressImage = (
     file: File,
     maxW: number,
@@ -351,23 +476,15 @@ export default function OnboardingFlow({
     if (!school?.id) return false;
     setSaving(true);
     try {
-      const year = new Date().getFullYear().toString();
-      const feeRows = fees
-        .filter((fee) => fee.name && parseFloat(fee.amount) > 0)
-        .map((fee) => ({
-          school_id: school.id,
-          name: fee.name,
-          amount: parseFloat(fee.amount),
-          category: fee.category,
-          class_id: null,
-          term: 1,
-          academic_year: year,
-        }));
+      const classOptions = await ensureFeeClassOptions();
+      const feeRows = buildFeeRows(classOptions);
 
       if (feeRows.length > 0) {
         const { error: insertError } = await supabase
           .from("fee_structure")
-          .insert(feeRows);
+          .upsert(feeRows, {
+            onConflict: "school_id,class_id,name,term,academic_year",
+          });
         if (insertError) throw insertError;
       }
 
@@ -514,20 +631,12 @@ export default function OnboardingFlow({
         // Fees (step 6) — only if not already saved
         !completedSteps.has(6) ? (async () => {
           try {
-            const year = new Date().getFullYear().toString();
-            const feeRows = fees
-              .filter((fee) => fee.name && parseFloat(fee.amount) > 0)
-              .map((fee) => ({
-                school_id: school!.id,
-                name: fee.name,
-                amount: parseFloat(fee.amount),
-                category: fee.category,
-                class_id: null,
-                term: 1,
-                academic_year: year,
-              }));
+            const classOptions = await ensureFeeClassOptions();
+            const feeRows = buildFeeRows(classOptions);
             if (feeRows.length > 0) {
-              const { error: fErr } = await supabase.from("fee_structure").insert(feeRows);
+              const { error: fErr } = await supabase.from("fee_structure").upsert(feeRows, {
+                onConflict: "school_id,class_id,name,term,academic_year",
+              });
               if (fErr) logger.warn("Auto-save fees failed:", fErr);
             }
           } catch (e) { logger.warn("Auto-save fees error:", e); }
@@ -801,10 +910,11 @@ export default function OnboardingFlow({
       if (boardingConfig.hasHouses) {
         try {
           const housesData = boardingConfig.houses
-            .filter((h) => h.trim())
+            .filter((h) => h.name.trim())
             .map((h) => ({
               school_id: school!.id,
-              name: h.trim(),
+              name: h.name.trim(),
+              color: h.color || null,
             }));
           if (housesData.length > 0) {
             const { error: housesError } = await supabase
@@ -1646,7 +1756,11 @@ export default function OnboardingFlow({
                                       houseCount: count,
                                       houses: Array.from(
                                         { length: count },
-                                        (_, i) => prev.houses[i] || "",
+                                        (_, i) =>
+                                          prev.houses[i] || {
+                                            name: "",
+                                            color: "#3b82f6",
+                                          },
                                       ),
                                     }));
                                   }}
@@ -1660,19 +1774,32 @@ export default function OnboardingFlow({
                                 {boardingConfig.houses
                                   .slice(0, boardingConfig.houseCount)
                                   .map((house, i) => (
-                                    <input
-                                      key={i}
-                                      placeholder={`House ${i + 1} name`}
-                                      value={house}
-                                      onChange={(e) =>
-                                        setBoardingConfig((prev) => {
-                                          const updated = [...prev.houses];
-                                          updated[i] = e.target.value;
-                                          return { ...prev, houses: updated };
-                                        })
-                                      }
-                                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-slate-400"
-                                    />
+                                      <div key={i} className="flex items-center gap-2">
+                                        <input
+                                          placeholder={`House ${i + 1} name`}
+                                          value={house.name}
+                                          onChange={(e) =>
+                                            setBoardingConfig((prev) => {
+                                              const updated = [...prev.houses];
+                                              updated[i] = { ...updated[i], name: e.target.value };
+                                              return { ...prev, houses: updated };
+                                            })
+                                          }
+                                          className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-slate-400"
+                                        />
+                                        <input
+                                          type="color"
+                                          value={house.color}
+                                          onChange={(e) =>
+                                            setBoardingConfig((prev) => {
+                                              const updated = [...prev.houses];
+                                              updated[i] = { ...updated[i], color: e.target.value };
+                                              return { ...prev, houses: updated };
+                                            })
+                                          }
+                                          className="h-10 w-12 rounded border border-slate-200 bg-white"
+                                        />
+                                      </div>
                                   ))}
                               </div>
                             </>
@@ -1718,7 +1845,11 @@ export default function OnboardingFlow({
                                     houseCount: count,
                                     houses: Array.from(
                                       { length: count },
-                                      (_, i) => prev.houses[i] || "",
+                                      (_, i) =>
+                                        prev.houses[i] || {
+                                          name: "",
+                                          color: "#3b82f6",
+                                        },
                                     ),
                                   }));
                                 }}
@@ -1732,19 +1863,32 @@ export default function OnboardingFlow({
                               {boardingConfig.houses
                                 .slice(0, boardingConfig.houseCount)
                                 .map((house, i) => (
-                                  <input
-                                    key={i}
-                                    placeholder={`House ${i + 1} name`}
-                                    value={house}
-                                    onChange={(e) =>
-                                      setBoardingConfig((prev) => {
-                                        const updated = [...prev.houses];
-                                        updated[i] = e.target.value;
-                                        return { ...prev, houses: updated };
-                                      })
-                                    }
-                                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-slate-400"
-                                  />
+                                  <div key={i} className="flex items-center gap-2">
+                                    <input
+                                      placeholder={`House ${i + 1} name`}
+                                      value={house.name}
+                                      onChange={(e) =>
+                                        setBoardingConfig((prev) => {
+                                          const updated = [...prev.houses];
+                                          updated[i] = { ...updated[i], name: e.target.value };
+                                          return { ...prev, houses: updated };
+                                        })
+                                      }
+                                      className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-slate-400"
+                                    />
+                                    <input
+                                      type="color"
+                                      value={house.color}
+                                      onChange={(e) =>
+                                        setBoardingConfig((prev) => {
+                                          const updated = [...prev.houses];
+                                          updated[i] = { ...updated[i], color: e.target.value };
+                                          return { ...prev, houses: updated };
+                                        })
+                                      }
+                                      className="h-10 w-12 rounded border border-slate-200 bg-white"
+                                    />
+                                  </div>
                                 ))}
                             </div>
                           </>
@@ -1835,14 +1979,16 @@ export default function OnboardingFlow({
                   <OwlStage
                     compact
                     eyebrow="Fee Structure"
-                    title="Set school fees"
-                    description="Define the fee categories and amounts. These will apply to all classes unless you customize later."
+                    title="Set class-based fees"
+                    description="Define fee categories, amounts, term, and target class while onboarding."
                     chips={["UGX currency", "Per-term billing"]}
                     className="mb-6"
                   />
 
                   <div className="mb-6 rounded-2xl border border-slate-100 bg-slate-50 p-4 shadow-sm space-y-3">
-                    <p className="text-xs font-medium text-slate-500">Fees apply to all classes — customize per class later in Settings.</p>
+                    <p className="text-xs font-medium text-slate-500">
+                      Assign each fee to a specific class or all classes.
+                    </p>
 
                     {fees.map((fee, i) => (
                       <div key={i} className="space-y-2 rounded-xl border border-slate-200 bg-white p-3">
@@ -1886,6 +2032,38 @@ export default function OnboardingFlow({
                           <option value="Transport">Transport</option>
                           <option value="Other">Other</option>
                         </select>
+                        <div className="grid grid-cols-2 gap-2">
+                          <select
+                            value={fee.class_id}
+                            onChange={(e) => {
+                              const newFees = [...fees];
+                              newFees[i].class_id = e.target.value;
+                              setFees(newFees);
+                            }}
+                            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-slate-400"
+                          >
+                            <option value="all">All classes</option>
+                            {feeClassOptions.map((classOption) => (
+                              <option key={classOption.id} value={classOption.id}>
+                                {classOption.name}
+                                {classOption.stream ? ` ${classOption.stream}` : ""}
+                              </option>
+                            ))}
+                          </select>
+                          <select
+                            value={fee.term}
+                            onChange={(e) => {
+                              const newFees = [...fees];
+                              newFees[i].term = Number(e.target.value) as 1 | 2 | 3;
+                              setFees(newFees);
+                            }}
+                            className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none focus:border-slate-400"
+                          >
+                            <option value={1}>Term 1</option>
+                            <option value={2}>Term 2</option>
+                            <option value={3}>Term 3</option>
+                          </select>
+                        </div>
                         {fees.length > 1 && (
                           <button
                             type="button"
@@ -1902,7 +2080,16 @@ export default function OnboardingFlow({
                       size="sm"
                       variant="secondary"
                       onClick={() =>
-                        setFees([...fees, { name: "", amount: "", category: "Tuition" }])
+                        setFees([
+                          ...fees,
+                          {
+                            name: "",
+                            amount: "",
+                            category: "Tuition",
+                            class_id: "all",
+                            term: 1,
+                          },
+                        ])
                       }
                       className="w-full"
                       icon={<MaterialIcon icon="add" className="text-sm" />}

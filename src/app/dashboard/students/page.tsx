@@ -25,6 +25,7 @@ import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
 import { useStudentTransfers } from "@/hooks/useStudentTransfers";
 import { useStudentDropouts } from "@/hooks/useStudentDropouts";
 import { useStudentPromotion } from "@/hooks/useStudentPromotion";
+import { supabase } from "@/lib/supabase";
 
 type StudentWorkspaceTab = "registry" | "transfers" | "dropouts" | "promotion";
 
@@ -45,6 +46,12 @@ interface ClassData {
   id: string;
   name: string;
   level: string;
+}
+
+interface HouseMeta {
+  id: string;
+  name: string;
+  color?: string | null;
 }
 
 interface SmsTarget {
@@ -130,6 +137,7 @@ export default function StudentHubPage() {
   const [filterPosition, setFilterPosition] = useState<string>("all");
   const [filterDefaulters, setFilterDefaulters] = useState(false);
   const [sortBy, setSortBy] = useState<"name" | "number" | "class">("name");
+  const [houseMap, setHouseMap] = useState<Record<string, HouseMeta>>({});
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [smsTarget, setSmsTarget] = useState<SmsTarget | null>(null);
@@ -144,6 +152,32 @@ export default function StudentHubPage() {
   useEffect(() => {
     if (searchParams?.get("action") === "add") setShowAddModal(true);
   }, [searchParams]);
+
+  useEffect(() => {
+    if (!school?.id) {
+      setHouseMap({});
+      return;
+    }
+
+    const loadHouses = async () => {
+      const { data, error } = await supabase
+        .from("houses")
+        .select("id, name, color")
+        .eq("school_id", school.id);
+
+      if (error) {
+        return;
+      }
+
+      const mapped = (data || []).reduce<Record<string, HouseMeta>>((acc, house) => {
+        acc[house.id] = house;
+        return acc;
+      }, {});
+      setHouseMap(mapped);
+    };
+
+    void loadHouses();
+  }, [school?.id]);
 
   useKeyboardShortcuts([
     {
@@ -370,6 +404,7 @@ export default function StudentHubPage() {
             girlsCount={girlsCount}
             classesCount={classes.length}
             classes={classes}
+            houseMap={houseMap}
             {...templateImport}
             searchInputRef={searchInputRef}
             searchTerm={searchTerm}

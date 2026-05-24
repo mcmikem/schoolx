@@ -31,6 +31,13 @@ interface StudentRow {
     stream?: string | null;
   } | null;
   boarding_status?: string | null;
+  house_id?: string | null;
+}
+
+interface HouseMeta {
+  id: string;
+  name: string;
+  color?: string | null;
 }
 
 interface ClassOption {
@@ -52,6 +59,7 @@ interface StudentRegistryPanelProps {
   girlsCount: number;
   classesCount: number;
   classes: ClassOption[];
+  houseMap: Record<string, HouseMeta>;
   templateStatus: "idle" | "parsing" | "ready";
   templateErrors: string | null;
   templateRowsCount: number;
@@ -96,6 +104,7 @@ export default function StudentRegistryPanel({
   girlsCount,
   classesCount,
   classes,
+  houseMap,
   templateStatus,
   templateErrors,
   templateRowsCount,
@@ -132,6 +141,20 @@ export default function StudentRegistryPanel({
   onEditStudent,
   onDeleteStudent,
 }: StudentRegistryPanelProps) {
+  const resolveHouse = (student: StudentRow) => {
+    if (student.house_id && houseMap[student.house_id]) {
+      return houseMap[student.house_id];
+    }
+    return null;
+  };
+
+  const getHouseColor = (house: HouseMeta | null) => {
+    if (!house?.color) return "#64748b";
+    return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(house.color)
+      ? house.color
+      : "#64748b";
+  };
+
   return (
     <>
       {totalStudents === 0 && <OnboardingTips schoolId={schoolId} />}
@@ -241,6 +264,7 @@ export default function StudentRegistryPanel({
                       <th data-label="Student">Student</th>
                       <th data-label="Number">Number</th>
                       <th data-label="Class">Class</th>
+                      <th data-label="House">House</th>
                       <th data-label="Parent">Parent</th>
                       <th data-label="Phone">Phone</th>
                       <th data-label="Actions"></th>
@@ -297,6 +321,21 @@ export default function StudentRegistryPanel({
                         </td>
                         <td data-label="Class">
                           {student.classes?.name || "-"}
+                        </td>
+                        <td data-label="House">
+                          {(() => {
+                            const house = resolveHouse(student);
+                            if (!house) return "-";
+                            return (
+                              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg)] px-2 py-1 text-xs font-semibold text-[var(--t1)]">
+                                <span
+                                  className="h-2.5 w-2.5 rounded-full"
+                                  style={{ backgroundColor: getHouseColor(house) }}
+                                />
+                                {house.name}
+                              </span>
+                            );
+                          })()}
                         </td>
                         <td data-label="Parent">
                           {student.parent_name || "-"}
@@ -698,6 +737,7 @@ export default function StudentRegistryPanel({
                   <th data-label="Student">Student</th>
                   <th data-label="Number">Number</th>
                   <th data-label="Class">Class</th>
+                  <th data-label="House">House</th>
                   <th data-label="Parent">Parent</th>
                   <th data-label="Phone">Phone</th>
                   <th data-label="Actions"></th>
@@ -801,6 +841,38 @@ export default function StudentRegistryPanel({
                             </span>
                           )}
                       </span>
+                    </td>
+                    <td data-label="House">
+                      {(() => {
+                        const house = resolveHouse(student);
+                        if (!house) return "-";
+                        return (
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              alignItems: "center",
+                              gap: 6,
+                              padding: "4px 10px",
+                              border: "1px solid var(--border)",
+                              background: "var(--bg)",
+                              borderRadius: 999,
+                              fontSize: 11,
+                              fontWeight: 600,
+                              color: "var(--t1)",
+                            }}
+                          >
+                            <span
+                              style={{
+                                width: 10,
+                                height: 10,
+                                borderRadius: "50%",
+                                backgroundColor: getHouseColor(house),
+                              }}
+                            />
+                            {house.name}
+                          </span>
+                        );
+                      })()}
                     </td>
                     <td data-label="Parent" style={{ fontSize: 13 }}>
                       {student.parent_name || "-"}

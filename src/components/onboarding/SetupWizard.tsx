@@ -22,6 +22,19 @@ interface SetupWizardProps {
   onComplete?: () => void;
 }
 
+interface FeeDraft {
+  name: string;
+  amount: number;
+  term: 1 | 2 | 3;
+  class_id: string;
+}
+
+interface FeeClassOption {
+  id: string;
+  name: string;
+  stream?: string | null;
+}
+
 export default function SetupWizard({ onComplete }: SetupWizardProps) {
   const { school, refreshSchool } = useAuth();
   const toast = useToast();
@@ -62,9 +75,10 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
   }, [academicYear.year, currentYear, school?.id, schoolType]);
 
   // Fee Setup State
-  const [fees, setFees] = useState([
-    { name: "Tuition", amount: 150000, term: 1 },
+  const [fees, setFees] = useState<FeeDraft[]>([
+    { name: "Tuition", amount: 150000, term: 1, class_id: "all" },
   ]);
+  const [feeClassOptions, setFeeClassOptions] = useState<FeeClassOption[]>([]);
 
   // Staff Setup State
   const [staff, setStaff] = useState([
@@ -170,6 +184,19 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
         logger.error("Checklist update error:", checklistError);
       }
 
+      const { data: classRows, error: classRowsError } = await supabase
+        .from("classes")
+        .select("id, name, stream")
+        .eq("school_id", school.id)
+        .eq("academic_year", academicYear.year)
+        .order("name", { ascending: true });
+
+      if (classRowsError) {
+        logger.warn("Unable to load class options for fees:", classRowsError);
+      } else {
+        setFeeClassOptions((classRows || []) as FeeClassOption[]);
+      }
+
       toast.success("Classes created!");
       setStep(3);
     } catch (err: unknown) {
@@ -184,17 +211,72 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
     if (!school?.id) return;
     setLoading(true);
     try {
-      const feeData = fees.map((f) => ({
-        school_id: school.id,
-        name: f.name,
-        amount: f.amount,
-        term: f.term,
-        academic_year: academicYear.year,
-      }));
+      const classOptions = feeClassOptions.length
+        ? feeClassOptions
+        : (
+            (
+              await supabase
+                .from("classes")
+                .select("id, name, stream")
+                .eq("school_id", school.id)
+                .eq("academic_year", academicYear.year)
+                .order("name", { ascending: true })
+            ).data || []
+          ) as FeeClassOption[];
+
+      const feeData: Array<{
+        school_id: string;
+        name: string;
+        amount: number;
+        term: 1 | 2 | 3;
+        class_id: string | null;
+        academic_year: string;
+      }> = [];
+
+      fees.forEach((f) => {
+        if (!f.name || f.amount <= 0) return;
+
+        if (f.class_id === "all") {
+          if (classOptions.length === 0) {
+            feeData.push({
+              school_id: school.id,
+              name: f.name,
+              amount: f.amount,
+              term: f.term,
+              class_id: null,
+              academic_year: academicYear.year,
+            });
+            return;
+          }
+
+          classOptions.forEach((classOption) => {
+            feeData.push({
+              school_id: school.id,
+              name: f.name,
+              amount: f.amount,
+              term: f.term,
+              class_id: classOption.id,
+              academic_year: academicYear.year,
+            });
+          });
+          return;
+        }
+
+        feeData.push({
+            school_id: school.id,
+          name: f.name,
+          amount: f.amount,
+          term: f.term,
+          class_id: f.class_id,
+          academic_year: academicYear.year,
+        });
+      });
 
       const { error: feeError } = await supabase
         .from("fee_structure")
-        .insert(feeData);
+        .upsert(feeData, {
+          onConflict: "school_id,class_id,name,term,academic_year",
+        });
 
       if (feeError) {
         logger.error("Fee insert error:", feeError);
@@ -364,9 +446,10 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
     setClasses(newClasses);
   };
 
-  const addFee = () => setFees([...fees, { name: "", amount: 0, term: 1 }]);
+  const addFee = () =>
+    setFees([...fees, { name: "", amount: 0, term: 1, class_id: "all" }]);
   const removeFee = (i: number) => setFees(fees.filter((_, idx) => idx !== i));
-  const updateFee = (i: number, field: string, value: any) => {
+  const updateFee = (i: number, field: keyof FeeDraft, value: string | number) => {
     const newFees = [...fees];
     newFees[i] = { ...newFees[i], [field]: value };
     setFees(newFees);
@@ -539,32 +622,45 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
               </Button>
             </div>
             {fees.map((fee, i) => (
-              <div key={i} className="flex gap-2">
+              <div key={i} className="grid grid-cols-1 md:grid-cols-5 gap-2">
                 <Input
                   placeholder="Fee Name"
                   value={fee.name}
                   onChange={(e) => updateFee(i, "name", e.target.value)}
-                  className="flex-1"
+                  className="md:col-span-2"
                 />
                 <Input
                   type="number"
                   placeholder="Amount"
                   value={fee.amount}
                   onChange={(e) =>
-                    updateFee(i, "amount", parseInt(e.target.value))
+                    updateFee(i, "amount", parseInt(e.target.value) || 0)
                   }
-                  className="w-32"
+                  className="md:col-span-1"
                 />
                 <select
                   value={fee.term}
                   onChange={(e) =>
-                    updateFee(i, "term", parseInt(e.target.value))
+                    updateFee(i, "term", parseInt(e.target.value) as 1 | 2 | 3)
                   }
-                  className="w-24 input"
+                  className="md:col-span-1 input"
                 >
                   <option value={1}>Term 1</option>
                   <option value={2}>Term 2</option>
                   <option value={3}>Term 3</option>
+                </select>
+                <select
+                  value={fee.class_id}
+                  onChange={(e) => updateFee(i, "class_id", e.target.value)}
+                  className="md:col-span-1 input"
+                >
+                  <option value="all">All classes</option>
+                  {feeClassOptions.map((classOption) => (
+                    <option key={classOption.id} value={classOption.id}>
+                      {classOption.name}
+                      {classOption.stream ? ` ${classOption.stream}` : ""}
+                    </option>
+                  ))}
                 </select>
                 {fees.length > 1 && (
                   <Button
