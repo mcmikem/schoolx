@@ -793,35 +793,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         try {
-          const { data, error } = await Promise.race([
-            withSupabaseLockRetry(async () =>
-              attempt.type === "email"
-                ? await supabase!.auth.signInWithPassword({
-                    email: attempt.value,
-                    password,
-                  })
-                : await supabase!.auth.signInWithPassword({
-                    phone: attempt.value,
-                    password,
-                  }),
-            ),
-            new Promise<{
-              data: { user: null };
-              error: { message: string };
-            }>((resolve) =>
-              setTimeout(
-                () =>
-                  resolve({
-                    data: { user: null },
-                    error: {
-                      message:
-                        "Connection timed out. Please check your internet and try again.",
-                    },
-                  }),
-                12000,
-              ),
-            ),
-          ]);
+          const { data, error } = await withSupabaseLockRetry(async () =>
+            attempt.type === "email"
+              ? await supabase!.auth.signInWithPassword({
+                  email: attempt.value,
+                  password,
+                })
+              : await supabase!.auth.signInWithPassword({
+                  phone: attempt.value,
+                  password,
+                }),
+          );
 
           if (error) {
             lastError = error;
@@ -835,8 +817,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               errMsg.includes("user not found") ||
               errMsg.includes("no user") ||
               errMsg.includes("email not found");
-            const isTimeout =
-              errMsg.includes("timed out") || errMsg.includes("timeout");
 
             // Fast-fail strategy: allow one fallback format attempt for
             // generic invalid credentials, then stop to avoid long hangs.
@@ -859,10 +839,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             // Try next format on "user not found" or transient errors.
             if (isUserNotFound) {
-              continue;
-            }
-
-            if (isTimeout && i < attempts.length - 1) {
               continue;
             }
 
