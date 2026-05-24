@@ -177,7 +177,12 @@ function BursarDashboardContent() {
   });
 
   return (
-    <div className="content">
+    <div className="p-4 sm:p-6 lg:p-8">
+      <div className="relative overflow-hidden rounded-[28px] border border-[#d6e4e8] bg-[linear-gradient(150deg,#eff7f5_0%,#eaf2f6_44%,#f8fbff_100%)] p-4 sm:p-6">
+        <div className="pointer-events-none absolute -left-20 -top-20 h-48 w-48 rounded-full bg-[#b7dfd8]/40 blur-3xl" />
+        <div className="pointer-events-none absolute -right-16 bottom-0 h-40 w-40 rounded-full bg-[#d8e9fb]/60 blur-3xl" />
+
+        <div className="relative z-10">
       <div className="mb-4">
         <h1 className="text-xl font-bold text-[#17325f] font-['Sora']">{greeting}, {user?.full_name?.split(" ")[0]}</h1>
         <p className="text-sm text-[#60748f]">{school?.name} · {todayLabel}</p>
@@ -247,6 +252,8 @@ function BursarDashboardContent() {
 
       <TopDefaulters students={students} feeStructure={feeStructure} payments={payments} />
       <RecentPayments payments={payments} students={students} thisMonthTotal={thisMonthTotal} />
+        </div>
+      </div>
     </div>
   );
 }

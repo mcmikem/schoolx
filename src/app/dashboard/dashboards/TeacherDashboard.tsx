@@ -108,7 +108,12 @@ function TeacherDashboardContent() {
   }
 
   return (
-    <div className="content">
+    <div className="p-4 sm:p-6 lg:p-8">
+      <div className="relative overflow-hidden rounded-[28px] border border-[#d6e4e8] bg-[linear-gradient(150deg,#eff7f5_0%,#eaf2f6_44%,#f8fbff_100%)] p-4 sm:p-6">
+        <div className="pointer-events-none absolute -left-20 -top-20 h-48 w-48 rounded-full bg-[#b7dfd8]/40 blur-3xl" />
+        <div className="pointer-events-none absolute -right-16 bottom-0 h-40 w-40 rounded-full bg-[#d8e9fb]/60 blur-3xl" />
+
+        <div className="relative z-10">
       {/* Section 1: GREETING + MY DAY */}
       <section className="relative mb-6 overflow-hidden rounded-[34px] border border-white/70 bg-[linear-gradient(130deg,#f9fbff_0%,#eff6ff_40%,#f8faff_100%)] p-4 sm:p-6">
         <div className="flex items-start justify-between gap-3">
@@ -200,6 +205,8 @@ function TeacherDashboardContent() {
           <Link href="/dashboard/attendance" className="shrink-0 rounded-xl bg-[#c2472b] px-4 py-2 text-xs font-bold text-white">Take now</Link>
         </div>
       )}
+        </div>
+      </div>
     </div>
   );
 }

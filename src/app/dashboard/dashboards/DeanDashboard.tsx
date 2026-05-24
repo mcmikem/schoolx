@@ -59,7 +59,12 @@ function DeanDashboardContent() {
   });
 
   return (
-    <div className="content">
+    <div className="p-4 sm:p-6 lg:p-8">
+      <div className="relative overflow-hidden rounded-[28px] border border-[#d6e4e8] bg-[linear-gradient(150deg,#eff7f5_0%,#eaf2f6_44%,#f8fbff_100%)] p-4 sm:p-6">
+        <div className="pointer-events-none absolute -left-20 -top-20 h-48 w-48 rounded-full bg-[#b7dfd8]/40 blur-3xl" />
+        <div className="pointer-events-none absolute -right-16 bottom-0 h-40 w-40 rounded-full bg-[#d8e9fb]/60 blur-3xl" />
+
+        <div className="relative z-10">
       <section className="relative mb-6 overflow-hidden rounded-[34px] border border-white/70 bg-[linear-gradient(132deg,#f8fbff_0%,#eef6ff_45%,#f8f9ff_100%)] p-4 shadow-[0_24px_62px_rgba(15,23,42,0.08)] sm:p-6">
         <div className="pointer-events-none absolute inset-0">
           <div className="absolute left-0 top-0 h-48 w-48 rounded-full bg-[#bfeadf]/25 blur-3xl" />
@@ -163,6 +168,8 @@ function DeanDashboardContent() {
               );
             })}
           </div>
+        </div>
+      </div>
         </div>
       </div>
     </div>
