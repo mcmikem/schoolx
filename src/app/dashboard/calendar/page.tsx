@@ -456,7 +456,27 @@ export default function CalendarPage() {
               <TermTimeline events={events.filter(matchesFilter)} />
             </Card>
           ) : (
-            <div className="relative z-10 mt-5 grid grid-cols-1 gap-5 xl:grid-cols-[300px,1fr]">
+            <div className="relative z-10 mt-5 grid grid-cols-1 gap-4 xl:grid-cols-[56px,300px,1fr]">
+              <aside className="hidden xl:flex xl:flex-col xl:items-center xl:gap-3 rounded-[20px] border border-[#cfe0e4] bg-white/85 py-3 backdrop-blur">
+                {[
+                  ["home", "Home"],
+                  ["calendar_month", "Calendar"],
+                  ["notifications", "Alerts"],
+                  ["group", "Teams"],
+                  ["settings", "Settings"],
+                ].map(([icon, label], idx) => (
+                  <button
+                    key={label}
+                    type="button"
+                    title={label}
+                    aria-label={label}
+                    className={`flex h-9 w-9 items-center justify-center rounded-xl border transition ${idx === 1 ? "border-[#0f7f8f] bg-[#0f7f8f] text-white" : "border-[#d9e8ec] bg-white text-[#6f8794] hover:bg-[#edf5f7]"}`}
+                  >
+                    <MaterialIcon icon={icon} className="text-[17px]" />
+                  </button>
+                ))}
+              </aside>
+
               <aside className="space-y-4 rounded-[22px] border border-[#cfe0e4] bg-white/85 p-4 backdrop-blur">
                 <div className="rounded-xl border border-[#deebee] bg-white px-3 py-2">
                   <div className="flex items-center gap-2">
@@ -591,6 +611,16 @@ export default function CalendarPage() {
               </aside>
 
               <section className="rounded-[22px] border border-[#d4e3e7] bg-white/90 p-4 sm:p-5">
+                <div className="mb-3 flex items-center justify-between rounded-xl border border-[#e1ecef] bg-[#f9fcfd] px-3 py-2">
+                  <div className="flex items-center gap-2 text-[#3c5565]">
+                    <MaterialIcon icon="today" className="text-[16px]" />
+                    <p className="text-sm font-semibold">
+                      {new Date(selectedDate).toLocaleDateString("en-UG", { month: "long", day: "numeric", year: "numeric" })}
+                    </p>
+                  </div>
+                  <p className="text-xs font-medium text-[#7f95a1]">{mode === "day" ? "Daily lane" : mode === "week" ? "Weekly lane" : "Monthly lane"}</p>
+                </div>
+
                 <div className="mb-3 flex items-center justify-between">
                   <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#7f95a1]">{timezoneLabel}</p>
                   <p className="text-xs text-[#6f8794]">Click any event to delete</p>
