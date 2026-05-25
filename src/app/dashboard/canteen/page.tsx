@@ -69,6 +69,10 @@ export default function CanteenPage() {
   // Offline hooks handle data loading; no need for loadData or useEffect
 
   const handleAddItem = async () => {
+    if (!school?.id) {
+      toast.error("School not found");
+      return;
+    }
     if (canteenValidationError) {
       toast.error(canteenValidationError);
       return;
