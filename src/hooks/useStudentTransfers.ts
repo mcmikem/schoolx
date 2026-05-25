@@ -15,6 +15,19 @@ const TRANSFER_REASONS = [
   "Other",
 ];
 
+function getLocalDateString(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function buildTransferStudentNumber(date = new Date()) {
+  const stamp = getLocalDateString(date).replace(/-/g, "");
+  const suffix = Math.random().toString(36).slice(2, 5).toUpperCase();
+  return `TRF-${stamp}-${suffix}`;
+}
+
 type TransferTab = "in" | "out";
 
 interface TransferOutRecord {
@@ -64,7 +77,7 @@ export function useStudentTransfers(
     student_id: "",
     transfer_to: "",
     reason: "",
-    transfer_date: new Date().toISOString().split("T")[0],
+    transfer_date: getLocalDateString(),
   });
 
   const activeStudents = useMemo(
@@ -139,8 +152,7 @@ export function useStudentTransfers(
     }
     setTransferSaving(true);
     try {
-      const studentCount = students.length + 1;
-      const studentNumber = `TRF${String(studentCount).padStart(5, "0")}`;
+      const studentNumber = buildTransferStudentNumber();
       await createStudent({
         first_name: transferInForm.first_name,
         last_name: transferInForm.last_name,
@@ -220,7 +232,7 @@ export function useStudentTransfers(
         student_id: "",
         transfer_to: "",
         reason: "",
-        transfer_date: new Date().toISOString().split("T")[0],
+        transfer_date: getLocalDateString(),
       });
       if (!isDemo) fetchTransferHistory();
     } catch (err: unknown) {

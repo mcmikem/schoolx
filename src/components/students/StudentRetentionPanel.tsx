@@ -231,8 +231,8 @@ export default function StudentRetentionPanel({
       </Card>
 
       {showDropoutModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowDropoutModal(null)}>
-          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto" onClick={() => setShowDropoutModal(null)}>
+          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto" onClick={(e) => e.stopPropagation()}>
             <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
               <h2 className="text-lg font-bold text-[var(--on-surface)]">Mark as Dropout</h2>
               <button onClick={() => setShowDropoutModal(null)} className="p-1 hover:bg-[var(--surface-container)] rounded-lg">

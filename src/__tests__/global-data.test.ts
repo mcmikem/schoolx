@@ -55,6 +55,7 @@ describe("Global Data Quality — Multi-Tenant", () => {
         { id: "c1", first_name: "A", last_name: "B", class_name: "P.1" },
       ];
       expect(resolveSelectedChild(children, null)?.id).toBe("c1");
+      expect(resolveSelectedChild(children, "missing")).toBeNull();
       expect(resolveSelectedChild([], "c1")).toBeNull();
     });
   });

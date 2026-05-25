@@ -92,10 +92,14 @@ export default function ParentMessagesPage() {
   const sendMessage = async () => {
     const trimmedBody = newMessage.trim();
     const trimmedSubject = subject.trim() || "Message from Parent";
-    const schoolId = selectedChild?.school_id || children[0]?.school_id || null;
+    const schoolId = selectedChild?.school_id || null;
 
     const parentId = user?.id;
     if (!trimmedBody || !parentId) return;
+    if (!selectedChild && !isDemo) {
+      toast.error("Select a child before sending a message.");
+      return;
+    }
     if (!schoolId && !isDemo) {
       toast.error("No linked school was found for this parent account.");
       return;
@@ -265,8 +269,8 @@ export default function ParentMessagesPage() {
         </Card>
 
         {showCompose && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-4">
-            <div className="bg-[var(--surface)] rounded-3xl w-full max-w-lg shadow-2xl p-8 space-y-5">
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
+            <div className="bg-[var(--surface)] rounded-3xl w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl p-8 space-y-5">
               <div className="flex justify-between items-center">
                 <div>
                   <h2 className="text-xl font-black text-[var(--on-surface)]">

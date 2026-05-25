@@ -32,6 +32,17 @@ export default function NoticesPage() {
     category: "General",
     send_sms: false,
   });
+
+  const postValidationError = !form.title.trim() || !form.content.trim()
+    ? "Add both title and content to post this notice."
+    : form.title.trim().length > 200
+      ? "Title must be 200 characters or fewer."
+      : "";
+  const editValidationError = !editForm.title.trim() || !editForm.content.trim()
+    ? "Add both title and content to save changes."
+    : editForm.title.trim().length > 200
+      ? "Title must be 200 characters or fewer."
+      : "";
   // Note: send_sms is stored but SMS dispatch requires Africa's Talking
   // credentials configured in production (AFRICAS_TALKING_API_KEY).
 
@@ -99,8 +110,8 @@ export default function NoticesPage() {
   const handleEditSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingNotice) return;
-    if (!editForm.title.trim() || !editForm.content.trim()) {
-      toastRef.current.error("Title and content are required");
+    if (editValidationError) {
+      toastRef.current.error(editValidationError);
       return;
     }
     setEditSaving(true);
@@ -128,12 +139,8 @@ export default function NoticesPage() {
 
   const handlePost = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.title.trim() || !form.content.trim()) {
-      toast.error("Title and content are required");
-      return;
-    }
-    if (form.title.trim().length > 200) {
-      toast.error("Title is too long");
+    if (postValidationError) {
+      toast.error(postValidationError);
       return;
     }
 
@@ -193,6 +200,9 @@ export default function NoticesPage() {
           </Button>
         }
       />
+      <p className="mt-2 mb-6 text-sm text-[var(--t3)]">
+        Share updates by category so staff and families can scan urgent notices quickly.
+      </p>
 
       {loading ? (
         <div className="text-center py-12 text-gray-400">
@@ -202,6 +212,10 @@ export default function NoticesPage() {
         <div className="text-center py-12 text-gray-400">
           <MaterialIcon icon="campaign" className="text-4xl mx-auto mb-2" />
           <p>No notices posted yet</p>
+          <Button className="mt-4" onClick={() => setShowPostModal(true)}>
+            <MaterialIcon icon="add" />
+            Post Notice
+          </Button>
         </div>
       ) : (
         <div className="space-y-4">
@@ -249,8 +263,8 @@ export default function NoticesPage() {
       )}
 
       {editingNotice && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-lg">
+        <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
             <h2 className="text-xl font-semibold mb-4">Edit Notice</h2>
             <form onSubmit={handleEditSave}>
               <div className="space-y-4">
@@ -273,8 +287,11 @@ export default function NoticesPage() {
                 </div>
                 <div className="flex gap-3">
                   <Button type="button" variant="secondary" onClick={() => setEditingNotice(null)} className="flex-1">Cancel</Button>
-                  <Button type="submit" disabled={editSaving} className="flex-1">{editSaving ? "Saving..." : "Save Changes"}</Button>
+                  <Button type="submit" disabled={editSaving || Boolean(editValidationError)} className="flex-1">{editSaving ? "Saving..." : "Save Changes"}</Button>
                 </div>
+                {editValidationError && (
+                  <p className="text-sm text-[var(--t3)]">{editValidationError}</p>
+                )}
               </div>
             </form>
           </div>
@@ -282,8 +299,8 @@ export default function NoticesPage() {
       )}
 
       {showPostModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-lg">
+        <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
             <h2 className="text-xl font-semibold mb-4">Post Notice</h2>
             <form onSubmit={handlePost}>
               <div className="space-y-4">
@@ -352,10 +369,13 @@ export default function NoticesPage() {
                   >
                     Cancel
                   </Button>
-                  <Button type="submit" disabled={posting} className="flex-1">
+                  <Button type="submit" disabled={posting || Boolean(postValidationError)} className="flex-1">
                     {posting ? "Posting..." : "Post Notice"}
                   </Button>
                 </div>
+                {postValidationError && (
+                  <p className="text-sm text-[var(--t3)]">{postValidationError}</p>
+                )}
               </div>
             </form>
           </div>

@@ -306,8 +306,8 @@ export default function StudentPromotionPanel({
       </Card>
 
       {showDemoteModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setShowDemoteModal(null)}>
-          <div className="bg-[var(--surface)] rounded-2xl shadow-xl max-w-md w-full" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto" onClick={() => setShowDemoteModal(null)}>
+          <div className="bg-[var(--surface)] rounded-2xl shadow-xl max-w-md w-full max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">
               <div className="font-semibold text-[var(--t1)]">Demote Student</div>
               <button onClick={() => setShowDemoteModal(null)} className="p-1 hover:bg-[var(--surface-container)] rounded-lg">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ChangeEvent, type MutableRefObject } from "react";
+import { useEffect, useState, type ChangeEvent, type MutableRefObject } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import OnboardingTips from "@/components/OnboardingTips";
@@ -164,13 +164,51 @@ export default function StudentRegistryPanel({
   onDeleteStudent,
 }: StudentRegistryPanelProps) {
   const showPhotos = !lowBandwidthMode;
-  const [showQuickImport, setShowQuickImport] = useState(totalStudents === 0);
+  const [showQuickImport, setShowQuickImport] = useState(false);
+
+  useEffect(() => {
+    if (totalStudents === 0) {
+      setShowQuickImport(true);
+    }
+  }, [totalStudents]);
 
   const resolveHouse = (student: StudentRow) => {
     if (student.house_id && houseMap[student.house_id]) {
       return houseMap[student.house_id];
     }
+
+    const gamesHouseKey = (student as { games_house?: string | null }).games_house;
+    if (gamesHouseKey && houseMap[gamesHouseKey]) {
+      return houseMap[gamesHouseKey];
+    }
+
+    if (gamesHouseKey) {
+      const byName = Object.values(houseMap).find(
+        (house) => house.name.toLowerCase() === gamesHouseKey.toLowerCase(),
+      );
+      if (byName) {
+        return byName;
+      }
+    }
+
     return null;
+  };
+
+  const resolveClassLabel = (student: StudentRow) => {
+    if (student.classes?.name) {
+      return student.classes.stream
+        ? `${student.classes.name} ${student.classes.stream}`
+        : student.classes.name;
+    }
+
+    const classFromId = classes.find((classItem) => classItem.id === student.class_id);
+    if (classFromId) {
+      return classFromId.stream
+        ? `${classFromId.name} ${classFromId.stream}`
+        : classFromId.name;
+    }
+
+    return "-";
   };
 
   const getHouseColor = (house: HouseMeta | null) => {
@@ -853,6 +891,7 @@ export default function StudentRegistryPanel({
                               fontWeight: 700,
                               color: "#fff",
                               overflow: "hidden",
+                              position: "relative",
                               background:
                                 student.gender === "M"
                                   ? "var(--navy)"
@@ -878,17 +917,24 @@ export default function StudentRegistryPanel({
                                 size={36}
                               />
                             )}
+                            <span
+                              title={statusMeta?.label || "No attendance recorded today"}
+                              aria-label={statusMeta?.label || "No attendance recorded today"}
+                              style={{
+                                position: "absolute",
+                                right: 0,
+                                bottom: 0,
+                                width: 10,
+                                height: 10,
+                                borderRadius: "50%",
+                                border: "2px solid var(--surface)",
+                                backgroundColor: attendanceTone(statusMeta?.status),
+                                boxShadow: "0 0 0 1px rgba(0,0,0,0.08)",
+                              }}
+                            />
                           </div>
                           <div>
                             <div className="flex flex-wrap items-center gap-2">
-                              <span
-                                className="inline-flex h-2.5 w-2.5 rounded-full"
-                                title={statusMeta?.label || "No attendance recorded today"}
-                                aria-label={statusMeta?.label || "No attendance recorded today"}
-                                style={{
-                                  backgroundColor: attendanceTone(statusMeta?.status),
-                                }}
-                              />
                               <div style={{ fontWeight: 600, color: "var(--t1)" }}>
                                 {student.first_name} {student.last_name}
                               </div>
@@ -927,10 +973,7 @@ export default function StudentRegistryPanel({
                             color: "var(--t1)",
                           }}
                         >
-                          {student.classes?.name || "-"}
-                          {student.classes?.stream
-                            ? ` ${student.classes.stream}`
-                            : ""}
+                          {resolveClassLabel(student)}
                           {student.boarding_status &&
                             student.boarding_status !== "day" && (
                               <span

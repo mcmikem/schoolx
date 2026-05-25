@@ -62,7 +62,7 @@ describe("parent portal helpers", () => {
     ]);
 
     expect(resolveSelectedChild(children, "stu-2")?.id).toBe("stu-2");
-    expect(resolveSelectedChild(children, "missing")?.id).toBe("stu-1");
+    expect(resolveSelectedChild(children, "missing")).toBeNull();
   });
 
   it("calculates fee stats consistently", () => {

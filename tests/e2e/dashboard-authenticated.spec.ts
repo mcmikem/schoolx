@@ -220,32 +220,27 @@ test.describe("Authenticated dashboard flows", () => {
     await seedDemoSession(page, "headmaster");
 
     await page.goto("/dashboard/student-transfers");
+    await expect(page).toHaveURL(/\/dashboard\/student-transfers\/?/);
     await expect(
-      page.getByRole("heading", { name: /student transfers/i }),
+      page.getByRole("heading", { name: /student hub/i }).first(),
     ).toBeVisible();
 
-    await page.getByRole("button", { name: /^transfer in$/i }).first().click();
+    await page.getByRole("button", { name: /new transfer/i }).click();
     await expect(
       page.getByRole("heading", { name: /new transfer in/i }),
     ).toBeVisible();
     await page.getByLabel(/first name/i).fill("Play");
     await page.getByLabel(/last name/i).fill("Transfer");
     await page.getByLabel(/previous school/i).fill("Demo Primary");
-    await page.getByLabel(/^reason$/i).selectOption("Family relocation");
-    await page.getByLabel(/^class/i).selectOption("4");
-    await page.getByLabel(/parent name/i).fill("Test Parent");
-    await page.getByLabel(/parent phone/i).fill("0700000011");
-    await page.getByRole("button", { name: /record transfer in/i }).click();
-    await expect(page.getByText(/play transfer/i)).toBeVisible();
+    await page.getByLabel(/transfer reason/i).selectOption("Family relocation");
+    await page.getByLabel(/assign to class/i).selectOption({ index: 1 });
+    await page.getByLabel(/parent.*name/i).fill("Test Parent");
+    await page.getByLabel(/^parent phone/i).fill("0700000011");
+    await page.getByRole("button", { name: /add transfer student/i }).click();
+    await expect(page.getByText(/play transfer/i).first()).toBeVisible();
 
-    await page
-      .getByRole("button", { name: /transfer out/i })
-      .nth(1)
-      .click();
-    await page
-      .getByRole("button", { name: /transfer out/i })
-      .first()
-      .click();
+    await page.getByRole("tab", { name: /transfer out/i }).click();
+    await page.getByRole("button", { name: /transfer out/i }).first().click();
     await page.getByLabel(/select student/i).selectOption({ index: 1 });
     await page.getByLabel(/transferring to/i).fill("Next School");
     await page.getByLabel(/^reason$/i).selectOption("Better opportunity");

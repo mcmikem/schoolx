@@ -254,7 +254,7 @@ export function resolveSelectedChild(
 ): ParentPortalChild | null {
   if (children.length === 0) return null;
   if (!childId) return children[0];
-  return children.find((child) => child.id === childId) || children[0];
+  return children.find((child) => child.id === childId) || null;
 }
 
 export function calculateFeeStats(

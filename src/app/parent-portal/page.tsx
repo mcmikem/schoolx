@@ -368,7 +368,7 @@ function ParentDashboardContent() {
   const childPhotoUrl = (selectedChild as any)?.photo_url || (selectedChild as any)?.avatar_url || null;
   const childInitials = selectedChild ? `${selectedChild.first_name[0]}${selectedChild.last_name[0]}` : "";
   const todayDate = new Date().toISOString().split("T")[0];
-  const todayAttendance = attendance.find((record) => record.date === todayDate) ?? attendance[0];
+  const todayAttendance = attendance.find((record) => record.date === todayDate) ?? null;
   const attendanceStatus = todayAttendance?.status ?? null;
   const hasFeeBalance = feeStats.balance > 0;
   const urgentUnreads = unreadCount > 0;
@@ -495,8 +495,8 @@ function ParentDashboardContent() {
 
         {/* Top-up Modal */}
         {showTopup && (
-          <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl w-full max-w-md shadow-lg">
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
+            <div className="bg-white rounded-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-lg">
               <div className="p-6">
                 <div className="flex justify-between items-center mb-6">
                   <div className="w-12 h-12 rounded-xl bg-gray-100 text-gray-700 flex items-center justify-center">

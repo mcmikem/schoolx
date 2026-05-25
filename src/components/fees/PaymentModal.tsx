@@ -64,6 +64,20 @@ export default function PaymentModal({
   }, [newPayment, selectedStudent]);
 
   const step1Valid = !errors.student_id && !errors.amount_paid;
+  const submitDisabledReason = !step1Valid
+    ? "Complete the student and amount fields first."
+    : errors.momo_transaction_id || errors.amount_paid || errors.student_id
+      ? errors.momo_transaction_id || errors.amount_paid || errors.student_id || ""
+      : "";
+  const nextDisabledReason = students.length === 0
+    ? "Add students first before recording payments."
+    : !newPayment.student_id
+      ? "Select a student to continue."
+      : !newPayment.amount_paid || Number(newPayment.amount_paid) <= 0
+        ? "Enter a payment amount greater than 0."
+        : errors.amount_paid
+          ? errors.amount_paid
+          : "";
 
   const handleBlur = (field: string) => {
     setTouched((prev) => ({ ...prev, [field]: true }));
@@ -86,8 +100,8 @@ export default function PaymentModal({
   };
 
   const handleNext = () => {
+    setTouched({ student_id: true, amount_paid: true });
     if (step1Valid) {
-      setTouched({ student_id: true, amount_paid: true });
       setStep(2);
     }
   };
@@ -98,11 +112,11 @@ export default function PaymentModal({
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4"
       onClick={handleClose}
     >
       <div
-        className="bg-surface-container-lowest rounded-2xl w-full max-w-lg"
+        className="bg-surface-container-lowest rounded-2xl w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-hidden shadow-xl my-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-6 border-b border-outline-variant/10">
@@ -141,7 +155,7 @@ export default function PaymentModal({
             </span>
           </div>
         </div>
-        <form onSubmit={onSubmit} className="p-6 space-y-5" noValidate>
+        <form onSubmit={onSubmit} className="p-6 space-y-5 overflow-y-auto max-h-[calc(100vh-10rem)] sm:max-h-[calc(100vh-11rem)]" noValidate>
           {step === 1 && (
             <>
               <div>
@@ -230,11 +244,17 @@ export default function PaymentModal({
                 <button
                   type="button"
                   onClick={handleNext}
-                  className="flex-1 py-3 bg-primary text-white font-semibold rounded-xl"
+                  disabled={students.length === 0 || !step1Valid}
+                  className="flex-1 py-3 bg-primary text-white font-semibold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Next
                 </button>
               </div>
+              {(students.length === 0 || !step1Valid) && nextDisabledReason && (
+                <p className="text-xs text-on-surface-variant text-right">
+                  {nextDisabledReason}
+                </p>
+              )}
             </>
           )}
 
@@ -351,12 +371,17 @@ export default function PaymentModal({
                 </button>
                 <button
                   type="submit"
-                  disabled={saving}
+                  disabled={saving || Boolean(submitDisabledReason)}
                   className="flex-1 py-3 bg-primary text-white font-semibold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {saving ? "Saving..." : "Record Payment"}
                 </button>
               </div>
+              {submitDisabledReason && (
+                <p className="text-xs text-on-surface-variant text-right">
+                  {submitDisabledReason}
+                </p>
+              )}
             </>
           )}
         </form>

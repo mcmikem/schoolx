@@ -13,6 +13,7 @@ import {
   detectConsecutiveAbsenceAlerts,
   filterAbsenceAlertsForCooldown,
 } from "@/lib/operations";
+import { logger } from "@/lib/logger";
 
 const AUTOMATION_ALLOWED_ROLES = [
   "super_admin",
@@ -149,7 +150,7 @@ async function handlePost(request: NextRequest) {
         createdMessages += 1;
       }
 
-      await supabase.from("automated_message_logs").insert({
+      const { error: logError } = await supabase.from("automated_message_logs").insert({
         school_id: scope.schoolId,
         trigger_id: trigger.id,
         recipient_id: alert.parentPhone || null,
@@ -157,6 +158,10 @@ async function handlePost(request: NextRequest) {
         status: alert.shouldSendSms ? "sent" : "failed",
         sent_at: sentAt,
       });
+
+      if (logError) {
+        logger.warn("Failed to write automated message log:", logError);
+      }
     }
 
     await supabase

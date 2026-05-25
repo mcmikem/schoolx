@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import MaterialIcon from "@/components/MaterialIcon";
 import { Card } from "@/components/ui/Card";
@@ -84,6 +85,30 @@ export default function StudentWorkspaceShell({
   onGeneratePle,
   onExport,
 }: StudentWorkspaceShellProps) {
+  const tabsScrollerRef = useRef<HTMLDivElement | null>(null);
+  const [showTabsOverflowHint, setShowTabsOverflowHint] = useState(false);
+
+  useEffect(() => {
+    const updateOverflowHint = () => {
+      const node = tabsScrollerRef.current;
+      if (!node) return;
+      setShowTabsOverflowHint(node.scrollWidth > node.clientWidth + 8);
+    };
+
+    updateOverflowHint();
+    window.addEventListener("resize", updateOverflowHint);
+    return () => window.removeEventListener("resize", updateOverflowHint);
+  }, []);
+
+  useEffect(() => {
+    const node = tabsScrollerRef.current;
+    if (!node) return;
+    const activeButton = node.querySelector<HTMLButtonElement>(
+      `[data-tab-id="${activeTab}"]`,
+    );
+    activeButton?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
+  }, [activeTab]);
+
   const workflowCounts: Record<StudentWorkspaceTab, number> = {
     registry: totalStudents,
     transfers: transferredCount,
@@ -162,15 +187,21 @@ export default function StudentWorkspaceShell({
 
       <section className="card overflow-hidden">
         <div className="border-b border-[var(--border)] px-2 pt-2">
-          <div className="flex gap-1 overflow-x-auto no-scrollbar">
+          <div className="relative">
+          <div
+            ref={tabsScrollerRef}
+            className="flex gap-1 overflow-x-auto no-scrollbar px-1 pb-1 snap-x snap-mandatory"
+            aria-label="Student workflow tabs"
+          >
             {WORKFLOW_TABS.map((tab) => {
               const isActive = activeTab === tab.id;
               const count = workflowCounts[tab.id];
               return (
                 <button
                   key={tab.id}
+                  data-tab-id={tab.id}
                   onClick={() => onTabChange(tab.id)}
-                  className={`flex items-center gap-2 px-4 py-3 rounded-t-xl text-[13px] font-semibold whitespace-nowrap border-b-2 transition-all ${
+                  className={`flex shrink-0 snap-start items-center gap-2 px-4 py-3 rounded-t-xl text-[13px] font-semibold whitespace-nowrap border-b-2 transition-all ${
                     isActive
                       ? "border-[var(--primary)] text-[var(--primary)] bg-[var(--navy-soft)]"
                       : "border-transparent text-[var(--t3)] hover:text-[var(--t1)] hover:bg-[var(--bg)]"
@@ -187,6 +218,19 @@ export default function StudentWorkspaceShell({
               );
             })}
           </div>
+          {showTabsOverflowHint && (
+            <>
+              <div className="pointer-events-none absolute inset-y-0 left-0 w-5 bg-gradient-to-r from-[var(--surface)] to-transparent" />
+              <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-[var(--surface)] to-transparent" />
+            </>
+          )}
+          </div>
+          {showTabsOverflowHint && (
+            <div className="sm:hidden px-2 pb-2 text-[11px] text-[var(--t3)] flex items-center gap-1">
+              <MaterialIcon icon="swipe" size={14} />
+              Swipe left or right to see all tabs
+            </div>
+          )}
         </div>
         <div className="px-4 sm:px-5 py-3 bg-[var(--surface-container-low)]">
           <p className="text-[13px] text-[var(--t2)]">

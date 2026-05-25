@@ -78,6 +78,13 @@ export default function ExamsPage() {
     max_score: 100,
     weight: 50,
   });
+  const examCreateValidationError = !newExam.name.trim() || !newExam.class_id || !newExam.subject_id
+    ? "Add exam name, class, and subject to continue."
+    : !Number.isFinite(newExam.max_score) || newExam.max_score <= 0
+      ? "Max score must be greater than 0."
+      : !Number.isFinite(newExam.weight) || newExam.weight <= 0 || newExam.weight > 100
+        ? "Weight must be between 1 and 100."
+        : "";
 
   const loadCustomWeights = useCallback(async () => {
     if (!school?.id) {
@@ -175,8 +182,8 @@ export default function ExamsPage() {
   };
 
   const handleAddExam = async () => {
-    if (!newExam.name || !newExam.class_id || !newExam.subject_id) {
-      toast.error("Fill all required fields");
+    if (examCreateValidationError) {
+      toast.error(examCreateValidationError);
       return;
     }
 
@@ -879,8 +886,11 @@ export default function ExamsPage() {
               <Button variant="ghost" onClick={() => setShowAddExam(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleAddExam}>Create Exam</Button>
+              <Button onClick={handleAddExam} disabled={Boolean(examCreateValidationError)}>Create Exam</Button>
             </div>
+            {examCreateValidationError && (
+              <p className="px-5 pb-4 text-sm text-[var(--t3)]">{examCreateValidationError}</p>
+            )}
           </div>
         </div>
       )}

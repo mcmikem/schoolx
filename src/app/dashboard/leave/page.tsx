@@ -52,16 +52,18 @@ export default function LeavePage() {
     reason: "",
   });
 
+  const leaveValidationError = !form.startDate || !form.endDate
+    ? "Add start date and end date to submit your request."
+    : new Date(form.endDate) < new Date(form.startDate)
+      ? "End date cannot be before start date."
+      : "";
+
   // Offline hook handles fetching requests
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.startDate || !form.endDate) {
-      toast.error("Please enter start and end dates");
-      return;
-    }
-    if (new Date(form.endDate) < new Date(form.startDate)) {
-      toast.error("End date cannot be before start date");
+    if (leaveValidationError) {
+      toast.error(leaveValidationError);
       return;
     }
     setSub(true);
@@ -114,6 +116,19 @@ export default function LeavePage() {
     }
   };
 
+  const statusLabel = (s: LeaveRequest["status"]) => {
+    switch (s) {
+      case "dos_approved":
+        return "DOS Approved";
+      case "approved":
+        return "HM Approved";
+      case "rejected":
+        return "Rejected";
+      default:
+        return "Pending";
+    }
+  };
+
   return (
     <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-6">
@@ -124,16 +139,17 @@ export default function LeavePage() {
           !isManager ? (
             <Button onClick={() => setShowModal(true)} className="w-full sm:w-auto">
               <MaterialIcon icon="add" />
-              Apply for Leave
+              Request Leave
             </Button>
           ) : undefined
         }
       />
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {[
           { label: "Pending", value: requests.filter((r) => r.status === "pending").length, tone: "text-amber-700 bg-amber-50" },
-          { label: "Approved", value: requests.filter((r) => r.status === "approved").length, tone: "text-emerald-700 bg-emerald-50" },
+          { label: "DOS Approved", value: requests.filter((r) => r.status === "dos_approved").length, tone: "text-blue-700 bg-blue-50" },
+          { label: "HM Approved", value: requests.filter((r) => r.status === "approved").length, tone: "text-emerald-700 bg-emerald-50" },
           { label: "Rejected", value: requests.filter((r) => r.status === "rejected").length, tone: "text-red-700 bg-red-50" },
           { label: "Total", value: requests.length, tone: "text-slate-700 bg-slate-50" },
         ].map((item) => (
@@ -151,7 +167,7 @@ export default function LeavePage() {
           <MaterialIcon icon="event_busy" className="text-4xl mx-auto mb-2" />
           <p>No leave requests</p>
           {!isManager && (
-            <Button className="mt-4" onClick={() => setShowModal(true)}>Apply for Leave</Button>
+            <Button className="mt-4" onClick={() => setShowModal(true)}>Request Leave</Button>
           )}
         </div>
       ) : (
@@ -172,7 +188,7 @@ export default function LeavePage() {
                   </div>
                   <div className="flex flex-col items-end gap-2">
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium capitalize ${statusBadge(r.status)}`}>
-                      {r.status.replace("_", " ")}
+                      {statusLabel(r.status)}
                     </span>
                     {isManager && r.status === "pending" && (
                       <div className="flex gap-2">
@@ -201,9 +217,9 @@ export default function LeavePage() {
       )}
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-lg">
-            <h2 className="text-xl font-semibold mb-4">Apply for Leave</h2>
+        <div className="fixed inset-0 z-50 bg-black/50 p-3 sm:p-4 overflow-y-auto flex items-start sm:items-center justify-center">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
+            <h2 className="text-xl font-semibold mb-4">Request Leave</h2>
             <form onSubmit={handleSubmit}>
               <div className="space-y-4">
                 <div>
@@ -237,8 +253,11 @@ export default function LeavePage() {
                 </div>
                 <div className="flex gap-3">
                   <Button type="button" variant="secondary" onClick={() => setShowModal(false)} className="flex-1">Cancel</Button>
-                  <Button type="submit" disabled={submitting} className="flex-1">{submitting ? "Submitting..." : "Submit Request"}</Button>
+                  <Button type="submit" disabled={submitting || Boolean(leaveValidationError)} className="flex-1">{submitting ? "Submitting..." : "Submit Request"}</Button>
                 </div>
+                {leaveValidationError && (
+                  <p className="text-sm text-[var(--t3)]">{leaveValidationError}</p>
+                )}
               </div>
             </form>
           </div>

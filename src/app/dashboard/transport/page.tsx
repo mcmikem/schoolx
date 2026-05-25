@@ -60,23 +60,30 @@ export default function TransportPage() {
     driver_phone: "",
     monthly_fee: "",
   });
+  const parsedMonthlyFee = form.monthly_fee ? parseFloat(form.monthly_fee) : null;
+  const routeValidationError = !form.route_name.trim()
+    ? "Add a route name to continue."
+    : form.monthly_fee && (parsedMonthlyFee === null || Number.isNaN(parsedMonthlyFee) || parsedMonthlyFee < 0)
+      ? "Monthly fee must be a valid positive number."
+      : "";
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
 
   // Offline hook handles fetching routes
 
   const saveRoute = async () => {
-    if (!form.route_name.trim() || !school?.id) {
-      toast.error("Route name is required");
+    if (!school?.id) {
+      return;
+    }
+
+    if (routeValidationError) {
+      toast.error(routeValidationError);
       return;
     }
 
     setSaving(true);
     try {
-      const monthlyFee = form.monthly_fee ? parseFloat(form.monthly_fee) : null;
-      if (form.monthly_fee && (isNaN(monthlyFee!) || monthlyFee! < 0)) {
-        throw new Error("Monthly fee must be a valid positive number");
-      }
+      const monthlyFee = parsedMonthlyFee;
 
       const error = await withTimeout(
         supabase.from("transport_routes").insert({
@@ -218,8 +225,8 @@ export default function TransportPage() {
         </div>
 
         {showAdd && (
-          <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-            <div className="bg-[var(--surface)] rounded-2xl w-full max-w-lg shadow-xl">
+          <div className="fixed inset-0 bg-black/40 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
+            <div className="bg-[var(--surface)] rounded-2xl w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-xl">
               <div className="p-6 space-y-4">
                 <div className="flex justify-between items-center">
                   <h2 className="text-lg font-bold text-[var(--t1)]">Add Route</h2>
@@ -251,9 +258,12 @@ export default function TransportPage() {
                     <input value={form.driver_phone} onChange={(e) => setForm({ ...form, driver_phone: e.target.value })} placeholder="07XXXXXXXX" className="w-full px-3 py-2.5 bg-[var(--bg)] border border-[var(--border)] rounded-xl text-sm outline-none" />
                   </div>
                 </div>
-                <Button onClick={saveRoute} disabled={!form.route_name || saving} loading={saving} className="w-full">
+                <Button onClick={saveRoute} disabled={saving || Boolean(routeValidationError)} loading={saving} className="w-full">
                   {saving ? "Saving…" : "Save Route"}
                 </Button>
+                {routeValidationError && (
+                  <p className="text-sm text-[var(--t3)]">{routeValidationError}</p>
+                )}
               </div>
             </div>
           </div>

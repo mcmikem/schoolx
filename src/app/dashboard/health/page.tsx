@@ -65,6 +65,14 @@ export default function HealthPage() {
   const [editingRecord, setEditingRecord] = useState<HealthRecord | null>(null);
   const [editForm, setEditForm] = useState({ condition: "", severity: "mild" as "mild" | "moderate" | "severe", treatment: "", status: "admitted" as "admitted" | "discharged" | "referred" });
   const [editSaving, setEditSaving] = useState(false);
+  const admitValidationError = !form.condition.trim()
+    ? "Add the medical condition to continue."
+    : !form.student_id && !form.student_name.trim() && !studentSearch.trim()
+      ? "Select or enter a student name before admitting."
+      : "";
+  const editValidationError = !editForm.condition.trim()
+    ? "Condition is required to save changes."
+    : "";
 
   // Offline hook handles data loading; no need for fetchRecords or useEffect
 
@@ -81,12 +89,11 @@ export default function HealthPage() {
   };
 
   const admitStudent = async () => {
-    if (!form.condition.trim() || !school?.id) {
-      toast.error("Condition is required");
+    if (!school?.id) {
       return;
     }
-    if (!form.student_id && !form.student_name.trim() && !studentSearch.trim()) {
-      toast.error("Student name is required");
+    if (admitValidationError) {
+      toast.error(admitValidationError);
       return;
     }
 
@@ -181,7 +188,7 @@ export default function HealthPage() {
 
   const handleEditSave = async () => {
     if (!editingRecord) return;
-    if (!editForm.condition.trim()) { toast.error("Condition is required"); return; }
+    if (editValidationError) { toast.error(editValidationError); return; }
     setEditSaving(true);
     try {
       const { error } = await supabase.from("health_records").update({
@@ -352,8 +359,8 @@ export default function HealthPage() {
 
       {/* Edit Record Modal */}
       {editingRecord && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[40px] w-full max-w-md shadow-2xl p-8">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
+          <div className="bg-white rounded-[40px] w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl p-8">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-black text-slate-800">Edit Record</h2>
               <button onClick={() => setEditingRecord(null)} className="p-2 hover:bg-slate-100 rounded-xl">
@@ -389,10 +396,13 @@ export default function HealthPage() {
               </div>
               <div className="flex gap-3">
                 <button onClick={() => setEditingRecord(null)} className="flex-1 py-3 border border-slate-200 rounded-2xl font-black text-slate-600 hover:bg-slate-50">Cancel</button>
-                <button onClick={handleEditSave} disabled={editSaving || !editForm.condition.trim()} className="flex-1 py-3 bg-blue-500 text-white rounded-2xl font-black disabled:opacity-50 flex items-center justify-center gap-2">
+                <button onClick={handleEditSave} disabled={editSaving || Boolean(editValidationError)} className="flex-1 py-3 bg-blue-500 text-white rounded-2xl font-black disabled:opacity-50 flex items-center justify-center gap-2">
                   {editSaving ? <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><MaterialIcon icon="save" /> Save Changes</>}
                 </button>
               </div>
+              {editValidationError && (
+                <p className="text-sm text-slate-500">{editValidationError}</p>
+              )}
             </div>
           </div>
         </div>
@@ -400,8 +410,8 @@ export default function HealthPage() {
 
       {/* Admit Modal */}
       {showAdd && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[40px] w-full max-w-lg shadow-2xl overflow-hidden">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
+          <div className="bg-white rounded-[40px] w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl overflow-hidden">
             <div className="p-8">
               <div className="flex justify-between items-center mb-8">
                 <div>
@@ -478,7 +488,7 @@ export default function HealthPage() {
 
                 <button
                   onClick={admitStudent}
-                  disabled={!form.condition || saving}
+                  disabled={saving || Boolean(admitValidationError)}
                   className="w-full py-4 bg-red-500 text-white rounded-[28px] font-black uppercase tracking-widest hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {saving ? (
@@ -490,6 +500,9 @@ export default function HealthPage() {
                     </>
                   )}
                 </button>
+                {admitValidationError && (
+                  <p className="text-sm text-slate-500">{admitValidationError}</p>
+                )}
               </div>
             </div>
           </div>

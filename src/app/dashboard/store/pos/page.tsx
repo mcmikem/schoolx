@@ -586,8 +586,8 @@ export default function CanteenPOSPage() {
 
     {/* QR Scanner Modal */}
     {showScanner && (
-      <div className="fixed inset-0 z-50 bg-black/80 flex flex-col items-center justify-center p-4">
-        <div className="bg-white rounded-2xl w-full max-w-md overflow-hidden">
+      <div className="fixed inset-0 z-50 bg-black/80 flex flex-col items-center justify-start sm:justify-center overflow-y-auto p-3 sm:p-4">
+        <div className="bg-white rounded-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
           <div className="flex items-center justify-between p-4 border-b border-slate-100">
             <h3 className="text-lg font-bold text-slate-800">Scan Student ID</h3>
             <button

@@ -274,8 +274,8 @@ export default function AssetsPage() {
       </div>
 
       {showAdd && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="w-full max-w-lg overflow-hidden rounded-[34px] border border-white/70 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.2)]">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
+          <div className="w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto rounded-[34px] border border-white/70 bg-white shadow-[0_24px_60px_rgba(15,23,42,0.2)]">
             <div className="p-8 space-y-5">
               <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-semibold tracking-[-0.03em] text-[var(--on-surface)]">

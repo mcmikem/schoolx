@@ -45,6 +45,9 @@ export default function WorkflowsBuilder() {
   const [newTitle, setNewTitle] = useState("");
   const [selectedTrigger, setSelectedTrigger] = useState("");
   const [selectedAction, setSelectedAction] = useState("");
+  const workflowValidationError = !newTitle.trim() || !selectedTrigger || !selectedAction
+    ? "Provide workflow name, trigger, and action to deploy."
+    : "";
 
   const loadWorkflows = useCallback(async () => {
     if (!school?.id) { setLoading(false); return; }
@@ -78,8 +81,8 @@ export default function WorkflowsBuilder() {
   }, [isDemo, loadWorkflows]);
 
   const handleSaveWorkflow = async () => {
-    if (!newTitle || !selectedTrigger || !selectedAction) {
-      toast.error("Please fill out all workflow fields");
+    if (workflowValidationError) {
+      toast.error(workflowValidationError);
       return;
     }
     if (isDemo) { toast.error("Demo mode — sign in to a real account to save workflows"); return; }
@@ -231,12 +234,15 @@ export default function WorkflowsBuilder() {
             </div>
             <div className="flex justify-end gap-3 pt-6 border-t border-[var(--border)]">
               <button onClick={() => setIsBuilderOpen(false)} className="px-6 py-3 rounded-xl font-bold text-[var(--t2)] hover:bg-[var(--surface-container)] transition-colors">Cancel</button>
-              <button onClick={handleSaveWorkflow} disabled={saving}
+              <button onClick={handleSaveWorkflow} disabled={saving || Boolean(workflowValidationError)}
                 className="bg-[var(--primary)] text-[var(--on-primary)] px-8 py-3 rounded-xl font-bold shadow-lg shadow-[var(--primary)]/30 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 disabled:opacity-60">
                 <MaterialIcon icon="done_all" />
                 {saving ? "Saving…" : "Deploy Workflow"}
               </button>
             </div>
+            {workflowValidationError && (
+              <p className="pt-3 text-sm text-[var(--t3)]">{workflowValidationError}</p>
+            )}
           </div>
         </div>
       )}

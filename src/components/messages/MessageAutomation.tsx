@@ -45,6 +45,12 @@ export default function MessageAutomation({
   onOpenEditRule,
   onSaveRule,
 }: MessageAutomationProps) {
+  const ruleValidationError = !ruleForm.name.trim()
+    ? "Add a rule name to continue."
+    : Number(ruleForm.threshold_days) < 1 || Number(ruleForm.threshold_days) > 30
+      ? "Threshold days must be between 1 and 30."
+      : "";
+
   return (
     <>
       {triggersLoading ? (
@@ -195,11 +201,11 @@ export default function MessageAutomation({
 
       {showRuleModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          className="fixed inset-0 z-50 bg-black/40 p-3 sm:p-4 overflow-y-auto flex items-start sm:items-center justify-center"
           onClick={() => onShowRuleModalChange(false)}
         >
           <Card
-            className="w-full max-w-md p-6"
+            className="w-full max-w-md p-6 max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-lg font-semibold text-[var(--t1)] mb-4">
@@ -270,10 +276,13 @@ export default function MessageAutomation({
                 >
                   Cancel
                 </Button>
-                <Button type="submit" className="flex-1" loading={savingRule}>
+                <Button type="submit" className="flex-1" loading={savingRule} disabled={savingRule || Boolean(ruleValidationError)}>
                   Save Rule
                 </Button>
               </div>
+              {ruleValidationError && (
+                <p className="text-sm text-[var(--t3)]">{ruleValidationError}</p>
+              )}
             </form>
           </Card>
         </div>

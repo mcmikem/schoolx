@@ -771,13 +771,13 @@ export default function StudentHubPage() {
 
         {deleteConfirm.open && (
           <div
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto"
             onClick={() =>
               setDeleteConfirm({ open: false, studentId: null })
             }
           >
             <div
-              className="bg-[var(--surface)] rounded-2xl w-full max-w-md p-6"
+              className="bg-[var(--surface)] rounded-2xl w-full max-w-md p-6 max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto"
               onClick={(e) => e.stopPropagation()}
             >
               <div style={{ textAlign: "center", marginBottom: 24 }}>

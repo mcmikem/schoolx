@@ -33,6 +33,7 @@ export function useHeadmasterDashboardData(
       try {
         const today = new Date().toISOString().split("T")[0];
         const now = new Date();
+        const effectiveAcademicYear = academicYear || new Date().getFullYear().toString();
         const monday = new Date(now);
         monday.setDate(
           now.getDate() - (now.getDay() === 0 ? 6 : now.getDay() - 1),
@@ -59,7 +60,7 @@ export function useHeadmasterDashboardData(
             .from("grades")
             .select("student_id, score, term, academic_year")
             .eq("term", currentTerm || 1)
-            .eq("academic_year", academicYear || "2026")
+            .eq("academic_year", effectiveAcademicYear)
             .limit(5000),
           supabase
             .from("attendance")

@@ -27,6 +27,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const schoolLookup = await supabase
+      .from("schools")
+      .select("id, school_code")
+      .eq("school_code", schoolCode.trim().toUpperCase())
+      .maybeSingle();
+
+    if (schoolLookup.error) {
+      return NextResponse.json(
+        { error: "Failed to resolve school for SchoolPay sync" },
+        { status: 500 },
+      );
+    }
+
+    if (!schoolLookup.data) {
+      return NextResponse.json(
+        { error: "School not found for provided school code" },
+        { status: 404 },
+      );
+    }
+
+    const schoolId = schoolLookup.data.id;
+
     const schoolPay = new SchoolPayService(schoolCode, apiPassword);
 
     let response;
@@ -57,15 +79,30 @@ export async function POST(request: NextRequest) {
 
     for (const tx of regularTransactions) {
       const { withTimeout } = await import('@/lib/hooks/utils');
+      const { data: student } = await withTimeout(
+        supabase
+          .from("students")
+          .select("id, school_id, student_number")
+          .eq("school_id", schoolId)
+          .eq("student_number", tx.studentPaymentCode)
+          .maybeSingle(),
+        15000,
+        null as any,
+      );
+
+      if (!student) {
+        logger.warn("Skipping SchoolPay transaction without matching student:", tx.studentPaymentCode);
+        continue;
+      }
+
       const regResult = await withTimeout(
         supabase.from("fee_payments").insert({
-          student_id: tx.studentPaymentCode,
-          amount: tx.amount,
-          payment_date: tx.paymentDate.toISOString(),
-          payment_method: tx.channel,
-          reference_number: tx.receiptNumber,
-          transaction_id: tx.transactionId,
-          status: "completed",
+          student_id: student.id,
+          amount_paid: tx.amount,
+          payment_date: tx.paymentDate.toISOString().split("T")[0],
+          payment_method: "mobile_money",
+          payment_reference: tx.receiptNumber,
+          notes: `SchoolPay ${tx.channel} ${tx.transactionId}`,
         }),
         15000,
         null as any
@@ -77,16 +114,30 @@ export async function POST(request: NextRequest) {
 
     for (const tx of supplementaryPayments) {
       const { withTimeout } = await import('@/lib/hooks/utils');
+      const { data: student } = await withTimeout(
+        supabase
+          .from("students")
+          .select("id, school_id, student_number")
+          .eq("school_id", schoolId)
+          .eq("student_number", tx.studentPaymentCode)
+          .maybeSingle(),
+        15000,
+        null as any,
+      );
+
+      if (!student) {
+        logger.warn("Skipping SchoolPay supplementary transaction without matching student:", tx.studentPaymentCode);
+        continue;
+      }
+
       const suppResult = await withTimeout(
         supabase.from("fee_payments").insert({
-          student_id: tx.studentPaymentCode,
-          amount: tx.amount,
-          payment_date: tx.paymentDate.toISOString(),
-          payment_method: tx.channel,
-          reference_number: tx.receiptNumber,
-          transaction_id: tx.transactionId,
-          description: tx.feeDescription,
-          status: "completed",
+          student_id: student.id,
+          amount_paid: tx.amount,
+          payment_date: tx.paymentDate.toISOString().split("T")[0],
+          payment_method: "mobile_money",
+          payment_reference: tx.receiptNumber,
+          notes: tx.feeDescription,
         }),
         15000,
         null as any

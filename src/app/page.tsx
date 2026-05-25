@@ -1209,8 +1209,8 @@ export default function HomePage() {
 
         {/* iOS Install Instructions Modal */}
         {showIosModal && (
-          <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-            <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl">
+          <div className="fixed inset-0 z-50 bg-black/60 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
+            <div className="bg-white rounded-2xl w-full max-w-sm max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto p-6 shadow-2xl">
               <h3 className="text-lg font-bold text-slate-800 mb-3">
                 Add to Home Screen
               </h3>

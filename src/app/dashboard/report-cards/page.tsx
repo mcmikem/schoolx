@@ -239,10 +239,12 @@ export default function ReportCardsPage() {
           : subjects.map((s: any) => s.name);
       const numSubjects = subjectList.length || 1;
 
-      const studentsForReport =
-        filteredStudents.length > 0
-          ? filteredStudents
-          : classStudents.slice(0, 1);
+      const studentsForReport = filteredStudents;
+
+      if (studentsForReport.length === 0) {
+        toast.error("No students found for the selected class");
+        return;
+      }
 
       const reportList: StudentReport[] = studentsForReport.map((student) => {
         const subjScores = studentSubjectScores[student.id] || {};

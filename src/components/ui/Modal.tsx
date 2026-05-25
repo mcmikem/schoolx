@@ -93,7 +93,7 @@ export function Modal({
 
   const modalContent = (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-4"
+      className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby={title ? "modal-title" : undefined}
@@ -107,7 +107,7 @@ export function Modal({
         ref={modalRef}
         className={cn(
           "relative w-full bg-[var(--surface)] shadow-2xl border border-[var(--border)] overflow-hidden",
-          "rounded-2xl max-h-[90vh]",
+          "rounded-2xl max-h-[calc(100vh-1.5rem)] sm:max-h-[90vh] my-auto",
           "sm:mx-auto",
           sizes[size],
           "animate-slideUpBottomSheet sm:animate-none",

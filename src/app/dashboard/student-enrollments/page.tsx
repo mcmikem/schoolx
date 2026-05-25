@@ -69,6 +69,10 @@ export default function StudentEnrollmentsPage() {
     state: "running",
   });
 
+  const enrollmentValidationError = !formData.student_id || !formData.class_id || !formData.academic_year
+    ? "Select student, class, and academic year to continue."
+    : "";
+
   const fetchEnrollments = useCallback(async () => {
     if (!school?.id) return;
     setLoading(true);
@@ -127,8 +131,8 @@ export default function StudentEnrollmentsPage() {
 
   const handleSubmit = async () => {
     if (!school?.id) return;
-    if (!formData.student_id || !formData.class_id || !formData.academic_year) {
-      toast.error("Student, class, and academic year are required");
+    if (enrollmentValidationError) {
+      toast.error(enrollmentValidationError);
       return;
     }
 
@@ -435,11 +439,14 @@ export default function StudentEnrollmentsPage() {
             </Button>
             <Button
               onClick={handleSubmit}
-              disabled={!formData.student_id || !formData.class_id}
+              disabled={Boolean(enrollmentValidationError)}
             >
               Create
             </Button>
           </div>
+          {enrollmentValidationError && (
+            <p className="text-sm text-[var(--t3)]">{enrollmentValidationError}</p>
+          )}
         </div>
       </Modal>
 

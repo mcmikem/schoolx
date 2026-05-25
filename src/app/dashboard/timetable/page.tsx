@@ -310,8 +310,8 @@ function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }
       )}
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={() => setShowModal(false)}>
-          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-md p-6 space-y-4" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4" onClick={() => setShowModal(false)}>
+          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto p-6 space-y-4 my-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-semibold text-[var(--t1)]">{editingEvent ? 'Edit Event' : 'Add Calendar Event'}</h2>
               <button onClick={() => setShowModal(false)} className="p-1.5 hover:bg-[var(--bg)] rounded-lg text-[var(--t3)]">
@@ -744,8 +744,8 @@ export default function TimetablePage() {
       </Card>
 
       {showEntryModal && selectedSlot && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <Card className="w-full max-w-md">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4 bg-black/60 backdrop-blur-sm">
+          <Card className="w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-[var(--t1)]">Assign Lesson</h2>
               <button onClick={() => { setShowEntryModal(false); setConflicts([]) }} className="text-[var(--t4)] hover:text-[var(--t1)]">

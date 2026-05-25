@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
 import { logger } from "@/lib/logger";
 import { getCachedResponse, cacheResponse, queueMutation, isOnline, generateCacheKey } from "@/lib/offline-db";
+import { generateWhatsAppShareLink } from "@/lib/whatsapp";
 import { withTimeout } from "./utils";
 
 interface FeeTerm {
@@ -387,11 +388,62 @@ export function useStudentFeeTerms(studentId?: string) {
         return paymentData;
       } catch (err) {
         logger.error("Error recording payment:", err);
-        toast.error("Failed to record payment");
+
+        if (typeof window !== "undefined") {
+          try {
+            const key = "pending_manual_fee_payments";
+            const existing = window.localStorage.getItem(key);
+            const parsed = existing ? JSON.parse(existing) : [];
+            parsed.push({
+              ...payment,
+              school_id: school?.id || null,
+              queued_at: new Date().toISOString(),
+            });
+            window.localStorage.setItem(key, JSON.stringify(parsed));
+          } catch (storageError) {
+            logger.warn("Failed to persist manual payment fallback:", storageError);
+          }
+        }
+
+        let whatsappFallbackOpened = false;
+        try {
+          const { data: fallbackStudentTerm } = await supabase
+            .from("student_fee_terms")
+            .select("student:students(first_name, last_name, parent_phone)")
+            .eq("id", payment.student_fee_term_id)
+            .single();
+
+          const student = fallbackStudentTerm?.student as
+            | { first_name?: string; last_name?: string; parent_phone?: string | null }
+            | undefined;
+
+          if (student?.parent_phone && typeof window !== "undefined") {
+            const formattedAmount = new Intl.NumberFormat("en-UG", {
+              style: "currency",
+              currency: "UGX",
+              maximumFractionDigits: 0,
+            }).format(payment.amount);
+
+            const message =
+              `Dear parent, we are following up on ${student.first_name || "your child"} ${student.last_name || ""}. ` +
+              `A payment of ${formattedAmount} was received and will be confirmed manually due to a temporary gateway issue.`;
+            const link = generateWhatsAppShareLink(student.parent_phone, message.trim());
+            window.open(link, "_blank", "noopener,noreferrer");
+            whatsappFallbackOpened = true;
+          }
+        } catch (fallbackError) {
+          logger.warn("Unable to prepare WhatsApp payment fallback:", fallbackError);
+        }
+
+        toast.error(
+          whatsappFallbackOpened
+            ? "Payment service unavailable. Saved for manual record and opened WhatsApp follow-up."
+            : "Payment service unavailable. Saved for manual record in this browser.",
+        );
         return null;
       }
     },
-    [toast, fetchStudentFeeTerms],
+    [toast, fetchStudentFeeTerms, school?.id],
   );
 
   return {

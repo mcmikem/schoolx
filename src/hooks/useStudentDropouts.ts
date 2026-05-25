@@ -35,6 +35,15 @@ export function useStudentDropouts(
   const [dropoutReason, setDropoutReason] = useState("");
   const [sendingSms, setSendingSms] = useState<string | null>(null);
 
+  const daysBetween = (from: string | null | undefined, to = new Date()) => {
+    if (!from) return null;
+    const start = new Date(from);
+    if (Number.isNaN(start.getTime())) return null;
+    const end = new Date(to.getFullYear(), to.getMonth(), to.getDate());
+    const begin = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+    return Math.max(0, Math.floor((end.getTime() - begin.getTime()) / 86400000));
+  };
+
   const fetchAtRiskStudents = useCallback(async () => {
     if (!schoolId) return;
     setLoadingAtRisk(true);
@@ -61,7 +70,7 @@ export function useStudentDropouts(
                 : DEMO_ATTENDANCE.find(
                     (r) => r.student_id === student.id && r.status !== "absent",
                   )?.date || null,
-            risk_level: index === 0 ? "likely_dropout" : "at_risk",
+            risk_level: "at_risk",
           }));
         setAtRiskStudents(demoRiskList);
         return;
@@ -98,6 +107,10 @@ export function useStudentDropouts(
       for (const student of activeStudents) {
         const records = studentAtt[student.id];
         if (!records || records.length === 0) {
+          const ageInDays = daysBetween(student.admission_date);
+          if (ageInDays !== null && ageInDays < 14) {
+            continue;
+          }
           atRiskList.push({
             id: student.id,
             first_name: student.first_name,
@@ -108,9 +121,9 @@ export function useStudentDropouts(
             class_name: student.classes?.name || "-",
             parent_name: student.parent_name || "",
             parent_phone: student.parent_phone || "",
-            consecutive_absent: 30,
+            consecutive_absent: ageInDays !== null ? Math.min(ageInDays, 29) : 14,
             last_attendance_date: null,
-            risk_level: "likely_dropout",
+            risk_level: "at_risk",
           });
           continue;
         }
@@ -160,24 +173,67 @@ export function useStudentDropouts(
       toast.error("No parent phone number on file");
       return;
     }
+    if (!schoolId) {
+      toast.error("School context is missing. Please refresh and try again.");
+      return;
+    }
     setSendingSms(student.id);
     try {
       const message = `Dear ${student.parent_name || "Parent/Guardian"}, your child ${student.first_name} ${student.last_name} has been absent from school for ${student.consecutive_absent} consecutive days. Please contact the school urgently.`;
       if (isDemo) {
-        toast.success(`SMS queued to ${student.parent_phone}`);
+        toast.success(`Demo mode: SMS simulated for ${student.parent_phone}`);
         return;
       }
+
+      const response = await fetch("/api/sms", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone: student.parent_phone,
+          message,
+          schoolId,
+          studentId: student.id,
+          type: "individual",
+        }),
+      });
+
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.error || result.message || "Failed to send SMS");
+      }
+
+      const apiData = result.data || {};
+      const smsSent = apiData.status === "sent";
+      const usedFallback = apiData.status === "fallback";
+
       await supabase.from("messages").insert({
         school_id: schoolId,
         recipient_type: "individual",
         phone: student.parent_phone,
         message,
-        status: "pending",
+        status: smsSent ? "sent" : "failed",
         sent_by: user?.id,
+        sent_at: new Date().toISOString(),
+        student_id: student.id,
       });
-      toast.success(`SMS queued to ${student.parent_phone}`);
+
+      if (smsSent) {
+        toast.success(`SMS sent to ${student.parent_phone}`);
+      } else if (usedFallback) {
+        if (typeof window !== "undefined" && typeof apiData.whatsappLink === "string" && apiData.whatsappLink) {
+          window.open(apiData.whatsappLink, "_blank", "noopener,noreferrer");
+        }
+        toast.error(
+          apiData.portalNotificationQueued
+            ? `SMS failed for ${student.parent_phone}. Opened WhatsApp fallback and queued parent-portal message.`
+            : `SMS failed for ${student.parent_phone}. Opened WhatsApp fallback for manual send.`,
+        );
+      } else {
+        toast.error(`SMS failed for ${student.parent_phone}`);
+      }
     } catch (err) {
-      toast.error("Failed to send SMS");
+      logger.error("Error contacting parent for dropout risk:", err);
+      toast.error(err instanceof Error ? err.message : "Failed to send SMS");
     } finally {
       setSendingSms(null);
     }

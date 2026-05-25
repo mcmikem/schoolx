@@ -141,6 +141,7 @@ export function useDashboardExtraData(
         const fourteenDaysAgo = new Date(now);
         fourteenDaysAgo.setDate(now.getDate() - 14);
         const dropoutStartDate = fourteenDaysAgo.toISOString().split("T")[0];
+        const effectiveAcademicYear = academicYear || new Date().getFullYear().toString();
 
         const [
           attendanceRes,
@@ -162,7 +163,7 @@ export function useDashboardExtraData(
             )
             .eq("students.school_id", schoolId)
             .eq("term", currentTerm || 1)
-            .eq("academic_year", academicYear || "2026"),
+            .eq("academic_year", effectiveAcademicYear),
           supabase
             .from("messages")
             .select("status, created_at")

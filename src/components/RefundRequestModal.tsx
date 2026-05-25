@@ -65,8 +65,8 @@ export const RefundRequestModal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="relative w-full max-w-lg rounded-2xl bg-white bg-opacity-90 p-6 shadow-xl backdrop-filter backdrop-blur-lg">
+    <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4 bg-black/40 backdrop-blur-sm">
+      <div className="relative w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto rounded-2xl bg-white bg-opacity-90 p-6 shadow-xl backdrop-filter backdrop-blur-lg my-auto">
         <button
           className="absolute right-4 top-4 text-gray-500 hover:text-gray-700"
           onClick={onClose}

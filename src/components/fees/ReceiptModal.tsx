@@ -15,8 +15,8 @@ export default function ReceiptModal({ isOpen, student, schoolName, onClose, onP
   if (!isOpen || !student) return null
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-surface-container-lowest rounded-2xl w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4" onClick={onClose}>
+      <div className="bg-surface-container-lowest rounded-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto" onClick={(e) => e.stopPropagation()}>
         <div className="p-6">
           <div className="text-center border-b-2 border-primary pb-4 mb-4">
             <h3 className="font-headline font-bold text-xl text-primary">{schoolName}</h3>

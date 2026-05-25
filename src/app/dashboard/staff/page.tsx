@@ -11,13 +11,14 @@ import { Button } from "@/components/ui/index";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { Card, CardBody } from "@/components/ui/Card";
-import { DEMO_STAFF, DEMO_SCHOOL_ID } from "@/lib/demo-data";
-import { useStaffReviews, useDashboardStats } from "@/lib/hooks";
+import { DEMO_STAFF, DEMO_CLASSES, DEMO_SCHOOL_ID } from "@/lib/demo-data";
+import { useStaff, useStaffReviews, useDashboardStats } from "@/lib/hooks";
 import { logger } from "@/lib/logger";
 import { StaffReview, School } from "@/types";
 import { PageGuidance } from "@/components/PageGuidance";
 import SmartAdvisor from "@/components/dashboard/SmartAdvisor";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { compressStudentPhoto, validateStudentPhoto } from "@/lib/student-photos";
 
 interface StaffMember {
   id: string;
@@ -26,9 +27,20 @@ interface StaffMember {
   email?: string;
   role: string;
   subject?: string;
+  avatar_url?: string | null;
   is_active: boolean;
   hire_date?: string;
   salary?: number;
+}
+
+interface ClassOption {
+  id: string;
+  name: string;
+}
+
+interface SubjectOption {
+  id: string;
+  name: string;
 }
 
 interface LeaveRequest {
@@ -107,7 +119,7 @@ export default function StaffHubPage() {
         <div className="relative overflow-hidden rounded-[var(--r2)] p-6 bg-motif border border-[var(--border)] mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <div className="ph-title truncate !text-3xl">Staff Hub</div>
+              <h1 className="ph-title truncate !text-3xl">Staff Hub</h1>
               <div className="ph-sub truncate !text-sm">
                 {school?.name} • Personnel Management & Academic Supervision
               </div>
@@ -115,14 +127,16 @@ export default function StaffHubPage() {
             <div className="ph-actions">
               <button
                 onClick={() => setActiveMainTab("directory")}
-                className="btn btn-ghost shadow-sm"
+                aria-pressed={activeMainTab === "directory"}
+                className={`shadow-sm ${activeMainTab === "directory" ? "btn btn-primary" : "btn btn-ghost"}`}
               >
                 <MaterialIcon icon="groups" style={{ fontSize: "16px" }} />
                 <span>Staff Directory</span>
               </button>
               <button
                 onClick={() => setActiveMainTab("leave")}
-                className="btn btn-primary shadow-md"
+                aria-pressed={activeMainTab === "leave"}
+                className={`shadow-md ${activeMainTab === "leave" ? "btn btn-primary" : "btn btn-ghost"}`}
               >
                 <MaterialIcon icon="event_busy" style={{ fontSize: "16px" }} />
                 <span>Leave Requests</span>
@@ -174,12 +188,21 @@ function DirectoryTab({
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingStaff, setEditingStaff] = useState<StaffMember | null>(null);
   const [saving, setSaving] = useState(false);
+  const [loadingAssignments, setLoadingAssignments] = useState(false);
+  const [classes, setClasses] = useState<ClassOption[]>([]);
+  const [subjects, setSubjects] = useState<SubjectOption[]>([]);
+  const [newAvatarFile, setNewAvatarFile] = useState<File | null>(null);
+  const [idCardPreviewStaff, setIdCardPreviewStaff] =
+    useState<StaffMember | null>(null);
   const [editForm, setEditForm] = useState({
     full_name: "",
     phone: "",
     email: "",
     role: "teacher",
     subject: "",
+    avatar_url: "",
+    class_teacher_for: "",
+    subject_ids: [] as string[],
   });
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
@@ -190,6 +213,9 @@ function DirectoryTab({
     role: "teacher",
     password: "",
     subject: "",
+    avatar_url: "",
+    class_teacher_for: "",
+    subject_ids: [] as string[],
   });
   const [activeTab, setActiveTab] = useState("all");
   const [staffSearch, setStaffSearch] = useState("");
@@ -237,6 +263,111 @@ function DirectoryTab({
   useEffect(() => {
     fetchStaff();
   }, [fetchStaff]);
+
+  useEffect(() => {
+    async function fetchClassSubjectOptions() {
+      if (isDemo) {
+        setClasses(
+          DEMO_CLASSES.map((cls) => ({
+            id: cls.id,
+            name: cls.name,
+          })),
+        );
+        setSubjects([
+          { id: "eng", name: "English" },
+          { id: "math", name: "Mathematics" },
+          { id: "sci", name: "Science" },
+          { id: "sst", name: "Social Studies" },
+          { id: "re", name: "Religious Education" },
+          { id: "art", name: "Creative Arts" },
+          { id: "pe", name: "Physical Education" },
+        ]);
+        return;
+      }
+
+      if (!school?.id) return;
+
+      try {
+        const [classesRes, subjectsRes] = await Promise.all([
+          supabase
+            .from("classes")
+            .select("id, name")
+            .eq("school_id", school.id)
+            .order("name"),
+          supabase
+            .from("subjects")
+            .select("id, name")
+            .eq("school_id", school.id)
+            .order("name"),
+        ]);
+
+        if (classesRes.data) {
+          setClasses(classesRes.data);
+        }
+        if (subjectsRes.data) {
+          setSubjects(subjectsRes.data);
+        }
+      } catch (err) {
+        logger.error("Failed to load class/subject options:", err);
+      }
+    }
+
+    fetchClassSubjectOptions();
+  }, [school?.id, isDemo]);
+
+  const uploadStaffAvatar = useCallback(
+    async (file: File, staffId: string) => {
+      if (isDemo) {
+        return await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result || ""));
+          reader.onerror = () => reject(new Error("Failed to read image"));
+          reader.readAsDataURL(file);
+        });
+      }
+
+      if (!school?.id) {
+        throw new Error("School context missing. Reload and try again.");
+      }
+
+      validateStudentPhoto(file);
+      const compressed = await compressStudentPhoto(file);
+      const filePath = `${school.id}/staff/${staffId}.jpg`;
+
+      let uploadResult = await supabase.storage
+        .from("student-photos")
+        .upload(filePath, compressed, {
+          upsert: true,
+          contentType: "image/jpeg",
+        });
+
+      if (uploadResult.error && uploadResult.error.message.includes("bucket")) {
+        await supabase.storage.createBucket("student-photos", {
+          public: true,
+          fileSizeLimit: 5 * 1024 * 1024,
+          allowedMimeTypes: ["image/jpeg", "image/png", "image/webp", "image/gif"],
+        });
+
+        uploadResult = await supabase.storage
+          .from("student-photos")
+          .upload(filePath, compressed, {
+            upsert: true,
+            contentType: "image/jpeg",
+          });
+      }
+
+      if (uploadResult.error) {
+        throw uploadResult.error;
+      }
+
+      const {
+        data: { publicUrl },
+      } = supabase.storage.from("student-photos").getPublicUrl(filePath);
+
+      return publicUrl;
+    },
+    [school?.id, isDemo],
+  );
 
   const handleAddStaff = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -289,6 +420,16 @@ function DirectoryTab({
       toast.error("Password must be at least 6 characters");
       return;
     }
+    if (newStaff.role === "teacher") {
+      if (!newStaff.class_teacher_for) {
+        toast.error("Select a class for this teacher");
+        return;
+      }
+      if (newStaff.subject_ids.length === 0) {
+        toast.error("Select at least one subject for this teacher");
+        return;
+      }
+    }
 
     try {
       setSaving(true);
@@ -312,9 +453,75 @@ function DirectoryTab({
         throw new Error(result.error || "Failed to add staff");
       }
 
+      const createdUserId = result.data?.userId || result.userId;
+      if (!createdUserId) {
+        throw new Error("Staff account was created but user ID was not returned");
+      }
+
+      let avatarUrl = newStaff.avatar_url;
+      if (newAvatarFile) {
+        avatarUrl = await uploadStaffAvatar(newAvatarFile, createdUserId);
+      }
+
+      const selectedSubjectNames = subjects
+        .filter((subject) => newStaff.subject_ids.includes(subject.id))
+        .map((subject) => subject.name);
+
+      const subjectSummary =
+        selectedSubjectNames.length > 0
+          ? selectedSubjectNames.join(", ")
+          : newStaff.subject || "General";
+
+      let { error: userUpdateError } = await supabase
+        .from("users")
+        .update({
+          email: newStaff.email || null,
+          avatar_url: avatarUrl || null,
+          subject: subjectSummary,
+        })
+        .eq("id", createdUserId);
+
+      if ((userUpdateError as { code?: string } | null)?.code === "42703") {
+        const retry = await supabase
+          .from("users")
+          .update({
+            email: newStaff.email || null,
+            avatar_url: avatarUrl || null,
+          })
+          .eq("id", createdUserId);
+        userUpdateError = retry.error;
+      }
+
+      if (userUpdateError) throw userUpdateError;
+
+      if (newStaff.role === "teacher") {
+        const { error: classAssignError } = await supabase
+          .from("classes")
+          .update({ class_teacher_id: createdUserId })
+          .eq("id", newStaff.class_teacher_for);
+
+        if (classAssignError) throw classAssignError;
+
+        const teacherSubjectsPayload = newStaff.subject_ids.map((subjectId) => ({
+          school_id: school.id,
+          teacher_id: createdUserId,
+          class_id: newStaff.class_teacher_for,
+          subject_id: subjectId,
+        }));
+
+        if (teacherSubjectsPayload.length > 0) {
+          const { error: subjectAssignError } = await supabase
+            .from("teacher_subjects")
+            .insert(teacherSubjectsPayload);
+
+          if (subjectAssignError) throw subjectAssignError;
+        }
+      }
+
       toast.success("Staff member added");
       setShowAddModal(false);
       fetchStaff();
+      setNewAvatarFile(null);
       setNewStaff({
         full_name: "",
         phone: "",
@@ -322,6 +529,9 @@ function DirectoryTab({
         role: "teacher",
         password: "",
         subject: "",
+        avatar_url: "",
+        class_teacher_for: "",
+        subject_ids: [],
       });
     } catch (err: unknown) {
       const errorMessage =
@@ -352,15 +562,60 @@ function DirectoryTab({
     }
   };
 
-  const openEditModal = (member: StaffMember) => {
+  const openEditModal = async (member: StaffMember) => {
     setEditingStaff(member);
+    setLoadingAssignments(true);
+
+    let classTeacherFor = "";
+    let subjectIds: string[] = [];
+
+    if (!isDemo && school?.id && member.role === "teacher") {
+      try {
+        const [classRes, subjectsRes] = await Promise.all([
+          supabase
+            .from("classes")
+            .select("id")
+            .eq("school_id", school.id)
+            .eq("class_teacher_id", member.id)
+            .maybeSingle(),
+          supabase
+            .from("teacher_subjects")
+            .select("subject_id")
+            .eq("school_id", school.id)
+            .eq("teacher_id", member.id),
+        ]);
+
+        classTeacherFor = classRes.data?.id || "";
+        subjectIds = (subjectsRes.data || []).map((row) => row.subject_id);
+      } catch (err) {
+        logger.error("Failed to load teacher assignment data:", err);
+      }
+    }
+
+    if (isDemo && member.role === "teacher") {
+      const fallbackSubject = member.subject || "";
+      subjectIds = subjects
+        .filter((subject) =>
+          fallbackSubject
+            .toLowerCase()
+            .split(",")
+            .map((value) => value.trim())
+            .includes(subject.name.toLowerCase()),
+        )
+        .map((subject) => subject.id);
+    }
+
     setEditForm({
       full_name: member.full_name || "",
       phone: member.phone || "",
       email: member.email || "",
       role: member.role || "teacher",
       subject: member.subject || "",
+      avatar_url: member.avatar_url || "",
+      class_teacher_for: classTeacherFor,
+      subject_ids: subjectIds,
     });
+    setLoadingAssignments(false);
     setShowEditModal(true);
   };
 
@@ -369,18 +624,97 @@ function DirectoryTab({
     if (!editingStaff) return;
     try {
       setSaving(true);
-      const { error } = await supabase
+      const updatePayload = {
+        full_name: editForm.full_name,
+        phone: editForm.phone.replace(/[^0-9]/g, ""),
+        role: editForm.role,
+        email: editForm.email || null,
+        avatar_url: editForm.avatar_url || null,
+        subject:
+          editForm.subject_ids.length > 0
+            ? subjects
+                .filter((subject) => editForm.subject_ids.includes(subject.id))
+                .map((subject) => subject.name)
+                .join(", ")
+            : editForm.subject || null,
+      };
+
+      let { error } = await supabase
         .from("users")
-        .update({
-          full_name: editForm.full_name,
-          phone: editForm.phone.replace(/[^0-9]/g, ""),
-          role: editForm.role,
-        })
+        .update(updatePayload)
         .eq("id", editingStaff.id);
+
+      if ((error as { code?: string } | null)?.code === "42703") {
+        const { subject: _ignored, ...fallbackPayload } = updatePayload;
+        const retry = await supabase
+          .from("users")
+          .update(fallbackPayload)
+          .eq("id", editingStaff.id);
+        error = retry.error;
+      }
+
       if (error) throw error;
+
+      if (!isDemo && school?.id) {
+        const { error: clearClassError } = await supabase
+          .from("classes")
+          .update({ class_teacher_id: null })
+          .eq("school_id", school.id)
+          .eq("class_teacher_id", editingStaff.id);
+
+        if (clearClassError) throw clearClassError;
+
+        const { error: clearSubjectsError } = await supabase
+          .from("teacher_subjects")
+          .delete()
+          .eq("school_id", school.id)
+          .eq("teacher_id", editingStaff.id);
+
+        if (clearSubjectsError) throw clearSubjectsError;
+
+        if (editForm.role === "teacher") {
+          if (editForm.class_teacher_for) {
+            const { error: assignClassError } = await supabase
+              .from("classes")
+              .update({ class_teacher_id: editingStaff.id })
+              .eq("id", editForm.class_teacher_for)
+              .eq("school_id", school.id);
+            if (assignClassError) throw assignClassError;
+          }
+
+          if (editForm.class_teacher_for && editForm.subject_ids.length > 0) {
+            const payload = editForm.subject_ids.map((subjectId) => ({
+              school_id: school.id,
+              teacher_id: editingStaff.id,
+              class_id: editForm.class_teacher_for,
+              subject_id: subjectId,
+            }));
+
+            const { error: assignSubjectsError } = await supabase
+              .from("teacher_subjects")
+              .insert(payload);
+            if (assignSubjectsError) throw assignSubjectsError;
+          }
+        }
+      }
+
       setStaff(
         staff.map((s) =>
-          s.id === editingStaff.id ? { ...s, ...editForm } : s,
+          s.id === editingStaff.id
+            ? {
+                ...s,
+                ...editForm,
+                subject:
+                  editForm.subject_ids.length > 0
+                    ? subjects
+                        .filter((subject) =>
+                          editForm.subject_ids.includes(subject.id),
+                        )
+                        .map((subject) => subject.name)
+                        .join(", ")
+                    : editForm.subject,
+              }
+            : s,
         ),
       );
       toast.success("Staff member updated");
@@ -437,124 +771,236 @@ function DirectoryTab({
     }
   };
 
-  const printStaffIDCard = (member: StaffMember) => {
-    const cardWindow = window.open("", "_blank");
-    if (!cardWindow) return;
+  const formatRoleLabel = (role: string) =>
+    role
+      .split("_")
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(" ");
+
+  const buildStaffIdCardHtml = (member: StaffMember) => {
     const schoolName = school?.name || "School";
     const schoolColor = "#1e40af";
-    cardWindow.document.write(`
+    const escapeHtml = (value: string) =>
+      String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+
+    const initials =
+      member.full_name
+        ?.split(" ")
+        .slice(0, 2)
+        .map((part) => part[0]?.toUpperCase() || "")
+        .join("") || "S";
+    const roleLabel = formatRoleLabel(member.role);
+    const cardId = `SM-${member.id.slice(0, 8).toUpperCase()}`;
+    const issuedOn = new Date().toLocaleDateString();
+
+    const avatarHtml = member.avatar_url
+      ? `<img src="${escapeHtml(member.avatar_url)}" alt="${escapeHtml(member.full_name)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`
+      : escapeHtml(initials);
+
+    return `
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Staff ID Card - ${member.full_name}</title>
+        <title>Staff ID Card - ${escapeHtml(member.full_name)}</title>
         <style>
           * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { font-family: Arial, sans-serif; }
-          .id-card {
-            width: 350px;
-            height: 220px;
-            background: white;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+          body {
+            font-family: "Segoe UI", Arial, sans-serif;
+            background: #eef2ff;
+            padding: 24px;
+            min-height: 100vh;
             display: flex;
-            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+          }
+          .id-card {
+            width: 360px;
+            height: 228px;
+            background: linear-gradient(145deg, #ffffff 0%, #f8fbff 100%);
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: 0 14px 34px rgba(15, 23, 42, 0.18);
+            border: 1px solid #dbe3f5;
+            display: grid;
+            grid-template-columns: 108px 1fr;
+            position: relative;
+          }
+          .id-card::after {
+            content: "";
+            position: absolute;
+            right: -42px;
+            bottom: -48px;
+            width: 165px;
+            height: 165px;
+            border-radius: 999px;
+            background: radial-gradient(circle, rgba(30,64,175,0.18) 0%, rgba(30,64,175,0) 72%);
           }
           .left-section {
-            width: 100px;
-            background: linear-gradient(180deg, ${schoolColor} 0%, ${schoolColor}dd 100%);
+            background: linear-gradient(185deg, ${schoolColor} 0%, #1d4ed8 55%, #1e3a8a 100%);
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
-            padding: 15px;
+            justify-content: space-between;
+            padding: 14px 11px;
+            color: #fff;
           }
           .avatar {
-            width: 70px;
-            height: 70px;
+            width: 72px;
+            height: 72px;
             border-radius: 50%;
             background: white;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 24px;
+            font-size: 22px;
             font-weight: bold;
             color: ${schoolColor};
             border: 3px solid white;
           }
           .school-name-small {
             color: white;
-            font-size: 8px;
+            font-size: 9px;
+            line-height: 1.2;
             text-align: center;
-            margin-top: 10px;
-            font-weight: 500;
+            font-weight: 600;
           }
           .right-section {
-            flex: 1;
-            padding: 15px;
+            padding: 14px 16px;
             display: flex;
             flex-direction: column;
+            position: relative;
+            z-index: 1;
           }
           .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
           }
           .school-name {
-            font-size: 11px;
-            font-weight: 700;
-            color: ${schoolColor};
+            font-size: 12px;
+            font-weight: 800;
+            color: #0f172a;
             text-transform: uppercase;
+            letter-spacing: .04em;
           }
           .card-type {
-            font-size: 8px;
-            color: #666;
-            background: #f0f0f0;
-            padding: 2px 6px;
-            border-radius: 4px;
+            font-size: 9px;
+            color: ${schoolColor};
+            background: #dbeafe;
+            padding: 3px 8px;
+            border-radius: 999px;
+            font-weight: 700;
           }
           .staff-name {
-            font-size: 14px;
+            font-size: 16px;
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 6px;
+          }
+          .staff-role {
+            display: inline-flex;
+            align-items: center;
+            width: fit-content;
+            background: #ecfeff;
+            color: #0f766e;
+            border: 1px solid #a5f3fc;
+            border-radius: 999px;
+            font-size: 10px;
             font-weight: 700;
-            color: #111;
-            margin-bottom: 2px;
+            letter-spacing: .02em;
+            padding: 3px 8px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
           }
           .staff-info {
+            font-size: 10px;
+            color: #334155;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+          }
+          .footer {
+            margin-top: auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px dashed #cbd5e1;
+            padding-top: 8px;
             font-size: 9px;
-            color: #666;
-            margin-bottom: 1px;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: .04em;
           }
           @media print {
-            body { margin: 0; }
-            .id-card { box-shadow: none; }
+            body {
+              margin: 0;
+              padding: 0;
+              background: white;
+            }
+            .id-card {
+              box-shadow: none;
+            }
           }
         </style>
       </head>
       <body>
         <div class="id-card">
           <div class="left-section">
-            <div class="avatar">${member.full_name?.[0] || "S"}</div>
-            <div class="school-name-small">${schoolName}</div>
+            <div class="school-name-small">${escapeHtml(schoolName)}</div>
+            <div class="avatar">${avatarHtml}</div>
+            <div class="school-name-small">${escapeHtml(cardId)}</div>
           </div>
           <div class="right-section">
             <div class="header">
-              <span class="school-name">${schoolName}</span>
+              <span class="school-name">${escapeHtml(schoolName)}</span>
               <span class="card-type">STAFF</span>
             </div>
-            <div class="staff-name">${member.full_name}</div>
-            <div class="staff-info">Role: ${member.role}</div>
-            <div class="staff-info">Phone: ${member.phone}</div>
+            <div class="staff-name">${escapeHtml(member.full_name)}</div>
+            <div class="staff-role">${escapeHtml(roleLabel)}</div>
+            <div class="staff-info">Phone: ${escapeHtml(member.phone)}</div>
             <div class="staff-info">Status: ${member.is_active ? "Active" : "Inactive"}</div>
-            ${member.email ? `<div class="staff-info">Email: ${member.email}</div>` : ""}
+            ${member.email ? `<div class="staff-info">Email: ${escapeHtml(member.email)}</div>` : ""}
+            ${member.subject ? `<div class="staff-info">Subjects: ${escapeHtml(member.subject)}</div>` : ""}
+            <div class="footer">
+              <span>Issued ${escapeHtml(issuedOn)}</span>
+              <span>${escapeHtml(cardId)}</span>
+            </div>
           </div>
         </div>
       </body>
       </html>
-    `);
-    cardWindow.document.close();
+    `;
+  };
+
+  const printStaffIDCard = (member: StaffMember) => {
+    const printWindow = window.open(
+      "",
+      "_blank",
+      "width=420,height=320,noopener,noreferrer",
+    );
+
+    if (!printWindow) {
+      toast.error("Unable to open print window. Please allow pop-ups and try again.");
+      return;
+    }
+
+    printWindow.document.open();
+    printWindow.document.write(buildStaffIdCardHtml(member));
+    printWindow.document.close();
+
     setTimeout(() => {
-      cardWindow.print();
+      printWindow.focus();
+      printWindow.print();
+      setTimeout(() => {
+        printWindow.close();
+      }, 300);
     }, 250);
   };
 
@@ -628,9 +1074,17 @@ function DirectoryTab({
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
-                  <span className="text-gray-700 font-semibold">
-                    {member.full_name?.charAt(0) || "U"}
-                  </span>
+                  {member.avatar_url ? (
+                    <img
+                      src={member.avatar_url}
+                      alt={member.full_name}
+                      className="w-12 h-12 rounded-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-gray-700 font-semibold">
+                      {member.full_name?.charAt(0) || "U"}
+                    </span>
+                  )}
                 </div>
                 <div>
                   <div className="font-medium text-gray-900">
@@ -664,7 +1118,7 @@ function DirectoryTab({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => printStaffIDCard(member)}
+                  onClick={() => setIdCardPreviewStaff(member)}
                 >
                   <MaterialIcon icon="badge" className="text-sm" />
                   ID Card
@@ -743,31 +1197,38 @@ function DirectoryTab({
         </Button>
       </div>
 
-      <PageGuidance
-        title="How to Manage Staff"
-        tips={[
-          {
-            icon: "person_add",
-            text: "Add Staff: Register teachers and non-teaching staff",
-          },
-          {
-            icon: "school",
-            text: "Assign Subjects: Link teachers to subjects they teach",
-          },
-          {
-            icon: "assignment_ind",
-            text: "Class Teacher: Assign a teacher to lead each class",
-          },
-          {
-            icon: "event_note",
-            text: "Leave Requests: Staff can request time off here",
-          },
-          {
-            icon: "rate_review",
-            text: "Performance: Use Reviews tab to track teacher performance",
-          },
-        ]}
-      />
+      <details className="mb-4 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+        <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-[var(--t2)]">
+          How to Manage Staff
+        </summary>
+        <div className="px-4 pb-4">
+          <PageGuidance
+            title=""
+            tips={[
+              {
+                icon: "person_add",
+                text: "Add Staff: Register teachers and non-teaching staff",
+              },
+              {
+                icon: "school",
+                text: "Assign Subjects: Link teachers to subjects they teach",
+              },
+              {
+                icon: "assignment_ind",
+                text: "Class Teacher: Assign a teacher to lead each class",
+              },
+              {
+                icon: "event_note",
+                text: "Leave Requests: Staff can request time off here",
+              },
+              {
+                icon: "rate_review",
+                text: "Performance: Use Reviews tab to track teacher performance",
+              },
+            ]}
+          />
+        </div>
+      </details>
 
       <div className="flex flex-col sm:flex-row gap-4 mb-4">
         <div className="relative flex-1 max-w-sm">
@@ -800,11 +1261,11 @@ function DirectoryTab({
 
       {showAddModal && (
         <div
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/45 z-50 p-3 sm:p-4 flex items-start sm:items-center justify-center overflow-y-auto"
           onClick={() => setShowAddModal(false)}
         >
           <div
-            className="bg-white rounded-2xl w-full max-w-md"
+            className="bg-white rounded-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-hidden shadow-xl my-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6 border-b border-[#e8eaed]">
@@ -820,7 +1281,56 @@ function DirectoryTab({
                 </button>
               </div>
             </div>
-            <form onSubmit={handleAddStaff} className="p-6 space-y-4">
+            <form onSubmit={handleAddStaff} className="p-6 space-y-4 overflow-y-auto max-h-[calc(100vh-10rem)] sm:max-h-[calc(100vh-11rem)]">
+              <div>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">
+                  Profile Photo
+                </label>
+                <div className="flex items-center gap-3">
+                  <div className="w-14 h-14 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center">
+                    {newStaff.avatar_url ? (
+                      <img
+                        src={newStaff.avatar_url}
+                        alt="Staff avatar"
+                        className="w-14 h-14 object-cover"
+                      />
+                    ) : (
+                      <MaterialIcon icon="person" className="text-gray-500" />
+                    )}
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      try {
+                        validateStudentPhoto(file);
+                        const preview = await new Promise<string>(
+                          (resolve, reject) => {
+                            const reader = new FileReader();
+                            reader.onload = () =>
+                              resolve(String(reader.result || ""));
+                            reader.onerror = () =>
+                              reject(new Error("Failed to read image"));
+                            reader.readAsDataURL(file);
+                          },
+                        );
+                        setNewAvatarFile(file);
+                        setNewStaff((prev) => ({ ...prev, avatar_url: preview }));
+                      } catch (err) {
+                        toast.error(
+                          err instanceof Error
+                            ? err.message
+                            : "Failed to process image",
+                        );
+                      }
+                    }}
+                    className="input"
+                  />
+                </div>
+              </div>
+
               <div>
                 <label className="text-sm font-medium text-[#191c1d] mb-2 block">
                   Full Name
@@ -879,31 +1389,61 @@ function DirectoryTab({
               </div>
 
               {newStaff.role === "teacher" && (
-                <div>
-                  <label className="text-sm font-medium text-[#191c1d] mb-2 block">
-                    Subject
-                  </label>
-                  <select
-                    value={newStaff.subject}
-                    onChange={(e) =>
-                      setNewStaff({ ...newStaff, subject: e.target.value })
-                    }
-                    className="input"
-                  >
-                    <option value="">Select subject</option>
-                    <option value="English">English</option>
-                    <option value="Mathematics">Mathematics</option>
-                    <option value="Science">Science</option>
-                    <option value="Social Studies">Social Studies</option>
-                    <option value="Religious Education">
-                      Religious Education
-                    </option>
-                    <option value="Creative Arts">Creative Arts</option>
-                    <option value="Physical Education">
-                      Physical Education
-                    </option>
-                  </select>
-                </div>
+                <>
+                  <div>
+                    <label className="text-sm font-medium text-[#191c1d] mb-2 block">
+                      Class Teacher For
+                    </label>
+                    <select
+                      value={newStaff.class_teacher_for}
+                      onChange={(e) =>
+                        setNewStaff({
+                          ...newStaff,
+                          class_teacher_for: e.target.value,
+                        })
+                      }
+                      className="input"
+                      required
+                    >
+                      <option value="">Select class</option>
+                      {classes.map((cls) => (
+                        <option key={cls.id} value={cls.id}>
+                          {cls.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-[#191c1d] mb-2 block">
+                      Subjects Taught
+                    </label>
+                    <div className="grid grid-cols-2 gap-2 rounded-xl border border-[#e8eaed] p-3 max-h-36 overflow-y-auto">
+                      {subjects.map((subject) => (
+                        <label
+                          key={subject.id}
+                          className="flex items-center gap-2 text-sm text-[#191c1d]"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={newStaff.subject_ids.includes(subject.id)}
+                            onChange={(e) => {
+                              setNewStaff((prev) => ({
+                                ...prev,
+                                subject_ids: e.target.checked
+                                  ? [...prev.subject_ids, subject.id]
+                                  : prev.subject_ids.filter(
+                                      (id) => id !== subject.id,
+                                    ),
+                              }));
+                            }}
+                          />
+                          {subject.name}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </>
               )}
 
               <div>
@@ -965,11 +1505,11 @@ function DirectoryTab({
 
       {showEditModal && editingStaff && (
         <div
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/45 z-50 p-3 sm:p-4 flex items-start sm:items-center justify-center overflow-y-auto"
           onClick={() => setShowEditModal(false)}
         >
           <div
-            className="bg-white rounded-2xl w-full max-w-md"
+            className="bg-white rounded-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-hidden shadow-xl my-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6 border-b border-[#e8eaed]">
@@ -985,7 +1525,55 @@ function DirectoryTab({
                 </button>
               </div>
             </div>
-            <form onSubmit={handleUpdateStaff} className="p-6 space-y-4">
+            <form onSubmit={handleUpdateStaff} className="p-6 space-y-4 overflow-y-auto max-h-[calc(100vh-10rem)] sm:max-h-[calc(100vh-11rem)]">
+              {loadingAssignments ? (
+                <div className="text-sm text-[#5c6670]">Loading teacher assignments...</div>
+              ) : null}
+
+              <div>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">
+                  Profile Photo
+                </label>
+                <div className="flex items-center gap-3">
+                  <div className="w-14 h-14 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center">
+                    {editForm.avatar_url ? (
+                      <img
+                        src={editForm.avatar_url}
+                        alt="Staff avatar"
+                        className="w-14 h-14 object-cover"
+                      />
+                    ) : (
+                      <MaterialIcon icon="person" className="text-gray-500" />
+                    )}
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file || !editingStaff) return;
+                      try {
+                        const uploadedUrl = await uploadStaffAvatar(
+                          file,
+                          editingStaff.id,
+                        );
+                        setEditForm((prev) => ({
+                          ...prev,
+                          avatar_url: uploadedUrl,
+                        }));
+                      } catch (err) {
+                        toast.error(
+                          err instanceof Error
+                            ? err.message
+                            : "Failed to upload image",
+                        );
+                      }
+                    }}
+                    className="input"
+                  />
+                </div>
+              </div>
+
               <div>
                 <label className="text-sm font-medium text-[#191c1d] mb-2 block">
                   Full Name
@@ -1032,10 +1620,70 @@ function DirectoryTab({
                 >
                   <option value="teacher">Teacher</option>
                   <option value="school_admin">Administrator</option>
-                  <option value="dos">Director of Studies</option>
+                  <option value="headmaster">Headmaster</option>
+                  <option value="dean_of_studies">Director of Studies</option>
                   <option value="bursar">Bursar</option>
+                  <option value="secretary">Secretary</option>
+                  <option value="dorm_master">Dorm Master/Mistress</option>
                 </select>
               </div>
+
+              {editForm.role === "teacher" && (
+                <>
+                  <div>
+                    <label className="text-sm font-medium text-[#191c1d] mb-2 block">
+                      Class Teacher For
+                    </label>
+                    <select
+                      value={editForm.class_teacher_for}
+                      onChange={(e) =>
+                        setEditForm({
+                          ...editForm,
+                          class_teacher_for: e.target.value,
+                        })
+                      }
+                      className="input"
+                    >
+                      <option value="">Select class</option>
+                      {classes.map((cls) => (
+                        <option key={cls.id} value={cls.id}>
+                          {cls.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-[#191c1d] mb-2 block">
+                      Subjects Taught
+                    </label>
+                    <div className="grid grid-cols-2 gap-2 rounded-xl border border-[#e8eaed] p-3 max-h-36 overflow-y-auto">
+                      {subjects.map((subject) => (
+                        <label
+                          key={subject.id}
+                          className="flex items-center gap-2 text-sm text-[#191c1d]"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={editForm.subject_ids.includes(subject.id)}
+                            onChange={(e) => {
+                              setEditForm((prev) => ({
+                                ...prev,
+                                subject_ids: e.target.checked
+                                  ? [...prev.subject_ids, subject.id]
+                                  : prev.subject_ids.filter(
+                                      (id) => id !== subject.id,
+                                    ),
+                              }));
+                            }}
+                          />
+                          {subject.name}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
 
               <div className="flex gap-3 pt-4">
                 <Button
@@ -1057,6 +1705,109 @@ function DirectoryTab({
                 </Button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {idCardPreviewStaff && (
+        <div
+          className="fixed inset-0 bg-black/45 z-50 p-3 sm:p-4 flex items-start sm:items-center justify-center overflow-y-auto"
+          onClick={() => setIdCardPreviewStaff(null)}
+        >
+          <div
+            className="bg-white rounded-2xl w-full max-w-2xl max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-hidden shadow-xl my-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 border-b border-[#e8eaed]">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-[#191c1d]">
+                  Staff ID Card Preview
+                </h2>
+                <button
+                  onClick={() => setIdCardPreviewStaff(null)}
+                  className="p-2 text-[#5c6670] hover:text-[#191c1d]"
+                >
+                  <MaterialIcon icon="close" className="text-xl" />
+                </button>
+              </div>
+            </div>
+            <div className="p-6 overflow-y-auto max-h-[calc(100vh-10rem)] sm:max-h-[calc(100vh-11rem)]">
+              <div className="mx-auto w-full max-w-[430px] rounded-[22px] overflow-hidden border border-[#dbe3f5] shadow-[0_16px_30px_rgba(15,23,42,0.16)] bg-gradient-to-br from-[#ffffff] to-[#f7fbff] grid grid-cols-[110px_1fr] relative">
+                <div className="absolute -bottom-10 -right-10 w-40 h-40 rounded-full bg-[radial-gradient(circle,rgba(30,64,175,0.18)_0%,rgba(30,64,175,0)_72%)]" />
+                <div className="bg-gradient-to-b from-[#1e40af] via-[#1d4ed8] to-[#1e3a8a] p-3 text-white flex flex-col items-center justify-between relative z-10">
+                  <div className="text-[9px] leading-tight text-center font-semibold break-words">
+                    {school?.name || "School"}
+                  </div>
+                  <div className="w-[74px] h-[74px] rounded-full bg-white border-[3px] border-white overflow-hidden flex items-center justify-center text-[#1e40af] font-bold text-xl">
+                    {idCardPreviewStaff.avatar_url ? (
+                      <img
+                        src={idCardPreviewStaff.avatar_url}
+                        alt={idCardPreviewStaff.full_name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      idCardPreviewStaff.full_name
+                        ?.split(" ")
+                        .slice(0, 2)
+                        .map((part) => part[0]?.toUpperCase() || "")
+                        .join("") || "S"
+                    )}
+                  </div>
+                  <div className="text-[10px] tracking-[0.06em] font-semibold">
+                    {`SM-${idCardPreviewStaff.id.slice(0, 8).toUpperCase()}`}
+                  </div>
+                </div>
+                <div className="p-4 flex flex-col relative z-10">
+                  <div className="flex items-center justify-between mb-2.5 gap-2">
+                    <span className="text-[12px] font-extrabold text-[#0f172a] uppercase tracking-[0.04em] truncate">
+                      {school?.name || "School"}
+                    </span>
+                    <span className="text-[9px] px-2 py-1 rounded-full bg-[#dbeafe] text-[#1e40af] font-bold shrink-0">
+                      STAFF
+                    </span>
+                  </div>
+                  <div className="text-[16px] font-extrabold text-[#0f172a] mb-1.5">
+                    {idCardPreviewStaff.full_name}
+                  </div>
+                  <div className="inline-flex w-fit text-[10px] uppercase tracking-[0.03em] font-bold rounded-full px-2 py-1 bg-[#ecfeff] text-[#0f766e] border border-[#a5f3fc] mb-2">
+                    {formatRoleLabel(idCardPreviewStaff.role)}
+                  </div>
+                  <div className="text-[11px] text-[#334155] truncate">Phone: {idCardPreviewStaff.phone}</div>
+                  <div className="text-[11px] text-[#334155]">
+                    Status: {idCardPreviewStaff.is_active ? "Active" : "Inactive"}
+                  </div>
+                  {idCardPreviewStaff.email ? (
+                    <div className="text-[11px] text-[#334155] truncate">Email: {idCardPreviewStaff.email}</div>
+                  ) : null}
+                  {idCardPreviewStaff.subject ? (
+                    <div className="text-[11px] text-[#334155] truncate">Subjects: {idCardPreviewStaff.subject}</div>
+                  ) : null}
+                  <div className="mt-auto pt-2.5 border-t border-dashed border-[#cbd5e1] flex items-center justify-between text-[9px] text-[#64748b] uppercase tracking-[0.04em]">
+                    <span>Issued {new Date().toLocaleDateString()}</span>
+                    <span>{`SM-${idCardPreviewStaff.id.slice(0, 8).toUpperCase()}`}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex gap-3 pt-5">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="flex-1"
+                  onClick={() => setIdCardPreviewStaff(null)}
+                >
+                  Close
+                </Button>
+                <Button
+                  type="button"
+                  variant="primary"
+                  className="flex-1"
+                  onClick={() => printStaffIDCard(idCardPreviewStaff)}
+                >
+                  <MaterialIcon icon="print" className="text-sm" />
+                  Print ID Card
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -1086,11 +1837,17 @@ function ReviewsTab({
   toast: ReturnType<typeof useToast>;
 }) {
   const { reviews, loading, submitReview } = useStaffReviews(school?.id);
+  const { staff } = useStaff(school?.id);
+  const hasStaff = staff.length > 0;
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [selectedStaffId, setSelectedStaffId] = useState("");
 
   const handleReviewSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!hasStaff) {
+      toast.error("No staff available for review yet. Add staff members first.");
+      return;
+    }
     const formData = new FormData(e.currentTarget);
 
     const reviewData = {
@@ -1108,10 +1865,11 @@ function ReviewsTab({
 
     const result = await submitReview(reviewData);
     if (result.success) {
-      toast.success("Performance review submitted and shared with staff");
+      toast.success("Performance review submitted");
       setShowReviewModal(false);
+      setSelectedStaffId("");
     } else {
-      toast.error("Failed to submit review");
+      toast.error(result.error || "Failed to submit review");
     }
   };
 
@@ -1134,7 +1892,11 @@ function ReviewsTab({
             Conduct and manage staff performance reviews
           </p>
         </div>
-        <Button onClick={() => setShowReviewModal(true)}>
+        <Button
+          onClick={() => setShowReviewModal(true)}
+          disabled={!hasStaff}
+          title={!hasStaff ? "Add staff members before creating reviews" : undefined}
+        >
           <MaterialIcon icon="add_notes" />
           New Review
         </Button>
@@ -1215,9 +1977,9 @@ function ReviewsTab({
       )}
 
       {showReviewModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4 bg-black/60 backdrop-blur-sm">
           <div
-            className="bg-white rounded-2xl w-full max-w-2xl animate-in fade-in zoom-in duration-200 overflow-y-auto max-h-[90vh]"
+            className="bg-white rounded-2xl w-full max-w-2xl animate-in fade-in zoom-in duration-200 overflow-y-auto max-h-[calc(100vh-1.5rem)] sm:max-h-[90vh] my-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6 border-b border-[var(--border)]">
@@ -1244,12 +2006,21 @@ function ReviewsTab({
                     required
                     value={selectedStaffId}
                     onChange={(e) => setSelectedStaffId(e.target.value)}
+                    disabled={!hasStaff}
                     className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
                   >
                     <option value="">Choose staff...</option>
-                    <option value="1">John Doe (Teacher)</option>
-                    <option value="2">Jane Smith (Head of Dept)</option>
+                    {staff.map((member) => (
+                      <option key={member.id} value={member.id}>
+                        {member.full_name} ({member.role || "staff"})
+                      </option>
+                    ))}
                   </select>
+                  {!hasStaff && (
+                    <p className="text-xs text-[var(--t3)]">
+                      No staff records found. Add staff in Directory first, then create reviews.
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-[var(--on-surface)]">
@@ -1323,9 +2094,10 @@ function ReviewsTab({
 
               <button
                 type="submit"
+                disabled={!hasStaff}
                 className="w-full py-4 bg-[var(--primary)] hover:bg-[var(--primary)]/90 text-white rounded-xl font-bold transition-all shadow-lg shadow-[var(--primary)]/20 mt-4"
               >
-                Submit & Share Review
+                Submit Review
               </button>
             </form>
           </div>
@@ -1413,9 +2185,19 @@ function LeaveTab({
     return Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)) + 1);
   };
 
+  const leaveValidationError = !form.start_date || !form.end_date || !form.reason.trim()
+    ? "Add start date, end date, and reason to submit."
+    : new Date(form.end_date) < new Date(form.start_date)
+      ? "End date must be on or after start date."
+      : "";
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!school?.id || !user?.id) return;
+    if (leaveValidationError) {
+      toast.error(leaveValidationError);
+      return;
+    }
 
     setSaving(true);
     try {
@@ -1525,6 +2307,15 @@ function LeaveTab({
     { id: "rejected", label: "Rejected", count: rejectedCount },
   ];
 
+  const leaveFilterHints: Record<string, string> = {
+    all: "Review every leave request across the current school term.",
+    needs_approval: "Prioritize requests waiting for your decision.",
+    pending: "Track newly submitted requests awaiting DOS review.",
+    dos_approved: "These requests are cleared by DOS and may need HM final action.",
+    approved: "Confirmed requests with final headmaster approval.",
+    rejected: "Requests declined after review.",
+  };
+
   const filteredRequests =
     filter === "all"
       ? requests
@@ -1559,7 +2350,7 @@ function LeaveTab({
         newStatus = "approved";
       }
 
-      await supabase
+      const { error: updateError } = await supabase
         .from("leave_requests")
         .update({
           status: newStatus,
@@ -1568,13 +2359,17 @@ function LeaveTab({
         })
         .eq("id", requestId);
 
-      await supabase.from("leave_approvals").insert({
+      if (updateError) throw updateError;
+
+      const { error: approvalError } = await supabase.from("leave_approvals").insert({
         school_id: school.id,
         leave_request_id: requestId,
         approver_id: user.id,
         action: newStatus,
         comments: null,
       });
+
+      if (approvalError) throw approvalError;
 
       toast.success(`Leave ${action === "approved" ? "approved" : "rejected"}`);
       await fetchRequests();
@@ -1618,6 +2413,9 @@ function LeaveTab({
         onChange={(id) => setFilter(id as typeof filter)}
         className="mb-6"
       />
+      <p className="-mt-3 mb-6 text-sm text-[var(--t3)]">
+        {leaveFilterHints[filter]}
+      </p>
 
       {loading ? (
         <Card>
@@ -1722,12 +2520,12 @@ function LeaveTab({
 
       {showModal && (
         <div
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/40 flex items-start sm:items-center justify-center overflow-y-auto z-50 p-3 sm:p-4"
           onClick={() => setShowModal(false)}
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-2xl w-full max-w-md"
+            className="bg-white rounded-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-hidden shadow-xl my-auto"
           >
             <div className="p-6 border-b border-[var(--border)]">
               <div className="flex items-center justify-between">
@@ -1743,7 +2541,7 @@ function LeaveTab({
                 </Button>
               </div>
             </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto max-h-[calc(100vh-10rem)] sm:max-h-[calc(100vh-11rem)]">
               <div>
                 <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">
                   Leave Type
@@ -1850,10 +2648,14 @@ function LeaveTab({
                   variant="primary"
                   className="flex-1"
                   loading={saving}
+                  disabled={saving || Boolean(leaveValidationError)}
                 >
                   {saving ? "Submitting..." : "Submit Request"}
                 </Button>
               </div>
+              {leaveValidationError && (
+                <p className="text-sm text-[var(--t3)]">{leaveValidationError}</p>
+              )}
             </form>
           </div>
         </div>

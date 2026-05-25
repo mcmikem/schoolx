@@ -69,7 +69,12 @@ export function useStudentPromotion(
   }, [schoolId, isDemo]);
 
   const fetchPromotionStudents = useCallback(async () => {
-    if (!schoolId || !fromClass) return;
+    if (!schoolId || !fromClass) {
+      setPromotionStudents([]);
+      setSelectedStudents(new Set());
+      setStudentActions({});
+      return;
+    }
     setPromotionLoading(true);
     if (isDemo) {
       const classStudents = students.filter((s) => s.class_id === fromClass);
@@ -239,11 +244,16 @@ export function useStudentPromotion(
         }
 
         if (action === "promote") {
-          await supabase
+          const { error: updateError } = await supabase
             .from("students")
             .update({ class_id: toClass, repeating: false })
             .eq("id", studentId);
-          await supabase.from("student_promotions").insert({
+
+          if (updateError) {
+            throw new Error(`Failed to promote student: ${updateError.message}`);
+          }
+
+          const { error: insertError } = await supabase.from("student_promotions").insert({
             school_id: schoolId,
             student_id: studentId,
             from_class_id: fromClass,
@@ -253,13 +263,22 @@ export function useStudentPromotion(
             promoted_by: user_id,
             promoted_at: new Date().toISOString(),
           });
+
+          if (insertError) {
+            throw new Error(`Failed to save promotion record: ${insertError.message}`);
+          }
           promoted++;
         } else if (action === "repeat") {
-          await supabase
+          const { error: updateError } = await supabase
             .from("students")
             .update({ repeating: true })
             .eq("id", studentId);
-          await supabase.from("student_promotions").insert({
+
+          if (updateError) {
+            throw new Error(`Failed to mark student as repeating: ${updateError.message}`);
+          }
+
+          const { error: insertError } = await supabase.from("student_promotions").insert({
             school_id: schoolId,
             student_id: studentId,
             from_class_id: fromClass,
@@ -270,14 +289,23 @@ export function useStudentPromotion(
             promoted_by: user_id,
             promoted_at: new Date().toISOString(),
           });
+
+          if (insertError) {
+            throw new Error(`Failed to save repeating record: ${insertError.message}`);
+          }
           repeating++;
         } else if (action === "demote") {
           const targetClass = actionData.targetClassId || fromClass;
-          await supabase
+          const { error: updateError } = await supabase
             .from("students")
             .update({ class_id: targetClass, repeating: false })
             .eq("id", studentId);
-          await supabase.from("student_promotions").insert({
+
+          if (updateError) {
+            throw new Error(`Failed to demote student: ${updateError.message}`);
+          }
+
+          const { error: insertError } = await supabase.from("student_promotions").insert({
             school_id: schoolId,
             student_id: studentId,
             from_class_id: fromClass,
@@ -288,6 +316,10 @@ export function useStudentPromotion(
             promoted_by: user_id,
             promoted_at: new Date().toISOString(),
           });
+
+          if (insertError) {
+            throw new Error(`Failed to save demotion record: ${insertError.message}`);
+          }
           demoted++;
         }
       }

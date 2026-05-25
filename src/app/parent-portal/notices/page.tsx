@@ -86,8 +86,8 @@ export default function ParentNoticesPage() {
       )}
 
       {selectedNotice && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[var(--surface)] rounded-3xl w-full max-w-lg shadow-2xl p-8 space-y-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
+          <div className="bg-[var(--surface)] rounded-3xl w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl p-8 space-y-4">
             <div className="flex justify-between items-start">
               <h2 className="text-xl font-black text-[var(--on-surface)] pr-4">{selectedNotice.title}</h2>
               <button onClick={() => setSelectedNotice(null)} className="p-2 hover:bg-[var(--surface-container)] rounded-xl shrink-0">

@@ -72,7 +72,7 @@ export function ConfirmDialog({
 
   const dialogContent = (
     <div 
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4"
       role="alertdialog"
       aria-modal="true"
       aria-labelledby="confirm-title"
@@ -85,7 +85,7 @@ export function ConfirmDialog({
       />
       <div 
         ref={dialogRef}
-        className="relative w-full max-w-sm bg-[var(--surface)] rounded-2xl shadow-2xl border border-[var(--border)] overflow-hidden"
+        className="relative w-full max-w-sm max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] bg-[var(--surface)] rounded-2xl shadow-2xl border border-[var(--border)] overflow-y-auto my-auto"
       >
         <div className="p-6">
           <div className={cn('flex items-center gap-4 mb-4 p-3 rounded-xl', variantStyles[variant])}>
@@ -134,8 +134,8 @@ export function LoadingOverlay({ open, message = 'Loading...' }: LoadingOverlayP
   if (!open) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-      <div className="bg-[var(--surface)] rounded-2xl p-6 shadow-xl border border-[var(--border)] flex flex-col items-center gap-4 min-w-[200px]">
+    <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4 bg-black/30 backdrop-blur-sm">
+      <div className="bg-[var(--surface)] rounded-2xl p-6 shadow-xl border border-[var(--border)] flex flex-col items-center gap-4 min-w-[200px] max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
         <div className="w-8 h-8 border-3 border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
         <p className="text-sm text-[var(--t2)]">{message}</p>
       </div>

@@ -463,8 +463,8 @@ export default function DropoutTrackingPage() {
       )}
 
       {showModal && selectedStudent && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[var(--surface)] rounded-3xl w-full max-w-md shadow-2xl p-8 space-y-5">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
+          <div className="bg-[var(--surface)] rounded-3xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl p-8 space-y-5">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-black text-[var(--on-surface)]">
                 Log Intervention
@@ -528,8 +528,8 @@ export default function DropoutTrackingPage() {
       )}
 
       {showDropoutModal && selectedStudent && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[var(--surface)] rounded-3xl w-full max-w-md shadow-2xl p-8 space-y-5">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
+          <div className="bg-[var(--surface)] rounded-3xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl p-8 space-y-5">
             <div className="flex justify-between items-center">
               <h2 className="text-xl font-black text-[var(--on-surface)]">
                 Mark as Dropout

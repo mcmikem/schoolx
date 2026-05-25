@@ -56,6 +56,15 @@ export default function ClassesPage() {
   const [form, setForm] = useState(BLANK_FORM);
   const [saving, setSaving] = useState(false);
 
+  const parsedMaxStudents = parseInt(form.max_students, 10);
+  const classValidationError = !form.name.trim()
+    ? "Add a class name to continue."
+    : !form.level.trim()
+      ? "Add a level (for example P.5 or S.2)."
+      : !Number.isFinite(parsedMaxStudents) || parsedMaxStudents < 1 || parsedMaxStudents > 500
+        ? "Max students must be between 1 and 500."
+        : "";
+
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<ClassRow | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -143,12 +152,12 @@ export default function ClassesPage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!school?.id) return;
-    if (!form.name.trim()) { toast.error("Class name is required"); return; }
-    if (!form.level.trim()) { toast.error("Level is required (e.g. P.5, S.2)"); return; }
-    const maxStudents = parseInt(form.max_students);
-    if (!Number.isFinite(maxStudents) || maxStudents < 1 || maxStudents > 500) {
-      toast.error("Max students must be between 1 and 500"); return;
+    if (classValidationError) {
+      toast.error(classValidationError);
+      return;
     }
+
+    const maxStudents = parsedMaxStudents;
 
     setSaving(true);
     try {
@@ -359,8 +368,8 @@ export default function ClassesPage() {
 
         {/* Add / Edit Modal */}
         {showModal && (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowModal(false)}>
-            <div className="bg-[var(--surface)] rounded-2xl w-full max-w-md shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div className="fixed inset-0 bg-black/40 flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto" onClick={() => setShowModal(false)}>
+            <div className="bg-[var(--surface)] rounded-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl" onClick={e => e.stopPropagation()}>
               <div className="p-6 border-b border-[var(--border)] flex items-center justify-between">
                 <h2 className="text-lg font-semibold text-[var(--on-surface)]">{editingClass ? "Edit Class" : "Add Class"}</h2>
                 <button onClick={() => setShowModal(false)} className="p-2 rounded-lg hover:bg-[var(--surface-container)] transition-colors">
@@ -438,10 +447,13 @@ export default function ClassesPage() {
                 </div>
                 <div className="flex gap-3 pt-2">
                   <Button type="button" variant="secondary" onClick={() => setShowModal(false)} className="flex-1">Cancel</Button>
-                  <Button type="submit" disabled={saving} className="flex-1">
+                  <Button type="submit" disabled={saving || Boolean(classValidationError)} className="flex-1">
                     {saving ? "Saving…" : editingClass ? "Save Changes" : "Create Class"}
                   </Button>
                 </div>
+                {classValidationError && (
+                  <p className="text-sm text-[var(--t3)]">{classValidationError}</p>
+                )}
               </form>
             </div>
           </div>

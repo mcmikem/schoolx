@@ -16,6 +16,7 @@ import {
   sendAfricasTalkingSMS,
   checkSmsDailyLimit,
 } from "@/lib/africas-talking";
+import { generateWhatsAppShareLink } from "@/lib/whatsapp";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { validateRequest, smsRequestSchema } from "@/lib/validation";
 import { logger } from "@/lib/logger";
@@ -41,7 +42,7 @@ async function handlePost(request: NextRequest) {
       return apiError(validation.error, 400);
     }
 
-    const { phone, message, schoolId } = validation.data;
+    const { phone, message, schoolId, studentId } = validation.data;
 
     const scope = assertSchoolScopeOrDeny({
       userSchoolId: auth.context.schoolId,
@@ -83,15 +84,53 @@ async function handlePost(request: NextRequest) {
     if (result.success) {
       return apiSuccess({
         status: "sent",
+        channel: "sms",
         messageId: result.messageId,
         statusCode: result.statusCode,
         demo: !AFRICAS_TALKING_API_KEY,
       });
     }
 
-    return apiError(
-      "Failed to send SMS. Please verify the phone number and try again.",
-      500,
+    let portalNotificationQueued = false;
+    if (studentId) {
+      try {
+        const { data: student } = await supabase
+          .from("students")
+          .select("id, parent_id, first_name, last_name")
+          .eq("id", studentId)
+          .single();
+
+        if (student?.parent_id) {
+          const { error: notifyError } = await supabase
+            .from("parent_notifications")
+            .insert({
+              school_id: schoolId,
+              parent_id: student.parent_id,
+              student_id: student.id,
+              type: "message",
+              title: "Message available",
+              message: `A school message for ${student.first_name} ${student.last_name} is available in the parent portal.`,
+              action_url: "/parent-portal/messages",
+            });
+
+          portalNotificationQueued = !notifyError;
+        }
+      } catch (fallbackError) {
+        logger.warn("[SMS] Portal fallback notification failed:", fallbackError);
+      }
+    }
+
+    const whatsappLink = generateWhatsAppShareLink(formattedPhone, message);
+    return apiSuccess(
+      {
+        status: "fallback",
+        channel: "whatsapp_share_link",
+        smsError: result.error,
+        whatsappLink,
+        portalNotificationQueued,
+      },
+      "SMS provider failed. Fallbacks prepared.",
+      200,
     );
   } catch (error) {
     return handleApiError(error);

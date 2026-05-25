@@ -23,6 +23,12 @@ export default function LibraryPage() {
   const [editingBook, setEditingBook] = useState<any | null>(null);
   const [form, setForm] = useState(BLANK_FORM);
   const [saving, setSaving] = useState(false);
+  const parsedCopies = parseInt(form.total_copies, 10);
+  const libraryValidationError = !form.title.trim() || !form.author.trim()
+    ? "Add both title and author to continue."
+    : !Number.isFinite(parsedCopies) || parsedCopies < 1
+      ? "Total copies must be at least 1."
+      : "";
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<any | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -55,16 +61,12 @@ export default function LibraryPage() {
 
   const saveBook = async () => {
     if (!school?.id) return;
-    if (!form.title.trim() || !form.author.trim()) {
-      toast.error("Title and author are required");
+    if (libraryValidationError) {
+      toast.error(libraryValidationError);
       return;
     }
 
-    const totalCopies = parseInt(form.total_copies);
-    if (!Number.isFinite(totalCopies) || totalCopies < 1) {
-      toast.error("Total copies must be at least 1");
-      return;
-    }
+    const totalCopies = parsedCopies;
 
     setSaving(true);
     try {
@@ -246,8 +248,8 @@ export default function LibraryPage() {
 
       {/* Add / Edit Book Modal */}
       {showAdd && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2.5rem] w-full max-w-md shadow-2xl p-8 transform animate-in slide-in-from-bottom-8 duration-300">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
+          <div className="bg-white rounded-[2.5rem] w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl p-8 transform animate-in slide-in-from-bottom-8 duration-300">
             <div className="flex justify-between mb-8 items-center">
               <h2 className="text-2xl font-black text-slate-800 tracking-tight">{editingBook ? "Edit Volume" : "Add Volume"}</h2>
               <button onClick={() => { setShowAdd(false); setEditingBook(null); setForm(BLANK_FORM); }} className="w-10 h-10 flex items-center justify-center hover:bg-slate-100 rounded-2xl transition-colors"><MaterialIcon icon="close" className="text-slate-400" /></button>
@@ -271,9 +273,12 @@ export default function LibraryPage() {
                   <input type="number" min="1" value={form.total_copies} onChange={(e) => setForm({ ...form, total_copies: e.target.value })} className="w-full px-5 py-3.5 bg-slate-50 border border-slate-100 rounded-2xl font-bold text-sm outline-none focus:ring-2 focus:ring-indigo-100" />
                 </div>
               </div>
-              <button onClick={saveBook} disabled={!form.title || saving} className="w-full py-4 bg-indigo-600 text-white rounded-[1.5rem] font-black uppercase tracking-widest hover:shadow-xl hover:shadow-indigo-600/20 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2 mt-4">
+              <button onClick={saveBook} disabled={saving || Boolean(libraryValidationError)} className="w-full py-4 bg-indigo-600 text-white rounded-[1.5rem] font-black uppercase tracking-widest hover:shadow-xl hover:shadow-indigo-600/20 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2 mt-4">
                 {saving ? <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><MaterialIcon icon="save" /> {editingBook ? "Save Changes" : "Register Volume"}</>}
               </button>
+              {libraryValidationError && (
+                <p className="text-sm text-slate-500">{libraryValidationError}</p>
+              )}
             </div>
           </div>
         </div>

@@ -60,6 +60,16 @@ export default function HomeworkPage() {
     marks: 10,
   });
 
+  const homeworkValidationError = !newHomework.title.trim() || !newHomework.description.trim()
+    ? "Add both title and description to assign homework."
+    : !newHomework.subject_id || !newHomework.class_id
+      ? "Select both class and subject."
+      : !newHomework.due_date
+        ? "Choose a due date to continue."
+        : newHomework.marks <= 0
+          ? "Marks must be greater than zero."
+          : "";
+
   // Update draft when form changes
   const handleNewHomeworkChange = (updates: Partial<typeof newHomework>) => {
     setNewHomework((prev) => {
@@ -104,20 +114,8 @@ export default function HomeworkPage() {
   const handleCreateHomework = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!school?.id || !user?.id) return;
-    if (!newHomework.title.trim() || !newHomework.description.trim()) {
-      toast.error("Title and description are required");
-      return;
-    }
-    if (!newHomework.subject_id || !newHomework.class_id) {
-      toast.error("Subject and class are required");
-      return;
-    }
-    if (!newHomework.due_date) {
-      toast.error("Due date is required");
-      return;
-    }
-    if (newHomework.marks <= 0) {
-      toast.error("Marks must be greater than zero");
+    if (homeworkValidationError) {
+      toast.error(homeworkValidationError);
       return;
     }
 
@@ -325,11 +323,11 @@ export default function HomeworkPage() {
       {/* Create Modal */}
       {showModal && (
         <div
-          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto"
           onClick={() => setShowModal(false)}
         >
           <div
-            className="bg-white rounded-2xl max-w-lg w-full p-6"
+            className="bg-white rounded-2xl max-w-lg w-full max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto p-6 my-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <h3 className="font-bold text-xl text-gray-900 mb-4">
@@ -459,11 +457,15 @@ export default function HomeworkPage() {
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 bg-gray-900 text-white rounded-xl font-semibold hover:bg-gray-800"
+                  disabled={Boolean(homeworkValidationError)}
+                  className="flex-1 py-2.5 bg-gray-900 text-white rounded-xl font-semibold hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Assign
                 </button>
               </div>
+              {homeworkValidationError && (
+                <p className="text-sm text-gray-500">{homeworkValidationError}</p>
+              )}
             </form>
           </div>
         </div>
@@ -471,8 +473,8 @@ export default function HomeworkPage() {
 
       {/* Draft Restore Dialog */}
       {homeworkDraft.showRestoreDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-sm w-full p-6">
+        <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl max-w-sm w-full max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto p-6 my-auto">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
                 <MaterialIcon icon="restore" className="text-gray-600" />

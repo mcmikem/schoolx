@@ -49,6 +49,13 @@ export default function AcademicTermsPage() {
     academic_year: new Date().getFullYear().toString(),
     is_active: true,
   });
+  const termValidationError = !formData.name.trim() || !formData.code.trim()
+    ? "Add both term name and code to continue."
+    : !formData.start_date || !formData.end_date
+      ? "Select both start and end dates."
+      : formData.end_date < formData.start_date
+        ? "End date cannot be earlier than the start date."
+        : "";
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
 
@@ -56,16 +63,8 @@ export default function AcademicTermsPage() {
 
   const handleSubmit = async () => {
     if (!school?.id || !canManageTerms) return;
-    if (!formData.name.trim() || !formData.code.trim()) {
-      toast.error("Term name and code are required");
-      return;
-    }
-    if (!formData.start_date || !formData.end_date) {
-      toast.error("Start and end dates are required");
-      return;
-    }
-    if (formData.end_date < formData.start_date) {
-      toast.error("End date cannot be earlier than the start date");
+    if (termValidationError) {
+      toast.error(termValidationError);
       return;
     }
 
@@ -462,10 +461,13 @@ export default function AcademicTermsPage() {
             <Button variant="secondary" onClick={() => setShowModal(false)}>
               Cancel
             </Button>
-            <Button onClick={handleSubmit}>
+            <Button onClick={handleSubmit} disabled={Boolean(termValidationError)}>
               {editingTerm ? "Update" : "Create"}
             </Button>
           </div>
+          {termValidationError && (
+            <p className="text-sm text-[var(--t3)]">{termValidationError}</p>
+          )}
         </div>
       </Modal>
 

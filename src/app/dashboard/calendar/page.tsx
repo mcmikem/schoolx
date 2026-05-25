@@ -192,6 +192,14 @@ export default function CalendarPage() {
     end_date: "",
   })
 
+  const eventValidationError = !newEvent.title.trim()
+    ? "Add an event title to continue."
+    : !newEvent.start_date
+      ? "Choose a start date for the event."
+      : newEvent.end_date && newEvent.end_date < newEvent.start_date
+        ? "End date cannot be earlier than the start date."
+        : ""
+
   const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate()
   const firstDay = new Date(currentYear, currentMonth, 1).getDay()
 
@@ -346,18 +354,8 @@ export default function CalendarPage() {
     e.preventDefault()
     if (!school?.id) return
 
-    if (!newEvent.title.trim()) {
-      toast.error("Event title is required")
-      return
-    }
-
-    if (!newEvent.start_date) {
-      toast.error("Start date is required")
-      return
-    }
-
-    if (newEvent.end_date && newEvent.end_date < newEvent.start_date) {
-      toast.error("End date cannot be earlier than the start date")
+    if (eventValidationError) {
+      toast.error(eventValidationError)
       return
     }
 
@@ -742,8 +740,8 @@ export default function CalendarPage() {
         </div>
 
         {showModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setShowModal(false)}>
-            <div className="w-full max-w-md rounded-2xl bg-white" onClick={(e) => e.stopPropagation()}>
+          <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto bg-black/40 p-3 sm:p-4" onClick={() => setShowModal(false)}>
+            <div className="w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto rounded-2xl bg-white my-auto" onClick={(e) => e.stopPropagation()}>
               <div className="border-b border-[#e8eaed] p-6">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold text-[#191c1d]">Add Event</h2>
@@ -809,8 +807,11 @@ export default function CalendarPage() {
                 </div>
                 <div className="flex gap-3 pt-4">
                   <Button variant="secondary" className="flex-1" onClick={() => setShowModal(false)}>Cancel</Button>
-                  <Button variant="primary" className="flex-1" type="submit">Add Event</Button>
+                  <Button variant="primary" className="flex-1" type="submit" disabled={Boolean(eventValidationError)}>Add Event</Button>
                 </div>
+                {eventValidationError && (
+                  <p className="text-sm text-[#5c6670]">{eventValidationError}</p>
+                )}
               </form>
             </div>
           </div>

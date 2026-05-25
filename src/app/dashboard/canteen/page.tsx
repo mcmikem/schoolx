@@ -59,12 +59,18 @@ export default function CanteenPage() {
     stock: "",
     unit: "pieces",
   });
+  const parsedPrice = parseFloat(newItem.price);
+  const canteenValidationError = !school?.id || !newItem.name.trim() || !newItem.price
+    ? "Add item name and price to continue."
+    : Number.isNaN(parsedPrice) || parsedPrice < 0
+      ? "Price must be a valid positive number."
+      : "";
 
   // Offline hooks handle data loading; no need for loadData or useEffect
 
   const handleAddItem = async () => {
-    if (!school?.id || !newItem.name || !newItem.price) {
-      toast.error("Please fill required fields");
+    if (canteenValidationError) {
+      toast.error(canteenValidationError);
       return;
     }
 
@@ -73,7 +79,7 @@ export default function CanteenPage() {
         school_id: school.id,
         name: newItem.name,
         category: newItem.category,
-        price: parseFloat(newItem.price),
+        price: parsedPrice,
         stock: parseInt(newItem.stock) || 0,
         unit: newItem.unit,
         active: true,
@@ -357,8 +363,8 @@ export default function CanteenPage() {
       )}
 
       {showAddItem && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-surface-container-lowest rounded-2xl p-6 w-full max-w-md">
+        <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-surface-container-lowest rounded-2xl p-6 w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
             <h3 className="text-lg font-semibold text-on-surface mb-4">
               Add Canteen Item
             </h3>
@@ -450,10 +456,13 @@ export default function CanteenPage() {
               >
                 Cancel
               </Button>
-              <Button className="flex-1" onClick={handleAddItem}>
+              <Button className="flex-1" onClick={handleAddItem} disabled={Boolean(canteenValidationError)}>
                 Add Item
               </Button>
             </div>
+            {canteenValidationError && (
+              <p className="text-sm text-[var(--t3)]">{canteenValidationError}</p>
+            )}
           </div>
         </div>
       )}

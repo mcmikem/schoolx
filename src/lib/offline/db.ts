@@ -184,10 +184,11 @@ export function isOnline(): boolean {
 }
 
 // Sync with Supabase when online
-export async function syncWithServer(supabase: any): Promise<{ synced: number; failed: number }> {
+export async function syncWithServer(supabase: any): Promise<{ synced: number; failed: number; failedItems: Array<{ id: string; table: string; error: string }> }> {
   const pending = await getPendingSync()
   let synced = 0
   let failed = 0
+  const failedItems: Array<{ id: string; table: string; error: string }> = []
 
   for (const item of pending) {
     try {
@@ -202,9 +203,11 @@ export async function syncWithServer(supabase: any): Promise<{ synced: number; f
       synced++
     } catch (error) {
       failed++
+      const message = error instanceof Error ? error.message : String(error)
+      failedItems.push({ id: item.id, table: item.table, error: message })
       logger.error(`Failed to sync ${item.table}:`, error)
     }
   }
 
-  return { synced, failed }
+  return { synced, failed, failedItems }
 }

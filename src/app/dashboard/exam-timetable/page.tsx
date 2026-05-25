@@ -56,6 +56,11 @@ export default function ExamTimetablePage() {
     room: "",
     supervisor_id: "",
   });
+  const examValidationError = !newExam.exam_date || !newExam.subject_id || !newExam.class_id || !newExam.room.trim() || !newExam.supervisor_id
+    ? "Select date, subject, class, room, and supervisor to continue."
+    : newExam.end_time <= newExam.start_time
+      ? "End time must be later than start time."
+      : "";
 
   const fetchExamTimetable = useCallback(async () => {
     if (!school?.id) return;
@@ -156,14 +161,8 @@ export default function ExamTimetablePage() {
   const handleSaveExam = async () => {
     if (!school?.id || !user?.id) return;
 
-    if (
-      !newExam.exam_date ||
-      !newExam.subject_id ||
-      !newExam.class_id ||
-      !newExam.room ||
-      !newExam.supervisor_id
-    ) {
-      toast.error("Please fill all required fields");
+    if (examValidationError) {
+      toast.error(examValidationError);
       return;
     }
 
@@ -782,18 +781,25 @@ export default function ExamTimetablePage() {
               </button>
               <button
                 onClick={handleSaveExam}
-                disabled={saving || conflicts.length > 0}
+                disabled={saving || conflicts.length > 0 || Boolean(examValidationError)}
                 className="btn btn-primary"
               >
                 {saving
                   ? "Saving..."
                   : conflicts.length > 0
                     ? "Fix Conflicts First"
+                    : examValidationError
+                      ? "Complete Required Fields"
                     : editingId
                       ? "Update Exam"
                       : "Add Exam"}
               </button>
             </div>
+            {examValidationError && (
+              <div style={{ padding: "0 20px 16px", fontSize: 13, color: "var(--t3)" }}>
+                {examValidationError}
+              </div>
+            )}
           </div>
         </div>
       )}

@@ -316,8 +316,8 @@ export default function StudentWalletsPage() {
         </div>
 
         {showTopup && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div className="bg-white rounded-[40px] w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-200">
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
+            <div className="bg-white rounded-[40px] w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl animate-in zoom-in-95 duration-200">
               <div className="p-8">
                 <div className="flex justify-between items-center mb-8">
                   <div className="w-12 h-12 rounded-2xl bg-primary-50 text-primary-800 flex items-center justify-center">

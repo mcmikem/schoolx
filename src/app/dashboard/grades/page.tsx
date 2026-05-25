@@ -223,6 +223,7 @@ export default function GradesPage() {
     value: string;
   }>({ open: false, type: "", value: "" });
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
+  const [bulkImportValidationError, setBulkImportValidationError] = useState("");
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>(
     {},
   );
@@ -2064,12 +2065,15 @@ export default function GradesPage() {
               onChange={async (e) => {
                 const file = e.target.files?.[0];
                 if (!file) return;
+                setBulkImportValidationError("");
                 toast.info("Processing spreadsheet...");
                 try {
                   const text = await file.text();
                   const lines = text.trim().split("\n");
                   if (lines.length < 2) {
-                    toast.error("File appears empty");
+                    setBulkImportValidationError(
+                      "The file appears empty. Add a header row and at least one student row.",
+                    );
                     return;
                   }
                   const header = lines[0].toLowerCase().split(",").map(s => s.trim());
@@ -2079,7 +2083,9 @@ export default function GradesPage() {
                   const ca3Index = header.findIndex(h => h.includes("ca3"));
                   const examIndex = header.findIndex(h => h.includes("exam") || h.includes("final"));
                   if (admIndex === -1) {
-                    toast.error("Column 'admission_number' required");
+                    setBulkImportValidationError(
+                      "Include an admission_number column so students can be matched.",
+                    );
                     return;
                   }
                   let imported = 0;
@@ -2119,6 +2125,9 @@ export default function GradesPage() {
                   setBulkImportOpen(false);
                 } catch (err) {
                   logger.error("Import error:", err);
+                  setBulkImportValidationError(
+                    "Import failed. Check the file format and try again.",
+                  );
                   toast.error("Failed to import: Check file format");
                 }
               }}
@@ -2126,6 +2135,9 @@ export default function GradesPage() {
             <p className="text-xs text-[var(--t3)] mt-2">
               Format: admission_number,ca1,ca2,ca3,exam
             </p>
+            {bulkImportValidationError && (
+              <p className="text-sm text-[var(--t3)] mt-2">{bulkImportValidationError}</p>
+            )}
           </div>
           <div className="flex justify-end gap-2">
             <Button variant="secondary" onClick={() => setBulkImportOpen(false)}>

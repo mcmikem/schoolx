@@ -80,6 +80,21 @@ export default function FeePaymentPlans({
   markInstallmentPaid,
   plansLoading,
 }: FeePaymentPlansProps) {
+  const canCreatePlan =
+    planStudents.length > 0 &&
+    !!newPlan.student_id &&
+    newPlan.total_amount > 0 &&
+    !!newPlan.start_date;
+  const createPlanDisabledReason = planStudents.length === 0
+    ? "Add students first before creating payment plans."
+    : !newPlan.student_id
+      ? "Select a student to continue."
+      : newPlan.total_amount <= 0
+        ? "Enter a total amount greater than 0."
+        : !newPlan.start_date
+          ? "Choose a start date for the plan."
+          : "";
+
   return (
     <>
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
@@ -223,8 +238,8 @@ export default function FeePaymentPlans({
       </div>
 
       {showCreatePlan && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-surface-container-lowest rounded-2xl p-6 w-full max-w-md">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
+          <div className="bg-surface-container-lowest rounded-2xl p-6 w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto shadow-xl my-auto">
             <h2 className="text-xl font-bold text-on-surface mb-4">
               Create Payment Plan
             </h2>
@@ -329,18 +344,22 @@ export default function FeePaymentPlans({
               </button>
               <button
                 onClick={createPlan}
-                className="flex-1 py-3 bg-primary text-white font-semibold rounded-xl"
+                disabled={!canCreatePlan}
+                className="flex-1 py-3 bg-primary text-white font-semibold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Create Plan
               </button>
             </div>
+            {!canCreatePlan && createPlanDisabledReason && (
+              <p className="mt-3 text-sm text-[var(--t3)]">{createPlanDisabledReason}</p>
+            )}
           </div>
         </div>
       )}
 
       {selectedPlan && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-surface-container-lowest rounded-2xl p-6 w-full max-w-md">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
+          <div className="bg-surface-container-lowest rounded-2xl p-6 w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto shadow-xl my-auto">
             <h2 className="text-xl font-bold text-on-surface mb-2">
               Payment Details
             </h2>

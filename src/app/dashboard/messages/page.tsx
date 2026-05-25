@@ -49,6 +49,14 @@ const communicationTabs = [
   { id: "notices", label: "Notices" },
 ];
 
+const communicationTabHints: Record<string, string> = {
+  messages: "Send one-off messages to parents using Auto, WhatsApp, or SMS.",
+  "bulk-sms": "Reach many recipients at once by class, audience, or selected learners.",
+  automation: "Configure and run trigger-based communication rules.",
+  templates: "Create reusable message templates for faster outreach.",
+  notices: "Publish school-wide announcements and optional staff SMS alerts.",
+};
+
 const MAX_SMS_BODY_LENGTH = 640;
 const MAX_TEMPLATE_BODY_LENGTH = 1000;
 
@@ -154,6 +162,9 @@ export default function CommunicationHubPage() {
   const [newNotice, setNewNotice] = useState({ title: "", content: "", category: "General", priority: "normal", expires_at: "", image_url: "", send_sms: false });
   const [uploadingImage, setUploadingImage] = useState(false);
   const [sendingSMS, setSendingSMS] = useState(false);
+  const noticeValidationError = !newNotice.title.trim() || !newNotice.content.trim()
+    ? "Add both title and content to post this notice."
+    : "";
 
   const deliverMessage = async (phones: string[], body: string) => {
     const preferWhatsApp = deliveryChannel === "whatsapp" || (deliveryChannel === "auto" && isWhatsAppConfigured());
@@ -177,10 +188,21 @@ export default function CommunicationHubPage() {
       body: JSON.stringify({ phone: phones[0], phones, message: body, schoolId: user!.school_id }),
     });
     const result = await response.json();
+    const resultData = result?.data || {};
+    const sentCount =
+      typeof resultData.totalSent === "number"
+        ? resultData.totalSent
+        : result.success
+          ? phones.length
+          : 0;
+    const failedCount =
+      typeof resultData.totalFailed === "number"
+        ? resultData.totalFailed
+        : Math.max(0, phones.length - sentCount);
     return {
-      success: !!result.success,
-      totalSent: result.totalSent ?? (result.success ? phones.length : 0),
-      totalFailed: result.totalFailed ?? (result.success ? 0 : phones.length),
+      success: !!result.success && sentCount > 0,
+      totalSent: sentCount,
+      totalFailed: failedCount,
       via: "sms" as const,
       result,
     };
@@ -462,31 +484,55 @@ export default function CommunicationHubPage() {
   };
 
   const sendNoticeSMS = async (title: string, content: string, category: string) => {
-    if (isDemo || !school?.id || staff.length === 0) return;
+    if (isDemo || !school?.id || staff.length === 0) {
+      return { attempted: false, totalSent: 0, totalFailed: 0, channel: "sms" as const };
+    }
     const phones = staff.filter((s: any) => s.phone).map((s: any) => s.phone);
-    if (phones.length === 0) return;
+    if (phones.length === 0) {
+      return { attempted: false, totalSent: 0, totalFailed: 0, channel: "sms" as const };
+    }
     const smsMessage = `[${category}] ${title}: ${content.slice(0, 100)}${content.length > 100 ? "..." : ""}`;
     try {
-      await fetch("/api/sms", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ phones, message: smsMessage, schoolId: school.id }) });
+      const delivery = await deliverMessage(phones, smsMessage);
       await createRecord(
         () =>
           supabase.from("messages").insert({
             school_id: school.id,
             recipient_type: "staff",
             message: smsMessage,
-            status: "sent",
+            status: delivery.totalSent > 0 ? "sent" : "failed",
             sent_by: user?.id,
             sent_at: new Date().toISOString(),
             recipient_count: phones.length,
           }),
         { timeoutMs: 12000, timeoutMessage: "Notice SMS logging timed out" },
       );
-    } catch (err) { logger.error("Failed to send notice SMS:", err); }
+      return {
+        attempted: true,
+        totalSent: delivery.totalSent,
+        totalFailed: delivery.totalFailed,
+        channel: delivery.via,
+        success: delivery.success,
+      };
+    } catch (err) {
+      logger.error("Failed to send notice SMS:", err);
+      return {
+        attempted: true,
+        totalSent: 0,
+        totalFailed: phones.length,
+        channel: "sms" as const,
+        success: false,
+      };
+    }
   };
 
   const handleNoticeSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!school?.id || !user?.id) return;
+    if (noticeValidationError) {
+      toast.error(noticeValidationError);
+      return;
+    }
     const isEmergency = newNotice.category === "Emergency" || newNotice.priority === "high";
     const shouldSendSMS = newNotice.send_sms || isEmergency;
     try {
@@ -514,8 +560,23 @@ export default function CommunicationHubPage() {
           }),
         { timeoutMs: 12000, timeoutMessage: "Notice creation timed out" },
       );
-      if (shouldSendSMS) await sendNoticeSMS(newNotice.title, newNotice.content, newNotice.category);
-      toast.success(shouldSendSMS ? `Notice posted and SMS sent to ${staff.filter((s: any) => s.phone).length} staff` : "Notice posted");
+      const noticeDelivery = shouldSendSMS
+        ? await sendNoticeSMS(newNotice.title, newNotice.content, newNotice.category)
+        : null;
+
+      if (!noticeDelivery || !noticeDelivery.attempted) {
+        toast.success("Notice posted");
+      } else if (noticeDelivery.success) {
+        toast.success(
+          `Notice posted and ${noticeDelivery.channel.toUpperCase()} sent to ${noticeDelivery.totalSent} staff`,
+        );
+      } else {
+        toast.error(
+          noticeDelivery.totalFailed > 0
+            ? `Notice posted, but message delivery failed for ${noticeDelivery.totalFailed} staff.`
+            : "Notice posted, but message delivery failed.",
+        );
+      }
       setShowNoticeModal(false); setNewNotice({ title: "", content: "", category: "General", priority: "normal", expires_at: "", image_url: "", send_sms: false }); fetchNotices();
     } catch (err: unknown) { toast.error(err instanceof Error ? err.message : "Failed to post notice"); }
     finally { setSendingSMS(false); }
@@ -604,9 +665,12 @@ export default function CommunicationHubPage() {
         { icon: "campaign", text: "Notices: Post announcements visible to selected groups" },
         { icon: "automation", text: "Automation: Set auto-SMS for attendance, fees, results" },
         { icon: "drafts", text: "Templates: Save frequent messages for quick sending" },
-        { icon: "analytics", text: "Check 'SMS Logs' tab to see delivery status" },
+        { icon: "analytics", text: "Use Recent Messages to review delivery results and follow up quickly" },
       ]} />
       <Tabs tabs={communicationTabs} activeTab={activeTab} onChange={setActiveTab} className="mb-6" />
+      <p className="-mt-3 mb-6 text-sm text-[var(--t3)]">
+        {communicationTabHints[activeTab]}
+      </p>
 
       <TabPanel activeTab={activeTab} tabId="messages">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -712,8 +776,8 @@ export default function CommunicationHubPage() {
                 </button>
               ))}
             </div>
-            <Button onClick={() => setShowNoticeModal(true)}>
-              <MaterialIcon icon="add" /> Create Notice
+            <Button onClick={() => setShowNoticeModal(true)} aria-label="Post Notice">
+              <MaterialIcon icon="add" /> Post Notice
             </Button>
           </div>
 
@@ -770,8 +834,8 @@ export default function CommunicationHubPage() {
         </div>
 
         {showNoticeModal && (
-          <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4" onClick={() => setShowNoticeModal(false)}>
-            <div className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+          <div className="fixed inset-0 z-50 bg-black/40 p-3 sm:p-4 overflow-y-auto flex items-start sm:items-center justify-center" onClick={() => setShowNoticeModal(false)}>
+            <div className="bg-white rounded-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto" onClick={(e) => e.stopPropagation()}>
               <div className="p-6 border-b border-[#e8eaed] sticky top-0 bg-white rounded-t-2xl">
                 <h2 className="text-lg font-semibold text-[#191c1d]">Post Notice</h2>
               </div>
@@ -819,8 +883,11 @@ export default function CommunicationHubPage() {
                 </div>
                 <div className="flex gap-3 pt-4">
                   <Button type="button" onClick={() => setShowNoticeModal(false)} variant="secondary" className="flex-1">Cancel</Button>
-                  <Button type="submit" disabled={sendingSMS} loading={sendingSMS} className="flex-1">Post Notice</Button>
+                  <Button type="submit" disabled={sendingSMS || Boolean(noticeValidationError)} loading={sendingSMS} className="flex-1">Post Notice</Button>
                 </div>
+                {noticeValidationError && (
+                  <p className="text-sm text-[#5c6670]">{noticeValidationError}</p>
+                )}
               </form>
             </div>
           </div>

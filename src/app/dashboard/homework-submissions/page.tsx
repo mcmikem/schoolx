@@ -240,8 +240,8 @@ function GradingModal({ submission, maxMarks, onSave }: { submission: any; maxMa
         Grade
       </Button>
       {open && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-md">
+        <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
             <h3 className="text-lg font-bold text-[var(--t1)] mb-4">Grade Submission</h3>
             <p className="text-sm text-[var(--t3)] mb-4">
               {submission.students?.first_name} {submission.students?.last_name}

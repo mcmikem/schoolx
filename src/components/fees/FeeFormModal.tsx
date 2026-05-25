@@ -71,11 +71,11 @@ export default function FeeFormModal({
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4"
       onClick={onClose}
     >
       <div
-        className="bg-surface-container-lowest rounded-2xl w-full max-w-lg"
+        className="bg-surface-container-lowest rounded-2xl w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-6 border-b border-outline-variant/10">

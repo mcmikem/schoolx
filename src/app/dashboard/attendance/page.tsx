@@ -350,6 +350,12 @@ export default function AttendancePage() {
   const lateCount = Object.values(attendance).filter(
     (s) => s === "late",
   ).length;
+  const hasAttendanceRecords = Object.keys(attendance).length > 0;
+  const saveDisabledReason = !selectedClass
+    ? "Select a class to enable Save Changes."
+    : !hasAttendanceRecords
+      ? "Mark at least one learner before saving."
+      : "";
 
   const selectedClassName = filteredClasses.find((c) => c.id === selectedClass);
 
@@ -428,38 +434,45 @@ export default function AttendancePage() {
           subtitle={`Marking records for ${selectedClassName?.name || "Academic Classes"}`}
           variant="premium"
           actions={
-            <div className="flex items-center gap-2">
-              {absentCount > 0 && (
+            <div className="flex flex-col items-start sm:items-end gap-1">
+              <div className="flex items-center gap-2">
+                {absentCount > 0 && (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => setConfirmAbsentAlert(true)}
+                    className="bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
+                    icon={<MaterialIcon icon="notification_important" />}
+                  >
+                    Notify Parents ({absentCount})
+                  </Button>
+                )}
                 <Button
+                  onClick={saveAttendance}
+                  disabled={saving || !selectedClass || !hasAttendanceRecords}
+                  loading={saving}
+                  variant="primary"
+                  size="sm"
+                  icon={<MaterialIcon icon="save" />}
+                  className="shadow-md shadow-navy/20"
+                >
+                  Save Changes
+                </Button>
+                <Button
+                  onClick={exportAttendance}
+                  disabled={!selectedClass || students.length === 0}
                   variant="secondary"
                   size="sm"
-                  onClick={() => setConfirmAbsentAlert(true)}
-                  className="bg-red-50 text-red-700 border-red-200 hover:bg-red-100"
-                  icon={<MaterialIcon icon="notification_important" />}
+                  icon={<MaterialIcon icon="download" />}
                 >
-                  Notify Parents ({absentCount})
+                  Export
                 </Button>
+              </div>
+              {saveDisabledReason && (
+                <p className="text-xs text-on-surface-variant">
+                  {saveDisabledReason}
+                </p>
               )}
-              <Button
-                onClick={saveAttendance}
-                disabled={saving || !selectedClass}
-                loading={saving}
-                variant="primary"
-                size="sm"
-                icon={<MaterialIcon icon="save" />}
-                className="shadow-md shadow-navy/20"
-              >
-                Save Changes
-              </Button>
-              <Button
-                onClick={exportAttendance}
-                disabled={!selectedClass || students.length === 0}
-                variant="secondary"
-                size="sm"
-                icon={<MaterialIcon icon="download" />}
-              >
-                Export
-              </Button>
             </div>
           }
         />

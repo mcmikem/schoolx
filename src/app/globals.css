@@ -184,6 +184,20 @@ html {
   .ph-title {
     font-size: 1.5rem !important;
   }
+
+  /* Keep custom popups visible on small screens. */
+  div[class*="fixed inset-0"][class*="z-50"][class*="items-center"][class*="justify-center"] {
+    align-items: flex-start !important;
+    overflow-y: auto !important;
+    padding-top: 0.75rem !important;
+    padding-bottom: 0.75rem !important;
+  }
+
+  div[class*="fixed inset-0"][class*="z-50"][class*="items-center"][class*="justify-center"] > div:not([class*="absolute inset-0"]) {
+    max-height: calc(100vh - 1.5rem) !important;
+    margin-top: auto;
+    margin-bottom: auto;
+  }
 }
 
 .tap-effect {

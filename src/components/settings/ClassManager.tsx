@@ -78,13 +78,22 @@ export default function ClassManager({
   const [pendingDeleteClassId, setPendingDeleteClassId] = useState<string | null>(null);
   const [pendingDeleteHouseId, setPendingDeleteHouseId] = useState<string | null>(null);
 
+  const houseValidationError = !newHouse.name.trim()
+    ? "Add a house name to continue."
+    : "";
+  const classValidationError = !newClass.name.trim()
+    ? "Add a class name to continue."
+    : "";
+
   const handleAddHouse = () => {
+    if (houseValidationError) return;
     onAddHouse(newHouse.name, newHouse.color, newHouse.motto);
     setShowAddHouse(false);
     setNewHouse({ name: "", color: "#3b82f6", motto: "" });
   };
 
   const handleAddClass = () => {
+    if (classValidationError) return;
     onAddClass(newClass.name, newClass.stream);
     setShowAddClass(false);
     setNewClass({ name: "", stream: "" });
@@ -364,11 +373,11 @@ export default function ClassManager({
 
       {showAddHouse && (
         <div
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/40 flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto"
           onClick={() => setShowAddHouse(false)}
         >
           <div
-            className="bg-[var(--surface)] rounded-2xl w-full max-w-md"
+            className="bg-[var(--surface)] rounded-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6 border-b border-[var(--border)]">
@@ -446,10 +455,13 @@ export default function ClassManager({
                 >
                   Cancel
                 </Button>
-                <Button className="flex-1" onClick={handleAddHouse}>
+                <Button className="flex-1" onClick={handleAddHouse} disabled={Boolean(houseValidationError)}>
                   Add House
                 </Button>
               </div>
+              {houseValidationError && (
+                <p className="text-sm text-[var(--t3)]">{houseValidationError}</p>
+              )}
             </div>
           </div>
         </div>
@@ -457,11 +469,11 @@ export default function ClassManager({
 
       {showAddClass && (
         <div
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/40 flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto"
           onClick={() => setShowAddClass(false)}
         >
           <div
-            className="bg-[var(--surface)] rounded-2xl w-full max-w-md"
+            className="bg-[var(--surface)] rounded-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6 border-b border-[var(--border)]">
@@ -519,10 +531,13 @@ export default function ClassManager({
                 >
                   Cancel
                 </Button>
-                <Button className="flex-1" onClick={handleAddClass}>
+                <Button className="flex-1" onClick={handleAddClass} disabled={Boolean(classValidationError)}>
                   Add Class
                 </Button>
               </div>
+              {classValidationError && (
+                <p className="text-sm text-[var(--t3)]">{classValidationError}</p>
+              )}
             </div>
           </div>
         </div>

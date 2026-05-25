@@ -191,11 +191,11 @@ export default function UserManager({
 
       {showAddUser && (
         <div
-          className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/40 flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto"
           onClick={() => setShowAddUser(false)}
         >
           <div
-            className="bg-[var(--surface)] rounded-2xl w-full max-w-md"
+            className="bg-[var(--surface)] rounded-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6 border-b border-[var(--border)]">

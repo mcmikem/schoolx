@@ -143,8 +143,8 @@ export default function InventoryPage() {
       </div>
 
       {showAdd && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[40px] w-full max-w-lg shadow-2xl overflow-hidden">
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
+               <div className="bg-white rounded-[40px] w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl">
              <form onSubmit={handleAddItem} className="p-8">
                 <div className="flex justify-between items-center mb-8">
                    <h2 className="text-2xl font-black text-slate-800">Add New Product</h2>

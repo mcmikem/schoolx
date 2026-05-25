@@ -44,6 +44,13 @@ export default function MessageTemplates({
   onDeleteTemplate,
   onCreateDefaultTemplates,
 }: MessageTemplatesProps) {
+  const createTemplateValidationError = !newTemplate.name.trim() || !newTemplate.message.trim()
+    ? "Add both template name and message to continue."
+    : "";
+  const editTemplateValidationError = editingTemplate && (!editingTemplate.name.trim() || !editingTemplate.message.trim())
+    ? "Template name and message are required to save changes."
+    : "";
+
   return (
     <>
       <div className="flex gap-2 mb-6 flex-wrap">
@@ -107,8 +114,8 @@ export default function MessageTemplates({
       </div>
 
       {showCreateTemplate && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-lg">
+        <div className="fixed inset-0 z-50 bg-black/50 p-3 sm:p-4 overflow-y-auto flex items-start sm:items-center justify-center">
+          <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
             <h2 className="text-xl font-bold text-[var(--t1)] mb-4">
               Create SMS Template
             </h2>
@@ -180,17 +187,20 @@ export default function MessageTemplates({
               >
                 Cancel
               </Button>
-              <Button className="flex-1" onClick={onCreateTemplate}>
+              <Button className="flex-1" onClick={onCreateTemplate} disabled={Boolean(createTemplateValidationError)}>
                 Create Template
               </Button>
             </div>
+            {createTemplateValidationError && (
+              <p className="mt-3 text-sm text-[var(--t3)]">{createTemplateValidationError}</p>
+            )}
           </div>
         </div>
       )}
 
       {editingTemplate && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-lg">
+        <div className="fixed inset-0 z-50 bg-black/50 p-3 sm:p-4 overflow-y-auto flex items-start sm:items-center justify-center">
+          <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
             <h2 className="text-xl font-bold text-[var(--t1)] mb-4">
               Edit SMS Template
             </h2>
@@ -272,10 +282,13 @@ export default function MessageTemplates({
               >
                 Cancel
               </Button>
-              <Button className="flex-1" onClick={onUpdateTemplate}>
+              <Button className="flex-1" onClick={onUpdateTemplate} disabled={Boolean(editTemplateValidationError)}>
                 Save Changes
               </Button>
             </div>
+            {editTemplateValidationError && (
+              <p className="mt-3 text-sm text-[var(--t3)]">{editTemplateValidationError}</p>
+            )}
           </div>
         </div>
       )}

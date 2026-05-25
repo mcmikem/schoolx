@@ -366,8 +366,8 @@ export default function UNEBRegistrationPage() {
       </Card>
 
       {showRegister && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-md p-6">
+        <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
+          <Card className="w-full max-w-md p-6 max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
             <h2 className="text-xl font-bold mb-4 text-[var(--t1)]">
               Register Candidates
             </h2>

@@ -47,6 +47,13 @@ export default function ConductManagementPage() {
     points: 5,
     date: format(new Date(), "yyyy-MM-dd"),
   });
+  const conductValidationError = !form.studentId || !form.description.trim()
+    ? "Select a student and add a description to continue."
+    : !form.category.trim()
+      ? "Choose a conduct category."
+      : !Number.isFinite(form.points) || Math.abs(form.points) > 100
+        ? "Points must be between 0 and 100."
+        : "";
 
   const fetchLogs = useCallback(async () => {
     if (!school?.id) { setLoading(false); return; }
@@ -73,16 +80,8 @@ export default function ConductManagementPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.studentId || !form.description) {
-      toast.error("Student and description are required");
-      return;
-    }
-    if (!form.category.trim()) {
-      toast.error("Category is required");
-      return;
-    }
-    if (!Number.isFinite(form.points) || Math.abs(form.points) > 100) {
-      toast.error("Points must be between 0 and 100");
+    if (conductValidationError) {
+      toast.error(conductValidationError);
       return;
     }
 
@@ -302,8 +301,8 @@ export default function ConductManagementPage() {
       </div>
 
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
             <h2 className="text-xl font-semibold mb-4">Log Conduct Incident</h2>
             <form onSubmit={handleSubmit}>
               <div className="space-y-4">
@@ -405,12 +404,15 @@ export default function ConductManagementPage() {
                   </button>
                   <button
                     type="submit"
-                    disabled={submitting}
+                    disabled={submitting || Boolean(conductValidationError)}
                     className="flex-1 px-4 py-2 bg-[var(--primary)] text-white rounded-xl text-sm font-bold disabled:opacity-50"
                   >
                     {submitting ? "Saving..." : "Log Incident"}
                   </button>
                 </div>
+                {conductValidationError && (
+                  <p className="text-sm text-[var(--t3)]">{conductValidationError}</p>
+                )}
               </div>
             </form>
           </div>

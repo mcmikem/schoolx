@@ -247,10 +247,14 @@ export async function POST(request: NextRequest) {
               .select("id")
               .single();
 
+            if (!updatedCard) {
+              throw new Error("Failed to update existing report card");
+            }
+
             if (updatedCard) generatedCount++;
           } else {
             // Insert new report card
-            const { data: newCard } = await (supabase as any)
+            const { data: newCard, error: insertError } = await (supabase as any)
               .from("report_cards")
               .insert({
                 school_id: school.schoolId,
@@ -267,6 +271,10 @@ export async function POST(request: NextRequest) {
               })
               .select("id")
               .single();
+
+            if (insertError) {
+              throw new Error(insertError.message);
+            }
 
             if (newCard) generatedCount++;
           }
@@ -484,7 +492,7 @@ export async function POST(request: NextRequest) {
       });
 
       // Update academic year/term settings using the key-value school_settings schema
-      await supabase
+      const { error: settingsError } = await supabase
         .from("school_settings")
         .upsert(
           [
@@ -502,6 +510,10 @@ export async function POST(request: NextRequest) {
           { onConflict: "school_id,key" },
         );
 
+      if (settingsError) {
+        throw new Error(settingsError.message);
+      }
+
       // Create next term record if it doesn't exist
       const { data: existingTerm } = await supabase
         .from("academic_terms")
@@ -512,13 +524,17 @@ export async function POST(request: NextRequest) {
         .limit(1);
 
       if (!existingTerm || existingTerm.length === 0) {
-        await supabase.from("academic_terms").insert({
+        const { error: termInsertError } = await supabase.from("academic_terms").insert({
           school_id: school.schoolId,
           academic_year: nextYear,
           term: nextTerm,
           status: "upcoming",
           created_at: new Date().toISOString(),
         });
+
+        if (termInsertError) {
+          throw new Error(termInsertError.message);
+        }
       }
 
       steps[4] = {

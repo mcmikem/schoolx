@@ -110,10 +110,9 @@ function LoadingChecker({ children }: { children: ReactNode }) {
   const { authInitialized } = useAuth()
   const [showLoader, setShowLoader] = useState(true)
 
-  // Show loader until auth initializes, with a 5-second maximum.
-  // Previously 2s was too short on slow 3G networks where auth init
-  // takes 5-10s. After 5s, render content anyway to prevent infinite
-  // blank screens (dashboard will show its own skeleton if needed).
+  // Show loader until auth initializes, with a short fallback timeout.
+  // Keep this low so the app can render shell/skeleton states quickly
+  // instead of blocking on a full-screen overlay.
   useEffect(() => {
     if (authInitialized) {
       setShowLoader(false)
@@ -121,7 +120,7 @@ function LoadingChecker({ children }: { children: ReactNode }) {
     }
     const timer = setTimeout(() => {
       setShowLoader(false)
-    }, 5000)
+    }, 1500)
     return () => clearTimeout(timer)
   }, [authInitialized])
 

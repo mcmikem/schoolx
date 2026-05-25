@@ -28,11 +28,18 @@ export default function AdjustmentModal({
   onAdjustmentChange,
   saving,
 }: AdjustmentModalProps) {
+  const parsedAmount = Number(newAdjustment.amount)
+  const adjustmentValidationError = !newAdjustment.student_id || !newAdjustment.amount || !newAdjustment.description.trim()
+    ? "Select a student, amount, and reason to continue."
+    : Number.isNaN(parsedAmount) || parsedAmount <= 0
+      ? "Adjustment amount must be greater than 0."
+      : ""
+
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="bg-surface-container-lowest rounded-2xl w-full max-w-lg" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4" onClick={onClose}>
+      <div className="bg-surface-container-lowest rounded-2xl w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto" onClick={(e) => e.stopPropagation()}>
         <div className="p-6 border-b border-outline-variant/10">
           <h2 className="font-headline font-bold text-xl text-primary">Record Fee Adjustment</h2>
           <p className="text-sm text-on-surface-variant mt-1">Use this for bursaries, write-offs, discounts, penalties, and manual credits.</p>
@@ -101,10 +108,13 @@ export default function AdjustmentModal({
 
           <div className="flex gap-3 pt-2">
             <button type="button" onClick={onClose} className="btn btn-ghost flex-1">Cancel</button>
-            <button type="submit" disabled={saving} className="btn btn-primary flex-1">
+            <button type="submit" disabled={saving || Boolean(adjustmentValidationError)} className="btn btn-primary flex-1">
               {saving ? 'Saving...' : 'Record Adjustment'}
             </button>
           </div>
+          {adjustmentValidationError && (
+            <p className="text-sm text-[var(--t3)]">{adjustmentValidationError}</p>
+          )}
         </form>
       </div>
     </div>

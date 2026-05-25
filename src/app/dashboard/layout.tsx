@@ -18,12 +18,11 @@ import {
 } from "@/components/dashboard/AccessControlGuard";
 import { usePathname, useRouter } from "next/navigation";
 import { SidebarProvider, useSidebar } from "@/contexts/SidebarContext";
-import { MinimalLoadingScreen, TopLoadingBar, StuckLoadingOverlay, DashboardSkeleton } from "@/components/ui/Skeleton";
+import { MinimalLoadingScreen, TopLoadingBar, StuckLoadingOverlay } from "@/components/ui/Skeleton";
 import { useSessionTimeout } from "@/lib/useSessionTimeout";
 import { useSchoolColors } from "@/lib/useSchoolColors";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import MaterialIcon from "@/components/MaterialIcon";
-import OwlMascot from "@/components/brand/OwlMascot";
 import OwlAssistant from "@/components/OwlAssistant";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import CommandPalette from "@/components/CommandPalette";
@@ -114,9 +113,9 @@ function SessionTimeoutWarning({
       role="alertdialog"
       aria-modal="true"
       aria-label="Session timeout warning"
-      className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/50"
+      className="fixed inset-0 z-[9998] flex items-start sm:items-center justify-center overflow-y-auto bg-black/50 p-3 sm:p-4"
     >
-      <div className="bg-[var(--surface)] rounded-[var(--r)] shadow-[var(--sh3)] p-6 max-w-sm w-full mx-4 text-center">
+      <div className="bg-[var(--surface)] rounded-[var(--r)] shadow-[var(--sh3)] p-6 max-w-sm w-full max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto text-center">
         <div className="flex justify-center mb-3">
           <div className="w-12 h-12 rounded-full bg-yellow-100 flex items-center justify-center">
             <MaterialIcon icon="timer" className="text-yellow-600 text-2xl" />
@@ -235,6 +234,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   const [showGoLive, setShowGoLive] = useState(false);
   const [rememberSession, setRememberSession] = useState(true);
   const [loadingTimedOut, setLoadingTimedOut] = useState(false);
+  const showInlineLoading = loading && !!user && !loadingTimedOut;
+  const showStuckLoading = loading && !!user && loadingTimedOut;
   const isBillingPath = Boolean(
     currentPath.startsWith("/dashboard/settings") ||
       currentPath.startsWith("/dashboard/billing") ||
@@ -371,22 +372,6 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     return null;
   }
 
-  // Loading after SIGNED_IN: show thin bar on top of the actual content.
-  if (loading && !loadingTimedOut) {
-    return (
-      <div className="min-h-screen bg-[var(--bg)] flex flex-col">
-        <TopLoadingBar />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
-            <OwlMascot size={52} premium ring glow animated />
-            <p className="mt-4 text-sm text-[var(--t3)]">Loading your dashboard...</p>
-          </div>
-        </div>
-        <StuckLoadingOverlay />
-      </div>
-    );
-  }
-
   // Auth timed out or not resolved — redirect to login.
   if (!user && !isDemo) {
     return null; // redirect guard above will fire
@@ -394,6 +379,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
   return (
     <ErrorBoundary>
+      {showInlineLoading && <TopLoadingBar />}
+      {showStuckLoading && <StuckLoadingOverlay />}
       {showWarning && (
         <SessionTimeoutWarning
           remainingTime={remainingTime}

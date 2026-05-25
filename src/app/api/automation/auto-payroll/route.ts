@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Create payroll deduction details
-        await (supabase as any).from("payroll_deductions").insert([
+        const { error: deductionError } = await (supabase as any).from("payroll_deductions").insert([
           {
             payroll_record_id: payrollRecord.id,
             school_id: school.schoolId,
@@ -157,6 +157,10 @@ export async function POST(request: NextRequest) {
             year: payrollYear,
           },
         ]);
+
+        if (deductionError) {
+          throw new Error(`Failed to create payroll deductions: ${deductionError.message}`);
+        }
 
         totalPayroll += gross;
         totalNSSF += nssf.total;
@@ -187,7 +191,7 @@ export async function POST(request: NextRequest) {
 
     // Create payroll summary
     if (processed.length > 0) {
-      await (supabase as any).from("payroll_summaries").insert({
+      const { error: summaryError } = await (supabase as any).from("payroll_summaries").insert({
         school_id: school.schoolId,
         month: payrollMonth,
         year: payrollYear,
@@ -199,6 +203,10 @@ export async function POST(request: NextRequest) {
         generated_at: new Date().toISOString(),
         generated_by: "system",
       });
+
+      if (summaryError) {
+        throw new Error(`Failed to create payroll summary: ${summaryError.message}`);
+      }
     }
 
     return NextResponse.json({

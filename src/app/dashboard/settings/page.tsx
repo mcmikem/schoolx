@@ -255,7 +255,7 @@ export default function SettingsPage() {
   };
 
   const addHouse = async (name: string, color: string, motto: string) => {
-    if (!school?.id || !name.trim()) { toast.error("House name is required"); return; }
+    if (!school?.id || !name.trim()) { return; }
     try {
       const { withTimeout } = await import('@/lib/hooks/utils');
       const houseResult = await withTimeout(supabase.from("houses").insert({ school_id: school.id, name: name.trim(), color, motto: motto.trim() || null }), 15000, null as any);
@@ -276,7 +276,7 @@ export default function SettingsPage() {
   };
 
   const addClass = async (name: string, stream: string) => {
-    if (!school?.id || !name.trim()) { toast.error("Class name is required"); return; }
+    if (!school?.id || !name.trim()) { return; }
     try {
       const { withTimeout } = await import('@/lib/hooks/utils');
       const classResult = await withTimeout(supabase.from("classes").upsert({ school_id: school.id, name: name.trim(), stream: stream.trim() || null, level: inferClassLevel(name, schoolType), academic_year: new Date().getFullYear().toString() }, { onConflict: "school_id,name,academic_year" }), 15000, null as any);
@@ -869,8 +869,8 @@ export default function SettingsPage() {
       </TabPanel>
 
       {showPaymentModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto bg-black/50 backdrop-blur-sm p-3 sm:p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-md w-full max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl">
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-bold text-[var(--on-surface)]">Complete Payment</h3>
               <button onClick={() => setShowPaymentModal(false)} className="text-[var(--t3)] hover:text-[var(--on-surface)]"><MaterialIcon icon="close" /></button>

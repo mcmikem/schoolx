@@ -124,7 +124,7 @@ export function SendSMSModal({
     setDeliveryStatus("sent");
     try {
       if (isDemo) {
-        toast.success("SMS sent successfully");
+        toast.success("Demo mode: SMS simulated");
         setTimeout(() => setDeliveryStatus("delivered"), 1500);
         setMessage("");
         setSelectedTemplate(null);
@@ -147,6 +147,10 @@ export function SendSMSModal({
       const result = await response.json();
 
       if (result.success) {
+        const apiData = result.data || {};
+        const smsSent = apiData.status === "sent";
+        const usedFallback = apiData.status === "fallback";
+
         const { data } = await supabase
           .from("messages")
           .insert({
@@ -154,7 +158,7 @@ export function SendSMSModal({
             recipient_type: "individual",
             phone: student.parent_phone,
             message,
-            status: "sent",
+            status: smsSent ? "sent" : "failed",
             sent_by: user.id,
             sent_at: new Date().toISOString(),
             student_id: student.id,
@@ -164,14 +168,27 @@ export function SendSMSModal({
 
         if (data?.id) setLastMessageId(data.id);
 
-        toast.success("SMS sent successfully");
+        if (smsSent) {
+          toast.success("SMS sent successfully");
+        } else if (usedFallback) {
+          setDeliveryStatus("failed");
+          if (typeof apiData.whatsappLink === "string" && apiData.whatsappLink) {
+            window.open(apiData.whatsappLink, "_blank", "noopener,noreferrer");
+          }
+          toast.error(
+            apiData.portalNotificationQueued
+              ? "SMS failed. Opened WhatsApp fallback and queued parent-portal message."
+              : "SMS failed. Opened WhatsApp fallback for manual send.",
+          );
+        }
+
         setMessage("");
         setSelectedTemplate(null);
         setTemplateVars({});
         onSent?.();
       } else {
         setDeliveryStatus("failed");
-        toast.error(result.message || "Failed to send SMS");
+        toast.error(result.error || result.message || "Failed to send SMS");
       }
     } catch (err: unknown) {
       setDeliveryStatus("failed");
@@ -183,11 +200,11 @@ export function SendSMSModal({
 
   return (
     <div
-      className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4"
+      className="fixed inset-0 bg-black/40 z-50 p-3 sm:p-4 overflow-y-auto flex items-start sm:items-center justify-center"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto"
+        className="bg-white rounded-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="p-6 border-b border-[#e8eaed]">

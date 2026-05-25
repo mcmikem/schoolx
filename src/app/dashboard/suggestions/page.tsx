@@ -101,6 +101,9 @@ export default function SuggestionBoxPage() {
     description: "",
     category: "feedback" as "feedback" | "feature" | "bug" | "general",
   });
+  const suggestionValidationError = !form.title.trim() || !form.description.trim()
+    ? "Add both title and details to submit a suggestion."
+    : "";
 
   const fetchSuggestions = useCallback(async () => {
     if (!school?.id) return;
@@ -134,8 +137,8 @@ export default function SuggestionBoxPage() {
       toast.error("You must be signed in to submit a suggestion");
       return;
     }
-    if (!form.title || !form.description) {
-      toast.error("Please fill in all fields");
+    if (suggestionValidationError) {
+      toast.error(suggestionValidationError);
       return;
     }
     setSubmitting(true);
@@ -327,8 +330,8 @@ export default function SuggestionBoxPage() {
 
       {/* Submit Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-md p-6">
+        <div className="fixed inset-0 z-50 bg-black/50 p-3 sm:p-4 overflow-y-auto flex items-start sm:items-center justify-center">
+          <Card className="w-full max-w-md p-6 max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
             <h2 className="text-xl font-bold mb-4">Add Suggestion</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
@@ -391,10 +394,13 @@ export default function SuggestionBoxPage() {
                 >
                   Cancel
                 </Button>
-                <Button type="submit" className="flex-1" loading={submitting}>
+                <Button type="submit" className="flex-1" loading={submitting} disabled={submitting || Boolean(suggestionValidationError)}>
                   Submit
                 </Button>
               </div>
+              {suggestionValidationError && (
+                <p className="text-sm text-[var(--t3)]">{suggestionValidationError}</p>
+              )}
             </form>
           </Card>
         </div>

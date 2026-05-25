@@ -129,8 +129,8 @@ export default function PayrollPage() {
 
         {/* Inline confirmation modal */}
         {confirmOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+          <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto bg-black/50 p-3 sm:p-4">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-sm max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl">
               <h3 className="text-lg font-bold text-slate-800 mb-2">Record payroll for {month}?</h3>
               <p className="text-sm text-slate-500 mb-1">{staff.length} staff members &bull; Net total: <span className="font-semibold text-slate-700">UGX {totals.net.toLocaleString()}</span></p>
               <p className="text-xs text-amber-600 bg-amber-50 rounded-xl p-3 mt-3">
