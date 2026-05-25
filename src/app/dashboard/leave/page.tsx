@@ -36,13 +36,30 @@ export default function LeavePage() {
   const { user, school, isDemo } = useAuth();
   const toast = useToast();
   const isManager = MANAGER_ROLES.includes(user?.role ?? "");
+
+  const demoRequests: LeaveRequest[] = [
+    {
+      id: "demo-leave-1",
+      staff_id: user?.id || "",
+      leave_type: "sick",
+      start_date: new Date().toISOString().split("T")[0],
+      end_date: new Date(Date.now() + 2 * 86400000).toISOString().split("T")[0],
+      days_count: 3,
+      reason: "Feeling unwell",
+      status: "pending",
+      created_at: new Date().toISOString(),
+      users: { full_name: user?.role === "teacher" ? "You" : "John Okello" },
+    },
+  ];
+
   // Offline-aware leave requests
   const {
-    data: requests = [],
+    data: rawRequests = [],
     loading,
     error: requestsError,
     refetch: refetchRequests,
   } = useOfflineLeaveRequests(school?.id, user?.id, isManager, { skipCache: isDemo });
+  const requests = isDemo && rawRequests.length === 0 ? demoRequests : rawRequests;
   const [showModal, setShowModal] = useState(false);
   const [submitting, setSub] = useState(false);
   const [form, setForm] = useState({

@@ -21,28 +21,43 @@ type Expense = {
 };
 
 export default function ExpenseApprovalsPage() {
-  const { school, user } = useAuth();
+  const { school, user, isDemo } = useAuth();
   const toast = useToast();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<"pending" | "approved" | "rejected" | "all">("pending");
   const [processing, setProcessing] = useState<string | null>(null);
 
+  const DEMO_EXPENSES: Expense[] = [
+    { id: "demo-exp-1", category: "utilities", description: "School electricity bill", amount: 250000, status: "pending", created_at: new Date().toISOString() },
+    { id: "demo-exp-2", category: "supplies", description: "Science lab equipment", amount: 850000, status: "pending", created_at: new Date(Date.now() - 86400000).toISOString() },
+  ];
+
   const fetchExpenses = useCallback(async () => {
-    if (!school?.id) return;
+    if (!school?.id) {
+      if (isDemo) {
+        setExpenses(DEMO_EXPENSES);
+        setLoading(false);
+      }
+      return;
+    }
     setLoading(true);
     try {
       let q = supabase.from("expenses").select("*").eq("school_id", school.id).order("created_at", { ascending: false });
       if (statusFilter !== "all") q = q.eq("status", statusFilter);
       const { data, error } = await q;
       if (error) throw error;
-      setExpenses(data || []);
+      setExpenses((data || []).length > 0 ? data : isDemo ? DEMO_EXPENSES : []);
     } catch (err) {
-      toast.error(getErrorMessage(err, "Failed to load expenses"));
+      if (isDemo) {
+        setExpenses(DEMO_EXPENSES);
+      } else {
+        toast.error(getErrorMessage(err, "Failed to load expenses"));
+      }
     } finally {
       setLoading(false);
     }
-  }, [school?.id, statusFilter, toast]);
+  }, [school?.id, statusFilter, toast, isDemo]);
 
   useEffect(() => { fetchExpenses(); }, [fetchExpenses]);
 
