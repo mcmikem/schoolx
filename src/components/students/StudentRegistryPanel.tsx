@@ -1,6 +1,6 @@
 "use client";
 
-import type { ChangeEvent, MutableRefObject } from "react";
+import { useState, type ChangeEvent, type MutableRefObject } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import OnboardingTips from "@/components/OnboardingTips";
@@ -32,6 +32,9 @@ interface StudentRow {
   } | null;
   boarding_status?: string | null;
   house_id?: string | null;
+  is_class_monitor?: boolean | null;
+  prefect_role?: string | null;
+  student_council_role?: string | null;
 }
 
 interface HouseMeta {
@@ -50,6 +53,19 @@ interface ImportSummary {
   success: number;
   failed: number;
   total: number;
+  errors: string[];
+}
+
+interface ImportProgress {
+  completed: number;
+  total: number;
+  success: number;
+  failed: number;
+}
+
+interface AttendanceStatusMeta {
+  status: "present" | "absent" | "sick" | "late" | "excused";
+  label: string;
 }
 
 interface StudentRegistryPanelProps {
@@ -67,6 +83,7 @@ interface StudentRegistryPanelProps {
   templatePreviewRows: Record<string, string>[];
   importingTemplate: boolean;
   importSummary: ImportSummary | null;
+  importProgress?: ImportProgress | null;
   onTemplateUpload: (event: ChangeEvent<HTMLInputElement>) => void;
   onSeedTemplate: () => void;
   searchInputRef: MutableRefObject<HTMLInputElement | null>;
@@ -90,6 +107,7 @@ interface StudentRegistryPanelProps {
   paginatedStudents: StudentRow[];
   currentPage: number;
   totalPages: number;
+  attendanceStatusMap: Record<string, AttendanceStatusMeta>;
   onPreviousPage: () => void;
   onNextPage: () => void;
   onAddStudent: () => void;
@@ -113,6 +131,7 @@ export default function StudentRegistryPanel({
   templatePreviewRows,
   importingTemplate,
   importSummary,
+  importProgress,
   onTemplateUpload,
   onSeedTemplate,
   searchInputRef,
@@ -136,6 +155,7 @@ export default function StudentRegistryPanel({
   paginatedStudents,
   currentPage,
   totalPages,
+  attendanceStatusMap,
   onPreviousPage,
   onNextPage,
   onAddStudent,
@@ -144,6 +164,7 @@ export default function StudentRegistryPanel({
   onDeleteStudent,
 }: StudentRegistryPanelProps) {
   const showPhotos = !lowBandwidthMode;
+  const [showQuickImport, setShowQuickImport] = useState(totalStudents === 0);
 
   const resolveHouse = (student: StudentRow) => {
     if (student.house_id && houseMap[student.house_id]) {
@@ -159,53 +180,70 @@ export default function StudentRegistryPanel({
       : "#64748b";
   };
 
+  const shouldForceShowQuickImport =
+    totalStudents === 0 ||
+    templateStatus === "parsing" ||
+    templateStatus === "ready" ||
+    importingTemplate ||
+    !!importSummary ||
+    !!templateErrors;
+
+  const leadershipLabel = (student: StudentRow) => {
+    if (student.prefect_role) return student.prefect_role;
+    if (student.student_council_role) return student.student_council_role;
+    if (student.is_class_monitor) return "Class monitor";
+    return null;
+  };
+
+  const attendanceTone = (status?: AttendanceStatusMeta["status"]) => {
+    switch (status) {
+      case "present":
+        return "#16a34a";
+      case "sick":
+        return "#f97316";
+      case "late":
+        return "#eab308";
+      case "excused":
+        return "#2563eb";
+      case "absent":
+        return "#dc2626";
+      default:
+        return "#94a3b8";
+    }
+  };
+
   return (
     <>
       {totalStudents === 0 && <OnboardingTips schoolId={schoolId} />}
 
       <div className="dashboard-surface p-5 sm:p-6 mb-5">
-        <div className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--navy)] mb-2">
-          Quick import
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <div className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--navy)] mb-2">
+              Quick import
+            </div>
+            <p className="text-sm text-[var(--t3)] max-w-2xl">
+              Keep this closed until you need bulk import. Templates, upload,
+              and preview stay one tap away.
+            </p>
+          </div>
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={() => setShowQuickImport((value) => !value)}
+            aria-expanded={showQuickImport || shouldForceShowQuickImport}
+          >
+            {showQuickImport || shouldForceShowQuickImport ? "Hide import tools" : "Open import tools"}
+          </button>
         </div>
         {lowBandwidthMode && (
-          <div className="mb-3 inline-flex items-center gap-2 rounded-full bg-[var(--amber-soft)] px-3 py-1 text-xs font-semibold text-[var(--amber)]">
+          <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-[var(--amber-soft)] px-3 py-1 text-xs font-semibold text-[var(--amber)]">
             <MaterialIcon icon="network_check" className="text-sm" />
             Data saver mode enabled for slower connections
           </div>
         )}
-        <div className="flex flex-wrap gap-3 text-sm text-[var(--t3)]">
-          <p className="flex-1 min-w-[220px]">
-            Download the structured templates, drop your data, and we&apos;ll
-            auto-map columns to fields. Preview before confirming.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <a
-              href="/templates/classes-template.csv"
-              download
-              target="_blank"
-              className="btn btn-ghost btn-sm"
-            >
-              Class template
-            </a>
-            <a
-              href="/templates/staff-template.csv"
-              download
-              target="_blank"
-              className="btn btn-ghost btn-sm"
-            >
-              Staff template
-            </a>
-            <a
-              href="/templates/students-template.csv"
-              download
-              target="_blank"
-              className="btn btn-ghost btn-sm"
-            >
-              Student template
-            </a>
-          </div>
-        </div>
-        <div className="grid gap-4 md:grid-cols-2 mt-6">
+        {(showQuickImport || shouldForceShowQuickImport) && (
+          <div className="grid gap-4 md:grid-cols-2 mt-6">
           <div className="space-y-3 rounded-[20px] border border-[var(--border)] bg-[var(--surface)]/60 p-4">
             <div className="text-sm font-semibold text-[var(--t1)]">
               Upload student list
@@ -248,11 +286,41 @@ export default function StudentRegistryPanel({
                 <div
                   className="bg-[var(--primary)] h-full transition-all duration-300"
                   style={{
-                    width: `${((importSummary?.success || 0) / Math.max(templateRowsCount, 1)) * 100}%`,
+                    width: `${((importProgress?.completed || 0) / Math.max(importProgress?.total || templateRowsCount, 1)) * 100}%`,
                   }}
                 />
               </div>
             )}
+            {(importProgress || importSummary) && (
+              <div className="mt-2 text-xs text-[var(--t3)]">
+                {importingTemplate && importProgress ? (
+                  <>
+                    Imported {importProgress.completed}/{importProgress.total} rows
+                    {importProgress.success > 0 ? `, ${importProgress.success} saved` : ""}
+                    {importProgress.failed > 0 ? `, ${importProgress.failed} failed` : ""}
+                  </>
+                ) : importSummary ? (
+                  <>
+                    Import complete: {importSummary.success} saved, {importSummary.failed} failed
+                  </>
+                ) : null}
+              </div>
+            )}
+            {importSummary?.errors?.length ? (
+              <div className="mt-3 rounded-2xl border border-[var(--border)] bg-[var(--bg)]/80 p-3">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--t3)] mb-2">
+                  Import issues
+                </div>
+                <ul className="space-y-1 text-xs text-[var(--t2)]">
+                  {importSummary.errors.slice(0, 5).map((error, index) => (
+                    <li key={`${error}-${index}`}>• {error}</li>
+                  ))}
+                  {importSummary.errors.length > 5 && (
+                    <li>• {importSummary.errors.length - 5} more issue(s) were hidden</li>
+                  )}
+                </ul>
+              </div>
+            ) : null}
             {filteredTotal === 0 ? (
               <div className="p-8 text-center">
                 <EmptyState
@@ -365,11 +433,10 @@ export default function StudentRegistryPanel({
                     ))}
                   </tbody>
                 </table>
-                {filteredTotal > pageSize && (
+                {pageSize !== -1 && filteredTotal > pageSize && (
                   <div className="flex items-center justify-between p-4 border-t border-[var(--border)]">
                     <span style={{ fontSize: 12, color: "var(--t3)" }}>
-                      Page {currentPage} of{" "}
-                      {Math.ceil(filteredTotal / pageSize)}
+                      Page {currentPage} of {totalPages}
                     </span>
                     <div className="flex gap-2">
                       <button
@@ -381,9 +448,7 @@ export default function StudentRegistryPanel({
                       </button>
                       <button
                         onClick={onNextPage}
-                        disabled={
-                          currentPage >= Math.ceil(filteredTotal / pageSize)
-                        }
+                        disabled={currentPage >= totalPages}
                         className="btn btn-ghost btn-sm"
                       >
                         Next
@@ -438,7 +503,8 @@ export default function StudentRegistryPanel({
               </p>
             )}
           </div>
-        </div>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-5">
@@ -690,7 +756,11 @@ export default function StudentRegistryPanel({
             <option value={20}>20 / page</option>
             <option value={50}>50 / page</option>
             <option value={100}>100 / page</option>
+            <option value={-1}>All students</option>
           </select>
+          <div className="ml-auto text-xs font-semibold text-[var(--t3)]">
+            Showing {paginatedStudents.length} of {filteredTotal} students
+          </div>
         </div>
 
         {loading ? (
@@ -754,206 +824,218 @@ export default function StudentRegistryPanel({
                 </tr>
               </thead>
               <tbody>
-                {paginatedStudents.map((student) => (
-                  <tr key={student.id}>
-                    <td data-label="Student">
-                      <Link
-                        href={`/dashboard/students/${student.id}`}
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 10,
-                          textDecoration: "none",
-                        }}
-                      >
-                        <div
+                {paginatedStudents.map((student) => {
+                  const house = resolveHouse(student);
+                  const statusMeta = attendanceStatusMap[student.id];
+                  const leader = leadershipLabel(student);
+
+                  return (
+                    <tr key={student.id}>
+                      <td data-label="Student">
+                        <Link
+                          href={`/dashboard/students/${student.id}`}
                           style={{
-                            width: 36,
-                            height: 36,
-                            borderRadius: "50%",
                             display: "flex",
                             alignItems: "center",
-                            justifyContent: "center",
-                            fontSize: 12,
-                            fontWeight: 700,
-                            color: "#fff",
-                            overflow: "hidden",
-                            background:
-                              student.gender === "M"
-                                ? "var(--navy)"
-                                : "var(--red)",
+                            gap: 10,
+                            textDecoration: "none",
                           }}
                         >
-                          {student.photo_url && showPhotos ? (
-                            <Image
-                              src={student.photo_url}
-                              alt={`${student.first_name} ${student.last_name}`}
-                              width={36}
-                              height={36}
-                              unoptimized
-                              style={{
-                                width: "100%",
-                                height: "100%",
-                                objectFit: "cover",
-                              }}
-                            />
-                          ) : (
-                            <PersonInitials
-                              name={`${student.first_name} ${student.last_name}`}
-                              size={36}
-                            />
-                          )}
-                        </div>
-                        <div>
-                          <div style={{ fontWeight: 600, color: "var(--t1)" }}>
-                            {student.first_name} {student.last_name}
-                          </div>
-                          <div style={{ fontSize: 11, color: "var(--t3)" }}>
-                            {student.gender === "M" ? "Male" : "Female"}
-                          </div>
-                        </div>
-                      </Link>
-                    </td>
-                    <td
-                      data-label="Number"
-                      style={{ fontFamily: "DM Mono", fontSize: 12 }}
-                    >
-                      {student.student_number || "-"}
-                    </td>
-                    <td data-label="Class">
-                      <span
-                        style={{
-                          padding: "4px 10px",
-                          background: "var(--bg)",
-                          borderRadius: 20,
-                          fontSize: 11,
-                          fontWeight: 600,
-                        }}
-                      >
-                        {student.classes?.name}
-                        {student.classes?.stream
-                          ? ` ${student.classes.stream}`
-                          : ""}
-                        {student.boarding_status &&
-                          student.boarding_status !== "day" && (
-                            <span
-                              style={{
-                                marginLeft: 4,
-                                fontSize: 9,
-                                padding: "1px 5px",
-                                background: "rgba(155,89,182,0.15)",
-                                color: "#0d9488",
-                                borderRadius: 8,
-                                fontWeight: 600,
-                              }}
-                            >
-                              {student.boarding_status}
-                            </span>
-                          )}
-                      </span>
-                    </td>
-                    <td data-label="House">
-                      {(() => {
-                        const house = resolveHouse(student);
-                        if (!house) return "-";
-                        return (
-                          <span
+                          <div
                             style={{
-                              display: "inline-flex",
+                              width: 36,
+                              height: 36,
+                              borderRadius: "50%",
+                              display: "flex",
                               alignItems: "center",
-                              gap: 6,
-                              padding: "4px 10px",
-                              border: "1px solid var(--border)",
-                              background: "var(--bg)",
-                              borderRadius: 999,
-                              fontSize: 11,
-                              fontWeight: 600,
-                              color: "var(--t1)",
+                              justifyContent: "center",
+                              fontSize: 12,
+                              fontWeight: 700,
+                              color: "#fff",
+                              overflow: "hidden",
+                              background:
+                                student.gender === "M"
+                                  ? "var(--navy)"
+                                  : "var(--red)",
                             }}
                           >
+                            {student.photo_url && showPhotos ? (
+                              <Image
+                                src={student.photo_url}
+                                alt={`${student.first_name} ${student.last_name}`}
+                                width={36}
+                                height={36}
+                                unoptimized
+                                style={{
+                                  width: "100%",
+                                  height: "100%",
+                                  objectFit: "cover",
+                                }}
+                              />
+                            ) : (
+                              <PersonInitials
+                                name={`${student.first_name} ${student.last_name}`}
+                                size={36}
+                              />
+                            )}
+                          </div>
+                          <div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span
+                                className="inline-flex h-2.5 w-2.5 rounded-full"
+                                title={statusMeta?.label || "No attendance recorded today"}
+                                aria-label={statusMeta?.label || "No attendance recorded today"}
+                                style={{
+                                  backgroundColor: attendanceTone(statusMeta?.status),
+                                }}
+                              />
+                              <div style={{ fontWeight: 600, color: "var(--t1)" }}>
+                                {student.first_name} {student.last_name}
+                              </div>
+                              {leader ? (
+                                <span
+                                  className="inline-flex items-center rounded-full bg-[var(--navy-soft)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--navy)]"
+                                  title={leader}
+                                >
+                                  {student.is_class_monitor && !student.prefect_role && !student.student_council_role
+                                    ? "Monitor"
+                                    : "Leader"}
+                                </span>
+                              ) : null}
+                            </div>
+                            <div style={{ fontSize: 11, color: "var(--t3)" }}>
+                              {student.gender === "M" ? "Male" : "Female"}
+                              {statusMeta ? ` • ${statusMeta.label}` : ""}
+                            </div>
+                          </div>
+                        </Link>
+                      </td>
+                      <td
+                        data-label="Number"
+                        style={{ fontFamily: "DM Mono", fontSize: 12 }}
+                      >
+                        {student.student_number || "-"}
+                      </td>
+                      <td data-label="Class">
+                        <span
+                          style={{
+                            padding: "4px 10px",
+                            background: "var(--bg)",
+                            borderRadius: 999,
+                            fontSize: 11,
+                            fontWeight: 600,
+                            color: "var(--t1)",
+                          }}
+                        >
+                          {student.classes?.name || "-"}
+                          {student.classes?.stream
+                            ? ` ${student.classes.stream}`
+                            : ""}
+                          {student.boarding_status &&
+                            student.boarding_status !== "day" && (
+                              <span
+                                style={{
+                                  marginLeft: 4,
+                                  fontSize: 9,
+                                  padding: "1px 5px",
+                                  background: "rgba(155,89,182,0.15)",
+                                  color: "#0d9488",
+                                  borderRadius: 8,
+                                  fontWeight: 600,
+                                }}
+                              >
+                                {student.boarding_status}
+                              </span>
+                            )}
+                        </span>
+                      </td>
+                      <td data-label="House">
+                        {house ? (
+                          <span
+                            className="inline-flex h-3.5 w-3.5 rounded-full border border-white/60 shadow-sm"
+                            title={house.name}
+                            aria-label={`House: ${house.name}`}
+                          >
                             <span
-                              style={{
-                                width: 10,
-                                height: 10,
-                                borderRadius: "50%",
-                                backgroundColor: getHouseColor(house),
-                              }}
+                              className="h-full w-full rounded-full"
+                              style={{ backgroundColor: getHouseColor(house) }}
                             />
-                            {house.name}
                           </span>
-                        );
-                      })()}
-                    </td>
-                    <td data-label="Parent" style={{ fontSize: 13 }}>
-                      {student.parent_name || "-"}
-                    </td>
-                    <td
-                      data-label="Phone"
-                      style={{ fontSize: 13, fontFamily: "DM Mono" }}
-                    >
-                      {student.parent_phone || "-"}
-                    </td>
-                    <td data-label="Actions">
-                      <div style={{ display: "flex", gap: 4 }}>
-                        <button
-                          onClick={() => onSmsParent(student)}
-                          title="SMS Parent"
-                          style={{
-                            background: "none",
-                            border: "none",
-                            cursor: "pointer",
-                            padding: 6,
-                            borderRadius: 6,
-                          }}
-                        >
-                          <MaterialIcon
-                            style={{ fontSize: 16, color: "var(--t3)" }}
+                        ) : (
+                          "-"
+                        )}
+                      </td>
+                      <td data-label="Parent" style={{ fontSize: 13 }}>
+                        {student.parent_name || "-"}
+                      </td>
+                      <td
+                        data-label="Phone"
+                        style={{ fontSize: 13, fontFamily: "DM Mono" }}
+                      >
+                        {student.parent_phone || "-"}
+                      </td>
+                      <td data-label="Actions">
+                        <div style={{ display: "flex", gap: 4 }}>
+                          <button
+                            onClick={() => onSmsParent(student)}
+                            title="SMS Parent"
+                            style={{
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              padding: 6,
+                              borderRadius: 6,
+                            }}
                           >
-                            sms
-                          </MaterialIcon>
-                        </button>
-                        <button
-                          onClick={() => onEditStudent(student)}
-                          style={{
-                            background: "none",
-                            border: "none",
-                            cursor: "pointer",
-                            padding: 6,
-                            borderRadius: 6,
-                          }}
-                        >
-                          <MaterialIcon
-                            style={{ fontSize: 16, color: "var(--t3)" }}
+                            <MaterialIcon
+                              style={{ fontSize: 16, color: "var(--t3)" }}
+                            >
+                              sms
+                            </MaterialIcon>
+                          </button>
+                          <button
+                            onClick={() => onEditStudent(student)}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              padding: 6,
+                              borderRadius: 6,
+                            }}
                           >
-                            edit
-                          </MaterialIcon>
-                        </button>
-                        <button
-                          onClick={() => onDeleteStudent(student.id)}
-                          style={{
-                            background: "none",
-                            border: "none",
-                            cursor: "pointer",
-                            padding: 6,
-                            borderRadius: 6,
-                          }}
-                        >
-                          <MaterialIcon
-                            style={{ fontSize: 16, color: "var(--t3)" }}
+                            <MaterialIcon
+                              style={{ fontSize: 16, color: "var(--t3)" }}
+                            >
+                              edit
+                            </MaterialIcon>
+                          </button>
+                          <button
+                            onClick={() => onDeleteStudent(student.id)}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              padding: 6,
+                              borderRadius: 6,
+                            }}
                           >
-                            delete
-                          </MaterialIcon>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                            <MaterialIcon
+                              style={{ fontSize: 16, color: "var(--t3)" }}
+                            >
+                              delete
+                            </MaterialIcon>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
 
-        {!loading && filteredCount > pageSize && (
+        {!loading && pageSize !== -1 && filteredCount > pageSize && (
           <div
             className="flex items-center justify-between px-4 py-3 border-t border-[var(--border)]"
             style={{ fontSize: 13 }}

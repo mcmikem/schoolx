@@ -26,6 +26,7 @@ import { useStudentTransfers } from "@/hooks/useStudentTransfers";
 import { useStudentDropouts } from "@/hooks/useStudentDropouts";
 import { useStudentPromotion } from "@/hooks/useStudentPromotion";
 import { supabase } from "@/lib/supabase";
+import { DEMO_ATTENDANCE } from "@/lib/demo-data";
 
 type StudentWorkspaceTab = "registry" | "transfers" | "dropouts" | "promotion";
 
@@ -90,6 +91,11 @@ interface EditingStudent {
   games_house?: string | null;
 }
 
+interface AttendanceStatusMeta {
+  status: "present" | "absent" | "sick" | "late" | "excused";
+  label: string;
+}
+
 export default function StudentHubPage() {
   const { school, user, isDemo } = useAuth();
   const { academicYear, currentTerm } = useAcademic();
@@ -103,11 +109,12 @@ export default function StudentHubPage() {
 
   const [currentPage, setCurrentPage] = useState(1);
   const [isConstrainedNetwork, setIsConstrainedNetwork] = useState(false);
+  const [attendanceStatusMap, setAttendanceStatusMap] = useState<
+    Record<string, AttendanceStatusMeta>
+  >({});
   const preferredPageSize = tablePrefs.pageSize || (isConstrainedNetwork ? 20 : 50);
-  const itemsPerPage = isConstrainedNetwork
-    ? Math.min(preferredPageSize, 20)
-    : preferredPageSize;
-  const offset = (currentPage - 1) * itemsPerPage;
+  const itemsPerPage = preferredPageSize;
+  const registryFetchLimit = isConstrainedNetwork ? 500 : 5000;
 
   const {
     students,
@@ -116,7 +123,7 @@ export default function StudentHubPage() {
     updateStudent,
     deleteStudent,
     totalCount,
-  } = useStudents(school?.id, { limit: itemsPerPage, offset });
+  } = useStudents(school?.id, { limit: registryFetchLimit, offset: 0 });
   const { classes } = useClasses(school?.id);
 
   const [activeTab, setActiveTab] = useState<StudentWorkspaceTab>("registry");
@@ -142,6 +149,12 @@ export default function StudentHubPage() {
   const promotion = useStudentPromotion(
     school?.id, students, isDemo, updateStudent, toast, academicYear, user,
   );
+  const fetchTransferHistory = transfers.fetchTransferHistory;
+  const fetchAtRiskStudents = dropouts.fetchAtRiskStudents;
+  const fetchPromotionClasses = promotion.fetchPromotionClasses;
+  const fetchPromotionHistory = promotion.fetchPromotionHistory;
+  const fetchPromotionStudents = promotion.fetchPromotionStudents;
+  const promotionFromClass = promotion.fromClass;
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClass, setSelectedClass] = useState("all");
@@ -205,6 +218,31 @@ export default function StudentHubPage() {
   }, [searchParams]);
 
   useEffect(() => {
+    if (activeTab !== "transfers") return;
+    void fetchTransferHistory();
+  }, [activeTab, fetchTransferHistory]);
+
+  useEffect(() => {
+    if (activeTab !== "dropouts") return;
+    void fetchAtRiskStudents();
+  }, [activeTab, fetchAtRiskStudents]);
+
+  useEffect(() => {
+    if (activeTab !== "promotion") return;
+    void fetchPromotionClasses();
+    void fetchPromotionHistory();
+  }, [
+    activeTab,
+    fetchPromotionClasses,
+    fetchPromotionHistory,
+  ]);
+
+  useEffect(() => {
+    if (activeTab !== "promotion" || !promotionFromClass) return;
+    void fetchPromotionStudents();
+  }, [activeTab, promotionFromClass, fetchPromotionStudents]);
+
+  useEffect(() => {
     if (!school?.id) {
       setHouseMap({});
       return;
@@ -229,6 +267,89 @@ export default function StudentHubPage() {
 
     void loadHouses();
   }, [school?.id]);
+
+  useEffect(() => {
+    const today = new Date().toISOString().split("T")[0];
+
+    const deriveAttendanceMeta = (
+      status: string | null | undefined,
+      remarks: string | null | undefined,
+    ): AttendanceStatusMeta | null => {
+      const normalizedStatus = (status || "").toLowerCase();
+      const normalizedRemarks = (remarks || "").toLowerCase();
+
+      if (!normalizedStatus) return null;
+      if (normalizedRemarks.includes("sick")) {
+        return { status: "sick", label: "Sick today" };
+      }
+      if (normalizedStatus === "present") {
+        return { status: "present", label: "Present today" };
+      }
+      if (normalizedStatus === "late") {
+        return { status: "late", label: "Late today" };
+      }
+      if (normalizedStatus === "excused") {
+        return { status: "excused", label: "Excused today" };
+      }
+      return { status: "absent", label: "Absent today" };
+    };
+
+    const loadAttendanceStatuses = async () => {
+      if (students.length === 0) {
+        setAttendanceStatusMap({});
+        return;
+      }
+
+      if (isDemo) {
+        const latestByStudent = new Map<string, AttendanceStatusMeta>();
+        const rankedRecords = [...DEMO_ATTENDANCE]
+          .filter((record) => record.date <= today)
+          .sort((left, right) => right.date.localeCompare(left.date));
+
+        for (const record of rankedRecords) {
+          if (latestByStudent.has(record.student_id)) continue;
+          const meta = deriveAttendanceMeta(record.status, record.remarks);
+          if (meta) {
+            latestByStudent.set(record.student_id, meta);
+          }
+        }
+
+        setAttendanceStatusMap(Object.fromEntries(latestByStudent.entries()));
+        return;
+      }
+
+      if (!school?.id) {
+        setAttendanceStatusMap({});
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("attendance")
+        .select("student_id, status, remarks")
+        .eq("school_id", school.id)
+        .eq("date", today);
+
+      if (error) {
+        setAttendanceStatusMap({});
+        return;
+      }
+
+      const nextMap = (data || []).reduce<Record<string, AttendanceStatusMeta>>(
+        (acc, record) => {
+          const meta = deriveAttendanceMeta(record.status, record.remarks);
+          if (meta) {
+            acc[record.student_id] = meta;
+          }
+          return acc;
+        },
+        {},
+      );
+
+      setAttendanceStatusMap(nextMap);
+    };
+
+    void loadAttendanceStatuses();
+  }, [isDemo, school?.id, students]);
 
   useKeyboardShortcuts([
     {
@@ -313,7 +434,12 @@ export default function StudentHubPage() {
   ]);
 
   const pageSize = itemsPerPage;
-  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const paginatedStudents =
+    pageSize === -1
+      ? filtered
+      : filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const totalPages =
+    pageSize === -1 ? 1 : Math.max(1, Math.ceil(filtered.length / pageSize));
 
   useEffect(() => {
     setCurrentPage(1);
@@ -479,10 +605,11 @@ export default function StudentHubPage() {
             }}
             loading={loading}
             filteredCount={filtered.length}
-            filteredTotal={totalCount}
-            paginatedStudents={filtered}
+            filteredTotal={filtered.length}
+            paginatedStudents={paginatedStudents}
             currentPage={currentPage}
             totalPages={totalPages}
+            attendanceStatusMap={attendanceStatusMap}
             onPreviousPage={() => setCurrentPage((p) => Math.max(1, p - 1))}
             onNextPage={() =>
               setCurrentPage((p) => Math.min(totalPages, p + 1))
@@ -604,7 +731,10 @@ export default function StudentHubPage() {
             actionCounts={promotion.actionCounts}
             promotionClasses={promotion.promotionClasses}
             fromClass={promotion.fromClass}
-            setFromClass={promotion.setFromClass}
+            setFromClass={(value) => {
+              promotion.setFromClass(value);
+              promotion.setToClass("");
+            }}
             toClass={promotion.toClass}
             setToClass={promotion.setToClass}
             processPromotions={promotion.processPromotions}

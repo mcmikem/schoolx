@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/index";
@@ -172,6 +172,38 @@ const INITIAL_NEW_STUDENT: NewStudent = {
   photo_url: "",
   blood_type: "",
 };
+
+function FormSection({
+  title,
+  description,
+  children,
+}: {
+  title: string;
+  description?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="rounded-2xl border border-[var(--border)] bg-[var(--bg)]/40 p-4 sm:p-5">
+      <div className="mb-4">
+        <h3 className="text-sm font-semibold text-[var(--t1)]">{title}</h3>
+        {description ? (
+          <p className="mt-1 text-xs leading-5 text-[var(--t3)]">{description}</p>
+        ) : null}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function ResponsiveFieldGrid({
+  children,
+  className = "",
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return <div className={`grid grid-cols-1 gap-3 sm:grid-cols-2 ${className}`.trim()}>{children}</div>;
+}
 
 export default function StudentDetailPanel({
   mode,
@@ -364,6 +396,10 @@ export default function StudentDetailPanel({
       toast.error("Please select a class");
       return;
     }
+    if (!classes.some((c) => c.id === newStudent.class_id)) {
+      toast.error("Selected class is no longer available. Please choose another class.");
+      return;
+    }
     if (!newStudent.parent_name?.trim()) {
       toast.error("Parent/Guardian name is required");
       return;
@@ -374,6 +410,11 @@ export default function StudentDetailPanel({
     }
     try {
       setSaving(true);
+      const openingBalance = parseOpeningBalance(newStudent.opening_balance || "0");
+      if (openingBalance === null) {
+        toast.error("Opening balance must be a valid number");
+        return;
+      }
       await createStudent?.({
         first_name: newStudent.first_name.trim(),
         last_name: newStudent.last_name.trim(),
@@ -385,7 +426,7 @@ export default function StudentDetailPanel({
         class_id: newStudent.class_id,
         student_number: newStudent.student_number?.trim() || undefined,
         ple_index_number: newStudent.ple_index_number?.trim() || undefined,
-        opening_balance: parseFloat(newStudent.opening_balance || "0"),
+        opening_balance: openingBalance,
         boarding_status: newStudent.boarding_status,
         house_id: newStudent.house_id || undefined,
         previous_school: newStudent.previous_school?.trim() || undefined,
@@ -417,9 +458,18 @@ export default function StudentDetailPanel({
     if (!internalEditingStudent) return;
     try {
       setSaving(true);
+      if (editForm.class_id && !classes.some((c) => c.id === editForm.class_id)) {
+        toast.error("Selected class is no longer available. Please choose another class.");
+        return;
+      }
+      const openingBalance = parseOpeningBalance(editForm.opening_balance || "0");
+      if (openingBalance === null) {
+        toast.error("Opening balance must be a valid number");
+        return;
+      }
       const updateData = {
         ...editForm,
-        opening_balance: parseFloat(editForm.opening_balance || "0"),
+        opening_balance: openingBalance,
         blood_type: editForm.blood_type || null,
         boarding_status: editForm.boarding_status,
         house_id: editForm.house_id || null,
@@ -472,6 +522,17 @@ export default function StudentDetailPanel({
     if (!subcounty) return [];
     return selectedDistrictEntry.parishes[subcounty] || [];
   }, [selectedDistrictEntry, formData.sub_county]);
+
+  const selectedClassExists =
+    !formData.class_id || classes.some((c) => c.id === formData.class_id);
+
+  const parseOpeningBalance = (value: string) => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) {
+      return null;
+    }
+    return parsed;
+  };
 
   if (!isOpen) return null;
 
@@ -531,19 +592,24 @@ export default function StudentDetailPanel({
       <div className="min-h-full flex items-start sm:items-center justify-center p-4">
         <div
           ref={addStudentModalRef}
-          className="bg-[var(--surface)] rounded-2xl w-full max-w-lg max-h-[92vh] overflow-y-auto my-2 shadow-2xl"
+          className="bg-[var(--surface)] rounded-2xl w-full max-w-3xl max-h-[92vh] overflow-y-auto my-2 shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="sticky top-0 bg-[var(--surface)] border-b border-[var(--border)] p-4 flex items-center justify-between">
-            <h2
-              style={{
-                fontFamily: "Sora",
-                fontSize: 16,
-                fontWeight: 700,
-              }}
-            >
-              {isEdit ? "Edit Student" : "Add New Student"}
-            </h2>
+            <div>
+              <h2
+                style={{
+                  fontFamily: "Sora",
+                  fontSize: 16,
+                  fontWeight: 700,
+                }}
+              >
+                {isEdit ? "Edit Student" : "Add New Student"}
+              </h2>
+              <p className="mt-1 text-xs text-[var(--t3)]">
+                Start with the basics. Open extra details only when you need profile, house, or leadership fields.
+              </p>
+            </div>
             <button
               onClick={onClose}
               style={{
@@ -560,7 +626,7 @@ export default function StudentDetailPanel({
           </div>
           <form
             onSubmit={isEdit ? handleUpdateStudent : handleCreateStudent}
-            style={{ padding: 20 }}
+            className="space-y-5 p-4 sm:p-5"
           >
             <StudentPhotoField
               photoUrl={photoUrl}
@@ -593,183 +659,171 @@ export default function StudentDetailPanel({
                 }
               }}
             />
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: 12,
-                marginBottom: 16,
-              }}
+            <FormSection
+              title="Student basics"
+              description="These are the minimum details needed to place the learner in the registry."
             >
-              <div>
-                <label
-                  htmlFor="student-first-name"
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    letterSpacing: ".5px",
-                    textTransform: "uppercase",
-                    color: "var(--t3)",
-                    marginBottom: 6,
-                    display: "block",
-                  }}
-                >
-                  First Name
-                </label>
-                <input
-                  id="student-first-name"
-                  ref={isEdit ? undefined : addStudentFirstInputRef}
-                  type="text"
-                  value={fName}
-                  onChange={(e) => setFName(e.target.value)}
-                  className="input"
-                  required
-                  maxLength={100}
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="student-last-name"
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    letterSpacing: ".5px",
-                    textTransform: "uppercase",
-                    color: "var(--t3)",
-                    marginBottom: 6,
-                    display: "block",
-                  }}
-                >
-                  Last Name
-                </label>
-                <input
-                  id="student-last-name"
-                  type="text"
-                  value={lName}
-                  onChange={(e) => setLName(e.target.value)}
-                  className="input"
-                  required
-                  maxLength={100}
-                />
-              </div>
-            </div>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: 12,
-                marginBottom: 16,
-              }}
-            >
-              <div>
-                <label
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    letterSpacing: ".5px",
-                    textTransform: "uppercase",
-                    color: "var(--t3)",
-                    marginBottom: 6,
-                    display: "block",
-                  }}
-                >
-                  Gender
-                </label>
-                <select
-                  value={gen}
-                  onChange={(e) =>
-                    setGender(e.target.value as "M" | "F")
-                  }
-                  className="input"
-                >
-                  <option value="M">Male</option>
-                  <option value="F">Female</option>
-                </select>
-              </div>
-              <div>
-                <label
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    letterSpacing: ".5px",
-                    textTransform: "uppercase",
-                    color: "var(--t3)",
-                    marginBottom: 6,
-                    display: "block",
-                  }}
-                >
-                  Date of Birth
-                </label>
-                <input
-                  type="date"
-                  value={dob}
-                  onChange={(e) => setDob(e.target.value)}
-                  className="input"
-                />
-              </div>
-            </div>
-            <div style={{ marginBottom: 16 }}>
-              <label
-                htmlFor="student-class-id"
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  letterSpacing: ".5px",
-                  textTransform: "uppercase",
-                  color: "var(--t3)",
-                  marginBottom: 6,
-                  display: "block",
-                }}
-              >
-                Class
-              </label>
-              {classes.length === 0 ? (
-                <div
-                  style={{
-                    background: "var(--amber-soft)",
-                    border: "1px solid var(--amber)",
-                    borderRadius: 12,
-                    padding: 16,
-                  }}
-                >
-                  <p
+              <ResponsiveFieldGrid className="mb-4">
+                <div>
+                  <label
+                    htmlFor="student-first-name"
                     style={{
-                      color: "var(--t1)",
-                      fontSize: 14,
-                      fontWeight: 600,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: ".5px",
+                      textTransform: "uppercase",
+                      color: "var(--t3)",
+                      marginBottom: 6,
+                      display: "block",
                     }}
                   >
-                    No classes found
-                  </p>
-                  <p
-                    style={{
-                      color: "var(--amber)",
-                      fontSize: 12,
-                      marginTop: 4,
-                    }}
-                  >
-                    Contact support if this persists.
-                  </p>
+                    First Name
+                  </label>
+                  <input
+                    id="student-first-name"
+                    ref={isEdit ? undefined : addStudentFirstInputRef}
+                    type="text"
+                    value={fName}
+                    onChange={(e) => setFName(e.target.value)}
+                    className="input"
+                    required
+                    maxLength={100}
+                  />
                 </div>
-              ) : (
-                <select
-                  id="student-class-id"
-                  value={cId}
-                  onChange={(e) => setClassId(e.target.value)}
-                  className="input"
-                  required
+                <div>
+                  <label
+                    htmlFor="student-last-name"
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: ".5px",
+                      textTransform: "uppercase",
+                      color: "var(--t3)",
+                      marginBottom: 6,
+                      display: "block",
+                    }}
+                  >
+                    Last Name
+                  </label>
+                  <input
+                    id="student-last-name"
+                    type="text"
+                    value={lName}
+                    onChange={(e) => setLName(e.target.value)}
+                    className="input"
+                    required
+                    maxLength={100}
+                  />
+                </div>
+              </ResponsiveFieldGrid>
+              <ResponsiveFieldGrid className="mb-4">
+                <div>
+                  <label
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: ".5px",
+                      textTransform: "uppercase",
+                      color: "var(--t3)",
+                      marginBottom: 6,
+                      display: "block",
+                    }}
+                  >
+                    Gender
+                  </label>
+                  <select
+                    value={gen}
+                    onChange={(e) => setGender(e.target.value as "M" | "F")}
+                    className="input"
+                  >
+                    <option value="M">Male</option>
+                    <option value="F">Female</option>
+                  </select>
+                </div>
+                <div>
+                  <label
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: ".5px",
+                      textTransform: "uppercase",
+                      color: "var(--t3)",
+                      marginBottom: 6,
+                      display: "block",
+                    }}
+                  >
+                    Date of Birth
+                  </label>
+                  <input
+                    type="date"
+                    value={dob}
+                    onChange={(e) => setDob(e.target.value)}
+                    className="input"
+                  />
+                </div>
+              </ResponsiveFieldGrid>
+              <div className="mb-4">
+                <label
+                  htmlFor="student-class-id"
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    letterSpacing: ".5px",
+                    textTransform: "uppercase",
+                    color: "var(--t3)",
+                    marginBottom: 6,
+                    display: "block",
+                  }}
                 >
-                  <option value="">Select class</option>
-                  {classes.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
-            {!isEdit && (
-              <div style={{ marginBottom: 16 }}>
+                  Class
+                </label>
+                {classes.length === 0 ? (
+                  <div
+                    style={{
+                      background: "var(--amber-soft)",
+                      border: "1px solid var(--amber)",
+                      borderRadius: 12,
+                      padding: 16,
+                    }}
+                  >
+                    <p
+                      style={{
+                        color: "var(--t1)",
+                        fontSize: 14,
+                        fontWeight: 600,
+                      }}
+                    >
+                      No classes found
+                    </p>
+                    <p
+                      style={{
+                        color: "var(--amber)",
+                        fontSize: 12,
+                        marginTop: 4,
+                      }}
+                    >
+                      Contact support if this persists.
+                    </p>
+                  </div>
+                ) : (
+                  <select
+                    id="student-class-id"
+                    value={cId}
+                    onChange={(e) => setClassId(e.target.value)}
+                    className="input"
+                    required
+                  >
+                    <option value="">Select class</option>
+                    {classes.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+              {!isEdit && (
+                <div className="mb-4">
                 <label
                   style={{
                     fontSize: 11,
@@ -804,14 +858,14 @@ export default function StudentDetailPanel({
                   placeholder="e.g., 2026-001 or leave blank for auto"
                   maxLength={20}
                 />
-              </div>
-            )}
-            {!isEdit &&
+                </div>
+              )}
+              {!isEdit &&
               newStudent.class_id &&
               classes
                 .find((c) => c.id === newStudent.class_id)
                 ?.name?.startsWith("P.7") && (
-                <div style={{ marginBottom: 16 }}>
+                <div>
                   <label
                     style={{
                       fontSize: 11,
@@ -849,6 +903,12 @@ export default function StudentDetailPanel({
                   />
                 </div>
               )}
+            </FormSection>
+
+            <FormSection
+              title="Parent contact"
+              description="Keep this short and accurate so SMS and fee reminders reach the right person."
+            >
             <div style={{ marginBottom: 16 }}>
               <label
                 style={{
@@ -872,14 +932,7 @@ export default function StudentDetailPanel({
                 maxLength={200}
               />
             </div>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "1fr 1fr",
-                gap: 12,
-                marginBottom: 20,
-              }}
-            >
+            <ResponsiveFieldGrid>
               <div>
                 <label
                   style={{
@@ -927,15 +980,14 @@ export default function StudentDetailPanel({
                   maxLength={15}
                 />
               </div>
-            </div>
-            <div style={{ marginBottom: 16 }}>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 12,
-                }}
-              >
+            </ResponsiveFieldGrid>
+            </FormSection>
+
+            <FormSection
+              title="Health and fees"
+              description="Only the fields commonly needed at admission stay here."
+            >
+              <ResponsiveFieldGrid className="mb-4">
                 <div>
                   <label
                     style={{
@@ -967,84 +1019,91 @@ export default function StudentDetailPanel({
                     ))}
                   </select>
                 </div>
-                <div />
-              </div>
-            </div>
-            <div style={{ marginBottom: 20 }}>
-              <label
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  letterSpacing: ".5px",
-                  textTransform: "uppercase",
-                  color: "var(--t3)",
-                  marginBottom: 6,
-                  display: "block",
-                }}
-              >
-                Opening Balance (Previous Debt/Credit)
-                {!isEdit && (
-                  <FieldHint tip="Enter fees owed from a previous term. Use 0 if this is a new student with no debt. Positive = owes money, negative = paid in advance." />
-                )}
-              </label>
-              <div style={{ position: "relative" }}>
-                <span
-                  style={{
-                    position: "absolute",
-                    left: 12,
-                    top: "50%",
-                    transform: "translateY(-50%)",
-                    fontSize: 14,
-                    color: "var(--t3)",
-                  }}
-                >
-                  UGX
-                </span>
-                <input
-                  type="number"
-                  value={ob}
-                  onChange={(e) => setOb(e.target.value)}
-                  className="input"
-                  style={{ paddingLeft: 45 }}
-                />
-              </div>
-              {!isEdit && (
-                <p
-                  style={{
-                    fontSize: 10,
-                    color: "var(--t3)",
-                    marginTop: 4,
-                  }}
-                >
-                  Positive for debt (arrears), negative for credit/advance.
-                </p>
-              )}
-            </div>
-            <div
-              style={{
-                borderTop: "1px solid var(--border)",
-                paddingTop: 16,
-                marginBottom: 16,
-              }}
-            >
+                <div>
+                  <label
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: ".5px",
+                      textTransform: "uppercase",
+                      color: "var(--t3)",
+                      marginBottom: 6,
+                      display: "block",
+                    }}
+                  >
+                    Opening Balance (Previous Debt/Credit)
+                    {!isEdit && (
+                      <FieldHint tip="Enter fees owed from a previous term. Use 0 if this is a new student with no debt. Positive = owes money, negative = paid in advance." />
+                    )}
+                  </label>
+                  <div style={{ position: "relative" }}>
+                    <span
+                      style={{
+                        position: "absolute",
+                        left: 12,
+                        top: "50%",
+                        transform: "translateY(-50%)",
+                        fontSize: 14,
+                        color: "var(--t3)",
+                      }}
+                    >
+                      UGX
+                    </span>
+                    <input
+                      type="number"
+                      value={ob}
+                      onChange={(e) => setOb(e.target.value)}
+                      className="input"
+                      inputMode="numeric"
+                      step="1"
+                      style={{ paddingLeft: 45 }}
+                    />
+                  </div>
+                  {!isEdit && (
+                    <p
+                      style={{
+                        fontSize: 10,
+                        color: "var(--t3)",
+                        marginTop: 4,
+                      }}
+                    >
+                      Positive for debt (arrears), negative for credit/advance.
+                    </p>
+                  )}
+                </div>
+              </ResponsiveFieldGrid>
+            </FormSection>
+            {!selectedClassExists && (
               <div
                 style={{
-                  fontSize: 12,
-                  fontWeight: 700,
+                  marginBottom: 16,
+                  borderRadius: 12,
+                  padding: 12,
+                  background: "var(--amber-soft)",
+                  border: "1px solid var(--amber)",
                   color: "var(--t1)",
-                  marginBottom: 12,
+                  fontSize: 12,
                 }}
               >
-                Additional Details
+                The assigned class is no longer available. Please choose a different class before saving.
               </div>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 12,
-                  marginBottom: 12,
-                }}
-              >
+            )}
+            <details className="rounded-2xl border border-[var(--border)] bg-[var(--bg)]/40 p-4 sm:p-5" open={isEdit}>
+              <summary className="cursor-pointer list-none">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-sm font-semibold text-[var(--t1)]">Additional details</div>
+                    <p className="mt-1 text-xs leading-5 text-[var(--t3)]">
+                      Optional profile fields for houses, home origin, boarding, and student leadership.
+                    </p>
+                  </div>
+                  <span className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--t3)]">
+                    Expand
+                  </span>
+                </div>
+              </summary>
+              <div className="mt-4">
+              <ResponsiveFieldGrid className="mb-3">
                 <div>
                   <label
                     style={{
@@ -1103,16 +1162,9 @@ export default function StudentDetailPanel({
                     placeholder="e.g., St. Peter's PS"
                   />
                 </div>
-              </div>
+              </ResponsiveFieldGrid>
               {houses.length > 0 && (
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "1fr 1fr",
-                    gap: 12,
-                    marginBottom: 12,
-                  }}
-                >
+                <ResponsiveFieldGrid className="mb-3">
                   <div>
                     <label
                       style={{
@@ -1175,16 +1227,9 @@ export default function StudentDetailPanel({
                       ))}
                     </select>
                   </div>
-                </div>
+                </ResponsiveFieldGrid>
               )}
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 12,
-                  marginBottom: 12,
-                }}
-              >
+              <ResponsiveFieldGrid className="mb-3">
                 <div>
                   <label
                     style={{
@@ -1249,15 +1294,8 @@ export default function StudentDetailPanel({
                     maxLength={100}
                   />
                 </div>
-              </div>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 12,
-                  marginBottom: 12,
-                }}
-              >
+              </ResponsiveFieldGrid>
+              <ResponsiveFieldGrid className="mb-3">
                 <div>
                   <label
                     style={{
@@ -1316,7 +1354,7 @@ export default function StudentDetailPanel({
                     maxLength={100}
                   />
                 </div>
-              </div>
+              </ResponsiveFieldGrid>
               <datalist id="district-origin-options">
                 {districtOptions.map((district) => (
                   <option key={district} value={district} />
@@ -1336,13 +1374,7 @@ export default function StudentDetailPanel({
                 Suggestions come from Uganda district data. You can still
                 type any value manually.
               </p>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 12,
-                }}
-              >
+              <ResponsiveFieldGrid>
                 <div>
                   <label
                     style={{
@@ -1457,8 +1489,10 @@ export default function StudentDetailPanel({
                     </span>
                   </div>
                 </div>
+              </ResponsiveFieldGrid>
               </div>
-            </div>
+            </details>
+            <div className="sticky bottom-0 -mx-4 mt-2 border-t border-[var(--border)] bg-[var(--surface)]/95 px-4 py-3 backdrop-blur sm:-mx-5 sm:px-5">
             <div style={{ display: "flex", gap: 10 }}>
               <Button
                 type="button"
@@ -1483,6 +1517,7 @@ export default function StudentDetailPanel({
                     ? "Update Student"
                     : "Add Student"}
               </Button>
+            </div>
             </div>
           </form>
         </div>
