@@ -401,6 +401,9 @@ function DirectoryTab({
         role: "teacher",
         password: "",
         subject: "",
+        avatar_url: "",
+        class_teacher_for: "",
+        subject_ids: [],
       });
       return;
     }
