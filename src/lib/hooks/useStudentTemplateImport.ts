@@ -63,9 +63,9 @@ export function useStudentTemplateImport(
     const worksheet = workbook.worksheets[0];
     if (!worksheet) return [] as TemplateRow[];
 
-    const headers = worksheet
-      .getRow(1)
-      .values
+    const headerRowValues = worksheet.getRow(1).values;
+    const headerVals = Array.isArray(headerRowValues) ? headerRowValues : [];
+    const headers = headerVals
       .slice(1)
       .map((header) =>
         String(header || "")
@@ -78,7 +78,9 @@ export function useStudentTemplateImport(
     worksheet.eachRow((row, rowNumber) => {
       if (rowNumber === 1) return;
 
-      const values = row.values.slice(1).map((value) =>
+      const rowVals = row.values;
+      const vals = Array.isArray(rowVals) ? rowVals : [];
+      const values = vals.slice(1).map((value) =>
         String(value ?? "").trim(),
       );
 

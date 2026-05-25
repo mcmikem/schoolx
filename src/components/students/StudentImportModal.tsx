@@ -72,7 +72,9 @@ export function useStudentImport(
     if (!worksheet) return [] as Record<string, string>[];
 
     const headerRow = worksheet.getRow(1);
-    const headers = headerRow.values
+    const rowValues = headerRow.values;
+    const cellValues = Array.isArray(rowValues) ? rowValues : [];
+    const headers = cellValues
       .slice(1)
       .map((header) =>
         String(header || "")
@@ -85,7 +87,9 @@ export function useStudentImport(
     worksheet.eachRow((row, rowNumber) => {
       if (rowNumber === 1) return;
 
-      const values = row.values.slice(1).map((value) =>
+      const rowCellValues = row.values;
+      const cellVals = Array.isArray(rowCellValues) ? rowCellValues : [];
+      const values = cellVals.slice(1).map((value) =>
         String(value ?? "").trim(),
       );
 
