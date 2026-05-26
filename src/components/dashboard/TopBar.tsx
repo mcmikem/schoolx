@@ -410,7 +410,9 @@ export default function TopBar({
               style={{ fontSize: 18, color: "var(--t2)" }}
             />
             {unreadCount > 0 && (
-              <div className="absolute top-1 right-1 w-2 h-2 rounded-full bg-[var(--red)] border border-[var(--surface)]" />
+              <div className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] rounded-full bg-[var(--red)] text-white text-[10px] font-bold flex items-center justify-center px-1 border-2 border-white shadow-sm">
+                {unreadCount > 99 ? "99+" : unreadCount}
+              </div>
             )}
           </button>
           <NotificationsPanel

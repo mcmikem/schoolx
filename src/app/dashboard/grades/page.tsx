@@ -25,6 +25,7 @@ import PersonInitials from "@/components/ui/PersonInitials";
 import { logAuditEventWithOfflineSupport } from "@/lib/audit";
 import { useOnlineStatus, offlineDB } from "@/lib/offline";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { GradeImportModal } from "@/components/grades/GradeImportModal";
 import {
   createRecord,
   updateRecord,
@@ -223,7 +224,6 @@ export default function GradesPage() {
     value: string;
   }>({ open: false, type: "", value: "" });
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
-  const [bulkImportValidationError, setBulkImportValidationError] = useState("");
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>(
     {},
   );
@@ -238,16 +238,36 @@ export default function GradesPage() {
 
   const [gradePage, setGradePage] = useState(1);
   const gradesPerPage = 20;
+  const [statusFilter, setStatusFilter] = useState<"all" | GradeWorkflowStatus>("all");
 
   const filteredStudents = useMemo(() => {
     if (!selectedClass) return [];
     return classStudents.filter((s) => s.class_id === selectedClass);
   }, [classStudents, selectedClass]);
 
+  const studentStatusMap = useMemo(() => {
+    const map: Record<string, GradeWorkflowStatus> = {};
+    if (!existingGrades?.length) return map;
+    const studentIds = [...new Set(existingGrades.map((g: any) => g.student_id))];
+    studentIds.forEach((sid: string) => {
+      const studentGrades = existingGrades.filter((g: any) => g.student_id === sid);
+      map[sid] = deriveGradeWorkflowStatus(studentGrades as Array<{ status?: string | null }>);
+    });
+    return map;
+  }, [existingGrades]);
+
+  const displayStudents = useMemo(() => {
+    if (statusFilter === "all") return filteredStudents;
+    return filteredStudents.filter((s) => {
+      const sStatus = studentStatusMap[s.id] || "draft";
+      return sStatus === statusFilter;
+    });
+  }, [filteredStudents, statusFilter, studentStatusMap]);
+
   const gradeOffset = (gradePage - 1) * gradesPerPage;
   const gradeTotalPages = Math.max(
     1,
-    Math.ceil(filteredStudents.length / gradesPerPage),
+    Math.ceil(displayStudents.length / gradesPerPage),
   );
   const isStudentGraded = useCallback(
     (studentId: string): boolean => {
@@ -271,14 +291,14 @@ export default function GradesPage() {
 
   useEffect(() => {
     if (
-      filteredStudents.length > 0 &&
-      gradePage > Math.ceil(filteredStudents.length / gradesPerPage)
+      displayStudents.length > 0 &&
+      gradePage > Math.ceil(displayStudents.length / gradesPerPage)
     ) {
       setGradePage(1);
     }
-  }, [filteredStudents.length, gradePage, gradesPerPage]);
+  }, [displayStudents.length, gradePage, gradesPerPage]);
 
-  const paginatedStudents = filteredStudents.slice(
+  const paginatedStudents = displayStudents.slice(
     gradeOffset,
     gradeOffset + gradesPerPage,
   );
@@ -1380,6 +1400,46 @@ export default function GradesPage() {
             </div>
           )}
 
+        {/* Workflow Status Filter */}
+        {selectedClass && selectedSubject && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mr-1">
+              Filter:
+            </span>
+            {(["all", "draft", "submitted", "approved"] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => {
+                  setStatusFilter(f);
+                  setGradePage(1);
+                }}
+                className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
+                  statusFilter === f
+                    ? f === "all"
+                      ? "bg-primary text-on-primary"
+                      : f === "draft"
+                        ? "bg-[var(--amber-soft)] text-[var(--amber)] border border-[var(--amber)]/30"
+                        : f === "submitted"
+                          ? "bg-blue-50 text-blue-700 border border-blue-200"
+                          : "bg-[var(--green-soft)] text-[var(--green)] border border-[var(--green)]/30"
+                    : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
+                }`}
+              >
+                {f === "all"
+                  ? "All"
+                  : f === "draft"
+                    ? "Draft"
+                    : f === "submitted"
+                      ? "Submitted"
+                      : "Approved"}
+              </button>
+            ))}
+            <span className="text-xs text-on-surface-variant ml-auto">
+              {displayStudents.length} of {filteredStudents.length} students
+            </span>
+          </div>
+        )}
+
         <Tabs
           tabs={[
             { id: "marks", label: "Marks Entry" },
@@ -1592,10 +1652,10 @@ export default function GradesPage() {
                               <TableSkeleton rows={5} />
                             </td>
                           </tr>
-                        ) : filteredStudents.length === 0 ? (
+                        ) : displayStudents.length === 0 ? (
                           <tr>
                             <td colSpan={7} className="px-8 py-12">
-                              <NoData title="No students in this class" />
+                              <NoData title={statusFilter !== "all" ? `No ${statusFilter} students in this class` : "No students in this class"} />
                             </td>
                           </tr>
                         ) : (
@@ -1631,6 +1691,30 @@ export default function GradesPage() {
                                       <p className="text-xs text-on-surface-variant">
                                         {student.student_number || "-"}
                                       </p>
+                                      {(() => {
+                                        const sStatus = studentStatusMap[student.id] || "draft";
+                                        return (
+                                          <span
+                                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black mt-1 ${
+                                              sStatus === "draft"
+                                                ? "bg-[var(--amber-soft)] text-[var(--amber)]"
+                                                : sStatus === "submitted"
+                                                  ? "bg-blue-50 text-blue-700"
+                                                  : sStatus === "approved"
+                                                    ? "bg-[var(--green-soft)] text-[var(--green)]"
+                                                    : "bg-surface-container text-on-surface-variant"
+                                            }`}
+                                          >
+                                            {sStatus === "draft"
+                                              ? "Draft"
+                                              : sStatus === "submitted"
+                                                ? "Submitted"
+                                                : sStatus === "approved"
+                                                  ? "Approved"
+                                                  : "Published"}
+                                          </span>
+                                        );
+                                      })()}
                                     </div>
                                     {graded && (
                                       <MaterialIcon
@@ -1709,7 +1793,7 @@ export default function GradesPage() {
                       </tbody>
                     </table>
                   </div>
-                  {filteredStudents.length > gradesPerPage && (
+                  {displayStudents.length > gradesPerPage && (
                     <div className="flex items-center justify-between px-6 py-3 border-t border-outline-variant/10">
                       <span className="text-sm text-on-surface-variant">
                         Page {gradePage} of {gradeTotalPages}
@@ -1768,6 +1852,32 @@ export default function GradesPage() {
                             {filteredStudents[mobileStudentIndex]
                               ?.student_number || "-"}
                           </p>
+                          {(() => {
+                            const sid = filteredStudents[mobileStudentIndex]?.id;
+                            if (!sid) return null;
+                            const sStatus = studentStatusMap[sid] || "draft";
+                            return (
+                              <span
+                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black mt-1 ${
+                                  sStatus === "draft"
+                                    ? "bg-[var(--amber-soft)] text-[var(--amber)]"
+                                    : sStatus === "submitted"
+                                      ? "bg-blue-50 text-blue-700"
+                                      : sStatus === "approved"
+                                        ? "bg-[var(--green-soft)] text-[var(--green)]"
+                                        : "bg-surface-container text-on-surface-variant"
+                                }`}
+                              >
+                                {sStatus === "draft"
+                                  ? "Draft"
+                                  : sStatus === "submitted"
+                                    ? "Submitted"
+                                    : sStatus === "approved"
+                                      ? "Approved"
+                                      : "Published"}
+                              </span>
+                            );
+                          })()}
                         </div>
                       </div>
                       <span className="text-sm font-medium text-on-surface-variant">
@@ -2050,102 +2160,19 @@ export default function GradesPage() {
         message="Are you sure you want to proceed with this action?"
         variant="danger"
       />
-      <Modal
+      <GradeImportModal
         isOpen={bulkImportOpen}
         onClose={() => setBulkImportOpen(false)}
-        title="Import Grades from Spreadsheet"
-      >
-        <div className="space-y-4">
-          <div className="bg-surface-container-low rounded-xl p-4">
-            <p className="text-sm font-medium mb-2">Upload spreadsheet</p>
-            <input
-              type="file"
-              accept=".csv,.xlsx,.xls"
-              className="w-full text-sm"
-              onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (!file) return;
-                setBulkImportValidationError("");
-                toast.info("Processing spreadsheet...");
-                try {
-                  const text = await file.text();
-                  const lines = text.trim().split("\n");
-                  if (lines.length < 2) {
-                    setBulkImportValidationError(
-                      "The file appears empty. Add a header row and at least one student row.",
-                    );
-                    return;
-                  }
-                  const header = lines[0].toLowerCase().split(",").map(s => s.trim());
-                  const admIndex = header.findIndex(h => h.includes("adm") || h.includes("number"));
-                  const ca1Index = header.findIndex(h => h.includes("ca1") || h.includes("test"));
-                  const ca2Index = header.findIndex(h => h.includes("ca2"));
-                  const ca3Index = header.findIndex(h => h.includes("ca3"));
-                  const examIndex = header.findIndex(h => h.includes("exam") || h.includes("final"));
-                  if (admIndex === -1) {
-                    setBulkImportValidationError(
-                      "Include an admission_number column so students can be matched.",
-                    );
-                    return;
-                  }
-                  let imported = 0;
-                  for (let i = 1; i < lines.length; i++) {
-                    const cols = lines[i].split(",").map(s => s.trim());
-                    const adm = cols[admIndex];
-                    const student = filteredStudents.find(s => s.student_number === adm);
-                    if (student) {
-                      if (ca1Index !== -1 && cols[ca1Index]) {
-                        const val = parseFloat(cols[ca1Index]);
-                        if (!isNaN(val) && val >= 0 && val <= 10) {
-                          setMarks(prev => ({ ...prev, [`${student.id}_ca1`]: val }));
-                          imported++;
-                        }
-                      }
-                      if (ca2Index !== -1 && cols[ca2Index]) {
-                        const val = parseFloat(cols[ca2Index]);
-                        if (!isNaN(val) && val >= 0 && val <= 10) {
-                          setMarks(prev => ({ ...prev, [`${student.id}_ca2`]: val }));
-                        }
-                      }
-                      if (ca3Index !== -1 && cols[ca3Index]) {
-                        const val = parseFloat(cols[ca3Index]);
-                        if (!isNaN(val) && val >= 0 && val <= 10) {
-                          setMarks(prev => ({ ...prev, [`${student.id}_ca3`]: val }));
-                        }
-                      }
-                      if (examIndex !== -1 && cols[examIndex]) {
-                        const val = parseFloat(cols[examIndex]);
-                        if (!isNaN(val) && val >= 0 && val <= 70) {
-                          setMarks(prev => ({ ...prev, [`${student.id}_exam`]: val }));
-                        }
-                      }
-                    }
-                  }
-                  toast.success(`Imported ${imported} student grades`);
-                  setBulkImportOpen(false);
-                } catch (err) {
-                  logger.error("Import error:", err);
-                  setBulkImportValidationError(
-                    "Import failed. Check the file format and try again.",
-                  );
-                  toast.error("Failed to import: Check file format");
-                }
-              }}
-            />
-            <p className="text-xs text-[var(--t3)] mt-2">
-              Format: admission_number,ca1,ca2,ca3,exam
-            </p>
-            {bulkImportValidationError && (
-              <p className="text-sm text-[var(--t3)] mt-2">{bulkImportValidationError}</p>
-            )}
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => setBulkImportOpen(false)}>
-              Cancel
-            </Button>
-          </div>
-        </div>
-      </Modal>
+        classId={selectedClass}
+        term={currentTerm}
+        academicYear={academicYear}
+        schoolId={school?.id}
+        subjects={subjects}
+        students={filteredStudents}
+        userId={user?.id}
+        isDemo={isDemo}
+        toast={toast}
+      />
       <ConfirmDialog
         isOpen={confirmLockCA}
         onClose={() => setConfirmLockCA(false)}

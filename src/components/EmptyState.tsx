@@ -1,6 +1,7 @@
 'use client'
 import MaterialIcon from '@/components/MaterialIcon'
 import { Button } from './ui/index'
+import EmptyStateGuide from '@/components/EmptyStateGuide'
 
 interface EmptyStateProps {
   icon?: string
@@ -15,9 +16,13 @@ interface EmptyStateProps {
     onClick: () => void
   }
   className?: string
+  module?: string
 }
 
-export function EmptyState({ icon, title, description, action, secondaryAction, className = '' }: EmptyStateProps) {
+export function EmptyState({ icon, title, description, action, secondaryAction, className = '', module }: EmptyStateProps) {
+  if (module) {
+    return <EmptyStateGuide module={module as any} />
+  }
   return (
     <div 
       className={`flex flex-col items-center justify-center py-20 px-8 text-center rounded-[var(--r2)] bg-motif-fade border border-dashed border-[var(--border)] transition-all animate-fade-in ${className}`}

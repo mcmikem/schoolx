@@ -107,6 +107,14 @@ export default function ReportCardsPage() {
   >({});
   const [sendingSms, setSendingSms] = useState(false);
   const [hasMissingMarks, setHasMissingMarks] = useState(false);
+  const [generatingAll, setGeneratingAll] = useState(false);
+  const [generationProgress, setGenerationProgress] = useState<{
+    current: number;
+    total: number;
+    currentClass: string;
+    studentsProcessed: number;
+    errors: number;
+  }>({ current: 0, total: 0, currentClass: '', studentsProcessed: 0, errors: 0 });
 
   const filteredStudents = useMemo(() => {
     if (!selectedClass) return [];
@@ -148,6 +156,170 @@ export default function ReportCardsPage() {
     };
   }, [reports, getStudentFeeBalance]);
 
+  async function generateReportsForClass(
+    classId: string,
+    className: string,
+    students: any[],
+  ): Promise<{ reports: StudentReport[]; missingMarks: boolean }> {
+    let gradesData: any[] = [];
+    let competencyData: any[] = [];
+
+    if (isDemo) {
+      gradesData = DEMO_GRADES.filter(
+        (grade) => grade.class_id === classId,
+      ).map((grade) => ({
+        ...grade,
+        subjects:
+          DEMO_SUBJECTS.find((subject) => subject.id === grade.subject_id) ||
+          null,
+      }));
+    } else {
+      const { supabase: sb } = await import("@/lib/supabase");
+
+      const { data, error } = await sb
+        .from("grades")
+        .select("*, subjects(id, name)")
+        .eq("class_id", classId)
+        .eq("term", currentTerm)
+        .eq("academic_year", academicYear)
+        .in("assessment_type", ["numerical", "both", null]);
+
+      if (error) throw error;
+      gradesData = data || [];
+
+      if (reportFormat !== "numerical") {
+        const compResult = await sb
+          .from("grades")
+          .select("student_id, subject_id, competency_level, competency_notes, subjects(id, name)")
+          .eq("class_id", classId)
+          .eq("term", currentTerm)
+          .eq("academic_year", academicYear)
+          .in("assessment_type", ["competency", "both", null]);
+        
+        if (!compResult.error) {
+          competencyData = compResult.data || [];
+        }
+      }
+    }
+
+    const studentSubjectScores: Record<string, Record<string, { total: number; name: string }>> = {};
+    const studentCompetencies: Record<string, Record<string, { level: string; notes: string; name: string }>> = {};
+
+    for (const g of gradesData) {
+      if (!studentSubjectScores[g.student_id]) {
+        studentSubjectScores[g.student_id] = {};
+      }
+      const subjName = g.subjects?.name || "Unknown";
+      if (!studentSubjectScores[g.student_id][g.subject_id]) {
+        studentSubjectScores[g.student_id][g.subject_id] = {
+          total: 0,
+          name: subjName,
+        };
+      }
+      studentSubjectScores[g.student_id][g.subject_id].total += Number(
+        g.score || 0,
+      );
+    }
+
+    for (const c of competencyData) {
+      if (!studentCompetencies[c.student_id]) {
+        studentCompetencies[c.student_id] = {};
+      }
+      const subjName = c.subjects?.name || "Unknown";
+      studentCompetencies[c.student_id][c.subject_id] = {
+        level: c.competency_level || "not_started",
+        notes: c.competency_notes || "",
+        name: subjName,
+      };
+    }
+
+    const subjectList =
+      Object.values(studentSubjectScores).length > 0
+        ? Object.values(Object.values(studentSubjectScores)[0]).map(
+            (s) => s.name,
+          )
+        : subjects.map((s: any) => s.name);
+    const numSubjects = subjectList.length || 1;
+
+    if (students.length === 0) {
+      return { reports: [], missingMarks: false };
+    }
+
+    const reportList: StudentReport[] = students.map((student) => {
+      const subjScores = studentSubjectScores[student.id] || {};
+      const studentComp = studentCompetencies[student.id] || {};
+      const subjectDetails = Object.entries(subjScores).map(([subjId, data]) => {
+        const gradeInfo = getGradeLabel(data.total);
+        const comp = studentComp[subjId];
+        return {
+          name: data.name,
+          score: data.total,
+          grade: gradeInfo.grade,
+          gradeColor: gradeInfo.color,
+          competencyLevel: comp?.level,
+          competencyNotes: comp?.notes,
+          isMissing: false,
+        };
+      });
+
+      const allSubjectDetails = subjects.map((sub: any) => {
+        const existing = subjectDetails.find((sd) => sd.name === sub.name);
+        return (
+          existing || {
+            name: sub.name,
+            score: 0,
+            grade: "M.M",
+            gradeColor: "text-amber-500",
+            competencyLevel: "not_started",
+            isMissing: true,
+          }
+        );
+      });
+
+      const totalMarks = allSubjectDetails.reduce(
+        (sum, s) => sum + s.score,
+        0,
+      );
+      const maxMarks = numSubjects * 100;
+      const average =
+        numSubjects > 0
+          ? Math.round((totalMarks / numSubjects) * 10) / 10
+          : 0;
+
+      return {
+        studentId: student.id,
+        name: `${student.first_name} ${student.last_name}`,
+        studentNumber: student.student_number || "",
+        gender: student.gender,
+        photoUrl: student.photo_url,
+        className,
+        subjects: allSubjectDetails,
+        totalMarks,
+        maxMarks,
+        average,
+        position: 0,
+        division: "",
+        classTeacherComment: "",
+        hmComment: "",
+        feeBalance: getStudentFeeBalance(student.id),
+      };
+    });
+
+    reportList.sort((a, b) => b.totalMarks - a.totalMarks);
+    reportList.forEach((r, i) => {
+      r.position = i + 1;
+      r.division = getDivision(r.totalMarks, r.maxMarks);
+      r.classTeacherComment = getAutoComment(r.position);
+      r.hmComment = getAutoComment(r.position);
+    });
+
+    const missing = reportList.some((r) =>
+      r.subjects.some((s: any) => s.isMissing),
+    );
+
+    return { reports: reportList, missingMarks: missing };
+  }
+
   const handleGenerate = async () => {
     if (!selectedClass) {
       toast.error("Please select a class first");
@@ -159,160 +331,16 @@ export default function ReportCardsPage() {
     }
 
     try {
-      let gradesData: any[] = [];
-      let competencyData: any[] = [];
+      const { reports: reportList, missingMarks } = await generateReportsForClass(
+        selectedClass,
+        selectedClassName,
+        filteredStudents,
+      );
 
-      if (isDemo) {
-        gradesData = DEMO_GRADES.filter(
-          (grade) => grade.class_id === selectedClass,
-        ).map((grade) => ({
-          ...grade,
-          subjects:
-            DEMO_SUBJECTS.find((subject) => subject.id === grade.subject_id) ||
-            null,
-        }));
-      } else {
-        const { supabase: sb } = await import("@/lib/supabase");
-
-        const { data, error } = await sb
-          .from("grades")
-          .select("*, subjects(id, name)")
-          .eq("class_id", selectedClass)
-          .eq("term", currentTerm)
-          .eq("academic_year", academicYear)
-          .in("assessment_type", ["numerical", "both", null]);
-
-        if (error) throw error;
-        gradesData = data || [];
-
-        if (reportFormat !== "numerical") {
-          const compResult = await sb
-            .from("grades")
-            .select("student_id, subject_id, competency_level, competency_notes, subjects(id, name)")
-            .eq("class_id", selectedClass)
-            .eq("term", currentTerm)
-            .eq("academic_year", academicYear)
-            .in("assessment_type", ["competency", "both", null]);
-          
-          if (!compResult.error) {
-            competencyData = compResult.data || [];
-          }
-        }
-      }
-
-      const studentSubjectScores: Record<string, Record<string, { total: number; name: string }>> = {};
-      const studentCompetencies: Record<string, Record<string, { level: string; notes: string; name: string }>> = {};
-
-      for (const g of gradesData) {
-        if (!studentSubjectScores[g.student_id]) {
-          studentSubjectScores[g.student_id] = {};
-        }
-        const subjName = g.subjects?.name || "Unknown";
-        if (!studentSubjectScores[g.student_id][g.subject_id]) {
-          studentSubjectScores[g.student_id][g.subject_id] = {
-            total: 0,
-            name: subjName,
-          };
-        }
-        studentSubjectScores[g.student_id][g.subject_id].total += Number(
-          g.score || 0,
-        );
-      }
-
-      for (const c of competencyData) {
-        if (!studentCompetencies[c.student_id]) {
-          studentCompetencies[c.student_id] = {};
-        }
-        const subjName = c.subjects?.name || "Unknown";
-        studentCompetencies[c.student_id][c.subject_id] = {
-          level: c.competency_level || "not_started",
-          notes: c.competency_notes || "",
-          name: subjName,
-        };
-      }
-
-      const subjectList =
-        Object.values(studentSubjectScores).length > 0
-          ? Object.values(Object.values(studentSubjectScores)[0]).map(
-              (s) => s.name,
-            )
-          : subjects.map((s: any) => s.name);
-      const numSubjects = subjectList.length || 1;
-
-      const studentsForReport = filteredStudents;
-
-      if (studentsForReport.length === 0) {
+      if (reportList.length === 0) {
         toast.error("No students found for the selected class");
         return;
       }
-
-      const reportList: StudentReport[] = studentsForReport.map((student) => {
-        const subjScores = studentSubjectScores[student.id] || {};
-        const studentComp = studentCompetencies[student.id] || {};
-        const subjectDetails = Object.entries(subjScores).map(([subjId, data]) => {
-          const gradeInfo = getGradeLabel(data.total);
-          const comp = studentComp[subjId];
-          return {
-            name: data.name,
-            score: data.total,
-            grade: gradeInfo.grade,
-            gradeColor: gradeInfo.color,
-            competencyLevel: comp?.level,
-            competencyNotes: comp?.notes,
-            isMissing: false,
-          };
-        });
-
-        const allSubjectDetails = subjects.map((sub: any) => {
-          const existing = subjectDetails.find((sd) => sd.name === sub.name);
-          return (
-            existing || {
-              name: sub.name,
-              score: 0,
-              grade: "M.M",
-              gradeColor: "text-amber-500",
-              competencyLevel: "not_started",
-              isMissing: true,
-            }
-          );
-        });
-
-        const totalMarks = allSubjectDetails.reduce(
-          (sum, s) => sum + s.score,
-          0,
-        );
-        const maxMarks = numSubjects * 100;
-        const average =
-          numSubjects > 0
-            ? Math.round((totalMarks / numSubjects) * 10) / 10
-            : 0;
-
-        return {
-          studentId: student.id,
-          name: `${student.first_name} ${student.last_name}`,
-          studentNumber: student.student_number || "",
-          gender: student.gender,
-          photoUrl: student.photo_url,
-          className: selectedClassName,
-          subjects: allSubjectDetails,
-          totalMarks,
-          maxMarks,
-          average,
-          position: 0,
-          division: "",
-          classTeacherComment: "",
-          hmComment: "",
-          feeBalance: getStudentFeeBalance(student.id),
-        };
-      });
-
-      reportList.sort((a, b) => b.totalMarks - a.totalMarks);
-      reportList.forEach((r, i) => {
-        r.position = i + 1;
-        r.division = getDivision(r.totalMarks, r.maxMarks);
-        r.classTeacherComment = getAutoComment(r.position);
-        r.hmComment = getAutoComment(r.position);
-      });
 
       const initialComments: Record<
         string,
@@ -324,11 +352,8 @@ export default function ReportCardsPage() {
           hm: r.hmComment,
         };
       }
-      const missing = reportList.some((r) =>
-        r.subjects.some((s: any) => s.isMissing),
-      );
-      setHasMissingMarks(missing);
 
+      setHasMissingMarks(missingMarks);
       setReports(reportList);
       setComments(initialComments);
       setGenerated(true);
@@ -336,6 +361,89 @@ export default function ReportCardsPage() {
     } catch (err) {
       logger.error("Error generating report cards:", err);
       toast.error("Failed to generate report cards");
+    }
+  };
+
+  const handleGenerateAll = async () => {
+    if (classes.length === 0) {
+      toast.error("No classes available");
+      return;
+    }
+
+    setGeneratingAll(true);
+    setGenerationProgress({
+      current: 0,
+      total: classes.length,
+      currentClass: '',
+      studentsProcessed: 0,
+      errors: 0,
+    });
+
+    const allReports: StudentReport[] = [];
+    let totalErrors = 0;
+    let totalStudents = 0;
+
+    for (let i = 0; i < classes.length; i++) {
+      const c = classes[i];
+      const className = `${c.name}${c.stream ? ` ${c.stream}` : ''}`;
+
+      setGenerationProgress(prev => ({
+        ...prev,
+        current: i + 1,
+        currentClass: className,
+      }));
+
+      const studentsForClass = classStudents.filter(s => s.class_id === c.id);
+
+      if (studentsForClass.length === 0) {
+        continue;
+      }
+
+      try {
+        const { reports: classReports } = await generateReportsForClass(
+          c.id,
+          className,
+          studentsForClass,
+        );
+
+        allReports.push(...classReports);
+        totalStudents += classReports.length;
+        setGenerationProgress(prev => ({
+          ...prev,
+          studentsProcessed: totalStudents,
+        }));
+      } catch (err) {
+        logger.error(`Error generating reports for class ${className}:`, err);
+        totalErrors++;
+        setGenerationProgress(prev => ({
+          ...prev,
+          errors: totalErrors,
+        }));
+      }
+    }
+
+    setGeneratingAll(false);
+
+    if (allReports.length > 0) {
+      const initialComments: Record<string, { classTeacher: string; hm: string }> = {};
+      for (const r of allReports) {
+        initialComments[r.studentId] = {
+          classTeacher: r.classTeacherComment,
+          hm: r.hmComment,
+        };
+      }
+
+      const hasMissing = allReports.some(r =>
+        r.subjects.some((s: any) => s.isMissing),
+      );
+
+      setHasMissingMarks(hasMissing);
+      setReports(allReports);
+      setComments(initialComments);
+      setGenerated(true);
+      toast.success(`Report cards generated for ${allReports.length} students across ${classes.length} classes`);
+    } else {
+      toast.error("No reports could be generated for any class");
     }
   };
 
@@ -627,7 +735,18 @@ export default function ReportCardsPage() {
           Print All Class ({displayedReports.length})
         </Button>
       )}
-      <Button onClick={handleGenerate} className="bg-indigo-600 shadow-indigo-600/20">
+      {classes.length > 0 && (
+        <Button
+          variant="ghost"
+          onClick={handleGenerateAll}
+          disabled={generatingAll}
+          className="border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
+        >
+          <MaterialIcon icon="select_all" style={{ fontSize: "18px" }} />
+          Generate All Classes
+        </Button>
+      )}
+      <Button onClick={handleGenerate} disabled={generatingAll} className="bg-indigo-600 shadow-indigo-600/20">
         <MaterialIcon icon="bolt" style={{ fontSize: "18px" }} />
         Generate Now
       </Button>
@@ -642,6 +761,50 @@ export default function ReportCardsPage() {
         subtitle="Generate and manage student report cards"
         actions={actions}
       />
+
+      {generatingAll && (
+        <Card className="mb-5">
+          <CardBody>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <MaterialIcon icon="progress_activity" className="animate-spin text-emerald-600" />
+                  <span className="font-semibold text-[var(--on-surface)]">Generating All Classes...</span>
+                </div>
+                <span className="text-sm text-[var(--t3)]">
+                  {generationProgress.current} of {generationProgress.total}
+                </span>
+              </div>
+
+              <div className="w-full bg-gray-200 rounded-full h-3">
+                <div
+                  className="bg-emerald-500 h-3 rounded-full transition-all duration-300"
+                  style={{
+                    width: `${generationProgress.total > 0 ? (generationProgress.current / generationProgress.total) * 100 : 0}%`,
+                  }}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+                <div>
+                  <span className="text-[var(--t3)]">Current Class:</span>{' '}
+                  <span className="font-semibold">{generationProgress.currentClass || 'Starting...'}</span>
+                </div>
+                <div>
+                  <span className="text-[var(--t3)]">Students Processed:</span>{' '}
+                  <span className="font-semibold">{generationProgress.studentsProcessed}</span>
+                </div>
+                <div>
+                  <span className="text-[var(--t3)]">Errors:</span>{' '}
+                  <span className={`font-semibold ${generationProgress.errors > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                    {generationProgress.errors}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </CardBody>
+        </Card>
+      )}
 
       <Card className="mb-5">
         <CardBody>

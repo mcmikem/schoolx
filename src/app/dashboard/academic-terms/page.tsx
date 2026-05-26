@@ -29,7 +29,6 @@ interface AcademicTerm {
 export default function AcademicTermsPage() {
   const { school, user } = useAuth();
   const toast = useToast();
-  // Offline-aware academic terms
   const {
     data: terms = [],
     loading,
@@ -58,8 +57,9 @@ export default function AcademicTermsPage() {
         : "";
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
-
-  // Offline hook handles fetching terms
+  const [generateConfirmOpen, setGenerateConfirmOpen] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [existingTermsCount, setExistingTermsCount] = useState(0);
 
   const handleSubmit = async () => {
     if (!school?.id || !canManageTerms) return;
@@ -144,20 +144,47 @@ export default function AcademicTermsPage() {
     setConfirmOpen(true);
   };
 
-  const loadUgandaDefaultTerms = async (year: string) => {
+  const handleGenerateUgandaCalendar = async () => {
     if (!school?.id || !canManageTerms) return;
-    const defaultTerms = buildUgandaAcademicTerms(school.id, year);
+
+    const { data: existing, error: fetchError } = await supabase
+      .from("academic_terms")
+      .select("id")
+      .eq("school_id", school.id)
+      .eq("academic_year", selectedYear);
+
+    if (fetchError) {
+      toast.error(getErrorMessage(fetchError, "Failed to check existing terms"));
+      return;
+    }
+
+    setExistingTermsCount(existing?.length || 0);
+    setGenerateConfirmOpen(true);
+  };
+
+  const confirmGenerateUgandaCalendar = async () => {
+    if (!school?.id || !canManageTerms) return;
+    setGenerateConfirmOpen(false);
+    setGenerating(true);
+
+    const terms = buildUgandaAcademicTerms(school.id, selectedYear).map((t) => ({
+      ...t,
+      name: `${t.name} ${selectedYear}`,
+      is_current: false,
+    }));
+
     const { withTimeout } = await import('@/lib/hooks/utils');
-    const defTermResult = await withTimeout(
-      supabase.from("academic_terms").insert(defaultTerms),
+    const result = await withTimeout(
+      supabase.from("academic_terms").insert(terms),
       15000,
       null as any
     );
-    const error = defTermResult?.error;
+    const error = result?.error;
+    setGenerating(false);
     if (error) {
-      toast.error(getErrorMessage(error, "Failed to load terms"));
+      toast.error(getErrorMessage(error, "Failed to generate terms"));
     } else {
-      toast.success(`MoES ${year} term calendar loaded`);
+      toast.success(`${terms.length} Uganda term${terms.length !== 1 ? 's' : ''} created for ${selectedYear}`);
       refetchTerms();
     }
   };
@@ -206,6 +233,10 @@ export default function AcademicTermsPage() {
     {} as Record<string, AcademicTerm[]>,
   );
 
+  const generateMessage = existingTermsCount > 0
+    ? `Academic year ${selectedYear} already has ${existingTermsCount} term(s). Generating will create duplicates. Are you sure you want to continue?`
+    : `This will create standard Uganda term dates (Term 1, 2, 3) for ${selectedYear}. The terms will be set as inactive — you can mark the current term manually after generation.`;
+
   return (
     <PageErrorBoundary>
     <>
@@ -214,12 +245,28 @@ export default function AcademicTermsPage() {
         subtitle="Manage school terms and semesters"
         actions={
           canManageTerms ? (
-            <Button
-              onClick={() => openModal()}
-              icon={<MaterialIcon icon="add" />}
-            >
-              Add Term
-            </Button>
+            <div className="flex items-center gap-2">
+              <Select
+                value={selectedYear}
+                onChange={(e) => setSelectedYear(e.target.value)}
+                options={yearOptions}
+                className="w-36"
+              />
+              <Button
+                onClick={handleGenerateUgandaCalendar}
+                icon={<MaterialIcon icon="auto_fix_high" />}
+                variant="secondary"
+                loading={generating}
+              >
+                Generate Uganda Term Calendar
+              </Button>
+              <Button
+                onClick={() => openModal()}
+                icon={<MaterialIcon icon="add" />}
+              >
+                Add Term
+              </Button>
+            </div>
           ) : undefined
         }
       />
@@ -255,10 +302,11 @@ export default function AcademicTermsPage() {
                 className="w-40"
               />
               <Button
-                onClick={() => loadUgandaDefaultTerms(selectedYear)}
+                onClick={handleGenerateUgandaCalendar}
                 icon={<MaterialIcon icon="auto_fix_high" />}
+                loading={generating}
               >
-                Load MoES Terms
+                Generate Uganda Term Calendar
               </Button>
             </div>
           )}
@@ -481,6 +529,17 @@ export default function AcademicTermsPage() {
         title="Delete Term"
         message="Delete this term?"
         variant="danger"
+      />
+
+      <ConfirmDialog
+        isOpen={generateConfirmOpen}
+        onClose={() => setGenerateConfirmOpen(false)}
+        onConfirm={confirmGenerateUgandaCalendar}
+        title="Generate Uganda Term Calendar"
+        message={generateMessage}
+        variant={existingTermsCount > 0 ? "warning" : "info"}
+        confirmLabel="Generate"
+        loading={generating}
       />
     </>
     </PageErrorBoundary>

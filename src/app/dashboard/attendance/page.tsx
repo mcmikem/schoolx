@@ -26,6 +26,7 @@ import {
 } from "@/lib/validation";
 import type { Student } from "@/types";
 import { withTimeout } from "@/lib/hooks/utils";
+import { getAutomationStatus, toggleAutomation } from "@/lib/sms-automation";
 
 const STATUS_CYCLE = ["absent", "present", "late"] as const;
 type AttendanceStatus = (typeof STATUS_CYCLE)[number];
@@ -77,6 +78,8 @@ export default function AttendancePage() {
   const [offlineCount, setOfflineCount] = useState(0);
   const [allMarked, setAllMarked] = useState(false);
   const [confirmMarkAll, setConfirmMarkAll] = useState(false);
+  const [absenteeAlertEnabled, setAbsenteeAlertEnabled] = useState(false);
+  const [loadingAutomation, setLoadingAutomation] = useState(true);
   const [viewMode, setViewMode] = useState<"desktop" | "mobile">("desktop");
   const [rollCallMode, setRollCallMode] = useState(false);
   const [showQuickAbsentModal, setShowQuickAbsentModal] = useState(false);
@@ -138,6 +141,35 @@ export default function AttendancePage() {
   useEffect(() => {
     loadOfflineCount();
   }, [loadOfflineCount]);
+
+  useEffect(() => {
+    const loadAutomationStatus = async () => {
+      try {
+        const status = await getAutomationStatus({ schoolId: school?.id, isDemo });
+        setAbsenteeAlertEnabled(status.absentee_alert ?? false);
+      } catch {
+        setAbsenteeAlertEnabled(false);
+      } finally {
+        setLoadingAutomation(false);
+      }
+    };
+    loadAutomationStatus();
+  }, [school?.id, isDemo]);
+
+  const handleToggleAbsenteeAlert = async () => {
+    const result = await toggleAutomation({
+      schoolId: school?.id || "",
+      automationType: "absentee_alert",
+      isActive: !absenteeAlertEnabled,
+      isDemo,
+    });
+    if (result.success) {
+      setAbsenteeAlertEnabled(!absenteeAlertEnabled);
+      toast.success(result.message);
+    } else {
+      toast.error(result.message);
+    }
+  };
 
   const {
     data: offlineStudents,
@@ -476,6 +508,41 @@ export default function AttendancePage() {
             </div>
           }
         />
+
+        <div className="bg-surface-container-lowest rounded-xl border border-outline-variant p-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${absenteeAlertEnabled ? "bg-error-container" : "bg-surface-container-high"}`}>
+              <MaterialIcon icon={absenteeAlertEnabled ? "notifications_active" : "notifications_off"} className={absenteeAlertEnabled ? "text-error" : "text-on-surface-variant"} />
+            </div>
+            <div className="min-w-0">
+              <div className="font-semibold text-on-surface text-sm flex items-center gap-2">
+                Absentee SMS Alerts
+                {loadingAutomation ? (
+                  <span className="text-xs text-on-surface-variant">Loading...</span>
+                ) : (
+                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${absenteeAlertEnabled ? "bg-error-container text-error" : "bg-surface-container-high text-on-surface-variant"}`}>
+                    {absenteeAlertEnabled ? "ON" : "OFF"}
+                  </span>
+                )}
+              </div>
+              <div className="text-xs text-on-surface-variant mt-0.5">
+                Auto-SMS parents when students are marked absent
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={handleToggleAbsenteeAlert}
+            disabled={loadingAutomation}
+            className={`relative w-14 h-8 rounded-full transition-colors duration-200 min-w-[56px] shrink-0 ${absenteeAlertEnabled ? "bg-error" : "bg-surface-container-highest"}`}
+            role="switch"
+            aria-checked={absenteeAlertEnabled}
+            aria-label="Toggle absentee SMS alerts"
+          >
+            <div
+              className={`absolute top-1 w-6 h-6 rounded-full bg-white shadow transition-transform duration-200 ${absenteeAlertEnabled ? "translate-x-7" : "translate-x-1"}`}
+            />
+          </button>
+        </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[

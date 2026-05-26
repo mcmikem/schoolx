@@ -6,6 +6,12 @@ import { isDemoSchool } from "@/lib/demo-utils";
 import { logger } from "@/lib/logger";
 import { getCachedResponse, cacheResponse, isOnline, generateCacheKey } from "@/lib/offline-db";
 
+// Stale-while-revalidate cache pattern for dashboard data:
+// 1. On mount, immediately show cached data (if available) — no loading spinner
+// 2. Always fetch fresh data in the background
+// 3. Loading spinner only appears when there is NO cached data at all
+// 4. isStale=true indicates the displayed data is stale while revalidating
+
 interface ClassAttendance {
   present: number;
   total: number;
@@ -60,32 +66,10 @@ export function useDashboardExtraData(
     }
 
     const cacheKey = generateCacheKey(`/api/dashboard-extra/${schoolId}`, { currentTerm, academicYear });
+    let cancelled = false;
+    let freshDataApplied = false;
 
-    if (!isOnline()) {
-      getCachedResponse<any>(cacheKey).then((cached) => {
-        if (cached) {
-          setClassAttendance(cached.classAttendance || {});
-          setAtRiskStudents(cached.atRiskStudents || []);
-          setSmsStats(cached.smsStats || { sentToday: 0, deliveryRate: 0, remaining: 0, total: 0 });
-          setPendingExpenses(cached.pendingExpenses || 0);
-          setPendingLeave(cached.pendingLeave || 0);
-          setFeesToday(cached.feesToday || 0);
-          setFeesThisWeek(cached.feesThisWeek || 0);
-          setFeesThisTerm(cached.feesThisTerm || 0);
-          setStaffOnDuty(cached.staffOnDuty || 0);
-          setOverdueFeeCount(cached.overdueFeeCount || 0);
-          setLowAttendanceClasses(cached.lowAttendanceClasses || 0);
-          setDropoutRiskCount(cached.dropoutRiskCount || 0);
-          setIsStale(true);
-          setLoading(false);
-          return;
-        }
-        setLoading(false);
-      });
-      return;
-    }
-
-    // Demo mode - return mock data
+    // Demo mode — return mock data immediately
     if (isDemo || isDemoSchool(schoolId)) {
       setClassAttendance({
         "demo-class-1": { present: 28, total: 30 },
@@ -93,18 +77,8 @@ export function useDashboardExtraData(
         "demo-class-3": { present: 22, total: 25 },
       });
       setAtRiskStudents([
-        {
-          id: "demo-1",
-          first_name: "John",
-          last_name: "Okello",
-          classes: { name: "Primary 4" },
-        },
-        {
-          id: "demo-2",
-          first_name: "Sarah",
-          last_name: "Nabukeera",
-          classes: { name: "Primary 5" },
-        },
+        { id: "demo-1", first_name: "John", last_name: "Okello", classes: { name: "Primary 4" } },
+        { id: "demo-2", first_name: "Sarah", last_name: "Nabukeera", classes: { name: "Primary 5" } },
       ]);
       setSmsStats({ sentToday: 12, deliveryRate: 92, remaining: 0, total: 0 });
       setPendingExpenses(2);
@@ -120,10 +94,38 @@ export function useDashboardExtraData(
       return;
     }
 
-    let cancelled = false;
+    const applyCachedData = (cached: any) => {
+      setClassAttendance(cached.classAttendance || {});
+      setAtRiskStudents(cached.atRiskStudents || []);
+      setSmsStats(cached.smsStats || { sentToday: 0, deliveryRate: 0, remaining: 0, total: 0 });
+      setPendingExpenses(cached.pendingExpenses || 0);
+      setPendingLeave(cached.pendingLeave || 0);
+      setFeesToday(cached.feesToday || 0);
+      setFeesThisWeek(cached.feesThisWeek || 0);
+      setFeesThisTerm(cached.feesThisTerm || 0);
+      setStaffOnDuty(cached.staffOnDuty || 0);
+      setOverdueFeeCount(cached.overdueFeeCount || 0);
+      setLowAttendanceClasses(cached.lowAttendanceClasses || 0);
+      setDropoutRiskCount(cached.dropoutRiskCount || 0);
+    };
+
+    // Stale-while-revalidate: show cached data immediately (non-blocking)
+    getCachedResponse<any>(cacheKey).then((cached) => {
+      if (cancelled || freshDataApplied) return;
+      if (cached) {
+        applyCachedData(cached);
+        setIsStale(true);
+        setLoading(false);
+      } else if (!isOnline()) {
+        setLoading(false);
+      }
+    });
+
+    // Offline — skip fetch, rely on cached data (or empty if unavailable)
+    if (!isOnline()) return;
 
     async function fetchExtraData() {
-      setLoading(true);
+      let fetchSucceeded = false;
       try {
         const today = new Date().toISOString().split("T")[0];
         const now = new Date();
@@ -132,12 +134,10 @@ export function useDashboardExtraData(
         monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
         const weekStart = monday.toISOString().split("T")[0];
 
-        // Cap fee history to ~6 months (a full school year term window)
         const termLookbackDate = new Date(now);
         termLookbackDate.setDate(now.getDate() - 180);
         const termStart = termLookbackDate.toISOString().split("T")[0];
 
-        // Build date range for dropout check
         const fourteenDaysAgo = new Date(now);
         fourteenDaysAgo.setDate(now.getDate() - 14);
         const dropoutStartDate = fourteenDaysAgo.toISOString().split("T")[0];
@@ -169,20 +169,17 @@ export function useDashboardExtraData(
             .select("status, created_at")
             .eq("school_id", schoolId)
             .gte("created_at", today),
-          // Scoped to this school's students via inner join + bounded to 180-day window
           supabase
             .from("fee_payments")
             .select("student_id, amount_paid, payment_date, students!inner(school_id)")
             .eq("students.school_id", schoolId)
             .gte("payment_date", termStart),
-          // Scoped to this school's staff via users inner join
           supabase
             .from("staff_attendance")
             .select("status, staff_id, users!inner(school_id)")
             .eq("users.school_id", schoolId)
             .eq("date", today)
             .in("status", ["present", "late"]),
-          // Scoped to this school's students via inner join + bounded to 14 days
           supabase
             .from("attendance")
             .select("student_id, status, date, students!inner(school_id)")
@@ -192,8 +189,6 @@ export function useDashboardExtraData(
             .order("date", { ascending: false }),
         ]);
 
-        // expenses and leave_requests are optional tables — query separately
-        // so a missing table / RLS block doesn't abort the entire Promise.all
         const [expensesRes, leaveRes] = await Promise.all([
           supabase
             .from("expenses")
@@ -267,7 +262,7 @@ export function useDashboardExtraData(
           .slice(0, 5);
         setAtRiskStudents(atRisk);
 
-        // Dropout risk - using pre-fetched data from Promise.all
+        // Dropout risk
         let computedDropoutCount = 0;
         if (!cancelled) {
           try {
@@ -386,28 +381,20 @@ export function useDashboardExtraData(
           dropoutRiskCount: computedDropoutCount,
         };
         await cacheResponse(cacheKey, cacheData, undefined, 2 * 60 * 1000);
+        fetchSucceeded = true;
       } catch (err) {
         logger.error("Error fetching dashboard extra data:", err);
-        const cached = await getCachedResponse<any>(cacheKey);
-        if (cached && !cancelled) {
-          setClassAttendance(cached.classAttendance || {});
-          setAtRiskStudents(cached.atRiskStudents || []);
-          setSmsStats(cached.smsStats || { sentToday: 0, deliveryRate: 0, remaining: 0, total: 0 });
-          setPendingExpenses(cached.pendingExpenses || 0);
-          setPendingLeave(cached.pendingLeave || 0);
-          setFeesToday(cached.feesToday || 0);
-          setFeesThisWeek(cached.feesThisWeek || 0);
-          setFeesThisTerm(cached.feesThisTerm || 0);
-          setStaffOnDuty(cached.staffOnDuty || 0);
-          setOverdueFeeCount(cached.overdueFeeCount || 0);
-          setLowAttendanceClasses(cached.lowAttendanceClasses || 0);
-          setDropoutRiskCount(cached.dropoutRiskCount || 0);
-          setIsStale(true);
+        if (!cancelled) {
+          const cached = await getCachedResponse<any>(cacheKey);
+          if (cached && !cancelled) {
+            applyCachedData(cached);
+          }
         }
       } finally {
         if (!cancelled) {
+          freshDataApplied = true;
           setLoading(false);
-          setIsStale(false);
+          setIsStale(!fetchSucceeded);
         }
       }
     }

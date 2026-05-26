@@ -23,6 +23,7 @@ import OwlMascot from "@/components/brand/OwlMascot";
 import { toLocalDateString } from "@/lib/date-utils";
 import { safeGetItem, safeSetItem } from "@/lib/safe-storage";
 import SchoolCalendar from "@/components/dashboard/SchoolCalendar";
+import OnboardingProgressBar from "@/components/OnboardingProgressBar";
 
 function formatCurrency(amount: number) {
   if (amount >= 1000000) return `${(amount / 1000000).toFixed(1)}M`;
@@ -421,6 +422,8 @@ function HeadmasterDashboardContent() {
           <h1 className="text-2xl font-bold text-[#17325f] font-['Sora']">{greeting}, {user?.full_name?.split(" ")[0]}</h1>
           <p className="text-sm text-[#60748f] mt-1">{school?.name} · {todayDayName}, {todayFormatted} · {academicYear} Term {currentTerm}</p>
         </div>
+
+        <OnboardingProgressBar />
 
         {/* Section 1: BIG NUMBERS STRIP */}
         <div className="grid grid-cols-3 gap-4 mb-6">

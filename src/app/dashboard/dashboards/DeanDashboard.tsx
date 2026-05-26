@@ -147,6 +147,35 @@ function DeanDashboardContent() {
         </div>
       </section>
 
+      {/* Pending Tasks */}
+      <div className="rounded-[22px] border border-[#e5ecf4] bg-white p-4 mb-4">
+        <div className="flex items-center justify-between mb-3">
+          <div>
+            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#7f91aa]">Pending Tasks</p>
+            <p className="text-sm font-semibold text-[#17325f]">Items requiring your review</p>
+          </div>
+          <span className="text-[11px] font-semibold text-[#60748f]">{stats?.presentToday === 0 && classes.length > 0 ? "1 pending" : "All clear"}</span>
+        </div>
+        <div className="space-y-3">
+          {stats?.presentToday === 0 && classes.length > 0 && (
+            <div className="rounded-xl border border-[#f5d0c5] bg-[#ffefe8] p-3 flex items-center gap-3">
+              <span className="material-symbols-outlined text-[#c2472b] text-xl">how_to_reg</span>
+              <div className="flex-1">
+                <p className="text-xs font-bold text-[#17325f]">Attendance not taken today</p>
+                <p className="text-[11px] text-[#6b7f99]">{classes.length} class{classes.length > 1 ? 'es' : ''} waiting</p>
+              </div>
+              <Link href="/dashboard/attendance" className="shrink-0 rounded-xl bg-[#c2472b] px-3 py-1.5 text-[11px] font-bold text-white">Review</Link>
+            </div>
+          )}
+          {(!stats || stats.presentToday > 0) && (
+            <div className="rounded-xl border border-dashed border-[#d7e3f2] bg-[#f8fbff] p-4 text-center">
+              <span className="material-symbols-outlined text-[#7f91aa] text-2xl">task_alt</span>
+              <p className="mt-1 text-xs font-semibold text-[#7f91aa]">No pending tasks — everything is up to date</p>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Classes */}
       <div className="card">
         <div className="card-header">

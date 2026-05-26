@@ -43,6 +43,30 @@ export function NotificationsProvider({
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const NOTIFICATIONS_READ_KEY = `skoolmate-notifications-read-${schoolId || "none"}`;
+
+  const loadReadIds = useCallback((): string[] => {
+    if (typeof window === "undefined") return [];
+    try {
+      const stored = localStorage.getItem(NOTIFICATIONS_READ_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  }, [NOTIFICATIONS_READ_KEY]);
+
+  const saveReadIds = useCallback(
+    (ids: string[]) => {
+      if (typeof window === "undefined") return;
+      try {
+        localStorage.setItem(NOTIFICATIONS_READ_KEY, JSON.stringify(ids));
+      } catch {
+        // localStorage may be full or unavailable
+      }
+    },
+    [NOTIFICATIONS_READ_KEY],
+  );
+
   const fetchNotifications = useCallback(async () => {
     if (!schoolId) {
       setNotifications([]);
@@ -51,6 +75,7 @@ export function NotificationsProvider({
     }
 
     try {
+      const readIds = loadReadIds();
       const generated: Notification[] = [];
       const today = new Date().toISOString().slice(0, 10);
 
@@ -88,7 +113,7 @@ export function NotificationsProvider({
             title: `${absentStudents.length} students absent today`,
             message: "Tap to review attendance details",
             link: "/dashboard/attendance",
-            read: false,
+            read: readIds.includes("absent-today"),
             created_at: new Date().toISOString(),
           });
         }
@@ -123,7 +148,7 @@ export function NotificationsProvider({
               title: `UGX ${balance.toLocaleString()} outstanding fees`,
               message: "Tap to review fee collection",
               link: "/dashboard/fees",
-              read: false,
+              read: readIds.includes("outstanding-fees"),
               created_at: new Date().toISOString(),
             });
           }
@@ -139,7 +164,7 @@ export function NotificationsProvider({
           title: "Welcome to SkoolMate OS!",
           message: "Start by adding students and taking attendance",
           link: "/dashboard/students",
-          read: false,
+          read: readIds.includes("welcome"),
           created_at: new Date().toISOString(),
         });
       }
@@ -151,19 +176,31 @@ export function NotificationsProvider({
     } finally {
       setLoading(false);
     }
-  }, [schoolId, userRole]);
+  }, [schoolId, userRole, loadReadIds]);
 
   useEffect(() => {
     fetchNotifications();
   }, [fetchNotifications]);
 
-  const markAsRead = useCallback(async (id: string) => {
-    setNotifications((prev) => prev.map((item) => (item.id === id ? { ...item, read: true } : item)));
-  }, []);
+  const markAsRead = useCallback(
+    async (id: string) => {
+      setNotifications((prev) => prev.map((item) => (item.id === id ? { ...item, read: true } : item)));
+      const readIds = loadReadIds();
+      if (!readIds.includes(id)) {
+        readIds.push(id);
+        saveReadIds(readIds);
+      }
+    },
+    [loadReadIds, saveReadIds],
+  );
 
   const markAllAsRead = useCallback(async () => {
-    setNotifications((prev) => prev.map((item) => ({ ...item, read: true })));
-  }, []);
+    setNotifications((prev) => {
+      const allIds = prev.map((item) => item.id);
+      saveReadIds(allIds);
+      return prev.map((item) => ({ ...item, read: true }));
+    });
+  }, [saveReadIds]);
 
   const addNotification = useCallback((notification: Omit<Notification, "id" | "read" | "created_at">) => {
     const newNotification: Notification = {
