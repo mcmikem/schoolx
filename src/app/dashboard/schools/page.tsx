@@ -54,6 +54,19 @@ interface SupportTicket {
   resolved_at?: string
 }
 
+interface PendingModuleRequest {
+  school_id: string
+  school_name: string
+  school_code: string
+  district: string
+  module_key: string
+  module_name: string
+  status: 'pending'
+  starts_at: string
+  ends_at: string
+  updated_at: string
+}
+
 const PLANS: Record<string, { monthly: number; annual: number; perStudent: number; label: string; color: string }> = {
   starter: { monthly: 350_000, annual: 3_800_000, perStudent: 50_000, label: 'Starter', color: '#3b82f6' },
   growth: { monthly: 550_000, annual: 6_000_000, perStudent: 65_000, label: 'Growth', color: '#0d9488' },
@@ -136,6 +149,9 @@ export default function SchoolsPage() {
   const [ticketForm, setTicketForm] = useState({ type: 'bug' as SupportTicket['type'], title: '', description: '', priority: 'medium' as SupportTicket['priority'] })
   const [enabledModules, setEnabledModules] = useState<string[]>([])
   const [supportTickets, setSupportTickets] = useState<SupportTicket[]>([])
+  const [pendingModuleRequests, setPendingModuleRequests] = useState<PendingModuleRequest[]>([])
+  const [loadingModuleRequests, setLoadingModuleRequests] = useState(false)
+  const [approvingRequestId, setApprovingRequestId] = useState<string | null>(null)
   const [resetPhone, setResetPhone] = useState('')
   const [trialDays, setTrialDays] = useState(14)
   const [stats, setStats] = useState({ totalSchools: 0, active: 0, trial: 0, expired: 0, totalStudents: 0, revenue: 0 })
@@ -148,9 +164,62 @@ export default function SchoolsPage() {
   const [showCreatedModal, setShowCreatedModal] = useState(false)
   const [addStep, setAddStep] = useState<1 | 2>(1)
 
+  const fetchPendingModuleRequests = useCallback(async () => {
+    try {
+      setLoadingModuleRequests(true)
+      const response = await fetch('/api/modules/entitlements/?scope=all_pending', {
+        credentials: 'include',
+      })
+      const result = await response.json()
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Failed to load pending module requests')
+      }
+
+      const data = (result.data || {}) as { requests?: PendingModuleRequest[] }
+      setPendingModuleRequests(data.requests || [])
+    } catch (err: unknown) {
+      logger.error('Failed to load pending module requests', err)
+      toast.error(getErrorMessage(err, 'Failed to load pending module requests'))
+    } finally {
+      setLoadingModuleRequests(false)
+    }
+  }, [toast])
+
   useEffect(() => {
-    if (user?.role === 'super_admin') fetchSchools()
-  }, [user?.role])
+    if (user?.role === 'super_admin') {
+      fetchSchools()
+      fetchPendingModuleRequests()
+    }
+  }, [user?.role, fetchPendingModuleRequests])
+
+  const handleApproveModuleRequest = async (request: PendingModuleRequest) => {
+    const key = `${request.school_id}:${request.module_key}`
+    try {
+      setApprovingRequestId(key)
+      const response = await fetch('/api/modules/entitlements/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({
+          schoolId: request.school_id,
+          moduleKey: request.module_key,
+          action: 'approve',
+        }),
+      })
+
+      const result = await response.json()
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Failed to approve module request')
+      }
+
+      toast.success(`Approved ${request.module_name} for ${request.school_name}`)
+      await fetchPendingModuleRequests()
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, 'Failed to approve module request'))
+    } finally {
+      setApprovingRequestId(null)
+    }
+  }
 
   const fetchSchools = async () => {
     try {
@@ -565,6 +634,47 @@ export default function SchoolsPage() {
           <option value="growth">Growth</option>
           <option value="enterprise">Enterprise</option>
         </select>
+      </div>
+
+      <div className="bg-white rounded-xl border border-[#e8eaed] p-4 sm:p-5 mb-6">
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <h2 className="text-sm sm:text-base font-semibold text-[#002045]">Pending Module Requests</h2>
+          <span className="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+            {pendingModuleRequests.length} pending
+          </span>
+        </div>
+
+        {loadingModuleRequests ? (
+          <p className="text-sm text-[#5c6670]">Loading pending requests...</p>
+        ) : pendingModuleRequests.length === 0 ? (
+          <p className="text-sm text-[#5c6670]">No pending module approvals right now.</p>
+        ) : (
+          <div className="space-y-2">
+            {pendingModuleRequests.slice(0, 12).map((request) => {
+              const rowKey = `${request.school_id}:${request.module_key}`
+              return (
+                <div
+                  key={rowKey}
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-xl border border-[#e8eaed] p-3"
+                >
+                  <div>
+                    <div className="text-sm font-semibold text-[#002045]">{request.school_name} ({request.school_code})</div>
+                    <div className="text-xs text-[#5c6670]">
+                      {request.module_name} • {request.district || 'Unknown district'} • Requested {formatDate(request.updated_at)}
+                    </div>
+                  </div>
+                  <Button
+                    onClick={() => handleApproveModuleRequest(request)}
+                    loading={approvingRequestId === rowKey}
+                    className="w-full sm:w-auto"
+                  >
+                    <MaterialIcon icon="check_circle" /> Approve
+                  </Button>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       {/* School Cards - Responsive grid */}

@@ -29,9 +29,72 @@ export async function GET(request: NextRequest) {
   try {
     const auth = await requireUserWithSchool(request);
     if (!auth.ok) return auth.response;
-    if (!auth.context.schoolId) return apiError("School context required", 403);
+
+    const params = request.nextUrl.searchParams;
+    const isSuperAdmin = auth.context.user.role === "super_admin";
+    const scope = params.get("scope") || "school";
 
     const supabase = createServiceRoleClientOrThrow();
+
+    if (isSuperAdmin && scope === "all_pending") {
+      const { data: pendingEntitlements, error: pendingError } = await supabase
+        .from("school_module_entitlements")
+        .select("school_id, module_key, status, starts_at, ends_at, auto_renew, updated_at")
+        .eq("status", "pending")
+        .order("updated_at", { ascending: false });
+
+      if (pendingError) {
+        return apiError("Failed to load pending requests", 500);
+      }
+
+      const entitlements = pendingEntitlements || [];
+      const schoolIds = Array.from(new Set(entitlements.map((row) => row.school_id)));
+      const moduleKeys = Array.from(new Set(entitlements.map((row) => row.module_key)));
+
+      const [{ data: schools, error: schoolError }, { data: modules, error: moduleError }] = await Promise.all([
+        schoolIds.length > 0
+          ? supabase
+              .from("schools")
+              .select("id, name, school_code, district")
+              .in("id", schoolIds)
+          : Promise.resolve({ data: [], error: null }),
+        moduleKeys.length > 0
+          ? supabase
+              .from("module_catalog")
+              .select("module_key, display_name")
+              .in("module_key", moduleKeys)
+          : Promise.resolve({ data: [], error: null }),
+      ]);
+
+      if (schoolError || moduleError) {
+        return apiError("Failed to load pending request details", 500);
+      }
+
+      const schoolMap = new Map((schools || []).map((school: any) => [school.id, school]));
+      const moduleMap = new Map((modules || []).map((moduleItem: any) => [moduleItem.module_key, moduleItem]));
+
+      const requests = entitlements.map((row: any) => {
+        const school = schoolMap.get(row.school_id);
+        const moduleDetails = moduleMap.get(row.module_key);
+        return {
+          school_id: row.school_id,
+          school_name: school?.name || "Unknown School",
+          school_code: school?.school_code || "N/A",
+          district: school?.district || "",
+          module_key: row.module_key,
+          module_name: moduleDetails?.display_name || row.module_key,
+          status: row.status,
+          starts_at: row.starts_at,
+          ends_at: row.ends_at,
+          auto_renew: row.auto_renew,
+          updated_at: row.updated_at,
+        };
+      });
+
+      return apiSuccess({ requests });
+    }
+
+    if (!auth.context.schoolId) return apiError("School context required", 403);
 
     const [{ data: school, error: schoolError }, { data: catalog, error: catalogError }, { data: entitlements, error: entitlementError }] = await Promise.all([
       supabase
@@ -90,17 +153,34 @@ export async function POST(request: NextRequest) {
     });
     if (!roleCheck.ok) return roleCheck.response;
 
-    if (!auth.context.schoolId) {
-      return apiError("School context required", 403);
-    }
-
-    const { moduleKey, autoRenew = true } = (await request.json()) as {
+    const {
+      moduleKey,
+      autoRenew = true,
+      schoolId,
+      action,
+    } = (await request.json()) as {
       moduleKey?: ModuleKey;
       autoRenew?: boolean;
+      schoolId?: string;
+      action?: "request" | "approve";
     };
 
     if (!moduleKey) {
       return apiError("moduleKey is required", 400);
+    }
+
+    const isSuperAdmin = auth.context.user.role === "super_admin";
+    const targetSchoolId =
+      isSuperAdmin && typeof schoolId === "string" && schoolId.length > 0
+        ? schoolId
+        : auth.context.schoolId;
+
+    if (!targetSchoolId) {
+      return apiError("School context required", 403);
+    }
+
+    if (!isSuperAdmin && typeof schoolId === "string" && schoolId !== auth.context.schoolId) {
+      return apiError("Forbidden", 403);
     }
 
     const supabase = createServiceRoleClientOrThrow();
@@ -108,7 +188,7 @@ export async function POST(request: NextRequest) {
     const { data: school, error: schoolError } = await supabase
       .from("schools")
       .select("id, name, school_code, billing_mode, school_size_band")
-      .eq("id", auth.context.schoolId)
+      .eq("id", targetSchoolId)
       .maybeSingle();
 
     if (schoolError || !school) {
@@ -140,14 +220,14 @@ export async function POST(request: NextRequest) {
     const endsAt = new Date(startsAt);
     endsAt.setFullYear(endsAt.getFullYear() + 1);
 
-    const isSuperAdmin = auth.context.user.role === "super_admin";
+    const shouldApprove = isSuperAdmin && action !== "request";
 
-    if (!isSuperAdmin) {
+    if (!shouldApprove) {
       const { error: pendingError } = await supabase
         .from("school_module_entitlements")
         .upsert(
           {
-            school_id: auth.context.schoolId,
+            school_id: targetSchoolId,
             module_key: moduleKey,
             status: "pending",
             starts_at: startsAt.toISOString(),
@@ -179,30 +259,51 @@ export async function POST(request: NextRequest) {
       ].join("\n");
       const whatsappLink = generateWhatsAppShareLink(SUPPORT_WHATSAPP, message);
 
-      await supabase.from("support_tickets").insert({
-        school_id: auth.context.schoolId,
+      const { error: ticketError } = await supabase.from("support_tickets").insert({
+        school_id: targetSchoolId,
         type: "custom_package",
         title: `Module request: ${moduleItem.display_name}`,
         description: message,
         priority: "medium",
         status: "open",
       });
+      if (ticketError) {
+        return apiError("Request submitted but failed to log approval ticket", 500);
+      }
 
-      const { error: requestPurchaseError } = await supabase
+      const { data: existingPendingPurchase, error: pendingLookupError } = await supabase
         .from("school_module_purchases")
-        .insert({
-          school_id: auth.context.schoolId,
-          module_key: moduleKey,
-          amount_ugx: annualAmount,
-          billing_period: "annual",
-          purchase_status: "pending",
-          payment_provider: "manual",
-          payment_reference: `request-${Date.now()}`,
-          purchased_by: auth.context.user.id,
-          purchased_at: startsAt.toISOString(),
-          valid_until: endsAt.toISOString(),
-          notes: "Awaiting in-person payment confirmation by super admin",
-        });
+        .select("id")
+        .eq("school_id", targetSchoolId)
+        .eq("module_key", moduleKey)
+        .eq("purchase_status", "pending")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (pendingLookupError) {
+        return apiError("Request submitted but failed to validate existing payment request", 500);
+      }
+
+      let requestPurchaseError: { message?: string } | null = null;
+      if (!existingPendingPurchase) {
+        const { error } = await supabase
+          .from("school_module_purchases")
+          .insert({
+            school_id: targetSchoolId,
+            module_key: moduleKey,
+            amount_ugx: annualAmount,
+            billing_period: "annual",
+            purchase_status: "pending",
+            payment_provider: "manual",
+            payment_reference: `request-${Date.now()}`,
+            purchased_by: auth.context.user.id,
+            purchased_at: startsAt.toISOString(),
+            valid_until: endsAt.toISOString(),
+            notes: "Awaiting in-person payment confirmation by super admin",
+          });
+        requestPurchaseError = error;
+      }
 
       if (requestPurchaseError) {
         return apiError("Request submitted but failed to record payment request", 500);
@@ -225,7 +326,7 @@ export async function POST(request: NextRequest) {
       .from("school_module_entitlements")
       .upsert(
         {
-          school_id: auth.context.schoolId,
+          school_id: targetSchoolId,
           module_key: moduleKey,
           status: "active",
           starts_at: startsAt.toISOString(),
@@ -245,7 +346,7 @@ export async function POST(request: NextRequest) {
     const { error: purchaseError } = await supabase
       .from("school_module_purchases")
       .insert({
-        school_id: auth.context.schoolId,
+        school_id: targetSchoolId,
         module_key: moduleKey,
         amount_ugx: annualAmount,
         billing_period: "annual",
@@ -255,7 +356,7 @@ export async function POST(request: NextRequest) {
         purchased_by: auth.context.user.id,
         purchased_at: startsAt.toISOString(),
         valid_until: endsAt.toISOString(),
-        notes: "Activated via modules settings",
+        notes: "Activated via super admin approval",
       });
 
     if (purchaseError) {

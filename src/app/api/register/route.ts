@@ -472,7 +472,7 @@ export async function POST(request: NextRequest) {
       moduleRequestMessage = message;
       moduleRequestLink = generateWhatsAppShareLink(SUPPORT_WHATSAPP, message);
 
-      await supabaseAdmin.from("support_tickets").insert({
+      const { error: ticketError } = await supabaseAdmin.from("support_tickets").insert({
         school_id: schoolData.id,
         type: "custom_package",
         title: "Module activation request pending payment",
@@ -480,6 +480,10 @@ export async function POST(request: NextRequest) {
         priority: "medium",
         status: "open",
       });
+
+      if (ticketError) {
+        logger.warn("[Register] Failed to create support ticket for module request:", ticketError);
+      }
     }
 
     // 6. Auto-seed essential curriculum data
