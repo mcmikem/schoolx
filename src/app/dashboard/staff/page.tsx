@@ -781,9 +781,35 @@ function DirectoryTab({
       .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
       .join(" ");
 
+  const parseHexColor = (hex: string) => {
+    const normalized = (hex || "#1e40af").replace("#", "");
+    if (normalized.length === 3) {
+      const expanded = normalized
+        .split("")
+        .map((char) => `${char}${char}`)
+        .join("");
+      return {
+        r: parseInt(expanded.slice(0, 2), 16),
+        g: parseInt(expanded.slice(2, 4), 16),
+        b: parseInt(expanded.slice(4, 6), 16),
+      };
+    }
+    if (normalized.length === 6) {
+      return {
+        r: parseInt(normalized.slice(0, 2), 16),
+        g: parseInt(normalized.slice(2, 4), 16),
+        b: parseInt(normalized.slice(4, 6), 16),
+      };
+    }
+    return { r: 30, g: 64, b: 175 };
+  };
+
   const buildStaffIdCardHtml = (member: StaffMember) => {
     const schoolName = school?.name || "School";
     const schoolColor = school?.primary_color || "#1e40af";
+    const schoolAccent = school?.accent_color || "#1d4ed8";
+    const primaryRgb = parseHexColor(schoolColor);
+    const accentRgb = parseHexColor(schoolAccent);
     const schoolLogo = school?.logo_url || "";
     const escapeHtml = (value: string) =>
       String(value)
@@ -849,10 +875,10 @@ function DirectoryTab({
             width: 165px;
             height: 165px;
             border-radius: 999px;
-            background: radial-gradient(circle, rgba(30,64,175,0.18) 0%, rgba(30,64,175,0) 72%);
+            background: radial-gradient(circle, rgba(${primaryRgb.r},${primaryRgb.g},${primaryRgb.b},0.18) 0%, rgba(${primaryRgb.r},${primaryRgb.g},${primaryRgb.b},0) 72%);
           }
           .left-section {
-            background: linear-gradient(185deg, ${schoolColor} 0%, #1d4ed8 55%, #1e3a8a 100%);
+            background: linear-gradient(185deg, ${schoolColor} 0%, ${schoolAccent} 55%, ${schoolColor} 100%);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -922,7 +948,7 @@ function DirectoryTab({
           .card-type {
             font-size: 9px;
             color: ${schoolColor};
-            background: #dbeafe;
+            background: rgba(${accentRgb.r},${accentRgb.g},${accentRgb.b},0.2);
             padding: 3px 8px;
             border-radius: 999px;
             font-weight: 700;
@@ -937,9 +963,9 @@ function DirectoryTab({
             display: inline-flex;
             align-items: center;
             width: fit-content;
-            background: #ecfeff;
-            color: #0f766e;
-            border: 1px solid #a5f3fc;
+            background: rgba(${accentRgb.r},${accentRgb.g},${accentRgb.b},0.12);
+            color: ${schoolColor};
+            border: 1px solid rgba(${primaryRgb.r},${primaryRgb.g},${primaryRgb.b},0.25);
             border-radius: 999px;
             font-size: 10px;
             font-weight: 700;
@@ -1093,6 +1119,9 @@ function DirectoryTab({
     (s.role?.toLowerCase() ?? "").includes(staffSearch.toLowerCase()) ||
     (s.email?.toLowerCase() ?? "").includes(staffSearch.toLowerCase())
   );
+
+  const staffCardPrimary = school?.primary_color || "#1e40af";
+  const staffCardAccent = school?.accent_color || "#1d4ed8";
 
   const tabs = [
     { id: "all", label: "All Staff", count: staff.length },
@@ -1790,8 +1819,18 @@ function DirectoryTab({
             </div>
             <div className="p-6 overflow-y-auto max-h-[calc(100vh-10rem)] sm:max-h-[calc(100vh-11rem)]">
               <div className="mx-auto w-full max-w-[430px] rounded-[22px] overflow-hidden border border-[#dbe3f5] shadow-[0_16px_30px_rgba(15,23,42,0.16)] bg-gradient-to-br from-[#ffffff] to-[#f7fbff] grid grid-cols-[110px_1fr] relative">
-                <div className="absolute -bottom-10 -right-10 w-40 h-40 rounded-full bg-[radial-gradient(circle,rgba(30,64,175,0.18)_0%,rgba(30,64,175,0)_72%)]" />
-                <div className="bg-gradient-to-b from-[#1e40af] via-[#1d4ed8] to-[#1e3a8a] p-3 text-white flex flex-col items-center justify-between relative z-10">
+                <div
+                  className="absolute -bottom-10 -right-10 w-40 h-40 rounded-full"
+                  style={{
+                    background: `radial-gradient(circle, ${staffCardPrimary}33 0%, ${staffCardPrimary}00 72%)`,
+                  }}
+                />
+                <div
+                  className="p-3 text-white flex flex-col items-center justify-between relative z-10"
+                  style={{
+                    background: `linear-gradient(180deg, ${staffCardPrimary} 0%, ${staffCardAccent} 55%, ${staffCardPrimary} 100%)`,
+                  }}
+                >
                   {school?.logo_url ? (
                     <img
                       src={school.logo_url}
@@ -1806,7 +1845,10 @@ function DirectoryTab({
                   <div className="text-[9px] leading-tight text-center font-semibold break-words">
                     {school?.name || "School"}
                   </div>
-                  <div className="w-[74px] h-[74px] rounded-full bg-white border-[3px] border-white overflow-hidden flex items-center justify-center text-[#1e40af] font-bold text-xl">
+                  <div
+                    className="w-[74px] h-[74px] rounded-full bg-white border-[3px] border-white overflow-hidden flex items-center justify-center font-bold text-xl"
+                    style={{ color: staffCardPrimary }}
+                  >
                     {idCardPreviewStaff.avatar_url ? (
                       <img
                         src={idCardPreviewStaff.avatar_url}
@@ -1830,14 +1872,27 @@ function DirectoryTab({
                     <span className="text-[12px] font-extrabold text-[#0f172a] uppercase tracking-[0.04em] truncate">
                       {school?.name || "School"}
                     </span>
-                    <span className="text-[9px] px-2 py-1 rounded-full bg-[#dbeafe] text-[#1e40af] font-bold shrink-0">
+                    <span
+                      className="text-[9px] px-2 py-1 rounded-full font-bold shrink-0"
+                      style={{
+                        backgroundColor: `${staffCardAccent}33`,
+                        color: staffCardPrimary,
+                      }}
+                    >
                       STAFF
                     </span>
                   </div>
                   <div className="text-[16px] font-extrabold text-[#0f172a] mb-1.5">
                     {idCardPreviewStaff.full_name}
                   </div>
-                  <div className="inline-flex w-fit text-[10px] uppercase tracking-[0.03em] font-bold rounded-full px-2 py-1 bg-[#ecfeff] text-[#0f766e] border border-[#a5f3fc] mb-2">
+                  <div
+                    className="inline-flex w-fit text-[10px] uppercase tracking-[0.03em] font-bold rounded-full px-2 py-1 border mb-2"
+                    style={{
+                      backgroundColor: `${staffCardAccent}22`,
+                      color: staffCardPrimary,
+                      borderColor: `${staffCardPrimary}40`,
+                    }}
+                  >
                     {formatRoleLabel(idCardPreviewStaff.role)}
                   </div>
                   <div className="text-[11px] text-[#334155] truncate">Phone: {idCardPreviewStaff.phone}</div>
