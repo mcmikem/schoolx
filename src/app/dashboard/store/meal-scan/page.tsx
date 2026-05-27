@@ -26,6 +26,9 @@ const MEAL_LABELS: Record<string, string> = {
 
 export default function MealScanPage() {
   const toast = useToast();
+  const scannerIdRef = useRef(
+    typeof crypto !== "undefined" ? crypto.randomUUID() : `meal-${Date.now()}`,
+  );
   const [rules, setRules] = useState<MealRule[]>([]);
   const [savingRules, setSavingRules] = useState(false);
   const [selectedMeal, setSelectedMeal] = useState<"breakfast" | "lunch" | "supper">("lunch");
@@ -90,6 +93,7 @@ export default function MealScanPage() {
         body: JSON.stringify({
           scanValue: value.trim(),
           mealType: selectedMeal,
+          scannerId: scannerIdRef.current,
         }),
       });
       const result = await response.json();

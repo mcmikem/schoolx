@@ -12,6 +12,9 @@ type AttendanceAction = "check_in" | "check_out";
 
 export default function StaffAttendanceScanPage() {
   const toast = useToast();
+  const scannerIdRef = useRef(
+    typeof crypto !== "undefined" ? crypto.randomUUID() : `staff-${Date.now()}`,
+  );
   const [action, setAction] = useState<AttendanceAction>("check_in");
   const [scanValue, setScanValue] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -41,7 +44,11 @@ export default function StaffAttendanceScanPage() {
       const response = await fetch("/api/staff/scan-attendance/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ scanValue: value.trim(), action }),
+        body: JSON.stringify({
+          scanValue: value.trim(),
+          action,
+          scannerId: scannerIdRef.current,
+        }),
       });
 
       const result = await response.json();

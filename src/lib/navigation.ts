@@ -304,6 +304,7 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
           icon: "rule",
         },
         { href: "/dashboard/audit", label: "Audit Log", icon: "history" },
+        { href: "/dashboard/audit/scan-events", label: "Scan Events", icon: "qr_code_scanner" },
         {
           href: "/dashboard/sync-center",
           label: "Sync Center",
@@ -638,6 +639,7 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
         { href: "/dashboard/permissions", label: "Role Permissions", icon: "admin_panel_settings" },
         { href: "/dashboard/data-quality", label: "Data Quality", icon: "rule" },
         { href: "/dashboard/audit", label: "Audit Logs", icon: "history" },
+        { href: "/dashboard/audit/scan-events", label: "Scan Events", icon: "qr_code_scanner" },
       ],
     },
   ],

@@ -1,6 +1,7 @@
 "use client";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { getAuditLog, getAuditSummary, getDistinctModules, AuditEntry } from "@/lib/audit";
 import { withTimeout } from "@/lib/hooks/utils";
@@ -87,6 +88,7 @@ function getWeekAgoISO() {
 
 export default function AuditLogPage() {
   const { school } = useAuth();
+  const router = useRouter();
 
   // Filters
   const [filterAction, setFilterAction] = useState("all");
@@ -234,15 +236,25 @@ export default function AuditLogPage() {
           title="Audit Log"
           subtitle="Track all system activities with full visibility"
           actions={
-            <Button
-              variant="secondary"
-              size="sm"
-              icon={<MaterialIcon icon="download" />}
-              onClick={exportCSV}
-              disabled={logs.length === 0}
-            >
-              Export CSV
-            </Button>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={<MaterialIcon icon="qr_code_scanner" />}
+                onClick={() => router.push("/dashboard/audit/scan-events/")}
+              >
+                Scan Events
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={<MaterialIcon icon="download" />}
+                onClick={exportCSV}
+                disabled={logs.length === 0}
+              >
+                Export CSV
+              </Button>
+            </div>
           }
         />
 
