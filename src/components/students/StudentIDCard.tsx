@@ -21,21 +21,44 @@ interface StudentIDCardProps {
     logo_url?: string;
     address?: string;
     phone?: string;
+    primary_color?: string;
+    accent_color?: string;
   };
+}
+
+function hexWithAlpha(hexColor: string, alphaHex: string): string {
+  const normalized = (hexColor || "#1e3a8a").replace("#", "");
+  if (normalized.length === 3) {
+    const expanded = normalized
+      .split("")
+      .map((c) => `${c}${c}`)
+      .join("");
+    return `#${expanded}${alphaHex}`;
+  }
+  if (normalized.length === 6) return `#${normalized}${alphaHex}`;
+  return "#1e3a8a22";
 }
 
 export default function StudentIDCard({ student, school }: StudentIDCardProps) {
   const className =
     student.classes?.name + (student.classes?.stream ? ` ${student.classes.stream}` : "");
+  const primaryColor = school.primary_color || "#1e3a8a";
+  const accentColor = school.accent_color || primaryColor;
 
   return (
     <div className="w-[85.6mm] h-[53.98mm] bg-white rounded-[4mm] shadow-xl overflow-hidden flex flex-col relative border border-slate-200 student-id-card print:shadow-none print:border-slate-300">
       {/* Background Motifs */}
-      <div className="absolute top-0 right-0 w-32 h-32 bg-primary-100/30 rounded-full -mr-16 -mt-16" />
-      <div className="absolute bottom-0 left-0 w-24 h-24 bg-primary-100/20 rounded-full -ml-12 -mb-12" />
+      <div
+        className="absolute top-0 right-0 w-32 h-32 rounded-full -mr-16 -mt-16"
+        style={{ backgroundColor: hexWithAlpha(primaryColor, "26") }}
+      />
+      <div
+        className="absolute bottom-0 left-0 w-24 h-24 rounded-full -ml-12 -mb-12"
+        style={{ backgroundColor: hexWithAlpha(accentColor, "22") }}
+      />
 
       {/* Header */}
-      <div className="px-4 py-2 bg-primary-800 text-white flex items-center gap-2 relative z-10">
+      <div className="px-4 py-2 text-white flex items-center gap-2 relative z-10" style={{ backgroundColor: primaryColor }}>
         {school.logo_url ? (
           <Image
             src={school.logo_url}
@@ -51,7 +74,7 @@ export default function StudentIDCard({ student, school }: StudentIDCardProps) {
           <h3 className="text-[10px] font-black leading-tight uppercase truncate">
             {school.name}
           </h3>
-          <p className="text-[7px] text-primary-200 font-bold tracking-wider leading-none">
+          <p className="text-[7px] font-bold tracking-wider leading-none" style={{ color: hexWithAlpha("#ffffff", "cc") }}>
             Digital Identity Card
           </p>
         </div>
@@ -61,7 +84,10 @@ export default function StudentIDCard({ student, school }: StudentIDCardProps) {
       <div className="flex-1 p-3 flex gap-4 relative z-10">
         {/* Photo Area */}
         <div className="flex flex-col items-center gap-1.5">
-          <div className="w-[20mm] h-[25mm] bg-slate-100 rounded-lg border-2 border-primary-50 overflow-hidden flex items-center justify-center shadow-sm">
+          <div
+            className="w-[20mm] h-[25mm] bg-slate-100 rounded-lg border-2 overflow-hidden flex items-center justify-center shadow-sm"
+            style={{ borderColor: hexWithAlpha(primaryColor, "33") }}
+          >
             {student.photo_url ? (
               <Image
                 src={student.photo_url}
@@ -77,7 +103,7 @@ export default function StudentIDCard({ student, school }: StudentIDCardProps) {
               </span>
             )}
           </div>
-          <p className="text-[8px] font-black text-primary-800 tracking-tighter uppercase whitespace-nowrap">
+          <p className="text-[8px] font-black tracking-tighter uppercase whitespace-nowrap" style={{ color: primaryColor }}>
             Valid {new Date().getFullYear()} - {new Date().getFullYear() + 1}
           </p>
         </div>
@@ -98,7 +124,7 @@ export default function StudentIDCard({ student, school }: StudentIDCardProps) {
               <p className="text-[7px] text-slate-400 font-bold uppercase tracking-widest leading-none mb-0.5">
                 Reg No
               </p>
-              <p className="text-[9px] font-black text-primary-700 leading-none">
+              <p className="text-[9px] font-black leading-none" style={{ color: primaryColor }}>
                 {student.student_number}
               </p>
             </div>
@@ -154,13 +180,13 @@ export default function StudentIDCard({ student, school }: StudentIDCardProps) {
             />
           </div>
           <p className="text-[6px] font-black text-slate-400 uppercase tracking-tighter text-center">
-            Scan at Canteen
+            Scan for Profile
           </p>
         </div>
       </div>
 
       {/* Footer / Stripe */}
-      <div className="h-1 bg-primary-800 w-full" />
+      <div className="h-1 w-full" style={{ backgroundColor: primaryColor }} />
     </div>
   );
 }

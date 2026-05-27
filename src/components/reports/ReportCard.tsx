@@ -194,6 +194,17 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
     // Header with school colors
     doc.setFillColor(pc.r, pc.g, pc.b);
     doc.rect(0, 0, 210, 40, "F");
+
+    if (school.logo_url) {
+      try {
+        const logoData = await toDataUrl(school.logo_url);
+        const logoFormat = logoData.startsWith("data:image/jpeg") ? "JPEG" : "PNG";
+        doc.addImage(logoData, logoFormat, 14, 6, 18, 18);
+      } catch {
+        // Ignore logo load errors and continue generating report PDF.
+      }
+    }
+
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(18);
     doc.text(report.school?.name || "School Name", 105, 15, {
@@ -393,6 +404,20 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
           b: parseInt(result[3], 16),
         }
       : { r: 0, g: 32, b: 69 };
+  }
+
+  async function toDataUrl(url: string): Promise<string> {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (typeof reader.result === "string") resolve(reader.result);
+        else reject(new Error("Unable to encode image"));
+      };
+      reader.onerror = () => reject(reader.error || new Error("Image read failed"));
+      reader.readAsDataURL(blob);
+    });
   }
 
   return (

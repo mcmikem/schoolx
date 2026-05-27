@@ -291,6 +291,12 @@ function HeadmasterDashboardContent() {
   const quickActions = useMemo(
     () => [
       {
+        label: "Asset register",
+        href: "/dashboard/store/inventory",
+        icon: "inventory_2",
+        color: "navy",
+      },
+      {
         label: "Enroll student",
         href: "/dashboard/students?action=add",
         icon: "person_add",
@@ -317,6 +323,9 @@ function HeadmasterDashboardContent() {
     ],
     [],
   );
+
+  const schoolPrimary = school?.primary_color || "#17325f";
+  const schoolAccent = school?.accent_color || "#5b7aa6";
 
   const [taskTitle, setTaskTitle] = useState("");
   const [taskDueDate, setTaskDueDate] = useState(
@@ -406,21 +415,50 @@ function HeadmasterDashboardContent() {
 
   return (
     <div className="content overflow-x-hidden">
-      <section className="relative mb-6 overflow-hidden rounded-[36px] border border-white/65 bg-[linear-gradient(135deg,#f6fbff_0%,#eef4ff_44%,#f7f9fc_100%)] p-4 shadow-[0_28px_70px_rgba(15,23,42,0.08)] sm:p-6">
+      <section
+        className="relative mb-6 overflow-hidden rounded-[36px] border border-white/65 p-4 shadow-[0_28px_70px_rgba(15,23,42,0.08)] sm:p-6"
+        style={{
+          backgroundImage: `linear-gradient(135deg, ${schoolPrimary}12 0%, ${schoolAccent}14 44%, #f7f9fc 100%)`,
+        }}
+      >
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -left-16 bottom-0 h-48 w-48 rounded-full bg-[#b8e6ef]/30 blur-3xl" />
-          <div className="absolute right-0 top-0 h-56 w-56 rounded-full bg-[#d6e4ff]/70 blur-3xl" />
-          <div className="absolute right-10 top-10 h-24 w-24 rounded-full border border-white/70 bg-white/35" />
+          <div
+            className="absolute -left-16 bottom-0 h-48 w-48 rounded-full blur-3xl"
+            style={{ backgroundColor: `${schoolAccent}40` }}
+          />
+          <div
+            className="absolute right-0 top-0 h-56 w-56 rounded-full blur-3xl"
+            style={{ backgroundColor: `${schoolPrimary}30` }}
+          />
+          <div
+            className="absolute right-10 top-10 h-24 w-24 rounded-full border border-white/70 bg-white/35"
+            style={{
+              boxShadow: `0 8px 30px ${schoolPrimary}24`,
+            }}
+          >
+            {school?.logo_url ? (
+              <Image
+                src={school.logo_url}
+                alt={`${school?.name || "School"} logo`}
+                width={96}
+                height={96}
+                className="h-full w-full rounded-full object-cover p-2"
+              />
+            ) : null}
+          </div>
         </div>
 
         <div className="relative z-10 mb-4">
-          <div className="inline-flex items-center gap-2 rounded-full border border-[#cad7ea] bg-white/80 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.22em] text-[#27456f] shadow-sm">
+          <div
+            className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.22em] shadow-sm"
+            style={{ border: `1px solid ${schoolPrimary}33`, color: schoolPrimary }}
+          >
             <MaterialIcon icon="dashboard" className="text-[13px]" />
             Command Deck
           </div>
         </div>
         <div className="relative z-10 mb-4">
-          <h1 className="text-2xl font-bold text-[#17325f] font-['Sora']">{greeting}, {user?.full_name?.split(" ")[0]}</h1>
+          <h1 className="text-2xl font-bold font-['Sora']" style={{ color: schoolPrimary }}>{greeting}, {user?.full_name?.split(" ")[0]}</h1>
           <p className="text-sm text-[#60748f] mt-1">{school?.name} · {todayDayName}, {todayFormatted} · {academicYear} Term {currentTerm}</p>
         </div>
 

@@ -90,6 +90,11 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
       defaultOpen: true,
       items: [
         { href: "/dashboard", label: "Dashboard Home", icon: "dashboard" },
+        {
+          href: "/dashboard/store/inventory",
+          label: "Asset Register",
+          icon: "inventory_2",
+        },
         ...(process.env.NODE_ENV !== "production"
           ? [{
               href: "/dashboard/analytics/dna",

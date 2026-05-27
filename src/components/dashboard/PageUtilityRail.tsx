@@ -15,6 +15,7 @@ for (const [route, mod] of Object.entries(MODULE_FOR_ROUTE)) {
 
 const preferredRoutes = [
   "/dashboard",
+  "/dashboard/store/inventory",
   "/dashboard/calendar",
   "/dashboard/messages",
   "/dashboard/staff",

@@ -32,6 +32,8 @@ const roleBasedRoutes: Record<string, keyof RolePermissions> = deepFreeze({
   "/dashboard/discipline": "discipline",
   "/dashboard/invoicing": "invoicing",
   "/dashboard/assets": "assets",
+  "/dashboard/store": "assets",
+  "/dashboard/store/inventory": "assets",
   "/dashboard/analytics": "analytics",
   "/dashboard/export": "export",
   "/dashboard/board-report": "boardReport",
