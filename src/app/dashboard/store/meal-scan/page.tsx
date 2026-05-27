@@ -24,6 +24,24 @@ const MEAL_LABELS: Record<string, string> = {
   supper: "Supper",
 };
 
+async function parseApiResponse(response: Response): Promise<Record<string, unknown>> {
+  const contentType = response.headers.get("content-type") || "";
+
+  if (contentType.includes("application/json")) {
+    return (await response.json()) as Record<string, unknown>;
+  }
+
+  const text = await response.text();
+  const fallbackMessage = response.ok
+    ? "Unexpected response from server"
+    : "Server returned an unexpected error page";
+
+  return {
+    success: false,
+    error: text.slice(0, 180).trim() || fallbackMessage,
+  };
+}
+
 export default function MealScanPage() {
   const toast = useToast();
   const scannerIdRef = useRef(
@@ -96,13 +114,20 @@ export default function MealScanPage() {
           scannerId: scannerIdRef.current,
         }),
       });
-      const result = await response.json();
+      const result = await parseApiResponse(response);
       if (!response.ok || !result.success) {
-        throw new Error(result.error || "Failed to serve meal");
+        throw new Error(
+          typeof result.error === "string"
+            ? result.error
+            : "Failed to serve meal",
+        );
       }
 
-      const student = result.data?.student;
-      const fullName = `${student?.first_name || ""} ${student?.last_name || ""}`.trim();
+      const data = (result.data as Record<string, unknown> | undefined) || {};
+      const student = (data.student as Record<string, unknown> | undefined) || {};
+      const firstName = typeof student.first_name === "string" ? student.first_name : "";
+      const lastName = typeof student.last_name === "string" ? student.last_name : "";
+      const fullName = `${firstName} ${lastName}`.trim();
       setRecentServes((prev) => [
         {
           name: fullName || "Student",
@@ -112,7 +137,11 @@ export default function MealScanPage() {
         ...prev,
       ].slice(0, 10));
 
-      toast.success(result.message || `${fullName} served`);
+      toast.success(
+        typeof result.message === "string"
+          ? result.message
+          : `${fullName} served`,
+      );
       setScanValue("");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to serve meal");
@@ -171,13 +200,22 @@ export default function MealScanPage() {
           })),
         }),
       });
-      const result = await response.json();
+      const result = await parseApiResponse(response);
       if (!response.ok || !result.success) {
-        throw new Error(result.error || "Failed to save meal rules");
+        throw new Error(
+          typeof result.error === "string"
+            ? result.error
+            : "Failed to save meal rules",
+        );
       }
 
-      setRules(result.data?.rules || rules);
-      toast.success(result.message || "Meal rules updated");
+      const data = (result.data as Record<string, unknown> | undefined) || {};
+      setRules((data.rules as MealRule[] | undefined) || rules);
+      toast.success(
+        typeof result.message === "string"
+          ? result.message
+          : "Meal rules updated",
+      );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to save rules");
     } finally {

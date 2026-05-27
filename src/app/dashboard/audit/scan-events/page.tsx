@@ -128,6 +128,7 @@ export default function ScanEventsPage() {
   const [page, setPage] = useState(1);
   const pageSize = 25;
   const [detailRow, setDetailRow] = useState<ScanEventRow | null>(null);
+  const [exporting, setExporting] = useState(false);
 
   const fetchEvents = useCallback(async () => {
     if (!school?.id) return;
@@ -188,6 +189,40 @@ export default function ScanEventsPage() {
     dateFrom !== appliedFilters.dateFrom ||
     dateTo !== appliedFilters.dateTo;
 
+  const exportCSV = async () => {
+    try {
+      setExporting(true);
+      const params = new URLSearchParams({
+        entityType: appliedFilters.entityType,
+        decision: appliedFilters.decision,
+        scannerId: appliedFilters.scannerId || "all",
+        reasonCode: appliedFilters.reasonCode || "all",
+        dateFrom: appliedFilters.dateFrom ? toLocalStartOfDayISO(appliedFilters.dateFrom) : "",
+        dateTo: appliedFilters.dateTo ? toLocalEndOfDayISO(appliedFilters.dateTo) : "",
+        format: "csv",
+        limit: "5000",
+      });
+
+      const response = await fetch(`/api/audit/scan-events/?${params.toString()}`, {
+        credentials: "include",
+      });
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || `Failed to export scan events (${response.status})`);
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `scan-events-${new Date().toISOString().slice(0, 10)}.csv`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   return (
     <PageErrorBoundary>
       <div className="p-4 sm:p-6 lg:p-8 space-y-6">
@@ -195,14 +230,25 @@ export default function ScanEventsPage() {
           title="Scan Events"
           subtitle="Monitor meal and attendance scans, terminal IDs, and signature checks."
           actions={
-            <Button
-              variant="secondary"
-              size="sm"
-              icon={<MaterialIcon icon="history" />}
-              onClick={() => router.push("/dashboard/audit/")}
-            >
-              Audit Log
-            </Button>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={<MaterialIcon icon="download" />}
+                onClick={exportCSV}
+                disabled={exporting || loading}
+              >
+                {exporting ? "Exporting..." : "Export CSV"}
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={<MaterialIcon icon="history" />}
+                onClick={() => router.push("/dashboard/audit/")}
+              >
+                Audit Log
+              </Button>
+            </div>
           }
         />
 

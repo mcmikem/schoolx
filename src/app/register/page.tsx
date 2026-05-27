@@ -17,7 +17,7 @@
 // ============================================================================
 "use client";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
@@ -56,7 +56,7 @@ const SUPPORT_WHATSAPP_URL = "https://wa.me/256700000000";
 
 // Package is always defaulted to starter at registration; user upgrades later
 
-export default function RegisterPage() {
+function RegisterPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [step, setStep] = useState(1);
@@ -867,5 +867,25 @@ router.replace("/dashboard/");
         </div>
       </div>
     </PageErrorBoundary>
+  );
+}
+
+function RegisterPageFallback() {
+  return (
+    <PageErrorBoundary>
+      <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center px-4">
+        <div className="rounded-2xl border border-[var(--border)] bg-white px-6 py-5 text-sm text-[var(--t2)] shadow-sm">
+          Preparing registration...
+        </div>
+      </div>
+    </PageErrorBoundary>
+  );
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<RegisterPageFallback />}>
+      <RegisterPageContent />
+    </Suspense>
   );
 }

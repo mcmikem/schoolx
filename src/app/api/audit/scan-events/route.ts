@@ -33,6 +33,16 @@ type EnrichedScanEventRow = ScanEventRow & {
   target_label: string;
 };
 
+type ScanEventFilters = {
+  decision?: string;
+  entityType?: string;
+  reasonCode?: string;
+  scannerId?: string;
+  operatorId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+};
+
 function clampInt(value: string | null, fallback: number, min: number, max: number) {
   const parsed = Number.parseInt(value || "", 10);
   if (Number.isNaN(parsed)) return fallback;
@@ -82,6 +92,56 @@ function formatTargetLabel(
   return userMap.get(row.target_id) || row.target_id;
 }
 
+function escapeCsvValue(value: unknown) {
+  const normalized = value == null ? "" : String(value);
+  return `"${normalized.replace(/"/g, '""')}"`;
+}
+
+function buildCsv(events: EnrichedScanEventRow[]) {
+  const headers = [
+    "Timestamp",
+    "Entity",
+    "Target",
+    "Decision",
+    "Reason Code",
+    "Reason Message",
+    "Operator",
+    "Operator Role",
+    "Scanner ID",
+    "Signature",
+    "Meal Type",
+    "Attendance Action",
+    "Source",
+  ];
+
+  const rows = events.map((event) => [
+    event.created_at,
+    event.entity_type,
+    event.target_label,
+    event.decision,
+    event.reason_code,
+    event.reason_message || "",
+    event.operator_name,
+    event.operator_role || "",
+    event.scanner_id || "",
+    event.signature_valid === true
+      ? "verified"
+      : event.signature_valid === false
+        ? "rejected"
+        : event.is_signed
+          ? "signed"
+          : "unsigned",
+    event.meal_type || "",
+    event.attendance_action || "",
+    event.source || "",
+  ]);
+
+  return [
+    headers.map(escapeCsvValue).join(","),
+    ...rows.map((row) => row.map(escapeCsvValue).join(",")),
+  ].join("\n");
+}
+
 export async function GET(request: NextRequest) {
   const auth = await requireUserWithSchool(request);
   if (!auth.ok) return auth.response;
@@ -105,14 +165,16 @@ export async function GET(request: NextRequest) {
   });
 
   const params = request.nextUrl.searchParams;
+  const format = params.get("format") || "json";
+  const isCsv = format === "csv";
   const decision = params.get("decision") || "all";
   const entityType = params.get("entityType") || "all";
   const reasonCode = params.get("reasonCode") || "all";
   const scannerId = params.get("scannerId") || "all";
   const operatorId = params.get("operatorId") || "all";
   const page = clampInt(params.get("page"), 1, 1, 10_000);
-  const limit = clampInt(params.get("limit"), 25, 1, 100);
-  const offset = (page - 1) * limit;
+  const limit = clampInt(params.get("limit"), isCsv ? 5000 : 25, 1, isCsv ? 5000 : 100);
+  const offset = isCsv ? 0 : (page - 1) * limit;
   const dateFrom = params.get("dateFrom") || "";
   const dateTo = params.get("dateTo") || "";
 
@@ -227,6 +289,16 @@ export async function GET(request: NextRequest) {
       : null,
     target_label: formatTargetLabel(row, studentMap, staffTargetMap),
   }));
+
+  if (isCsv) {
+    return new NextResponse(buildCsv(events), {
+      status: 200,
+      headers: {
+        "Content-Type": "text/csv; charset=utf-8",
+        "Content-Disposition": `attachment; filename="scan-events-${new Date().toISOString().slice(0, 10)}.csv"`,
+      },
+    });
+  }
 
   return NextResponse.json({
     events,

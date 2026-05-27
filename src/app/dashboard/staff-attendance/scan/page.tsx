@@ -10,6 +10,24 @@ import { Html5Qrcode } from "html5-qrcode";
 
 type AttendanceAction = "check_in" | "check_out";
 
+async function parseApiResponse(response: Response): Promise<Record<string, unknown>> {
+  const contentType = response.headers.get("content-type") || "";
+
+  if (contentType.includes("application/json")) {
+    return (await response.json()) as Record<string, unknown>;
+  }
+
+  const text = await response.text();
+  const fallbackMessage = response.ok
+    ? "Unexpected response from server"
+    : "Server returned an unexpected error page";
+
+  return {
+    success: false,
+    error: text.slice(0, 180).trim() || fallbackMessage,
+  };
+}
+
 export default function StaffAttendanceScanPage() {
   const toast = useToast();
   const scannerIdRef = useRef(
@@ -51,12 +69,18 @@ export default function StaffAttendanceScanPage() {
         }),
       });
 
-      const result = await response.json();
+      const result = await parseApiResponse(response);
       if (!response.ok || !result.success) {
-        throw new Error(result.error || "Failed to record attendance");
+        throw new Error(
+          typeof result.error === "string"
+            ? result.error
+            : "Failed to record attendance",
+        );
       }
 
-      const name = result.data?.staff?.full_name || "Staff";
+      const data = (result.data as Record<string, unknown> | undefined) || {};
+      const staff = (data.staff as Record<string, unknown> | undefined) || {};
+      const name = typeof staff.full_name === "string" ? staff.full_name : "Staff";
       const label = action === "check_in" ? "Check In" : "Check Out";
 
       setRecent((prev) => [
@@ -69,7 +93,11 @@ export default function StaffAttendanceScanPage() {
       ].slice(0, 10));
 
       setScanValue("");
-      toast.success(result.message || `${name} ${label.toLowerCase()} complete`);
+      toast.success(
+        typeof result.message === "string"
+          ? result.message
+          : `${name} ${label.toLowerCase()} complete`,
+      );
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to record attendance");
     } finally {
