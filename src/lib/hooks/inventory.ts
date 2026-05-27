@@ -80,6 +80,34 @@ export function useInventory(schoolId?: string) {
   const [loading, setLoading] = useState(true)
   const { isDemo } = useAuth()
 
+  const fetchTransactions = useCallback(async () => {
+    if (!schoolId) {
+      setLoading(false)
+      return
+    }
+
+    const querySchoolId = getQuerySchoolId(schoolId, isDemo)
+
+    try {
+      setLoading(true)
+      const { data, error } = await supabase
+        .from('inventory_transactions')
+        .select(`
+          *,
+          asset:assets(id, name, type, current_stock)
+        `)
+        .eq('school_id', querySchoolId)
+        .order('transaction_date', { ascending: false })
+
+      if (error) throw error
+      setTransactions(data || [])
+    } catch (err) {
+      logger.error('Error fetching inventory transactions:', err)
+    } finally {
+      setLoading(false)
+    }
+  }, [schoolId, isDemo])
+
   const recordTransaction = async (transaction: Omit<InventoryTransaction, 'id' | 'created_at'>) => {
     if (isDemo || isDemoSchool(schoolId)) {
       const newTrans = { ...transaction, id: `demo-inv-${Date.now()}`, school_id: schoolId || '00000000-0000-0000-0000-000000000001', created_at: new Date().toISOString() }
@@ -120,36 +148,8 @@ export function useInventory(schoolId?: string) {
   }
 
   useEffect(() => {
-    async function fetchTransactions() {
-      if (!schoolId) {
-        setLoading(false)
-        return
-      }
-
-      const querySchoolId = getQuerySchoolId(schoolId, isDemo)
-
-      try {
-        setLoading(true)
-        const { data, error } = await supabase
-          .from('inventory_transactions')
-          .select(`
-            *,
-            asset:assets(id, name, type, current_stock)
-          `)
-          .eq('school_id', querySchoolId)
-          .order('transaction_date', { ascending: false })
-
-        if (error) throw error
-        setTransactions(data || [])
-      } catch (err) {
-        logger.error('Error fetching inventory transactions:', err)
-      } finally {
-        setLoading(false)
-      }
-    }
-
     fetchTransactions()
-  }, [schoolId, isDemo])
+  }, [fetchTransactions])
 
-  return { transactions, loading, recordTransaction }
+  return { transactions, loading, recordTransaction, refetch: fetchTransactions }
 }
