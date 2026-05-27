@@ -92,7 +92,7 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
         { href: "/dashboard", label: "Dashboard Home", icon: "dashboard" },
         {
           href: "/dashboard/store/inventory",
-          label: "Asset Register",
+          label: "Inventory",
           icon: "inventory_2",
         },
         ...(process.env.NODE_ENV !== "production"
@@ -256,6 +256,10 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
               href: "/dashboard/store/pos",
               label: "Canteen POS",
               icon: "shopping_cart",
+            }, {
+              href: "/dashboard/store/meal-scan",
+              label: "Meal Scan",
+              icon: "restaurant",
             }]
           : []),
         {
@@ -579,6 +583,11 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
           href: "/dashboard/store/pos",
           label: "Canteen POS",
           icon: "shopping_cart",
+        },
+        {
+          href: "/dashboard/store/meal-scan",
+          label: "Meal Scan",
+          icon: "restaurant",
         },
         {
           href: "/dashboard/store/inventory",

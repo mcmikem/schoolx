@@ -12,6 +12,7 @@ import { format } from "date-fns";
 import Image from "next/image";
 import { logger } from "@/lib/logger";
 import { Html5Qrcode } from "html5-qrcode";
+import Link from "next/link";
 
 interface POSItem {
   id: string;
@@ -319,6 +320,13 @@ export default function CanteenPOSPage() {
         </div>
 
         <div className="flex items-center gap-6">
+          <Link
+            href="/dashboard/store/meal-scan"
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-100"
+          >
+            <MaterialIcon icon="restaurant" className="text-sm" />
+            Meal Scan Terminal
+          </Link>
           <div className="text-right flex items-center gap-4">
             {!isOnline && (
               <div className="flex items-center gap-2 text-amber-500 bg-amber-50 px-3 py-1.5 rounded-full border border-amber-100 animate-pulse">

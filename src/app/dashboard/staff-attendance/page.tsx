@@ -12,6 +12,7 @@ import { EmptyState } from "@/components/EmptyState";
 import MaterialIcon from "@/components/MaterialIcon";
 import PersonInitials from "@/components/ui/PersonInitials";
 import { logger } from "@/lib/logger";
+import Link from "next/link";
 
 interface StaffMember {
   id: string;
@@ -21,11 +22,20 @@ interface StaffMember {
 
 interface AttendanceRecord {
   id: string;
-  user_id: string;
+  staff_id: string;
   date: string;
   status: string;
   time_in: string | null;
   time_out: string | null;
+}
+
+function getLocalTimeValue(): string {
+  return new Date().toLocaleTimeString("en-GB", {
+    hour12: false,
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
 }
 
 export default function StaffAttendancePage() {
@@ -55,15 +65,22 @@ export default function StaffAttendancePage() {
 
       setStaff(staffData || []);
 
+      const staffIds = (staffData || []).map((member) => member.id);
+
+      if (staffIds.length === 0) {
+        setAttendance({});
+        return;
+      }
+
       const { data: attendanceData } = await supabase
         .from("staff_attendance")
         .select("*")
-        .eq("school_id", school.id)
+        .in("staff_id", staffIds)
         .eq("date", date);
 
       const attendanceMap: Record<string, string> = {};
-      attendanceData?.forEach((a) => {
-        attendanceMap[a.user_id] = a.status;
+      (attendanceData as AttendanceRecord[] | null)?.forEach((a) => {
+        attendanceMap[a.staff_id] = a.status;
       });
       setAttendance(attendanceMap);
     } catch (err) {
@@ -94,14 +111,13 @@ export default function StaffAttendancePage() {
 
     try {
       setSaving(true);
-      const records = Object.entries(attendance).map(([userId, status]) => ({
-        school_id: school.id,
-        user_id: userId,
+      const records = Object.entries(attendance).map(([staffId, status]) => ({
+        staff_id: staffId,
         date,
         status,
         time_in:
           status === "present" || status === "late"
-            ? new Date().toISOString()
+            ? getLocalTimeValue()
             : null,
         time_out: null,
         recorded_by: user.id,
@@ -109,7 +125,7 @@ export default function StaffAttendancePage() {
 
       const { error } = await supabase
         .from("staff_attendance")
-        .upsert(records, { onConflict: "user_id,date" });
+        .upsert(records, { onConflict: "staff_id,date" });
 
       if (error) throw error;
       toast.success("Staff attendance saved");
@@ -188,6 +204,12 @@ export default function StaffAttendancePage() {
             aria-label="Attendance date"
           />
           <div className="flex gap-2">
+            <Link href="/dashboard/staff-attendance/scan">
+              <Button variant="primary" size="sm">
+                <MaterialIcon icon="qr_code_scanner" className="text-lg" />
+                Open Scan Terminal
+              </Button>
+            </Link>
             <Button
               variant="secondary"
               size="sm"
