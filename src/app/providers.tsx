@@ -1,13 +1,12 @@
 'use client'
-import { ReactNode, useEffect, useState } from 'react'
+import { ReactNode, useEffect } from 'react'
 import { AuthProvider, useAuth } from '@/lib/auth-context'
 import { AcademicProvider } from '@/lib/academic-context'
 import { ThemeProvider } from '@/lib/theme-context'
 import { NotificationsProvider } from '@/lib/notifications'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import { ToastProvider } from '@/components/Toast'
-import AppLoader from '@/components/Loader'
-import { StuckLoadingOverlay } from '@/components/ui/Skeleton'
+import { StuckLoadingOverlay, TopLoadingBar } from '@/components/ui/Skeleton'
 import { logger } from '@/lib/logger'
 import { setupErrorLogging } from '@/lib/error-logger'
 import BrandProvider from '@/components/BrandProvider'
@@ -108,28 +107,19 @@ function ServiceWorkerRegistration({ children }: { children: ReactNode }) {
 
 function LoadingChecker({ children }: { children: ReactNode }) {
   const { authInitialized } = useAuth()
-  const [showLoader, setShowLoader] = useState(true)
 
-  // Show loader until auth initializes, with a short fallback timeout.
-  // Keep this low so the app can render shell/skeleton states quickly
-  // instead of blocking on a full-screen overlay.
-  useEffect(() => {
-    if (authInitialized) {
-      setShowLoader(false)
-      return
-    }
-    const timer = setTimeout(() => {
-      setShowLoader(false)
-    }, 1500)
-    return () => clearTimeout(timer)
-  }, [authInitialized])
+  // Do not block first paint on auth checks.
+  // Render app shell immediately and show only a lightweight top loading hint.
+  if (!authInitialized) {
+    return (
+      <>
+        <TopLoadingBar />
+        {children}
+        <StuckLoadingOverlay delay={8000} />
+      </>
+    )
+  }
 
-  if (!authInitialized && showLoader) return (
-    <>
-      <AppLoader />
-      <StuckLoadingOverlay delay={8000} />
-    </>
-  );
   return <>{children}</>
 }
 
