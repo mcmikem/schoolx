@@ -140,6 +140,20 @@ export default function ReportsPage() {
             logo_url: data.school?.logo_url || school?.logo_url,
             uneab_center_number:
               data.school?.uneab_center_number || school?.uneb_center_number,
+            primary_color: data.school?.primary_color || school?.primary_color,
+            accent_color: data.school?.accent_color || school?.accent_color,
+            school_motto: data.school?.school_motto,
+            motto: data.school?.motto || school?.motto,
+            report_header_text: data.school?.report_header_text,
+            report_footer_text: data.school?.report_footer_text,
+            report_header: data.school?.report_header,
+            report_footer: data.school?.report_footer,
+            signature_headteacher_url:
+              data.school?.signature_headteacher_url ||
+              school?.signature_headteacher_url,
+            signature_class_teacher_url:
+              data.school?.signature_class_teacher_url ||
+              school?.signature_class_teacher_url,
           },
           term: data.term || currentTerm,
           academicYear: data.academicYear || academicYear,
@@ -197,6 +211,7 @@ export default function ReportsPage() {
       if (!printWindow) return;
 
       const primaryColor = school?.primary_color || "#002045";
+      const reportHeader = (school as any)?.report_header_text || (school as any)?.report_header || "";
       const logoUrl = school?.logo_url || "";
 
       printWindow.document.write(`
@@ -233,7 +248,7 @@ export default function ReportsPage() {
                 <div class="header">
                   ${logoUrl ? `<img src="${logoUrl}" alt="School logo" class="school-logo" />` : ""}
                   <div class="school-name">${report.school?.name || school?.name}</div>
-                  <div>TERM ${report.term} REPORT CARD — ${report.academicYear}</div>
+                  <div>${reportHeader || `TERM ${report.term} REPORT CARD — ${report.academicYear}`}</div>
                 </div>
                 <div class="student-info">
                   <div>
@@ -375,6 +390,8 @@ export default function ReportsPage() {
             district: data.school?.district || school?.district || "Uganda",
             primary_color: data.school?.primary_color,
             logo_url: data.school?.logo_url || school?.logo_url,
+            report_header_text: data.school?.report_header_text || data.school?.report_header,
+            report_footer_text: data.school?.report_footer_text || data.school?.report_footer,
           },
           term: data.term || currentTerm,
           academicYear: data.academicYear || academicYear,
@@ -433,7 +450,8 @@ export default function ReportsPage() {
         doc.setFontSize(11);
         doc.setFont("helvetica", "bold");
         doc.text(
-          `TERM ${reportDataForPDF.term} REPORT CARD — ${reportDataForPDF.academicYear}`,
+          reportDataForPDF.school.report_header_text ||
+            `TERM ${reportDataForPDF.term} REPORT CARD — ${reportDataForPDF.academicYear}`,
           105,
           37,
           { align: "center" },
@@ -489,6 +507,15 @@ export default function ReportsPage() {
           140,
           summaryY,
         );
+
+        if (reportDataForPDF.school.report_footer_text) {
+          doc.setFontSize(8);
+          doc.setFont("helvetica", "italic");
+          doc.setTextColor(90, 90, 90);
+          doc.text(reportDataForPDF.school.report_footer_text, 105, 287, {
+            align: "center",
+          });
+        }
 
         doc.save(
           `Report_${reportDataForPDF.student.first_name}_${reportDataForPDF.student.last_name}_T${reportDataForPDF.term}.pdf`,

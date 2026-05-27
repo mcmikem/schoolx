@@ -23,8 +23,11 @@ interface ReportCardProps {
       primary_color?: string;
       accent_color?: string;
       school_motto?: string;
+      motto?: string;
       report_header_text?: string;
       report_footer_text?: string;
+      report_header?: string;
+      report_footer?: string;
       signature_headteacher_url?: string;
       signature_class_teacher_url?: string;
       report_template?: string;
@@ -110,6 +113,9 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
   const school = (report.school || {}) as NonNullable<typeof report.school>;
   const primaryColor = school.primary_color || "#002045";
   const accentColor = school.accent_color || "#3b82f6";
+  const schoolMotto = school.school_motto || school.motto;
+  const reportHeader = school.report_header_text || school.report_header;
+  const reportFooter = school.report_footer_text || school.report_footer;
   const showPosition = school.show_position_in_report !== false;
   const showConduct = school.show_conduct_in_report !== false;
   const showAttendance = school.show_attendance_in_report !== false;
@@ -211,10 +217,10 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
       align: "center",
     });
 
-    if (school.school_motto) {
+    if (schoolMotto) {
       doc.setFontSize(9);
       doc.setFont("helvetica", "italic");
-      doc.text(`"${school.school_motto}"`, 105, 22, { align: "center" });
+      doc.text(`"${schoolMotto}"`, 105, 22, { align: "center" });
       doc.setFont("helvetica", "normal");
     }
 
@@ -228,7 +234,7 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
     doc.text(
-      `TERM ${report.term} REPORT CARD — ${report.academicYear}`,
+      reportHeader || `TERM ${report.term} REPORT CARD — ${report.academicYear}`,
       105,
       37,
       { align: "center" },
@@ -390,6 +396,13 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
       });
     }
 
+    if (reportFooter) {
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "italic");
+      doc.setTextColor(90, 90, 90);
+      doc.text(reportFooter, 105, 287, { align: "center" });
+    }
+
     doc.save(
       `Report_${report.student.first_name}_${report.student.last_name}_T${report.term}.pdf`,
     );
@@ -475,9 +488,14 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
           <div className="text-xl font-bold tracking-wide">
             {report.school?.name || "School Name"}
           </div>
-          {school.school_motto && (
+          {schoolMotto && (
             <div className="text-xs italic mt-1 opacity-90">
-              "{school.school_motto}"
+              "{schoolMotto}"
+            </div>
+          )}
+          {reportHeader && (
+            <div className="text-[11px] font-semibold mt-1.5 opacity-95">
+              {reportHeader}
             </div>
           )}
           <div className="text-sm opacity-90 mt-1.5">
@@ -485,12 +503,14 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
             {report.school?.uneab_center_number &&
               ` | Center: ${report.school.uneab_center_number}`}
           </div>
-          <div
-            className="text-sm font-semibold mt-2 pt-2"
-            style={{ borderTop: "1px solid rgba(255,255,255,0.3)" }}
-          >
-            TERM {report.term} REPORT CARD — {report.academicYear}
-          </div>
+          {!reportHeader && (
+            <div
+              className="text-sm font-semibold mt-2 pt-2"
+              style={{ borderTop: "1px solid rgba(255,255,255,0.3)" }}
+            >
+              TERM {report.term} REPORT CARD — {report.academicYear}
+            </div>
+          )}
         </div>
 
         {/* Student Info */}
@@ -888,9 +908,9 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
         </div>
 
         {/* Footer */}
-        {school.report_footer_text && (
+        {(reportFooter || "") && (
           <div className="px-4 py-2 text-center text-xs text-gray-400 border-t bg-gray-50">
-            {school.report_footer_text}
+            {reportFooter}
           </div>
         )}
       </div>

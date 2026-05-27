@@ -19,6 +19,9 @@ export default function AdmissionLetter({ student, school, academicYear, admissi
     year: 'numeric'
   });
   const brandColor = school?.primary_color || "#1d3f72";
+  const accentColor = school?.accent_color || "#0ea5e9";
+  const customHeader = school?.report_header_text || school?.report_header || "";
+  const customFooter = school?.report_footer_text || school?.report_footer || "";
 
   return (
     <div className="w-[210mm] min-h-[297mm] bg-white p-[20mm] shadow-2xl mx-auto print:shadow-none print:p-0 admission-letter text-slate-800 font-serif">
@@ -44,6 +47,9 @@ export default function AdmissionLetter({ student, school, academicYear, admissi
         <div className="text-right">
           <p className="text-sm font-bold" style={{ color: brandColor }}>Admission Ref: {student.student_number || "ADM/2026/001"}</p>
           <p className="text-xs text-slate-500 font-medium">{currentDate}</p>
+          {customHeader ? (
+            <p className="text-[11px] font-semibold mt-1" style={{ color: accentColor }}>{customHeader}</p>
+          ) : null}
         </div>
       </div>
 
@@ -110,9 +116,11 @@ export default function AdmissionLetter({ student, school, academicYear, admissi
       </div>
 
       {/* Footer Motif */}
-      <div className="mt-32 pt-8 border-t border-slate-100 flex justify-between items-center opacity-30">
+      <div className="mt-32 pt-8 border-t border-slate-100 flex justify-between items-center opacity-70">
         <SkoolMateLogo size="sm" showText={true} />
-        <p className="text-[10px] font-medium tracking-tighter uppercase italic">Always Progressing, Never Backwards</p>
+        <p className="text-[10px] font-medium tracking-tighter uppercase italic" style={{ color: brandColor }}>
+          {customFooter || "Always Progressing, Never Backwards"}
+        </p>
       </div>
     </div>
   );

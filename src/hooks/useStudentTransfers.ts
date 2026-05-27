@@ -50,6 +50,11 @@ export function useStudentTransfers(
   createStudent: (data: CreateStudentInput) => Promise<unknown>,
   updateStudent: (id: string, data: Partial<CreateStudentInput>) => Promise<unknown>,
   toast: { success: (msg: string) => void; error: (msg: string) => void },
+  schoolBranding?: {
+    name?: string | null;
+    logo_url?: string | null;
+    primary_color?: string | null;
+  } | null,
 ) {
   const transferPrintRef = useRef<HTMLDivElement>(null);
   const [transferActiveTab, setTransferActiveTab] = useState<TransferTab>("in");
@@ -249,12 +254,14 @@ export function useStudentTransfers(
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
     const content = transferPrintRef.current.innerHTML;
+    const letterColor = schoolBranding?.primary_color || "#1e3a5f";
     printWindow.document.write(`
       <html><head><title>Transfer Letter</title>
       <style>
         body { font-family: 'Segoe UI', Arial, sans-serif; padding: 40px; color: #1a1a1a; }
-        .letterhead { text-align: center; margin-bottom: 30px; border-bottom: 3px solid #1e3a5f; padding-bottom: 20px; }
-        .letterhead h1 { margin: 0; font-size: 22px; color: #1e3a5f; }
+        .letterhead { text-align: center; margin-bottom: 30px; border-bottom: 3px solid ${letterColor}; padding-bottom: 20px; }
+        .letterhead-logo { width: 52px; height: 52px; object-fit: contain; margin: 0 auto 8px; display: block; }
+        .letterhead h1 { margin: 0; font-size: 22px; color: ${letterColor}; }
         .letterhead p { margin: 4px 0; font-size: 13px; color: #555; }
         .title { text-align: center; font-size: 18px; font-weight: 700; margin: 20px 0; text-decoration: underline; }
         .content { line-height: 1.8; font-size: 14px; }

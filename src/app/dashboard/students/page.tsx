@@ -141,7 +141,7 @@ export default function StudentHubPage() {
   }, [pathname, router, searchParams]);
 
   const transfers = useStudentTransfers(
-    school?.id, students, isDemo, createStudent, updateStudent, toast,
+    school?.id, students, isDemo, createStudent, updateStudent, toast, school,
   );
   const dropouts = useStudentDropouts(
     school?.id, students, isDemo, updateStudent, toast, user,

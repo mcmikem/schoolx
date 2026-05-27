@@ -309,6 +309,16 @@ export interface ReportCard {
   school?: Pick<School, "name" | "district"> & {
     uneab_center_number?: string;
     logo_url?: string;
+    primary_color?: string;
+    accent_color?: string;
+    school_motto?: string;
+    motto?: string;
+    report_header_text?: string;
+    report_footer_text?: string;
+    report_header?: string;
+    report_footer?: string;
+    signature_headteacher_url?: string;
+    signature_class_teacher_url?: string;
   };
   term: number;
   academicYear: string;

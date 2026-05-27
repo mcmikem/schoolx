@@ -42,6 +42,8 @@ export default function IDCardsPage() {
     if (!cardWindow) return;
 
     const schoolColor = school?.primary_color || "#002045";
+    const accentColor = school?.accent_color || "#2563eb";
+    const schoolLogo = school?.logo_url || "";
     const schoolName = school?.name || "School";
     const escapeHtml = (s: string) =>
       String(s)
@@ -74,12 +76,34 @@ export default function IDCardsPage() {
           }
           .left-section {
             width: 100px;
-            background: linear-gradient(180deg, ${schoolColor} 0%, ${schoolColor}dd 100%);
+            background: linear-gradient(180deg, ${schoolColor} 0%, ${accentColor} 100%);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             padding: 15px;
+          }
+          .school-logo {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            object-fit: contain;
+            background: rgba(255,255,255,0.2);
+            padding: 2px;
+            margin-bottom: 8px;
+          }
+          .school-logo-fallback {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            font-size: 12px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 8px;
           }
           .avatar {
             width: 70px;
@@ -166,6 +190,9 @@ export default function IDCardsPage() {
       <body>
         <div class="id-card">
           <div class="left-section">
+            ${schoolLogo
+              ? `<img src="${escapeHtml(schoolLogo)}" alt="${escapeHtml(schoolName)} logo" class="school-logo" />`
+              : `<div class="school-logo-fallback">${escapeHtml(schoolName.charAt(0).toUpperCase())}</div>`}
             <div class="avatar">${firstName?.[0]}${lastName?.[0]}</div>
             <div class="school-name-small">${escapeHtml(schoolName)}</div>
           </div>

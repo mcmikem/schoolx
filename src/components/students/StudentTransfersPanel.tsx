@@ -38,10 +38,17 @@ interface ClassOption {
 }
 
 interface SchoolIdentity {
+  id?: string | null;
   name?: string | null;
   district?: string | null;
   phone?: string | null;
   email?: string | null;
+  logo_url?: string | null;
+  primary_color?: string | null;
+  report_header_text?: string | null;
+  report_header?: string | null;
+  report_footer_text?: string | null;
+  report_footer?: string | null;
 }
 
 interface TransferInForm {
@@ -457,11 +464,22 @@ export default function StudentTransfersPanel({
         <div className="hidden">
           <div ref={transferPrintRef}>
             <div className="letterhead">
+              {school?.logo_url ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={school.logo_url}
+                  alt={`${school?.name || "School"} logo`}
+                  className="letterhead-logo"
+                />
+              ) : null}
               <h1>{school?.name || "School Name"}</h1>
               <p>
                 {school?.district ? `${school.district} District` : ""} {school?.phone ? `| Tel: ${school.phone}` : ""}
               </p>
               <p>{school?.email || ""}</p>
+              {((school as any)?.report_header_text || (school as any)?.report_header) ? (
+                <p>{(school as any).report_header_text || (school as any).report_header}</p>
+              ) : null}
             </div>
             <div className="title">TRANSFER LETTER</div>
             <div className="content">
@@ -514,6 +532,11 @@ export default function StudentTransfersPanel({
                 <div className="sig-line">Head Teacher&apos;s Signature</div>
               </div>
             </div>
+            {((school as any)?.report_footer_text || (school as any)?.report_footer) ? (
+              <p className="text-center text-xs text-slate-500 mt-6">
+                {(school as any).report_footer_text || (school as any).report_footer}
+              </p>
+            ) : null}
           </div>
         </div>
       )}
