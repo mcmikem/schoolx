@@ -127,13 +127,24 @@ export default function GeneralSettings({
     });
   };
 
+  const readApiJson = async (response: Response) => {
+    const contentType = response.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) {
+      const body = await response.text();
+      throw new Error(
+        `Expected JSON response but received ${contentType || "unknown content type"}: ${body.slice(0, 120)}`,
+      );
+    }
+    return response.json();
+  };
+
   const testStorage = async () => {
     try {
       setStorageStatus("unknown");
       toast.info("Testing storage connection...");
 
-      const response = await fetch("/api/storage", { method: "GET" });
-      const result = await response.json();
+      const response = await fetch("/api/storage/", { method: "GET" });
+      const result = await readApiJson(response);
 
       logger.debug("Storage check:", result);
 
@@ -143,10 +154,10 @@ export default function GeneralSettings({
           toast.success("Storage bucket exists!");
         } else {
           toast.info("Creating bucket...");
-          const createResponse = await fetch("/api/storage", {
+          const createResponse = await fetch("/api/storage/", {
             method: "POST",
           });
-          const createResult = await createResponse.json();
+          const createResult = await readApiJson(createResponse);
 
           if (createResult.success) {
             setStorageStatus("ok");
@@ -183,12 +194,13 @@ export default function GeneralSettings({
 
     setUploadingLogo(true);
     try {
-      const bucketCheck = await fetch("/api/storage", { method: "GET" });
-      const bucketResult = await bucketCheck.json();
+      const bucketCheck = await fetch("/api/storage/", { method: "GET" });
+      const bucketResult = await readApiJson(bucketCheck);
 
       if (!bucketResult.exists) {
         toast.info("Setting up storage...");
-        await fetch("/api/storage", { method: "POST" });
+        const createResponse = await fetch("/api/storage/", { method: "POST" });
+        await readApiJson(createResponse);
       }
 
       toast.info("Processing image...");
