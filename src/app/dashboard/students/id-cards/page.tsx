@@ -15,19 +15,14 @@ export default function IDCardGenerator() {
   const searchParams = useSearchParams();
   const studentId = searchParams?.get("studentId") || null;
 
-  const [school, setSchool] = useState(authSchool);
   const [loading, setLoading] = useState(false);
   const [students, setStudents] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (authSchool) {
-      setSchool(authSchool);
-    } else {
-      refreshSchoolFromAPI?.().then(() => {});
-    }
-  }, [authSchool, refreshSchoolFromAPI]);
+    refreshSchoolFromAPI?.().catch(() => {});
+  }, [refreshSchoolFromAPI]);
 
   const loadSingleStudent = useCallback(async (id: string) => {
     setLoading(true);
@@ -191,7 +186,7 @@ export default function IDCardGenerator() {
                   >
                     <StudentIDCard
                       student={s}
-                      school={school || { name: "SkoolMate Official School" }}
+                      school={authSchool || { name: "SkoolMate Official School" }}
                     />
                   </div>
                 ))

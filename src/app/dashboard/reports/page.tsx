@@ -1,6 +1,6 @@
 "use client";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
 import { useStudents, useClasses } from "@/lib/hooks";
@@ -21,7 +21,7 @@ import PersonInitials from "@/components/ui/PersonInitials";
 import { APP_NAME } from "@/lib/app-name";
 
 export default function ReportsPage() {
-  const { school } = useAuth();
+  const { school, refreshSchoolFromAPI } = useAuth();
   const { academicYear, currentTerm } = useAcademic();
   const { students, loading: studentsLoading } = useStudents(school?.id);
   const { classes } = useClasses(school?.id);
@@ -34,6 +34,31 @@ export default function ReportsPage() {
   );
   const [reportData, setReportData] = useState<ReportCardType | null>(null);
   const [loadingReport, setLoadingReport] = useState(false);
+
+  useEffect(() => {
+    refreshSchoolFromAPI?.().catch(() => {});
+  }, [refreshSchoolFromAPI]);
+
+  const toDataUrl = async (url: string): Promise<string> => {
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new Error("Failed to load image");
+    }
+    const blob = await response.blob();
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result;
+        if (typeof result === "string") {
+          resolve(result);
+          return;
+        }
+        reject(new Error("Failed to encode image"));
+      };
+      reader.onerror = () => reject(new Error("Failed to encode image"));
+      reader.readAsDataURL(blob);
+    });
+  };
 
   const filteredStudents = students.filter((s) => {
     const matchesSearch =
@@ -112,6 +137,9 @@ export default function ReportsPage() {
           school: {
             name: data.school?.name || school?.name || APP_NAME,
             district: data.school?.district || school?.district || "Uganda",
+            logo_url: data.school?.logo_url || school?.logo_url,
+            uneab_center_number:
+              data.school?.uneab_center_number || school?.uneb_center_number,
           },
           term: data.term || currentTerm,
           academicYear: data.academicYear || academicYear,
@@ -169,6 +197,7 @@ export default function ReportsPage() {
       if (!printWindow) return;
 
       const primaryColor = school?.primary_color || "#002045";
+      const logoUrl = school?.logo_url || "";
 
       printWindow.document.write(`
         <html>
@@ -180,6 +209,7 @@ export default function ReportsPage() {
               .report-card { max-width: 800px; margin: 0 auto 30px; border: 2px solid ${primaryColor}; page-break-after: always; }
               .report-card:last-child { page-break-after: auto; }
               .header { background: ${primaryColor}; color: white; padding: 20px; text-align: center; }
+              .school-logo { max-width: 60px; max-height: 60px; object-fit: contain; margin: 0 auto 8px; display: block; }
               .school-name { font-size: 22px; font-weight: bold; }
               .student-info { padding: 15px; display: flex; justify-content: space-between; border-bottom: 2px solid ${primaryColor}; background: #fafbfc; }
               .info-label { font-size: 10px; color: #666; text-transform: uppercase; }
@@ -201,6 +231,7 @@ export default function ReportsPage() {
                 (report) => `
               <div class="report-card">
                 <div class="header">
+                  ${logoUrl ? `<img src="${logoUrl}" alt="School logo" class="school-logo" />` : ""}
                   <div class="school-name">${report.school?.name || school?.name}</div>
                   <div>TERM ${report.term} REPORT CARD — ${report.academicYear}</div>
                 </div>
@@ -343,6 +374,7 @@ export default function ReportsPage() {
             name: data.school?.name || school?.name || APP_NAME,
             district: data.school?.district || school?.district || "Uganda",
             primary_color: data.school?.primary_color,
+            logo_url: data.school?.logo_url || school?.logo_url,
           },
           term: data.term || currentTerm,
           academicYear: data.academicYear || academicYear,
@@ -382,6 +414,19 @@ export default function ReportsPage() {
 
         doc.setFillColor(pc.r, pc.g, pc.b);
         doc.rect(0, 0, 210, 40, "F");
+
+        if (reportDataForPDF.school.logo_url) {
+          try {
+            const logoData = await toDataUrl(reportDataForPDF.school.logo_url);
+            const logoFormat = logoData.startsWith("data:image/jpeg")
+              ? "JPEG"
+              : "PNG";
+            doc.addImage(logoData, logoFormat, 14, 6, 18, 18);
+          } catch {
+            // Continue PDF generation if logo cannot be loaded.
+          }
+        }
+
         doc.setTextColor(255, 255, 255);
         doc.setFontSize(18);
         doc.text(reportDataForPDF.school.name, 105, 15, { align: "center" });
