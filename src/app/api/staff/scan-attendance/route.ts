@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
+  assertApiAccessOrDeny,
   apiError,
   apiSuccess,
   handleApiError,
@@ -104,7 +105,12 @@ export async function POST(request: NextRequest) {
       return scanError(message, reasonCode, status);
     };
 
-    if (!ALLOWED_ROLES.has(auth.context.user.role)) {
+    const accessCheck = assertApiAccessOrDeny({
+      userRole: auth.context.user.role,
+      permission: "staff",
+      allowedRoles: Array.from(ALLOWED_ROLES),
+    });
+    if (!accessCheck.ok) {
       return logBlocked("FORBIDDEN_ROLE", "Forbidden", 403);
     }
 

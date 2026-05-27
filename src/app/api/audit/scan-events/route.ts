@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { requireUserWithSchool } from "@/lib/api-utils";
+import { assertApiAccessOrDeny, requireUserWithSchool } from "@/lib/api-utils";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
@@ -85,6 +85,12 @@ function formatTargetLabel(
 export async function GET(request: NextRequest) {
   const auth = await requireUserWithSchool(request);
   if (!auth.ok) return auth.response;
+
+  const accessCheck = assertApiAccessOrDeny({
+    userRole: auth.context.user.role,
+    permission: "settings",
+  });
+  if (!accessCheck.ok) return accessCheck.response;
 
   if (!supabaseUrl || !supabaseServiceKey) {
     return NextResponse.json(

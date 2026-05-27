@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { User } from "@/types";
 import { logger } from "@/lib/logger";
+import { canAccess, type RolePermissions, type UserRole } from "@/lib/roles";
 
 export interface ApiResponse<T = unknown> {
   success: boolean;
@@ -473,6 +474,68 @@ export function assertUserRoleOrDeny(params: {
   const { userRole, allowedRoles } = params;
 
   if (!allowedRoles.includes(userRole)) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { success: false, error: "Forbidden" },
+        { status: 403 },
+      ),
+    };
+  }
+
+  return { ok: true };
+}
+
+export function assertUserPermissionOrDeny(params: {
+  userRole: string;
+  permission: keyof RolePermissions;
+}): { ok: true } | { ok: false; response: NextResponse } {
+  const allowed = hasUserPermission(params);
+  if (!allowed) {
+    return {
+      ok: false,
+      response: NextResponse.json(
+        { success: false, error: "Forbidden" },
+        { status: 403 },
+      ),
+    };
+  }
+
+  return { ok: true };
+}
+
+export function hasUserPermission(params: {
+  userRole: string;
+  permission: keyof RolePermissions;
+}): boolean {
+  const { userRole, permission } = params;
+  return canAccess(userRole as UserRole, permission);
+}
+
+export function hasApiAccess(params: {
+  userRole: string;
+  permission?: keyof RolePermissions;
+  allowedRoles?: string[];
+}): boolean {
+  const { userRole, permission, allowedRoles } = params;
+
+  if (permission && !hasUserPermission({ userRole, permission })) {
+    return false;
+  }
+
+  if (allowedRoles && allowedRoles.length > 0 && !allowedRoles.includes(userRole)) {
+    return false;
+  }
+
+  return true;
+}
+
+export function assertApiAccessOrDeny(params: {
+  userRole: string;
+  permission?: keyof RolePermissions;
+  allowedRoles?: string[];
+}): { ok: true } | { ok: false; response: NextResponse } {
+  if (!hasApiAccess(params)) {
     return {
       ok: false,
       response: NextResponse.json(
