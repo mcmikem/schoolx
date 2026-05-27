@@ -19,6 +19,7 @@ import {
   ModuleKey,
 } from "@/lib/featureStages";
 import { deepFreeze } from "@/lib/deep-freeze";
+import { resolveRouteAccess, useRoleRouteOverrides } from "@/lib/role-access-overrides";
 
 const roleBasedRoutes: Record<string, keyof RolePermissions> = deepFreeze({
   "/dashboard/students": "students",
@@ -237,6 +238,7 @@ export function useAccessControl() {
   const pathname = usePathname();
   const router = useRouter();
   const toast = useToast();
+  const { overrides } = useRoleRouteOverrides(school?.id);
 
   const featureStage =
     (school?.feature_stage as FeatureStage) || DEFAULT_FEATURE_STAGE;
@@ -250,7 +252,12 @@ export function useAccessControl() {
     );
     if (routeKey) {
       const permission = roleBasedRoutes[routeKey];
-      if (user.role && !canAccess(user.role as UserRole, permission)) {
+      const role = user.role as UserRole;
+      const baseAllowed = role ? canAccess(role, permission) : false;
+      const allowed = role
+        ? resolveRouteAccess(role, pathname, baseAllowed, overrides)
+        : baseAllowed;
+      if (user.role && !allowed) {
         const lastDenied = sessionStorage.getItem("lastDeniedPath");
         if (lastDenied !== pathname) {
           sessionStorage.setItem("lastDeniedPath", pathname);

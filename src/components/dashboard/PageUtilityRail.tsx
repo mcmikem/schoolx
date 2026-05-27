@@ -7,6 +7,7 @@ import { getNavigationForRole, type NavGroup, type NavItem } from "@/lib/navigat
 import { canAccess, type UserRole } from "@/lib/roles";
 import { canUseModule, type FeatureStage, type ModuleKey, DEFAULT_FEATURE_STAGE } from "@/lib/featureStages";
 import { MODULE_FOR_ROUTE, roleBasedRoutes } from "@/components/dashboard/AccessControlGuard";
+import { resolveRouteAccess, useRoleRouteOverrides, type RoleRouteOverrides } from "@/lib/role-access-overrides";
 
 const ROUTE_TO_MODULE: Record<string, ModuleKey> = {};
 for (const [route, mod] of Object.entries(MODULE_FOR_ROUTE)) {
@@ -26,6 +27,7 @@ function filterGroupsByFeatureStage(
   groups: readonly NavGroup[],
   featureStage: FeatureStage | undefined,
   role: string | undefined,
+  overrides: RoleRouteOverrides,
 ): NavGroup[] {
   const stage = featureStage || DEFAULT_FEATURE_STAGE;
   const typedRole = role as UserRole | undefined;
@@ -34,7 +36,8 @@ function filterGroupsByFeatureStage(
     if (!typedRole) return false;
     const routeKey = Object.keys(roleBasedRoutes).find((key) => href.startsWith(key));
     if (!routeKey) return true;
-    return canAccess(typedRole, roleBasedRoutes[routeKey]);
+    const baseAllowed = canAccess(typedRole, roleBasedRoutes[routeKey]);
+    return resolveRouteAccess(typedRole, href, baseAllowed, overrides);
   };
 
   return groups
@@ -90,6 +93,7 @@ function isActivePath(path: string, href: string) {
 
 export default function PageUtilityRail() {
   const { user, school } = useAuth();
+  const { overrides } = useRoleRouteOverrides(school?.id);
   const pathname = usePathname() || "/dashboard";
 
   const rawGroups = user?.role ? getNavigationForRole(user.role) : [];
@@ -97,6 +101,7 @@ export default function PageUtilityRail() {
     rawGroups,
     school?.feature_stage as FeatureStage | undefined,
     user?.role,
+    overrides,
   );
   const railItems = buildRailItems(groups);
 

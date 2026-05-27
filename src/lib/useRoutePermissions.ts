@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
 import { canAccess, type UserRole, type RolePermissions } from '@/lib/roles'
+import { resolveRouteAccess, useRoleRouteOverrides } from '@/lib/role-access-overrides'
 
 const publicRoutes = ['/login', '/register', '/', '/setup', '/setup-admin']
 const roleBasedRoutes: Record<string, keyof RolePermissions> = {
@@ -31,6 +32,7 @@ const roleBasedRoutes: Record<string, keyof RolePermissions> = {
 
 export function useRoutePermissions() {
   const { user, authInitialized, school } = useAuth()
+  const { overrides } = useRoleRouteOverrides(school?.id)
   const router = useRouter()
   const pathname = usePathname()
   const path = pathname ?? ''
@@ -56,11 +58,14 @@ export function useRoutePermissions() {
 
     if (routeKey) {
       const permission = roleBasedRoutes[routeKey]
-      if (user.role && !canAccess(user.role as UserRole, permission)) {
+      const role = user.role as UserRole
+      const baseAllowed = role ? canAccess(role, permission) : false
+      const allowed = role ? resolveRouteAccess(role, path, baseAllowed, overrides) : baseAllowed
+      if (user.role && !allowed) {
         router.replace('/dashboard')
       }
     }
-  }, [user, authInitialized, path, router])
+  }, [user, authInitialized, path, router, overrides])
 
   return { user, authInitialized }
 }

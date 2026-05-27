@@ -8,6 +8,7 @@ import { getNavigationForRole } from "@/lib/navigation";
 import { canAccess, type UserRole } from "@/lib/roles";
 import { canUseModule, type FeatureStage, type ModuleKey, DEFAULT_FEATURE_STAGE } from "@/lib/featureStages";
 import { MODULE_FOR_ROUTE, roleBasedRoutes } from "@/components/dashboard/AccessControlGuard";
+import { resolveRouteAccess, useRoleRouteOverrides, type RoleRouteOverrides } from "@/lib/role-access-overrides";
 import MaterialIcon from "@/components/MaterialIcon";
 import { useSidebar } from "@/contexts/SidebarContext";
 import { APP_NAME } from "@/lib/app-name";
@@ -22,6 +23,7 @@ function filterGroupsByFeatureStage(
   groups: readonly import("@/lib/navigation").NavGroup[],
   featureStage: FeatureStage | undefined,
   role: string | undefined,
+  overrides: RoleRouteOverrides,
 ): import("@/lib/navigation").NavGroup[] {
   const stage = featureStage || DEFAULT_FEATURE_STAGE;
   const typedRole = role as UserRole | undefined;
@@ -32,7 +34,8 @@ function filterGroupsByFeatureStage(
       href.startsWith(key),
     );
     if (!routeKey) return true;
-    return canAccess(typedRole, roleBasedRoutes[routeKey]);
+    const baseAllowed = canAccess(typedRole, roleBasedRoutes[routeKey]);
+    return resolveRouteAccess(typedRole, href, baseAllowed, overrides);
   };
 
   return groups
@@ -81,6 +84,7 @@ export default function SidebarShell({
   const [isDesktop, setIsDesktop] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [isPinnedOpen, setIsPinnedOpen] = useState(false);
+  const { overrides } = useRoleRouteOverrides(school?.id);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -98,6 +102,7 @@ export default function SidebarShell({
     rawGroups,
     school?.feature_stage as FeatureStage | undefined,
     user?.role,
+    overrides,
   );
 
   const schoolName = school?.name || "My School";
