@@ -10,6 +10,23 @@ interface SkeletonProps {
   className?: string;
 }
 
+function useDelayedVisible(delayMs: number) {
+  const [visible, setVisible] = useState(delayMs === 0);
+
+  useEffect(() => {
+    if (delayMs === 0) {
+      setVisible(true);
+      return;
+    }
+
+    setVisible(false);
+    const timer = setTimeout(() => setVisible(true), delayMs);
+    return () => clearTimeout(timer);
+  }, [delayMs]);
+
+  return visible;
+}
+
 export function Skeleton({ className = "" }: SkeletonProps) {
   return (
     <div
@@ -22,6 +39,9 @@ export function Skeleton({ className = "" }: SkeletonProps) {
 }
 
 export function TableSkeleton({ rows = 5 }: { rows?: number }) {
+  const visible = useDelayedVisible(250);
+  if (!visible) return null;
+
   return (
     <div className="space-y-3">
       <div className="flex gap-4 px-4 py-3">
@@ -48,6 +68,9 @@ export function TableSkeleton({ rows = 5 }: { rows?: number }) {
 }
 
 export function CardSkeleton({ className = "" }: SkeletonProps) {
+  const visible = useDelayedVisible(250);
+  if (!visible) return null;
+
   return (
     <div
       className={cn(
@@ -66,6 +89,9 @@ export function CardSkeleton({ className = "" }: SkeletonProps) {
 }
 
 export function StatSkeleton() {
+  const visible = useDelayedVisible(250);
+  if (!visible) return null;
+
   return (
     <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] p-4">
       <Skeleton className="h-3 w-16 mb-3" />
@@ -76,6 +102,9 @@ export function StatSkeleton() {
 }
 
 export function PageLoader({ message = "Loading..." }: { message?: string }) {
+  const visible = useDelayedVisible(300);
+  if (!visible) return null;
+
   return (
     <div className="flex flex-col items-center justify-center py-12">
       <OwlMascot size={52} premium ring glow animated className="mb-4" />
@@ -89,6 +118,9 @@ export function FullPageLoader({
 }: {
   message?: string;
 }) {
+  const visible = useDelayedVisible(300);
+  if (!visible) return null;
+
   return (
     <div className="flex flex-col items-center justify-center min-h-[400px]">
       <OwlMascot
@@ -197,6 +229,9 @@ export function StuckLoadingOverlay({
 }
 
 export function DashboardSkeleton() {
+  const visible = useDelayedVisible(300);
+  if (!visible) return null;
+
   return (
     <div className="flex min-h-screen bg-[var(--bg)]">
       <div className="w-[var(--sidebar-width)] bg-[var(--surface)] border-r border-[var(--border)] p-4 space-y-4">

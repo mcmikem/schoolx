@@ -836,7 +836,15 @@ signInLockTimer.current = setTimeout(() => {
 
   async function refreshSchoolFromAPI() {
     try {
-      const res = await fetch("/api/auth/me/");
+      const { data: sessionData } = await supabase!.auth.getSession();
+      const token = sessionData.session?.access_token;
+      if (!token) return;
+
+      const res = await fetch("/api/auth/me/", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       if (!res.ok) return;
       const data = await res.json();
       if (data.school) {

@@ -66,7 +66,7 @@ export default function GeneralSettings({
   savingStage,
   refreshSchool,
 }: GeneralSettingsProps) {
-  const { school, refreshSchoolFromAPI } = useAuth();
+  const { school } = useAuth();
   const [primaryColor, setPrimaryColor] = useState(school?.primary_color || "#005ce6");
   const [accentColor, setAccentColor] = useState(school?.accent_color || "#f97316");
 
@@ -262,23 +262,42 @@ export default function GeneralSettings({
         data: { publicUrl },
       } = supabase.storage.from("school-logos").getPublicUrl(fileName);
 
-      const { error: updateError } = await withTimeout(
-        supabase
-          .from("schools")
-          .update({ logo_url: publicUrl })
-          .eq("id", school.id),
-        15000,
-        null as any,
-      );
+      let savedLogoUrl = publicUrl;
 
-      if (updateError) {
-        logger.error("Update error:", updateError);
-        throw new Error("Logo uploaded but failed to save school settings");
+      try {
+        const saveResponse = await fetch("/api/schools/logo/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ logoUrl: publicUrl }),
+        });
+        const saveResult = await readApiJson(saveResponse);
+        assertApiSuccess(saveResponse, saveResult);
+        savedLogoUrl = saveResult?.data?.logo_url || publicUrl;
+      } catch (apiSaveError) {
+        logger.warn("Logo API save failed, falling back to direct update:", apiSaveError);
+        const { data: fallbackData, error: fallbackError } = await withTimeout(
+          supabase
+            .from("schools")
+            .update({ logo_url: publicUrl })
+            .eq("id", school.id)
+            .select("id, logo_url")
+            .maybeSingle(),
+          15000,
+          null as any,
+        );
+
+        if (fallbackError || !fallbackData) {
+          throw new Error("Logo uploaded but failed to save school settings");
+        }
+
+        savedLogoUrl = fallbackData.logo_url || publicUrl;
       }
 
-      await refreshSchoolFromAPI();
+      await refreshSchool();
 
-      setLogoUrl(publicUrl);
+      setLogoUrl(savedLogoUrl);
       toast.success("Logo uploaded successfully");
     } catch (err) {
       logger.error("Logo upload error:", err);
@@ -364,7 +383,7 @@ export default function GeneralSettings({
       );
       if (error) throw error;
       setSelectedStage(stage);
-      await refreshSchoolFromAPI();
+      await refreshSchool();
       toast.success(`Stage updated to ${FEATURE_STAGES[stage].label}`);
     } catch (err: unknown) {
       toast.error(
@@ -393,7 +412,7 @@ export default function GeneralSettings({
         { error: new Error("Save timed out") } as any,
       );
       if (error) throw error;
-      await refreshSchoolFromAPI();
+      await refreshSchool();
       toast.success("Settings saved");
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to save");

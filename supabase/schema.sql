@@ -1448,13 +1448,21 @@ USING (
   )
 );
 
+-- School users can view their own school
+DROP POLICY IF EXISTS "School users select own school" ON "schools";
+CREATE POLICY "School users select own school"
+ON "schools"
+FOR SELECT
+TO authenticated
+USING (id = my_school_id());
+
 -- School admins can update their own school (name, logo, colors, etc.)
 DROP POLICY IF EXISTS "School admins update own school" ON "schools";
 CREATE POLICY "School admins update own school"
 ON "schools"
 FOR UPDATE
 TO authenticated
-USING (id = my_school_id())
+USING (id = my_school_id() AND is_school_admin(id))
 WITH CHECK (id = my_school_id());
 
 -- =========================
