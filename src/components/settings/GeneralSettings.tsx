@@ -277,22 +277,20 @@ export default function GeneralSettings({
         savedLogoUrl = saveResult?.data?.logo_url || publicUrl;
       } catch (apiSaveError) {
         logger.warn("Logo API save failed, falling back to direct update:", apiSaveError);
-        const { data: fallbackData, error: fallbackError } = await withTimeout(
+        const { error: fallbackError } = await withTimeout(
           supabase
             .from("schools")
             .update({ logo_url: publicUrl })
-            .eq("id", school.id)
-            .select("id, logo_url")
-            .maybeSingle(),
+            .eq("id", school.id),
           15000,
           null as any,
         );
 
-        if (fallbackError || !fallbackData) {
+        if (fallbackError) {
           throw new Error("Logo uploaded but failed to save school settings");
         }
 
-        savedLogoUrl = fallbackData.logo_url || publicUrl;
+        savedLogoUrl = publicUrl;
       }
 
       await refreshSchool();
