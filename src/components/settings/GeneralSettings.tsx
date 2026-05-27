@@ -138,6 +138,16 @@ export default function GeneralSettings({
     return response.json();
   };
 
+  const assertApiSuccess = (
+    response: Response,
+    result: { success?: boolean; error?: string },
+  ) => {
+    if (!response.ok || !result.success) {
+      const message = result.error || "Request failed";
+      throw new Error(message);
+    }
+  };
+
   const testStorage = async () => {
     try {
       setStorageStatus("unknown");
@@ -145,6 +155,7 @@ export default function GeneralSettings({
 
       const response = await fetch("/api/storage/", { method: "GET" });
       const result = await readApiJson(response);
+      assertApiSuccess(response, result);
 
       logger.debug("Storage check:", result);
 
@@ -158,23 +169,17 @@ export default function GeneralSettings({
             method: "POST",
           });
           const createResult = await readApiJson(createResponse);
+          assertApiSuccess(createResponse, createResult);
 
-          if (createResult.success) {
-            setStorageStatus("ok");
-            toast.success("Storage bucket created!");
-          } else {
-            setStorageStatus("error");
-            toast.error(`Failed: ${createResult.error}`);
-          }
+          setStorageStatus("ok");
+          toast.success("Storage bucket created!");
         }
-      } else {
-        setStorageStatus("error");
-        toast.error(result.error || "Storage error");
       }
     } catch (err) {
       logger.error("Storage test exception:", err);
       setStorageStatus("error");
-      toast.error("Failed to connect to storage");
+      const message = err instanceof Error ? err.message : "Failed to connect to storage";
+      toast.error(message.includes("Authentication") ? "Session expired. Please log in again." : message);
     }
   };
 
@@ -194,20 +199,26 @@ export default function GeneralSettings({
 
     setUploadingLogo(true);
     try {
-      const bucketCheck = await fetch("/api/storage/", { method: "GET" });
-      const bucketResult = await readApiJson(bucketCheck);
+      try {
+        const bucketCheck = await fetch("/api/storage/", { method: "GET" });
+        const bucketResult = await readApiJson(bucketCheck);
+        assertApiSuccess(bucketCheck, bucketResult);
 
-      if (!bucketResult.exists) {
-        toast.info("Setting up storage...");
-        const createResponse = await fetch("/api/storage/", { method: "POST" });
-        await readApiJson(createResponse);
+        if (!bucketResult.exists) {
+          toast.info("Setting up storage...");
+          const createResponse = await fetch("/api/storage/", { method: "POST" });
+          const createResult = await readApiJson(createResponse);
+          assertApiSuccess(createResponse, createResult);
+        }
+      } catch (storageInitError) {
+        logger.warn("Storage pre-check failed, proceeding with direct upload:", storageInitError);
       }
 
       toast.info("Processing image...");
       const compressedFile = await compressImage(file);
 
       const fileExt = "jpg";
-      const fileName = `${school.id}-logo.${fileExt}`;
+      const fileName = `${school.id}-logo-${Date.now()}.${fileExt}`;
 
       logger.debug("Starting upload to bucket...");
 
@@ -262,15 +273,17 @@ export default function GeneralSettings({
 
       if (updateError) {
         logger.error("Update error:", updateError);
-      } else {
-        await refreshSchoolFromAPI();
+        throw new Error("Logo uploaded but failed to save school settings");
       }
+
+      await refreshSchoolFromAPI();
 
       setLogoUrl(publicUrl);
       toast.success("Logo uploaded successfully");
     } catch (err) {
       logger.error("Logo upload error:", err);
-      toast.error("Failed to upload logo. Check console for details.");
+      const message = err instanceof Error ? err.message : "Failed to upload logo";
+      toast.error(message.includes("Authentication") ? "Session expired. Please log in again." : message);
     } finally {
       setUploadingLogo(false);
     }

@@ -88,6 +88,7 @@ const alwaysPublicPaths = [
   "/api/demo-login",
   "/api/register",
   "/api/setup",
+  "/api/storage",
   "/api/health",
   "/api/payment/webhook",
   "/api/payment/paypal/webhook",

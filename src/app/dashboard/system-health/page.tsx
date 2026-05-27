@@ -175,8 +175,46 @@ export default function SystemHealthPage() {
     }
   };
 
-  const clearExpiredData = () => {
-    toast.success("Expired data cleared successfully (stub)");
+  const clearExpiredData = async () => {
+    if (!school?.id) {
+      toast.error("School context not found");
+      return;
+    }
+
+    try {
+      const retentionCutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString();
+
+      const [smsDelete, automatedDelete] = await Promise.all([
+        withTimeout(
+          supabase
+            .from("sms_logs")
+            .delete()
+            .eq("school_id", school.id)
+            .lt("sent_at", retentionCutoff),
+          15000,
+          { error: null } as any,
+        ),
+        withTimeout(
+          supabase
+            .from("automated_message_logs")
+            .delete()
+            .eq("school_id", school.id)
+            .lt("sent_at", retentionCutoff),
+          15000,
+          { error: null } as any,
+        ),
+      ]);
+
+      if (smsDelete?.error || automatedDelete?.error) {
+        throw smsDelete?.error || automatedDelete?.error;
+      }
+
+      toast.success("Expired logs cleared successfully");
+      await fetchHealthData();
+    } catch (error) {
+      logger.error("Failed to clear expired data:", error);
+      toast.error("Failed to clear expired data");
+    }
   };
 
   const statusBadgeClass = (status: string) => {

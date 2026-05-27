@@ -17,7 +17,7 @@ interface CanteenItem {
   price: number;
   stock: number;
   unit: string;
-  active: boolean;
+  is_active: boolean;
 }
 
 interface Order {
@@ -86,7 +86,7 @@ export default function CanteenPage() {
         price: parsedPrice,
         stock: parseInt(newItem.stock) || 0,
         unit: newItem.unit,
-        active: true,
+        is_active: true,
       });
 
       if (error) throw error;
@@ -136,7 +136,7 @@ export default function CanteenPage() {
     .reduce((sum, o) => sum + o.total, 0);
 
   const pendingOrders = orders.filter((o) => o.status === "pending").length;
-  const lowStockItems = items.filter((i) => i.stock < 10 && i.active).length;
+  const lowStockItems = items.filter((i) => i.stock < 10 && i.is_active).length;
 
   if (loading) {
     return (

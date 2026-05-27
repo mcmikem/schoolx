@@ -69,6 +69,11 @@ type GradeRecord = {
   subjects?: { name: string | null } | { name: string | null }[] | null;
 };
 
+type FeeRecord = {
+  amount_paid: number | null;
+  total_fees: number | null;
+};
+
 function useStudentData(studentId: string, isDemo: boolean, isConstrainedNetwork: boolean) {
   const [attendancePct, setAttendancePct] = useState(0);
   const [feePosition, setFeePosition] = useState({ paid: 0, total: 0 });
@@ -128,73 +133,104 @@ function useStudentData(studentId: string, isDemo: boolean, isConstrainedNetwork
           supabase
             .from("student_fees")
             .select("amount_paid, total_fees")
-            .eq("student_id", studentId)
-            .maybeSingle(),
+            .eq("student_id", studentId),
           supabase
             .from("grades")
             .select("subject_id, score, term, subjects(name)")
             .eq("student_id", studentId)
             .limit(isConstrainedNetwork ? 24 : 120),
         ]);
-
-        if (attendanceError) throw attendanceError;
-        if (feeError) throw feeError;
-        if (gradesError) throw gradesError;
         if (cancelled) return;
 
-        const safeAttendance = (attData || []) as AttendanceRecord[];
-        const present = safeAttendance.filter(
-          (record) => record.status === "present",
-        ).length;
-        setAttendancePct(
-          safeAttendance.length > 0
-            ? Math.round((present / safeAttendance.length) * 100)
-            : 0,
-        );
-        setAttendanceRecords([...safeAttendance].reverse());
+        const failedSections: string[] = [];
 
-        setFeePosition({
-          paid: Number(feeData?.amount_paid || 0),
-          total: Number(feeData?.total_fees || 0),
-        });
+        if (attendanceError) {
+          failedSections.push("attendance");
+          setAttendancePct(0);
+          setAttendanceRecords([]);
+        } else {
+          const safeAttendance = (attData || []) as AttendanceRecord[];
+          const present = safeAttendance.filter(
+            (record) => record.status === "present",
+          ).length;
+          setAttendancePct(
+            safeAttendance.length > 0
+              ? Math.round((present / safeAttendance.length) * 100)
+              : 0,
+          );
+          setAttendanceRecords([...safeAttendance].reverse());
+        }
 
-        const safeGrades = (gradesData || []) as GradeRecord[];
-        setSubjectScores(
-          safeGrades
-            .filter(
-              (grade): grade is GradeRecord & { score: number } =>
-                typeof grade.score === "number",
-            )
-            .map((grade) => {
-              const subjectName = Array.isArray(grade.subjects)
-                ? grade.subjects[0]?.name
-                : grade.subjects?.name;
-              return {
-                subject: subjectName || grade.subject_id || "Unknown",
-                score: grade.score,
-              };
-            }),
-        );
+        if (feeError) {
+          failedSections.push("fees");
+          setFeePosition({ paid: 0, total: 0 });
+        } else {
+          const feeRows = (feeData || []) as FeeRecord[];
+          setFeePosition({
+            paid: feeRows.reduce(
+              (sum, row) => sum + Number(row.amount_paid || 0),
+              0,
+            ),
+            total: feeRows.reduce(
+              (sum, row) => sum + Number(row.total_fees || 0),
+              0,
+            ),
+          });
+        }
 
-        if (safeGrades.length > 0) {
-          const validScores = safeGrades
-            .map((grade) => Number(grade.score ?? 0))
-            .filter((score) => Number.isFinite(score));
-          setGradeHistory(
-            validScores.length > 0
-              ? [
-                  {
-                    term: "Current",
-                    average: Math.round(
-                      validScores.reduce((sum, score) => sum + score, 0) /
-                        validScores.length,
-                    ),
-                  },
-                ]
-              : [],
+        if (gradesError) {
+          failedSections.push("grades");
+          setSubjectScores([]);
+          setGradeHistory([]);
+        } else {
+          const safeGrades = (gradesData || []) as GradeRecord[];
+          setSubjectScores(
+            safeGrades
+              .filter(
+                (grade): grade is GradeRecord & { score: number } =>
+                  typeof grade.score === "number",
+              )
+              .map((grade) => {
+                const subjectName = Array.isArray(grade.subjects)
+                  ? grade.subjects[0]?.name
+                  : grade.subjects?.name;
+                return {
+                  subject: subjectName || grade.subject_id || "Unknown",
+                  score: grade.score,
+                };
+              }),
+          );
+
+          if (safeGrades.length > 0) {
+            const validScores = safeGrades
+              .map((grade) => Number(grade.score ?? 0))
+              .filter((score) => Number.isFinite(score));
+            setGradeHistory(
+              validScores.length > 0
+                ? [
+                    {
+                      term: "Current",
+                      average: Math.round(
+                        validScores.reduce((sum, score) => sum + score, 0) /
+                          validScores.length,
+                      ),
+                    },
+                  ]
+                : [],
+            );
+          } else {
+            setGradeHistory([]);
+          }
+        }
+
+        if (failedSections.length > 0) {
+          setDetailsError(
+            failedSections.length === 3
+              ? "Unable to load student analytics"
+              : `Unable to load ${failedSections.join(", ")} analytics`,
           );
         } else {
-          setGradeHistory([]);
+          setDetailsError(null);
         }
       } catch (error) {
         if (!cancelled) {

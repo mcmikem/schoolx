@@ -20,7 +20,7 @@ export function Tabs({ tabs, activeTab, onChange, className = '' }: TabsProps) {
   const id = useId()
   
   return (
-    <div className={cn('flex gap-1 p-1 bg-[var(--surface-container-low)] rounded-xl', className)} role="tablist">
+    <div className={cn('flex flex-wrap sm:flex-nowrap gap-1 p-1 bg-[var(--surface-container-low)] rounded-xl', className)} role="tablist">
       {tabs.map(tab => (
         <button
           key={tab.id}
@@ -30,7 +30,7 @@ export function Tabs({ tabs, activeTab, onChange, className = '' }: TabsProps) {
           id={`tab-${tab.id}`}
           onClick={() => onChange(tab.id)}
           className={cn(
-            'px-4 py-2 text-sm font-medium rounded-lg transition-all',
+            'flex-1 min-w-[140px] sm:min-w-0 sm:flex-none px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-lg transition-all text-center',
             activeTab === tab.id
               ? 'bg-[var(--surface)] text-[var(--t1)] shadow-sm'
               : 'text-[var(--t3)] hover:text-[var(--t2)]'

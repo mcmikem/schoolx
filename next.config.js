@@ -6,11 +6,13 @@ function supabaseImageHosts() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   if (!url) return [];
   try {
-    const host = new URL(url).hostname;
+    const parsed = new URL(url);
+    const host = parsed.hostname;
+    const protocol = parsed.protocol.replace(":", "");
     if (!host) return [];
     return [
       {
-        protocol: "https",
+        protocol,
         hostname: host,
         pathname: "/storage/v1/object/**",
       },

@@ -19,7 +19,7 @@ interface POSItem {
   price: number;
   category: string;
   image_url?: string;
-  stock_quantity: number;
+  stock: number;
 }
 
 interface CartItem extends POSItem {
@@ -99,6 +99,12 @@ export default function CanteenPOSPage() {
   const addToCart = (item: POSItem) => {
     setCart((prev) => {
       const existing = prev.find((i) => i.id === item.id);
+      const currentQty = existing?.quantity || 0;
+      if (currentQty >= Math.max(0, Number(item.stock || 0))) {
+        toast.warning(`${item.name} is out of stock`);
+        return prev;
+      }
+
       if (existing) {
         return prev.map((i) =>
           i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i,
@@ -385,7 +391,7 @@ export default function CanteenPOSPage() {
 
                     <div className="absolute top-4 right-4 text-[9px] font-black uppercase text-slate-400 tracking-tighter">
                       Stock:{" "}
-                      {item.stock_quantity > 0 ? item.stock_quantity : "OUT"}
+                      {item.stock > 0 ? item.stock : "OUT"}
                     </div>
                   </button>
                 ))}
