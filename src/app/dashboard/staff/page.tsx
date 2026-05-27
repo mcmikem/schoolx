@@ -19,6 +19,7 @@ import { PageGuidance } from "@/components/PageGuidance";
 import SmartAdvisor from "@/components/dashboard/SmartAdvisor";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { compressStudentPhoto, validateStudentPhoto } from "@/lib/student-photos";
+import { QRCodeSVG } from "qrcode.react";
 
 interface StaffMember {
   id: string;
@@ -782,7 +783,8 @@ function DirectoryTab({
 
   const buildStaffIdCardHtml = (member: StaffMember) => {
     const schoolName = school?.name || "School";
-    const schoolColor = "#1e40af";
+    const schoolColor = school?.primary_color || "#1e40af";
+    const schoolLogo = school?.logo_url || "";
     const escapeHtml = (value: string) =>
       String(value)
         .replace(/&/g, "&amp;")
@@ -800,10 +802,16 @@ function DirectoryTab({
     const roleLabel = formatRoleLabel(member.role);
     const cardId = `SM-${member.id.slice(0, 8).toUpperCase()}`;
     const issuedOn = new Date().toLocaleDateString();
+    const verificationPayload = `SKOOLMATE_STAFF|school:${school?.id || "unknown"}|staff:${member.id}|card:${cardId}|status:${member.is_active ? "active" : "inactive"}`;
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&margin=0&data=${encodeURIComponent(verificationPayload)}`;
 
     const avatarHtml = member.avatar_url
       ? `<img src="${escapeHtml(member.avatar_url)}" alt="${escapeHtml(member.full_name)}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />`
       : escapeHtml(initials);
+
+    const logoHtml = schoolLogo
+      ? `<img src="${escapeHtml(schoolLogo)}" alt="${escapeHtml(schoolName)} logo" class="school-logo" />`
+      : `<div class="school-logo-fallback">${escapeHtml((schoolName || "S").charAt(0).toUpperCase())}</div>`;
 
     return `
       <!DOCTYPE html>
@@ -851,6 +859,25 @@ function DirectoryTab({
             justify-content: space-between;
             padding: 14px 11px;
             color: #fff;
+          }
+          .school-logo {
+            width: 28px;
+            height: 28px;
+            object-fit: contain;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.2);
+            padding: 2px;
+          }
+          .school-logo-fallback {
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 13px;
           }
           .avatar {
             width: 72px;
@@ -933,13 +960,33 @@ function DirectoryTab({
             margin-top: auto;
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: flex-end;
             border-top: 1px dashed #cbd5e1;
             padding-top: 8px;
             font-size: 9px;
             color: #64748b;
             text-transform: uppercase;
             letter-spacing: .04em;
+          }
+          .qr-block {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2px;
+          }
+          .qr-block img {
+            width: 54px;
+            height: 54px;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+            background: #fff;
+          }
+          .qr-label {
+            font-size: 8px;
+            color: #475569;
+            font-weight: 700;
+            letter-spacing: .03em;
+            text-transform: uppercase;
           }
           @media print {
             body {
@@ -956,6 +1003,7 @@ function DirectoryTab({
       <body>
         <div class="id-card">
           <div class="left-section">
+            ${logoHtml}
             <div class="school-name-small">${escapeHtml(schoolName)}</div>
             <div class="avatar">${avatarHtml}</div>
             <div class="school-name-small">${escapeHtml(cardId)}</div>
@@ -972,8 +1020,14 @@ function DirectoryTab({
             ${member.email ? `<div class="staff-info">Email: ${escapeHtml(member.email)}</div>` : ""}
             ${member.subject ? `<div class="staff-info">Subjects: ${escapeHtml(member.subject)}</div>` : ""}
             <div class="footer">
-              <span>Issued ${escapeHtml(issuedOn)}</span>
-              <span>${escapeHtml(cardId)}</span>
+              <div>
+                <div>Issued ${escapeHtml(issuedOn)}</div>
+                <div>${escapeHtml(cardId)}</div>
+              </div>
+              <div class="qr-block">
+                <img src="${escapeHtml(qrUrl)}" alt="Verification QR" />
+                <span class="qr-label">Verify</span>
+              </div>
             </div>
           </div>
         </div>
@@ -1738,6 +1792,17 @@ function DirectoryTab({
               <div className="mx-auto w-full max-w-[430px] rounded-[22px] overflow-hidden border border-[#dbe3f5] shadow-[0_16px_30px_rgba(15,23,42,0.16)] bg-gradient-to-br from-[#ffffff] to-[#f7fbff] grid grid-cols-[110px_1fr] relative">
                 <div className="absolute -bottom-10 -right-10 w-40 h-40 rounded-full bg-[radial-gradient(circle,rgba(30,64,175,0.18)_0%,rgba(30,64,175,0)_72%)]" />
                 <div className="bg-gradient-to-b from-[#1e40af] via-[#1d4ed8] to-[#1e3a8a] p-3 text-white flex flex-col items-center justify-between relative z-10">
+                  {school?.logo_url ? (
+                    <img
+                      src={school.logo_url}
+                      alt={`${school?.name || "School"} logo`}
+                      className="w-7 h-7 rounded-lg bg-white/20 p-0.5 object-contain"
+                    />
+                  ) : (
+                    <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center font-extrabold text-[11px]">
+                      {(school?.name || "S").charAt(0).toUpperCase()}
+                    </div>
+                  )}
                   <div className="text-[9px] leading-tight text-center font-semibold break-words">
                     {school?.name || "School"}
                   </div>
@@ -1785,9 +1850,24 @@ function DirectoryTab({
                   {idCardPreviewStaff.subject ? (
                     <div className="text-[11px] text-[#334155] truncate">Subjects: {idCardPreviewStaff.subject}</div>
                   ) : null}
-                  <div className="mt-auto pt-2.5 border-t border-dashed border-[#cbd5e1] flex items-center justify-between text-[9px] text-[#64748b] uppercase tracking-[0.04em]">
-                    <span>Issued {new Date().toLocaleDateString()}</span>
-                    <span>{`SM-${idCardPreviewStaff.id.slice(0, 8).toUpperCase()}`}</span>
+                  <div className="mt-auto pt-2.5 border-t border-dashed border-[#cbd5e1] flex items-end justify-between text-[9px] text-[#64748b] uppercase tracking-[0.04em] gap-2">
+                    <div>
+                      <div>Issued {new Date().toLocaleDateString()}</div>
+                      <div>{`SM-${idCardPreviewStaff.id.slice(0, 8).toUpperCase()}`}</div>
+                    </div>
+                    <div className="flex flex-col items-center gap-0.5">
+                      <div className="p-1 bg-white rounded-md border border-[#cbd5e1]">
+                        <QRCodeSVG
+                          value={`SKOOLMATE_STAFF|school:${school?.id || "unknown"}|staff:${idCardPreviewStaff.id}|card:SM-${idCardPreviewStaff.id.slice(0, 8).toUpperCase()}|status:${idCardPreviewStaff.is_active ? "active" : "inactive"}`}
+                          size={50}
+                          level="M"
+                          includeMargin={false}
+                        />
+                      </div>
+                      <span className="text-[8px] text-[#475569] font-bold tracking-[0.03em] uppercase">
+                        Verify
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
