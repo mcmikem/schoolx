@@ -14,6 +14,7 @@ const roleBasedRoutes: Record<string, keyof RolePermissions> = {
   '/dashboard/reports': 'reports',
   '/dashboard/staff': 'staff',
   '/dashboard/settings': 'settings',
+  '/dashboard/permissions': 'settings',
   '/dashboard/discipline': 'discipline',
   '/dashboard/invoicing': 'invoicing',
   '/dashboard/assets': 'assets',

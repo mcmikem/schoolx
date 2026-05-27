@@ -284,6 +284,42 @@ export const ROLE_LABELS: Record<UserRole, string> = deepFreeze({
   dorm_master: 'Dorm Master',
 })
 
+export const ROLE_ORDER: readonly UserRole[] = deepFreeze([
+  'super_admin',
+  'headmaster',
+  'school_admin',
+  'admin',
+  'dean_of_studies',
+  'bursar',
+  'teacher',
+  'secretary',
+  'dorm_master',
+  'board',
+  'parent',
+])
+
+export const PERMISSION_LABELS: Record<keyof RolePermissions, string> = deepFreeze({
+  students: 'Students',
+  attendance: 'Attendance',
+  grades: 'Grades',
+  fees: 'Fees',
+  messages: 'Messages',
+  reports: 'Reports',
+  staff: 'Staff',
+  settings: 'Settings',
+  discipline: 'Discipline',
+  invoicing: 'Invoicing',
+  assets: 'Assets',
+  analytics: 'Analytics',
+  export: 'Export',
+  boardReport: 'Board Report',
+  autoSMS: 'Auto SMS',
+  warnings: 'Warnings',
+  visitors: 'Visitors',
+  payroll: 'Payroll',
+  performance: 'Performance',
+})
+
 export function canAccess(role: UserRole, feature: keyof RolePermissions): boolean {
   return ROLE_PERMISSIONS[role]?.[feature] ?? false
 }

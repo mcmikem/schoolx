@@ -46,6 +46,7 @@ describe("Navigation", () => {
       const nav = getNavigationForRole("headmaster");
       const allHrefs = nav.flatMap((g) => g.items.map((i) => i.href));
       expect(allHrefs).toContain("/dashboard/settings");
+      expect(allHrefs).toContain("/dashboard/permissions");
       expect(allHrefs).toContain("/dashboard/staff");
       expect(allHrefs).toContain("/dashboard/analytics");
     });

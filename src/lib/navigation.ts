@@ -284,6 +284,11 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
           label: "Settings",
           icon: "settings",
         },
+        {
+          href: "/dashboard/permissions",
+          label: "Role Permissions",
+          icon: "admin_panel_settings",
+        },
         { href: "/dashboard/audit", label: "Audit Log", icon: "history" },
         {
           href: "/dashboard/sync-center",
@@ -429,6 +434,7 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
       items: [
         { href: "/dashboard/messages", label: "Messages", icon: "chat" },
         { href: "/dashboard/settings", label: "Settings", icon: "settings" },
+        { href: "/dashboard/permissions", label: "Role Permissions", icon: "admin_panel_settings" },
       ],
     },
   ],
@@ -609,6 +615,7 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
       defaultOpen: false,
       items: [
         { href: "/dashboard/settings", label: "Settings", icon: "settings" },
+        { href: "/dashboard/permissions", label: "Role Permissions", icon: "admin_panel_settings" },
         { href: "/dashboard/audit", label: "Audit Logs", icon: "history" },
       ],
     },
@@ -662,6 +669,7 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
       items: [
         { href: "/dashboard/messages", label: "Messages", icon: "chat" },
         { href: "/dashboard/settings", label: "Settings", icon: "settings" },
+        { href: "/dashboard/permissions", label: "Role Permissions", icon: "admin_panel_settings" },
       ],
     },
   ],

@@ -83,6 +83,7 @@ const roleBasedRoutes: Record<string, keyof RolePermissions> = deepFreeze({
   "/dashboard/report-cards": "reports",
   "/dashboard/pricing": "settings",
   "/dashboard/audit": "settings",
+  "/dashboard/permissions": "settings",
   "/dashboard/sync-center": "settings",
 });
 
@@ -170,6 +171,7 @@ const MODULE_FOR_ROUTE: Record<string, ModuleKey> = deepFreeze({
   "/dashboard/osx": "operations",
   "/dashboard/settings": "settings",
   "/dashboard/audit": "settings",
+  "/dashboard/permissions": "settings",
   "/dashboard/sync-center": "settings",
   "/dashboard/pricing": "settings",
 });
@@ -197,6 +199,7 @@ const PAGE_TITLE_OVERRIDES: Record<string, string> = deepFreeze({
   "/dashboard/expense-approvals": "Expense Approvals",
   "/dashboard/leave-approvals": "Leave Approvals",
   "/dashboard/sync-center": "Sync Center",
+  "/dashboard/permissions": "Permissions Matrix",
   "/dashboard/lesson-plans": "Lesson Plans",
   "/dashboard/staff-attendance": "Staff Attendance",
   "/dashboard/staff-activity": "Staff Activity",
