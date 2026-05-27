@@ -455,7 +455,7 @@ function ParentDashboardContent() {
 
                 {/* Section 3: Quick actions + exceptions */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                  <div className="lg:col-span-2 grid grid-cols-3 gap-3">
+                  <div className="lg:col-span-2 grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <Link href={`/parent-portal/fees${selectedChild ? `?child=${selectedChild.id}` : ''}`} className="rounded-[20px] bg-white border border-[#e5ecf4] p-4 text-center hover:bg-[#f8fbff] transition-colors">
                       <span className="material-symbols-outlined text-[28px] text-[#17325f]">payments</span>
                       <p className="text-xs font-bold text-[#17325f] mt-2">Pay fees</p>
@@ -463,6 +463,10 @@ function ParentDashboardContent() {
                     <Link href={`/parent-portal/attendance${selectedChild ? `?child=${selectedChild.id}` : ''}`} className="rounded-[20px] bg-white border border-[#e5ecf4] p-4 text-center hover:bg-[#f8fbff] transition-colors">
                       <span className="material-symbols-outlined text-[28px] text-[#17325f]">how_to_reg</span>
                       <p className="text-xs font-bold text-[#17325f] mt-2">Attendance</p>
+                    </Link>
+                    <Link href={`/parent-portal/homework${selectedChild ? `?child=${selectedChild.id}` : ''}`} className="rounded-[20px] bg-white border border-[#e5ecf4] p-4 text-center hover:bg-[#f8fbff] transition-colors">
+                      <span className="material-symbols-outlined text-[28px] text-[#17325f]">assignment</span>
+                      <p className="text-xs font-bold text-[#17325f] mt-2">Homework</p>
                     </Link>
                     <Link href={`/parent-portal/academics${selectedChild ? `?child=${selectedChild.id}` : ''}`} className="rounded-[20px] bg-white border border-[#e5ecf4] p-4 text-center hover:bg-[#f8fbff] transition-colors">
                       <span className="material-symbols-outlined text-[28px] text-[#17325f]">grade</span>

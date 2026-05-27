@@ -38,6 +38,13 @@ export function readDemoStorage(): string | null {
   return null;
 }
 
+export function saveDemoStorage(demoUser: unknown, demoSchool: unknown) {
+  if (typeof window === "undefined") return;
+  const payload = btoa(JSON.stringify({ demoUser, demoSchool }));
+  sessionStorage.setItem(DEMO_KEY, payload);
+  document.cookie = `${DEMO_KEY}=${encodeURIComponent(payload)}; Max-Age=86400; path=/; SameSite=Lax`;
+}
+
 export function clearDemoStorage() {
   if (typeof window === "undefined") return;
   sessionStorage.removeItem(DEMO_KEY);

@@ -75,10 +75,14 @@ interface TimetableEntry {
 }
 
 interface AllClassTimetableEntry {
+  id: string
   teacher_id: string
   day_of_week: number
   period_number: number
   class_id: string
+  start_time: string
+  end_time: string
+  room: string | null
 }
 
 interface Slot {
@@ -90,6 +94,12 @@ interface Slot {
   is_break?: boolean
   is_lesson?: boolean
   period_number?: number
+}
+
+type ClashInfo = {
+  type: 'teacher' | 'room'
+  description: string
+  day: number
 }
 
 const EVENT_COLORS: Record<string, string> = {
@@ -405,6 +415,8 @@ export default function TimetablePage() {
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null)
   const [selectedDay, setSelectedDay] = useState<number>(1)
   const [conflicts, setConflicts] = useState<string[]>([])
+  const [globalClashes, setGlobalClashes] = useState<ClashInfo[]>([])
+  const [roomValue, setRoomValue] = useState('')
   const [pendingDeleteEntryId, setPendingDeleteEntryId] = useState<string | null>(null)
 
   // Fetch the timetable for the selected class
@@ -435,7 +447,7 @@ export default function TimetablePage() {
     try {
       const { data } = await supabase
         .from('teacher_timetable')
-        .select('teacher_id, day_of_week, period_number, class_id')
+        .select('id, teacher_id, day_of_week, period_number, class_id, start_time, end_time, room')
         .eq('school_id', school.id)
       setAllClassTimetables(data || [])
     } catch (err) {
@@ -460,31 +472,53 @@ export default function TimetablePage() {
 
   /**
    * Detect conflicts for a proposed entry:
-   * 1. Teacher double-booked: same teacher already assigned to a DIFFERENT class at the same day+slot
-   * 2. Slot already filled: same class already has an entry at this day+slot
+   * 1. Teacher double-booked: same teacher, same day, overlapping time in a DIFFERENT class
+   * 2. Slot already filled: same class already has an entry at this day+period_number
+   * 3. Room double-booked: same room, same day, overlapping time
    */
-  const detectConflicts = useCallback((teacherId: string, day: number, periodNumber: number): string[] => {
+  const detectConflicts = useCallback((
+    teacherId: string,
+    day: number,
+    periodNumber: number,
+    startTime: string,
+    endTime: string,
+    room?: string,
+  ): string[] => {
     const found: string[] = []
 
-    // Check if the teacher is already teaching another class at this period
+    // Check if the teacher is already teaching another class at an overlapping time
     const teacherConflict = allClassTimetables.find(
       (t) =>
         t.teacher_id === teacherId &&
         t.day_of_week === day &&
-        t.period_number === periodNumber &&
-        t.class_id !== selectedClassId
+        t.class_id !== selectedClassId &&
+        t.start_time < endTime && t.end_time > startTime
     )
     if (teacherConflict) {
       const conflictClass = classes.find((c) => c.id === teacherConflict.class_id)
-      found.push(`Teacher is already scheduled in ${conflictClass?.name || 'another class'} at this slot`)
+      found.push(`Teacher is already scheduled in ${conflictClass?.name || 'another class'} at an overlapping time`)
     }
 
-    // Check if this class already has an entry at this slot (shouldn't happen via UI but guard anyway)
+    // Check if this class already has an entry at this slot
     const classConflict = timetable.find(
       (t) => t.day_of_week === day && t.period_number === periodNumber
     )
     if (classConflict) {
       found.push(`This slot is already occupied by ${classConflict.subjects?.name || 'another subject'}`)
+    }
+
+    // Check room double-booking
+    if (room && room.trim()) {
+      const roomConflict = allClassTimetables.find(
+        (t) =>
+          t.room !== null && t.room.toLowerCase() === room.toLowerCase() &&
+          t.day_of_week === day &&
+          t.start_time < endTime && t.end_time > startTime
+      )
+      if (roomConflict) {
+        const conflictClass = classes.find((c) => c.id === roomConflict.class_id)
+        found.push(`Room "${room}" is already booked for ${conflictClass?.name || 'another class'} at an overlapping time`)
+      }
     }
 
     // Check for overload (Scenario 20)
@@ -498,6 +532,47 @@ export default function TimetablePage() {
     return found
   }, [allClassTimetables, timetable, selectedClassId, classes])
 
+  // Compute all clashes across the entire school timetable for the banner
+  const clashes = useMemo(() => {
+    const result: ClashInfo[] = []
+    const entries = allClassTimetables
+    for (let i = 0; i < entries.length; i++) {
+      for (let j = i + 1; j < entries.length; j++) {
+        const a = entries[i]
+        const b = entries[j]
+        if (a.day_of_week !== b.day_of_week) continue
+        if (!(a.start_time < b.end_time && a.end_time > b.start_time)) continue
+
+        // Teacher double-booking
+        if (a.teacher_id === b.teacher_id && a.class_id !== b.class_id) {
+          const classA = classes.find(c => c.id === a.class_id)?.name || 'Unknown'
+          const classB = classes.find(c => c.id === b.class_id)?.name || 'Unknown'
+          result.push({
+            type: 'teacher',
+            description: `${teacherNameById[a.teacher_id] || 'Teacher'} double-booked: ${classA} ↔ ${classB} on ${DAYS.find(d => d.value === a.day_of_week)?.full}`,
+            day: a.day_of_week,
+          })
+        }
+
+        // Room double-booking
+        if (a.room && b.room && a.room.toLowerCase() === b.room.toLowerCase() && a.class_id !== b.class_id) {
+          const classA = classes.find(c => c.id === a.class_id)?.name || 'Unknown'
+          const classB = classes.find(c => c.id === b.class_id)?.name || 'Unknown'
+          result.push({
+            type: 'room',
+            description: `Room "${a.room}" double-booked: ${classA} ↔ ${classB} on ${DAYS.find(d => d.value === a.day_of_week)?.full}`,
+            day: a.day_of_week,
+          })
+        }
+      }
+    }
+    return result
+  }, [allClassTimetables, classes, teacherNameById])
+
+  useEffect(() => {
+    setGlobalClashes(clashes)
+  }, [clashes])
+
   const handleTeacherChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const teacherId = e.target.value
     if (!teacherId || !selectedSlot) { setConflicts([]); return }
@@ -505,6 +580,9 @@ export default function TimetablePage() {
       teacherId,
       selectedDay,
       selectedSlot.order_number ?? selectedSlot.period_number,
+      selectedSlot.start_time,
+      selectedSlot.end_time,
+      roomValue,
     )
     setConflicts(found)
   }
@@ -514,12 +592,16 @@ export default function TimetablePage() {
     if (!selectedSlot) return
     const formData = new FormData(e.currentTarget)
     const teacherId = formData.get('teacher_id') as string
+    const room = formData.get('room') as string || ''
 
     // Run conflict check one final time before saving
     const found = detectConflicts(
       teacherId,
       selectedDay,
       selectedSlot.order_number ?? selectedSlot.period_number,
+      selectedSlot.start_time,
+      selectedSlot.end_time,
+      room,
     )
     const realConflicts = found.filter((c) => !c.startsWith("Warning:"));
     if (realConflicts.length > 0) {
@@ -535,6 +617,7 @@ export default function TimetablePage() {
       period_number: selectedSlot.order_number ?? selectedSlot.period_number,
       start_time: selectedSlot.start_time,
       end_time: selectedSlot.end_time,
+      room: room || null,
       academic_year: new Date().getFullYear().toString(),
     }
 
@@ -638,6 +721,26 @@ export default function TimetablePage() {
       </TabPanel>
 
       <TabPanel activeTab={mainTab} tabId="timetable">
+      {globalClashes.length > 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4">
+          <div className="flex items-start gap-3">
+            <MaterialIcon icon="error" className="text-red-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-semibold text-red-800">
+                {globalClashes.length} clash{globalClashes.length > 1 ? 'es' : ''} detected in timetable
+              </p>
+              <ul className="mt-2 space-y-1">
+                {globalClashes.map((clash, i) => (
+                  <li key={i} className="text-xs text-red-700 flex items-start gap-2">
+                    <span className="shrink-0 mt-1 w-1 h-1 rounded-full bg-red-400" />
+                    {clash.description}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
       <Card className="overflow-hidden">
         <div className="flex items-center justify-between px-4 pt-4 pb-2 gap-3 flex-wrap">
           {classes.length === 0 ? (
@@ -703,9 +806,17 @@ export default function TimetablePage() {
                                   {entry.subjects?.name}
                                 </p>
                                 <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-1.5 text-xs text-[var(--t4)]">
-                                    <MaterialIcon icon="person" className="text-sm" />
-                                    {teacherNameById[entry.teacher_id] || 'Teacher'}
+                                  <div className="flex flex-col gap-0.5">
+                                    <div className="flex items-center gap-1.5 text-xs text-[var(--t4)]">
+                                      <MaterialIcon icon="person" className="text-sm" />
+                                      {teacherNameById[entry.teacher_id] || 'Teacher'}
+                                    </div>
+                                    {entry.room && (
+                                      <div className="flex items-center gap-1.5 text-xs text-[var(--t4)]">
+                                        <MaterialIcon icon="location_on" className="text-sm" />
+                                        {entry.room}
+                                      </div>
+                                    )}
                                   </div>
                                   <button
                                     onClick={() => setPendingDeleteEntryId(entry.id)}
@@ -719,7 +830,7 @@ export default function TimetablePage() {
                             ) : (
                               !isBreak && selectedClassId && (
                                 <button
-                                  onClick={() => { setSelectedSlot(slot); setSelectedDay(day.value); setConflicts([]); setShowEntryModal(true) }}
+                                  onClick={() => { setSelectedSlot(slot); setSelectedDay(day.value); setConflicts([]); setRoomValue(''); setShowEntryModal(true) }}
                                   className="w-full h-full min-h-[60px] flex items-center justify-center border-2 border-dashed border-[var(--border)] hover:border-[var(--primary)]/30 hover:bg-[var(--primary)]/5 rounded-xl transition-all"
                                 >
                                   <MaterialIcon icon="add" className="text-[var(--t4)] hover:text-[var(--primary)]" />
@@ -748,7 +859,7 @@ export default function TimetablePage() {
           <Card className="w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-lg font-semibold text-[var(--t1)]">Assign Lesson</h2>
-              <button onClick={() => { setShowEntryModal(false); setConflicts([]) }} className="text-[var(--t4)] hover:text-[var(--t1)]">
+              <button onClick={() => { setShowEntryModal(false); setConflicts([]); setRoomValue('') }} className="text-[var(--t4)] hover:text-[var(--t1)]">
                 <MaterialIcon icon="close" />
               </button>
             </div>
@@ -779,6 +890,31 @@ export default function TimetablePage() {
                     <option key={t.id} value={t.id}>{t.full_name} ({t.role})</option>
                   ))}
                 </select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-[var(--t2)]">Room (optional)</label>
+                <input
+                  name="room"
+                  value={roomValue}
+                  onChange={(e) => {
+                    setRoomValue(e.target.value)
+                    const teacherSelect = document.querySelector<HTMLSelectElement>('[name="teacher_id"]')
+                    if (teacherSelect?.value && selectedSlot) {
+                      const found = detectConflicts(
+                        teacherSelect.value,
+                        selectedDay,
+                        selectedSlot.order_number ?? selectedSlot.period_number,
+                        selectedSlot.start_time,
+                        selectedSlot.end_time,
+                        e.target.value,
+                      )
+                      setConflicts(found)
+                    }
+                  }}
+                  placeholder="e.g. Lab 3, Room 12"
+                  className="w-full px-4 py-3 bg-[var(--surface-container-low)] border border-[var(--border)] rounded-xl text-[var(--on-surface)]"
+                />
               </div>
 
               {/* Conflict warnings */}

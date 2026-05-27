@@ -24,6 +24,7 @@ import { toLocalDateString } from "@/lib/date-utils";
 import { safeGetItem, safeSetItem } from "@/lib/safe-storage";
 import SchoolCalendar from "@/components/dashboard/SchoolCalendar";
 import OnboardingProgressBar from "@/components/OnboardingProgressBar";
+import SyllabusProgressWidget from "@/components/SyllabusProgressWidget";
 
 function formatCurrency(amount: number) {
   if (amount >= 1000000) return `${(amount / 1000000).toFixed(1)}M`;
@@ -572,6 +573,10 @@ function HeadmasterDashboardContent() {
             loading={loadingExtra}
           />
         </div>
+      </div>
+
+      <div className="mt-6">
+        <SyllabusProgressWidget />
       </div>
     </div>
   );

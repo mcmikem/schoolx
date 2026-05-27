@@ -156,6 +156,13 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
           href: "/dashboard/teacher-performance",
           label: "Performance",
           icon: "trending_up",
+          permissions: ["headmaster", "dean_of_studies", "admin"],
+        },
+        {
+          href: "/dashboard/staff-performance",
+          label: "Staff Analytics",
+          icon: "analytics",
+          permissions: ["headmaster", "dean_of_studies", "admin"],
         },
       ],
     },
@@ -201,6 +208,7 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
           icon: "assignment",
         },
         { href: "/dashboard/bulk-sms", label: "SMS Centre", icon: "sms" },
+        { href: "/dashboard/sms-delivery", label: "SMS Delivery", icon: "summarize" },
       ],
     },
     {
@@ -722,6 +730,11 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
           icon: "how_to_reg",
         },
         {
+          href: "/parent-portal/homework",
+          label: "Homework",
+          icon: "assignment",
+        },
+        {
           href: "/parent-portal/academics",
           label: "Academics",
           icon: "menu_book",
@@ -752,6 +765,11 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
           href: "/parent-portal/messages",
           label: "Message School",
           icon: "chat",
+        },
+        {
+          href: "/parent-portal/canteen",
+          label: "Canteen Orders",
+          icon: "restaurant",
         },
       ],
     },

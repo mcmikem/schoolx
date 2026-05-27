@@ -371,23 +371,7 @@ export default function BudgetPage() {
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
           <Card className="text-center">
             <CardBody>
-              <div className="text-sm text-[var(--t3)]">Budget Income</div>
-              <div className="text-xl font-bold text-[var(--t1)]">
-                UGX {totalIncome.toLocaleString()}
-              </div>
-            </CardBody>
-          </Card>
-          <Card className="text-center">
-            <CardBody>
-              <div className="text-sm text-[var(--t3)]">Actual Income</div>
-              <div className="text-xl font-bold text-[var(--green)]">
-                UGX {actualIncome.toLocaleString()}
-              </div>
-            </CardBody>
-          </Card>
-          <Card className="text-center">
-            <CardBody>
-              <div className="text-sm text-[var(--t3)]">Budget Expenses</div>
+              <div className="text-sm text-[var(--t3)]">Total Budgeted</div>
               <div className="text-xl font-bold text-[var(--t1)]">
                 UGX {totalExpense.toLocaleString()}
               </div>
@@ -395,9 +379,31 @@ export default function BudgetPage() {
           </Card>
           <Card className="text-center">
             <CardBody>
-              <div className="text-sm text-[var(--t3)]">Actual Expenses</div>
+              <div className="text-sm text-[var(--t3)]">Total Spent</div>
               <div className="text-xl font-bold text-[var(--error)]">
                 UGX {actualExpense.toLocaleString()}
+              </div>
+            </CardBody>
+          </Card>
+          <Card className="text-center">
+            <CardBody>
+              <div className="text-sm text-[var(--t3)]">Remaining</div>
+              <div
+                className={`text-xl font-bold ${totalExpense - actualExpense >= 0 ? "text-[var(--green)]" : "text-[var(--error)]"}`}
+              >
+                UGX {(totalExpense - actualExpense).toLocaleString()}
+              </div>
+            </CardBody>
+          </Card>
+          <Card className="text-center">
+            <CardBody>
+              <div className="text-sm text-[var(--t3)]">% Used</div>
+              <div
+                className={`text-xl font-bold ${totalExpense > 0 ? (() => { const p = (actualExpense / totalExpense) * 100; if (p > 90) return "text-[var(--error)]"; if (p > 75) return "text-[var(--amber)]"; return "text-[var(--green)]"; })() : "text-[var(--t3)]"}`}
+              >
+                {totalExpense > 0
+                  ? `${Math.round((actualExpense / totalExpense) * 100)}%`
+                  : "N/A"}
               </div>
             </CardBody>
           </Card>
@@ -421,7 +427,7 @@ export default function BudgetPage() {
                     Spent
                   </th>
                   <th className="px-4 py-3 text-right text-sm font-medium text-[var(--t2)]">
-                    Remaining
+                    Variance
                   </th>
                   <th className="px-4 py-3 text-center text-sm font-medium text-[var(--t2)]">
                     % Used

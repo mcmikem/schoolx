@@ -3,6 +3,7 @@ import type {
   ParentPortalAttendanceRecord,
   ParentPortalChild,
   ParentPortalFeeStructureItem,
+  ParentPortalHomeworkAssignment,
   ParentPortalMessageThreadItem,
   ParentPortalNotice,
   ParentPortalPayment,
@@ -280,6 +281,94 @@ const DEMO_MESSAGES: ParentPortalMessageThreadItem[] = [
   },
 ];
 
+const DEMO_HOMEWORK: Record<string, ParentPortalHomeworkAssignment[]> = {
+  "child-1": [
+    {
+      id: "child-1-hw-1",
+      title: "Multiplication Tables",
+      description: "Complete exercises on pages 24-28 covering multiplication tables 6-10.",
+      subject_name: "Mathematics",
+      due_date: "2026-04-22",
+      marks: 20,
+      class_name: "P.5 Blue",
+      academic_year: "2026",
+      term: 1,
+      created_at: "2026-04-15T08:00:00.000Z",
+      submission: {
+        status: "graded",
+        submitted_at: "2026-04-20T14:30:00.000Z",
+        marks: 18,
+        feedback: "Excellent work — neat and all correct!",
+      },
+    },
+    {
+      id: "child-1-hw-2",
+      title: "English Composition",
+      description: "Write a 300-word composition titled 'My Best Day at School'.",
+      subject_name: "English",
+      due_date: "2026-04-25",
+      marks: 15,
+      class_name: "P.5 Blue",
+      academic_year: "2026",
+      term: 1,
+      created_at: "2026-04-18T09:00:00.000Z",
+      submission: {
+        status: "submitted",
+        submitted_at: "2026-04-23T10:00:00.000Z",
+      },
+    },
+    {
+      id: "child-1-hw-3",
+      title: "Science Project: Plant Growth",
+      description: "Observe a bean seed for 7 days and record daily observations in your notebook.",
+      subject_name: "Science",
+      due_date: "2026-05-01",
+      marks: 25,
+      class_name: "P.5 Blue",
+      academic_year: "2026",
+      term: 1,
+      created_at: "2026-04-20T11:00:00.000Z",
+      submission: null,
+    },
+  ],
+  "child-2": [
+    {
+      id: "child-2-hw-1",
+      title: "Reading Comprehension",
+      description: "Read the story 'The Tortoise and the Hare' and answer questions 1-5.",
+      subject_name: "Literacy",
+      due_date: "2026-04-23",
+      marks: 10,
+      class_name: "P.3 Gold",
+      academic_year: "2026",
+      term: 1,
+      created_at: "2026-04-16T08:00:00.000Z",
+      submission: {
+        status: "graded",
+        submitted_at: "2026-04-22T09:15:00.000Z",
+        marks: 9,
+        feedback: "Great effort! Try reading aloud for fluency.",
+      },
+    },
+    {
+      id: "child-2-hw-2",
+      title: "Counting Practice",
+      description: "Count and write numbers 1-100. Write them in groups of 10.",
+      subject_name: "Numeracy",
+      due_date: "2026-04-28",
+      marks: 10,
+      class_name: "P.3 Gold",
+      academic_year: "2026",
+      term: 1,
+      created_at: "2026-04-19T10:00:00.000Z",
+      submission: {
+        status: "submitted",
+        submitted_at: "2026-04-26T11:30:00.000Z",
+      },
+    },
+  ],
+};
+
 export const PARENT_PORTAL_DEMO = deepFreeze({
   children: DEMO_CHILDREN,
   notices: DEMO_NOTICES,
@@ -290,6 +379,7 @@ export const PARENT_PORTAL_DEMO = deepFreeze({
   walletBalances: DEMO_WALLET_BALANCES,
   walletTransactions: DEMO_WALLET_TRANSACTIONS,
   messages: DEMO_MESSAGES,
+  homework: DEMO_HOMEWORK,
 });
 
 export function getDemoChildren() {
@@ -328,4 +418,8 @@ export function getDemoWalletTransactions(childId?: string | null) {
 
 export function getDemoMessages() {
   return PARENT_PORTAL_DEMO.messages.slice();
+}
+
+export function getDemoHomework(childId?: string | null) {
+  return (PARENT_PORTAL_DEMO.homework[childId || "child-1"] || []).slice();
 }

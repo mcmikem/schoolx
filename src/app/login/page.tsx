@@ -11,6 +11,7 @@ import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { isValidEmail, normalizeAuthPhone } from "@/lib/validation";
 import { DEMO_MODE_ENABLED } from "@/lib/auth-context-types";
+import { saveDemoStorage } from "@/lib/auth-demo";
 
 // Regression compatibility anchors:
 // otpMode
@@ -219,6 +220,29 @@ export default function LoginPage() {
     submitTimerRef.current = setTimeout(() => {
       setShowSlowMessage(true);
     }, SLOW_CONNECTION_MS);
+
+    // Demo login: intercept known demo phone numbers
+    if (DEMO_MODE_ENABLED) {
+      const DEMO_PHONES = ["256700000001","256700000002","256700000003","256700000004","256700000005"];
+      const cleanPhone = normalized.replace(/[^0-9]/g, "");
+      if (DEMO_PHONES.includes(cleanPhone)) {
+        try {
+          const res = await fetch("/api/demo-login/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ phone: cleanPhone, password }),
+          });
+          const data = await res.json();
+          if (res.ok && data.success) {
+            saveDemoStorage(data.user, data.school);
+            window.location.href = data.user.role === "parent" ? "/parent-portal" : "/dashboard";
+            return;
+          }
+        } catch {
+          // fall through to normal login below
+        }
+      }
+    }
 
     try {
       const { error } = await signIn(normalized, password);

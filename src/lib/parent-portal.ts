@@ -115,6 +115,75 @@ export interface ParentPortalReportCardSummary {
   performanceBand: "excellent" | "good" | "fair" | "attention";
 }
 
+export interface ParentPortalHomeworkAssignment {
+  id: string;
+  title: string;
+  description?: string | null;
+  subject_name: string;
+  due_date: string;
+  marks: number;
+  class_name?: string | null;
+  academic_year?: string | null;
+  term?: number | null;
+  created_at: string;
+  submission?: {
+    status: "pending" | "submitted" | "graded" | "late";
+    submitted_at?: string | null;
+    marks?: number | null;
+    feedback?: string | null;
+  } | null;
+}
+
+export function normalizeHomeworkAssignments(
+  homework: Array<{
+    id: string;
+    title: string;
+    description?: string | null;
+    subject_id: string;
+    class_id: string;
+    due_date: string;
+    marks: number;
+    academic_year?: string | null;
+    term?: number | null;
+    created_at: string;
+    subjects?: { name?: string | null } | Array<{ name?: string | null }> | null;
+    classes?: { name?: string | null } | Array<{ name?: string | null }> | null;
+    homework_submissions?: Array<{
+      status: string;
+      submitted_at?: string | null;
+      marks?: number | null;
+      feedback?: string | null;
+    }> | null;
+  }>,
+): ParentPortalHomeworkAssignment[] {
+  return homework.map((h) => ({
+    id: h.id,
+    title: h.title,
+    description: h.description,
+    subject_name: resolveRelationName(h.subjects, "Unknown"),
+    due_date: h.due_date,
+    marks: h.marks,
+    class_name: resolveRelationName(h.classes),
+    academic_year: h.academic_year,
+    term: h.term,
+    created_at: h.created_at,
+    submission: h.homework_submissions?.[0]
+      ? {
+          status: isHomeworkStatus(h.homework_submissions[0].status)
+            ? h.homework_submissions[0].status
+            : "pending",
+          submitted_at: h.homework_submissions[0].submitted_at,
+          marks: h.homework_submissions[0].marks,
+          feedback: h.homework_submissions[0].feedback,
+        }
+      : null,
+  }));
+}
+
+function isHomeworkStatus(status: string): status is "pending" | "submitted" | "graded" | "late" {
+  return ["pending", "submitted", "graded", "late"].includes(status);
+}
+
 type ParentPortalLegacyPaymentRecord = {
   id: string;
   amount_paid?: number | null;
