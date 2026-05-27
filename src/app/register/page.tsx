@@ -33,6 +33,7 @@ import { normalizeAuthPhone } from "@/lib/validation";
 import { withSupabaseLockRetry } from "@/lib/supabase-lock";
 import MaterialIcon from "@/components/MaterialIcon";
 import { useFormValidation, ValidationRules, ValidatedInput } from "@/lib/useFormValidation";
+import { type ModuleKey } from "@/lib/modules/catalog";
 
 const SCHOOL_TYPE_OPTIONS = [
   { value: "primary", label: "Primary School" },
@@ -54,7 +55,25 @@ const DISTRICT_OPTIONS = [
 const SUPPORT_PHONE = "+256700000000";
 const SUPPORT_WHATSAPP_URL = "https://wa.me/256700000000";
 
-// Package is always defaulted to starter at registration; user upgrades later
+const PACKAGE_OPTIONS = [
+  { value: "starter", label: "Starter" },
+  { value: "growth", label: "Growth" },
+  { value: "enterprise", label: "Enterprise" },
+];
+
+const BILLING_MODE_OPTIONS = [
+  { value: "full_suite", label: "Full Suite (all modules)" },
+  { value: "modular", label: "Modular (choose modules)" },
+];
+
+const REGISTRATION_MODULE_OPTIONS: Array<{ key: ModuleKey; label: string }> = [
+  { key: "reports", label: "Reports & Exams" },
+  { key: "attendance", label: "Attendance" },
+  { key: "fees", label: "Fees & Billing" },
+  { key: "messages", label: "Messages & SMS" },
+  { key: "canteen", label: "Canteen / POS" },
+  { key: "student_id", label: "Student ID Cards" },
+];
 
 function RegisterPageContent() {
   const router = useRouter();
@@ -66,6 +85,7 @@ function RegisterPageContent() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [showAdvancedSchoolDetails, setShowAdvancedSchoolDetails] = useState(false);
   const [showOptionalContacts, setShowOptionalContacts] = useState(false);
+  const [selectedModules, setSelectedModules] = useState<ModuleKey[]>(["reports"]);
 
   const googleRegisterMode = searchParams?.get("oauth") === "1";
 
@@ -90,6 +110,7 @@ function RegisterPageContent() {
     schoolType: "primary" as "primary" | "secondary" | "combined",
     ownership: "private" as "private" | "government" | "government_aided",
     selectedPackage: "starter",
+    billingMode: "full_suite" as "full_suite" | "modular",
     phone: "",
     email: "",
     adminName: "",
@@ -138,6 +159,10 @@ function RegisterPageContent() {
     }
     if (form.schoolName.trim().length < 3) {
       setApiError("School name must be at least 3 characters");
+      return false;
+    }
+    if (form.billingMode === "modular" && selectedModules.length === 0) {
+      setApiError("Select at least one module for modular mode");
       return false;
     }
     return true;
@@ -211,6 +236,14 @@ function RegisterPageContent() {
     updateForm("confirmPassword", suggestedPassword);
   };
 
+  const toggleModule = (moduleKey: ModuleKey) => {
+    setSelectedModules((prev) =>
+      prev.includes(moduleKey)
+        ? prev.filter((key) => key !== moduleKey)
+        : [...prev, moduleKey],
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setApiError("");
@@ -249,6 +282,8 @@ function RegisterPageContent() {
           schoolType: form.schoolType,
           ownership: form.ownership,
           selectedPackage: form.selectedPackage,
+          billingMode: form.billingMode,
+          selectedModules: form.billingMode === "modular" ? selectedModules : [],
           phone: form.phone || null,
           email: form.email || null,
           parish: form.parish || null,
@@ -276,6 +311,14 @@ function RegisterPageContent() {
         setApiError((data.error as string) || `Registration failed (${response.status})`);
         setLoading(false);
         return;
+      }
+
+      const payload = (data.data as Record<string, unknown> | undefined) || {};
+      const moduleRequestLink =
+        typeof payload.moduleRequestLink === "string" ? payload.moduleRequestLink : null;
+
+      if (moduleRequestLink && typeof window !== "undefined") {
+        window.open(moduleRequestLink, "_blank", "noopener,noreferrer");
       }
 
       if (googleRegisterMode) {
@@ -487,6 +530,14 @@ router.replace("/dashboard/");
                   {showAdvancedSchoolDetails && (
                     <div className="space-y-4 rounded-xl border border-[var(--border)] p-4 bg-[var(--bg)]">
                       <Select
+                        label="Package"
+                        options={PACKAGE_OPTIONS}
+                        value={form.selectedPackage}
+                        onChange={(e) => updateForm("selectedPackage", e.target.value)}
+                        required
+                      />
+
+                      <Select
                         label="School Type"
                         options={SCHOOL_TYPE_OPTIONS}
                         value={form.schoolType}
@@ -501,6 +552,40 @@ router.replace("/dashboard/");
                         onChange={(e) => updateForm("ownership", e.target.value)}
                         required
                       />
+
+                      <Select
+                        label="Access Mode"
+                        options={BILLING_MODE_OPTIONS}
+                        value={form.billingMode}
+                        onChange={(e) => updateForm("billingMode", e.target.value)}
+                        required
+                      />
+
+                      {form.billingMode === "modular" && (
+                        <div className="space-y-2 rounded-xl border border-[var(--border)] bg-white p-3">
+                          <p className="text-sm font-semibold text-[var(--t1)]">Choose starter modules</p>
+                          <p className="text-xs text-[var(--t3)]">You can activate or change modules later in Settings.</p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+                            {REGISTRATION_MODULE_OPTIONS.map((module) => {
+                              const checked = selectedModules.includes(module.key);
+                              return (
+                                <label
+                                  key={module.key}
+                                  className="flex items-center gap-2 rounded-lg border border-[var(--border)] px-3 py-2 text-sm text-[var(--t2)]"
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={() => toggleModule(module.key)}
+                                    className="h-4 w-4"
+                                  />
+                                  {module.label}
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
 

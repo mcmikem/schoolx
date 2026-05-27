@@ -526,7 +526,19 @@ export default function SettingsPage() {
         throw new Error(result.error || "Failed to activate module");
       }
 
-      toast.success("Module activated successfully");
+      const payload = (result.data || {}) as {
+        status?: string;
+        whatsappLink?: string;
+      };
+
+      if (payload.status === "pending") {
+        if (typeof window !== "undefined" && payload.whatsappLink) {
+          window.open(payload.whatsappLink, "_blank", "noopener,noreferrer");
+        }
+        toast.success("Request submitted. Super admin will activate after payment confirmation.");
+      } else {
+        toast.success("Module activated successfully");
+      }
       await fetchModuleData();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to activate module");
@@ -739,6 +751,7 @@ export default function SettingsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {moduleCatalog.map((module) => {
                     const entitlement = moduleEntitlements.find((e) => e.module_key === module.module_key);
+                    const isPending = entitlement?.status === "pending";
                     const isEntitled =
                       billingMode === "full_suite" ||
                       Boolean(
@@ -766,10 +779,12 @@ export default function SettingsPage() {
                             className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full ${
                               isEntitled
                                 ? "bg-[var(--green-soft)] text-[var(--green)]"
+                                : isPending
+                                  ? "bg-blue-100 text-blue-700"
                                 : "bg-[var(--amber-soft)] text-[var(--amber)]"
                             }`}
                           >
-                            {isEntitled ? "Active" : "Locked"}
+                            {isEntitled ? "Active" : isPending ? "Pending Approval" : "Locked"}
                           </span>
                         </div>
 
@@ -785,16 +800,16 @@ export default function SettingsPage() {
                             </p>
                           </div>
 
-                          {billingMode === "modular" && !isEntitled ? (
+                          {billingMode === "modular" && !isEntitled && !isPending ? (
                             <Button
                               onClick={() => activateModule(module.module_key)}
                               loading={activatingModule === module.module_key}
                             >
-                              Add Module
+                              Request Activation
                             </Button>
                           ) : (
                             <Button variant="secondary" disabled>
-                              {isEntitled ? "Enabled" : "Switch to modular"}
+                              {isEntitled ? "Enabled" : isPending ? "Requested" : "Switch to modular"}
                             </Button>
                           )}
                         </div>

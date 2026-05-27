@@ -50,28 +50,6 @@ export async function POST(request: NextRequest) {
       return apiError("Failed to update billing mode", 500);
     }
 
-    // Give newly switched modular schools a short reports trial so they are never blocked immediately.
-    if (billingMode === "modular") {
-      const startsAt = new Date();
-      const endsAt = new Date(startsAt);
-      endsAt.setDate(endsAt.getDate() + 30);
-
-      await supabase.from("school_module_entitlements").upsert(
-        {
-          school_id: auth.context.schoolId,
-          module_key: "reports",
-          status: "trial",
-          starts_at: startsAt.toISOString(),
-          ends_at: endsAt.toISOString(),
-          auto_renew: false,
-          source: "trial",
-          created_by: auth.context.user.id,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "school_id,module_key" },
-      );
-    }
-
     return apiSuccess({ billing_mode: billingMode }, "Billing mode updated");
   } catch (error) {
     return handleApiError(error);

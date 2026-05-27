@@ -22,6 +22,8 @@ import {
   seedSchoolDefaults,
 } from "@/lib/server/school-provisioning";
 import { logger } from "@/lib/logger";
+import { type ModuleKey } from "@/lib/modules/catalog";
+import { generateWhatsAppShareLink } from "@/lib/whatsapp";
 
 interface OAuthRegisterRequest {
   schoolName: string;
@@ -32,10 +34,59 @@ interface OAuthRegisterRequest {
   schoolType: "primary" | "secondary" | "combined";
   ownership: "private" | "government" | "government_aided";
   selectedPackage?: string;
+  billingMode?: "full_suite" | "modular";
+  selectedModules?: ModuleKey[];
   phone?: string;
   email?: string;
   adminName: string;
   adminPhone: string;
+}
+
+const REGISTRATION_MODULE_KEYS: ModuleKey[] = [
+  "reports",
+  "student_id",
+  "canteen",
+  "fees",
+  "attendance",
+  "messages",
+];
+
+const SUPPORT_WHATSAPP = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || "256700000000";
+
+function normalizeSelectedModules(raw: unknown): ModuleKey[] {
+  if (!Array.isArray(raw)) return [];
+  const unique = new Set<ModuleKey>();
+  for (const value of raw) {
+    if (typeof value !== "string") continue;
+    const moduleKey = value as ModuleKey;
+    if (REGISTRATION_MODULE_KEYS.includes(moduleKey)) {
+      unique.add(moduleKey);
+    }
+  }
+  return Array.from(unique);
+}
+
+function formatModuleRequestMessage(params: {
+  schoolName: string;
+  schoolCode: string;
+  district: string;
+  adminName: string;
+  adminPhone: string;
+  selectedPackage: string;
+  modules: ModuleKey[];
+}) {
+  const moduleList = params.modules.join(", ") || "none";
+  return [
+    "Hello Super Admin,",
+    "",
+    "Please activate modules after in-person payment confirmation:",
+    `School: ${params.schoolName}`,
+    `School Code: ${params.schoolCode}`,
+    `District: ${params.district}`,
+    `Admin: ${params.adminName} (${params.adminPhone})`,
+    `Plan: ${params.selectedPackage}`,
+    `Requested Modules: ${moduleList}`,
+  ].join("\n");
 }
 
 export async function POST(request: NextRequest) {
@@ -65,6 +116,8 @@ export async function POST(request: NextRequest) {
       schoolType,
       ownership,
       selectedPackage,
+      billingMode,
+      selectedModules,
       phone,
       email,
       adminName,
@@ -90,6 +143,13 @@ export async function POST(request: NextRequest) {
     }
 
     const subscriptionPlan = normalizePlanType(selectedPackage || "basic");
+    const normalizedBillingMode =
+      billingMode === "modular" ? "modular" : "full_suite";
+    const normalizedModules = normalizeSelectedModules(selectedModules);
+    const modulesToSeed: ModuleKey[] =
+      normalizedBillingMode === "modular"
+        ? (normalizedModules.length > 0 ? normalizedModules : (["reports"] as ModuleKey[]))
+        : [];
     const normalizedEmail = (email || authUser.email || "").trim().toLowerCase();
 
     const supabaseAdmin = createSupabaseAdminClient();
@@ -134,6 +194,7 @@ export async function POST(request: NextRequest) {
         phone: phone || null,
         email: normalizedEmail || null,
         subscription_plan: subscriptionPlan,
+        billing_mode: normalizedBillingMode,
         subscription_status: "trial",
         trial_ends_at: new Date(
           Date.now() + 30 * 24 * 60 * 60 * 1000,
@@ -147,19 +208,74 @@ export async function POST(request: NextRequest) {
       throw schoolError || new Error("Failed to create school");
     }
 
-    const { error: userInsertError } = await supabaseAdmin.from("users").insert({
-      auth_id: authUser.id,
-      school_id: schoolData.id,
-      full_name: adminName,
-      phone: normalizedPhone,
-      email: normalizedEmail || null,
-      role: "school_admin",
-      is_active: true,
-    });
+    const { data: createdUser, error: userInsertError } = await supabaseAdmin
+      .from("users")
+      .insert({
+        auth_id: authUser.id,
+        school_id: schoolData.id,
+        full_name: adminName,
+        phone: normalizedPhone,
+        email: normalizedEmail || null,
+        role: "school_admin",
+        is_active: true,
+      })
+      .select("id")
+      .single();
 
     if (userInsertError) {
       await supabaseAdmin.from("schools").delete().eq("id", schoolData.id);
       throw userInsertError;
+    }
+
+    let moduleRequestLink: string | null = null;
+    let moduleRequestMessage: string | null = null;
+
+    if (normalizedBillingMode === "modular") {
+      const startsAt = new Date();
+      const endsAt = new Date(startsAt);
+      endsAt.setDate(endsAt.getDate() + 30);
+
+      const entitlementRows = modulesToSeed.map((moduleKey) => ({
+        school_id: schoolData.id,
+        module_key: moduleKey,
+        status: "pending",
+        starts_at: startsAt.toISOString(),
+        ends_at: endsAt.toISOString(),
+        auto_renew: false,
+        source: "manual_confirmation",
+        created_by: createdUser.id,
+        updated_at: new Date().toISOString(),
+      }));
+
+      const { error: entitlementError } = await supabaseAdmin
+        .from("school_module_entitlements")
+        .upsert(entitlementRows, { onConflict: "school_id,module_key" });
+
+      if (entitlementError) {
+        await supabaseAdmin.from("schools").delete().eq("id", schoolData.id);
+        throw entitlementError;
+      }
+
+      const message = formatModuleRequestMessage({
+        schoolName,
+        schoolCode,
+        district,
+        adminName,
+        adminPhone: normalizedPhone,
+        selectedPackage: subscriptionPlan,
+        modules: modulesToSeed,
+      });
+      moduleRequestMessage = message;
+      moduleRequestLink = generateWhatsAppShareLink(SUPPORT_WHATSAPP, message);
+
+      await supabaseAdmin.from("support_tickets").insert({
+        school_id: schoolData.id,
+        type: "custom_package",
+        title: "Module activation request pending payment",
+        description: message,
+        priority: "medium",
+        status: "open",
+      });
     }
 
     await seedSchoolDefaults(supabaseAdmin, schoolData.id, schoolType);
@@ -184,6 +300,8 @@ export async function POST(request: NextRequest) {
         name: schoolData.name,
         code: schoolData.school_code,
       },
+      moduleRequestLink,
+      moduleRequestMessage,
     });
   } catch (error) {
     return handleApiError(error);
