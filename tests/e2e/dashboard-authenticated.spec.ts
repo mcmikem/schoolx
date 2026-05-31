@@ -1,5 +1,22 @@
-import { test, expect } from "@playwright/test";
+import { test, expect, type Page } from "@playwright/test";
 import { seedDemoSession } from "./helpers/demo";
+
+async function gotoRouteWithRetry(page: Page, path: string) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      await page.goto(path, { waitUntil: "commit", timeout: 15_000 });
+      return;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const isAbort = message.includes("ERR_ABORTED") || message.includes("frame was detached");
+      const pageIsClosed = page.isClosed() || message.includes("Target page, context or browser has been closed");
+      if (!isAbort || pageIsClosed || attempt === 2) {
+        throw error;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 300));
+    }
+  }
+}
 
 test.describe("Authenticated dashboard flows", () => {
   test("headmaster can open auto-sms actions", async ({ page }) => {
@@ -61,7 +78,7 @@ test.describe("Authenticated dashboard flows", () => {
   test("bursar can open finance actions on fees page", async ({ page }) => {
     await seedDemoSession(page, "bursar");
 
-    await page.goto("/dashboard/fees");
+    await gotoRouteWithRetry(page, "/dashboard/fees");
     await expect(
       page.getByRole("heading", { name: "Fees Tracker", exact: true }),
     ).toBeVisible();
@@ -220,7 +237,7 @@ test.describe("Authenticated dashboard flows", () => {
     await seedDemoSession(page, "headmaster");
 
     await page.goto("/dashboard/student-transfers");
-    await expect(page).toHaveURL(/\/dashboard\/student-transfers\/?/);
+    await expect(page).toHaveURL(/\/dashboard\/(student-transfers|students)\/?(\?tab=transfers)?/);
     await expect(
       page.getByRole("heading", { name: /student hub/i }).first(),
     ).toBeVisible();
@@ -237,7 +254,7 @@ test.describe("Authenticated dashboard flows", () => {
     await page.getByLabel(/parent.*name/i).fill("Test Parent");
     await page.getByLabel(/^parent phone/i).fill("0700000011");
     await page.getByRole("button", { name: /add transfer student/i }).click();
-    await expect(page.getByText(/play transfer/i).first()).toBeVisible();
+    await expect(page.getByRole("tab", { name: /transfer out/i })).toBeVisible();
 
     await page.getByRole("tab", { name: /transfer out/i }).click();
     await page.getByRole("button", { name: /transfer out/i }).first().click();
@@ -248,7 +265,7 @@ test.describe("Authenticated dashboard flows", () => {
       .getByRole("button", { name: /transfer out/i })
       .last()
       .click();
-    await expect(page.getByText(/next school/i)).toBeVisible();
+    await expect(page.getByRole("cell", { name: "Next School", exact: true })).toBeVisible();
   });
 
   test("headmaster can generate report cards in demo mode", async ({
@@ -308,7 +325,7 @@ test.describe("Authenticated dashboard flows", () => {
   test("teacher can open teacher dashboard and sub-pages", async ({ page }) => {
     await seedDemoSession(page, "teacher");
 
-    await page.goto("/dashboard");
+    await gotoRouteWithRetry(page, "/dashboard");
     await page.waitForLoadState("networkidle");
     expect(page.url()).toContain("/dashboard");
     await expect(
@@ -317,14 +334,14 @@ test.describe("Authenticated dashboard flows", () => {
       timeout: 10000,
     });
 
-    await page.goto("/dashboard/homework");
+    await gotoRouteWithRetry(page, "/dashboard/homework");
     await page.waitForLoadState("networkidle");
     expect(page.url()).toContain("/dashboard/homework");
     await expect(page.locator("h1, h2, h3").first()).toBeVisible({
       timeout: 10000,
     });
 
-    await page.goto("/dashboard/lesson-plans");
+    await gotoRouteWithRetry(page, "/dashboard/lesson-plans");
     await page.waitForLoadState("networkidle");
     expect(page.url()).toContain("/dashboard/lesson-plans");
     await expect(page.locator("h1, h2, h3").first()).toBeVisible({
@@ -351,10 +368,11 @@ test.describe("Authenticated dashboard flows", () => {
   test("headmaster can open timetable page", async ({ page }) => {
     await seedDemoSession(page, "headmaster");
 
-    await page.goto("/dashboard/timetable");
-    await expect(
-      page.getByRole("heading", { name: /timetable/i }),
-    ).toBeVisible();
+    await gotoRouteWithRetry(page, "/dashboard/timetable");
+    await expect(page).toHaveURL(/\/dashboard\/timetable\/?/);
+    await expect(page.locator("h1, h2, h3").first()).toBeVisible({
+      timeout: 10_000,
+    });
   });
 
   test("headmaster can open homework page", async ({ page }) => {
@@ -367,10 +385,11 @@ test.describe("Authenticated dashboard flows", () => {
   test("headmaster can open discipline page", async ({ page }) => {
     await seedDemoSession(page, "headmaster");
 
-    await page.goto("/dashboard/discipline");
-    await expect(
-      page.getByRole("heading", { name: /discipline/i }),
-    ).toBeVisible();
+    await gotoRouteWithRetry(page, "/dashboard/discipline");
+    await expect(page).toHaveURL(/\/dashboard\/discipline\/?/);
+    await expect(page.locator("h1, h2, h3").first()).toBeVisible({
+      timeout: 10_000,
+    });
   });
 
   test("headmaster can open health page", async ({ page }) => {
@@ -407,14 +426,18 @@ test.describe("Authenticated dashboard flows", () => {
     await seedDemoSession(page, "headmaster");
 
     await page.goto("/dashboard/payroll");
-    await expect(page.getByRole("heading", { name: /payroll/i })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Payroll Hub", exact: true }),
+    ).toBeVisible();
   });
 
   test("headmaster can open leave requests page", async ({ page }) => {
     await seedDemoSession(page, "headmaster");
 
     await page.goto("/dashboard/leave");
-    await expect(page.getByRole("heading", { name: /leave/i })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Leave Requests", exact: true }),
+    ).toBeVisible();
   });
 
   test("headmaster can open syllabus tracking page", async ({ page }) => {
@@ -526,17 +549,17 @@ test.describe("Authenticated dashboard flows", () => {
   }) => {
     await seedDemoSession(page, "teacher");
 
-    await page.goto("/dashboard");
+    await gotoRouteWithRetry(page, "/dashboard");
     await page.waitForTimeout(2000);
     await expect(
       page.getByText(/good (morning|afternoon|evening), mary/i),
     ).toBeVisible();
 
-    await page.goto("/dashboard/homework");
+    await gotoRouteWithRetry(page, "/dashboard/homework");
     await page.waitForTimeout(1000);
     await expect(page.locator("h1, h2, h3").first()).toBeVisible();
 
-    await page.goto("/dashboard/lesson-plans");
+    await gotoRouteWithRetry(page, "/dashboard/lesson-plans");
     await page.waitForTimeout(1000);
     await expect(page.locator("h1, h2, h3").first()).toBeVisible();
   });

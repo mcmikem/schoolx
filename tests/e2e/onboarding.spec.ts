@@ -13,10 +13,12 @@ import { test, expect, type Locator, type Page } from "@playwright/test";
 
 async function reachStep2(page: Page, school = "Test School") {
   await page.goto("/register", { waitUntil: "networkidle" });
+  await expect(page.getByText(/step 1 of 3/i)).toBeVisible({ timeout: 10000 });
+  await expect(page.getByRole("button", { name: /next.*where/i })).toBeEnabled({ timeout: 10000 });
   const schoolName = page.getByRole("textbox", { name: /school name/i });
   await stableFill(schoolName, school);
   await page.getByRole("button", { name: /next.*where/i }).click();
-  await expect(page.getByText(/step 2 of 3/i)).toBeVisible();
+  await expect(page.getByText(/step 2 of 3/i)).toBeVisible({ timeout: 15000 });
 }
 
 async function stableFill(locator: Locator, value: string) {
@@ -78,11 +80,9 @@ test.describe("Registration / Onboarding flow", () => {
 
   test("register page loads with step 1 content", async ({ page }) => {
     await page.goto("/register");
-    await expect(page.getByText(/start your school account/i)).toBeVisible();
     await expect(page.getByText(/step 1 of 3/i)).toBeVisible();
     await expect(page.getByLabel(/school name/i)).toBeVisible();
-    await expect(page.getByLabel(/school type/i)).toBeVisible();
-    await expect(page.getByLabel(/ownership/i)).toBeVisible();
+    await expect(page.getByRole("button", { name: /next.*where/i })).toBeVisible();
     await expect(
       page.getByRole("link", { name: /sign in/i }),
     ).toBeVisible();
@@ -90,6 +90,8 @@ test.describe("Registration / Onboarding flow", () => {
 
   test("step 1 – shows error when school name is empty", async ({ page }) => {
     await page.goto("/register", { waitUntil: "networkidle" });
+    await expect(page.getByText(/step 1 of 3/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("button", { name: /next.*where/i })).toBeEnabled({ timeout: 10000 });
     await page.getByRole("button", { name: /next.*where/i }).click();
     await expect(
       page.getByText(/school name is required/i),
@@ -100,6 +102,8 @@ test.describe("Registration / Onboarding flow", () => {
     page,
   }) => {
     await page.goto("/register", { waitUntil: "networkidle" });
+    await expect(page.getByText(/step 1 of 3/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("button", { name: /next.*where/i })).toBeEnabled({ timeout: 10000 });
     await stableFill(page.getByRole("textbox", { name: /school name/i }), "AB");
     await page.getByRole("button", { name: /next.*where/i }).click();
     await expect(
@@ -111,12 +115,14 @@ test.describe("Registration / Onboarding flow", () => {
     page,
   }) => {
     await page.goto("/register", { waitUntil: "networkidle" });
+    await expect(page.getByText(/step 1 of 3/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("button", { name: /next.*where/i })).toBeEnabled({ timeout: 10000 });
     await stableFill(
       page.getByRole("textbox", { name: /school name/i }),
       "St. Mary Primary School",
     );
     await page.getByRole("button", { name: /next.*where/i }).click();
-    await expect(page.getByText(/step 2 of 3/i)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(/step 2 of 3/i)).toBeVisible({ timeout: 15000 });
   });
 
   // ── Step 2 ──

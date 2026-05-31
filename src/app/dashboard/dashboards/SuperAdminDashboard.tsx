@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { supabase } from "@/lib/supabase";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import MaterialIcon from "@/components/MaterialIcon";
 import { APP_NAME } from "@/lib/app-name";
@@ -213,6 +213,36 @@ export default function SuperAdminDashboard() {
 
   const fetchData = useCallback(async () => {
     try {
+      if (!isSupabaseConfigured) {
+        const createdAt = new Date().toISOString();
+        const demoSchool: RecentSchool = {
+          id: "mock-school-1",
+          name: "St. Mary's Primary School (Demo)",
+          district: "Kampala",
+          school_type: "primary",
+          subscription_plan: "growth",
+          subscription_status: "active",
+          student_count: 0,
+          created_at: createdAt,
+          primary_color: "#0d9488",
+        };
+
+        setStats({
+          totalSchools: 1,
+          activeSchools: 1,
+          trialSchools: 0,
+          expiredSchools: 0,
+          totalStudents: 0,
+          totalUsers: 1,
+          totalRevenue: 0,
+          newThisMonth: 1,
+        });
+        setRecentSchools([demoSchool]);
+        setPlanBreakdown([{ plan: "growth", count: 1 }]);
+        setAlerts([]);
+        return;
+      }
+
       const [schoolsRes, usersRes] = await Promise.all([
         supabase
           .from("schools")

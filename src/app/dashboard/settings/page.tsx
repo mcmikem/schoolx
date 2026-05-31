@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
-import { supabase } from "@/lib/supabase";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { loadSchoolSettings, saveSchoolSetting } from "@/lib/school-settings";
 import { type UserRole } from "@/lib/roles";
 import { DEFAULT_FEATURE_STAGE, type FeatureStage } from "@/lib/featureStages";
@@ -50,6 +50,35 @@ interface ModuleEntitlement {
   starts_at: string;
   ends_at: string;
   auto_renew: boolean;
+}
+
+async function parseApiResponse(response: Response): Promise<Record<string, unknown>> {
+  const contentType = response.headers.get("content-type") || "";
+
+  if (contentType.includes("application/json")) {
+    try {
+      return (await response.json()) as Record<string, unknown>;
+    } catch {
+      return {
+        success: false,
+        error: response.ok
+          ? "Unexpected response from server"
+          : "Server returned invalid JSON",
+      };
+    }
+  }
+
+  const text = await response.text().catch(() => "");
+  const trimmed = text.trim();
+  const isHtml = /^<!doctype html|^<html/i.test(trimmed);
+  const fallbackMessage = response.ok
+    ? "Unexpected response from server"
+    : "Server returned an unexpected error page";
+
+  return {
+    success: false,
+    error: isHtml ? fallbackMessage : trimmed.slice(0, 180) || fallbackMessage,
+  };
 }
 
 const ALL_SETTINGS_TABS = [
@@ -204,18 +233,37 @@ export default function SettingsPage() {
     if (!school?.id) return;
     setLoadingModules(true);
     try {
-      const response = await fetch("/api/modules/entitlements/");
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || "Failed to load modules");
+      if (!isSupabaseConfigured) {
+        setBillingMode("full_suite");
+        setSchoolSizeBand("small");
+        setModuleCatalog([]);
+        setModuleEntitlements([]);
+        return;
       }
 
-      const payload = result.data || {};
+      const response = await fetch("/api/modules/entitlements/");
+      const result = await parseApiResponse(response);
+
+      if (!response.ok || !result.success) {
+        throw new Error(
+          typeof result.error === "string"
+            ? result.error
+            : "Failed to load modules",
+        );
+      }
+
+      const payload = (result.data || {}) as {
+        school?: {
+          billing_mode?: "full_suite" | "modular";
+          school_size_band?: "small" | "medium" | "large";
+        };
+        catalog?: ModuleCatalogItem[];
+        entitlements?: ModuleEntitlement[];
+      };
       setBillingMode(payload.school?.billing_mode || "full_suite");
       setSchoolSizeBand(payload.school?.school_size_band || "small");
-      setModuleCatalog(payload.catalog || []);
-      setModuleEntitlements(payload.entitlements || []);
+      setModuleCatalog(Array.isArray(payload.catalog) ? payload.catalog : []);
+      setModuleEntitlements(Array.isArray(payload.entitlements) ? payload.entitlements : []);
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to load module billing");
     } finally {
@@ -338,15 +386,23 @@ export default function SettingsPage() {
         const phone = paymentPhone.trim();
         if (!phone) { toast.error("Enter your mobile money phone number"); setUpgradingPlan(false); return; }
         const response = await fetch("/api/payment/mobile-money/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ provider, plan: selectedPaymentPlan, phoneNumber: phone }) });
-        const result = await response.json();
-        if (!response.ok || result.error) throw new Error(result.error || "Payment failed");
-        if (result.paymentLink) { toast.success(result.instructions || "A payment prompt has been sent to your phone. Enter your PIN to complete."); setShowPaymentModal(false); setPaymentPhone(""); }
+        const result = await parseApiResponse(response);
+        if (!response.ok || result.error) {
+          throw new Error(
+            typeof result.error === "string" ? result.error : "Payment failed",
+          );
+        }
+        if (result.paymentLink) { toast.success(typeof result.instructions === "string" ? result.instructions : "A payment prompt has been sent to your phone. Enter your PIN to complete."); setShowPaymentModal(false); setPaymentPhone(""); }
         else throw new Error("Payment request failed. Please try again.");
       } else {
         const response = await fetch("/api/payment/checkout/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ provider: "paypal", plan: selectedPaymentPlan }) });
-        const result = await response.json();
-        if (!response.ok || result.error) throw new Error(result.error || "Payment failed");
-        if (result.url) { const target = result.url?.trim(); if (!target || target === "about:blank") throw new Error("PayPal returned an invalid payment link."); const newTab = window.open(target, "_blank", "noopener,noreferrer"); if (!newTab) window.location.assign(target); }
+        const result = await parseApiResponse(response);
+        if (!response.ok || result.error) {
+          throw new Error(
+            typeof result.error === "string" ? result.error : "Payment failed",
+          );
+        }
+        if (typeof result.url === "string") { const target = result.url.trim(); if (!target || target === "about:blank") throw new Error("PayPal returned an invalid payment link."); const newTab = window.open(target, "_blank", "noopener,noreferrer"); if (!newTab) window.location.assign(target); }
         else throw new Error("PayPal approval link missing. Please try again.");
       }
       toast.success("Redirecting to payment...");
@@ -366,9 +422,15 @@ export default function SettingsPage() {
   const handleAddUser = (data: { full_name: string; phone: string; role: UserRole; password: string }) => {
     if (!school?.id) return;
     fetch("/api/users", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ schoolId: school.id, fullName: data.full_name, phone: data.phone.replace(/[^0-9]/g, ""), password: data.password, role: data.role }) })
-      .then((res) => res.json())
+      .then((res) => parseApiResponse(res))
       .then((result) => {
-        if (!result.success) throw new Error(result.error || "Failed to add user");
+        if (!result.success) {
+          throw new Error(
+            typeof result.error === "string"
+              ? result.error
+              : "Failed to add user",
+          );
+        }
         toast.success("User added successfully");
         fetchUsers();
       })
@@ -484,6 +546,10 @@ export default function SettingsPage() {
 
   const switchBillingMode = async (nextMode: "full_suite" | "modular") => {
     if (nextMode === billingMode) return;
+    if (!isSupabaseConfigured) {
+      toast.error("Connect Supabase to manage billing modules.");
+      return;
+    }
     setSwitchingBillingMode(true);
     try {
       const response = await fetch("/api/modules/mode/", {
@@ -492,9 +558,13 @@ export default function SettingsPage() {
         body: JSON.stringify({ billingMode: nextMode }),
       });
 
-      const result = await response.json();
+      const result = await parseApiResponse(response);
       if (!response.ok || !result.success) {
-        throw new Error(result.error || "Failed to switch billing mode");
+        throw new Error(
+          typeof result.error === "string"
+            ? result.error
+            : "Failed to switch billing mode",
+        );
       }
 
       setBillingMode(nextMode);
@@ -513,6 +583,10 @@ export default function SettingsPage() {
   };
 
   const activateModule = async (moduleKey: ModuleKey) => {
+    if (!isSupabaseConfigured) {
+      toast.error("Connect Supabase to request module activation.");
+      return;
+    }
     setActivatingModule(moduleKey);
     try {
       const response = await fetch("/api/modules/entitlements/", {
@@ -520,10 +594,14 @@ export default function SettingsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ moduleKey, autoRenew: true }),
       });
-      const result = await response.json();
+      const result = await parseApiResponse(response);
 
       if (!response.ok || !result.success) {
-        throw new Error(result.error || "Failed to activate module");
+        throw new Error(
+          typeof result.error === "string"
+            ? result.error
+            : "Failed to activate module",
+        );
       }
 
       const payload = (result.data || {}) as {
@@ -710,6 +788,12 @@ export default function SettingsPage() {
 
       <TabPanel activeTab={activeTab} tabId="subscription">
         <div className="space-y-6">
+          {!isSupabaseConfigured && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              Module and billing actions are disabled in mock mode. Add real Supabase credentials in <code>.env.local</code> to run live billing tests.
+            </div>
+          )}
+
           <Card>
             <CardBody>
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
@@ -732,6 +816,7 @@ export default function SettingsPage() {
                 <Button
                   variant={billingMode === "full_suite" ? "primary" : "secondary"}
                   loading={switchingBillingMode && billingMode !== "full_suite"}
+                  disabled={!isSupabaseConfigured}
                   onClick={() => switchBillingMode("full_suite")}
                 >
                   Full Suite Mode
@@ -739,6 +824,7 @@ export default function SettingsPage() {
                 <Button
                   variant={billingMode === "modular" ? "primary" : "secondary"}
                   loading={switchingBillingMode && billingMode !== "modular"}
+                  disabled={!isSupabaseConfigured}
                   onClick={() => switchBillingMode("modular")}
                 >
                   Modular Mode
@@ -747,6 +833,8 @@ export default function SettingsPage() {
 
               {loadingModules ? (
                 <div className="text-sm text-[var(--t3)]">Loading module catalog...</div>
+              ) : !isSupabaseConfigured ? (
+                <div className="text-sm text-[var(--t3)]">Connect Supabase to view and manage the module catalog.</div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {moduleCatalog.map((module) => {

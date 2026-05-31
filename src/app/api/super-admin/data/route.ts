@@ -3,9 +3,99 @@ import { createSupabaseAdminClient } from "@/lib/server/user-provisioning";
 import { requireUserWithSchool } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
 
+const DEMO_COOKIE = "skoolmate_demo_v1";
+const DEMO_MODE_ENABLED =
+  process.env.NODE_ENV === "development" &&
+  process.env.NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES === "true";
+
+function isSupabaseUnavailableError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error ?? "");
+  return message.includes("Supabase server client is not configured");
+}
+
+function hasDemoSuperAdminSession(request: NextRequest): boolean {
+  if (!DEMO_MODE_ENABLED) return false;
+  const cookieValue = request.cookies.get(DEMO_COOKIE)?.value;
+  if (!cookieValue) return false;
+
+  try {
+    const decoded = Buffer.from(cookieValue, "base64").toString("utf8");
+    const parsed = JSON.parse(decoded) as {
+      demoUser?: { role?: unknown };
+      demoSchool?: { id?: unknown; name?: unknown };
+    };
+
+    return Boolean(
+      parsed.demoUser?.role === "super_admin" &&
+        typeof parsed.demoSchool?.id === "string" &&
+        typeof parsed.demoSchool?.name === "string",
+    );
+  } catch {
+    return false;
+  }
+}
+
 export async function GET(request: NextRequest) {
+  if (hasDemoSuperAdminSession(request)) {
+    return NextResponse.json({
+      success: true,
+      schools: [
+        {
+          id: "00000000-0000-0000-0000-000000000001",
+          name: "St. Mary's Primary School (Demo)",
+          school_code: "DEMO001",
+          district: "Kampala",
+          school_type: "primary",
+          ownership: "private",
+          phone: "+256700000000",
+          email: "demo@omuto.org",
+          logo_url: "",
+          primary_color: "#17325F",
+          subscription_plan: "growth",
+          subscription_status: "active",
+          trial_ends_at: null,
+          feature_stage: "full",
+          created_at: new Date().toISOString(),
+          address: "Demo Road",
+          motto: "Learning for Life",
+          principal_name: "John Headmaster",
+          report_header: "",
+          report_footer: "",
+          id_card_style: "default",
+          student_count: 0,
+        },
+      ],
+      users: [
+        {
+          id: "demo-super-admin",
+          full_name: "SkoolMate Super Admin",
+          phone: "256700000006",
+          role: "super_admin",
+          school_id: null,
+          is_active: true,
+          created_at: new Date().toISOString(),
+        },
+      ],
+    });
+  }
+
   // Verify the caller is super_admin
-  const auth = await requireUserWithSchool(request);
+  let auth;
+  try {
+    auth = await requireUserWithSchool(request);
+  } catch (error) {
+    if (DEMO_MODE_ENABLED && isSupabaseUnavailableError(error)) {
+      logger.warn("[super-admin/data] degraded mode: Supabase unavailable in dev");
+      return NextResponse.json({
+        success: true,
+        schools: [],
+        users: [],
+        degraded: true,
+      });
+    }
+    throw error;
+  }
+
   if (!auth.ok) return auth.response;
   if (auth.context.user.role !== "super_admin") {
     return NextResponse.json({ success: false, error: "Forbidden" }, { status: 403 });

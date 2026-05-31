@@ -9,6 +9,7 @@ import Image from "next/image";
 import { OwlLoader } from "@/components/loaders";
 import { logger } from "@/lib/logger";
 import { APP_NAME } from "@/lib/app-name";
+import { isSupabaseConfigured } from "@/lib/supabase";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -151,31 +152,83 @@ const ALL_ROLES = [
 
 // ─── API helper ───────────────────────────────────────────────────────────────
 
+const ADMIN_ACTION_TIMEOUT_MS = 15000;
+
+async function postAdminAction(payload: Record<string, unknown>): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), ADMIN_ACTION_TIMEOUT_MS);
+
+  try {
+    return await fetch("/api/super-admin/actions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error("Request timed out. Check Supabase configuration and try again.");
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 async function adminAction(
   action: string,
   params: Record<string, unknown>,
 ): Promise<void> {
-  const res = await fetch("/api/super-admin/actions", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action, ...params }),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!data.success) throw new Error(data.error || "Operation failed");
+  const res = await postAdminAction({ action, ...params });
+  const data = await parseApiResponse(res);
+  if (!res.ok || !data.success) {
+    throw new Error(
+      typeof data.error === "string" ? data.error : "Operation failed",
+    );
+  }
 }
 
 async function adminActionResult<T>(
   action: string,
   params: Record<string, unknown>,
 ): Promise<T> {
-  const res = await fetch("/api/super-admin/actions", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ action, ...params }),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!data.success) throw new Error(data.error || "Operation failed");
+  const res = await postAdminAction({ action, ...params });
+  const data = await parseApiResponse(res);
+  if (!res.ok || !data.success) {
+    throw new Error(
+      typeof data.error === "string" ? data.error : "Operation failed",
+    );
+  }
   return data as T;
+}
+
+async function parseApiResponse(response: Response): Promise<Record<string, any>> {
+  const contentType = response.headers.get("content-type") || "";
+
+  if (contentType.includes("application/json")) {
+    try {
+      return (await response.json()) as Record<string, any>;
+    } catch {
+      return {
+        success: false,
+        error: response.ok
+          ? "Unexpected response from server"
+          : "Server returned invalid JSON",
+      };
+    }
+  }
+
+  const text = await response.text().catch(() => "");
+  const trimmed = text.trim();
+  const isHtml = /^<!doctype html|^<html/i.test(trimmed);
+  const fallbackMessage = response.ok
+    ? "Unexpected response from server"
+    : "Server returned an unexpected error page";
+
+  return {
+    success: false,
+    error: isHtml ? fallbackMessage : trimmed.slice(0, 180) || fallbackMessage,
+  };
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -383,11 +436,18 @@ function SchoolDetailSheet({
     "details" | "subscription" | "customize"
   >("details");
 
+  const requireLiveSupabase = () => {
+    if (isSupabaseConfigured) return true;
+    toast.error("Connect Supabase to manage school records.");
+    return false;
+  };
+
   const save = async () => {
     if (!name.trim()) {
       toast.error("School name is required");
       return;
     }
+    if (!requireLiveSupabase()) return;
     setSaving(true);
     try {
       await adminAction("update_school", {
@@ -436,6 +496,7 @@ function SchoolDetailSheet({
   };
 
   const extendTrial = async () => {
+    if (!requireLiveSupabase()) return;
     setSaving(true);
     try {
       const newDate = new Date();
@@ -462,6 +523,7 @@ function SchoolDetailSheet({
   };
 
   const activate = async () => {
+    if (!requireLiveSupabase()) return;
     setSaving(true);
     try {
       await adminAction("update_school", {
@@ -479,6 +541,7 @@ function SchoolDetailSheet({
   };
 
   const doSuspend = async () => {
+    if (!requireLiveSupabase()) return;
     setSaving(true);
     try {
       await adminAction("update_school", {
@@ -497,6 +560,7 @@ function SchoolDetailSheet({
   };
 
   const doDelete = async () => {
+    if (!requireLiveSupabase()) return;
     setSaving(true);
     try {
       await adminAction("delete_school", { id: school.id });
@@ -1093,6 +1157,12 @@ function RegisterSchoolForm({ onDone }: { onDone: () => void }) {
   const set = (k: string, v: string) =>
     setForm((prev) => ({ ...prev, [k]: v }));
 
+  const requireLiveSupabase = () => {
+    if (isSupabaseConfigured) return true;
+    toast.error("Connect Supabase to create schools.");
+    return false;
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (
@@ -1103,6 +1173,7 @@ function RegisterSchoolForm({ onDone }: { onDone: () => void }) {
       toast.error("Name, code, and district are required");
       return;
     }
+    if (!requireLiveSupabase()) return;
     setSaving(true);
     try {
       await adminAction("create_school", {
@@ -1306,7 +1377,14 @@ function UserActions({
     type: "deactivate" | "delete" | null;
   }>({ open: false, type: null });
 
+  const requireLiveSupabase = () => {
+    if (isSupabaseConfigured) return true;
+    toast.error("Connect Supabase to update users.");
+    return false;
+  };
+
   const doUpdate = async (fields: Record<string, unknown>, msg: string) => {
+    if (!requireLiveSupabase()) return;
     setBusy(true);
     try {
       await adminAction("update_user", { id: u.id, fields });
@@ -1320,6 +1398,7 @@ function UserActions({
   };
 
   const doDelete = async () => {
+    if (!requireLiveSupabase()) return;
     setBusy(true);
     try {
       await adminAction("delete_user", { id: u.id });
@@ -1339,6 +1418,7 @@ function UserActions({
       toast.error("Password must be at least 8 characters");
       return;
     }
+    if (!requireLiveSupabase()) return;
     setBusy(true);
     try {
       await adminAction("reset_user_password", {
@@ -1588,15 +1668,19 @@ export default function SuperAdminPage() {
     setDataLoading(true);
     try {
       const res = await fetch("/api/super-admin/data");
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        throw new Error(body?.error || `HTTP ${res.status}`);
+      const body = await parseApiResponse(res);
+      if (!res.ok || !body.success) {
+        throw new Error(
+          typeof body.error === "string" ? body.error : `HTTP ${res.status}`,
+        );
       }
-      const body = await res.json();
-      if (!body.success) throw new Error(body.error || "Unknown error");
 
-      const schoolList: School[] = body.schools || [];
-      const userList: UserRow[] = body.users || [];
+      const schoolList: School[] = Array.isArray(body.schools)
+        ? (body.schools as School[])
+        : [];
+      const userList: UserRow[] = Array.isArray(body.users)
+        ? (body.users as UserRow[])
+        : [];
       const schoolNameMap: Record<string, string> = {};
       schoolList.forEach((s) => {
         schoolNameMap[s.id] = s.name;
@@ -1649,8 +1733,17 @@ export default function SuperAdminPage() {
         newThisMonth: newMonth,
       });
     } catch (e: any) {
+      const message =
+        typeof e?.message === "string" ? e.message : "Unknown load error";
       toast.error("Failed to load data. Check your connection.");
-      logger.error("[SuperAdmin] loadData error:", e);
+      if (
+        message.includes("Unexpected response from server") ||
+        message.includes("unexpected error page")
+      ) {
+        logger.warn("[SuperAdmin] loadData degraded mode:", message);
+      } else {
+        logger.error("[SuperAdmin] loadData error:", e);
+      }
     } finally {
       setDataLoading(false);
     }

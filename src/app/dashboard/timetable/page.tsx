@@ -415,7 +415,6 @@ export default function TimetablePage() {
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null)
   const [selectedDay, setSelectedDay] = useState<number>(1)
   const [conflicts, setConflicts] = useState<string[]>([])
-  const [globalClashes, setGlobalClashes] = useState<ClashInfo[]>([])
   const [roomValue, setRoomValue] = useState('')
   const [pendingDeleteEntryId, setPendingDeleteEntryId] = useState<string | null>(null)
 
@@ -568,10 +567,7 @@ export default function TimetablePage() {
     }
     return result
   }, [allClassTimetables, classes, teacherNameById])
-
-  useEffect(() => {
-    setGlobalClashes(clashes)
-  }, [clashes])
+  const globalClashes = clashes
 
   const handleTeacherChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const teacherId = e.target.value

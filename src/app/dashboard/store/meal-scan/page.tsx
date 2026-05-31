@@ -7,6 +7,7 @@ import { Html5Qrcode } from "html5-qrcode";
 import MaterialIcon from "@/components/MaterialIcon";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui";
+import { parseApiResponse } from "@/lib/api-response";
 
 interface MealRule {
   id: string;
@@ -23,24 +24,6 @@ const MEAL_LABELS: Record<string, string> = {
   lunch: "Lunch",
   supper: "Supper",
 };
-
-async function parseApiResponse(response: Response): Promise<Record<string, unknown>> {
-  const contentType = response.headers.get("content-type") || "";
-
-  if (contentType.includes("application/json")) {
-    return (await response.json()) as Record<string, unknown>;
-  }
-
-  const text = await response.text();
-  const fallbackMessage = response.ok
-    ? "Unexpected response from server"
-    : "Server returned an unexpected error page";
-
-  return {
-    success: false,
-    error: text.slice(0, 180).trim() || fallbackMessage,
-  };
-}
 
 export default function MealScanPage() {
   const toast = useToast();
@@ -72,11 +55,14 @@ export default function MealScanPage() {
     try {
       setLoading(true);
       const response = await fetch("/api/meals/settings/");
-      const result = await response.json();
+      const result = await parseApiResponse(response);
       if (!response.ok || !result.success) {
-        throw new Error(result.error || "Failed to load meal settings");
+        throw new Error(
+          typeof result.error === "string" ? result.error : "Failed to load meal settings",
+        );
       }
-      setRules(result.data?.rules || []);
+      const data = (result.data as Record<string, unknown> | undefined) || {};
+      setRules(Array.isArray(data.rules) ? (data.rules as MealRule[]) : []);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to load settings");
     } finally {

@@ -8,6 +8,7 @@ import MaterialIcon from '@/components/MaterialIcon'
 import { Button } from '@/components/ui/index'
 import { getErrorMessage } from '@/lib/validation'
 import { logger } from '@/lib/logger'
+import { isSupabaseConfigured } from '@/lib/supabase'
 
 interface SchoolData {
   id: string
@@ -65,6 +66,35 @@ interface PendingModuleRequest {
   starts_at: string
   ends_at: string
   updated_at: string
+}
+
+async function parseApiResponse(response: Response): Promise<Record<string, unknown>> {
+  const contentType = response.headers.get('content-type') || ''
+
+  if (contentType.includes('application/json')) {
+    try {
+      return (await response.json()) as Record<string, unknown>
+    } catch {
+      return {
+        success: false,
+        error: response.ok
+          ? 'Unexpected response from server'
+          : 'Server returned invalid JSON',
+      }
+    }
+  }
+
+  const text = await response.text().catch(() => '')
+  const trimmed = text.trim()
+  const isHtml = /^<!doctype html|^<html/i.test(trimmed)
+  const fallbackMessage = response.ok
+    ? 'Unexpected response from server'
+    : 'Server returned an unexpected error page'
+
+  return {
+    success: false,
+    error: isHtml ? fallbackMessage : trimmed.slice(0, 180) || fallbackMessage,
+  }
 }
 
 const PLANS: Record<string, { monthly: number; annual: number; perStudent: number; label: string; color: string }> = {
@@ -164,22 +194,48 @@ export default function SchoolsPage() {
   const [showCreatedModal, setShowCreatedModal] = useState(false)
   const [addStep, setAddStep] = useState<1 | 2>(1)
 
+  const requireConfiguredForMutation = useCallback(
+    (actionLabel: string) => {
+      if (isSupabaseConfigured) return true
+      toast.error(`Connect Supabase to ${actionLabel}.`)
+      return false
+    },
+    [toast],
+  )
+
   const fetchPendingModuleRequests = useCallback(async () => {
+    if (!isSupabaseConfigured) {
+      setPendingModuleRequests([])
+      return
+    }
+
     try {
       setLoadingModuleRequests(true)
       const response = await fetch('/api/modules/entitlements/?scope=all_pending', {
         credentials: 'include',
       })
-      const result = await response.json()
+      const result = await parseApiResponse(response)
       if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Failed to load pending module requests')
+        throw new Error(
+          typeof result.error === 'string'
+            ? result.error
+            : 'Failed to load pending module requests',
+        )
       }
 
       const data = (result.data || {}) as { requests?: PendingModuleRequest[] }
-      setPendingModuleRequests(data.requests || [])
+      setPendingModuleRequests(Array.isArray(data.requests) ? data.requests : [])
     } catch (err: unknown) {
-      logger.error('Failed to load pending module requests', err)
-      toast.error(getErrorMessage(err, 'Failed to load pending module requests'))
+      const message = getErrorMessage(err, 'Failed to load pending module requests')
+      if (
+        message.includes('Unexpected response from server') ||
+        message.includes('unexpected error page')
+      ) {
+        logger.warn('Pending module requests unavailable:', message)
+      } else {
+        logger.error('Failed to load pending module requests', err)
+      }
+      toast.error(message)
     } finally {
       setLoadingModuleRequests(false)
     }
@@ -193,6 +249,8 @@ export default function SchoolsPage() {
   }, [user?.role, fetchPendingModuleRequests])
 
   const handleApproveModuleRequest = async (request: PendingModuleRequest) => {
+    if (!requireConfiguredForMutation('approve module requests')) return
+
     const key = `${request.school_id}:${request.module_key}`
     try {
       setApprovingRequestId(key)
@@ -207,9 +265,13 @@ export default function SchoolsPage() {
         }),
       })
 
-      const result = await response.json()
+      const result = await parseApiResponse(response)
       if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Failed to approve module request')
+        throw new Error(
+          typeof result.error === 'string'
+            ? result.error
+            : 'Failed to approve module request',
+        )
       }
 
       toast.success(`Approved ${request.module_name} for ${request.school_name}`)
@@ -226,6 +288,37 @@ export default function SchoolsPage() {
       setLoading(true)
       const { data, error } = await supabase.from('schools').select('*').order('created_at', { ascending: false })
       if (error) throw error
+
+      if (!isSupabaseConfigured) {
+        const demoSchools: SchoolData[] = [
+          {
+            id: '00000000-0000-0000-0000-000000000001',
+            name: "St. Mary's Primary School (Demo)",
+            school_code: 'DEMO001',
+            district: 'Kampala',
+            school_type: 'primary',
+            ownership: 'private',
+            phone: '+256700000000',
+            subscription_plan: 'growth',
+            subscription_status: 'active',
+            student_count: 0,
+            user_count: 1,
+            created_at: new Date().toISOString(),
+            logo_url: '',
+          },
+        ]
+
+        setSchools(demoSchools)
+        setStats({
+          totalSchools: demoSchools.length,
+          active: 1,
+          trial: 0,
+          expired: 0,
+          totalStudents: 0,
+          revenue: PLANS.growth.annual,
+        })
+        return
+      }
 
       const schoolsWithCounts = await Promise.all(
         (data || []).map(async (school) => {
@@ -280,6 +373,8 @@ export default function SchoolsPage() {
 
   const handleAddSchool = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!requireConfiguredForMutation('create schools')) return
+
     if (!newAdmin.name || !newAdmin.phone || !newAdmin.password) {
       toast.error('Please fill in admin details (name, phone, password)')
       return
@@ -297,12 +392,16 @@ export default function SchoolsPage() {
         }),
       })
 
-      const result = await response.json()
+      const result = await parseApiResponse(response)
       if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Failed to add school')
+        throw new Error(
+          typeof result.error === 'string' ? result.error : 'Failed to add school',
+        )
       }
 
-      const schoolId = result.data?.schoolId as string
+      const schoolId =
+        ((result.data as { schoolId?: string } | undefined)?.schoolId as string) ||
+        ''
       const schoolName = newSchool.name
 
       // Show confirmation with credentials
@@ -325,6 +424,8 @@ export default function SchoolsPage() {
 
   const handleUpdateSubscription = async () => {
     if (!selectedSchool) return
+    if (!requireConfiguredForMutation('update school subscriptions')) return
+
     try {
       const { error } = await supabase.from('schools').update({
         subscription_plan: subForm.plan,
@@ -342,6 +443,8 @@ export default function SchoolsPage() {
 
   const handleResetPassword = async () => {
     if (!selectedSchool || !resetPhone) return
+    if (!requireConfiguredForMutation('reset user access')) return
+
     try {
       const targetUser = schoolUsers.find(u => u.phone === resetPhone)
       if (!targetUser) { toast.error('User not found'); return }
@@ -357,6 +460,8 @@ export default function SchoolsPage() {
 
   const handleExtendTrial = async () => {
     if (!selectedSchool) return
+    if (!requireConfiguredForMutation('extend school trials')) return
+
     try {
       const trialEnds = new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000).toISOString()
       const { error } = await supabase.from('schools').update({ subscription_status: 'trial', trial_ends_at: trialEnds }).eq('id', selectedSchool.id)
@@ -371,6 +476,8 @@ export default function SchoolsPage() {
 
   const handleSuspendSchool = async () => {
     if (!selectedSchool) return
+    if (!requireConfiguredForMutation('change school status')) return
+
     try {
       const newStatus = selectedSchool.subscription_status === 'suspended' ? 'active' : 'suspended'
       const { error } = await supabase.from('schools').update({ subscription_status: newStatus }).eq('id', selectedSchool.id)
@@ -384,6 +491,8 @@ export default function SchoolsPage() {
   }
 
   const handleToggleUserStatus = async (userId: string, currentStatus: boolean) => {
+    if (!requireConfiguredForMutation('update school users')) return
+
     try {
       const { error } = await supabase.from('users').update({ is_active: !currentStatus }).eq('id', userId)
       if (error) throw error
@@ -396,6 +505,8 @@ export default function SchoolsPage() {
 
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!requireConfiguredForMutation('create school users')) return
+
     if (!selectedSchool || !newUserForm.name || !newUserForm.phone || !newUserForm.password) {
       toast.error('Please fill in all fields')
       return
@@ -413,9 +524,11 @@ export default function SchoolsPage() {
         }),
       })
 
-      const result = await response.json()
+      const result = await parseApiResponse(response)
       if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Failed to create user')
+        throw new Error(
+          typeof result.error === 'string' ? result.error : 'Failed to create user',
+        )
       }
 
       toast.success(`User ${newUserForm.name} created`)
@@ -439,6 +552,8 @@ export default function SchoolsPage() {
 
   const handleCustomize = async () => {
     if (!selectedSchool) return
+    if (!requireConfiguredForMutation('save school branding')) return
+
     try {
       const { error } = await supabase.from('schools').update({
         primary_color: customizeForm.primary_color,
@@ -481,6 +596,8 @@ export default function SchoolsPage() {
 
   const handleOnboardingComplete = async () => {
     if (!selectedSchool) return
+    if (!requireConfiguredForMutation('update onboarding status')) return
+
     try {
       const { error } = await supabase.from('schools').update({ onboarding_complete: true }).eq('id', selectedSchool.id)
       if (error) throw error
@@ -500,6 +617,8 @@ export default function SchoolsPage() {
 
   const handleCreateTicket = async () => {
     if (!selectedSchool || !ticketForm.title) return
+    if (!requireConfiguredForMutation('create support tickets')) return
+
     try {
       const { error } = await supabase.from('support_tickets').insert({
         school_id: selectedSchool.id,
@@ -526,6 +645,8 @@ export default function SchoolsPage() {
 
   const handleSaveFeatures = async () => {
     if (!selectedSchool) return
+    if (!requireConfiguredForMutation('update module access')) return
+
     try {
       const { error } = await supabase.from('schools').update({ custom_features: enabledModules }).eq('id', selectedSchool.id)
       if (error) throw error

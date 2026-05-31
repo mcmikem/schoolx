@@ -34,7 +34,7 @@ const required = [
 const recommended = [
   "SCAN_QR_SIGNING_SECRET",
   "CRON_SECRET",
-  "GOOGLE_GENAI_API_KEY",
+  "GEMINI_API_KEY",
 ];
 
 const optionalFlags = [
@@ -45,6 +45,8 @@ const optionalFlags = [
 
 const missingRequired = required.filter((key) => !resolveValue(key));
 const missingRecommended = recommended.filter((key) => !resolveValue(key));
+const hasGoogleGenAiKey = Boolean(resolveValue("GOOGLE_GENAI_API_KEY"));
+const hasGeminiKey = Boolean(resolveValue("GEMINI_API_KEY"));
 
 console.log("Environment readiness check");
 console.log(`- .env.local present: ${fs.existsSync(envPath) ? "yes" : "no"}`);
@@ -54,6 +56,9 @@ for (const key of required) {
 for (const key of recommended) {
   console.log(`- ${key}: ${resolveValue(key) ? "set" : "missing (recommended)"}`);
 }
+console.log(
+  `- GOOGLE_GENAI_API_KEY: ${hasGoogleGenAiKey ? "set" : hasGeminiKey ? "not set (covered by GEMINI_API_KEY)" : "missing (optional alternative)"}`,
+);
 for (const key of optionalFlags) {
   console.log(`- ${key}: ${resolveValue(key) ? resolveValue(key) : "not set"}`);
 }

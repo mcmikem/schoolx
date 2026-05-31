@@ -152,6 +152,41 @@ export async function GET(request: NextRequest) {
   });
   if (!accessCheck.ok) return accessCheck.response;
 
+  const emptyResponse = NextResponse.json({
+    success: true,
+    events: [],
+    total: 0,
+    summary: {
+      allowed: 0,
+      blocked: 0,
+      invalidSignatures: 0,
+    },
+  });
+
+  if (process.env.NODE_ENV === "development" && (!supabaseUrl || !supabaseServiceKey)) {
+    const format = request.nextUrl.searchParams.get("format") || "json";
+    if (format === "csv") {
+      const csv = buildCsv([]);
+      return new NextResponse(csv, {
+        headers: {
+          "content-type": "text/csv; charset=utf-8",
+          "content-disposition": 'attachment; filename="scan-events-empty.csv"',
+        },
+      });
+    }
+
+    return NextResponse.json({
+      success: true,
+      events: [],
+      total: 0,
+      summary: {
+        allowed: 0,
+        blocked: 0,
+        invalidSignatures: 0,
+      },
+    });
+  }
+
   if (!supabaseUrl || !supabaseServiceKey) {
     return NextResponse.json(
       { error: "Scan events service configuration is missing" },
@@ -219,6 +254,7 @@ export async function GET(request: NextRequest) {
   ]);
 
   if (eventsResult.error) {
+    if (process.env.NODE_ENV === "development") return emptyResponse;
     return NextResponse.json(
       { error: eventsResult.error.message || "Failed to load scan events" },
       { status: 500 },
@@ -251,12 +287,15 @@ export async function GET(request: NextRequest) {
   ]);
 
   if (operatorsResult.error) {
+    if (process.env.NODE_ENV === "development") return emptyResponse;
     return NextResponse.json({ error: operatorsResult.error.message }, { status: 500 });
   }
   if (studentsResult.error) {
+    if (process.env.NODE_ENV === "development") return emptyResponse;
     return NextResponse.json({ error: studentsResult.error.message }, { status: 500 });
   }
   if (staffTargetsResult.error) {
+    if (process.env.NODE_ENV === "development") return emptyResponse;
     return NextResponse.json({ error: staffTargetsResult.error.message }, { status: 500 });
   }
 

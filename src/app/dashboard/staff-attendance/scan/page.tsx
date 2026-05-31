@@ -7,26 +7,9 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { Button } from "@/components/ui";
 import { Card } from "@/components/ui/Card";
 import { Html5Qrcode } from "html5-qrcode";
+import { parseApiResponse } from "@/lib/api-response";
 
 type AttendanceAction = "check_in" | "check_out";
-
-async function parseApiResponse(response: Response): Promise<Record<string, unknown>> {
-  const contentType = response.headers.get("content-type") || "";
-
-  if (contentType.includes("application/json")) {
-    return (await response.json()) as Record<string, unknown>;
-  }
-
-  const text = await response.text();
-  const fallbackMessage = response.ok
-    ? "Unexpected response from server"
-    : "Server returned an unexpected error page";
-
-  return {
-    success: false,
-    error: text.slice(0, 180).trim() || fallbackMessage,
-  };
-}
 
 export default function StaffAttendanceScanPage() {
   const toast = useToast();

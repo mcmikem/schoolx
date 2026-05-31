@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useAuth } from "@/lib/auth-context";
 import { withTimeout } from "@/lib/hooks/utils";
+import { parseApiResponse, readApiErrorMessage } from "@/lib/api-response";
+import { logger } from "@/lib/logger";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Badge, Button, Input, Select, Modal, ModalFooter } from "@/components/ui/index";
@@ -134,33 +136,44 @@ export default function ScanEventsPage() {
     if (!school?.id) return;
 
     setLoading(true);
-    const params = new URLSearchParams({
-      page: String(page),
-      limit: String(pageSize),
-      entityType: appliedFilters.entityType,
-      decision: appliedFilters.decision,
-      scannerId: appliedFilters.scannerId || "all",
-      reasonCode: appliedFilters.reasonCode || "all",
-      dateFrom: appliedFilters.dateFrom ? toLocalStartOfDayISO(appliedFilters.dateFrom) : "",
-      dateTo: appliedFilters.dateTo ? toLocalEndOfDayISO(appliedFilters.dateTo) : "",
-    });
-
     const fallback: ScanEventsResponse = { events: [], total: 0, summary: { allowed: 0, blocked: 0, invalidSignatures: 0 } };
-    const result = await withTimeout(
-      fetch(`/api/audit/scan-events/?${params.toString()}`, { credentials: "include" }).then(async (response) => {
-        if (!response.ok) {
-          throw new Error(`Failed to load scan events (${response.status})`);
-        }
-        return (await response.json()) as ScanEventsResponse;
-      }),
-      15000,
-      fallback,
-    );
+    try {
+      const params = new URLSearchParams({
+        page: String(page),
+        limit: String(pageSize),
+        entityType: appliedFilters.entityType,
+        decision: appliedFilters.decision,
+        scannerId: appliedFilters.scannerId || "all",
+        reasonCode: appliedFilters.reasonCode || "all",
+        dateFrom: appliedFilters.dateFrom ? toLocalStartOfDayISO(appliedFilters.dateFrom) : "",
+        dateTo: appliedFilters.dateTo ? toLocalEndOfDayISO(appliedFilters.dateTo) : "",
+      });
 
-    setRows(result.events);
-    setTotal(result.total);
-    setSummary(result.summary);
-    setLoading(false);
+      const result = await withTimeout(
+        fetch(`/api/audit/scan-events/?${params.toString()}`, { credentials: "include" }).then(async (response) => {
+          const body = await parseApiResponse(response);
+          if (!response.ok || !body.success) {
+            throw new Error(
+              typeof body.error === "string" ? body.error : `Failed to load scan events (${response.status})`,
+            );
+          }
+          return body as ScanEventsResponse;
+        }),
+        15000,
+        fallback,
+      );
+
+      setRows(result.events);
+      setTotal(result.total);
+      setSummary(result.summary);
+    } catch (error) {
+      logger.warn("[ScanEvents] Falling back to empty results", error);
+      setRows(fallback.events);
+      setTotal(fallback.total);
+      setSummary(fallback.summary);
+    } finally {
+      setLoading(false);
+    }
   }, [school?.id, page, appliedFilters]);
 
   useEffect(() => {
@@ -206,8 +219,9 @@ export default function ScanEventsPage() {
       const response = await fetch(`/api/audit/scan-events/?${params.toString()}`, {
         credentials: "include",
       });
-      if (!response.ok) {
-        const errorText = await response.text();
+      const contentType = response.headers.get("content-type") || "";
+      if (!response.ok || !contentType.includes("text/csv")) {
+        const errorText = await readApiErrorMessage(response);
         throw new Error(errorText || `Failed to export scan events (${response.status})`);
       }
 

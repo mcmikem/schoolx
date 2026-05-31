@@ -11,16 +11,13 @@ export function useSubjects(schoolId?: string, autoSeed: boolean = true) {
   const [subjects, setSubjects] = useState<Subject[]>([])
   const [loading, setLoading] = useState(true)
   const { isDemo, school } = useAuth()
-
-  const getSchoolType = useCallback(() => {
-    return ((school as School | null)?.school_type || 'primary') as School['school_type']
-  }, [school])
+  const schoolType = ((school as School | null)?.school_type || 'primary') as School['school_type']
 
   const fetchSubjects = useCallback(async () => {
     if (!schoolId) { setLoading(false); return }
     if (isDemo || isDemoSchool(schoolId)) {
       const { getDefaultSubjects } = await import('@/lib/curriculum')
-      const defaultSubjects = getDefaultSubjects(getSchoolType())
+      const defaultSubjects = getDefaultSubjects(schoolType)
       setSubjects(defaultSubjects.map((s, idx) => ({ ...s, id: `demo-sub-${s.code}-${idx}`, school_id: schoolId, created_at: new Date().toISOString() })) as unknown as Subject[])
       setLoading(false)
       return
@@ -33,7 +30,7 @@ export function useSubjects(schoolId?: string, autoSeed: boolean = true) {
       let currentSubjects = data || []
       if (currentSubjects.length === 0 && autoSeed) {
         const { getDefaultSubjects } = await import('@/lib/curriculum')
-        const defaultSubjects = getDefaultSubjects(getSchoolType())
+        const defaultSubjects = getDefaultSubjects(schoolType)
         const seeds = defaultSubjects.map(s => ({ name: s.name, code: s.code, level: s.level, is_compulsory: s.is_compulsory, school_id: querySchoolId }))
         const { data: inserted, error: insertError } = await withTimeout(supabase.from('subjects').insert(seeds).select('id, name, code, level, is_compulsory, school_id, created_at'), 15000, { data: null, error: { message: "Subject seed timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any)
         if (!insertError && inserted) currentSubjects = inserted.sort((a: any, b: any) => a.name.localeCompare(b.name))
@@ -41,7 +38,7 @@ export function useSubjects(schoolId?: string, autoSeed: boolean = true) {
       setSubjects(currentSubjects as Subject[])
     } catch (err) { logger.error('Error fetching subjects:', err) }
     finally { setLoading(false) }
-  }, [schoolId, autoSeed, isDemo, getSchoolType])
+  }, [schoolId, autoSeed, isDemo, schoolType])
 
   useEffect(() => { fetchSubjects() }, [fetchSubjects])
   return { subjects, loading }
