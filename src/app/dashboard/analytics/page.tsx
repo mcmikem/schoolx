@@ -73,6 +73,9 @@ export default function AnalyticsPage() {
                 { name: "Week 4", value: 91 },
               ]
             : [],
+          atRiskStudents: [],
+          classPerformance: [],
+          revenueProjections: [],
         }
       : data;
 
@@ -203,7 +206,7 @@ export default function AnalyticsPage() {
                 <ResponsiveContainer width="100%" aspect={2.4} minWidth={280}>
                   <PieChart>
                     <Pie
-                      data={displayData.revenueProjections}
+                      data={displayData.revenueProjections || []}
                       innerRadius={60}
                       outerRadius={80}
                       paddingAngle={5}
@@ -254,7 +257,7 @@ export default function AnalyticsPage() {
                 </span>
               </div>
               <div className="space-y-4 max-h-64 overflow-y-auto pr-2 no-scrollbar">
-                {displayData.atRiskStudents.map((s: any) => (
+                {displayData.atRiskStudents?.map((s: any) => (
                   <div
                     key={s.student_id}
                     className="flex items-center justify-between p-3 rounded-xl bg-[var(--surface-container)] border border-[var(--outline-variant)]/10 hover:bg-[var(--surface-bright)] transition-all"
@@ -281,7 +284,7 @@ export default function AnalyticsPage() {
                     </div>
                   </div>
                 ))}
-                {displayData.atRiskStudents.length === 0 && (
+                {displayData.atRiskStudents?.length === 0 && (
                   <EmptyState
                     icon="check_circle"
                     title="All students are meeting thresholds"

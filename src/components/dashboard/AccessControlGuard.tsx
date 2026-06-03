@@ -293,7 +293,7 @@ export function useAccessControl() {
       }
     }
     sessionStorage.removeItem("lastDeniedPath");
-  }, [user, pathname, toast, featureStage, router]);
+  }, [user, pathname, toast, featureStage, router, overrides]);
 }
 
 export function useDashboardNotifications() {

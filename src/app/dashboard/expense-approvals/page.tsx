@@ -20,6 +20,11 @@ type Expense = {
   requested_by?: string;
 };
 
+const DEMO_EXPENSES: Expense[] = [
+  { id: "demo-exp-1", category: "utilities", description: "School electricity bill", amount: 250000, status: "pending", created_at: new Date().toISOString() },
+  { id: "demo-exp-2", category: "supplies", description: "Science lab equipment", amount: 850000, status: "pending", created_at: new Date(Date.now() - 86400000).toISOString() },
+];
+
 export default function ExpenseApprovalsPage() {
   const { school, user, isDemo } = useAuth();
   const toast = useToast();
@@ -27,11 +32,6 @@ export default function ExpenseApprovalsPage() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<"pending" | "approved" | "rejected" | "all">("pending");
   const [processing, setProcessing] = useState<string | null>(null);
-
-  const DEMO_EXPENSES: Expense[] = [
-    { id: "demo-exp-1", category: "utilities", description: "School electricity bill", amount: 250000, status: "pending", created_at: new Date().toISOString() },
-    { id: "demo-exp-2", category: "supplies", description: "Science lab equipment", amount: 850000, status: "pending", created_at: new Date(Date.now() - 86400000).toISOString() },
-  ];
 
   const fetchExpenses = useCallback(async () => {
     if (!school?.id) {

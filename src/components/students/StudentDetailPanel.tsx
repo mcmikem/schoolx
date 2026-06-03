@@ -222,7 +222,8 @@ export default function StudentDetailPanel({
   const [houses, setHouses] = useState<{ id: string; name: string }[]>([]);
   const addStudentFirstInputRef = useRef<HTMLInputElement>(null);
   const addStudentModalRef = useRef<HTMLDivElement>(null);
-
+  const modalTitleId = "student-detail-form-title";
+  const modalDescriptionId = "student-detail-form-description";
 
   const [newStudent, setNewStudent] = useState<NewStudent>(INITIAL_NEW_STUDENT);
   const initialEditForm: EditForm = {
@@ -330,6 +331,17 @@ export default function StudentDetailPanel({
       document.body.style.overflow = previousOverflow;
     };
   }, [isOpen, mode]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
 
   const handleNewStudentChange = (updates: Partial<NewStudent>) => {
     setNewStudent((prev) => ({ ...prev, ...updates }));
@@ -592,12 +604,17 @@ export default function StudentDetailPanel({
       <div className="min-h-full flex items-start sm:items-center justify-center p-4">
         <div
           ref={addStudentModalRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={modalTitleId}
+          aria-describedby={modalDescriptionId}
           className="bg-[var(--surface)] rounded-2xl w-full max-w-3xl max-h-[92vh] overflow-y-auto my-2 shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="sticky top-0 bg-[var(--surface)] border-b border-[var(--border)] p-4 flex items-center justify-between">
             <div>
               <h2
+                id={modalTitleId}
                 style={{
                   fontFamily: "Sora",
                   fontSize: 16,
@@ -606,12 +623,14 @@ export default function StudentDetailPanel({
               >
                 {isEdit ? "Edit Student" : "Add New Student"}
               </h2>
-              <p className="mt-1 text-xs text-[var(--t3)]">
+              <p id={modalDescriptionId} className="mt-1 text-xs text-[var(--t3)]">
                 Start with the basics. Open extra details only when you need profile, house, or leadership fields.
               </p>
             </div>
             <button
+              type="button"
               onClick={onClose}
+              aria-label="Close student form"
               style={{
                 background: "none",
                 border: "none",
@@ -719,6 +738,7 @@ export default function StudentDetailPanel({
               <ResponsiveFieldGrid className="mb-4">
                 <div>
                   <label
+                    htmlFor="student-gender"
                     style={{
                       fontSize: 11,
                       fontWeight: 700,
@@ -732,6 +752,8 @@ export default function StudentDetailPanel({
                     Gender
                   </label>
                   <select
+                    id="student-gender"
+                    name="gender"
                     value={gen}
                     onChange={(e) => setGender(e.target.value as "M" | "F")}
                     className="input"
@@ -742,6 +764,7 @@ export default function StudentDetailPanel({
                 </div>
                 <div>
                   <label
+                    htmlFor="student-dob"
                     style={{
                       fontSize: 11,
                       fontWeight: 700,
@@ -755,7 +778,10 @@ export default function StudentDetailPanel({
                     Date of Birth
                   </label>
                   <input
+                    id="student-dob"
+                    name="date_of_birth"
                     type="date"
+                    autoComplete="bday"
                     value={dob}
                     onChange={(e) => setDob(e.target.value)}
                     className="input"
@@ -808,6 +834,7 @@ export default function StudentDetailPanel({
                 ) : (
                   <select
                     id="student-class-id"
+                    name="class_id"
                     value={cId}
                     onChange={(e) => setClassId(e.target.value)}
                     className="input"
@@ -847,6 +874,8 @@ export default function StudentDetailPanel({
                   </span>
                 </label>
                 <input
+                  id="student-number"
+                  name="student_number"
                   type="text"
                   value={newStudent.student_number}
                   onChange={(e) =>
@@ -857,6 +886,7 @@ export default function StudentDetailPanel({
                   className="input"
                   placeholder="e.g., 2026-001 or leave blank for auto"
                   maxLength={20}
+                  autoComplete="off"
                 />
                 </div>
               )}
@@ -890,6 +920,8 @@ export default function StudentDetailPanel({
                     </span>
                   </label>
                   <input
+                    id="student-ple-index"
+                    name="ple_index_number"
                     type="text"
                     value={newStudent.ple_index_number}
                     onChange={(e) =>
@@ -900,6 +932,7 @@ export default function StudentDetailPanel({
                     className="input"
                     placeholder="U0001/2026"
                     maxLength={20}
+                    autoComplete="off"
                   />
                 </div>
               )}
@@ -924,12 +957,15 @@ export default function StudentDetailPanel({
                 Parent Name
               </label>
               <input
+                id="parent-name"
+                name="parent_name"
                 type="text"
                 value={pName}
                 onChange={(e) => setPName(e.target.value)}
                 className="input"
                 required
                 maxLength={200}
+                autoComplete="name"
               />
             </div>
             <ResponsiveFieldGrid>
@@ -948,6 +984,8 @@ export default function StudentDetailPanel({
                   Parent Phone
                 </label>
                 <input
+                  id="parent-phone"
+                  name="parent_phone"
                   type="tel"
                   placeholder="0700000000"
                   value={pPhone}
@@ -955,6 +993,7 @@ export default function StudentDetailPanel({
                   className="input"
                   required
                   maxLength={15}
+                  autoComplete="tel"
                 />
               </div>
               <div>
@@ -972,12 +1011,15 @@ export default function StudentDetailPanel({
                   Alt. Phone
                 </label>
                 <input
+                  id="parent-phone2"
+                  name="parent_phone2"
                   type="tel"
                   placeholder="0700000000"
                   value={pPhone2}
                   onChange={(e) => setPPhone2(e.target.value)}
                   className="input"
                   maxLength={15}
+                  autoComplete="tel"
                 />
               </div>
             </ResponsiveFieldGrid>
@@ -1003,6 +1045,8 @@ export default function StudentDetailPanel({
                     Blood Type
                   </label>
                   <select
+                    id="blood-type"
+                    name="blood_type"
                     value={isEdit ? editForm.blood_type : newStudent.blood_type || ""}
                     onChange={(e) =>
                       isEdit
@@ -1106,6 +1150,7 @@ export default function StudentDetailPanel({
               <ResponsiveFieldGrid className="mb-3">
                 <div>
                   <label
+                    htmlFor="boarding-status"
                     style={{
                       fontSize: 11,
                       fontWeight: 700,
@@ -1120,6 +1165,8 @@ export default function StudentDetailPanel({
                     <FieldHint tip="Day Scholar = student goes home daily after school. Boarding = student sleeps in the school dormitory every night. Weekly = boarder who goes home on weekends." />
                   </label>
                   <select
+                    id="boarding-status"
+                    name="boarding_status"
                     value={formData.boarding_status}
                     onChange={(e) =>
                       handleFormChange({
@@ -1138,6 +1185,7 @@ export default function StudentDetailPanel({
                 </div>
                 <div>
                   <label
+                    htmlFor="previous-school"
                     style={{
                       fontSize: 11,
                       fontWeight: 700,
@@ -1151,6 +1199,8 @@ export default function StudentDetailPanel({
                     Previous School
                   </label>
                   <input
+                    id="previous-school"
+                    name="previous_school"
                     type="text"
                     value={formData.previous_school}
                     onChange={(e) =>
@@ -1180,6 +1230,8 @@ export default function StudentDetailPanel({
                       House
                     </label>
                     <select
+                      id="house-id"
+                      name="house_id"
                       value={formData.house_id}
                       onChange={(e) =>
                         handleFormChange({
@@ -1211,6 +1263,8 @@ export default function StudentDetailPanel({
                       Games House
                     </label>
                     <select
+                      id="games-house"
+                      name="games_house"
                       value={formData.games_house}
                       onChange={(e) =>
                         handleFormChange({
@@ -1232,6 +1286,7 @@ export default function StudentDetailPanel({
               <ResponsiveFieldGrid className="mb-3">
                 <div>
                   <label
+                    htmlFor="district-origin"
                     style={{
                       fontSize: 11,
                       fontWeight: 700,
@@ -1246,6 +1301,8 @@ export default function StudentDetailPanel({
                     <FieldHint tip="The student's home district. Used for UNEB registration and government reports. Example: Kampala, Wakiso, Gulu, Mbale." />
                   </label>
                   <input
+                    id="district-origin"
+                    name="district_origin"
                     type="text"
                     value={formData.district_origin}
                     list="district-origin-options"
@@ -1259,10 +1316,12 @@ export default function StudentDetailPanel({
                     className="input"
                     placeholder="e.g., Kampala"
                     maxLength={100}
+                    autoComplete="address-level2"
                   />
                 </div>
                 <div>
                   <label
+                    htmlFor="sub-county"
                     style={{
                       fontSize: 11,
                       fontWeight: 700,
@@ -1276,6 +1335,8 @@ export default function StudentDetailPanel({
                     Sub-County
                   </label>
                   <input
+                    id="sub-county"
+                    name="sub_county"
                     type="text"
                     value={formData.sub_county}
                     list="sub-county-options"
@@ -1292,12 +1353,14 @@ export default function StudentDetailPanel({
                         : "Type sub-county"
                     }
                     maxLength={100}
+                    autoComplete="address-level3"
                   />
                 </div>
               </ResponsiveFieldGrid>
               <ResponsiveFieldGrid className="mb-3">
                 <div>
                   <label
+                    htmlFor="parish"
                     style={{
                       fontSize: 11,
                       fontWeight: 700,
@@ -1311,6 +1374,8 @@ export default function StudentDetailPanel({
                     Parish
                   </label>
                   <input
+                    id="parish"
+                    name="parish"
                     type="text"
                     value={formData.parish}
                     list="parish-options"
@@ -1326,10 +1391,12 @@ export default function StudentDetailPanel({
                         : "Type parish"
                     }
                     maxLength={100}
+                    autoComplete="address-level4"
                   />
                 </div>
                 <div>
                   <label
+                    htmlFor="village"
                     style={{
                       fontSize: 11,
                       fontWeight: 700,
@@ -1343,6 +1410,8 @@ export default function StudentDetailPanel({
                     Village
                   </label>
                   <input
+                    id="village"
+                    name="village"
                     type="text"
                     value={formData.village}
                     onChange={(e) =>
@@ -1352,6 +1421,7 @@ export default function StudentDetailPanel({
                     }
                     className="input"
                     maxLength={100}
+                    autoComplete="address-line2"
                   />
                 </div>
               </ResponsiveFieldGrid>
@@ -1377,6 +1447,7 @@ export default function StudentDetailPanel({
               <ResponsiveFieldGrid>
                 <div>
                   <label
+                    htmlFor="leadership-role"
                     style={{
                       fontSize: 11,
                       fontWeight: 700,
@@ -1390,6 +1461,8 @@ export default function StudentDetailPanel({
                     Leadership Position
                   </label>
                   <select
+                    id="leadership-role"
+                    name="leadership_role"
                     value={
                       formData.prefect_role ||
                       formData.student_council_role ||
@@ -1461,6 +1534,7 @@ export default function StudentDetailPanel({
                 </div>
                 <div>
                   <label
+                    htmlFor="class-monitor"
                     style={{
                       fontSize: 11,
                       fontWeight: 700,
@@ -1475,6 +1549,8 @@ export default function StudentDetailPanel({
                   </label>
                   <div className="flex items-center gap-2 mt-2">
                     <input
+                      id="class-monitor"
+                      name="is_class_monitor"
                       type="checkbox"
                       checked={formData.is_class_monitor}
                       onChange={(e) =>

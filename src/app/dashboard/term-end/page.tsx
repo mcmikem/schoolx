@@ -266,7 +266,7 @@ export default function TermEndPage() {
 
   useEffect(() => {
     if (school?.id) fetchChecklist();
-  }, [fetchChecklist]);
+  }, [fetchChecklist, school?.id]);
 
   const updateStep = (
     key: string,

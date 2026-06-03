@@ -57,11 +57,14 @@ export default function StudentPhotoField({
           flexShrink: 0,
         }}
         title="Upload student passport photo"
+        aria-label="Upload student passport photo"
+        role="button"
       >
         <input
           type="file"
           accept="image/*"
           disabled={uploading}
+          aria-label="Upload student passport photo"
           onChange={async (event) => {
             const file = event.target.files?.[0];
             if (!file) return;

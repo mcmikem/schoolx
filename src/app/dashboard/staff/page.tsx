@@ -1,5 +1,6 @@
 "use client";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
+import Image from "next/image";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
@@ -1161,10 +1162,12 @@ function DirectoryTab({
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
                   {member.avatar_url ? (
-                    <img
+                    <Image
                       src={member.avatar_url}
                       alt={member.full_name}
-                      className="w-12 h-12 rounded-full object-cover"
+                      width={48}
+                      height={48}
+                      className="rounded-full object-cover"
                     />
                   ) : (
                     <span className="text-gray-700 font-semibold">
@@ -1375,10 +1378,12 @@ function DirectoryTab({
                 <div className="flex items-center gap-3">
                   <div className="w-14 h-14 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center">
                     {newStaff.avatar_url ? (
-                      <img
+                      <Image
                         src={newStaff.avatar_url}
                         alt="Staff avatar"
-                        className="w-14 h-14 object-cover"
+                        width={56}
+                        height={56}
+                        className="object-cover"
                       />
                     ) : (
                       <MaterialIcon icon="person" className="text-gray-500" />
@@ -1623,10 +1628,12 @@ function DirectoryTab({
                 <div className="flex items-center gap-3">
                   <div className="w-14 h-14 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center">
                     {editForm.avatar_url ? (
-                      <img
+                      <Image
                         src={editForm.avatar_url}
                         alt="Staff avatar"
-                        className="w-14 h-14 object-cover"
+                        width={56}
+                        height={56}
+                        className="object-cover"
                       />
                     ) : (
                       <MaterialIcon icon="person" className="text-gray-500" />
@@ -1832,10 +1839,12 @@ function DirectoryTab({
                   }}
                 >
                   {school?.logo_url ? (
-                    <img
+                    <Image
                       src={school.logo_url}
                       alt={`${school?.name || "School"} logo`}
-                      className="w-7 h-7 rounded-lg bg-white/20 p-0.5 object-contain"
+                      width={28}
+                      height={28}
+                      className="rounded-lg bg-white/20 p-0.5 object-contain"
                     />
                   ) : (
                     <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center font-extrabold text-[11px]">
@@ -1850,10 +1859,12 @@ function DirectoryTab({
                     style={{ color: staffCardPrimary }}
                   >
                     {idCardPreviewStaff.avatar_url ? (
-                      <img
+                      <Image
                         src={idCardPreviewStaff.avatar_url}
                         alt={idCardPreviewStaff.full_name}
-                        className="w-full h-full object-cover"
+                        width={74}
+                        height={74}
+                        className="object-cover"
                       />
                     ) : (
                       idCardPreviewStaff.full_name
