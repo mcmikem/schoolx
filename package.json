@@ -16,6 +16,7 @@
     "test:e2e:roles:teacher-bursar": "PLAYWRIGHT_USE_EXISTING_SERVER=true playwright test tests/e2e/dashboard-authenticated.spec.ts -g \"bursar can open finance actions on fees page|teacher can open teacher dashboard and sub-pages\" --workers=1",
     "check:env": "node scripts/check-env-readiness.mjs",
     "check:production-leakage": "node scripts/check-production-leakage.mjs",
+    "check:release": "npm run lint && npm run typecheck && npm run test:regression && npm run build && npm run check:production-leakage",
     "scan-events:retention": "node scripts/scan-events-retention.mjs",
     "pre-commit": "npm run lint --silent && npm run typecheck --silent && npm test --silent",
     "health": "node scripts/health-check.mjs",

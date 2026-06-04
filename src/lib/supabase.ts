@@ -212,6 +212,7 @@ const createUnavailableClient = (): SupabaseClient => {
 
 // Export a flag so application boundaries can show a setup screen instead of crashing
 export const isSupabaseConfigured = hasUsableSupabaseConfig;
+export const isSupabaseMocked = !hasUsableSupabaseConfig && allowMockClient;
 
 if (!hasUsableSupabaseConfig && process.env.NODE_ENV === "production") {
   // Log a clear error but do NOT throw at module evaluation time.

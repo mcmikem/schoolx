@@ -7,7 +7,7 @@ export { Modal, ModalFooter } from "./Modal";
 // Fixed duplicate interface line
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary" | "ghost" | "danger";
+  variant?: "primary" | "secondary" | "ghost" | "danger" | "outline";
   size?: "sm" | "md" | "lg";
   loading?: boolean;
   icon?: React.ReactNode;
@@ -33,6 +33,7 @@ export function Button({
       "bg-[var(--surface-container)] text-[var(--on-surface)] hover:opacity-80",
     ghost:
       "bg-transparent text-[var(--on-surface)] hover:bg-[var(--surface-container)]",
+    outline: "bg-transparent border border-[var(--border)] text-[var(--on-surface)] hover:bg-[var(--surface-container)]",
     danger: "bg-[var(--error)] text-white hover:opacity-90",
   };
 
