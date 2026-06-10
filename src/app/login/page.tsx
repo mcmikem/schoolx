@@ -284,6 +284,7 @@ export default function LoginPage() {
       setFailedAttempts(0);
       setLockoutUntil(null);
 
+      // Register listener BEFORE checking session to catch future events
       const { data: authData } = supabase.auth.onAuthStateChange((event, session) => {
         if (event === 'SIGNED_IN' && session?.user) {
           if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -292,6 +293,15 @@ export default function LoginPage() {
         }
       });
       unsubscribeRef.current = authData.subscription.unsubscribe;
+
+      // Check current session immediately (SIGNED_IN may have fired during signIn)
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) {
+          if (timeoutRef.current) clearTimeout(timeoutRef.current);
+          if (unsubscribeRef.current) unsubscribeRef.current();
+          router.replace("/dashboard/");
+        }
+      });
 
       timeoutRef.current = setTimeout(() => {
         if (unsubscribeRef.current) unsubscribeRef.current();

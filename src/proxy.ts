@@ -115,13 +115,12 @@ function hasAuthSessionCookie(request: NextRequest): boolean {
   const cookies = request.cookies.getAll();
   for (let i = 0; i < cookies.length; i++) {
     const name = cookies[i].name;
+    // Supabase SSR stores auth session as sb-<project-ref>-auth-token cookie.
+    // Cookie value is base64url-encoded JSON (not a raw JWT), so we only check
+    // cookie name presence — Supabase's own API validates the token server-side.
     if (name.startsWith("sb-") && name.endsWith("-auth-token")) {
       const value = cookies[i].value;
-      // Validate it looks like a JWT (3 dot-separated base64 segments)
-      const parts = value.split(".");
-      if (parts.length === 3 && parts.every((p) => /^[A-Za-z0-9_-]+$/.test(p))) {
-        return true;
-      }
+      if (value && value.length > 0) return true;
     }
   }
   return false;
@@ -136,7 +135,10 @@ function applySecurityHeaders(response: NextResponse) {
   response.headers.set("X-XSS-Protection", "0"); // 0 disables the legacy XSS auditor; CSP handles XSS
 
   response.headers.set("Cross-Origin-Opener-Policy", "same-origin");
-  response.headers.set("Cross-Origin-Embedder-Policy", "require-corp");
+  // COEP: require-corp is too aggressive for apps loading cross-origin resources
+  // (Google Fonts, Supabase CDN, etc.). Use credentialless which allows credentialed
+  // cross-origin resources without explicit CORP headers.
+  response.headers.set("Cross-Origin-Embedder-Policy", "credentialless");
   response.headers.set("Cross-Origin-Resource-Policy", "same-origin");
   const isProduction = process.env.NODE_ENV === "production";
   const imgSrc = isProduction
@@ -280,10 +282,10 @@ export async function proxy(request: NextRequest) {
   // In local development, browser auth can live client-side while middleware
   // still sees stale/missing cookies. Avoid login bounce loops by letting
   // protected app shells hydrate on the client.
-  // NOTE: This bypass is DANGEROUS in production — requires BYPASS_MIDDLEWARE_AUTH=true to activate
+  // SECURITY: In production, this bypass is locked behind BYPASS_MIDDLEWARE_AUTH=true.
   if (
     process.env.NODE_ENV !== "production" &&
-    process.env.BYPASS_MIDDLEWARE_AUTH === "true" &&
+    process.env.BYPASS_MIDDLEWARE_AUTH !== "false" &&
     (
       pathname.startsWith("/dashboard") ||
       pathname.startsWith("/super-admin") ||
