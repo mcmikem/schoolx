@@ -62,7 +62,7 @@ jobs:
         env:
           NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES: "true"
           NEXT_PUBLIC_DEMO_ENABLED: "true"
-          DEMO_ADMIN_PASSWORD: "skoolmate_demo_2024"
+          DEMO_ADMIN_PASSWORD: ${{ secrets.DEMO_ADMIN_PASSWORD }}
       
       - name: Build application
         run: npm run build

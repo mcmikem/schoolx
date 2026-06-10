@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error: "Failed to fetch students with fees",
-          details: studentsError.message,
+          details: "Internal server error",
         },
         { status: 500 },
       );
@@ -243,7 +243,7 @@ export async function POST(request: NextRequest) {
         results.errors.push({
           studentId: student.id,
           name: `${student.first_name} ${student.last_name}`,
-          reason: err instanceof Error ? err.message : "Unknown error",
+          reason: "Fee reminder processing failed",
         });
       }
     }
@@ -263,7 +263,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error: "Auto fee reminder failed",
-        details: error instanceof Error ? error.message : "Unknown error",
+        details: "Internal server error",
       },
       { status: 500 },
     );

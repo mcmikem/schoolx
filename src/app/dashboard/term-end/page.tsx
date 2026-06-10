@@ -406,18 +406,16 @@ export default function TermEndPage() {
     setProcessSteps(processingSteps);
 
     try {
-      const cronSecret = process.env.NEXT_PUBLIC_CRON_SECRET || "";
-
-      const response = await fetch("/api/automation/term-end/", {
+      const response = await fetch("/api/cron/execute/", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(cronSecret ? { "x-cron-secret": cronSecret } : {}),
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          schoolId: school.id,
-          currentTerm: parseInt(currentTerm),
-          academicYear,
+          endpoint: "term-end",
+          body: {
+            schoolId: school.id,
+            currentTerm: parseInt(currentTerm),
+            academicYear,
+          },
         }),
       });
 

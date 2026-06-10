@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
 
     if (studentsError) {
       return NextResponse.json(
-        { error: "Failed to fetch students", details: studentsError.message },
+        { error: "Failed to fetch students", details: "Internal server error" },
         { status: 500 },
       );
     }
@@ -249,7 +249,7 @@ export async function POST(request: NextRequest) {
         }
         errors.push({
           studentId: student.id,
-          reason: err instanceof Error ? err.message : "Unknown error",
+          reason: "Promotion processing failed",
         });
       }
     }
@@ -274,7 +274,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error: "Auto-promotion failed",
-        details: error instanceof Error ? error.message : "Unknown error",
+        details: "Internal server error",
       },
       { status: 500 },
     );

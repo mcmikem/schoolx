@@ -28,6 +28,7 @@ import {
   useCallback,
   useRef,
 } from "react";
+import * as Sentry from "@sentry/nextjs";
 import { supabase } from "./supabase";
 import { useRouter } from "next/navigation";
 import type { User, School } from "@/types";
@@ -214,6 +215,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return prev;
           }
           return newUser;
+        });
+        Sentry.setUser({
+          id: newUser.id,
+          email: newUser.email,
+          school_id: newUser.school_id,
+          role: newUser.role,
         });
         try {
           localStorage.setItem(

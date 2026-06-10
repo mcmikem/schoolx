@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error: "Failed to fetch students",
-          details: studentsError.message,
+          details: "Internal server error",
         },
         { status: 500 },
       );
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error: "Failed to fetch grades",
-          details: gradesError.message,
+          details: "Internal server error",
         },
         { status: 500 },
       );
@@ -274,7 +274,7 @@ export async function POST(request: NextRequest) {
             results.errors.push({
               studentId: student.id,
               name: `${student.first_name} ${student.last_name}`,
-              reason: `Failed to update report card: ${updateError.message}`,
+              reason: "Failed to update report card",
             });
             continue;
           }
@@ -303,7 +303,7 @@ export async function POST(request: NextRequest) {
             results.errors.push({
               studentId: student.id,
               name: `${student.first_name} ${student.last_name}`,
-              reason: `Failed to create report card: ${insertError.message}`,
+              reason: "Failed to create report card",
             });
             continue;
           }
@@ -343,7 +343,7 @@ export async function POST(request: NextRequest) {
             results.errors.push({
               studentId: student.id,
               name: `${student.first_name} ${student.last_name}`,
-              reason: `Email failed: ${emailErr instanceof Error ? emailErr.message : "Unknown error"}`,
+              reason: "Email sending failed",
             });
           }
         }
@@ -351,7 +351,7 @@ export async function POST(request: NextRequest) {
         results.errors.push({
           studentId: student.id,
           name: `${student.first_name} ${student.last_name}`,
-          reason: err instanceof Error ? err.message : "Unknown error",
+          reason: "Report card generation failed",
         });
       }
     }
@@ -374,7 +374,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error: "Auto report card generation failed",
-        details: error instanceof Error ? error.message : "Unknown error",
+        details: "Internal server error",
       },
       { status: 500 },
     );

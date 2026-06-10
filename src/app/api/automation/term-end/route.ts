@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
         .eq("term", term);
 
       if (gradesError) {
-        throw new Error(gradesError.message);
+        throw new Error("Failed to fetch grades");
       }
 
       const gradeIds = (grades || []).map((g: any) => g.id);
@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
           .in("id", gradeIds);
 
         if (updateError) {
-          throw new Error(updateError.message);
+          throw new Error("Failed to lock grades");
         }
       }
 
@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
       steps[0] = {
         step: "lock_grades",
         status: "failed",
-        error: err instanceof Error ? err.message : "Unknown error",
+        error: "Step failed: lock grades",
       };
       overallSuccess = false;
     }
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
         .eq("school_id", school.schoolId);
 
       if (classesError) {
-        throw new Error(classesError.message);
+        throw new Error("Failed to fetch classes");
       }
 
       const classIds = (classes || []).map((c: any) => c.id);
@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
         .eq("status", "active");
 
       if (studentsError) {
-        throw new Error(studentsError.message);
+        throw new Error("Failed to fetch students");
       }
 
       let generatedCount = 0;
@@ -273,7 +273,7 @@ export async function POST(request: NextRequest) {
               .single();
 
             if (insertError) {
-              throw new Error(insertError.message);
+              throw new Error("Failed to create report card");
             }
 
             if (newCard) generatedCount++;
@@ -310,7 +310,7 @@ export async function POST(request: NextRequest) {
       steps[1] = {
         step: "generate_report_cards",
         status: "failed",
-        error: err instanceof Error ? err.message : "Unknown error",
+        error: "Step failed: generate report cards",
       };
       overallSuccess = false;
     }
@@ -325,7 +325,7 @@ export async function POST(request: NextRequest) {
         .eq("school_id", school.schoolId);
 
       if (classesError) {
-        throw new Error(classesError.message);
+        throw new Error("Failed to fetch classes");
       }
 
       const { data: students } = await supabase
@@ -363,7 +363,7 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (archiveError) {
-        throw new Error(archiveError.message);
+        throw new Error("Failed to create term archive");
       }
 
       steps[2] = {
@@ -380,7 +380,7 @@ export async function POST(request: NextRequest) {
       steps[2] = {
         step: "archive_term_data",
         status: "failed",
-        error: err instanceof Error ? err.message : "Unknown error",
+        error: "Step failed: archive term data",
       };
       overallSuccess = false;
     }
@@ -448,7 +448,7 @@ export async function POST(request: NextRequest) {
       steps[3] = {
         step: "send_term_end_notices",
         status: "failed",
-        error: err instanceof Error ? err.message : "Unknown error",
+        error: "Step failed: send term-end notices",
       };
       overallSuccess = false;
     }
@@ -511,7 +511,7 @@ export async function POST(request: NextRequest) {
         );
 
       if (settingsError) {
-        throw new Error(settingsError.message);
+        throw new Error("Failed to update school settings");
       }
 
       // Create next term record if it doesn't exist
@@ -533,7 +533,7 @@ export async function POST(request: NextRequest) {
         });
 
         if (termInsertError) {
-          throw new Error(termInsertError.message);
+          throw new Error("Failed to create next term");
         }
       }
 
@@ -552,7 +552,7 @@ export async function POST(request: NextRequest) {
       steps[4] = {
         step: "prepare_next_term",
         status: "failed",
-        error: err instanceof Error ? err.message : "Unknown error",
+        error: "Step failed: prepare next term",
       };
       overallSuccess = false;
     }
@@ -574,7 +574,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error: "Term end processing failed",
-        details: error instanceof Error ? error.message : "Unknown error",
+        details: "Internal server error",
       },
       { status: 500 },
     );

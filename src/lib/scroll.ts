@@ -1,6 +1,7 @@
 import { logger } from "@/lib/logger";
 
 export function smoothScroll(id: string) {
+  if (typeof document === "undefined") return;
   try {
     const el = document.querySelector(id);
     if (el) {

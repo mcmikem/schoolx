@@ -40,7 +40,8 @@ export async function GET(request: NextRequest) {
     const { searchParams } = request.nextUrl;
     const schoolId = searchParams.get("schoolId") || auth.context.schoolId;
     const role = searchParams.get("role");
-    const limit = parseInt(searchParams.get("limit") || "50");
+    let limit = parseInt(searchParams.get("limit") || "50");
+    limit = Math.min(limit, 100);
 
     if (auth.context.user.role !== "super_admin") {
       const scope = assertSchoolScopeOrDeny({
@@ -126,13 +127,17 @@ export async function POST(request: NextRequest) {
     return apiSuccess({ userId: account.userId }, "User added successfully");
   } catch (error) {
     if (error instanceof Error) {
-      if (
-        error.message === "This phone number already exists" ||
-        error.message === "Password must be at least 6 characters" ||
-        error.message === "Invalid phone number" ||
-        error.message === "Name must be at least 2 characters"
-      ) {
-        return apiError(error.message, 400);
+      if (error.message === "This phone number already exists") {
+        return apiError("This phone number already exists", 400);
+      }
+      if (error.message === "Password must be at least 6 characters") {
+        return apiError("Password must be at least 6 characters", 400);
+      }
+      if (error.message === "Invalid phone number") {
+        return apiError("Invalid phone number", 400);
+      }
+      if (error.message === "Name must be at least 2 characters") {
+        return apiError("Name must be at least 2 characters", 400);
       }
     }
 

@@ -16,6 +16,7 @@ function FaviconUpdater() {
   const { school } = useAuth()
 
   useEffect(() => {
+    if (typeof document === "undefined") return
     if (!school?.logo_url) return
 
     const iconUrl = school.logo_url

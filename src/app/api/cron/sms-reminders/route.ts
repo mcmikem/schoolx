@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     return NextResponse.json({
       success: false,
-      error: error.message,
+      error: "Internal server error",
       timestamp: new Date().toISOString(),
     }, { status: 500 })
   }

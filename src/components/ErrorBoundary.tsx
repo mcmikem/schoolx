@@ -1,5 +1,6 @@
 'use client'
 import React from 'react'
+import * as Sentry from "@sentry/nextjs";
 import { logger } from '@/lib/logger'
 import MaterialIcon from '@/components/MaterialIcon'
 
@@ -25,6 +26,7 @@ export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, E
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     logger.error('Error caught by boundary:', error, errorInfo)
+    Sentry.captureException(error)
   }
 
   handleReset = () => {

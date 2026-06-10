@@ -1,9 +1,10 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import ExpiredNotice from "@/components/dashboard/ExpiredNotice";
 import TrialBanner from "@/components/dashboard/TrialBanner";
 import SidebarShell from "@/components/dashboard/SidebarShell";
@@ -203,6 +204,16 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       return;
     }
   }, [authInitialized, loading, user, isDemo, router]);
+
+  // Dynamic page title based on path
+  useEffect(() => {
+    const segments = pathname.split("/").filter(Boolean);
+    const lastSegment = segments[segments.length - 1] || "Dashboard";
+    const title = lastSegment
+      .replace(/-/g, " ")
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+    document.title = `${title} — SkoolMate OS`;
+  }, [pathname]);
 
   const handleSignOut = async () => {
     sessionStorage.removeItem("lastDeniedPath");
@@ -433,7 +444,11 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             </div>
           )}
           <TrialBanner />
-          {children}
+          <PageErrorBoundary>
+            <Suspense fallback={<div className="flex justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-900" /></div>}>
+              {children}
+            </Suspense>
+          </PageErrorBoundary>
           <footer className="mt-auto px-4 py-3 border-t border-[var(--border)] bg-[var(--surface)] text-center">
             <p className="text-[11px] text-[var(--t4)]">
               Developed by{" "}

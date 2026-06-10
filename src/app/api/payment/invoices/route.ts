@@ -109,6 +109,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const ALLOWED_PLANS = ["starter", "growth", "enterprise", "lifetime", "free_trial"];
+    if (!ALLOWED_PLANS.includes(plan)) {
+      return NextResponse.json(
+        { error: "Invalid plan. Must be one of: starter, growth, enterprise, lifetime, free_trial" },
+        { status: 400 },
+      );
+    }
+
+    if (typeof amount !== "number" || amount <= 0 || !Number.isFinite(amount)) {
+      return NextResponse.json(
+        { error: "Amount must be a positive number" },
+        { status: 400 },
+      );
+    }
+
     const scope = assertSchoolScopeOrDeny({
       userSchoolId: auth.context.schoolId,
       requestedSchoolId: schoolId,

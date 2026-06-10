@@ -130,61 +130,62 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
         const studentName = sanitizeHTML(
           `${report.student.first_name} ${report.student.last_name}`,
         );
-        printWindow.document.write(`
-          <html>
-            <head>
-              <title>Report Card - ${studentName}</title>
-              <style>
-                * { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 0; box-sizing: border-box; }
-                body { padding: 15px; }
-                .report-card { max-width: 800px; margin: 0 auto; border: 2px solid ${primaryColor}; }
-                .header { background: ${primaryColor}; color: white; padding: 20px; text-align: center; position: relative; }
-                .header-logo { max-width: 60px; max-height: 60px; margin-bottom: 8px; }
-                .school-name { font-size: 22px; font-weight: bold; letter-spacing: 0.5px; }
-                .school-motto { font-size: 11px; font-style: italic; margin-top: 4px; opacity: 0.9; }
-                .subtitle { font-size: 12px; margin-top: 6px; }
-                .term-title { font-size: 14px; font-weight: 600; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.3); }
-                .student-info { padding: 15px; display: flex; justify-content: space-between; border-bottom: 2px solid ${primaryColor}; background: #fafbfc; }
-                .info-block { flex: 1; }
-                .info-label { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
-                .info-value { font-size: 13px; font-weight: 600; color: #1a1a1a; }
-                table { width: 100%; border-collapse: collapse; font-size: 11px; }
-                th { background: ${primaryColor}; color: white; padding: 8px 4px; text-align: center; border: 1px solid ${primaryColor}; font-weight: 600; font-size: 10px; }
-                td { padding: 6px 4px; text-align: center; border: 1px solid #ddd; }
-                td:first-child { text-align: left; padding-left: 8px; font-weight: 500; }
-                tr:nth-child(even) { background: #fafbfc; }
-                .total-row { font-weight: bold; background: #f0f5ff !important; }
-                .conduct-section { padding: 15px; border-top: 1px solid #eee; }
-                .conduct-title { font-size: 13px; font-weight: 700; color: ${primaryColor}; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
-                .conduct-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-                .conduct-item { text-align: center; padding: 8px; border: 1px solid #eee; border-radius: 6px; }
-                .conduct-label { font-size: 9px; color: #666; text-transform: uppercase; }
-                .conduct-value { font-size: 14px; font-weight: 700; color: ${primaryColor}; }
-                .conduct-rating { font-size: 9px; color: #888; }
-                .summary { padding: 15px; border-top: 2px solid ${primaryColor}; }
-                .summary-grid { display: grid; grid-template-columns: repeat(${showPosition ? 4 : 3}, 1fr); gap: 12px; margin-bottom: 15px; }
-                .summary-item { text-align: center; padding: 12px; border: 1px solid #eee; border-radius: 8px; background: #fafbfc; }
-                .summary-label { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
-                .summary-value { font-size: 18px; font-weight: 800; color: ${primaryColor}; }
-                .remarks-section { padding: 15px; border-top: 1px solid #eee; }
-                .remark-block { margin-bottom: 12px; }
-                .remark-label { font-size: 10px; color: #666; text-transform: uppercase; font-weight: 600; }
-                .remark-text { font-size: 12px; color: #333; font-style: italic; margin-top: 2px; }
-                .footer { padding: 15px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; border-top: 2px solid ${primaryColor}; }
-                .signature { text-align: center; }
-                .sig-image { max-width: 120px; max-height: 50px; margin: 0 auto 5px; }
-                .sig-line { border-top: 1px solid #333; margin-top: 35px; padding-top: 5px; font-size: 10px; color: #666; }
-                .parent-sig { border-top: 2px dashed #999; margin-top: 35px; padding-top: 5px; font-size: 10px; color: #666; }
-                .footer-note { padding: 10px 15px; text-align: center; font-size: 9px; color: #888; border-top: 1px solid #eee; background: #fafbfc; }
-                .next-term { padding: 10px 15px; text-align: center; font-size: 12px; font-weight: 600; color: ${primaryColor}; border-top: 1px solid #eee; }
-                @media print { body { padding: 0; } .no-print { display: none !important; } }
-              </style>
-            </head>
-            <body>${printContent}</body>
-          </html>
-        `);
+        const reportPrintStyles = `
+          * { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 0; box-sizing: border-box; }
+          body { padding: 15px; }
+          .report-card { max-width: 800px; margin: 0 auto; border: 2px solid ${primaryColor}; }
+          .header { background: ${primaryColor}; color: white; padding: 20px; text-align: center; position: relative; }
+          .header-logo { max-width: 60px; max-height: 60px; margin-bottom: 8px; }
+          .school-name { font-size: 22px; font-weight: bold; letter-spacing: 0.5px; }
+          .school-motto { font-size: 11px; font-style: italic; margin-top: 4px; opacity: 0.9; }
+          .subtitle { font-size: 12px; margin-top: 6px; }
+          .term-title { font-size: 14px; font-weight: 600; margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.3); }
+          .student-info { padding: 15px; display: flex; justify-content: space-between; border-bottom: 2px solid ${primaryColor}; background: #fafbfc; }
+          .info-block { flex: 1; }
+          .info-label { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+          .info-value { font-size: 13px; font-weight: 600; color: #1a1a1a; }
+          table { width: 100%; border-collapse: collapse; font-size: 11px; }
+          th { background: ${primaryColor}; color: white; padding: 8px 4px; text-align: center; border: 1px solid ${primaryColor}; font-weight: 600; font-size: 10px; }
+          td { padding: 6px 4px; text-align: center; border: 1px solid #ddd; }
+          td:first-child { text-align: left; padding-left: 8px; font-weight: 500; }
+          tr:nth-child(even) { background: #fafbfc; }
+          .total-row { font-weight: bold; background: #f0f5ff !important; }
+          .conduct-section { padding: 15px; border-top: 1px solid #eee; }
+          .conduct-title { font-size: 13px; font-weight: 700; color: ${primaryColor}; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+          .conduct-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+          .conduct-item { text-align: center; padding: 8px; border: 1px solid #eee; border-radius: 6px; }
+          .conduct-label { font-size: 9px; color: #666; text-transform: uppercase; }
+          .conduct-value { font-size: 14px; font-weight: 700; color: ${primaryColor}; }
+          .conduct-rating { font-size: 9px; color: #888; }
+          .summary { padding: 15px; border-top: 2px solid ${primaryColor}; }
+          .summary-grid { display: grid; grid-template-columns: repeat(${showPosition ? 4 : 3}, 1fr); gap: 12px; margin-bottom: 15px; }
+          .summary-item { text-align: center; padding: 12px; border: 1px solid #eee; border-radius: 8px; background: #fafbfc; }
+          .summary-label { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; }
+          .summary-value { font-size: 18px; font-weight: 800; color: ${primaryColor}; }
+          .remarks-section { padding: 15px; border-top: 1px solid #eee; }
+          .remark-block { margin-bottom: 12px; }
+          .remark-label { font-size: 10px; color: #666; text-transform: uppercase; font-weight: 600; }
+          .remark-text { font-size: 12px; color: #333; font-style: italic; margin-top: 2px; }
+          .footer { padding: 15px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; border-top: 2px solid ${primaryColor}; }
+          .signature { text-align: center; }
+          .sig-image { max-width: 120px; max-height: 50px; margin: 0 auto 5px; }
+          .sig-line { border-top: 1px solid #333; margin-top: 35px; padding-top: 5px; font-size: 10px; color: #666; }
+          .parent-sig { border-top: 2px dashed #999; margin-top: 35px; padding-top: 5px; font-size: 10px; color: #666; }
+          .footer-note { padding: 10px 15px; text-align: center; font-size: 9px; color: #888; border-top: 1px solid #eee; background: #fafbfc; }
+          .next-term { padding: 10px 15px; text-align: center; font-size: 12px; font-weight: 600; color: ${primaryColor}; border-top: 1px solid #eee; }
+          @media print { body { padding: 0; } .no-print { display: none !important; } }
+        `;
+
+        printWindow.document.open();
+        printWindow.document.title = `Report Card - ${studentName}`;
+        document.querySelectorAll('link[rel="stylesheet"], style').forEach(el => {
+          printWindow.document.head.appendChild(el.cloneNode(true));
+        });
+        printWindow.document.head.insertAdjacentHTML('beforeend', `<style>${reportPrintStyles}</style>`);
+        printWindow.document.body.innerHTML = printContent;
         printWindow.document.close();
-        printWindow.print();
+        printWindow.focus();
+        setTimeout(() => printWindow.print(), 500);
       }
     }
   };

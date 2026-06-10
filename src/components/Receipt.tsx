@@ -34,41 +34,39 @@ export default function Receipt({ data, onClose }: ReceiptProps) {
 
     const printContent = content.innerHTML;
 
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <title>Receipt - ${data.receipt_number}</title>
-        <style>
-          * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { 
-            font-family: 'Courier New', monospace; 
-            font-size: 14px; 
-            padding: 20px;
-            max-width: 300px;
-            margin: 0 auto;
-          }
-          .header { text-align: center; margin-bottom: 20px; }
-          .school-name { font-size: 16px; font-weight: bold; margin-bottom: 4px; }
-          .school-info { font-size: 11px; color: #666; }
-          .divider { border-top: 1px dashed #000; margin: 15px 0; }
-          .row { display: flex; justify-content: space-between; margin-bottom: 8px; }
-          .label { color: #666; }
-          .value { font-weight: bold; }
-          .amount { font-size: 18px; font-weight: bold; text-align: center; margin: 15px 0; }
-          .footer { text-align: center; font-size: 11px; color: #666; margin-top: 20px; }
-          @media print {
-            body { padding: 0; }
-          }
-        </style>
-      </head>
-      <body>
-        ${printContent}
-        <script>window.print(); window.close();</script>
-      </body>
-      </html>
-    `);
+    const printStyles = `
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { 
+        font-family: 'Courier New', monospace; 
+        font-size: 14px; 
+        padding: 20px;
+        max-width: 300px;
+        margin: 0 auto;
+      }
+      .header { text-align: center; margin-bottom: 20px; }
+      .school-name { font-size: 16px; font-weight: bold; margin-bottom: 4px; }
+      .school-info { font-size: 11px; color: #666; }
+      .divider { border-top: 1px dashed #000; margin: 15px 0; }
+      .row { display: flex; justify-content: space-between; margin-bottom: 8px; }
+      .label { color: #666; }
+      .value { font-weight: bold; }
+      .amount { font-size: 18px; font-weight: bold; text-align: center; margin: 15px 0; }
+      .footer { text-align: center; font-size: 11px; color: #666; margin-top: 20px; }
+      @media print {
+        body { padding: 0; }
+      }
+    `;
+
+    printWindow.document.open();
+    printWindow.document.title = `Receipt - ${data.receipt_number}`;
+    document.querySelectorAll('link[rel="stylesheet"], style').forEach(el => {
+      printWindow.document.head.appendChild(el.cloneNode(true));
+    });
+    printWindow.document.head.insertAdjacentHTML('beforeend', `<style>${printStyles}</style>`);
+    printWindow.document.body.innerHTML = printContent;
     printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
   };
 
   const handleDownload = () => {

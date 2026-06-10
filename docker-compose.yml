@@ -12,9 +12,7 @@ services:
       args:
         - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
         - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
-        - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
         - NEXT_PUBLIC_APP_URL=${NEXT_PUBLIC_APP_URL}
-        - CRON_SECRET=${CRON_SECRET}
     ports:
       - "3000:3000"
     environment:
@@ -33,12 +31,14 @@ services:
       - RESEND_API_KEY=${RESEND_API_KEY:-}
       - EMAIL_FROM=${EMAIL_FROM:-}
     restart: unless-stopped
+    mem_limit: 1g
+    cpus: "2"
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health/"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 120s
     deploy:
       resources:
         limits:
@@ -52,3 +52,8 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
+    networks:
+      - skoolmate_network
+networks:
+  skoolmate_network:
+    driver: bridge

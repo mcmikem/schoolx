@@ -42,6 +42,7 @@ export default function SkoolMateLogo({
           height={s.icon}
           className="object-contain"
           unoptimized
+          priority
         />
       </div>
 

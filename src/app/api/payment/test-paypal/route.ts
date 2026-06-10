@@ -22,7 +22,7 @@ export async function GET() {
   } catch (error: any) {
     logger.error("❌ PayPal test failed:", error.message);
     return NextResponse.json(
-      { success: false, error: error.message },
+      { success: false, error: "Internal server error" },
       { status: 500 },
     );
   }

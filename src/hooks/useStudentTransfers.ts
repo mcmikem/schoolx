@@ -255,28 +255,33 @@ export function useStudentTransfers(
     if (!printWindow) return;
     const content = transferPrintRef.current.innerHTML;
     const letterColor = schoolBranding?.primary_color || "#1e3a5f";
-    printWindow.document.write(`
-      <html><head><title>Transfer Letter</title>
-      <style>
-        body { font-family: 'Segoe UI', Arial, sans-serif; padding: 40px; color: #1a1a1a; }
-        .letterhead { text-align: center; margin-bottom: 30px; border-bottom: 3px solid ${letterColor}; padding-bottom: 20px; }
-        .letterhead-logo { width: 52px; height: 52px; object-fit: contain; margin: 0 auto 8px; display: block; }
-        .letterhead h1 { margin: 0; font-size: 22px; color: ${letterColor}; }
-        .letterhead p { margin: 4px 0; font-size: 13px; color: #555; }
-        .title { text-align: center; font-size: 18px; font-weight: 700; margin: 20px 0; text-decoration: underline; }
-        .content { line-height: 1.8; font-size: 14px; }
-        .content p { margin: 8px 0; }
-        .field { font-weight: 600; }
-        .signatures { display: flex; justify-content: space-between; margin-top: 60px; }
-        .sig-block { text-align: center; width: 200px; }
-        .sig-line { border-top: 1px solid #333; margin-top: 50px; padding-top: 5px; font-size: 12px; }
-        .stamp-area { width: 100px; height: 100px; border: 2px dashed #aaa; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #999; margin: 0 auto; }
-        @media print { body { padding: 20px; } }
-      </style>
-      </head><body>${content}</body></html>
-    `);
+    const transferLetterStyles = `
+      body { font-family: 'Segoe UI', Arial, sans-serif; padding: 40px; color: #1a1a1a; }
+      .letterhead { text-align: center; margin-bottom: 30px; border-bottom: 3px solid ${letterColor}; padding-bottom: 20px; }
+      .letterhead-logo { width: 52px; height: 52px; object-fit: contain; margin: 0 auto 8px; display: block; }
+      .letterhead h1 { margin: 0; font-size: 22px; color: ${letterColor}; }
+      .letterhead p { margin: 4px 0; font-size: 13px; color: #555; }
+      .title { text-align: center; font-size: 18px; font-weight: 700; margin: 20px 0; text-decoration: underline; }
+      .content { line-height: 1.8; font-size: 14px; }
+      .content p { margin: 8px 0; }
+      .field { font-weight: 600; }
+      .signatures { display: flex; justify-content: space-between; margin-top: 60px; }
+      .sig-block { text-align: center; width: 200px; }
+      .sig-line { border-top: 1px solid #333; margin-top: 50px; padding-top: 5px; font-size: 12px; }
+      .stamp-area { width: 100px; height: 100px; border: 2px dashed #aaa; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #999; margin: 0 auto; }
+      @media print { body { padding: 20px; } }
+    `;
+
+    printWindow.document.open();
+    printWindow.document.title = 'Transfer Letter';
+    document.querySelectorAll('link[rel="stylesheet"], style').forEach(el => {
+      printWindow.document.head.appendChild(el.cloneNode(true));
+    });
+    printWindow.document.head.insertAdjacentHTML('beforeend', `<style>${transferLetterStyles}</style>`);
+    printWindow.document.body.innerHTML = content;
     printWindow.document.close();
-    printWindow.print();
+    printWindow.focus();
+    setTimeout(() => printWindow.print(), 500);
   };
 
   const transferredOutCount = transferHistory.length;

@@ -1,19 +1,5 @@
-import * as Sentry from "@sentry/nextjs";
+// Sentry is auto-initialized by @sentry/nextjs config files
+// (sentry.client.config.ts, sentry.server.config.ts, sentry.edge.config.ts).
+// The register() function is intentionally empty to avoid double init.
 
-export function register() {
-  if (process.env.NEXT_RUNTIME === "nodejs") {
-    Sentry.init({
-      dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
-      tracesSampleRate: 0.1,
-      environment: process.env.NODE_ENV,
-    });
-  }
-
-  if (process.env.NEXT_RUNTIME === "edge") {
-    Sentry.init({
-      dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
-      tracesSampleRate: 0.1,
-      environment: process.env.NODE_ENV,
-    });
-  }
-}
+export function register() {}

@@ -327,7 +327,7 @@ export default function SystemHealthPage() {
                     </div>
                     <div>
                       <span className="text-[var(--t3)] text-xs">Environment</span>
-                      <p className="font-semibold text-[var(--t1)]">{process.env.NODE_ENV}</p>
+                      <p className="font-semibold text-[var(--t1)]">{process.env.NODE_ENV === "production" ? "Production" : "Development"}</p>
                     </div>
                     <div>
                       <span className="text-[var(--t3)] text-xs">Schools</span>

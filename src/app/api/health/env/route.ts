@@ -31,15 +31,23 @@ export async function GET() {
 
   const isDev = process.env.NODE_ENV === "development";
   if (isDev) {
-    return NextResponse.json({ success: true, ...validation });
+    const missing = validation.errors || [];
+    return NextResponse.json({
+      success: true,
+      valid: validation.valid,
+      missing_count: missing.length,
+      all_required_set: missing.length === 0,
+    });
   }
 
   if (validation.valid) {
     return NextResponse.json({ valid: true });
   }
 
+  const missing = validation.errors || [];
   return NextResponse.json({
     valid: false,
-    errors: validation.errors,
+    missing_count: missing.length,
+    all_required_set: false,
   });
 }

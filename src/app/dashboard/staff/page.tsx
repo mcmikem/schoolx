@@ -1075,8 +1075,18 @@ function DirectoryTab({
       return;
     }
 
+    const fullHtml = buildStaffIdCardHtml(member);
+    const bodyMatch = fullHtml.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+    const headStyles = fullHtml.match(/<style[^>]*>([\s\S]*?)<\/style>/gi) || [];
+    const bodyContent = bodyMatch ? bodyMatch[1].trim() : fullHtml;
+
     printWindow.document.open();
-    printWindow.document.write(buildStaffIdCardHtml(member));
+    printWindow.document.title = 'Staff ID Card';
+    document.querySelectorAll('link[rel="stylesheet"], style').forEach(el => {
+      printWindow.document.head.appendChild(el.cloneNode(true));
+    });
+    printWindow.document.head.insertAdjacentHTML('beforeend', headStyles.join(''));
+    printWindow.document.body.innerHTML = bodyContent;
     printWindow.document.close();
 
     setTimeout(() => {

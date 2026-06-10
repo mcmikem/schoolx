@@ -6,9 +6,9 @@ const OFFLINE_FALLBACK = '/offline.html';
 
 const PAGES_TO_CACHE = [
   '/',
-  '/login',
-  '/register',
-  '/forgot-password',
+  '/login/',
+  '/register/',
+  '/forgot-password/',
   '/manifest.json',
   '/offline.html',
   '/sw.js',
@@ -187,12 +187,6 @@ self.addEventListener('fetch', (event) => {
       })
       .catch(() => caches.match(request))
   );
-});
-
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
 });
 
 // Background sync

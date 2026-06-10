@@ -258,11 +258,13 @@ export async function GET(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const expected = process.env.AFRICAS_TALKING_DELIVERY_SECRET;
-    if (expected) {
-      const provided = request.headers.get("x-delivery-secret");
-      if (provided !== expected) {
-        return apiError("Unauthorized", 401);
-      }
+    if (!expected) {
+      logger.warn("[SMS] AFRICAS_TALKING_DELIVERY_SECRET is not set — delivery reports cannot be verified");
+      return apiError("Server misconfigured: delivery secret not set", 503);
+    }
+    const provided = request.headers.get("x-delivery-secret");
+    if (provided !== expected) {
+      return apiError("Unauthorized", 401);
     }
 
     const body = await request.json();

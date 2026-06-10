@@ -19,10 +19,10 @@ services:
     environment:
       - NODE_ENV=development
       - NEXT_PUBLIC_SUPABASE_URL=http://supabase:54321
-      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY:-sb_publishable_ACJWlzQHlZjBrEguHvfOxg_3BJgxAaH}
-      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY:-sb_secret_N7UND0UgjKTVK-Uodkm0Hg_xSvEMPvz}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
       - NEXT_PUBLIC_APP_URL=http://localhost:3000
-      - CRON_SECRET=${CRON_SECRET:-dev-cron-secret}
+      - CRON_SECRET=${CRON_SECRET}
       - DATABASE_URL=postgresql://postgres:postgres@db:5432/postgres
     depends_on:
       - db

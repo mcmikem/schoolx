@@ -20,7 +20,7 @@ echo "✅ Environment file found"
 
 # Install dependencies
 echo "📦 Installing dependencies..."
-npm install
+npm ci
 
 # Build
 echo "🔨 Building..."

@@ -6,7 +6,7 @@
 # ============================================
 
 FROM node:20-alpine AS base
-RUN apk add --no-cache libc6-compat
+RUN apk add --no-cache libc6-compat wget
 WORKDIR /app
 
 # ============================================
@@ -27,9 +27,7 @@ COPY . .
 # Set build-time env vars (can be overridden)
 ARG NEXT_PUBLIC_SUPABASE_URL=http://localhost:54321
 ARG NEXT_PUBLIC_SUPABASE_ANON_KEY=placeholder
-ARG SUPABASE_SERVICE_ROLE_KEY=placeholder
 ARG NEXT_PUBLIC_APP_URL=http://localhost:3000
-ARG CRON_SECRET=placeholder
 
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
@@ -61,7 +59,7 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3000/api/health/ || exit 1
 
 CMD ["node", "server.js"]

@@ -175,7 +175,7 @@ export default function HomePage() {
       return;
     }
     if (deviceTarget.href && deviceTarget.href !== "/login") {
-      window.location.href = deviceTarget.href;
+      router.push(deviceTarget.href);
       return;
     }
     if (/iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase())) {
@@ -184,7 +184,7 @@ export default function HomePage() {
       );
       return;
     }
-    window.location.href = "/login";
+    router.push("/login");
   };
 
   return (

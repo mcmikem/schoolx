@@ -47,20 +47,14 @@ export default function AdmissionPackagePage() {
     }
 
     printWindow.document.open();
-    printWindow.document.write(`
-      <html>
-        <head>
-          <title>Admission Letter</title>
-        </head>
-        <body>
-          ${printRef.current.innerHTML}
-        </body>
-      </html>
-    `);
+    printWindow.document.title = 'Admission Letter';
+    document.querySelectorAll('link[rel="stylesheet"], style').forEach(el => {
+      printWindow.document.head.appendChild(el.cloneNode(true));
+    });
+    printWindow.document.body.innerHTML = printRef.current.innerHTML;
     printWindow.document.close();
     printWindow.focus();
-    printWindow.print();
-    printWindow.close();
+    setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
   }, [reactPrint]);
 
   const loadStudent = useCallback(async (id: string) => {

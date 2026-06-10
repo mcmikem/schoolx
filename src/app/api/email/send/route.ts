@@ -13,6 +13,12 @@ export async function POST(request: NextRequest) {
     const auth = await requireUserWithSchool(request);
     if (!auth.ok) return auth.response;
 
+    // Only admin roles can send emails
+    const userRole = auth.context.user?.role;
+    if (userRole !== "super_admin" && userRole !== "school_admin" && userRole !== "headmaster") {
+      return NextResponse.json({ error: "Forbidden: insufficient permissions" }, { status: 403 });
+    }
+
     const body = await request.json();
     const { type, to, ...params } = body as {
       type: "welcome" | "password_reset" | "receipt";

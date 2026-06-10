@@ -116,25 +116,35 @@ function hasAuthSessionCookie(request: NextRequest): boolean {
   for (let i = 0; i < cookies.length; i++) {
     const name = cookies[i].name;
     if (name.startsWith("sb-") && name.endsWith("-auth-token")) {
-      return true;
+      const value = cookies[i].value;
+      // Validate it looks like a JWT (3 dot-separated base64 segments)
+      const parts = value.split(".");
+      if (parts.length === 3 && parts.every((p) => /^[A-Za-z0-9_-]+$/.test(p))) {
+        return true;
+      }
     }
   }
   return false;
 }
 
 function applySecurityHeaders(response: NextResponse) {
-  response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
   response.headers.set("X-Frame-Options", "DENY");
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
-  response.headers.set("X-XSS-Protection", "0");
+  response.headers.set("X-XSS-Protection", "0"); // 0 disables the legacy XSS auditor; CSP handles XSS
+
+  response.headers.set("Cross-Origin-Opener-Policy", "same-origin");
+  response.headers.set("Cross-Origin-Embedder-Policy", "require-corp");
+  response.headers.set("Cross-Origin-Resource-Policy", "same-origin");
   const isProduction = process.env.NODE_ENV === "production";
   const imgSrc = isProduction
     ? "img-src 'self' data: blob: https:"
     : "img-src 'self' data: blob: https: http:";
+  // TODO: Migrate inline scripts to use nonce-based approach for stricter CSP
   const scriptSrc = isProduction
-    ? "script-src 'self' 'unsafe-inline' https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ blob:"
+    ? "script-src 'self' https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ blob:"
     : "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ blob:";
 
   // Build connect-src dynamically to include local Supabase in development
@@ -158,7 +168,7 @@ function applySecurityHeaders(response: NextResponse) {
   const cspDirectives = [
     "default-src 'self'",
     scriptSrc,
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com", // unsafe-inline required for Tailwind JIT
     "font-src 'self' https://fonts.gstatic.com",
     imgSrc,
     connectSrc,
@@ -263,14 +273,17 @@ export async function proxy(request: NextRequest) {
   if (hasValidDemoSession(request) && pathname.startsWith("/dashboard")) {
     const response = NextResponse.next({ request });
     applySecurityHeaders(response);
+    issueCSRFToken(response);
     return response;
   }
 
   // In local development, browser auth can live client-side while middleware
   // still sees stale/missing cookies. Avoid login bounce loops by letting
   // protected app shells hydrate on the client.
+  // NOTE: This bypass is DANGEROUS in production — requires BYPASS_MIDDLEWARE_AUTH=true to activate
   if (
     process.env.NODE_ENV !== "production" &&
+    process.env.BYPASS_MIDDLEWARE_AUTH === "true" &&
     (
       pathname.startsWith("/dashboard") ||
       pathname.startsWith("/super-admin") ||
@@ -348,9 +361,7 @@ export async function proxy(request: NextRequest) {
   }
 
   if (!verifiedUser) {
-    // In some production edge cases, token validation can fail transiently
-    // while auth cookies are still present. Failing open for app shells avoids
-    // redirect loops; client auth guards still enforce access.
+    // Cookie exists but user not verified — redirect to login instead of failing open
     if (
       hasAuthSessionCookie(request) &&
       (
@@ -359,8 +370,12 @@ export async function proxy(request: NextRequest) {
         pathname.startsWith("/parent-portal")
       )
     ) {
-      supabaseResponse.headers.set("x-auth-status", "cookie-present-user-unverified");
-      return supabaseResponse;
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("reason", "session_expired");
+      loginUrl.searchParams.set("redirect", pathname);
+      const redirectRes = NextResponse.redirect(loginUrl);
+      applySecurityHeaders(redirectRes);
+      return redirectRes;
     }
 
     const loginUrl = new URL("/login", request.url);
@@ -368,7 +383,9 @@ export async function proxy(request: NextRequest) {
     // Distinguish session expiry from other redirects so the login page can
     // show a helpful message instead of silently presenting the form.
     loginUrl.searchParams.set("reason", "session_expired");
-    return NextResponse.redirect(loginUrl);
+    const redirectRes = NextResponse.redirect(loginUrl);
+    applySecurityHeaders(redirectRes);
+    return redirectRes;
   }
 
   const { data: user } = await supabase
@@ -428,12 +445,26 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  supabaseResponse.headers.set("x-user-id", verifiedUser.id);
-  supabaseResponse.headers.set("x-user-role", user?.role || "");
+  // CSRF check for mutation requests on non-public paths
+  if (!["GET", "HEAD", "OPTIONS"].includes(request.method)) {
+    if (!validateCSRFToken(request)) {
+      return new NextResponse(JSON.stringify({ error: "CSRF validation failed" }), {
+        status: 403,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+  }
 
   return supabaseResponse;
 }
 
+function validateCSRFToken(request: NextRequest): boolean {
+  const headerToken = request.headers.get("x-csrf-token");
+  const cookieToken = request.cookies.get("csrf-token")?.value;
+  if (!headerToken || !cookieToken) return false;
+  return headerToken === cookieToken;
+}
+
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|css|js|woff2?|json|ico)$).*)"],
 };

@@ -80,7 +80,8 @@ export async function GET(request: NextRequest) {
     const studentId = searchParams.get("studentId");
     const term = searchParams.get("term") || "1";
     const requestedAcademicYear = searchParams.get("academicYear");
-    const limit = parseInt(searchParams.get("limit") || "20");
+    let limit = parseInt(searchParams.get("limit") || "20");
+    limit = Math.min(limit, 100);
 
     const scope = assertSchoolScopeOrDeny({
       userSchoolId: auth.context.schoolId,

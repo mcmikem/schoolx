@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error: "Failed to fetch inventory items",
-          details: itemsError.message,
+          details: "Internal server error",
         },
         { status: 500 },
       );
@@ -187,7 +187,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error: "Auto inventory alerts failed",
-        details: error instanceof Error ? error.message : "Unknown error",
+        details: "Internal server error",
       },
       { status: 500 },
     );

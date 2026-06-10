@@ -214,110 +214,108 @@ export default function ReportsPage() {
       const reportHeader = (school as any)?.report_header_text || (school as any)?.report_header || "";
       const logoUrl = school?.logo_url || "";
 
-      printWindow.document.write(`
-        <html>
-          <head>
-            <title>Bulk Report Cards - ${school?.name || "School"}</title>
-            <style>
-              * { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 0; box-sizing: border-box; }
-              body { padding: 15px; }
-              .report-card { max-width: 800px; margin: 0 auto 30px; border: 2px solid ${primaryColor}; page-break-after: always; }
-              .report-card:last-child { page-break-after: auto; }
-              .header { background: ${primaryColor}; color: white; padding: 20px; text-align: center; }
-              .school-logo { max-width: 60px; max-height: 60px; object-fit: contain; margin: 0 auto 8px; display: block; }
-              .school-name { font-size: 22px; font-weight: bold; }
-              .student-info { padding: 15px; display: flex; justify-content: space-between; border-bottom: 2px solid ${primaryColor}; background: #fafbfc; }
-              .info-label { font-size: 10px; color: #666; text-transform: uppercase; }
-              .info-value { font-size: 13px; font-weight: 600; color: #1a1a1a; }
-              table { width: 100%; border-collapse: collapse; font-size: 11px; }
-              th { background: ${primaryColor}; color: white; padding: 8px 4px; text-align: center; border: 1px solid ${primaryColor}; }
-              td { padding: 6px 4px; text-align: center; border: 1px solid #ddd; }
-              td:first-child { text-align: left; padding-left: 8px; font-weight: 500; }
-              .summary { padding: 15px; border-top: 2px solid ${primaryColor}; }
-              .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
-              .summary-item { text-align: center; padding: 12px; border: 1px solid #eee; border-radius: 8px; background: #fafbfc; }
-              .summary-value { font-size: 18px; font-weight: 800; color: ${primaryColor}; }
-              @media print { body { padding: 0; } }
-            </style>
-          </head>
-          <body>
-            ${reports
-              .map(
-                (report) => `
-              <div class="report-card">
-                <div class="header">
-                  ${logoUrl ? `<img src="${logoUrl}" alt="School logo" class="school-logo" />` : ""}
-                  <div class="school-name">${report.school?.name || school?.name}</div>
-                  <div>${reportHeader || `TERM ${report.term} REPORT CARD — ${report.academicYear}`}</div>
-                </div>
-                <div class="student-info">
-                  <div>
-                    <div class="info-label">Student Name</div>
-                    <div class="info-value">${report.student?.first_name} ${report.student?.last_name}</div>
-                  </div>
-                  <div>
-                    <div class="info-label">Class</div>
-                    <div class="info-value">${report.student?.classes?.name || "N/A"}</div>
-                  </div>
-                  <div>
-                    <div class="info-label">Student No.</div>
-                    <div class="info-value">${report.student?.student_number || "N/A"}</div>
-                  </div>
-                </div>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Subject</th>
-                      <th>CA Avg</th>
-                      <th>Exam</th>
-                      <th>Total</th>
-                      <th>Grade</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    ${(report.subjects || [])
-                      .map(
-                        (s: any) => `
-                      <tr>
-                        <td>${s.name}</td>
-                        <td>${Math.round(s.totalCA || 0)}</td>
-                        <td>${s.exam || 0}</td>
-                        <td>${Math.round(s.finalScore || 0)}</td>
-                        <td>${s.grade || "F9"}</td>
-                      </tr>
-                    `,
-                      )
-                      .join("")}
-                  </tbody>
-                </table>
-                <div class="summary">
-                  <div class="summary-grid">
-                    <div class="summary-item">
-                      <div class="summary-value">${report.overall?.average || 0}%</div>
-                      <div>Average</div>
-                    </div>
-                    <div class="summary-item">
-                      <div class="summary-value">${report.overall?.grade || "F9"}</div>
-                      <div>Grade</div>
-                    </div>
-                    <div class="summary-item">
-                      <div class="summary-value">${report.overall?.division || "Ungraded"}</div>
-                      <div>Division</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            `,
-              )
-              .join("")}
-          </body>
-        </html>
-      `);
+      const bulkPrintStyles = `
+        * { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 0; box-sizing: border-box; }
+        body { padding: 15px; }
+        .report-card { max-width: 800px; margin: 0 auto 30px; border: 2px solid ${primaryColor}; page-break-after: always; }
+        .report-card:last-child { page-break-after: auto; }
+        .header { background: ${primaryColor}; color: white; padding: 20px; text-align: center; }
+        .school-logo { max-width: 60px; max-height: 60px; object-fit: contain; margin: 0 auto 8px; display: block; }
+        .school-name { font-size: 22px; font-weight: bold; }
+        .student-info { padding: 15px; display: flex; justify-content: space-between; border-bottom: 2px solid ${primaryColor}; background: #fafbfc; }
+        .info-label { font-size: 10px; color: #666; text-transform: uppercase; }
+        .info-value { font-size: 13px; font-weight: 600; color: #1a1a1a; }
+        table { width: 100%; border-collapse: collapse; font-size: 11px; }
+        th { background: ${primaryColor}; color: white; padding: 8px 4px; text-align: center; border: 1px solid ${primaryColor}; }
+        td { padding: 6px 4px; text-align: center; border: 1px solid #ddd; }
+        td:first-child { text-align: left; padding-left: 8px; font-weight: 500; }
+        .summary { padding: 15px; border-top: 2px solid ${primaryColor}; }
+        .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+        .summary-item { text-align: center; padding: 12px; border: 1px solid #eee; border-radius: 8px; background: #fafbfc; }
+        .summary-value { font-size: 18px; font-weight: 800; color: ${primaryColor}; }
+        @media print { body { padding: 0; } }
+      `;
 
+      const bulkPrintContent = reports
+        .map(
+          (report) => `
+        <div class="report-card">
+          <div class="header">
+            ${logoUrl ? `<img src="${logoUrl}" alt="School logo" class="school-logo" />` : ""}
+            <div class="school-name">${report.school?.name || school?.name}</div>
+            <div>${reportHeader || `TERM ${report.term} REPORT CARD — ${report.academicYear}`}</div>
+          </div>
+          <div class="student-info">
+            <div>
+              <div class="info-label">Student Name</div>
+              <div class="info-value">${report.student?.first_name} ${report.student?.last_name}</div>
+            </div>
+            <div>
+              <div class="info-label">Class</div>
+              <div class="info-value">${report.student?.classes?.name || "N/A"}</div>
+            </div>
+            <div>
+              <div class="info-label">Student No.</div>
+              <div class="info-value">${report.student?.student_number || "N/A"}</div>
+            </div>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th>Subject</th>
+                <th>CA Avg</th>
+                <th>Exam</th>
+                <th>Total</th>
+                <th>Grade</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${(report.subjects || [])
+                .map(
+                  (s: any) => `
+                <tr>
+                  <td>${s.name}</td>
+                  <td>${Math.round(s.totalCA || 0)}</td>
+                  <td>${s.exam || 0}</td>
+                  <td>${Math.round(s.finalScore || 0)}</td>
+                  <td>${s.grade || "F9"}</td>
+                </tr>
+              `,
+                )
+                .join("")}
+            </tbody>
+          </table>
+          <div class="summary">
+            <div class="summary-grid">
+              <div class="summary-item">
+                <div class="summary-value">${report.overall?.average || 0}%</div>
+                <div>Average</div>
+              </div>
+              <div class="summary-item">
+                <div class="summary-value">${report.overall?.grade || "F9"}</div>
+                <div>Grade</div>
+              </div>
+              <div class="summary-item">
+                <div class="summary-value">${report.overall?.division || "Ungraded"}</div>
+                <div>Division</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `,
+        )
+        .join("");
+
+      printWindow.document.open();
+      printWindow.document.title = `Bulk Report Cards - ${school?.name || "School"}`;
+      document.querySelectorAll('link[rel="stylesheet"], style').forEach(el => {
+        printWindow.document.head.appendChild(el.cloneNode(true));
+      });
+      printWindow.document.head.insertAdjacentHTML('beforeend', `<style>${bulkPrintStyles}</style>`);
+      printWindow.document.body.innerHTML = bulkPrintContent;
       printWindow.document.close();
-      setTimeout(() => {
-        printWindow.print();
-      }, 500);
+      printWindow.focus();
+      setTimeout(() => printWindow.print(), 500);
     } catch (err) {
       logger.error("Error in bulk print:", err);
       toast.error(err instanceof Error ? err.message : "Failed to generate bulk print");

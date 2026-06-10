@@ -20,8 +20,8 @@ import { readFileSync, existsSync } from "fs";
 // ---------------------------------------------------------------------------
 // Config
 // ---------------------------------------------------------------------------
-const REPO_OWNER = "mcmikem";
-const REPO_NAME = "schoolx";
+const REPO_OWNER = process.env.REPO_OWNER || "mcmikem";
+const REPO_NAME = process.env.REPO_NAME || "schoolx";
 function getLinkedVercelProjectInfo() {
   try {
     const filePath = ".vercel/project.json";

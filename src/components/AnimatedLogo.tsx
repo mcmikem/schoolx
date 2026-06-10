@@ -26,7 +26,7 @@ export default function AnimatedLogo({
         src={src}
         alt="SkoolMate Animation"
         fill
-        sizes="(max-width: 768px) 256px, 512px"
+        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
         className="object-contain"
         priority
         unoptimized={autoplay}

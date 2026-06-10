@@ -55,166 +55,168 @@ export default function IDCardsPage() {
     const firstName = student.first_name || "";
     const lastName = student.last_name || "";
 
-    cardWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>ID Card - ${escapeHtml(firstName)} ${escapeHtml(lastName)}</title>
-        <style>
-          @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-          * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { font-family: 'Inter', sans-serif; }
-          .id-card {
-            width: 350px;
-            height: 220px;
-            background: white;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-            display: flex;
-            flex-direction: row;
-          }
-          .left-section {
-            width: 100px;
-            background: linear-gradient(180deg, ${schoolColor} 0%, ${accentColor} 100%);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 15px;
-          }
-          .school-logo {
-            width: 28px;
-            height: 28px;
-            border-radius: 8px;
-            object-fit: contain;
-            background: rgba(255,255,255,0.2);
-            padding: 2px;
-            margin-bottom: 8px;
-          }
-          .school-logo-fallback {
-            width: 28px;
-            height: 28px;
-            border-radius: 8px;
-            background: rgba(255,255,255,0.2);
-            color: white;
-            font-size: 12px;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 8px;
-          }
-          .avatar {
-            width: 70px;
-            height: 70px;
-            border-radius: 50%;
-            background: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            font-weight: bold;
-            color: ${schoolColor};
-            border: 3px solid white;
-          }
-          .school-name-small {
-            color: white;
-            font-size: 8px;
-            text-align: center;
-            margin-top: 10px;
-            font-weight: 500;
-          }
-          .right-section {
-            flex: 1;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-          }
-          .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-          }
-          .school-name {
-            font-size: 11px;
-            font-weight: 700;
-            color: ${schoolColor};
-            text-transform: uppercase;
-          }
-          .card-type {
-            font-size: 8px;
-            color: #666;
-            background: #f0f0f0;
-            padding: 2px 6px;
-            border-radius: 4px;
-          }
-          .student-name {
-            font-size: 14px;
-            font-weight: 700;
-            color: #111;
-            margin-bottom: 2px;
-          }
-          .student-info {
-            font-size: 9px;
-            color: #666;
-            margin-bottom: 1px;
-          }
-          .barcode {
-            margin-top: auto;
-            height: 25px;
-            background: repeating-linear-gradient(
-              90deg,
-              #111 0px,
-              #111 1px,
-              transparent 1px,
-              transparent 3px
-            );
-            border-radius: 2px;
-          }
-          .footer {
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 4px;
-            background: ${schoolColor};
-          }
-          @media print {
-            body { margin: 0; }
-            .id-card { box-shadow: none; }
-          }
-        </style>
-      </head>
-      <body>
-        <div class="id-card">
-          <div class="left-section">
-            ${schoolLogo
-              ? `<img src="${escapeHtml(schoolLogo)}" alt="${escapeHtml(schoolName)} logo" class="school-logo" />`
-              : `<div class="school-logo-fallback">${escapeHtml(schoolName.charAt(0).toUpperCase())}</div>`}
-            <div class="avatar">${firstName?.[0]}${lastName?.[0]}</div>
-            <div class="school-name-small">${escapeHtml(schoolName)}</div>
-          </div>
-          <div class="right-section">
-            <div class="header">
-              <span class="school-name">${escapeHtml(schoolName)}</span>
-              <span class="card-type">STUDENT</span>
-            </div>
-            <div class="student-name">${escapeHtml(firstName)} ${escapeHtml(lastName)}</div>
-            <div class="student-info">Class: ${escapeHtml(student.classes?.name || "N/A")}</div>
-            <div class="student-info">Student No: ${escapeHtml(student.student_number || "N/A")}</div>
-            <div class="student-info">Gender: ${student.gender === "M" ? "Male" : "Female"}</div>
-            ${(student as any).boarding_status && (student as any).boarding_status !== 'day' ? `<div class="student-info">Boarder: ${(student as any).boarding_status}</div>` : ''}
-            ${(student as any).houses?.name ? `<div class="student-info">House: ${(student as any).houses.name}</div>` : ''}
-            <div class="barcode"></div>
-          </div>
+    const idCardStyles = `
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: 'Inter', sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+      .id-card {
+        width: 350px;
+        height: 220px;
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        display: flex;
+        flex-direction: row;
+      }
+      .left-section {
+        width: 100px;
+        background: linear-gradient(180deg, ${schoolColor} 0%, ${accentColor} 100%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 15px;
+      }
+      .school-logo {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        object-fit: contain;
+        background: rgba(255,255,255,0.2);
+        padding: 2px;
+        margin-bottom: 8px;
+      }
+      .school-logo-fallback {
+        width: 28px;
+        height: 28px;
+        border-radius: 8px;
+        background: rgba(255,255,255,0.2);
+        color: white;
+        font-size: 12px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 8px;
+      }
+      .avatar {
+        width: 70px;
+        height: 70px;
+        border-radius: 50%;
+        background: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        font-weight: bold;
+        color: ${schoolColor};
+        border: 3px solid white;
+      }
+      .school-name-small {
+        color: white;
+        font-size: 8px;
+        text-align: center;
+        margin-top: 10px;
+        font-weight: 500;
+      }
+      .right-section {
+        flex: 1;
+        padding: 15px;
+        display: flex;
+        flex-direction: column;
+      }
+      .header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 8px;
+      }
+      .school-name {
+        font-size: 11px;
+        font-weight: 700;
+        color: ${schoolColor};
+        text-transform: uppercase;
+      }
+      .card-type {
+        font-size: 8px;
+        color: #666;
+        background: #f0f0f0;
+        padding: 2px 6px;
+        border-radius: 4px;
+      }
+      .student-name {
+        font-size: 14px;
+        font-weight: 700;
+        color: #111;
+        margin-bottom: 2px;
+      }
+      .student-info {
+        font-size: 9px;
+        color: #666;
+        margin-bottom: 1px;
+      }
+      .barcode {
+        margin-top: auto;
+        height: 25px;
+        background: repeating-linear-gradient(
+          90deg,
+          #111 0px,
+          #111 1px,
+          transparent 1px,
+          transparent 3px
+        );
+        border-radius: 2px;
+      }
+      .footer {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: ${schoolColor};
+      }
+      @media print {
+        body { margin: 0; }
+        .id-card { box-shadow: none; }
+      }
+    `;
+
+    const idCardBody = `
+      <div class="id-card">
+        <div class="left-section">
+          ${schoolLogo
+            ? `<img src="${escapeHtml(schoolLogo)}" alt="${escapeHtml(schoolName)} logo" class="school-logo" />`
+            : `<div class="school-logo-fallback">${escapeHtml(schoolName.charAt(0).toUpperCase())}</div>`}
+          <div class="avatar">${firstName?.[0]}${lastName?.[0]}</div>
+          <div class="school-name-small">${escapeHtml(schoolName)}</div>
         </div>
-      </body>
-      </html>
-    `);
+        <div class="right-section">
+          <div class="header">
+            <span class="school-name">${escapeHtml(schoolName)}</span>
+            <span class="card-type">STUDENT</span>
+          </div>
+          <div class="student-name">${escapeHtml(firstName)} ${escapeHtml(lastName)}</div>
+          <div class="student-info">Class: ${escapeHtml(student.classes?.name || "N/A")}</div>
+          <div class="student-info">Student No: ${escapeHtml(student.student_number || "N/A")}</div>
+          <div class="student-info">Gender: ${student.gender === "M" ? "Male" : "Female"}</div>
+          ${(student as any).boarding_status && (student as any).boarding_status !== 'day' ? `<div class="student-info">Boarder: ${(student as any).boarding_status}</div>` : ''}
+          ${(student as any).houses?.name ? `<div class="student-info">House: ${(student as any).houses.name}</div>` : ''}
+          <div class="barcode"></div>
+        </div>
+      </div>
+    `;
+
+    cardWindow.document.open();
+    cardWindow.document.title = 'ID Card - ' + escapeHtml(firstName) + ' ' + escapeHtml(lastName);
+    document.querySelectorAll('link[rel="stylesheet"], style').forEach(el => {
+      cardWindow.document.head.appendChild(el.cloneNode(true));
+    });
+    cardWindow.document.head.insertAdjacentHTML('beforeend', `<style>${idCardStyles}</style>`);
+    cardWindow.document.body.innerHTML = idCardBody;
     cardWindow.document.close();
-    cardWindow.print();
+    cardWindow.focus();
+    setTimeout(() => cardWindow.print(), 500);
   };
 
   const printAllCards = () => {

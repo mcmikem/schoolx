@@ -359,9 +359,9 @@ export async function POST(request: NextRequest) {
     for (const table of tables) {
       try {
         const { error } = await supabase.from(table.name).select("id").limit(1);
-        results[table.name] = error ? `Error: ${error.message}` : "Exists";
+        results[table.name] = error ? "Error: Table check failed" : "Exists";
       } catch (e: any) {
-        results[table.name] = `Error: ${e.message}`;
+        results[table.name] = "Error: Table check failed";
       }
     }
 
@@ -417,7 +417,7 @@ export async function POST(request: NextRequest) {
       const { seedDemoData } = await import("@/lib/seed-demo");
       const seedResult = await seedDemoData();
       if (seedResult.error) {
-        results["demo_seeding"] = `Error: ${seedResult.error}`;
+        results["demo_seeding"] = "Error: Demo data seeding failed";
       } else {
         results["demo_seeding"] = "Seeded";
       }

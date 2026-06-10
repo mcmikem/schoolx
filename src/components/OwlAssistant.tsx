@@ -169,19 +169,25 @@ function getResponse(input: string): string {
 }
 
 function formatMessage(text: string) {
-  // Convert **bold** and newlines
   const escapeHtml = (s: string) =>
     s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-  const parts = text.split("\n");
-  return parts.map((line, i) => {
-    const formattedLine = escapeHtml(line).replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
-    return (
-      <span key={i}>
-        <span dangerouslySetInnerHTML={{ __html: formattedLine }} />
-        {i < parts.length - 1 && <br />}
-      </span>
-    );
-  });
+  const renderLine = (line: string) => {
+    const escaped = escapeHtml(line);
+    const parts = escaped.split(/\*\*(.*?)\*\*/g);
+    return parts.map((part, j) => {
+      if (j % 2 === 1) {
+        return <strong key={j}>{part}</strong>;
+      }
+      return part;
+    });
+  };
+  const lines = text.split("\n");
+  return lines.map((line, i) => (
+    <span key={i}>
+      {renderLine(line)}
+      {i < lines.length - 1 && <br />}
+    </span>
+  ));
 }
 
 const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || "256750028703";

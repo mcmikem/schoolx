@@ -84,6 +84,18 @@ function validateFile(file: File): string | null {
   if (!ALLOWED_MIME_TYPES.has(file.type)) {
     return `File type "${file.type}" is not allowed. Allowed types: images, PDFs, documents`
   }
+
+  // TODO: Add server-side content verification
+  // In production, use the `file-type` library to verify the actual file content
+  // matches the declared MIME type, preventing MIME-type spoofing attacks.
+  // Example:
+  //   import { fileTypeFromBuffer } from "file-type";
+  //   const buffer = Buffer.from(await file.arrayBuffer());
+  //   const type = await fileTypeFromBuffer(buffer);
+  //   if (!type || !ALLOWED_MIME_TYPES.has(type.mime)) {
+  //     return "File content does not match declared type";
+  //   }
+
   return null
 }
 

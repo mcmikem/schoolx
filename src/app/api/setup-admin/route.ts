@@ -57,17 +57,20 @@ export async function POST(request: NextRequest) {
     return apiSuccess({ userId: account.userId }, 'Super admin created', 201)
   } catch (error) {
     if (error instanceof Error) {
-      if (
-        error.message === 'Super admin already exists' ||
-        error.message === 'This phone number already exists' ||
-        error.message === 'Password must be at least 6 characters' ||
-        error.message === 'Invalid phone number' ||
-        error.message === 'Name must be at least 2 characters'
-      ) {
-        return apiError(
-          error.message,
-          error.message === 'Super admin already exists' ? 409 : 400,
-        )
+      if (error.message === 'Super admin already exists') {
+        return apiError('Super admin already exists', 409)
+      }
+      if (error.message === 'This phone number already exists') {
+        return apiError('This phone number already exists', 400)
+      }
+      if (error.message === 'Password must be at least 6 characters') {
+        return apiError('Password must be at least 6 characters', 400)
+      }
+      if (error.message === 'Invalid phone number') {
+        return apiError('Invalid phone number', 400)
+      }
+      if (error.message === 'Name must be at least 2 characters') {
+        return apiError('Name must be at least 2 characters', 400)
       }
     }
 

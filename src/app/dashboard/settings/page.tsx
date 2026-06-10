@@ -1,7 +1,7 @@
 "use client";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
@@ -108,6 +108,7 @@ const ROLE_TAB_ACCESS: Record<string, string[]> = {
 };
 
 export default function SettingsPage() {
+  const router = useRouter();
   const { school, user, refreshSchool } = useAuth();
   const allowedTabIds = ROLE_TAB_ACCESS[user?.role || "teacher"] || ROLE_TAB_ACCESS.teacher;
   const tabs = ALL_SETTINGS_TABS.filter((t) => allowedTabIds.includes(t.id));
@@ -528,7 +529,7 @@ export default function SettingsPage() {
       navigator.serviceWorker.addEventListener("controllerchange", () => {
         if (refreshed) return;
         refreshed = true;
-        window.location.reload();
+        router.refresh();
       });
 
       registration.waiting.postMessage({ type: "SKIP_WAITING" });

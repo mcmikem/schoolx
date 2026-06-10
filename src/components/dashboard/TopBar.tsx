@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
 import GlobalSearch from "@/components/GlobalSearch";
@@ -99,6 +99,7 @@ function NotificationsPanel({
   notifications: DashboardNotification[];
   onDismiss: (id: string) => void;
 }) {
+  const notifRouter = useRouter();
   if (!open) return null;
 
   return (
@@ -150,7 +151,7 @@ function NotificationsPanel({
               className={`flex gap-3 px-4 py-3.5 border-b border-[var(--border)] hover:bg-[var(--surface-container-low)] transition-colors ${!n.read ? "bg-[var(--primary-50)]" : ""}`}
               onClick={() => {
                 if (!n.read) onDismiss(n.id);
-                if (n.link) window.location.href = n.link;
+                if (n.link) notifRouter.push(n.link);
               }}
             >
               <div
@@ -252,6 +253,7 @@ export default function TopBar({
   pageTitle: string;
   onSignOut: () => void;
 }) {
+  const router = useRouter();
   const { user, school } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { currentTerm } = useAcademic();
@@ -348,6 +350,7 @@ export default function TopBar({
             width={28}
             height={28}
             className="w-7 h-7 rounded-lg object-cover shrink-0"
+            priority
           />
         ) : (
           <div className="w-7 h-7 rounded-lg bg-[var(--primary)] flex items-center justify-center text-white text-[11px] font-bold shrink-0">

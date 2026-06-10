@@ -1,5 +1,6 @@
 'use client'
 import React, { Component, ReactNode } from 'react'
+import * as Sentry from "@sentry/nextjs";
 import { logger } from '@/lib/logger'
 import MaterialIcon from '@/components/MaterialIcon'
 
@@ -25,6 +26,7 @@ export class PageErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     logger.error('Page error:', error, errorInfo)
+    Sentry.captureException(error)
   }
 
   handleReset = () => {

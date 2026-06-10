@@ -253,15 +253,15 @@ export async function GET(request: NextRequest) {
     eventsQuery.eq("school_id", schoolId),
   ]);
 
-  if (eventsResult.error) {
-    if (process.env.NODE_ENV === "development") return emptyResponse;
-    return NextResponse.json(
-      { error: eventsResult.error.message || "Failed to load scan events" },
-      { status: 500 },
-    );
-  }
+    if (eventsResult.error) {
+      if (process.env.NODE_ENV === "development") return emptyResponse;
+      return NextResponse.json(
+        { error: "Internal server error" },
+        { status: 500 },
+      );
+    }
 
-  const rows = (eventsResult.data || []) as ScanEventRow[];
+    const rows = (eventsResult.data || []) as ScanEventRow[];
   const operatorIds = uniqueStrings(rows.map((row) => row.operator_user_id));
   const studentIds = uniqueStrings(
     rows.filter((row) => row.entity_type === "student_meal").map((row) => row.target_id),
@@ -288,15 +288,15 @@ export async function GET(request: NextRequest) {
 
   if (operatorsResult.error) {
     if (process.env.NODE_ENV === "development") return emptyResponse;
-    return NextResponse.json({ error: operatorsResult.error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
   if (studentsResult.error) {
     if (process.env.NODE_ENV === "development") return emptyResponse;
-    return NextResponse.json({ error: studentsResult.error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
   if (staffTargetsResult.error) {
     if (process.env.NODE_ENV === "development") return emptyResponse;
-    return NextResponse.json({ error: staffTargetsResult.error.message }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }
 
   const operatorMap = new Map(

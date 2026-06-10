@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { offlineDB } from "@/lib/offline";
 import MaterialIcon from "@/components/MaterialIcon";
@@ -12,6 +13,7 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export function OfflineIndicator() {
+  const router = useRouter();
   const [isOnline, setIsOnline] = useState(true);
   const [pendingSync, setPendingSync] = useState(0);
   const [syncing, setSyncing] = useState(false);
@@ -145,7 +147,7 @@ export function OfflineIndicator() {
       navigator.serviceWorker.getRegistration().then((reg) => {
         if (reg?.waiting) {
           reg.waiting.postMessage({ type: "SKIP_WAITING" });
-          window.location.reload();
+          router.refresh();
         }
       });
     }

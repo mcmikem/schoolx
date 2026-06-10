@@ -323,7 +323,7 @@ async function handleSyncPost(request: NextRequest) {
             const { error } = await (supabase as any).from(item.table).insert(item.data)
             if (error) {
               failedCount++
-              errors.push(`Create failed for ${item.table}: ${error.message}`)
+              errors.push(`Create failed for ${item.table}`)
             } else {
               successCount++
             }
@@ -342,7 +342,7 @@ async function handleSyncPost(request: NextRequest) {
             const { error } = await query
             if (error) {
               failedCount++
-              errors.push(`Update failed for ${item.table}: ${error.message}`)
+              errors.push(`Update failed for ${item.table}`)
             } else {
               successCount++
             }
@@ -362,7 +362,7 @@ async function handleSyncPost(request: NextRequest) {
               : await query.delete().eq('id', deleteId)
             if (error) {
               failedCount++
-              errors.push(`Delete failed for ${item.table}: ${error.message}`)
+              errors.push(`Delete failed for ${item.table}`)
             } else {
               successCount++
             }
@@ -375,7 +375,7 @@ async function handleSyncPost(request: NextRequest) {
         }
       } catch (err) {
         failedCount++
-        errors.push(`Unexpected error: ${err instanceof Error ? err.message : 'Unknown'}`)
+        errors.push(`Unexpected error processing item ${item.id}`)
       }
     }
 

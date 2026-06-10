@@ -130,16 +130,15 @@ async function handlePost(request: NextRequest) {
 
         if (error) {
           results.errors.push(
-            `${student.first_name} ${student.last_name}: ${error.message}`,
+            `${student.first_name} ${student.last_name}: Import failed`,
           );
           results.failed++;
         } else {
           results.success++;
         }
       } catch (e: unknown) {
-        const errorMessage = e instanceof Error ? e.message : "Unknown error";
         results.errors.push(
-          `${student.first_name} ${student.last_name}: ${errorMessage}`,
+          `${student.first_name} ${student.last_name}: Import failed`,
         );
         results.failed++;
       }

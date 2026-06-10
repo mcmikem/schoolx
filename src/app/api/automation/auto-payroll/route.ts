@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
 
     if (staffError) {
       return NextResponse.json(
-        { error: "Failed to fetch staff", details: staffError.message },
+        { error: "Failed to fetch staff", details: "Internal server error" },
         { status: 500 },
       );
     }
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
           errors.push({
             staffId: member.id,
             name: `${member.first_name} ${member.last_name}`,
-            reason: `Failed to create payroll record: ${payrollError.message}`,
+            reason: "Failed to create payroll record",
           });
           continue;
         }
@@ -159,7 +159,7 @@ export async function POST(request: NextRequest) {
         ]);
 
         if (deductionError) {
-          throw new Error(`Failed to create payroll deductions: ${deductionError.message}`);
+          throw new Error("Failed to create payroll deductions");
         }
 
         totalPayroll += gross;
@@ -184,7 +184,7 @@ export async function POST(request: NextRequest) {
         errors.push({
           staffId: member.id,
           name: `${member.first_name} ${member.last_name}`,
-          reason: err instanceof Error ? err.message : "Unknown error",
+          reason: "Payroll processing failed",
         });
       }
     }
@@ -205,7 +205,7 @@ export async function POST(request: NextRequest) {
       });
 
       if (summaryError) {
-        throw new Error(`Failed to create payroll summary: ${summaryError.message}`);
+        throw new Error("Failed to create payroll summary");
       }
     }
 
@@ -228,7 +228,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         error: "Auto payroll processing failed",
-        details: error instanceof Error ? error.message : "Unknown error",
+        details: "Internal server error",
       },
       { status: 500 },
     );

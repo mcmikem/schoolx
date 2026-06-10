@@ -37,6 +37,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "No school associated with this account" }, { status: 403 });
     }
 
+    // Only super_admin or school_admin can export all school data
+    if (profileData.role !== "super_admin" && profileData.role !== "school_admin") {
+      return NextResponse.json({ error: "Forbidden: only school administrators can export all school data" }, { status: 403 });
+    }
+
     // Fetch student IDs for this school to scope related records
     const { data: schoolStudents } = await supabaseAdmin
       .from("students")

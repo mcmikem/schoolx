@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import OwlMascot from "@/components/brand/OwlMascot";
 import MaterialIcon from "@/components/MaterialIcon";
@@ -184,6 +185,7 @@ export function StuckLoadingOverlay({
   delay?: number;
   onRefresh?: () => void;
 }) {
+  const router = useRouter();
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -214,7 +216,7 @@ export function StuckLoadingOverlay({
             <button
               onClick={() => {
                 if (onRefresh) onRefresh();
-                else window.location.reload();
+                else router.refresh();
               }}
               className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 bg-[var(--primary)] text-white rounded-lg text-sm font-medium hover:bg-[var(--primary-hover)] transition-colors"
             >

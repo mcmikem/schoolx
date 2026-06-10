@@ -69,7 +69,10 @@ export const DEFAULT_SHORTCUTS: KeyboardShortcut[] = [
   {
     key: "l",
     ctrl: true,
-    action: () => (window.location.href = "/dashboard"),
+    action: () => {
+      // Module-level constant — can't use useRouter; window.location.href is last resort
+      window.location.href = "/dashboard";
+    },
     description: "Go to dashboard",
   },
 ];

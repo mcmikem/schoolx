@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 import { logger } from "@/lib/logger";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const ai = new GoogleGenAI({
   apiKey: process.env.GOOGLE_GENAI_API_KEY || "",
@@ -23,6 +24,17 @@ If the user asks about fees/payments that aren't processing, suggest they contac
 
 export async function POST(request: NextRequest) {
   try {
+    const authHeader = request.headers.get("authorization")?.replace("Bearer ", "");
+    if (!authHeader) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const supabase = await createSupabaseServerClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { message } = await request.json();
     if (!message || typeof message !== "string") {
       return NextResponse.json({ error: "Message is required" }, { status: 400 });

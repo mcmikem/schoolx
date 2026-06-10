@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
     const { error } = await admin.from("schools").update(safe).eq("id", id);
     if (error) {
       logger.error("[actions] update_school error:", error);
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
     }
     return NextResponse.json({ success: true });
   }
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       logger.error("[actions] create_school error:", error);
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
     }
     return NextResponse.json({ success: true, id: data?.id });
   }
@@ -160,7 +160,7 @@ export async function POST(request: NextRequest) {
     const { error } = await admin.from("users").update(safe).eq("id", id);
     if (error) {
       logger.error("[actions] update_user error:", error);
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
     }
     return NextResponse.json({ success: true });
   }
@@ -196,13 +196,14 @@ export async function POST(request: NextRequest) {
       const { error: authErr } = await admin.auth.admin.deleteUser(userRow.auth_id);
       if (authErr) {
         logger.error("[actions] delete auth user error:", authErr);
-        return NextResponse.json({ success: false, error: authErr.message }, { status: 500 });
+        return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
       }
     } else {
       // No auth entry, delete profile row directly
       const { error: deleteErr } = await admin.from("users").delete().eq("id", id);
       if (deleteErr) {
-        return NextResponse.json({ success: false, error: deleteErr.message }, { status: 500 });
+        logger.error("[actions] delete user profile error:", deleteErr);
+        return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
       }
     }
 
@@ -236,7 +237,8 @@ export async function POST(request: NextRequest) {
       password: new_password,
     });
     if (error) {
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      logger.error("[actions] reset password error:", error);
+      return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
     }
     return NextResponse.json({ success: true });
   }
@@ -263,7 +265,7 @@ export async function POST(request: NextRequest) {
     const { error } = await admin.from("schools").delete().eq("id", id);
     if (error) {
       logger.error("[actions] delete_school error:", error);
-      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+      return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
     }
     return NextResponse.json({ success: true });
   }

@@ -63,53 +63,55 @@ export default function ExportTools({
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
 
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <title>${escapeHtml(filename)}</title>
-        <style>
-          * { margin: 0; padding: 0; box-sizing: border-box; }
-          body { font-family: Arial, sans-serif; padding: 20px; }
-          h1 { font-size: 18px; margin-bottom: 10px; }
-          .date { color: #666; font-size: 12px; margin-bottom: 20px; }
-          table { width: 100%; border-collapse: collapse; font-size: 12px; }
-          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-          th { background: #f5f5f5; font-weight: 600; }
-          tr:nth-child(even) { background: #fafafa; }
-          @media print {
-            body { padding: 0; }
-          }
-        </style>
-      </head>
-      <body>
-        <h1>${escapeHtml(filename)}</h1>
-        <p class="date">Generated: ${new Date().toLocaleString()}</p>
-        <table>
-          <thead>
+    const printStyles = `
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: Arial, sans-serif; padding: 20px; }
+      h1 { font-size: 18px; margin-bottom: 10px; }
+      .date { color: #666; font-size: 12px; margin-bottom: 20px; }
+      table { width: 100%; border-collapse: collapse; font-size: 12px; }
+      th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+      th { background: #f5f5f5; font-weight: 600; }
+      tr:nth-child(even) { background: #fafafa; }
+      @media print {
+        body { padding: 0; }
+      }
+    `;
+
+    const printBody = `
+      <h1>${escapeHtml(filename)}</h1>
+      <p class="date">Generated: ${new Date().toLocaleString()}</p>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            ${headers.map((h) => `<th>${escapeHtml(h)}</th>`).join("")}
+          </tr>
+        </thead>
+        <tbody>
+          ${data
+            .map(
+              (row, i) => `
             <tr>
-              <th>#</th>
-              ${headers.map((h) => `<th>${escapeHtml(h)}</th>`).join("")}
+              <td>${i + 1}</td>
+              ${keys.map((key) => `<td>${escapeHtml(String(row[key] ?? ""))}</td>`).join("")}
             </tr>
-          </thead>
-          <tbody>
-            ${data
-              .map(
-                (row, i) => `
-              <tr>
-                <td>${i + 1}</td>
-                ${keys.map((key) => `<td>${escapeHtml(String(row[key] ?? ""))}</td>`).join("")}
-              </tr>
-            `,
-              )
-              .join("")}
-          </tbody>
-        </table>
-        <script>window.print();</script>
-      </body>
-      </html>
-    `);
+          `,
+            )
+            .join("")}
+        </tbody>
+      </table>
+    `;
+
+    printWindow.document.open();
+    printWindow.document.title = escapeHtml(filename);
+    document.querySelectorAll('link[rel="stylesheet"], style').forEach(el => {
+      printWindow.document.head.appendChild(el.cloneNode(true));
+    });
+    printWindow.document.head.insertAdjacentHTML('beforeend', `<style>${printStyles}</style>`);
+    printWindow.document.body.innerHTML = printBody;
     printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => printWindow.print(), 500);
   };
 
   if (!data || data.length === 0) return null;

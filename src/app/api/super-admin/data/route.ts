@@ -135,7 +135,7 @@ export async function GET(request: NextRequest) {
 
       if (fallbackRes.error) {
         return NextResponse.json(
-          { success: false, error: fallbackRes.error.message },
+          { success: false, error: "Internal server error" },
           { status: 500 },
         );
       }
@@ -166,7 +166,7 @@ export async function GET(request: NextRequest) {
   } catch (err: any) {
     logger.error("[super-admin/data] error:", err);
     return NextResponse.json(
-      { success: false, error: err?.message ?? "Internal server error" },
+      { success: false, error: "Internal server error" },
       { status: 500 },
     );
   }

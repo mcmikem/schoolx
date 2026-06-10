@@ -78,7 +78,7 @@ export function createLazyComponent<T extends React.ComponentType<any>>(
 
 export function usePreload() {
   const preload = (path: string) => {
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && typeof document !== "undefined") {
       const link = document.createElement("link");
       link.rel = "prefetch";
       link.href = path;
@@ -92,6 +92,8 @@ export function usePreload() {
 export function useSmartPrefetch() {
   const prefetchOnHover = (href: string) => {
     if (typeof window === "undefined") return;
+
+    if (typeof document === "undefined") return;
 
     const link = document.createElement("a");
     link.href = href;
