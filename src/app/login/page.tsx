@@ -81,9 +81,11 @@ export default function LoginPage() {
   }, [authInitialized, user, router]);
 
   useEffect(() => {
+    const unsub = unsubscribeRef.current;
+    const timer = timeoutRef.current;
     return () => {
-      if (unsubscribeRef.current) unsubscribeRef.current();
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      if (unsub) unsub();
+      if (timer) clearTimeout(timer);
     };
   }, []);
 
@@ -284,30 +286,10 @@ export default function LoginPage() {
       setFailedAttempts(0);
       setLockoutUntil(null);
 
-      // Register listener BEFORE checking session to catch future events
-      const { data: authData } = supabase.auth.onAuthStateChange((event, session) => {
-        if (event === 'SIGNED_IN' && session?.user) {
-          if (timeoutRef.current) clearTimeout(timeoutRef.current);
-          if (unsubscribeRef.current) unsubscribeRef.current();
-          router.replace("/dashboard/");
-        }
-      });
-      unsubscribeRef.current = authData.subscription.unsubscribe;
-
-      // Check current session immediately (SIGNED_IN may have fired during signIn)
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session?.user) {
-          if (timeoutRef.current) clearTimeout(timeoutRef.current);
-          if (unsubscribeRef.current) unsubscribeRef.current();
-          router.replace("/dashboard/");
-        }
-      });
-
-      timeoutRef.current = setTimeout(() => {
-        if (unsubscribeRef.current) unsubscribeRef.current();
-        setLoading(false);
-        toast.error("Login timed out. Please try again.");
-      }, 10000);
+      // Navigate immediately using session data returned from signIn()
+      // Do NOT wait for getSession() or onAuthStateChange — those race with
+      // cookie propagation and often return null right after login.
+      router.replace("/dashboard/");
 
       return;
     } catch (error) {
