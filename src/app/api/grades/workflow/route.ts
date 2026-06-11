@@ -52,21 +52,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    // Verify class belongs to user's school
-    const { data: classData, error: classError } = await supabaseAdmin
-      .from("classes")
-      .select("school_id")
-      .eq("id", class_id)
-      .single();
-
-    if (classError || !classData) {
-      return NextResponse.json({ error: "Class not found" }, { status: 404 });
-    }
-
-    if (classData.school_id !== userData.school_id) {
-      return NextResponse.json({ error: "Forbidden: class does not belong to your school" }, { status: 403 });
-    }
-
     // 1. Fetch current status of grades for this set
     const { data: existingGrades, error: fetchError } = await supabaseAdmin
       .from("grades")

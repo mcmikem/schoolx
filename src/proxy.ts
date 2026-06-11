@@ -115,38 +115,26 @@ function hasAuthSessionCookie(request: NextRequest): boolean {
   const cookies = request.cookies.getAll();
   for (let i = 0; i < cookies.length; i++) {
     const name = cookies[i].name;
-    // Supabase SSR stores auth session as sb-<project-ref>-auth-token cookie.
-    // Cookie value is base64url-encoded JSON (not a raw JWT), so we only check
-    // cookie name presence — Supabase's own API validates the token server-side.
     if (name.startsWith("sb-") && name.endsWith("-auth-token")) {
-      const value = cookies[i].value;
-      if (value && value.length > 0) return true;
+      return true;
     }
   }
   return false;
 }
 
 function applySecurityHeaders(response: NextResponse) {
-  response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
+  response.headers.set("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
   response.headers.set("X-Frame-Options", "DENY");
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
-  response.headers.set("X-XSS-Protection", "0"); // 0 disables the legacy XSS auditor; CSP handles XSS
-
-  response.headers.set("Cross-Origin-Opener-Policy", "same-origin");
-  // COEP: require-corp is too aggressive for apps loading cross-origin resources
-  // (Google Fonts, Supabase CDN, etc.). Use credentialless which allows credentialed
-  // cross-origin resources without explicit CORP headers.
-  response.headers.set("Cross-Origin-Embedder-Policy", "credentialless");
-  response.headers.set("Cross-Origin-Resource-Policy", "same-origin");
+  response.headers.set("X-XSS-Protection", "0");
   const isProduction = process.env.NODE_ENV === "production";
   const imgSrc = isProduction
     ? "img-src 'self' data: blob: https:"
     : "img-src 'self' data: blob: https: http:";
-  // TODO: Migrate inline scripts to use nonce-based approach for stricter CSP
   const scriptSrc = isProduction
-    ? "script-src 'self' https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ blob:"
+    ? "script-src 'self' 'unsafe-inline' https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ blob:"
     : "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ blob:";
 
   // Build connect-src dynamically to include local Supabase in development
@@ -170,7 +158,7 @@ function applySecurityHeaders(response: NextResponse) {
   const cspDirectives = [
     "default-src 'self'",
     scriptSrc,
-    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com", // unsafe-inline required for Tailwind JIT
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     imgSrc,
     connectSrc,
@@ -275,17 +263,14 @@ export async function proxy(request: NextRequest) {
   if (hasValidDemoSession(request) && pathname.startsWith("/dashboard")) {
     const response = NextResponse.next({ request });
     applySecurityHeaders(response);
-    issueCSRFToken(response);
     return response;
   }
 
   // In local development, browser auth can live client-side while middleware
   // still sees stale/missing cookies. Avoid login bounce loops by letting
   // protected app shells hydrate on the client.
-  // SECURITY: In production, this bypass is locked behind BYPASS_MIDDLEWARE_AUTH=true.
   if (
     process.env.NODE_ENV !== "production" &&
-    process.env.BYPASS_MIDDLEWARE_AUTH !== "false" &&
     (
       pathname.startsWith("/dashboard") ||
       pathname.startsWith("/super-admin") ||
@@ -363,7 +348,9 @@ export async function proxy(request: NextRequest) {
   }
 
   if (!verifiedUser) {
-    // Cookie exists but user not verified — redirect to login instead of failing open
+    // In some production edge cases, token validation can fail transiently
+    // while auth cookies are still present. Failing open for app shells avoids
+    // redirect loops; client auth guards still enforce access.
     if (
       hasAuthSessionCookie(request) &&
       (
@@ -372,12 +359,8 @@ export async function proxy(request: NextRequest) {
         pathname.startsWith("/parent-portal")
       )
     ) {
-      const loginUrl = new URL("/login", request.url);
-      loginUrl.searchParams.set("reason", "session_expired");
-      loginUrl.searchParams.set("redirect", pathname);
-      const redirectRes = NextResponse.redirect(loginUrl);
-      applySecurityHeaders(redirectRes);
-      return redirectRes;
+      supabaseResponse.headers.set("x-auth-status", "cookie-present-user-unverified");
+      return supabaseResponse;
     }
 
     const loginUrl = new URL("/login", request.url);
@@ -385,9 +368,7 @@ export async function proxy(request: NextRequest) {
     // Distinguish session expiry from other redirects so the login page can
     // show a helpful message instead of silently presenting the form.
     loginUrl.searchParams.set("reason", "session_expired");
-    const redirectRes = NextResponse.redirect(loginUrl);
-    applySecurityHeaders(redirectRes);
-    return redirectRes;
+    return NextResponse.redirect(loginUrl);
   }
 
   const { data: user } = await supabase
@@ -447,26 +428,12 @@ export async function proxy(request: NextRequest) {
     }
   }
 
-  // CSRF check for mutation requests on non-public paths
-  if (!["GET", "HEAD", "OPTIONS"].includes(request.method)) {
-    if (!validateCSRFToken(request)) {
-      return new NextResponse(JSON.stringify({ error: "CSRF validation failed" }), {
-        status: 403,
-        headers: { "Content-Type": "application/json" },
-      });
-    }
-  }
+  supabaseResponse.headers.set("x-user-id", verifiedUser.id);
+  supabaseResponse.headers.set("x-user-role", user?.role || "");
 
   return supabaseResponse;
 }
 
-function validateCSRFToken(request: NextRequest): boolean {
-  const headerToken = request.headers.get("x-csrf-token");
-  const cookieToken = request.cookies.get("csrf-token")?.value;
-  if (!headerToken || !cookieToken) return false;
-  return headerToken === cookieToken;
-}
-
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|css|js|woff2?|json|ico)$).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };

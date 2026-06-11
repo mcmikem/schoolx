@@ -242,9 +242,9 @@ export async function POST(request: NextRequest) {
         400,
       );
     }
-    if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password) || !/[^A-Za-z0-9]/.test(password)) {
+    if (!/[A-Z]/.test(password) || !/[0-9]/.test(password)) {
       return apiError(
-        "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character",
+        "Password must contain at least one uppercase letter and one number",
         400,
       );
     }

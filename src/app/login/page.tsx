@@ -54,8 +54,6 @@ export default function LoginPage() {
 
   const userRef = useRef(user);
   const submitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const unsubscribeRef = useRef<(() => void) | null>(null);
 
   const isLockedOut = lockoutUntil !== null && Date.now() < lockoutUntil;
 
@@ -79,15 +77,6 @@ export default function LoginPage() {
           : "/dashboard";
     router.replace(destination);
   }, [authInitialized, user, router]);
-
-  useEffect(() => {
-    const unsub = unsubscribeRef.current;
-    const timer = timeoutRef.current;
-    return () => {
-      if (unsub) unsub();
-      if (timer) clearTimeout(timer);
-    };
-  }, []);
 
   const validateIdentifier = (value: string): boolean => {
     const trimmed = value.trim();
@@ -188,13 +177,6 @@ export default function LoginPage() {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    if (unsubscribeRef.current) {
-      unsubscribeRef.current();
-    }
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-    }
-
     if (isLockedOut) {
       const remaining = Math.ceil((lockoutUntil! - Date.now()) / 1000 / 60);
       toast.error(`Too many attempts. Please try again in ${remaining} minutes.`);
@@ -253,7 +235,7 @@ export default function LoginPage() {
           const data = await res.json();
           if (res.ok && data.success) {
             saveDemoStorage(data.user, data.school);
-            router.replace(data.user.role === "parent" ? "/parent-portal" : "/dashboard");
+            window.location.href = data.user.role === "parent" ? "/parent-portal" : "/dashboard";
             return;
           }
         } catch {
@@ -286,12 +268,16 @@ export default function LoginPage() {
       setFailedAttempts(0);
       setLockoutUntil(null);
 
-      // Navigate immediately using session data returned from signIn()
-      // Do NOT wait for getSession() or onAuthStateChange — those race with
-      // cookie propagation and often return null right after login.
-      router.replace("/dashboard/");
+      const deadline = Date.now() + 10000;
+      while (Date.now() < deadline) {
+        if (userRef.current) {
+          return;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 250));
+      }
 
-      return;
+      setLoading(false);
+      toast.error("Login succeeded but session was not established. Please try again.");
     } catch (error) {
       if (submitTimerRef.current) clearTimeout(submitTimerRef.current);
       setShowSlowMessage(false);
@@ -318,7 +304,7 @@ export default function LoginPage() {
             </Link>
           </div>
 
-          {process.env.NODE_ENV !== "production" && DEMO_MODE_ENABLED && (
+          {DEMO_MODE_ENABLED && (
             <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
               <p className="font-medium mb-1">Demo Accounts</p>
               <p className="font-mono">256700000001 / 256700000002</p>

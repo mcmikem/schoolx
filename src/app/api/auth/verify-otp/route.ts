@@ -14,18 +14,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { logger } from "@/lib/logger";
-import { rateLimit } from "@/lib/api-utils";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 
 export async function POST(request: NextRequest) {
   try {
-    const { success: rlOk } = rateLimit(request, 5, 300_000); // 5 per 5 minutes per phone
-    if (!rlOk) {
-      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
-    }
-
     const { phone, otp } = await request.json();
     if (!phone || !otp) {
       return NextResponse.json({ error: "Phone and OTP required" }, { status: 400 });

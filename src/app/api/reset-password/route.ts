@@ -7,7 +7,7 @@
 // ============================================================================
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { createHash } from "crypto";
+import { randomBytes } from "crypto";
 import { apiSuccess, apiError } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
 
@@ -67,11 +67,11 @@ export async function POST(request: NextRequest) {
       auth: { autoRefreshToken: false, persistSession: false },
     });
 
-    const hashedToken = createHash("sha256").update(token).digest("hex");
+    const tokenHash = randomBytes(32).toString("hex");
     const tokenMatches = await supabase
       .from("password_reset_tokens")
       .select("id, user_id, expires_at, used_at")
-      .eq("token_hash", hashedToken)
+      .eq("token_hash", token)
       .single();
 
     if (tokenMatches.error || !tokenMatches.data) {

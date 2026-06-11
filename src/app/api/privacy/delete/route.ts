@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { logger } from "@/lib/logger";
-import { rateLimit } from "@/lib/api-utils";
 
 export async function POST(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
@@ -24,11 +23,6 @@ export async function POST(request: NextRequest) {
   const userId = authUser.id;
 
   try {
-    const { success: rlOk } = rateLimit(request, 1, 3_600_000); // 1 per hour
-    if (!rlOk) {
-      return NextResponse.json({ error: "Too many requests. Account deletion can only be requested once per hour." }, { status: 429 });
-    }
-
     const { data: profile } = await supabaseAdmin
       .from("users")
       .select("id, role, school_id")

@@ -134,22 +134,6 @@ export async function POST(request: NextRequest) {
       return apiError("All required fields must be filled", 400);
     }
 
-    if (schoolName.trim().length > 200) return apiError("School name is too long", 400);
-    if (district.trim().length > 100) return apiError("District name is too long", 400);
-    if (subcounty.trim().length > 100) return apiError("Sub-county is too long", 400);
-    if (adminName.trim().length > 200) return apiError("Admin name is too long", 400);
-    if (parish && parish.trim().length > 100) return apiError("Parish is too long", 400);
-    if (village && village.trim().length > 100) return apiError("Village is too long", 400);
-    if (email && email.length > 254) return apiError("Email is too long", 400);
-
-    if (schoolName.trim().length < 3) {
-      return apiError("School name must be at least 3 characters", 400);
-    }
-
-    if (adminName.trim().length < 2) {
-      return apiError("Admin name must be at least 2 characters", 400);
-    }
-
     const normalizedPhone = normalizeAuthPhone(adminPhone);
     if (normalizedPhone.length < 10 || normalizedPhone.length > 12) {
       return apiError(
