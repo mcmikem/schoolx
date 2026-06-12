@@ -277,8 +277,18 @@ export async function PATCH(request: NextRequest) {
     const supabase = createServiceRoleClientOrThrow();
     await supabase
       .from("messages")
-      .update({ status, delivery_status: status })
+      .update({ status })
       .eq("message_id", id);
+
+    // Try updating delivery_status separately for graceful degradation
+    try {
+      await supabase
+        .from("messages")
+        .update({ delivery_status: status })
+        .eq("message_id", id);
+    } catch {
+      // delivery_status column may not exist in older schema
+    }
 
     return apiSuccess({ received: true });
   } catch (error) {

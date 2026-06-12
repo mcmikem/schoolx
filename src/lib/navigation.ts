@@ -134,6 +134,21 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
           label: "Identity Center",
           icon: "id_card",
         },
+        {
+          href: "/dashboard/students/graduation",
+          label: "Graduation",
+          icon: "school",
+        },
+        {
+          href: "/dashboard/students/alumni",
+          label: "Alumni",
+          icon: "diversity_3",
+        },
+        {
+          href: "/dashboard/students/photos",
+          label: "Batch Photos",
+          icon: "photo_library",
+        },
         ...(process.env.NODE_ENV !== "production"
           ? [{
               href: "/dashboard/students/conduct",
@@ -770,6 +785,11 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
           href: "/parent-portal/academics",
           label: "Academics",
           icon: "menu_book",
+        },
+        {
+          href: "/parent-portal/results",
+          label: "Results",
+          icon: "description",
         },
       ],
     },

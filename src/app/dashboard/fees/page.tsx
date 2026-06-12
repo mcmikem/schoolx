@@ -1,11 +1,17 @@
 "use client";
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
+
+// NOTE: If your school uses fee_terms as the primary system, this fees page
+// uses fee_structure instead. The fee_terms module at /dashboard/fee-terms is
+// legacy and kept for backward compatibility only. See the deprecation notice
+// in fee-terms/page.tsx for details.
 import {
   useClasses,
   useFeeAdjustments,
+  useFeePayments,
   useFeeStructure,
 } from "@/lib/hooks";
 import { useOfflineStudents, useOfflineFees } from "@/lib/offline-hooks";
@@ -101,6 +107,7 @@ export default function FinanceHubPage() {
   const { adjustments, createAdjustment, deleteAdjustment } = useFeeAdjustments(
     school?.id,
   );
+  const { createPayment, deletePayment } = useFeePayments(school?.id);
   const receiptRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -154,50 +161,6 @@ export default function FinanceHubPage() {
       description: "Close modal",
     },
   ]);
-
-  const createPayment = useCallback(
-    async (payment: {
-      student_id: string;
-      amount_paid: number;
-      payment_method: string;
-      payment_reference?: string;
-      paid_by?: string;
-      notes?: string;
-    }) => {
-      const payload = {
-        ...payment,
-        school_id: school?.id,
-        payment_date: new Date().toISOString(),
-      };
-      if (isDemo) {
-        return {
-          ...payload,
-          id: `demo-payment-${Date.now()}`,
-          created_at: new Date().toISOString(),
-        };
-      }
-      const { data, error } = await supabase
-        .from("fee_payments")
-        .insert(payload)
-        .select()
-        .single();
-      if (error) throw error;
-      return data;
-    },
-    [school?.id, isDemo],
-  );
-
-  const deletePayment = useCallback(
-    async (id: string) => {
-      if (isDemo) return;
-      const { error } = await supabase
-        .from("fee_payments")
-        .update({ deleted_at: new Date().toISOString() })
-        .eq("id", id);
-      if (error) throw error;
-    },
-    [isDemo],
-  );
 
   const feeDraft = useFormDraft("fee_add_form");
   const [newFee, setNewFee] = useState({
@@ -416,7 +379,7 @@ export default function FinanceHubPage() {
           id: a.id,
           adjustment_type: a.adjustment_type,
           amount: Number(a.amount),
-          description: a.description || a.notes || "",
+          description: a.notes || "",
         })),
       };
     },
@@ -631,7 +594,7 @@ export default function FinanceHubPage() {
       ) {
         reference = `${newPayment.momo_provider.toUpperCase()}-${newPayment.momo_transaction_id}`;
       }
-      await createPayment({
+      const paymentResult = await createPayment({
         student_id: newPayment.student_id,
         amount_paid: parsedAmount,
         payment_method: newPayment.payment_method,
@@ -639,6 +602,31 @@ export default function FinanceHubPage() {
         paid_by: newPayment.paid_by || undefined,
         notes: newPayment.notes || undefined,
       });
+
+      if (!isDemo && school?.id && paymentResult?.id) {
+        const { data: lastReceipt } = await supabase
+          .from("receipts")
+          .select("receipt_number")
+          .eq("school_id", school.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        const lastNum = lastReceipt?.receipt_number
+          ? parseInt(lastReceipt.receipt_number.replace("RCP-", ""), 10) || 0
+          : 0;
+        const receiptNumber = `RCP-${String(lastNum + 1).padStart(6, "0")}`;
+
+        await supabase.from("receipts").insert({
+          school_id: school.id,
+          student_id: newPayment.student_id,
+          payment_id: paymentResult.id,
+          receipt_number: receiptNumber,
+          amount: parsedAmount,
+          issued_at: new Date().toISOString(),
+        });
+      }
+
       const student = studentBalances.find(
         (s) => s.id === newPayment.student_id,
       );

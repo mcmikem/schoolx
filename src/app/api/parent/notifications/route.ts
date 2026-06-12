@@ -34,7 +34,10 @@ export async function GET(request: NextRequest) {
     const { data: notifications, error } = await query;
 
     if (error) {
-      return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+      if (error.code === "42P01") {
+        return NextResponse.json({ success: true, notifications: [] });
+      }
+      return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
     return NextResponse.json({ success: true, notifications });
@@ -62,7 +65,12 @@ export async function PATCH(request: NextRequest) {
         .eq("parent_id", user.id)
         .eq("is_read", false);
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === "42P01") {
+          return NextResponse.json({ success: true, message: "Notifications table not ready yet" });
+        }
+        throw error;
+      }
       return NextResponse.json({ success: true, message: "All marked as read" });
     }
 
@@ -73,7 +81,12 @@ export async function PATCH(request: NextRequest) {
         .eq("id", notification_id)
         .eq("parent_id", user.id);
 
-      if (error) throw error;
+      if (error) {
+        if (error.code === "42P01") {
+          return NextResponse.json({ success: true, message: "Notifications table not ready yet" });
+        }
+        throw error;
+      }
       return NextResponse.json({ success: true, message: "Marked as read" });
     }
 

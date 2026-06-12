@@ -1,8 +1,8 @@
 "use client";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { useClasses } from "@/lib/hooks";
+import { useClasses, usePeriodAttendance } from "@/lib/hooks";
 import { useToast } from "@/components/Toast";
 import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
@@ -11,7 +11,6 @@ import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 import { EmptyState } from "@/components/EmptyState";
 import PersonInitials from "@/components/ui/PersonInitials";
-import { logger } from "@/lib/logger";
 
 const PERIODS = [
   "Period 1",
@@ -24,6 +23,13 @@ const PERIODS = [
   "Period 8",
 ];
 
+const STATUS_OPTIONS = [
+  { status: "present", label: "Present", color: "bg-green-100 text-green-700 border-green-200" },
+  { status: "absent", label: "Absent", color: "bg-red-100 text-red-700 border-red-200" },
+  { status: "late", label: "Late", color: "bg-yellow-100 text-yellow-700 border-yellow-200" },
+  { status: "excused", label: "Excused", color: "bg-purple-100 text-purple-700 border-purple-200" },
+];
+
 export default function PeriodAttendancePage() {
   const { school, user } = useAuth();
   const toast = useToast();
@@ -34,65 +40,23 @@ export default function PeriodAttendancePage() {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   });
-  const [students, setStudents] = useState<
-    Array<{
-      id: string;
-      first_name: string;
-      last_name: string;
-      student_number: string;
-    }>
-  >([]);
-  const [attendance, setAttendance] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const fetchStudents = useCallback(async () => {
-    if (!selectedClass || !school?.id) return;
-    try {
-      setLoading(true);
-      const { data } = await supabase
-        .from("students")
-        .select("*")
-        .eq("school_id", school.id)
-        .eq("class_id", selectedClass)
-        .eq("status", "active")
-        .order("first_name");
-      setStudents(data || []);
+  const { attendance, students, loading, markAttendance } = usePeriodAttendance(
+    selectedClass || undefined,
+    date,
+    selectedPeriod,
+  );
 
-      const { data: attData } = await supabase
-        .from("period_attendance")
-        .select("*")
-        .eq("class_id", selectedClass)
-        .eq("date", date)
-        .eq("period", selectedPeriod);
-
-      const attMap: Record<string, string> = {};
-      attData?.forEach((a) => {
-        attMap[a.student_id] = a.status;
-      });
-      setAttendance(attMap);
-    } catch (err) {
-      logger.error("Error:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedClass, school?.id, date, selectedPeriod]);
-
-  useEffect(() => {
-    if (selectedClass) {
-      fetchStudents();
-    }
-  }, [selectedClass, date, selectedPeriod, fetchStudents]);
-
-  const markAttendance = (studentId: string, status: string) => {
-    setAttendance((prev) => ({ ...prev, [studentId]: status }));
-  };
+  const attendanceMap = Object.fromEntries(
+    attendance.map((a: any) => [a.student_id, a.status]),
+  );
 
   const saveAttendance = async () => {
     if (!selectedClass || !user?.id) return;
     try {
       setSaving(true);
-      const records = Object.entries(attendance).map(([studentId, status]) => ({
+      const records = Object.entries(attendanceMap).map(([studentId, status]) => ({
         school_id: school?.id,
         student_id: studentId,
         class_id: selectedClass,
@@ -115,12 +79,58 @@ export default function PeriodAttendancePage() {
     }
   };
 
+  const exportCsv = () => {
+    if (students.length === 0) return;
+    const headers = ["Student Number", "First Name", "Last Name", "Status"];
+    const rows = students.map((student: any) => {
+      const status = attendanceMap[student.id] || "not marked";
+      return [
+        student.student_number,
+        student.first_name,
+        student.last_name,
+        status,
+      ];
+    });
+    const csvContent = [
+      `Period Attendance - ${selectedClass} - ${selectedPeriod} - ${date}`,
+      "",
+      headers.join(","),
+      ...rows.map((row: string[]) => row.map((cell: string) => `"${cell}"`).join(",")),
+    ].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `period-attendance-${selectedPeriod}-${date}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    toast.success("Exported to CSV");
+  };
+
+  const presentCount = Object.values(attendanceMap).filter((s) => s === "present").length;
+  const absentCount = Object.values(attendanceMap).filter((s) => s === "absent").length;
+  const lateCount = Object.values(attendanceMap).filter((s) => s === "late").length;
+  const excusedCount = Object.values(attendanceMap).filter((s) => s === "excused").length;
+
   return (
     <PageErrorBoundary>
     <div className="p-4 sm:p-6 lg:p-8">
       <PageHeader
         title="Period Attendance"
         subtitle="Mark attendance for each period"
+        actions={
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={exportCsv}
+            disabled={students.length === 0}
+            icon={<MaterialIcon icon="download" />}
+          >
+            Export CSV
+          </Button>
+        }
       />
 
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
@@ -164,6 +174,27 @@ export default function PeriodAttendancePage() {
         />
       </div>
 
+      {selectedClass && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          <Card className="p-3 text-center">
+            <div className="text-2xl font-bold text-green-600">{presentCount}</div>
+            <div className="text-xs text-[var(--t3)]">Present</div>
+          </Card>
+          <Card className="p-3 text-center">
+            <div className="text-2xl font-bold text-red-600">{absentCount}</div>
+            <div className="text-xs text-[var(--t3)]">Absent</div>
+          </Card>
+          <Card className="p-3 text-center">
+            <div className="text-2xl font-bold text-yellow-600">{lateCount}</div>
+            <div className="text-xs text-[var(--t3)]">Late</div>
+          </Card>
+          <Card className="p-3 text-center">
+            <div className="text-2xl font-bold text-purple-600">{excusedCount}</div>
+            <div className="text-xs text-[var(--t3)]">Excused</div>
+          </Card>
+        </div>
+      )}
+
       {!selectedClass ? (
         <Card className="p-12 text-center">
           <MaterialIcon className="text-5xl text-[var(--t3)] opacity-50 mx-auto">
@@ -197,7 +228,7 @@ export default function PeriodAttendancePage() {
       ) : (
         <>
           <div className="space-y-3 mb-6">
-            {students.map((student) => (
+            {students.map((student: any) => (
               <Card key={student.id} className="p-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -212,31 +243,14 @@ export default function PeriodAttendancePage() {
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    {[
-                      {
-                        status: "present",
-                        label: "Present",
-                        color: "bg-green-100 text-green-700 border-green-200",
-                      },
-                      {
-                        status: "absent",
-                        label: "Absent",
-                        color: "bg-red-100 text-red-700 border-red-200",
-                      },
-                      {
-                        status: "late",
-                        label: "Late",
-                        color:
-                          "bg-yellow-100 text-yellow-700 border-yellow-200",
-                      },
-                    ].map((option) => (
+                    {STATUS_OPTIONS.map((option) => (
                       <button
                         key={option.status}
                         onClick={() =>
                           markAttendance(student.id, option.status)
                         }
                         className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
-                          attendance[student.id] === option.status
+                          attendanceMap[student.id] === option.status
                             ? option.color
                             : "bg-white text-gray-500 border-gray-200 hover:border-gray-300"
                         }`}
@@ -252,7 +266,7 @@ export default function PeriodAttendancePage() {
 
           <Button
             onClick={saveAttendance}
-            disabled={saving || Object.keys(attendance).length === 0}
+            disabled={saving || Object.keys(attendanceMap).length === 0}
             className="w-full"
           >
             {saving ? "Saving..." : "Save Period Attendance"}

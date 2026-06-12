@@ -271,7 +271,7 @@ export function validatePaymentInput(
   if (!input.student_id || String(input.student_id).trim() === '') errors.push('Student is required');
   const amount = Number(input.amount_paid);
   if (isNaN(amount) || amount <= 0) errors.push('Amount must be greater than 0');
-  const validMethods = ['cash', 'mobile_money', 'bank', 'check'];
+  const validMethods = ['cash', 'mobile_money', 'bank', 'installment'];
   if (!validMethods.includes(String(input.payment_method).trim().toLowerCase())) errors.push('Payment method is invalid');
   if (input.payment_date && isFutureDate(String(input.payment_date), today)) errors.push('Payment date cannot be in the future');
   return errors;

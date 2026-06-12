@@ -141,8 +141,8 @@ export async function POST(request: NextRequest) {
 
           if (!studentClass) continue;
 
-          // Fetch grades
-          const { data: grades } = await supabase
+          // Fetch grades — try student_grades first, fallback to grades table
+          let { data: grades } = await supabase
             .from("student_grades")
             .select(
               `
@@ -153,6 +153,39 @@ export async function POST(request: NextRequest) {
             .eq("student_id", student.id)
             .eq("academic_year", year)
             .eq("term", term);
+
+          if (!grades || grades.length === 0) {
+            // Fallback: read from grades table and compute totals
+            const { data: rawGrades } = await supabase
+              .from("grades")
+              .select("subject_id, assessment_type, score, subjects(name)")
+              .eq("student_id", student.id)
+              .eq("academic_year", year)
+              .eq("term", term);
+
+            if (rawGrades && rawGrades.length > 0) {
+              const subjectGroups: Record<string, any> = {};
+              for (const rg of rawGrades as any[]) {
+                const sid = rg.subject_id;
+                if (!subjectGroups[sid]) {
+                  subjectGroups[sid] = {
+                    subject_id: sid,
+                    ca1: 0, ca2: 0, ca3: 0, ca4: 0,
+                    project: 0, exam_score: 0,
+                    subjects: rg.subjects || { name: "Unknown" },
+                  };
+                }
+                const at = rg.assessment_type;
+                if (at === "ca1") subjectGroups[sid].ca1 = Number(rg.score);
+                else if (at === "ca2") subjectGroups[sid].ca2 = Number(rg.score);
+                else if (at === "ca3") subjectGroups[sid].ca3 = Number(rg.score);
+                else if (at === "ca4") subjectGroups[sid].ca4 = Number(rg.score);
+                else if (at === "project") subjectGroups[sid].project = Number(rg.score);
+                else if (at === "exam") subjectGroups[sid].exam_score = Number(rg.score);
+              }
+              grades = Object.values(subjectGroups);
+            }
+          }
 
           if (!grades || grades.length === 0) continue;
 

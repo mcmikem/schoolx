@@ -3,6 +3,10 @@
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
+
+// @deprecated — Fee Terms is legacy. The primary fee system uses fee_structure + fee_payments
+// (see /dashboard/fees). This page is kept for backward compatibility and read-only reference.
+// TODO: Remove this page and its routes once all schools have migrated to fee_structure.
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
@@ -70,6 +74,7 @@ export default function FeeTermsPage() {
       .from("fee_terms")
       .select("*, fee_term_lines(*)")
       .eq("school_id", school.id)
+      .eq("is_active", true)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -164,7 +169,7 @@ export default function FeeTermsPage() {
     setPendingAction(() => async () => {
       const { error } = await supabase
         .from("fee_terms")
-        .delete()
+        .update({ is_active: false })
         .eq("id", termId);
       if (error) {
         toast.error("Failed to delete term");

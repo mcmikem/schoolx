@@ -47,6 +47,8 @@ jest.mock("next/navigation", () => ({
 }));
 
 // Mock supabase
+const mockChannelOn = jest.fn().mockReturnThis();
+const mockChannelSubscribe = jest.fn().mockReturnValue({ unsubscribe: jest.fn() });
 jest.mock("@/lib/supabase", () => ({
   supabase: {
     from: jest.fn(() => ({
@@ -62,6 +64,11 @@ jest.mock("@/lib/supabase", () => ({
     auth: {
       getSession: jest.fn().mockResolvedValue({ data: { session: null } }),
     },
+    channel: jest.fn(() => ({
+      on: mockChannelOn,
+      subscribe: mockChannelSubscribe,
+    })),
+    removeChannel: jest.fn(),
   },
 }));
 

@@ -394,3 +394,256 @@ const { data, error } = await withTimeout(
 
   return { attendance, loading, markAttendance };
 }
+
+export function usePeriodAttendance(
+  classId?: string,
+  date?: string,
+  period?: string,
+) {
+  const [attendance, setAttendance] = useState<any[]>([]);
+  const [students, setStudents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { school } = useAuth();
+  const isOnline = useOnlineStatus();
+
+  const fetchData = useCallback(async () => {
+    if (!classId || !date || !period || !school?.id) {
+      setLoading(false);
+      return;
+    }
+    try {
+      setLoading(true);
+      if (!isOnline) {
+        const cachedStudents = await offlineDB.getAllFromCache("students", {
+          school_id: school.id,
+          class_id: classId,
+          status: "active",
+        });
+        setStudents(cachedStudents as any[]);
+        const cachedAtt = await offlineDB.getAllFromCache("period_attendance", {
+          class_id: classId,
+          date,
+          period,
+        });
+        setAttendance(cachedAtt as any[]);
+        setLoading(false);
+        return;
+      }
+      const { data: studentData } = await supabase
+        .from("students")
+        .select("id, first_name, last_name, student_number")
+        .eq("school_id", school.id)
+        .eq("class_id", classId)
+        .eq("status", "active")
+        .order("first_name");
+      setStudents(studentData || []);
+      await offlineDB.cacheFromServer(
+        "students",
+        (studentData || []) as unknown as Record<string, unknown>[],
+      );
+
+      const { data: attData } = await supabase
+        .from("period_attendance")
+        .select("*")
+        .eq("class_id", classId)
+        .eq("date", date)
+        .eq("period", period);
+      setAttendance(attData || []);
+      await offlineDB.cacheFromServer(
+        "period_attendance",
+        (attData || []) as unknown as Record<string, unknown>[],
+      );
+    } catch (err) {
+      logger.error("Error fetching period attendance:", err);
+      setError(err instanceof Error ? err.message : "Unknown error");
+    } finally {
+      setLoading(false);
+    }
+  }, [classId, date, period, school?.id, isOnline]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const markAttendance = async (studentId: string, status: string) => {
+    const payload = {
+      school_id: school?.id,
+      student_id: studentId,
+      class_id: classId,
+      date,
+      period,
+      status,
+    };
+    setAttendance((prev) => {
+      const existing = prev.findIndex((a) => a.student_id === studentId);
+      if (existing >= 0) {
+        const u = [...prev];
+        u[existing] = { ...u[existing], ...payload };
+        return u;
+      }
+      return [...prev, payload];
+    });
+    if (!isOnline) {
+      await offlineDB.save(
+        "period_attendance",
+        payload as unknown as Record<string, unknown>,
+      );
+    } else {
+      try {
+        const { error: upsertError } = await supabase
+          .from("period_attendance")
+          .upsert(payload, { onConflict: "student_id,date,period" });
+        if (upsertError) throw upsertError;
+        await offlineDB.cacheFromServer("period_attendance", [
+          payload as unknown as Record<string, unknown>,
+        ]);
+      } catch {
+        await offlineDB.save(
+          "period_attendance",
+          payload as unknown as Record<string, unknown>,
+        );
+      }
+    }
+  };
+
+  return { attendance, students, loading, error, markAttendance, refetch: fetchData };
+}
+
+export function useDormAttendance(
+  dormId?: string,
+  date?: string,
+  checkType?: string,
+) {
+  const [attendance, setAttendance] = useState<any[]>([]);
+  const [students, setStudents] = useState<any[]>([]);
+  const [dorms, setDorms] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { school } = useAuth();
+  const isOnline = useOnlineStatus();
+
+  const fetchDorms = useCallback(async () => {
+    if (!school?.id) return;
+    if (!isOnline) {
+      const cached = await offlineDB.getAllFromCache("dorms", {
+        school_id: school.id,
+      });
+      setDorms(cached as any[]);
+      return;
+    }
+    const { data } = await supabase
+      .from("dorms")
+      .select("*")
+      .eq("school_id", school.id);
+    setDorms(data || []);
+    await offlineDB.cacheFromServer(
+      "dorms",
+      (data || []) as unknown as Record<string, unknown>[],
+    );
+  }, [school?.id, isOnline]);
+
+  const fetchData = useCallback(async () => {
+    if (!dormId || !date || !checkType) {
+      setLoading(false);
+      return;
+    }
+    try {
+      setLoading(true);
+      if (!isOnline) {
+        const cachedStudents = await offlineDB.getAllFromCache("dorm_students", {
+          dorm_id: dormId,
+        });
+        const studentList = cachedStudents.map((ds: any) => ds.students).filter(Boolean);
+        setStudents(studentList);
+        const cachedAtt = await offlineDB.getAllFromCache("dorm_attendance", {
+          dorm_id: dormId,
+          date,
+          check_type: checkType,
+        });
+        setAttendance(cachedAtt as any[]);
+        setLoading(false);
+        return;
+      }
+      const { data: dormStudents } = await supabase
+        .from("dorm_students")
+        .select("student_id, students(*)")
+        .eq("dorm_id", dormId);
+      const studentList = dormStudents?.map((ds: any) => ds.students) || [];
+      setStudents(studentList);
+      await offlineDB.cacheFromServer(
+        "dorm_students",
+        (dormStudents || []) as unknown as Record<string, unknown>[],
+      );
+
+      const { data: attData } = await supabase
+        .from("dorm_attendance")
+        .select("*")
+        .eq("dorm_id", dormId)
+        .eq("date", date)
+        .eq("check_type", checkType);
+      setAttendance(attData || []);
+      await offlineDB.cacheFromServer(
+        "dorm_attendance",
+        (attData || []) as unknown as Record<string, unknown>[],
+      );
+    } catch (err) {
+      logger.error("Error fetching dorm attendance:", err);
+      setError(err instanceof Error ? err.message : "Unknown error");
+    } finally {
+      setLoading(false);
+    }
+  }, [dormId, date, checkType, isOnline]);
+
+  useEffect(() => {
+    if (school?.id) fetchDorms();
+  }, [fetchDorms, school?.id]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const markAttendance = async (studentId: string, status: string, extras?: Record<string, any>) => {
+    setAttendance((prev) => {
+      const existing = prev.findIndex((a) => a.student_id === studentId);
+      const payload = { student_id: studentId, status, ...extras };
+      if (existing >= 0) {
+        const u = [...prev];
+        u[existing] = { ...u[existing], ...payload };
+        return u;
+      }
+      return [...prev, payload];
+    });
+    const payload = {
+      dorm_id: dormId,
+      student_id: studentId,
+      date,
+      check_type: checkType,
+      status,
+      ...extras,
+    };
+    if (!isOnline) {
+      await offlineDB.save(
+        "dorm_attendance",
+        payload as unknown as Record<string, unknown>,
+      );
+    } else {
+      try {
+        const { error: upsertError } = await supabase
+          .from("dorm_attendance")
+          .upsert(payload, { onConflict: "student_id,dorm_id,date,check_type" });
+        if (upsertError) throw upsertError;
+        await offlineDB.cacheFromServer("dorm_attendance", [
+          payload as unknown as Record<string, unknown>,
+        ]);
+      } catch {
+        await offlineDB.save(
+          "dorm_attendance",
+          payload as unknown as Record<string, unknown>,
+        );
+      }
+    }
+  };
+
+  return { attendance, students, dorms, loading, error, markAttendance, refetch: fetchData };
+}

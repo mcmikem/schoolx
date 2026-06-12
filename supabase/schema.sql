@@ -222,6 +222,7 @@ ALTER TABLE students ADD COLUMN IF NOT EXISTS is_class_monitor BOOLEAN DEFAULT f
 ALTER TABLE students ADD COLUMN IF NOT EXISTS prefect_role TEXT;
 ALTER TABLE students ADD COLUMN IF NOT EXISTS student_council_role TEXT;
 ALTER TABLE students ADD COLUMN IF NOT EXISTS opening_balance NUMERIC(12,2) DEFAULT 0;
+ALTER TABLE students ADD COLUMN IF NOT EXISTS nin TEXT;
 
 -- ============================================
 -- 8. TEACHER SUBJECTS (Teacher-Subject assignments)
@@ -257,7 +258,7 @@ CREATE TABLE IF NOT EXISTS grades (
     student_id UUID REFERENCES students(id) ON DELETE CASCADE,
     subject_id UUID REFERENCES subjects(id) ON DELETE CASCADE,
     class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
-    assessment_type TEXT CHECK (assessment_type IN ('ca1', 'ca2', 'ca3', 'ca4', 'project', 'exam')) NOT NULL,
+    assessment_type TEXT CHECK (assessment_type IN ('ca1', 'ca2', 'ca3', 'ca4', 'project', 'exam', 'competency')) NOT NULL,
     score NUMERIC(5,2) NOT NULL,
     max_score NUMERIC(5,2) DEFAULT 100,
     term INTEGER CHECK (term IN (1, 2, 3)) NOT NULL,
@@ -267,6 +268,7 @@ CREATE TABLE IF NOT EXISTS grades (
     ca_locked BOOLEAN DEFAULT false,
     locked_by UUID REFERENCES users(id),
     locked_at TIMESTAMPTZ,
+    competency_level TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(student_id, subject_id, assessment_type, term, academic_year)
 );
@@ -278,11 +280,13 @@ CREATE TABLE IF NOT EXISTS fee_structure (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
-    name TEXT NOT NULL, -- e.g. "Tuition", "Development", "Exam Fee"
+    name TEXT NOT NULL,
     amount NUMERIC(12,2) NOT NULL,
     term INTEGER CHECK (term IN (1, 2, 3)) NOT NULL,
     academic_year TEXT NOT NULL,
     due_date DATE,
+    deleted_at TIMESTAMPTZ,
+    deleted_by UUID REFERENCES users(id),
     created_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(school_id, class_id, name, term, academic_year)
 );
@@ -352,15 +356,19 @@ WITH CHECK (
 -- ============================================
 CREATE TABLE IF NOT EXISTS fee_payments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     student_id UUID REFERENCES students(id) ON DELETE CASCADE,
-    fee_id UUID REFERENCES fee_structure(id) ON DELETE CASCADE,
+    fee_id UUID REFERENCES fee_structure(id) ON DELETE SET NULL,
+    student_fee_term_id UUID REFERENCES student_fee_terms(id) ON DELETE SET NULL,
     amount_paid NUMERIC(12,2) NOT NULL,
     payment_method TEXT CHECK (payment_method IN ('cash', 'mobile_money', 'bank', 'installment')) NOT NULL,
     payment_reference TEXT,
-    paid_by TEXT, -- Name of person who paid
+    paid_by TEXT,
     notes TEXT,
     payment_date DATE DEFAULT CURRENT_DATE,
     recorded_by UUID REFERENCES users(id),
+    deleted_at TIMESTAMPTZ,
+    deleted_by UUID REFERENCES users(id),
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -416,11 +424,13 @@ WITH CHECK (school_id = my_school_id());
 CREATE TABLE IF NOT EXISTS messages (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
-    recipient_type TEXT CHECK (recipient_type IN ('individual', 'class', 'all')) NOT NULL,
-    recipient_id UUID, -- student_id or class_id
+    recipient_type TEXT CHECK (recipient_type IN ('individual', 'class', 'all', 'bulk', 'staff')) NOT NULL,
+    recipient_id TEXT,
     phone TEXT,
     message TEXT NOT NULL,
     status TEXT CHECK (status IN ('pending', 'sent', 'delivered', 'failed')) DEFAULT 'pending',
+    delivery_status TEXT,
+    recipient_count INTEGER DEFAULT 1,
     sent_by UUID REFERENCES users(id),
     sent_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT NOW()
@@ -504,8 +514,9 @@ CREATE TABLE IF NOT EXISTS automated_message_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     trigger_id UUID REFERENCES sms_triggers(id) ON DELETE SET NULL,
-    recipient_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    recipient_id TEXT,
     status TEXT NOT NULL CHECK (status IN ('sent', 'failed')) DEFAULT 'sent',
+    record_id TEXT,
     sent_at TIMESTAMPTZ DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_automated_message_logs_school ON automated_message_logs(school_id);
@@ -732,7 +743,14 @@ CREATE TABLE IF NOT EXISTS notice_acknowledgments (
 );
 ALTER TABLE notice_acknowledgments ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "School users notice_acknowledgments all" ON notice_acknowledgments;
-CREATE POLICY "School users notice_acknowledgments all" ON notice_acknowledgments FOR ALL TO authenticated USING (true);
+CREATE POLICY "School users notice_acknowledgments all" ON notice_acknowledgments FOR ALL TO authenticated USING (
+  EXISTS (
+    SELECT 1 FROM notices n
+    JOIN users u ON u.id = notice_acknowledgments.user_id
+    WHERE n.id = notice_acknowledgments.notice_id
+      AND n.school_id = my_school_id()
+  )
+);
 
 -- ============================================
 -- 31. PARENT MESSAGES
@@ -754,6 +772,30 @@ CREATE INDEX IF NOT EXISTS idx_parent_messages_student ON parent_messages(studen
 ALTER TABLE parent_messages ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "School users parent_messages all" ON parent_messages;
 CREATE POLICY "School users parent_messages all" ON parent_messages FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+
+-- ============================================
+-- 31.5 PARENT NOTIFICATIONS
+-- ============================================
+CREATE TABLE IF NOT EXISTS parent_notifications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    parent_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    student_id UUID REFERENCES students(id) ON DELETE CASCADE,
+    type TEXT NOT NULL,
+    title TEXT NOT NULL,
+    message TEXT,
+    action_url TEXT,
+    is_read BOOLEAN DEFAULT false,
+    read_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_parent_notifications_parent ON parent_notifications(parent_id);
+CREATE INDEX IF NOT EXISTS idx_parent_notifications_school ON parent_notifications(school_id);
+ALTER TABLE parent_notifications ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Parent notifications own" ON parent_notifications;
+CREATE POLICY "Parent notifications own" ON parent_notifications FOR ALL TO authenticated USING (
+  parent_id IN (SELECT id FROM users WHERE auth_id = auth.uid())
+);
 
 -- ============================================
 -- 32. PASSWORD RESET TOKENS
@@ -1065,6 +1107,42 @@ CREATE TABLE IF NOT EXISTS sms_triggers (
 ALTER TABLE sms_triggers ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "School users sms_triggers all" ON sms_triggers;
 CREATE POLICY "School users sms_triggers all" ON sms_triggers FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+
+-- ============================================
+-- 47.5 SMS QUOTA
+-- ============================================
+CREATE TABLE IF NOT EXISTS sms_quota (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    monthly_limit INTEGER NOT NULL DEFAULT 500,
+    monthly_used INTEGER NOT NULL DEFAULT 0,
+    reset_day INTEGER NOT NULL DEFAULT 1,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(school_id)
+);
+CREATE INDEX IF NOT EXISTS idx_sms_quota_school ON sms_quota(school_id);
+ALTER TABLE sms_quota ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users sms_quota all" ON sms_quota;
+CREATE POLICY "School users sms_quota all" ON sms_quota FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+
+-- ============================================
+-- 47.6 SMS USAGE
+-- ============================================
+CREATE TABLE IF NOT EXISTS sms_usage (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    month TEXT NOT NULL,
+    year INTEGER NOT NULL,
+    sent_count INTEGER DEFAULT 0,
+    failed_count INTEGER DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(school_id, month, year)
+);
+CREATE INDEX IF NOT EXISTS idx_sms_usage_school ON sms_usage(school_id);
+CREATE INDEX IF NOT EXISTS idx_sms_usage_month_year ON sms_usage(school_id, year, month);
+ALTER TABLE sms_usage ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users sms_usage all" ON sms_usage;
+CREATE POLICY "School users sms_usage all" ON sms_usage FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
 
 -- ============================================
 -- 48. STAFF
@@ -1413,6 +1491,40 @@ AS $$
       AND school_id = p_school_id
       AND role IN ('school_admin', 'headmaster', 'admin', 'super_admin')
   )
+$$;
+
+CREATE OR REPLACE FUNCTION increment_sms_usage(
+  p_school_id UUID,
+  p_month TEXT,
+  p_year INTEGER,
+  p_success BOOLEAN
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  INSERT INTO sms_usage (school_id, month, year, sent_count, failed_count)
+  VALUES (
+    p_school_id,
+    p_month,
+    p_year,
+    CASE WHEN p_success THEN 1 ELSE 0 END,
+    CASE WHEN p_success THEN 0 ELSE 1 END
+  )
+  ON CONFLICT (school_id, month, year)
+  DO UPDATE SET
+    sent_count = sms_usage.sent_count + CASE WHEN p_success THEN 1 ELSE 0 END,
+    failed_count = sms_usage.failed_count + CASE WHEN p_success THEN 0 ELSE 1 END;
+
+  UPDATE sms_quota
+  SET monthly_used = (
+    SELECT COALESCE(SUM(sent_count + failed_count), 0)
+    FROM sms_usage
+    WHERE school_id = p_school_id AND month = p_month AND year = p_year
+  )
+  WHERE school_id = p_school_id;
+END;
 $$;
 
 -- Users can see their own record (no subquery on users to avoid infinite recursion)
@@ -2421,12 +2533,15 @@ CREATE TABLE IF NOT EXISTS sms_templates (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
-    category TEXT NOT NULL, -- fee_reminder, attendance, exam, general
+    category TEXT NOT NULL,
     message TEXT NOT NULL,
     is_active BOOLEAN DEFAULT true,
     created_by UUID REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+ALTER TABLE sms_templates ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users sms_templates all" ON sms_templates;
+CREATE POLICY "School users sms_templates all" ON sms_templates FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
 
 -- ============================================
 -- LEAVE APPROVAL WORKFLOW TABLE
@@ -2462,7 +2577,7 @@ CREATE TABLE IF NOT EXISTS expense_approvals (
 CREATE TABLE IF NOT EXISTS subscription_payments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE NOT NULL,
-    plan TEXT CHECK (plan IN ('free_trial', 'starter', 'growth', 'enterprise', 'lifetime')) NOT NULL,
+    plan TEXT CHECK (plan IN ('free_trial', 'basic', 'premium', 'max')) NOT NULL,
     amount NUMERIC(12,2) NOT NULL,
     currency TEXT DEFAULT 'UGX',
     provider TEXT CHECK (provider IN ('stripe', 'paypal', 'mtn', 'airtel')) NOT NULL,
@@ -2763,3 +2878,122 @@ ON scan_event_logs
 FOR DELETE
 TO authenticated
 USING (school_id = my_school_id() AND is_school_admin());
+
+-- ============================================
+-- GRADING SCHEMES TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS grading_schemes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    name TEXT NOT NULL DEFAULT 'UNEB',
+    subject_id UUID REFERENCES subjects(id) ON DELETE CASCADE,
+    min_score NUMERIC(5,2) NOT NULL,
+    max_score NUMERIC(5,2) NOT NULL,
+    grade TEXT NOT NULL,
+    points INTEGER DEFAULT 0,
+    division TEXT,
+    is_default BOOLEAN DEFAULT false,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE grading_schemes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users grading_schemes select" ON grading_schemes;
+CREATE POLICY "School users grading_schemes select"
+ON grading_schemes
+FOR SELECT
+TO authenticated
+USING (school_id = my_school_id());
+
+DROP POLICY IF EXISTS "School users grading_schemes write" ON grading_schemes;
+CREATE POLICY "School users grading_schemes write"
+ON grading_schemes
+FOR ALL
+TO authenticated
+USING (school_id = my_school_id())
+WITH CHECK (school_id = my_school_id());
+
+-- Insert default UNEB grading scheme
+INSERT INTO grading_schemes (school_id, name, min_score, max_score, grade, points, division, is_default) VALUES
+(NULL, 'UNEB', 80, 100, 'D1', 1, 'Division I', true),
+(NULL, 'UNEB', 70, 79, 'D2', 2, 'Division I', false),
+(NULL, 'UNEB', 65, 69, 'C3', 3, 'Division II', false),
+(NULL, 'UNEB', 60, 64, 'C4', 4, 'Division II', false),
+(NULL, 'UNEB', 55, 59, 'C5', 5, 'Division III', false),
+(NULL, 'UNEB', 50, 54, 'C6', 6, 'Division III', false),
+(NULL, 'UNEB', 45, 49, 'P7', 7, 'Division IV', false),
+(NULL, 'UNEB', 40, 44, 'P8', 8, 'Division IV', false),
+(NULL, 'UNEB', 0, 39, 'F9', 9, 'Ungraded', false)
+ON CONFLICT DO NOTHING;
+
+-- Parent RLS on report_cards
+DROP POLICY IF EXISTS "Parents view own children report_cards" ON report_cards;
+CREATE POLICY "Parents view own children report_cards"
+ON report_cards
+FOR SELECT
+TO authenticated
+USING (
+  student_id IN (
+    SELECT ps.student_id
+    FROM parent_students ps
+    JOIN users u ON u.id = ps.parent_id
+    WHERE u.auth_id = auth.uid()
+  )
+);
+
+-- ============================================
+-- INVOICES TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS invoices (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    invoice_number TEXT NOT NULL,
+    term INTEGER CHECK (term IN (1, 2, 3)) NOT NULL,
+    academic_year TEXT NOT NULL,
+    total_amount NUMERIC(12,2) NOT NULL,
+    paid_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
+    balance NUMERIC(12,2) NOT NULL,
+    status TEXT CHECK (status IN ('draft', 'issued', 'paid', 'overdue', 'cancelled')) DEFAULT 'issued',
+    issued_at TIMESTAMPTZ DEFAULT NOW(),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(school_id, invoice_number)
+);
+
+CREATE INDEX IF NOT EXISTS idx_invoices_school ON invoices(school_id);
+CREATE INDEX IF NOT EXISTS idx_invoices_student ON invoices(student_id);
+CREATE INDEX IF NOT EXISTS idx_invoices_status ON invoices(status);
+ALTER TABLE invoices ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users invoices all" ON invoices;
+CREATE POLICY "School users invoices all" ON invoices FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+
+-- ============================================
+-- RECEIPTS TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS receipts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    payment_id UUID REFERENCES fee_payments(id) ON DELETE SET NULL,
+    receipt_number TEXT NOT NULL,
+    amount NUMERIC(12,2) NOT NULL,
+    issued_at TIMESTAMPTZ DEFAULT NOW(),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(school_id, receipt_number)
+);
+
+CREATE SEQUENCE IF NOT EXISTS receipt_number_seq START 1;
+
+CREATE OR REPLACE FUNCTION generate_receipt_number()
+RETURNS TEXT
+LANGUAGE sql
+STABLE
+AS $$
+  SELECT 'RCP-' || LPAD(nextval('receipt_number_seq')::TEXT, 6, '0')
+$$;
+
+CREATE INDEX IF NOT EXISTS idx_receipts_school ON receipts(school_id);
+CREATE INDEX IF NOT EXISTS idx_receipts_student ON receipts(student_id);
+CREATE INDEX IF NOT EXISTS idx_receipts_payment ON receipts(payment_id);
+ALTER TABLE receipts ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users receipts all" ON receipts;
+CREATE POLICY "School users receipts all" ON receipts FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());

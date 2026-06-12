@@ -21,10 +21,11 @@ import {
   getExamColor,
   ExamConfig,
 } from "@/lib/exams";
-import { getUNEBGrade, getUNEBDivision } from "@/lib/grading";
+import { getUNEBGrade, getUNEBDivision, mapExamScoreToGrade } from "@/lib/grading";
 import { supabase } from "@/lib/supabase";
 import { loadSchoolSetting } from "@/lib/school-settings";
 import MaterialIcon from "@/components/MaterialIcon";
+import { logger } from "@/lib/logger";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
@@ -33,7 +34,7 @@ import { TableSkeleton } from "@/components/ui/Skeleton";
 import { NoData } from "@/components/EmptyState";
 
 export default function ExamsPage() {
-  const { school, isDemo } = useAuth();
+  const { school, user, isDemo } = useAuth();
   const { academicYear, currentTerm, isTermLocked } = useAcademic();
   const toast = useToast();
   const router = useRouter();
@@ -158,6 +159,30 @@ export default function ExamsPage() {
     return scores;
   }, [examScores, selectedClass, selectedSubject]);
 
+  const syncExamScoreToGrades = async (studentId: string, score: number) => {
+    if (!selectedClass || !selectedSubject) return;
+    if (isDemo) return;
+    try {
+      const gradePayload = mapExamScoreToGrade({
+        student_id: studentId,
+        subject_id: selectedSubject,
+        class_id: selectedClass,
+        score,
+        term: currentTerm || 1,
+        academic_year: academicYear,
+        recorded_by: user?.id,
+      });
+      const { error } = await supabase
+        .from("grades")
+        .upsert(gradePayload, {
+          onConflict: "student_id,subject_id,assessment_type,term,academic_year",
+        });
+      if (error) logger.warn("Failed to sync exam score to grades:", error);
+    } catch (err) {
+      logger.warn("Error syncing exam score to grades:", err);
+    }
+  };
+
   const handleSaveScore = async (studentId: string, score: number) => {
     if (!selectedClass || !selectedSubject) {
       toast.error("Select class and subject first");
@@ -175,9 +200,10 @@ export default function ExamsPage() {
         term: currentTerm || 1,
         academic_year: academicYear,
       });
+      await syncExamScoreToGrades(studentId, score);
       toast.success("Score saved");
     } catch (err) {
-      toast.error("Failed to save score");
+      toast.error("Failed to score save");
     }
   };
 

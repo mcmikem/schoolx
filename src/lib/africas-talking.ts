@@ -50,16 +50,35 @@ export function getAfricasTalkingConfig() {
   };
 }
 
+let smsQuotaSchoolId: string | null = null;
+
+export function setSmsQuotaSchoolId(schoolId: string | null) {
+  smsQuotaSchoolId = schoolId;
+}
+
 export async function sendAfricasTalkingSMS(
   to: string,
   message: string,
-  options?: { from?: string; formatUgandaNumber?: boolean },
+  options?: { from?: string; formatUgandaNumber?: boolean; schoolId?: string },
 ): Promise<AfricasTalkingSMSResult> {
   const { apiKey, username } = getAfricasTalkingConfig();
   const recipient = options?.formatUgandaNumber ? formatUgandaPhone(to) : to;
+  const schoolId = options?.schoolId || smsQuotaSchoolId;
+
+  if (schoolId) {
+    const quota = await checkSmsQuota(schoolId, 1);
+    if (!quota.allowed) {
+      const error = `SMS quota exceeded: ${quota.used}/${quota.limit} used this month`;
+      logger.error(`[SMS] ${error}`);
+      return { success: false, error };
+    }
+  }
 
   if (!apiKey) {
     logger.debug(`[SMS Demo] To: ${recipient}, Message: ${message}`);
+    if (schoolId) {
+      await incrementSmsUsage(schoolId, true);
+    }
     return {
       success: true,
       demo: true,
@@ -104,6 +123,10 @@ export async function sendAfricasTalkingSMS(
       response.ok &&
       (statusCode === undefined || statusCode === 101 || statusCode === 102);
 
+    if (schoolId) {
+      await incrementSmsUsage(schoolId, success);
+    }
+
     return {
       success,
       messageId,
@@ -116,6 +139,9 @@ export async function sendAfricasTalkingSMS(
           `SMS request failed with status ${response.status}`,
     };
   } catch (error: unknown) {
+    if (schoolId) {
+      await incrementSmsUsage(schoolId, false);
+    }
     return {
       success: false,
       error: error instanceof Error ? error.message : "Unknown SMS error",
@@ -126,7 +152,7 @@ export async function sendAfricasTalkingSMS(
 export async function sendAfricasTalkingSMSWithRetry(
   to: string,
   message: string,
-  options?: { from?: string; formatUgandaNumber?: boolean; maxRetries?: number },
+  options?: { from?: string; formatUgandaNumber?: boolean; maxRetries?: number; schoolId?: string },
 ): Promise<AfricasTalkingSMSResult> {
   const maxRetries = options?.maxRetries ?? 2;
   let lastError: AfricasTalkingSMSResult | null = null;
@@ -135,6 +161,7 @@ export async function sendAfricasTalkingSMSWithRetry(
     const result = await sendAfricasTalkingSMS(to, message, {
       from: options?.from,
       formatUgandaNumber: options?.formatUgandaNumber,
+      schoolId: options?.schoolId,
     });
 
     if (result.success) return result;
@@ -186,5 +213,85 @@ export async function checkSmsDailyLimit(
   } catch (err) {
     logger.error("[SMS] Error checking daily limit:", err);
     return true;
+  }
+}
+
+export async function checkSmsQuota(
+  schoolId: string,
+  requestedCount: number,
+): Promise<{ allowed: boolean; remaining: number; limit: number; used: number }> {
+  const { createClient } = await import("@supabase/supabase-js");
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) {
+    return { allowed: true, remaining: 999999, limit: 999999, used: 0 };
+  }
+
+  try {
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+
+    const now = new Date();
+    const month = now.toLocaleString("en-US", { month: "short" }).toLowerCase();
+    const year = now.getFullYear();
+
+    let { data: quota } = await supabase
+      .from("sms_quota")
+      .select("*")
+      .eq("school_id", schoolId)
+      .maybeSingle();
+
+    if (!quota) {
+      const { data: newQuota } = await supabase
+        .from("sms_quota")
+        .insert({ school_id: schoolId })
+        .select()
+        .single();
+      quota = newQuota;
+    }
+
+    if (!quota) {
+      return { allowed: true, remaining: 999999, limit: 999999, used: 0 };
+    }
+
+    const remaining = Math.max(0, quota.monthly_limit - quota.monthly_used);
+    const allowed = remaining >= requestedCount;
+
+    return { allowed, remaining, limit: quota.monthly_limit, used: quota.monthly_used };
+  } catch (err) {
+    logger.error("[SMS] Error checking quota:", err);
+    return { allowed: true, remaining: 999999, limit: 999999, used: 0 };
+  }
+}
+
+export async function incrementSmsUsage(
+  schoolId: string,
+  success: boolean,
+): Promise<void> {
+  const { createClient } = await import("@supabase/supabase-js");
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceKey) return;
+
+  try {
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+
+    const now = new Date();
+    const month = now.toLocaleString("en-US", { month: "short" }).toLowerCase();
+    const year = now.getFullYear();
+
+    await supabase.rpc("increment_sms_usage", {
+      p_school_id: schoolId,
+      p_month: month,
+      p_year: year,
+      p_success: success,
+    });
+  } catch (err) {
+    logger.error("[SMS] Error incrementing usage:", err);
   }
 }

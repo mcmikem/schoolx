@@ -484,26 +484,40 @@ export default function CommunicationHubPage() {
   };
 
   const sendNoticeSMS = async (title: string, content: string, category: string) => {
-    if (isDemo || !school?.id || staff.length === 0) {
+    if (isDemo || !school?.id) {
       return { attempted: false, totalSent: 0, totalFailed: 0, channel: "sms" as const };
     }
-    const phones = staff.filter((s: any) => s.phone).map((s: any) => s.phone);
-    if (phones.length === 0) {
+    const staffPhones = staff.filter((s: any) => s.phone).map((s: any) => s.phone);
+    const parentPhones: string[] = [];
+    if (!isDemo) {
+      const { data: parentStudents } = await supabase
+        .from("students")
+        .select("parent_phone")
+        .eq("school_id", school.id)
+        .eq("status", "active")
+        .not("parent_phone", "is", null);
+      if (parentStudents) {
+        const phones = new Set(parentStudents.map((s) => s.parent_phone));
+        parentPhones.push(...phones);
+      }
+    }
+    const allPhones = [...new Set([...staffPhones, ...parentPhones])];
+    if (allPhones.length === 0) {
       return { attempted: false, totalSent: 0, totalFailed: 0, channel: "sms" as const };
     }
     const smsMessage = `[${category}] ${title}: ${content.slice(0, 100)}${content.length > 100 ? "..." : ""}`;
     try {
-      const delivery = await deliverMessage(phones, smsMessage);
+      const delivery = await deliverMessage(allPhones, smsMessage);
       await createRecord(
         () =>
           supabase.from("messages").insert({
             school_id: school.id,
-            recipient_type: "staff",
+            recipient_type: "staff_and_parents",
             message: smsMessage,
             status: delivery.totalSent > 0 ? "sent" : "failed",
             sent_by: user?.id,
             sent_at: new Date().toISOString(),
-            recipient_count: phones.length,
+            recipient_count: allPhones.length,
           }),
         { timeoutMs: 12000, timeoutMessage: "Notice SMS logging timed out" },
       );
@@ -519,7 +533,7 @@ export default function CommunicationHubPage() {
       return {
         attempted: true,
         totalSent: 0,
-        totalFailed: phones.length,
+        totalFailed: allPhones.length,
         channel: "sms" as const,
         success: false,
       };

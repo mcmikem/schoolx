@@ -28,7 +28,7 @@ import type { Student } from "@/types";
 import { withTimeout } from "@/lib/hooks/utils";
 import { getAutomationStatus, toggleAutomation } from "@/lib/sms-automation";
 
-const STATUS_CYCLE = ["absent", "present", "late"] as const;
+const STATUS_CYCLE = ["absent", "present", "late", "excused"] as const;
 type AttendanceStatus = (typeof STATUS_CYCLE)[number];
 
 const STATUS_CONFIG: Record<
@@ -52,6 +52,12 @@ const STATUS_CONFIG: Record<
     bg: "bg-tertiary-container",
     label: "Late",
     icon: "schedule",
+  },
+  excused: {
+    color: "bg-[#7c3aed]",
+    bg: "bg-[#f3e8ff]",
+    label: "Excused",
+    icon: "verified",
   },
 };
 
@@ -82,6 +88,26 @@ export default function AttendancePage() {
   const [loadingAutomation, setLoadingAutomation] = useState(true);
   const [viewMode, setViewMode] = useState<"desktop" | "mobile">("desktop");
   const [rollCallMode, setRollCallMode] = useState(false);
+  const [bulkMode, setBulkMode] = useState(false);
+  const [bulkDateFrom, setBulkDateFrom] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 6);
+    return d.toISOString().split("T")[0];
+  });
+  const [bulkDateTo, setBulkDateTo] = useState(() => {
+    return new Date().toISOString().split("T")[0];
+  });
+  const [bulkProgress, setBulkProgress] = useState<{
+    running: boolean;
+    total: number;
+    current: number;
+  } | null>(null);
+  const [bulkSummary, setBulkSummary] = useState<{
+    total_records: number;
+    students_count: number;
+    dates_count: number;
+    status: string;
+  } | null>(null);
   const [showQuickAbsentModal, setShowQuickAbsentModal] = useState(false);
   const [selectedAbsentIds, setSelectedAbsentIds] = useState<Set<string>>(
     new Set(),
@@ -373,6 +399,39 @@ export default function AttendancePage() {
     }
   };
 
+  const handleBulkMark = async (status: string) => {
+    if (!selectedClass || !school?.id) return;
+    setBulkProgress({ running: true, total: 0, current: 0 });
+    setBulkSummary(null);
+    try {
+      const res = await fetch("/api/attendance/bulk/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          class_id: selectedClass,
+          school_id: school.id,
+          date_from: bulkDateFrom,
+          date_to: bulkDateTo,
+          status,
+        }),
+      });
+      const json = await res.json();
+      if (!json.success) {
+        toast.error(json.error || "Bulk mark failed");
+        return;
+      }
+      setBulkSummary(json.data);
+      toast.success(`Marked ${json.data.students_count} students as ${status} over ${json.data.dates_count} day(s)`);
+      if (date >= bulkDateFrom && date <= bulkDateTo) {
+        Object.keys(attendance).forEach((sid) => markAttendance(sid, status));
+      }
+    } catch {
+      toast.error("Failed to bulk mark attendance");
+    } finally {
+      setBulkProgress(null);
+    }
+  };
+
   const presentCount = Object.values(attendance).filter(
     (s) => s === "present",
   ).length;
@@ -381,6 +440,9 @@ export default function AttendancePage() {
   ).length;
   const lateCount = Object.values(attendance).filter(
     (s) => s === "late",
+  ).length;
+  const excusedCount = Object.values(attendance).filter(
+    (s) => s === "excused",
   ).length;
   const hasAttendanceRecords = Object.keys(attendance).length > 0;
   const saveDisabledReason = !selectedClass
@@ -544,11 +606,12 @@ export default function AttendancePage() {
           </button>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
           {[
             { label: "In School", value: presentCount, tone: "text-secondary" },
             { label: "Away", value: absentCount, tone: "text-error" },
             { label: "Late", value: lateCount, tone: "text-tertiary" },
+            { label: "Excused", value: excusedCount, tone: "text-[#7c3aed]" },
             { label: "Offline queue", value: offlineCount, tone: "text-primary" },
           ].map((item) => (
             <div key={item.label} className="bg-surface-container-lowest rounded-xl border border-outline-variant p-3 text-center">
@@ -605,18 +668,98 @@ export default function AttendancePage() {
                 </select>
               )}
             </div>
-            <div className="sm:w-48">
-              <label className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2 block">
-                Date
-              </label>
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-primary/20"
-              />
+            <div className="flex items-end gap-2">
+              <div className={bulkMode ? "sm:w-40" : "sm:w-48"}>
+                <label className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2 block">
+                  Date
+                </label>
+                <input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  disabled={bulkMode}
+                  className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-primary/20 disabled:opacity-40"
+                />
+              </div>
+              <button
+                onClick={() => setBulkMode(!bulkMode)}
+                className={`px-3 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all min-h-[44px] ${
+                  bulkMode
+                    ? "bg-primary text-on-primary shadow-md"
+                    : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
+                }`}
+                title="Toggle bulk date-range marking"
+              >
+                Bulk
+              </button>
             </div>
           </div>
+          {bulkMode && (
+            <div className="flex flex-col sm:flex-row gap-4 mt-4 pt-4 border-t border-outline-variant">
+              <div className="sm:w-48">
+                <label className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2 block">
+                  From Date
+                </label>
+                <input
+                  type="date"
+                  value={bulkDateFrom}
+                  onChange={(e) => setBulkDateFrom(e.target.value)}
+                  className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+              <div className="sm:w-48">
+                <label className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2 block">
+                  To Date
+                </label>
+                <input
+                  type="date"
+                  value={bulkDateTo}
+                  onChange={(e) => setBulkDateTo(e.target.value)}
+                  className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-primary/20"
+                />
+              </div>
+              <div className="flex-1 flex items-end gap-2 flex-wrap">
+                {(["present", "absent", "late", "excused"] as const).map(
+                  (s) => {
+                    const cfg = STATUS_CONFIG[s];
+                    return (
+                      <button
+                        key={s}
+                        onClick={() => handleBulkMark(s)}
+                        disabled={
+                          bulkProgress?.running || !selectedClass || !isOnline
+                        }
+                        className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all min-h-[44px] disabled:opacity-40 ${
+                          s === "present"
+                            ? "bg-secondary/10 text-secondary border-2 border-secondary/30 hover:bg-secondary/20"
+                            : s === "absent"
+                              ? "bg-error/10 text-error border-2 border-error/30 hover:bg-error/20"
+                              : s === "late"
+                                ? "bg-tertiary/10 text-tertiary border-2 border-tertiary/30 hover:bg-tertiary/20"
+                                : "bg-[#f3e8ff] text-[#7c3aed] border-2 border-[#7c3aed]/30 hover:bg-[#ede3fe]"
+                        }`}
+                      >
+                        Mark All {cfg.label}
+                      </button>
+                    );
+                  },
+                )}
+              </div>
+            </div>
+          )}
+          {bulkProgress?.running && (
+            <div className="mt-3 flex items-center gap-3 text-sm text-on-surface-variant">
+              <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              Bulk marking in progress...
+            </div>
+          )}
+          {bulkSummary && !bulkProgress && (
+            <div className="mt-3 bg-secondary/5 border border-secondary/20 rounded-xl p-3 text-sm text-on-surface">
+              Bulk mark complete: {bulkSummary.students_count} students marked as{" "}
+              {bulkSummary.status} over {bulkSummary.dates_count} day(s) (
+              {bulkSummary.total_records} total records)
+            </div>
+          )}
         </div>
 
         {!selectedClass ? (
@@ -678,6 +821,17 @@ export default function AttendancePage() {
                 </div>
                 <div className="text-xs md:text-sm text-on-surface-variant mt-1">
                   Late
+                </div>
+              </div>
+              <div
+                className="bg-surface-container-lowest rounded-xl border border-outline-variant p-3 text-center"
+                style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
+              >
+                <div className="text-2xl md:text-3xl font-bold text-[#7c3aed]">
+                  {excusedCount}
+                </div>
+                <div className="text-xs md:text-sm text-on-surface-variant mt-1">
+                  Excused
                 </div>
               </div>
             </div>
@@ -757,12 +911,12 @@ export default function AttendancePage() {
                   </Button>
                   <div className="flex-1" />
                   <div className="text-sm text-on-surface-variant self-center font-medium">
-                    {presentCount} present, {absentCount} away, {lateCount} late
+                    {presentCount} present, {absentCount} away, {lateCount} late, {excusedCount} excused
                   </div>
                 </div>
 
                 <div className="flex gap-2">
-                  {(["all", "present", "absent", "late"] as const).map((f) => (
+                  {(["all", "present", "absent", "late", "excused"] as const).map((f) => (
                     <button
                       key={f}
                       onClick={() => setFilterStatus(f)}
@@ -778,7 +932,9 @@ export default function AttendancePage() {
                           ? "In School"
                           : f === "absent"
                             ? "Away"
-                            : "Late"}
+                            : f === "late"
+                              ? "Late"
+                              : "Excused"}
                       {f !== "all" && (
                         <span className="ml-1 opacity-70">
                           (
@@ -786,7 +942,9 @@ export default function AttendancePage() {
                             ? presentCount
                             : f === "absent"
                               ? absentCount
-                              : lateCount}
+                              : f === "late"
+                                ? lateCount
+                                : excusedCount}
                           )
                         </span>
                       )}
@@ -804,13 +962,17 @@ export default function AttendancePage() {
                         ? "border-secondary/30"
                         : status === "absent"
                           ? "border-error/30"
-                          : "border-tertiary/30";
+                          : status === "late"
+                            ? "border-tertiary/30"
+                            : "border-[#7c3aed]/30";
                     const bgColor =
                       status === "present"
                         ? "bg-secondary/5"
                         : status === "absent"
                           ? "bg-error/5"
-                          : "bg-tertiary/5";
+                          : status === "late"
+                            ? "bg-tertiary/5"
+                            : "bg-[#f3e8ff]";
                     return (
                       <div
                         key={student.id}
@@ -835,7 +997,7 @@ export default function AttendancePage() {
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
                           <span
-                            className={`text-xs font-semibold px-2 py-1 rounded-md ${config.bg} ${status === "present" ? "text-on-secondary-container" : status === "absent" ? "text-on-error-container" : "text-on-tertiary-container"}`}
+                            className={`text-xs font-semibold px-2 py-1 rounded-md ${config.bg} ${status === "present" ? "text-on-secondary-container" : status === "absent" ? "text-on-error-container" : status === "late" ? "text-on-tertiary-container" : "text-[#7c3aed]"}`}
                           >
                             {config.label}
                           </span>
@@ -845,7 +1007,9 @@ export default function AttendancePage() {
                                 ? "bg-secondary"
                                 : status === "absent"
                                   ? "bg-error"
-                                  : "bg-tertiary"
+                                  : status === "late"
+                                    ? "bg-tertiary"
+                                    : "bg-[#7c3aed]"
                             }`}
                           >
                             <MaterialIcon
@@ -874,7 +1038,7 @@ export default function AttendancePage() {
                     size="lg"
                   >
                     Save: {presentCount} present, {absentCount} away,{" "}
-                    {lateCount} late
+                    {lateCount} late, {excusedCount} excused
                   </Button>
                 </div>
               </>
@@ -948,7 +1112,7 @@ export default function AttendancePage() {
                                     }
                                     className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
                                       isActive
-                                        ? `${sConfig.bg} border-${s === "absent" ? "error" : s === "present" ? "secondary" : "tertiary"}`
+                                        ? `${sConfig.bg} border-${s === "absent" ? "error" : s === "present" ? "secondary" : s === "late" ? "tertiary" : "[#7c3aed]"}`
                                         : "bg-surface-container-lowest text-on-surface-variant border-outline-variant/30 hover:border-outline-variant"
                                     }`}
                                   >
@@ -1036,7 +1200,9 @@ export default function AttendancePage() {
                                     ? "bg-tertiary"
                                     : status === "absent"
                                       ? "bg-error"
-                                      : "bg-surface-container border-2 border-dashed border-outline-variant"
+                                      : status === "excused"
+                                        ? "bg-[#7c3aed]"
+                                        : "bg-surface-container border-2 border-dashed border-outline-variant"
                               }`}
                             >
                               {status && (

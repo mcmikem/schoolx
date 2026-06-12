@@ -318,6 +318,42 @@ export async function POST(request: NextRequest) {
 
     const division = getUNEBDivision(overallAvg);
 
+    // Compute class position by ranking all students in the same class
+    let position: number | null = null;
+    try {
+      const { data: classStudents } = await supabase
+        .from("students")
+        .select("id")
+        .eq("class_id", student.class_id)
+        .eq("school_id", scope.schoolId);
+
+      if (classStudents && classStudents.length > 0) {
+        const classStudentIds = classStudents.map((s: any) => s.id);
+        const { data: allGrades } = await supabase
+          .from("grades")
+          .select("student_id, score")
+          .in("student_id", classStudentIds)
+          .eq("term", term || 1)
+          .eq("academic_year", resolvedAcademicYear);
+
+        const studentAverages: { studentId: string; avg: number }[] = [];
+        const gradeMap: Record<string, number[]> = {};
+        (allGrades || []).forEach((g: any) => {
+          if (!gradeMap[g.student_id]) gradeMap[g.student_id] = [];
+          gradeMap[g.student_id].push(Number(g.score));
+        });
+        for (const [sid, scores] of Object.entries(gradeMap)) {
+          const avg = scores.reduce((s, v) => s + v, 0) / scores.length;
+          studentAverages.push({ studentId: sid, avg });
+        }
+        studentAverages.sort((a, b) => b.avg - a.avg);
+        const rank = studentAverages.findIndex((s) => s.studentId === studentId);
+        if (rank !== -1) position = rank + 1;
+      }
+    } catch {
+      // If position calculation fails, return null (non-critical)
+    }
+
     return apiSuccess({
       student,
       school,
@@ -329,7 +365,7 @@ export async function POST(request: NextRequest) {
         average: Math.round(overallAvg * 10) / 10,
         grade: getUNEBGrade(overallAvg),
         division,
-        position: null,
+        position,
       },
     });
   } catch (error) {

@@ -1,5 +1,101 @@
 // UNEB Grading System - Official thresholds for Uganda
 // Primary (PLE), O-Level (UCE), and A-Level (UACE)
+// Supports custom grading schemes via grading_schemes table (with fallback to hardcoded UNEB)
+
+import { logger } from "@/lib/logger";
+
+// ============================================
+// WEIGHT CONFIGURATION
+// ============================================
+
+export interface WeightConfig {
+  ca1: number;
+  ca2: number;
+  ca3: number;
+  ca4: number;
+  project: number;
+  exam: number;
+}
+
+const DEFAULT_WEIGHTS: WeightConfig = {
+  ca1: 10,
+  ca2: 10,
+  ca3: 10,
+  ca4: 10,
+  project: 10,
+  exam: 50,
+};
+
+let cachedWeightConfig: WeightConfig | null = null;
+
+export function getWeightConfig(schoolSettings?: Record<string, string>): WeightConfig {
+  if (schoolSettings) {
+    const weights = schoolSettings["grade_weights"];
+    if (weights) {
+      try {
+        const parsed = JSON.parse(weights);
+        return {
+          ca1: parsed.ca1 ?? DEFAULT_WEIGHTS.ca1,
+          ca2: parsed.ca2 ?? DEFAULT_WEIGHTS.ca2,
+          ca3: parsed.ca3 ?? DEFAULT_WEIGHTS.ca3,
+          ca4: parsed.ca4 ?? DEFAULT_WEIGHTS.ca4,
+          project: parsed.project ?? DEFAULT_WEIGHTS.project,
+          exam: parsed.exam ?? DEFAULT_WEIGHTS.exam,
+        };
+      } catch {
+        logger.warn("Failed to parse grade_weights setting, using defaults");
+      }
+    }
+  }
+  return cachedWeightConfig || DEFAULT_WEIGHTS;
+}
+
+export function setWeightConfig(config: WeightConfig): void {
+  cachedWeightConfig = config;
+}
+
+// ============================================
+// GRADING SCHEME MANAGEMENT
+// ============================================
+
+export interface GradingSchemeRecord {
+  id: string;
+  school_id: string;
+  name: string;
+  subject_id: string | null;
+  min_score: number;
+  max_score: number;
+  grade: string;
+  points: number;
+  division: string | null;
+  is_default: boolean;
+  created_at?: string;
+}
+
+let cachedSchemes: GradingSchemeRecord[] | null = null;
+
+export function setGradingSchemes(schemes: GradingSchemeRecord[]): void {
+  cachedSchemes = schemes;
+}
+
+export function clearGradingCache(): void {
+  cachedSchemes = null;
+  cachedWeightConfig = null;
+}
+
+function findGradeFromSchemes(score: number, schemes?: GradingSchemeRecord[]): string | null {
+  const pool = schemes || cachedSchemes;
+  if (!pool || pool.length === 0) return null;
+  const match = pool.find((s) => score >= s.min_score && score <= s.max_score);
+  return match?.grade || null;
+}
+
+function findDivisionFromSchemes(score: number, schemes?: GradingSchemeRecord[]): string | null {
+  const pool = schemes || cachedSchemes;
+  if (!pool || pool.length === 0) return null;
+  const match = pool.find((s) => score >= s.min_score && score <= s.max_score);
+  return match?.division || null;
+}
 
 // ============================================
 // PRIMARY LEAVING EXAMINATION (PLE)
@@ -18,7 +114,6 @@ export function getPLEGrade(score: number): string {
 }
 
 export function getPLEDivision(aggregate: number): string {
-  // PLE uses aggregate of best 4 subjects (4-36)
   if (aggregate <= 12) return 'Division I'
   if (aggregate <= 24) return 'Division II'
   if (aggregate <= 28) return 'Division III'
@@ -43,19 +138,17 @@ export function getUCEGrade(score: number): string {
 }
 
 export function getUCEDivision(subjectGrades: string[]): string {
-  // UCE: Best 8 subjects determine division
-  // Grade values: D1=1, D2=2, C3=3, C4=4, C5=5, C6=6, P7=7, P8=8, F9=9
   const gradeValues: Record<string, number> = {
     'D1': 1, 'D2': 2, 'C3': 3, 'C4': 4, 'C5': 5, 'C6': 6, 'P7': 7, 'P8': 8, 'F9': 9
   }
-  
+
   const values = subjectGrades
     .map(g => gradeValues[g] || 9)
     .sort((a, b) => a - b)
-    .slice(0, 8) // Best 8 subjects
-  
+    .slice(0, 8)
+
   const aggregate = values.reduce((sum, v) => sum + v, 0)
-  
+
   if (aggregate <= 36) return 'Division I'
   if (aggregate <= 44) return 'Division II'
   if (aggregate <= 52) return 'Division III'
@@ -78,30 +171,28 @@ export function getUACEGrade(score: number): string {
 }
 
 export function getUACEPoints(principalGrades: string[], subsidiaryGrades: string[]): { points: number; division: string } {
-  // A-Level: 3 principal subjects + 1 subsidiary (General Paper)
-  // Points: A=6, B=5, C=4, D=3, E=2, O=1, F=0
   const gradePoints: Record<string, number> = {
     'A': 6, 'B': 5, 'C': 4, 'D': 3, 'E': 2, 'O': 1, 'F': 0
   }
-  
+
   const principalPoints = principalGrades
     .map(g => gradePoints[g] || 0)
     .sort((a, b) => b - a)
-    .slice(0, 3) // Best 3 principal subjects
+    .slice(0, 3)
     .reduce((sum, p) => sum + p, 0)
-  
+
   const subsidiaryPoints = subsidiaryGrades
     .map(g => gradePoints[g] || 0)
     .reduce((sum, p) => sum + p, 0)
-  
+
   const totalPoints = principalPoints + subsidiaryPoints
-  
+
   let division = 'Ungraded'
   if (totalPoints >= 15) division = 'Division I'
   else if (totalPoints >= 12) division = 'Division II'
   else if (totalPoints >= 9) division = 'Division III'
   else if (totalPoints >= 6) division = 'Division IV'
-  
+
   return { points: totalPoints, division }
 }
 
@@ -109,18 +200,29 @@ export function getUACEPoints(principalGrades: string[], subsidiaryGrades: strin
 // GENERAL UTILITIES
 // ============================================
 
-// Backward compatibility - defaults to PLE grading
-export function getUNEBGrade(score: number): string {
-  return getPLEGrade(score)
+export function calculateSubjectTotal(
+  ca1: number,
+  ca2: number,
+  ca3: number,
+  ca4: number,
+  project: number,
+  exam: number,
+): number {
+  return ca1 + ca2 + ca3 + ca4 + project + exam;
 }
 
-export function getUNEBDivision(avg: number): string {
-  return getPLEDivision(avg)
+export function getUNEBGrade(score: number, schemes?: GradingSchemeRecord[]): string {
+  const fromSchemes = findGradeFromSchemes(score, schemes);
+  return fromSchemes || getPLEGrade(score);
+}
+
+export function getUNEBDivision(avg: number, schemes?: GradingSchemeRecord[]): string {
+  const fromSchemes = findDivisionFromSchemes(avg, schemes);
+  return fromSchemes || getPLEDivision(avg);
 }
 
 export function getGradeColor(grade: string): string {
   const colors: Record<string, string> = {
-    // PLE/O-Level grades
     'D1': 'text-green-600',
     'D2': 'text-green-500',
     'C3': 'text-blue-600',
@@ -130,7 +232,6 @@ export function getGradeColor(grade: string): string {
     'P7': 'text-orange-500',
     'P8': 'text-orange-400',
     'F9': 'text-red-500',
-    // A-Level grades
     'A': 'text-green-600',
     'B': 'text-green-500',
     'C': 'text-blue-600',
@@ -182,6 +283,8 @@ export function getGradeForLevel(score: number, level: SchoolLevel, customScales
     const match = customScales.find(s => score >= s.min && score <= s.max)
     if (match) return match.label
   }
+  const fromSchemes = findGradeFromSchemes(score);
+  if (fromSchemes) return fromSchemes;
 
   switch (level) {
     case 'primary': return getPLEGrade(score)
@@ -219,4 +322,44 @@ export function getGradeOutcome(
     grade: getGradeForLevel(value, (options?.level as SchoolLevel) || 'primary', options?.customScales),
     scheme: 'percentage',
   }
+}
+
+// ============================================
+// EXAM SCORE → GRADES SYNC HELPER
+// ============================================
+
+export interface ExamScoreMapping {
+  student_id: string;
+  subject_id: string;
+  class_id: string;
+  score: number;
+  term: number;
+  academic_year: string;
+  recorded_by?: string;
+}
+
+export function mapExamScoreToGrade(
+  examScore: ExamScoreMapping,
+): {
+  student_id: string;
+  subject_id: string;
+  class_id: string;
+  assessment_type: string;
+  score: number;
+  max_score: number;
+  term: number;
+  academic_year: string;
+  recorded_by?: string;
+} {
+  return {
+    student_id: examScore.student_id,
+    subject_id: examScore.subject_id,
+    class_id: examScore.class_id,
+    assessment_type: 'exam',
+    score: examScore.score,
+    max_score: 100,
+    term: examScore.term,
+    academic_year: examScore.academic_year,
+    recorded_by: examScore.recorded_by,
+  };
 }

@@ -170,6 +170,13 @@ export function buildParentPortalMessage(opts: ParentPortalMessageOptions): stri
   );
 }
 
+export async function sendWhatsApp(
+  to: string,
+  message: string,
+): Promise<WhatsAppResult> {
+  return sendWhatsAppTextMessage(to, message);
+}
+
 export async function sendParentPortalCredentials(
   opts: ParentPortalMessageOptions,
 ): Promise<WhatsAppResult & { shareLink: string }> {

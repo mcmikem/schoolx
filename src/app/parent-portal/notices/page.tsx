@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { logger } from "@/lib/logger";
 import { Card, CardBody } from "@/components/ui/Card";
 import ParentPortalShell from "@/components/parent-portal/ParentPortalShell";
 
@@ -34,15 +35,29 @@ export default function ParentNoticesPage() {
       setLoading(false);
       return;
     }
-    // Fetch school_id from user's linked student
-          // NOTE: Parent portal should only display notices intended for parents.
-      // Currently, school-wide notices are not filtered and may leak sensitive information.
-      // To prevent leakage, we omit fetching school-wide notices here.
-      // Future implementation: fetch from a dedicated `parent_notices` table or filter by audience.
-      setNotices([]);
-      setLoading(false);
+    // Fetch school_id from user's linked student, filtering by target_audience
+    if (!school?.id && user?.school_id) {
+      try {
+        const { data, error } = await supabase
+          .from("notices")
+          .select("*")
+          .eq("school_id", user.school_id)
+          .in("target_audience", ["all", "parents"])
+          .order("created_at", { ascending: false })
+          .limit(20);
 
-  }, [isDemo]);
+        if (error) throw error;
+        setNotices(data || []);
+      } catch (err) {
+        logger.error("Failed to fetch notices:", err);
+        setNotices([]);
+      }
+    } else {
+      setNotices([]);
+    }
+    setLoading(false);
+
+  }, [isDemo, user?.school_id, school?.id]);
 
   useEffect(() => { fetchNotices(); }, [fetchNotices]);
 

@@ -11,6 +11,7 @@ import {
 import { useOfflineStudents, useOfflineGrades } from "@/lib/offline-hooks";
 import { useToast } from "@/components/Toast";
 import { supabase } from "@/lib/supabase";
+import { calculateSubjectTotal, isCompetencyScale, COMPETENCY_SCHEME, CompetencyValue, getCompetencyLabel } from "@/lib/grading";
 import MaterialIcon from "@/components/MaterialIcon";
 import { logger } from "@/lib/logger";
 
@@ -79,6 +80,7 @@ const STANDARD_TOPICS: Record<string, string[]> = {
 };
 
 const ASSESSMENT_TYPES = ["ca1", "ca2", "ca3", "exam"] as const;
+const COMPETENCY_ASSESSMENT_TYPES = ["competency"] as const;
 const ASSESSMENT_MAX: Record<string, number> = {
   ca1: 10,
   ca2: 10,
@@ -126,7 +128,75 @@ async function saveGrade(grade: {
         .single(),
     { timeoutMs: 15000, timeoutMessage: "Grade save timed out" },
   );
+
+  // Sync student_grades for this student+subject+term
+  await syncStudentGrades({
+    student_id: grade.student_id,
+    subject_id: grade.subject_id,
+    class_id: grade.class_id,
+    term: grade.term,
+    academic_year: grade.academic_year,
+    schoolId: grade.schoolId,
+  });
+
   return data;
+}
+
+async function syncStudentGrades(params: {
+  student_id: string;
+  subject_id: string;
+  class_id: string;
+  term: number;
+  academic_year: string;
+  schoolId?: string;
+}) {
+  const { data: allGrades } = await supabase
+    .from("grades")
+    .select("assessment_type, score")
+    .eq("student_id", params.student_id)
+    .eq("subject_id", params.subject_id)
+    .eq("term", params.term)
+    .eq("academic_year", params.academic_year);
+
+  if (!allGrades || allGrades.length === 0) return;
+
+  const ca1 = allGrades.find((g: any) => g.assessment_type === "ca1")?.score || 0;
+  const ca2 = allGrades.find((g: any) => g.assessment_type === "ca2")?.score || 0;
+  const ca3 = allGrades.find((g: any) => g.assessment_type === "ca3")?.score || 0;
+  const ca4 = allGrades.find((g: any) => g.assessment_type === "ca4")?.score || 0;
+  const project = allGrades.find((g: any) => g.assessment_type === "project")?.score || 0;
+  const exam_score = allGrades.find((g: any) => g.assessment_type === "exam")?.score || 0;
+  const final_score = calculateSubjectTotal(ca1, ca2, ca3, ca4, project, exam_score);
+
+  const studentGradePayload = {
+    school_id: params.schoolId,
+    student_id: params.student_id,
+    subject_id: params.subject_id,
+    academic_year: params.academic_year,
+    term: params.term,
+    ca1,
+    ca2,
+    ca3,
+    ca4,
+    project,
+    exam_score,
+    final_score,
+  };
+
+  const { data: existing } = await supabase
+    .from("student_grades")
+    .select("id")
+    .eq("student_id", params.student_id)
+    .eq("subject_id", params.subject_id)
+    .eq("academic_year", params.academic_year)
+    .eq("term", params.term)
+    .maybeSingle();
+
+  if (existing) {
+    await supabase.from("student_grades").update(studentGradePayload).eq("id", existing.id);
+  } else {
+    await supabase.from("student_grades").insert(studentGradePayload);
+  }
 }
 
 function getGrade(score: number) {
@@ -187,6 +257,7 @@ export default function GradesPage() {
   }>({ open: false, message: "", onConfirm: () => {} });
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+  const [competencyMode, setCompetencyMode] = useState(false);
   const [caLocked, setCaLocked] = useState(false);
   const [lockedByName, setLockedByName] = useState("");
   const [marksBy, setMarksBy] = useState<
@@ -271,13 +342,14 @@ export default function GradesPage() {
   );
   const isStudentGraded = useCallback(
     (studentId: string): boolean => {
-      return ASSESSMENT_TYPES.every(
+      const types = competencyMode ? COMPETENCY_ASSESSMENT_TYPES : ASSESSMENT_TYPES;
+      return types.every(
         (t) =>
           marks[`${studentId}_${t}`] !== null &&
           marks[`${studentId}_${t}`] !== undefined,
       );
     },
-    [marks],
+    [marks, competencyMode],
   );
   const gradedCount = useMemo(
     () => filteredStudents.filter((student) => isStudentGraded(student.id)).length,
@@ -421,8 +493,9 @@ export default function GradesPage() {
     if (value === "") {
       setMarks((prev) => ({ ...prev, [`${studentId}_${type}`]: null }));
     } else {
+      const maxVal = type === "competency" ? 3 : ASSESSMENT_MAX[type] || 100;
       const num = Math.min(
-        ASSESSMENT_MAX[type] || 100,
+        maxVal,
         Math.max(0, Number(value)),
       );
       setMarks((prev) => ({ ...prev, [`${studentId}_${type}`]: num }));
@@ -434,6 +507,11 @@ export default function GradesPage() {
   };
 
   const getStudentTotal = (studentId: string): number | null => {
+    if (competencyMode) {
+      const score = marks[`${studentId}_competency`];
+      if (score === null || score === undefined) return null;
+      return score;
+    }
     const parts = ASSESSMENT_TYPES.map((t) => marks[`${studentId}_${t}`]);
     if (parts.some((p) => p === null || p === undefined)) return null;
     return parts.reduce((sum, p) => (sum ?? 0) + (p ?? 0), 0) ?? null;
@@ -661,7 +739,7 @@ export default function GradesPage() {
         const parts = key.split("_");
         const assessmentType = parts.pop()!;
         const studentId = parts.join("_");
-        await saveGrade({
+        const gradePayload: any = {
           student_id: studentId,
           subject_id: selectedSubject,
           class_id: selectedClass,
@@ -673,7 +751,27 @@ export default function GradesPage() {
           status,
           isDemo,
           schoolId: school?.id,
-        });
+        };
+        if (assessmentType === 'competency') {
+          gradePayload.competency_level = getCompetencyLabel(score as CompetencyValue);
+        }
+        await saveGrade(gradePayload);
+      }
+      // Bulk-sync student_grades for all students in this subject
+      if (!competencyMode) {
+        const studentIds = [...new Set(Object.keys(marks).map((k) => k.split("_").slice(0, -1).join("_")))];
+        await Promise.allSettled(
+          studentIds.map((sid) =>
+            syncStudentGrades({
+              student_id: sid,
+              subject_id: selectedSubject,
+              class_id: selectedClass,
+              term: currentTerm,
+              academic_year: academicYear,
+              schoolId: school?.id,
+            }),
+          ),
+        );
       }
       setSubmissionStatus(status);
       const successMessage =
@@ -704,34 +802,50 @@ export default function GradesPage() {
       toast.error("No grades to export");
       return;
     }
-    const headers = [
-      "Student Name",
-      "Student Number",
-      "CA1",
-      "CA2",
-      "CA3",
-      "Exam",
-      "Total",
-      "Grade",
-    ];
-    const rows = filteredStudents.map((student) => {
-      const ca1 = getMark(student.id, "ca1");
-      const ca2 = getMark(student.id, "ca2");
-      const ca3 = getMark(student.id, "ca3");
-      const exam = getMark(student.id, "exam");
-      const total = getStudentTotal(student.id);
-      const gradeInfo = total !== null ? getGrade(total) : null;
-      return [
-        `${student.first_name} ${student.last_name}`,
-        student.student_number || "",
-        ca1 !== null ? String(ca1) : "",
-        ca2 !== null ? String(ca2) : "",
-        ca3 !== null ? String(ca3) : "",
-        exam !== null ? String(exam) : "",
-        total !== null ? String(total) : "",
-        gradeInfo ? gradeInfo.grade : "",
+    let headers: string[];
+    let rows: string[][];
+    if (competencyMode) {
+      headers = ["Student Name", "Student Number", "Competency Level", "Status"];
+      rows = filteredStudents.map((student) => {
+        const comp = getMark(student.id, "competency");
+        const label = comp !== null ? getCompetencyLabel(comp as CompetencyValue) : "";
+        return [
+          `${student.first_name} ${student.last_name}`,
+          student.student_number || "",
+          comp !== null ? String(comp) : "",
+          label,
+        ];
+      });
+    } else {
+      headers = [
+        "Student Name",
+        "Student Number",
+        "CA1",
+        "CA2",
+        "CA3",
+        "Exam",
+        "Total",
+        "Grade",
       ];
-    });
+      rows = filteredStudents.map((student) => {
+        const ca1 = getMark(student.id, "ca1");
+        const ca2 = getMark(student.id, "ca2");
+        const ca3 = getMark(student.id, "ca3");
+        const exam = getMark(student.id, "exam");
+        const total = getStudentTotal(student.id);
+        const gradeInfo = total !== null ? getGrade(total) : null;
+        return [
+          `${student.first_name} ${student.last_name}`,
+          student.student_number || "",
+          ca1 !== null ? String(ca1) : "",
+          ca2 !== null ? String(ca2) : "",
+          ca3 !== null ? String(ca3) : "",
+          exam !== null ? String(exam) : "",
+          total !== null ? String(total) : "",
+          gradeInfo ? gradeInfo.grade : "",
+        ];
+      });
+    }
     const csv = [headers, ...rows]
       .map((r) => r.map((c) => `"${c}"`).join(","))
       .join("\n");
@@ -1486,6 +1600,17 @@ export default function GradesPage() {
                   </button>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={() => setCompetencyMode(!competencyMode)}
+                    className={`px-3 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5 ${
+                      competencyMode
+                        ? "bg-amber-100 text-amber-800 border border-amber-300"
+                        : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
+                    }`}
+                  >
+                    <MaterialIcon icon="psychology" className="text-base" />
+                    Competency
+                  </button>
                   <div className="relative group">
                     <button
                       className="px-3 py-2 rounded-xl text-sm font-medium bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-all flex items-center gap-1.5"
@@ -1625,20 +1750,28 @@ export default function GradesPage() {
                           <th className="px-8 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
                             Student Identity
                           </th>
+                          {competencyMode ? (
+                            <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
+                              Competency Level
+                            </th>
+                          ) : (
+                            <>
+                              <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
+                                CA1 (10)
+                              </th>
+                              <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
+                                CA2 (10)
+                              </th>
+                              <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
+                                CA3 (10)
+                              </th>
+                              <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
+                                Exam (70)
+                              </th>
+                            </>
+                          )}
                           <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
-                            CA1 (10)
-                          </th>
-                          <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
-                            CA2 (10)
-                          </th>
-                          <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
-                            CA3 (10)
-                          </th>
-                          <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
-                            Exam (70)
-                          </th>
-                          <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
-                            Total (100)
+                            {competencyMode ? "Status" : "Total (100)"}
                           </th>
                           <th className="px-8 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-right">
                             Grade
@@ -1724,7 +1857,32 @@ export default function GradesPage() {
                                     )}
                                   </div>
                                 </td>
-                                {["ca1", "ca2", "ca3", "exam"].map((type) => (
+                                  {competencyMode ? (
+                                  <td className="px-4 py-5">
+                                    <div className="relative">
+                                      <select
+                                        className="w-24 mx-auto block text-center font-bold py-2 px-1 rounded-lg border-none focus:outline-none transition-all bg-surface-container-low"
+                                        value={marks[`${student.id}_competency`] ?? ""}
+                                        onChange={(e) => {
+                                          const val = e.target.value;
+                                          handleMarkChange(student.id, "competency", val ? val : "");
+                                        }}
+                                        disabled={isSubmitted}
+                                      >
+                                        <option value="">—</option>
+                                        {COMPETENCY_SCHEME.values?.map((cv) => (
+                                          <option key={cv.value} value={cv.value}>
+                                            {cv.value} - {cv.label}
+                                          </option>
+                                        ))}
+                                      </select>
+                                      {getSaveStatusForInput(student.id, "competency") === "saved" && (
+                                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white" />
+                                      )}
+                                    </div>
+                                  </td>
+                                ) : (
+                                  ["ca1", "ca2", "ca3", "exam"].map((type) => (
                                   <td key={type} className="px-4 py-5">
                                     <div className="relative">
                                       <input
@@ -1771,7 +1929,7 @@ export default function GradesPage() {
                                       )}
                                     </div>
                                   </td>
-                                ))}
+                                  )))}
                                 <td className="px-4 py-5 text-center">
                                   <span
                                     className={`font-black text-xl ${total !== null ? "text-primary" : "text-on-surface-variant"}`}
@@ -1887,43 +2045,55 @@ export default function GradesPage() {
 
                     {/* Score Inputs */}
                     <div className="grid grid-cols-2 gap-4">
-                      {(["ca1", "ca2", "ca3", "exam"] as const).map((type) => {
-                        const studentId =
-                          filteredStudents[mobileStudentIndex]?.id;
+                      {(() => {
+                        const studentId = filteredStudents[mobileStudentIndex]?.id;
                         if (!studentId) return null;
-                        const val = getMark(studentId, type);
-                        const total = getStudentTotal(studentId);
-                        const gradeInfo =
-                          total !== null ? getGrade(total) : null;
-                        return (
-                          <div key={type} className="space-y-2">
-                            <label className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
-                              {type.toUpperCase()} ({ASSESSMENT_MAX[type]})
-                            </label>
-                            <input
-                              className={`w-full text-center text-2xl font-bold py-4 rounded-xl border-none focus:outline-none transition-all ${getInputBorderClass(studentId, type)}`}
-                              type="number"
-                              min={0}
-                              max={ASSESSMENT_MAX[type]}
-                              placeholder="—"
-                              value={val !== null ? String(val) : ""}
-                              onChange={(e) =>
-                                handleMarkChange(
-                                  studentId,
-                                  type,
-                                  e.target.value,
-                                )
-                              }
-                              onBlur={() => handleInlineBlur(studentId, type)}
-                              disabled={
-                                isSubmitted ||
-                                (caLocked && type.startsWith("ca"))
-                              }
-                              inputMode="numeric"
-                            />
-                          </div>
-                        );
-                      })}
+                        if (competencyMode) {
+                          const val = getMark(studentId, "competency");
+                          return (
+                            <div className="col-span-2 space-y-2">
+                              <label className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
+                                COMPETENCY LEVEL
+                              </label>
+                              <select
+                                className="w-full text-center text-2xl font-bold py-4 rounded-xl border-none focus:outline-none transition-all bg-surface-container-low"
+                                value={val ?? ""}
+                                onChange={(e) => handleMarkChange(studentId, "competency", e.target.value)}
+                                disabled={isSubmitted}
+                              >
+                                <option value="">—</option>
+                                {COMPETENCY_SCHEME.values?.map((cv) => (
+                                  <option key={cv.value} value={cv.value}>
+                                    {cv.value} - {cv.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          );
+                        }
+                        return (["ca1", "ca2", "ca3", "exam"] as const).map((type) => {
+                          const val = getMark(studentId, type);
+                          return (
+                            <div key={type} className="space-y-2">
+                              <label className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
+                                {type.toUpperCase()} ({ASSESSMENT_MAX[type]})
+                              </label>
+                              <input
+                                className={`w-full text-center text-2xl font-bold py-4 rounded-xl border-none focus:outline-none transition-all ${getInputBorderClass(studentId, type)}`}
+                                type="number"
+                                min={0}
+                                max={ASSESSMENT_MAX[type]}
+                                placeholder="—"
+                                value={val !== null ? String(val) : ""}
+                                onChange={(e) => handleMarkChange(studentId, type, e.target.value)}
+                                onBlur={() => handleInlineBlur(studentId, type)}
+                                disabled={isSubmitted || (caLocked && type.startsWith("ca"))}
+                                inputMode="numeric"
+                              />
+                            </div>
+                          );
+                        });
+                      })()}
                     </div>
 
                     {/* Total & Grade */}

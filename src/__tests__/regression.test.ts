@@ -212,7 +212,8 @@ describe("Production Hardening Regression Tests", () => {
         "utf8",
       );
       expect(smsRoute).toContain(".from(\"messages\")");
-      expect(smsRoute).toContain(".update({ status, delivery_status: status })");
+      expect(smsRoute).toContain(".update({ status })");
+      expect(smsRoute).toContain(".update({ delivery_status");
     });
 
     it("should use direct SMS call in sms-automation", () => {

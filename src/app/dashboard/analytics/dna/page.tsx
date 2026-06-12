@@ -3,7 +3,7 @@
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { useStudents } from "@/lib/hooks";
+import { useStudents, useClasses } from "@/lib/hooks";
 import { useAcademic } from "@/lib/academic-context";
 import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
@@ -17,6 +17,8 @@ import {
   ResponsiveContainer,
   LineChart,
   Line,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -40,6 +42,7 @@ export default function PerformanceDNAPage() {
   const { school } = useAuth();
   const { currentTerm, academicYear } = useAcademic();
   const { students } = useStudents(school?.id);
+  const { classes } = useClasses(school?.id);
   const [searchStudent, setSearchStudent] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
@@ -47,6 +50,9 @@ export default function PerformanceDNAPage() {
   const [weeklyData, setWeeklyData] = useState<any[]>([]);
   const [loadingDNA, setLoadingDNA] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+  const [trendClass, setTrendClass] = useState<string>("");
+  const [trendData, setTrendData] = useState<any[]>([]);
+  const [trendLoading, setTrendLoading] = useState(false);
 
   // Filter students based on search
   const searchResults =
@@ -205,6 +211,52 @@ export default function PerformanceDNAPage() {
     loadDNA();
   }, [selectedStudent, school, currentTerm]);
 
+  // Load 8-week attendance trend for the selected class
+  useEffect(() => {
+    if (!trendClass || !school?.id) {
+      setTrendData([]);
+      return;
+    }
+    setTrendLoading(true);
+
+    async function loadTrend() {
+      try {
+        const now = new Date();
+        const weeks: { week: string; rate: number; present: number; total: number }[] = [];
+
+        for (let i = 7; i >= 0; i--) {
+          const weekEnd = new Date(now);
+          weekEnd.setDate(now.getDate() - i * 7);
+          const weekStart = new Date(weekEnd);
+          weekStart.setDate(weekEnd.getDate() - 6);
+          const label = `W${8 - i}`;
+
+          const { data: records } = await supabase
+            .from("attendance")
+            .select("status")
+            .eq("class_id", trendClass)
+            .eq("school_id", school!.id)
+            .gte("date", weekStart.toISOString().split("T")[0])
+            .lte("date", weekEnd.toISOString().split("T")[0]);
+
+          const total = records?.length ?? 0;
+          const present = records?.filter((a) => a.status === "present" || a.status === "late").length ?? 0;
+          const rate = total > 0 ? Math.round((present / total) * 10) / 10 : 0;
+
+          weeks.push({ week: label, rate, present, total });
+        }
+
+        setTrendData(weeks);
+      } catch {
+        // Silently handle
+      } finally {
+        setTrendLoading(false);
+      }
+    }
+
+    loadTrend();
+  }, [trendClass, school?.id, school]);
+
   const handleSelectStudent = (student: any) => {
     setSelectedStudent(student);
     setSearchStudent(`${student.first_name} ${student.last_name}`);
@@ -283,6 +335,57 @@ export default function PerformanceDNAPage() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* Class Attendance Trend Section */}
+      <div className={cardClassName + " p-6"}>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div>
+            <h2 className="text-sm font-black text-slate-400 uppercase tracking-widest">
+              Attendance Trend by Class
+            </h2>
+            <p className="text-xs text-slate-400 mt-1">8-week attendance rate for the selected class</p>
+          </div>
+          <div className="sm:w-56">
+            <select
+              value={trendClass}
+              onChange={(e) => setTrendClass(e.target.value)}
+              className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-slate-700 outline-none focus:ring-4 focus:ring-indigo-100"
+            >
+              <option value="">Select a class</option>
+              {classes.map((c: any) => (
+                <option key={c.id} value={c.id}>{c.name}{c.stream ? ` ${c.stream}` : ""}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+        {trendLoading ? (
+          <div className="flex items-center justify-center h-[200px]">
+            <div className="w-6 h-6 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : trendData.length > 0 && trendClass ? (
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={trendData}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+              <XAxis dataKey="week" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: "#94a3b8" }} />
+              <YAxis domain={[0, 100]} axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: "#94a3b8" }} unit="%" />
+              <Tooltip
+                contentStyle={{ borderRadius: "16px", border: "none", boxShadow: "0 10px 15px -3px rgb(0 0 0 / 0.1)" }}
+                labelStyle={{ fontWeight: 900 }}
+                formatter={(v: any, name: any) => [`${v}%`, name === "rate" ? "Attendance" : ""]}
+              />
+              <Bar dataKey="rate" fill="#6366f1" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : trendClass ? (
+          <div className="flex items-center justify-center h-[200px] text-slate-400 text-sm">
+            No attendance data for this period.
+          </div>
+        ) : (
+          <div className="flex items-center justify-center h-[200px] text-slate-400 text-sm">
+            Select a class above to view attendance trend.
+          </div>
+        )}
       </div>
 
       {/* Empty state — no student selected */}

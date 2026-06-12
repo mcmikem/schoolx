@@ -152,9 +152,26 @@ function ParentDashboardContent() {
 
           setChildren(list);
 
-          // NOTE: Removed fetching of school-wide notices to avoid leaking school information to parents.
-          // If parent-specific notices are needed, implement a separate endpoint or filter.
-          setNotices([]);
+          // Fetch notices intended for parents only (filtered by target_audience)
+          try {
+            const schoolId = list[0]?.school_id;
+            if (schoolId) {
+              const { data: noticeData, error: noticeErr } = await supabase
+                .from("notices")
+                .select("title, content, created_at, category")
+                .eq("school_id", schoolId)
+                .in("target_audience", ["all", "parents"])
+                .order("created_at", { ascending: false })
+                .limit(5);
+
+              if (!noticeErr && noticeData) {
+                setNotices(noticeData);
+              }
+            }
+          } catch (noticeErr) {
+            logger.warn("Failed to fetch parent notices:", noticeErr);
+            setNotices([]);
+          }
 
         } catch (err) {
           logger.error("Fetch children error:", err);
@@ -286,6 +303,29 @@ function ParentDashboardContent() {
       })
       .catch(() => {});
   }, [isDemo]);
+
+  useEffect(() => {
+    if (isDemo || !user?.id) return;
+    const channel = supabase
+      .channel("parent-notifications")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "parent_notifications",
+          filter: `parent_id=eq.${user.id}`,
+        },
+        (payload) => {
+          const newNotification = payload.new as any;
+          setNotifications((prev) => [newNotification, ...prev]);
+          setUnreadCount((prev) => prev + 1);
+          toast.info(newNotification.title || "New notification");
+        },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [user?.id, isDemo, toast]);
 
   const markNotificationRead = async (id: string) => {
     await fetch("/api/parent/notifications", {

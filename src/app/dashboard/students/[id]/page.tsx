@@ -605,6 +605,132 @@ export default function StudentProfilePage() {
   const [whatsappSent, setWhatsappSent] = useState(false);
   const [whatsappLink, setWhatsappLink] = useState<string | null>(null);
 
+  const [guardians, setGuardians] = useState<any[]>([]);
+  const [guardiansLoading, setGuardiansLoading] = useState(false);
+  const [showGuardianModal, setShowGuardianModal] = useState(false);
+  const [guardianForm, setGuardianForm] = useState({
+    name: "",
+    phone: "",
+    relationship: "parent",
+    email: "",
+  });
+  const [guardianSaving, setGuardianSaving] = useState(false);
+
+  const [smsHistory, setSmsHistory] = useState<any[]>([]);
+  const [smsHistoryLoading, setSmsHistoryLoading] = useState(false);
+
+  useEffect(() => {
+    if (!studentId || isDemo) return;
+    let cancelled = false;
+
+    const fetchGuardians = async () => {
+      setGuardiansLoading(true);
+      const { data, error } = await supabase
+        .from("parent_students")
+        .select("*, users!parent_id(id, full_name, phone, email)")
+        .eq("student_id", studentId);
+      if (!cancelled && !error) setGuardians(data || []);
+      if (!cancelled) setGuardiansLoading(false);
+    };
+
+    const fetchSmsHistory = async () => {
+      setSmsHistoryLoading(true);
+      const { data, error } = await supabase
+        .from("messages")
+        .select("*")
+        .eq("recipient_id", studentId)
+        .eq("recipient_type", "individual")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (!cancelled && !error) setSmsHistory(data || []);
+      if (!cancelled) setSmsHistoryLoading(false);
+    };
+
+    fetchGuardians();
+    fetchSmsHistory();
+
+    return () => { cancelled = true; };
+  }, [studentId, isDemo]);
+
+  const handleAddGuardian = async () => {
+    if (!school?.id || !studentId || !guardianForm.name || !guardianForm.phone) {
+      toast.error("Name and phone are required");
+      return;
+    }
+    setGuardianSaving(true);
+    try {
+      const { data: existingUser, error: lookupError } = await supabase
+        .from("users")
+        .select("id, full_name, phone")
+        .eq("phone", guardianForm.phone)
+        .maybeSingle();
+
+      let parentId: string;
+      if (existingUser) {
+        parentId = existingUser.id;
+      } else {
+        const { data: newUser, error: createError } = await supabase
+          .from("users")
+          .insert({
+            school_id: school.id,
+            full_name: guardianForm.name,
+            phone: guardianForm.phone,
+            email: guardianForm.email || null,
+            role: "parent",
+          })
+          .select("id")
+          .single();
+        if (createError) throw createError;
+        parentId = newUser.id;
+      }
+
+      const { error: linkError } = await supabase
+        .from("parent_students")
+        .insert({
+          parent_id: parentId,
+          student_id: studentId,
+          relationship: guardianForm.relationship,
+        });
+      if (linkError) throw linkError;
+
+      const { data: guardianData } = await supabase
+        .from("parent_students")
+        .select("*, users!parent_id(id, full_name, phone, email)")
+        .eq("student_id", studentId);
+      if (guardianData) setGuardians(guardianData);
+
+      if (student && !student.parent_name && !student.parent_phone) {
+        await supabase
+          .from("students")
+          .update({
+            parent_name: guardianForm.name,
+            parent_phone: guardianForm.phone,
+          })
+          .eq("id", studentId);
+        refetch();
+      }
+
+      toast.success("Guardian added");
+      setShowGuardianModal(false);
+      setGuardianForm({ name: "", phone: "", relationship: "parent", email: "" });
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to add guardian");
+    } finally {
+      setGuardianSaving(false);
+    }
+  };
+
+  const handleSetPrimaryGuardian = async (guardian: any) => {
+    const name = guardian.users?.full_name || guardianForm.name;
+    const phone = guardian.users?.phone || guardianForm.phone;
+    await supabase
+      .from("students")
+      .update({ parent_name: name, parent_phone: phone })
+      .eq("id", studentId);
+    refetch();
+    toast.success("Primary guardian updated");
+  };
+
   const handleProfileUpdate = useCallback(async (id: string, data: any) => {
     const normalized = normalizeStudentInput(data);
     const { error } = await withTimeout(
@@ -855,6 +981,126 @@ export default function StudentProfilePage() {
           </div>
         </div>
 
+        <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+              Guardians
+            </h3>
+            <button
+              onClick={() => setShowGuardianModal(true)}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-700"
+            >
+              <User className="h-3.5 w-3.5" />
+              Add Guardian
+            </button>
+          </div>
+          {guardiansLoading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-12 w-full rounded-xl" />
+              <Skeleton className="h-12 w-full rounded-xl" />
+            </div>
+          ) : guardians.length === 0 ? (
+            <p className="text-sm text-[var(--t3)]">
+              No additional guardians linked. Primary guardian is shown above.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {guardians.map((g) => {
+                const user = g.users || {};
+                const isPrimary =
+                  user.full_name === student.parent_name ||
+                  user.phone === student.parent_phone;
+                return (
+                  <div
+                    key={g.id}
+                    className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-700/30"
+                  >
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">
+                          {user.full_name || "Unknown"}
+                        </span>
+                        {isPrimary && (
+                          <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+                            Primary
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-[var(--t3)]">
+                        {user.phone || ""}
+                        {g.relationship !== "parent"
+                          ? ` · ${g.relationship}`
+                          : ""}
+                      </div>
+                    </div>
+                    {!isPrimary && (
+                      <button
+                        onClick={() => handleSetPrimaryGuardian(g)}
+                        className="text-xs text-blue-600 hover:underline"
+                        title="Set as primary guardian"
+                      >
+                        Set Primary
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+          <h3 className="mb-4 flex items-center gap-2 font-semibold text-gray-900 dark:text-gray-100">
+            <MessageSquare className="h-4 w-4 text-blue-600" />
+            SMS History
+          </h3>
+          {smsHistoryLoading ? (
+            <Skeleton className="h-32 w-full rounded-xl" />
+          ) : smsHistory.length === 0 ? (
+            <p className="text-sm text-[var(--t3)]">
+              No SMS messages have been sent to this student&apos;s parents.
+            </p>
+          ) : (
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {smsHistory.map((msg) => (
+                <div
+                  key={msg.id}
+                  className="rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-700/30"
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-medium text-[var(--t3)]">
+                      {msg.sent_at
+                        ? new Date(msg.sent_at).toLocaleString()
+                        : new Date(msg.created_at).toLocaleString()}
+                    </span>
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                        msg.status === "sent"
+                          ? "bg-green-100 text-green-700"
+                          : msg.status === "delivered"
+                            ? "bg-blue-100 text-blue-700"
+                            : msg.status === "failed"
+                              ? "bg-red-100 text-red-700"
+                              : "bg-gray-100 text-gray-600"
+                      }`}
+                    >
+                      {msg.status}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">
+                    {msg.message}
+                  </p>
+                  {msg.phone && (
+                    <p className="text-xs text-[var(--t3)] mt-1">
+                      To: {msg.phone}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         <SendSMSModal
           student={{
             id: student.id,
@@ -879,6 +1125,109 @@ export default function StudentProfilePage() {
           student={student as any}
         />
       </div>
+
+      {showGuardianModal && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+          onClick={() => setShowGuardianModal(false)}
+        >
+          <div
+            className="bg-[var(--surface)] rounded-2xl w-full max-w-md p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-bold text-[var(--t1)] mb-2">
+              Add Guardian
+            </h3>
+            <p className="text-sm text-[var(--t3)] mb-5">
+              Search existing users or add a new parent/guardian.
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">
+                  Full Name
+                </label>
+                <input
+                  type="text"
+                  value={guardianForm.name}
+                  onChange={(e) =>
+                    setGuardianForm({ ...guardianForm, name: e.target.value })
+                  }
+                  className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
+                  placeholder="e.g. John Doe"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">
+                  Phone Number
+                </label>
+                <input
+                  type="tel"
+                  value={guardianForm.phone}
+                  onChange={(e) =>
+                    setGuardianForm({ ...guardianForm, phone: e.target.value })
+                  }
+                  className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
+                  placeholder="0700000000"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">
+                  Email (optional)
+                </label>
+                <input
+                  type="email"
+                  value={guardianForm.email}
+                  onChange={(e) =>
+                    setGuardianForm({ ...guardianForm, email: e.target.value })
+                  }
+                  className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
+                  placeholder="guardian@example.com"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">
+                  Relationship
+                </label>
+                <select
+                  value={guardianForm.relationship}
+                  onChange={(e) =>
+                    setGuardianForm({
+                      ...guardianForm,
+                      relationship: e.target.value,
+                    })
+                  }
+                  className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
+                >
+                  <option value="parent">Parent</option>
+                  <option value="guardian">Guardian</option>
+                  <option value="aunt">Aunt</option>
+                  <option value="uncle">Uncle</option>
+                  <option value="grandparent">Grandparent</option>
+                  <option value="sibling">Sibling</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  onClick={() => setShowGuardianModal(false)}
+                  className="flex-1 py-2.5 rounded-xl border border-[var(--border)] text-sm font-medium"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAddGuardian}
+                  disabled={guardianSaving || !guardianForm.name || !guardianForm.phone}
+                  className="flex-1 py-2.5 rounded-xl bg-primary-600 text-white text-sm font-medium hover:bg-primary-700 disabled:opacity-50"
+                >
+                  {guardianSaving ? "Adding..." : "Add Guardian"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </PageErrorBoundary>
   );
 }

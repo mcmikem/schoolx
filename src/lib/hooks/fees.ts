@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
-import type { FeePayment, FeeStructure, CreatePaymentInput } from "@/types";
+import type { FeePayment, FeeStructure, FeeAdjustment, CreatePaymentInput } from "@/types";
 import { getQuerySchoolId, withTimeout } from "./utils";
 import { getCachedData, setCachedData, invalidateCache } from "./queryCache";
 import {
@@ -225,6 +225,7 @@ export function useFeePayments(
     const payload = {
       ...normalizedPayment,
       school_id: querySchoolId,
+      recorded_by: user?.id,
     };
     if (!isOnline) {
       const offlineSaved = await offlineDB.save(
@@ -539,7 +540,7 @@ const { data, error } = await withTimeout(
 }
 
 export function useFeeAdjustments(schoolId?: string) {
-  const [adjustments, setAdjustments] = useState<any[]>([]);
+  const [adjustments, setAdjustments] = useState<FeeAdjustment[]>([]);
   const [loading, setLoading] = useState(true);
   const { isDemo, user, school } = useAuth();
   const isOnline = useOnlineStatus();
@@ -567,7 +568,7 @@ export function useFeeAdjustments(schoolId?: string) {
       return;
     }
 
-    const cached = getCachedData<any[]>(cacheKey);
+    const cached = getCachedData<FeeAdjustment[]>(cacheKey);
     if (cached) {
       setAdjustments(cached);
       setLoading(false);
@@ -581,7 +582,7 @@ export function useFeeAdjustments(schoolId?: string) {
         const cached = await offlineDB.getAllFromCache("fee_adjustments", {
           school_id: querySchoolId,
         });
-        setAdjustments(cached as unknown as Record<string, unknown>[]);
+        setAdjustments(cached as unknown as FeeAdjustment[]);
         setLoading(false);
         return;
       }
@@ -609,7 +610,7 @@ export function useFeeAdjustments(schoolId?: string) {
             return (r.data || []).filter((a: Record<string, unknown>) => !a.deleted_at);
           }),
         5000,
-        [] as unknown as Record<string, unknown>[],
+        [] as unknown as FeeAdjustment[],
       );
       const result = data || [];
       setAdjustments(result);
@@ -638,22 +639,34 @@ export function useFeeAdjustments(schoolId?: string) {
     description?: string;
   }) => {
     if (isDemo || isDemoSchool(schoolId)) {
+      const mappedType = adj.adjustment_type === "write_off"
+        ? "manual_credit"
+        : adj.adjustment_type === "bursary"
+          ? "discount"
+          : adj.adjustment_type;
       const newAdj = {
-        ...adj,
+        student_id: adj.student_id,
+        adjustment_type: mappedType,
+        amount: adj.amount,
         notes: adj.description,
         id: `demo-adj-${Date.now()}`,
         school_id: schoolId || "00000000-0000-0000-0000-000000000001",
-        created_by: user?.id,
+        recorded_by: user?.id,
         created_at: new Date().toISOString(),
-      };
+      } satisfies FeeAdjustment;
       setAdjustments((prev) => [newAdj, ...prev]);
       invalidateCache(cacheKey);
       return newAdj;
     }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo);
+    const mappedType = adj.adjustment_type === "write_off"
+      ? "manual_credit"
+      : adj.adjustment_type === "bursary"
+        ? "discount"
+        : adj.adjustment_type;
     const payload = {
       student_id: adj.student_id,
-      adjustment_type: adj.adjustment_type,
+      adjustment_type: mappedType,
       amount: adj.amount,
       notes: adj.description,
       school_id: querySchoolId,
@@ -669,7 +682,7 @@ export function useFeeAdjustments(schoolId?: string) {
         ...payload,
         id: String(offlineSaved.id || `offline-adjustment-${Date.now()}`),
         created_at: new Date().toISOString(),
-      };
+      } as FeeAdjustment;
       setAdjustments((prev) => [offlineAdjustment, ...prev]);
       if (school?.id && user?.id) {
         await logAuditEventWithOfflineSupport(

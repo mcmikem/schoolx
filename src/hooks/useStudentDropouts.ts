@@ -33,6 +33,8 @@ export function useStudentDropouts(
   const [dropoutClassFilter, setDropoutClassFilter] = useState("all");
   const [showDropoutModal, setShowDropoutModal] = useState<string | null>(null);
   const [dropoutReason, setDropoutReason] = useState("");
+  const [dropoutActionTaken, setDropoutActionTaken] = useState("");
+  const [interventionHistory, setInterventionHistory] = useState<any[]>([]);
   const [sendingSms, setSendingSms] = useState<string | null>(null);
 
   const daysBetween = (from: string | null | undefined, to = new Date()) => {
@@ -239,26 +241,57 @@ export function useStudentDropouts(
     }
   };
 
+  const fetchInterventionHistory = useCallback(async () => {
+    if (!schoolId) return;
+    try {
+      if (isDemo) {
+        setInterventionHistory([]);
+        return;
+      }
+      const { data, error } = await supabase
+        .from("dropout_interventions")
+        .select("*")
+        .eq("school_id", schoolId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      setInterventionHistory(data || []);
+    } catch (err) {
+      logger.error("Error fetching intervention history:", err);
+    }
+  }, [schoolId, isDemo]);
+
   const handleMarkDropout = async () => {
     if (!showDropoutModal || !dropoutReason) {
       toast.error("Please provide a reason");
       return;
     }
+    const student = students.find((s) => s.id === showDropoutModal);
     try {
       await updateStudent(showDropoutModal, {
         status: "dropped",
         dropout_reason: dropoutReason,
         dropout_date: new Date().toISOString().split("T")[0],
       });
+      if (!isDemo && student) {
+        await supabase.from("dropout_interventions").insert({
+          school_id: schoolId,
+          student_id: showDropoutModal,
+          student_name: `${student.first_name} ${student.last_name}`,
+          reason: dropoutReason,
+          action_taken: dropoutActionTaken || "Marked as dropout",
+        });
+      }
       toast.success("Student marked as dropout");
       setShowDropoutModal(null);
       setDropoutReason("");
+      setDropoutActionTaken("");
       if (isDemo) {
         setAtRiskStudents((prev) =>
           prev.filter((s) => s.id !== showDropoutModal),
         );
       } else {
         fetchAtRiskStudents();
+        fetchInterventionHistory();
       }
     } catch (err) {
       toast.error("Failed to update student");
@@ -286,6 +319,10 @@ export function useStudentDropouts(
     setShowDropoutModal,
     dropoutReason,
     setDropoutReason,
+    dropoutActionTaken,
+    setDropoutActionTaken,
+    interventionHistory,
+    fetchInterventionHistory,
     sendingSms,
     filteredAtRisk,
     atRiskCount,

@@ -50,11 +50,7 @@ export function useStudentTransfers(
   createStudent: (data: CreateStudentInput) => Promise<unknown>,
   updateStudent: (id: string, data: Partial<CreateStudentInput>) => Promise<unknown>,
   toast: { success: (msg: string) => void; error: (msg: string) => void },
-  schoolBranding?: {
-    name?: string | null;
-    logo_url?: string | null;
-    primary_color?: string | null;
-  } | null,
+  school?: { name?: string | null; district?: string | null; phone?: string | null; email?: string | null } | null,
 ) {
   const transferPrintRef = useRef<HTMLDivElement>(null);
   const [transferActiveTab, setTransferActiveTab] = useState<TransferTab>("in");
@@ -122,24 +118,26 @@ export function useStudentTransfers(
         return;
       }
       const { data, error } = await supabase
-        .from("students")
-        .select("*, classes(name)")
+        .from("student_transfers")
+        .select("*, students!student_id(first_name, last_name, student_number, gender, admission_date, created_at, classes(name))")
         .eq("school_id", schoolId)
-        .eq("status", "transferred")
         .order("created_at", { ascending: false });
       if (error) throw error;
-      const records: TransferOutRecord[] = (data || []).map((s) => ({
-        id: s.id,
-        student_id: s.id,
-        transfer_to: s.transfer_to || "Unknown",
-        reason: s.transfer_reason || "",
-        transfer_date: s.dropout_date || s.created_at?.split("T")[0] || "",
-        student_name: `${s.first_name} ${s.last_name}`,
-        class_name: s.classes?.name || "-",
-        student_number: s.student_number || "",
-        gender: s.gender || "",
-        admission_date: s.admission_date || s.created_at?.split("T")[0] || "",
-      }));
+      const records: TransferOutRecord[] = (data || []).map((t: any) => {
+        const s = t.students || {} as any;
+        return {
+          id: t.id,
+          student_id: t.student_id,
+          transfer_to: t.next_school || t.previous_school || "Unknown",
+          reason: t.reason || "",
+          transfer_date: t.transfer_date || "",
+          student_name: `${s.first_name || ""} ${s.last_name || ""}`.trim() || "Unknown",
+          class_name: s.classes?.name || "-",
+          student_number: s.student_number || "",
+          gender: s.gender || "",
+          admission_date: s.admission_date || s.created_at?.split("T")[0] || "",
+        };
+      });
       setTransferHistory(records);
     } catch (err) {
       logger.error("Error fetching transfer history:", err);
@@ -158,7 +156,7 @@ export function useStudentTransfers(
     setTransferSaving(true);
     try {
       const studentNumber = buildTransferStudentNumber();
-      await createStudent({
+      const newStudentId = await createStudent({
         first_name: transferInForm.first_name,
         last_name: transferInForm.last_name,
         gender: transferInForm.gender,
@@ -172,6 +170,17 @@ export function useStudentTransfers(
         transfer_from: transferInForm.previous_school,
         transfer_reason: transferInForm.reason,
       });
+      if (!isDemo) {
+        await supabase.from("student_transfers").insert({
+          student_id: typeof newStudentId === "object" && "id" in (newStudentId || {}) ? (newStudentId as any).id : newStudentId,
+          school_id: schoolId,
+          transfer_type: "in",
+          previous_school: transferInForm.previous_school,
+          reason: transferInForm.reason,
+          transfer_date: new Date().toISOString().split("T")[0],
+          status: "completed",
+        });
+      }
       toast.success("Transfer-in student added successfully");
       setShowTransferInModal(false);
       setTransferInForm({
@@ -211,6 +220,17 @@ export function useStudentTransfers(
         transfer_reason: transferOutForm.reason,
         dropout_date: transferOutForm.transfer_date,
       });
+      if (!isDemo) {
+        await supabase.from("student_transfers").insert({
+          student_id: transferOutForm.student_id,
+          school_id: schoolId,
+          transfer_type: "out",
+          next_school: transferOutForm.transfer_to,
+          reason: transferOutForm.reason,
+          transfer_date: transferOutForm.transfer_date,
+          status: "completed",
+        });
+      }
       const record: TransferOutRecord = {
         id: transferOutForm.student_id,
         student_id: transferOutForm.student_id,
@@ -250,35 +270,85 @@ export function useStudentTransfers(
   };
 
   const handlePrint = () => {
-    if (!transferPrintRef.current) return;
+    if (!transferPrintRef.current || !printData) return;
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
-    const content = transferPrintRef.current.innerHTML;
-    const letterColor = schoolBranding?.primary_color || "#1e3a5f";
-    const transferLetterStyles = `
-      body { font-family: 'Segoe UI', Arial, sans-serif; padding: 40px; color: #1a1a1a; }
-      .letterhead { text-align: center; margin-bottom: 30px; border-bottom: 3px solid ${letterColor}; padding-bottom: 20px; }
-      .letterhead-logo { width: 52px; height: 52px; object-fit: contain; margin: 0 auto 8px; display: block; }
-      .letterhead h1 { margin: 0; font-size: 22px; color: ${letterColor}; }
-      .letterhead p { margin: 4px 0; font-size: 13px; color: #555; }
-      .title { text-align: center; font-size: 18px; font-weight: 700; margin: 20px 0; text-decoration: underline; }
-      .content { line-height: 1.8; font-size: 14px; }
-      .content p { margin: 8px 0; }
-      .field { font-weight: 600; }
-      .signatures { display: flex; justify-content: space-between; margin-top: 60px; }
-      .sig-block { text-align: center; width: 200px; }
-      .sig-line { border-top: 1px solid #333; margin-top: 50px; padding-top: 5px; font-size: 12px; }
-      .stamp-area { width: 100px; height: 100px; border: 2px dashed #aaa; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #999; margin: 0 auto; }
-      @media print { body { padding: 20px; } }
-    `;
-
-    printWindow.document.open();
-    printWindow.document.title = 'Transfer Letter';
-    document.querySelectorAll('link[rel="stylesheet"], style').forEach(el => {
-      printWindow.document.head.appendChild(el.cloneNode(true));
-    });
-    printWindow.document.head.insertAdjacentHTML('beforeend', `<style>${transferLetterStyles}</style>`);
-    printWindow.document.body.innerHTML = content;
+    printWindow.document.write(`
+      <html><head><title>Transfer Letter - ${printData.student_name}</title>
+      <style>
+        @page { margin: 20mm 15mm; }
+        body { font-family: 'Georgia', 'Times New Roman', serif; padding: 0; margin: 0; color: #1a1a1a; background: #fff; }
+        .letter-wrapper { max-width: 800px; margin: 0 auto; padding: 40px; }
+        .letterhead { text-align: center; margin-bottom: 30px; border-bottom: 3px solid #1e3a5f; padding-bottom: 20px; }
+        .letterhead .school-logo { width: 80px; height: 80px; border: 2px solid #1e3a5f; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 10px; font-size: 10px; color: #1e3a5f; }
+        .letterhead h1 { margin: 0; font-size: 24px; color: #1e3a5f; letter-spacing: 1px; }
+        .letterhead .sub { margin: 4px 0; font-size: 13px; color: #555; }
+        .letterhead .motto { font-size: 12px; color: #888; font-style: italic; margin-top: 6px; }
+        .ref-line { text-align: right; font-size: 12px; color: #666; margin: 16px 0; }
+        .title { text-align: center; font-size: 18px; font-weight: 700; margin: 24px 0; text-transform: uppercase; letter-spacing: 3px; color: #1e3a5f; }
+        .content { line-height: 1.9; font-size: 14px; }
+        .content p { margin: 10px 0; }
+        .field { font-weight: 700; color: #000; }
+        .info-table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+        .info-table td { padding: 6px 12px; border: 1px solid #ddd; font-size: 13px; }
+        .info-table td:first-child { font-weight: 600; background: #f9f9f9; width: 180px; }
+        .signatures { display: flex; justify-content: space-between; margin-top: 60px; gap: 40px; }
+        .sig-block { text-align: center; flex: 1; }
+        .sig-line { border-top: 2px solid #333; margin-top: 60px; padding-top: 8px; font-size: 13px; font-weight: 600; }
+        .stamp-area { width: 110px; height: 110px; border: 2px dashed #1e3a5f; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #1e3a5f; margin: 0 auto 8px; text-transform: uppercase; letter-spacing: 1px; }
+        .footer { text-align: center; margin-top: 40px; padding-top: 16px; border-top: 1px solid #ddd; font-size: 11px; color: #999; }
+        @media print { body { padding: 0; } .stamp-area { border: 2px dashed #1e3a5f; } }
+      </style>
+      </head><body>
+      <div class="letter-wrapper">
+        <div class="letterhead">
+          <div class="school-logo">School<br/>Seal</div>
+          <h1>${school?.name || "School Name"}</h1>
+          <div class="sub">${school?.district ? `${school.district} District` : ""} ${school?.phone ? `| Tel: ${school.phone}` : ""}</div>
+          <div class="sub">${school?.email || ""}</div>
+          <div class="motto">"Education for Excellence"</div>
+        </div>
+        <div class="ref-line">Ref: TRF/${printData.student_number || "XXXX"}/${new Date().getFullYear()}</div>
+        <div class="title">TRANSFER LETTER</div>
+        <div class="content">
+          <p>Date: <span class="field">${new Date().toLocaleDateString("en-UG", { year: "numeric", month: "long", day: "numeric" })}</span></p>
+          <p>&nbsp;</p>
+          <p>To Whom It May Concern,</p>
+          <p>&nbsp;</p>
+          <p>This is to certify that <span class="field">${printData.student_name}</span> (${printData.gender === "M" ? "Male" : "Female"}) was a bonafide student at <span class="field">${school?.name || "our school"}</span>.</p>
+          <p>&nbsp;</p>
+          <p><strong>Student Particulars:</strong></p>
+          <table class="info-table">
+            <tr><td>Full Name</td><td>${printData.student_name}</td></tr>
+            <tr><td>Student Number</td><td>${printData.student_number || "N/A"}</td></tr>
+            <tr><td>Gender</td><td>${printData.gender === "M" ? "Male" : "Female"}</td></tr>
+            <tr><td>Class/Grade</td><td>${printData.class_name}</td></tr>
+            <tr><td>Period of Study</td><td>${printData.admission_date ? new Date(printData.admission_date).toLocaleDateString("en-UG", { year: "numeric", month: "long" }) : "N/A"} - ${new Date(printData.transfer_date).toLocaleDateString("en-UG", { year: "numeric", month: "long", day: "numeric" })}</td></tr>
+            <tr><td>Reason for Transfer</td><td>${printData.reason || "Not specified"}</td></tr>
+            <tr><td>Transferring To</td><td>${printData.transfer_to}</td></tr>
+          </table>
+          <p>&nbsp;</p>
+          <p>During their time with us, the student conducted themselves well and participated fully in school activities. We have no reservations about their character and wish them success in their future academic endeavors.</p>
+          <p>&nbsp;</p>
+          <p>Yours faithfully,</p>
+        </div>
+        <div class="signatures">
+          <div class="sig-block">
+            <div class="stamp-area">School<br/>Stamp</div>
+          </div>
+          <div class="sig-block">
+            <div class="sig-line">Head Teacher</div>
+          </div>
+          <div class="sig-block">
+            <div class="sig-line">Class Teacher</div>
+          </div>
+        </div>
+        <div class="footer">
+          ${school?.name || "School Name"} &mdash; Official Transfer Document
+        </div>
+      </div>
+      </body></html>
+    `);
     printWindow.document.close();
     printWindow.focus();
     setTimeout(() => printWindow.print(), 500);

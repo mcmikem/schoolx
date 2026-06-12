@@ -93,6 +93,8 @@ interface StudentRegistryPanelProps {
   onSelectedClassChange: (value: string) => void;
   filterGender: "all" | "M" | "F";
   onFilterGenderChange: (value: "all" | "M" | "F") => void;
+  filterStatus: string;
+  onFilterStatusChange: (value: string) => void;
   filterPosition: string;
   onFilterPositionChange: (value: string) => void;
   filterDefaulters: boolean;
@@ -141,6 +143,8 @@ export default function StudentRegistryPanel({
   onSelectedClassChange,
   filterGender,
   onFilterGenderChange,
+  filterStatus,
+  onFilterStatusChange,
   filterPosition,
   onFilterPositionChange,
   filterDefaulters,
@@ -719,6 +723,28 @@ export default function StudentRegistryPanel({
             <option value="all">All Genders</option>
             <option value="M">Boys only</option>
             <option value="F">Girls only</option>
+          </select>
+          <select
+            value={filterStatus}
+            onChange={(e) =>
+              onFilterStatusChange(e.target.value)
+            }
+            style={{
+              padding: "10px 14px",
+              border: "1px solid var(--border)",
+              borderRadius: 8,
+              fontSize: 12,
+              fontWeight: 600,
+              background: "var(--surface)",
+              color: "var(--t1)",
+              cursor: "pointer",
+            }}
+          >
+            <option value="all">All Statuses</option>
+            <option value="active">Active</option>
+            <option value="transferred">Transferred</option>
+            <option value="dropped">Dropped</option>
+            <option value="completed">Completed</option>
           </select>
           <select
             value={filterPosition}

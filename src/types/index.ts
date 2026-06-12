@@ -18,11 +18,10 @@ export interface School {
   uneb_center_number?: string;
   address?: string;
   subscription_plan:
-    | "starter"
-    | "growth"
-    | "enterprise"
-    | "lifetime"
-    | "free_trial";
+    | "free_trial"
+    | "basic"
+    | "premium"
+    | "max";
   subscription_status:
     | "active"
     | "expired"
@@ -100,6 +99,7 @@ export interface Student {
   admission_date: string;
   ple_index_number?: string;
   uneab_number?: string;
+  nin?: string;
   blood_type?: string;
   religion?: string;
   nationality?: string;
@@ -162,6 +162,7 @@ export interface CreateStudentInput {
   is_class_monitor?: boolean;
   prefect_role?: string;
   student_council_role?: string;
+  nin?: string;
 }
 
 // Class types
@@ -207,12 +208,13 @@ export interface Grade {
   student_id: string;
   subject_id: string;
   class_id: string;
-  assessment_type: "ca1" | "ca2" | "ca3" | "ca4" | "project" | "aoi" | "exam";
+  assessment_type: "ca1" | "ca2" | "ca3" | "ca4" | "project" | "aoi" | "exam" | "competency";
   score: number;
   max_score: number;
   term: 1 | 2 | 3;
   academic_year: string;
   recorded_by: string;
+  competency_level?: string;
   created_at: string;
   subjects?: Subject;
 }
@@ -242,20 +244,27 @@ export interface FeeStructure {
   term: 1 | 2 | 3;
   academic_year: string;
   due_date?: string;
+  deleted_at?: string;
+  deleted_by?: string;
   created_at: string;
   classes?: Class;
 }
 
 export interface FeePayment {
   id: string;
+  school_id?: string;
   student_id: string;
-  fee_id: string;
+  fee_id?: string;
+  student_fee_term_id?: string;
   amount_paid: number;
   payment_method: "cash" | "mobile_money" | "bank" | "installment";
   payment_reference?: string;
   paid_by?: string;
   notes?: string;
   payment_date: string;
+  recorded_by?: string;
+  deleted_at?: string;
+  deleted_by?: string;
   created_at: string;
   students?: Student & { classes?: Class };
 }
@@ -270,15 +279,114 @@ export interface CreatePaymentInput {
   notes?: string;
 }
 
+export interface FeeAdjustment {
+  id: string;
+  school_id: string;
+  student_id: string;
+  amount: number;
+  adjustment_type: "discount" | "scholarship" | "penalty" | "manual_credit" | "write_off" | "bursary";
+  notes?: string;
+  recorded_by?: string;
+  deleted_at?: string;
+  deleted_by?: string;
+  created_at: string;
+}
+
+export interface PaymentPlan {
+  id: string;
+  school_id: string;
+  student_id: string;
+  total_amount: number;
+  installments: number;
+  start_date: string;
+  status: "active" | "completed" | "defaulted" | "cancelled";
+  academic_year: string;
+  created_at: string;
+}
+
+export interface PaymentPlanInstallment {
+  id: string;
+  plan_id: string;
+  due_date: string;
+  amount: number;
+  paid: boolean;
+  paid_date?: string;
+  created_at: string;
+}
+
+export interface FeeTerm {
+  id: string;
+  school_id: string;
+  name: string;
+  code: string;
+  description?: string;
+  term_type: "fixed_days" | "fixed_date" | "installments";
+  total_amount: number;
+  discount_percentage?: number;
+  no_of_days?: number;
+  day_type?: "before" | "after";
+  is_active: boolean;
+  academic_year: string;
+  lines?: FeeTermLine[];
+  created_at: string;
+}
+
+export interface FeeTermLine {
+  id: string;
+  school_id: string;
+  term_id: string;
+  installment_number: number;
+  due_days?: number;
+  due_date?: string;
+  amount_percentage: number;
+  amount?: number;
+  is_optional: boolean;
+  created_at: string;
+}
+
+export interface StudentFeeTerm {
+  id: string;
+  school_id: string;
+  student_id: string;
+  fee_term_id: string;
+  class_id?: string;
+  academic_year: string;
+  total_amount: number;
+  discount_amount?: number;
+  final_amount: number;
+  amount_paid?: number;
+  balance?: number;
+  start_date?: string;
+  status: "active" | "completed" | "cancelled";
+  created_at: string;
+}
+
+// Parent Notification types
+export interface ParentNotification {
+  id: string;
+  school_id: string;
+  parent_id: string;
+  student_id?: string;
+  type: string;
+  title: string;
+  message?: string;
+  action_url?: string;
+  is_read: boolean;
+  read_at?: string;
+  created_at: string;
+}
+
 // Message types
 export interface Message {
   id: string;
   school_id: string;
-  recipient_type: "individual" | "class" | "all";
+  recipient_type: "individual" | "class" | "all" | "bulk" | "staff";
   recipient_id?: string;
   phone?: string;
   message: string;
   status: "pending" | "sent" | "delivered" | "failed";
+  delivery_status?: string;
+  recipient_count?: number;
   sent_by: string;
   sent_at?: string;
   created_at: string;

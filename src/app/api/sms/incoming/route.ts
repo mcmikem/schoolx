@@ -111,9 +111,9 @@ export async function POST(request: NextRequest) {
       .insert({
         school_id: student.school_id,
         student_id: student.id,
-        phone: from,
+        parent_phone: from,
         message: message,
-        status: "received",
+        status: "pending",
         sent_at: new Date(date || new Date().toISOString()).toISOString(),
       })
       .select()
@@ -124,17 +124,21 @@ export async function POST(request: NextRequest) {
     }
 
     // Create a notification for the school
-    await supabaseAdmin
-      .from("parent_notifications")
-      .insert({
-        school_id: student.school_id,
-        parent_id: null, // No user for incoming SMS
-        student_id: student.id,
-        type: "message",
-        title: "Parent Reply",
-        message: `Parent of ${student.first_name} replied: ${message.substring(0, 100)}`,
-        action_url: `/dashboard/messages?from=${student.id}`,
-      });
+    try {
+      await supabaseAdmin
+        .from("parent_notifications")
+        .insert({
+          school_id: student.school_id,
+          parent_id: null, // No user for incoming SMS
+          student_id: student.id,
+          type: "message",
+          title: "Parent Reply",
+          message: `Parent of ${student.first_name} replied: ${message.substring(0, 100)}`,
+          action_url: `/dashboard/messages?from=${student.id}`,
+        });
+    } catch (notifError) {
+      logger.warn("Failed to create parent notification (table may not exist):", notifError);
+    }
 
     // Auto-reply with confirmation
     const autoReply = `Thank you for your message. The school has received your response.`;

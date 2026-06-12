@@ -165,6 +165,7 @@ export default function StudentHubPage() {
     null,
   );
   const [filterGender, setFilterGender] = useState<"all" | "M" | "F">("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterPosition, setFilterPosition] = useState<string>("all");
   const [filterDefaulters, setFilterDefaulters] = useState(false);
   const [sortBy, setSortBy] = useState<"name" | "number" | "class">("name");
@@ -392,6 +393,8 @@ export default function StudentHubPage() {
         selectedClass === "all" || s.class_id === selectedClass;
       const matchesGender =
         filterGender === "all" || s.gender === filterGender;
+      const matchesStatus =
+        filterStatus === "all" || s.status === filterStatus;
       const matchesPosition =
         filterPosition === "all" ||
         (filterPosition === "monitor" && s.is_class_monitor) ||
@@ -403,6 +406,7 @@ export default function StudentHubPage() {
         matchesSearch &&
         matchesClass &&
         matchesGender &&
+        matchesStatus &&
         matchesPosition &&
         matchesDefaulters
       );
@@ -428,6 +432,7 @@ export default function StudentHubPage() {
     searchTerm,
     selectedClass,
     filterGender,
+    filterStatus,
     filterPosition,
     filterDefaulters,
     sortBy,
@@ -447,6 +452,7 @@ export default function StudentHubPage() {
     searchTerm,
     selectedClass,
     filterGender,
+    filterStatus,
     filterPosition,
     filterDefaulters,
     sortBy,
@@ -592,6 +598,8 @@ export default function StudentHubPage() {
             onSelectedClassChange={setSelectedClass}
             filterGender={filterGender}
             onFilterGenderChange={setFilterGender}
+            filterStatus={filterStatus}
+            onFilterStatusChange={setFilterStatus}
             filterPosition={filterPosition}
             onFilterPositionChange={setFilterPosition}
             filterDefaulters={filterDefaulters}

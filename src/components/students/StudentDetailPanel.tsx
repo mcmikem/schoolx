@@ -67,6 +67,7 @@ interface StudentDetailData {
   games_house?: string | null;
   religion?: string | null;
   nationality?: string | null;
+  nin?: string | null;
 }
 
 interface ClassOption {
@@ -117,6 +118,7 @@ type EditForm = {
   address: string;
   religion: string;
   nationality: string;
+  nin: string;
 };
 
 type NewStudent = {
@@ -144,6 +146,7 @@ type NewStudent = {
   games_house: string;
   photo_url: string;
   blood_type: string;
+  nin: string;
 };
 
 const INITIAL_NEW_STUDENT: NewStudent = {
@@ -171,6 +174,7 @@ const INITIAL_NEW_STUDENT: NewStudent = {
   games_house: "",
   photo_url: "",
   blood_type: "",
+  nin: "",
 };
 
 function FormSection({
@@ -255,6 +259,7 @@ export default function StudentDetailPanel({
     blood_type: "",
     religion: "",
     nationality: "",
+    nin: "",
   };
   const [editForm, setEditForm] = useState<EditForm>(initialEditForm);
   const [internalEditingStudent, setInternalEditingStudent] =
@@ -310,6 +315,7 @@ export default function StudentDetailPanel({
         address: student.address || "",
         religion: (student as any).religion || "",
         nationality: (student as any).nationality || "",
+        nin: (student as any).nin || "",
       });
       setInternalEditingStudent(student as StudentDetailData);
     }
@@ -453,6 +459,7 @@ export default function StudentDetailPanel({
         photo_url: newStudent.photo_url || undefined,
         blood_type: newStudent.blood_type || undefined,
         status: "active",
+        nin: newStudent.nin?.trim() || undefined,
       });
       toast.success("Student added successfully");
       onClose();
@@ -494,6 +501,7 @@ export default function StudentDetailPanel({
         prefect_role: editForm.prefect_role || null,
         student_council_role: editForm.student_council_role || null,
         games_house: editForm.games_house || null,
+        nin: editForm.nin?.trim() || null,
       };
       await updateStudent?.(internalEditingStudent.id, updateData);
       toast.success("Student updated successfully");
@@ -1075,47 +1083,72 @@ export default function StudentDetailPanel({
                       display: "block",
                     }}
                   >
-                    Opening Balance (Previous Debt/Credit)
-                    {!isEdit && (
-                      <FieldHint tip="Enter fees owed from a previous term. Use 0 if this is a new student with no debt. Positive = owes money, negative = paid in advance." />
-                    )}
+                    NIN (National ID Number)
                   </label>
-                  <div style={{ position: "relative" }}>
-                    <span
-                      style={{
-                        position: "absolute",
-                        left: 12,
-                        top: "50%",
-                        transform: "translateY(-50%)",
-                        fontSize: 14,
-                        color: "var(--t3)",
-                      }}
-                    >
-                      UGX
-                    </span>
-                    <input
-                      type="number"
-                      value={ob}
-                      onChange={(e) => setOb(e.target.value)}
-                      className="input"
-                      inputMode="numeric"
-                      step="1"
-                      style={{ paddingLeft: 45 }}
-                    />
-                  </div>
-                  {!isEdit && (
-                    <p
-                      style={{
-                        fontSize: 10,
-                        color: "var(--t3)",
-                        marginTop: 4,
-                      }}
-                    >
-                      Positive for debt (arrears), negative for credit/advance.
-                    </p>
-                  )}
+                  <input
+                    type="text"
+                    value={formData.nin || ""}
+                    onChange={(e) =>
+                      handleFormChange({ nin: e.target.value })
+                    }
+                    className="input"
+                    placeholder="e.g., CFN123456789 or leave blank"
+                    maxLength={20}
+                  />
                 </div>
               </ResponsiveFieldGrid>
+              <div style={{ marginBottom: 20 }}>
+                <label
+                  style={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    letterSpacing: ".5px",
+                    textTransform: "uppercase",
+                    color: "var(--t3)",
+                    marginBottom: 6,
+                    display: "block",
+                  }}
+                >
+                  Opening Balance (Previous Debt/Credit)
+                  {!isEdit && (
+                    <FieldHint tip="Enter fees owed from a previous term. Use 0 if this is a new student with no debt. Positive = owes money, negative = paid in advance." />
+                  )}
+                </label>
+                <div style={{ position: "relative" }}>
+                  <span
+                    style={{
+                      position: "absolute",
+                      left: 12,
+                      top: "50%",
+                      transform: "translateY(-50%)",
+                      fontSize: 14,
+                      color: "var(--t3)",
+                    }}
+                  >
+                    UGX
+                  </span>
+                  <input
+                    type="number"
+                    value={ob}
+                    onChange={(e) => setOb(e.target.value)}
+                    className="input"
+                    inputMode="numeric"
+                    step="1"
+                    style={{ paddingLeft: 45 }}
+                  />
+                </div>
+                {!isEdit && (
+                  <p
+                    style={{
+                      fontSize: 10,
+                      color: "var(--t3)",
+                      marginTop: 4,
+                    }}
+                  >
+                    Positive for debt (arrears), negative for credit/advance.
+                  </p>
+                )}
+              </div>
             </FormSection>
             {!selectedClassExists && (
               <div

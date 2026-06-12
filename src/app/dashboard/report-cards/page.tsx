@@ -23,6 +23,7 @@ import { TableSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { APP_NAME } from "@/lib/app-name";
 import { withTimeout } from "@/lib/hooks/utils";
+import { calculateSubjectTotal } from "@/lib/grading";
 
 interface StudentReport {
   studentId: string;
@@ -38,6 +39,7 @@ interface StudentReport {
     gradeColor: string;
     competencyLevel?: string;
     competencyNotes?: string;
+    isMissing?: boolean;
   }[];
   totalMarks: number;
   maxMarks: number;
@@ -88,7 +90,7 @@ function getAutoComment(position: number): string {
 }
 
 export default function ReportCardsPage() {
-  const { school, isDemo } = useAuth();
+  const { school, user, isDemo } = useAuth();
   const { academicYear, currentTerm } = useAcademic();
   const toast = useToast();
   const { classes } = useClasses(school?.id);
@@ -357,6 +359,54 @@ export default function ReportCardsPage() {
       setReports(reportList);
       setComments(initialComments);
       setGenerated(true);
+
+      // Save each report card to the report_cards table
+      const { supabase: sb } = await import("@/lib/supabase");
+      const best4 = (scores: number[]) =>
+        [...scores].sort((a, b) => b - a).slice(0, 4);
+
+      for (const rpt of reportList) {
+        const subjectsJson = rpt.subjects.map((s) => ({
+          name: s.name,
+          score: s.score,
+          grade: s.grade,
+          gradeColor: s.gradeColor,
+          competencyLevel: s.competencyLevel,
+          competencyNotes: s.competencyNotes,
+          isMissing: s.isMissing,
+        }));
+        const rptBest4 = best4(rpt.subjects.map((s) => s.score));
+        const rptAggregate = rptBest4.reduce((a, b) => a + b, 0);
+
+        const { data: existingCard } = await sb
+          .from("report_cards")
+          .select("id")
+          .eq("student_id", rpt.studentId)
+          .eq("academic_year", academicYear)
+          .eq("term", currentTerm)
+          .limit(1);
+
+        const cardPayload = {
+          school_id: school?.id,
+          student_id: rpt.studentId,
+          class_id: selectedClass,
+          academic_year: academicYear,
+          term: currentTerm,
+          subjects: subjectsJson,
+          aggregate: rptAggregate,
+          division: rpt.division,
+          best4: rptBest4,
+          generated_at: new Date().toISOString(),
+          generated_by: user?.full_name || user?.id || "system",
+        };
+
+        if (existingCard && existingCard.length > 0) {
+          await sb.from("report_cards").update(cardPayload).eq("id", existingCard[0].id);
+        } else {
+          await sb.from("report_cards").insert(cardPayload);
+        }
+      }
+
       toast.success(`Report cards generated for ${reportList.length} students`);
     } catch (err) {
       logger.error("Error generating report cards:", err);

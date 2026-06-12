@@ -123,7 +123,7 @@ export default function SettingsPage() {
   const [logoUrl, setLogoUrl] = useState(school?.logo_url || "");
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [storageStatus, setStorageStatus] = useState<"unknown" | "ok" | "error">("unknown");
-  const [selectedPlan, setSelectedPlan] = useState<string>(school?.subscription_plan || "starter");
+  const [selectedPlan, setSelectedPlan] = useState<string>(school?.subscription_plan || "basic");
   const [upgradingPlan, setUpgradingPlan] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedPaymentPlan, setSelectedPaymentPlan] = useState<string>("");
@@ -364,7 +364,7 @@ export default function SettingsPage() {
 
   const handlePlanUpgrade = async (plan: string) => {
     if (!school?.id) return;
-    if (plan === "starter" || plan === "free_trial") {
+    if (plan === "basic" || plan === "free_trial") {
       setUpgradingPlan(true);
       try {
         const { error } = await supabase.from("schools").update({ subscription_plan: plan, subscription_status: "trial" }).eq("id", school.id);
@@ -928,28 +928,28 @@ export default function SettingsPage() {
                     <li className="flex items-center gap-2 text-sm"><MaterialIcon icon="check_circle" className="text-[var(--green)] text-base" /> Basic Attendance</li>
                     <li className="flex items-center gap-2 text-sm"><MaterialIcon icon="check_circle" className="text-[var(--green)] text-base" /> Fee Management</li>
                   </ul>
-                  <Button variant="secondary" className="w-full" loading={upgradingPlan && selectedPlan === "starter"} onClick={() => handlePlanUpgrade("starter")}>Active</Button>
+                  <Button variant="secondary" className="w-full" loading={upgradingPlan && selectedPlan === "basic"} onClick={() => handlePlanUpgrade("basic")}>Active</Button>
                 </div>
                 <div className="p-6 rounded-2xl border-2 border-[var(--primary)] bg-[var(--primary-soft)] relative">
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-[var(--primary)] text-white text-[10px] font-bold rounded-full uppercase">Most Popular</div>
-                  <div className="text-sm font-bold text-[var(--primary)] uppercase tracking-wider mb-2">Growth</div>
+                  <div className="text-sm font-bold text-[var(--primary)] uppercase tracking-wider mb-2">Premium</div>
                   <div className="text-2xl font-bold mb-4">UGX 3,500 <span className="text-sm font-normal text-[var(--t3)]">/ month</span></div>
                   <ul className="space-y-3 mb-6">
                     <li className="flex items-center gap-2 text-sm"><MaterialIcon icon="check_circle" className="text-[var(--green)] text-base" /> Up to 500 Students</li>
                     <li className="flex items-center gap-2 text-sm"><MaterialIcon icon="check_circle" className="text-[var(--green)] text-base" /> SMS Notifications</li>
                     <li className="flex items-center gap-2 text-sm"><MaterialIcon icon="check_circle" className="text-[var(--green)] text-base" /> Report Card Printing</li>
                   </ul>
-                  <Button className="w-full" loading={upgradingPlan && selectedPlan === "growth"} onClick={() => handlePlanUpgrade("growth")}>{school?.subscription_plan === "growth" ? "Current Plan" : "Select"}</Button>
+                  <Button className="w-full" loading={upgradingPlan && selectedPlan === "premium"} onClick={() => handlePlanUpgrade("premium")}>{school?.subscription_plan === "premium" ? "Current Plan" : "Select"}</Button>
                 </div>
                 <div className="p-6 rounded-2xl border-2 border-[var(--border)] bg-[var(--surface-container-low)]">
-                  <div className="text-sm font-bold text-[var(--t3)] uppercase tracking-wider mb-2">Enterprise</div>
+                  <div className="text-sm font-bold text-[var(--t3)] uppercase tracking-wider mb-2">Max</div>
                   <div className="text-2xl font-bold mb-4">UGX 5,500 <span className="text-sm font-normal text-[var(--t3)]">/ month</span></div>
                   <ul className="space-y-3 mb-6">
                     <li className="flex items-center gap-2 text-sm"><MaterialIcon icon="check_circle" className="text-[var(--green)] text-base" /> Unlimited Students</li>
                     <li className="flex items-center gap-2 text-sm"><MaterialIcon icon="check_circle" className="text-[var(--green)] text-base" /> AI Smart Advisor</li>
                     <li className="flex items-center gap-2 text-sm"><MaterialIcon icon="check_circle" className="text-[var(--green)] text-base" /> Full Payroll & Assets</li>
                   </ul>
-                  <Button variant="secondary" className="w-full" loading={upgradingPlan && selectedPlan === "enterprise"} onClick={() => handlePlanUpgrade("enterprise")}>{school?.subscription_plan === "enterprise" ? "Current Plan" : "Upgrade"}</Button>
+                  <Button variant="secondary" className="w-full" loading={upgradingPlan && selectedPlan === "max"} onClick={() => handlePlanUpgrade("max")}>{school?.subscription_plan === "max" ? "Current Plan" : "Upgrade"}</Button>
                 </div>
               </div>
             </CardBody>
