@@ -13,11 +13,9 @@ jobs:
   secret-scan:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Run gitleaks for secret scanning
         uses: gitleaks/gitleaks-action@v2
-        with:
-          config-path: .gitleaks.toml
       - name: Check for demo leakage
         run: npm run check:production-leakage
 
@@ -26,12 +24,12 @@ jobs:
     needs: [secret-scan]
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: false
           
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '22'
           cache: 'npm'
@@ -103,7 +101,7 @@ jobs:
     if: github.event_name == 'pull_request'
     
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           submodules: false
           
