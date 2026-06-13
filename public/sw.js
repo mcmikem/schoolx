@@ -199,11 +199,9 @@ self.addEventListener('sync', (event) => {
 async function processSyncQueue() {
   try {
     const clients = await self.clients.matchAll();
-    const syncClient = clients.find((c) => c.url.includes('dashboard'));
-
-    if (syncClient) {
-      syncClient.postMessage({ type: 'SYNC_STARTED' });
-    }
+    clients.forEach((client) => {
+      client.postMessage({ type: 'SYNC_NOW' });
+    });
 
     const registration = await self.registration;
     const notification = await registration.showNotification('Syncing data...', {
@@ -212,11 +210,7 @@ async function processSyncQueue() {
       tag: 'sync-status',
     });
 
-    await self.clients.matchAll().forEach((client) => {
-      client.postMessage({ type: 'SYNC_STARTED' });
-    });
-
-    if (notification) notification.close();
+    if (notification) setTimeout(() => notification.close(), 3000);
   } catch (err) {
     console.error('Sync queue error:', err);
   }

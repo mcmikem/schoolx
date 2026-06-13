@@ -26,6 +26,7 @@ import { useStudentTransfers } from "@/hooks/useStudentTransfers";
 import { useStudentDropouts } from "@/hooks/useStudentDropouts";
 import { useStudentPromotion } from "@/hooks/useStudentPromotion";
 import { supabase } from "@/lib/supabase";
+import { withTimeout } from "@/lib/hooks/utils";
 import { DEMO_ATTENDANCE } from "@/lib/demo-data";
 
 type StudentWorkspaceTab = "registry" | "transfers" | "dropouts" | "promotion";
@@ -250,16 +251,16 @@ export default function StudentHubPage() {
     }
 
     const loadHouses = async () => {
-      const { data, error } = await supabase
+      const result: { data: { id: string; name: string; color: string }[] | null; error: unknown } = await withTimeout(supabase
         .from("houses")
         .select("id, name, color")
-        .eq("school_id", school.id);
+        .eq("school_id", school.id), 10000, { data: null, error: null } as any);
 
-      if (error) {
+      if (result.error) {
         return;
       }
 
-      const mapped = (data || []).reduce<Record<string, HouseMeta>>((acc, house) => {
+      const mapped = (result.data || []).reduce<Record<string, HouseMeta>>((acc, house) => {
         acc[house.id] = house;
         return acc;
       }, {});
@@ -324,18 +325,18 @@ export default function StudentHubPage() {
         return;
       }
 
-      const { data, error } = await supabase
+      const result: { data: { student_id: string; status: string; remarks: string | null }[] | null; error: unknown } = await withTimeout(supabase
         .from("attendance")
         .select("student_id, status, remarks")
         .eq("school_id", school.id)
-        .eq("date", today);
+        .eq("date", today), 10000, { data: null, error: null } as any);
 
-      if (error) {
+      if (result.error) {
         setAttendanceStatusMap({});
         return;
       }
 
-      const nextMap = (data || []).reduce<Record<string, AttendanceStatusMeta>>(
+      const nextMap = (result.data || []).reduce<Record<string, AttendanceStatusMeta>>(
         (acc, record) => {
           const meta = deriveAttendanceMeta(record.status, record.remarks);
           if (meta) {

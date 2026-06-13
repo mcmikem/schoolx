@@ -178,25 +178,25 @@ export default function ReportCardsPage() {
     } else {
       const { supabase: sb } = await import("@/lib/supabase");
 
-      const { data, error } = await sb
+      const gradesResult = await withTimeout(sb
         .from("grades")
         .select("*, subjects(id, name)")
         .eq("class_id", classId)
         .eq("term", currentTerm)
         .eq("academic_year", academicYear)
-        .in("assessment_type", ["numerical", "both", null]);
+        .in("assessment_type", ["numerical", "both", null]), 15000, null as any);
 
-      if (error) throw error;
-      gradesData = data || [];
+      if (gradesResult.error) throw gradesResult.error;
+      gradesData = gradesResult.data || [];
 
       if (reportFormat !== "numerical") {
-        const compResult = await sb
+        const compResult = await withTimeout(sb
           .from("grades")
           .select("student_id, subject_id, competency_level, competency_notes, subjects(id, name)")
           .eq("class_id", classId)
           .eq("term", currentTerm)
           .eq("academic_year", academicYear)
-          .in("assessment_type", ["competency", "both", null]);
+          .in("assessment_type", ["competency", "both", null]), 15000, null as any);
         
         if (!compResult.error) {
           competencyData = compResult.data || [];
@@ -378,13 +378,14 @@ export default function ReportCardsPage() {
         const rptBest4 = best4(rpt.subjects.map((s) => s.score));
         const rptAggregate = rptBest4.reduce((a, b) => a + b, 0);
 
-        const { data: existingCard } = await sb
+        const existingResult = await withTimeout(sb
           .from("report_cards")
           .select("id")
           .eq("student_id", rpt.studentId)
           .eq("academic_year", academicYear)
           .eq("term", currentTerm)
-          .limit(1);
+          .limit(1), 10000, null as any);
+        const existingCard = existingResult.data;
 
         const cardPayload = {
           school_id: school?.id,
@@ -401,9 +402,9 @@ export default function ReportCardsPage() {
         };
 
         if (existingCard && existingCard.length > 0) {
-          await sb.from("report_cards").update(cardPayload).eq("id", existingCard[0].id);
+          await withTimeout(sb.from("report_cards").update(cardPayload).eq("id", existingCard[0].id), 15000, null);
         } else {
-          await sb.from("report_cards").insert(cardPayload);
+          await withTimeout(sb.from("report_cards").insert(cardPayload), 15000, null);
         }
       }
 

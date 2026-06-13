@@ -11,6 +11,7 @@ import {
 import { useOfflineStudents, useOfflineGrades } from "@/lib/offline-hooks";
 import { useToast } from "@/components/Toast";
 import { supabase } from "@/lib/supabase";
+import { withTimeout } from "@/lib/hooks/utils";
 import { calculateSubjectTotal, isCompetencyScale, COMPETENCY_SCHEME, CompetencyValue, getCompetencyLabel } from "@/lib/grading";
 import MaterialIcon from "@/components/MaterialIcon";
 import { logger } from "@/lib/logger";
@@ -232,10 +233,11 @@ export default function GradesPage() {
   useEffect(() => {
     if (!user?.id || isDemo) return;
     const fetchTeacherSubjects = async () => {
-      const { data, error } = await supabase
+      const result = await withTimeout(supabase
         .from("teacher_subjects")
         .select("subject_id, class_id")
-        .eq("teacher_id", user.id);
+        .eq("teacher_id", user.id), 10000, null as any);
+      const { data, error } = result || { data: [], error: null };
       if (error) {
         logger.error("Error fetching teacher subjects:", error);
         return;
@@ -964,7 +966,7 @@ export default function GradesPage() {
   const fetchCoverage = useCallback(async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+      const result = await withTimeout(supabase
         .from("topic_coverage")
         .select(
           "id, syllabus_id, class_id, teacher_id, status, syllabus!inner(topic, subject_id, term, academic_year)",
@@ -972,7 +974,8 @@ export default function GradesPage() {
         .eq("class_id", selectedClass)
         .eq("syllabus.subject_id", selectedSubject)
         .eq("syllabus.term", currentTerm)
-        .eq("syllabus.academic_year", academicYear);
+        .eq("syllabus.academic_year", academicYear), 15000, null as any);
+      const { data, error } = result || { data: [], error: null };
 
       if (error) throw error;
 

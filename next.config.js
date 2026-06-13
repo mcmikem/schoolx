@@ -1,6 +1,10 @@
 const path = require("path");
 const { withSentryConfig } = require("@sentry/nextjs");
 
+const withBundleAnalyzer = process.env.ANALYZE === "true"
+  ? require("@next/bundle-analyzer")({ enabled: true })
+  : (config) => config;
+
 /** @type {import('next').NextConfig} */
 function supabaseImageHosts() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -78,7 +82,7 @@ const nextConfig = {
   },
 };
 
-module.exports = withSentryConfig(nextConfig, {
+module.exports = withBundleAnalyzer(withSentryConfig(nextConfig, {
   org: process.env.SENTRY_ORG,
   project: process.env.SENTRY_PROJECT,
   authToken: process.env.SENTRY_AUTH_TOKEN,
@@ -89,4 +93,4 @@ module.exports = withSentryConfig(nextConfig, {
   sourcemaps: {
     disable: false,
   },
-});
+}));
