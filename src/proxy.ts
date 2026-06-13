@@ -149,6 +149,7 @@ function applySecurityHeaders(response: NextResponse) {
     "https://graph.facebook.com",
     "https://*.google.com",
     "https://*.gstatic.com",
+    "https://*.ingest.sentry.io",
   ];
   if (!isProduction) {
     connectSrcParts.push("http://127.0.0.1:*", "http://localhost:*", "ws://127.0.0.1:*", "ws://localhost:*");

@@ -36,7 +36,7 @@ export default function ReportsPage() {
   const [loadingReport, setLoadingReport] = useState(false);
 
   useEffect(() => {
-    refreshSchoolFromAPI?.().catch(() => {});
+    refreshSchoolFromAPI?.().catch((err) => logger.warn("[reports] refreshSchoolFromAPI failed", err));
   }, [refreshSchoolFromAPI]);
 
   const toDataUrl = async (url: string): Promise<string> => {

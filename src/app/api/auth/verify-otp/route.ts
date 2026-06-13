@@ -107,9 +107,6 @@ export async function POST(request: NextRequest) {
       email: authEmail,
       user: {
         id: parentUser.id,
-        auth_id: parentUser.auth_id,
-        full_name: parentUser.full_name,
-        phone: parentUser.phone,
         role: parentUser.role,
         school_id: parentUser.school_id,
       },

@@ -751,9 +751,9 @@ signInLockTimer.current = setTimeout(() => {
                   "events",
                   "timetable",
                 ])
-                .catch(() => {});
+                .catch((err) => logger.warn("[auth] Background offlineDB refresh failed", err));
             })
-            .catch(() => {});
+            .catch((err) => logger.warn("[auth] Dynamic import of offlineDB failed", err));
 
           releaseSignInLock();
           // Return success — onAuthStateChange handler is the single source of

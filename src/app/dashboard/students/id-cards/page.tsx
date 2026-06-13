@@ -9,6 +9,7 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { useReactToPrint } from "react-to-print";
 import { useSearchParams } from "next/navigation";
 import { DEMO_STUDENTS } from "@/lib/demo-data";
+import { logger } from "@/lib/logger";
 
 export default function IDCardGenerator() {
   const { school: authSchool, isDemo, refreshSchoolFromAPI } = useAuth();
@@ -21,7 +22,7 @@ export default function IDCardGenerator() {
   const printRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    refreshSchoolFromAPI?.().catch(() => {});
+    refreshSchoolFromAPI?.().catch((err) => logger.warn("[id-cards] refreshSchoolFromAPI failed", err));
   }, [refreshSchoolFromAPI]);
 
   const loadSingleStudent = useCallback(async (id: string) => {

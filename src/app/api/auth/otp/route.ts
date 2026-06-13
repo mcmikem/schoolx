@@ -14,6 +14,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { logger } from "@/lib/logger";
+import { rateLimitAsync } from "@/lib/api-utils";
 import { sendAfricasTalkingSMSWithRetry, formatUgandaPhone } from "@/lib/africas-talking";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
@@ -33,6 +34,11 @@ function generateOtp(): string {
 
 export async function POST(request: NextRequest) {
   try {
+    const rateCheck = await rateLimitAsync(request, 5, 300000);
+    if (!rateCheck.success) {
+      return NextResponse.json({ error: "Too many requests. Try again later." }, { status: 429 });
+    }
+
     const { phone, schoolId } = await request.json();
     if (!phone) {
       return NextResponse.json({ error: "Phone number required" }, { status: 400 });

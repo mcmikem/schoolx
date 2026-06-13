@@ -68,7 +68,7 @@ function ServiceWorkerRegistration({ children }: { children: ReactNode }) {
       navigator.serviceWorker.register('/sw.js')
         .then(async (registration) => {
           logger.log('Service Worker registered:', registration.scope)
-          await registration.update().catch(() => {})
+          await registration.update().catch((err) => logger.warn("[SW] Update failed", err))
 
           if (registration.waiting && shouldForceAuthRouteUpdate) {
             registration.waiting.postMessage({ type: 'SKIP_WAITING' })

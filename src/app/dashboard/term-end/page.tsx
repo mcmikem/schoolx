@@ -406,13 +406,13 @@ export default function TermEndPage() {
     setProcessSteps(processingSteps);
 
     try {
-      const cronSecret = process.env.NEXT_PUBLIC_CRON_SECRET || "";
-
-      const response = await fetch("/api/automation/term-end/", {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token || "";
+      const response = await fetch("/api/term-end/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...(cronSecret ? { "x-cron-secret": cronSecret } : {}),
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
         body: JSON.stringify({
           schoolId: school.id,

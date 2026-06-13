@@ -301,7 +301,7 @@ function ParentDashboardContent() {
           setUnreadCount((data.notifications || []).filter((n: any) => !n.is_read).length);
         }
       })
-      .catch(() => {});
+      .catch((err) => logger.warn("[parent-portal] Failed to fetch notifications", err));
   }, [isDemo]);
 
   useEffect(() => {

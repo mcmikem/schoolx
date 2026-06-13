@@ -1479,6 +1479,29 @@ AS $$
   SELECT school_id FROM users WHERE auth_id = auth.uid() LIMIT 1
 $$;
 
+CREATE OR REPLACE FUNCTION is_school_admin()
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+AS $$
+  SELECT is_school_admin(my_school_id())
+$$;
+
+CREATE OR REPLACE FUNCTION is_school_staff(p_school_id UUID)
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM users
+    WHERE auth_id = auth.uid()
+      AND school_id = p_school_id
+      AND role IN ('school_admin', 'headmaster', 'admin', 'super_admin', 'teacher', 'class_teacher', 'deputy_head')
+  )
+$$;
+
 CREATE OR REPLACE FUNCTION is_school_admin(p_school_id UUID)
 RETURNS BOOLEAN
 LANGUAGE sql
@@ -2939,6 +2962,131 @@ USING (
     WHERE u.auth_id = auth.uid()
   )
 );
+
+-- ============================================================================
+-- RLS for tables defined earlier without row-level security
+-- These were added in migrations but not backported to schema.sql
+-- ============================================================================
+
+ALTER TABLE audit_log ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users audit_log select" ON audit_log;
+CREATE POLICY "School users audit_log select" ON audit_log FOR SELECT TO authenticated USING (school_id = my_school_id());
+DROP POLICY IF EXISTS "School users audit_log insert" ON audit_log;
+CREATE POLICY "School users audit_log insert" ON audit_log FOR INSERT TO authenticated WITH CHECK (school_id = my_school_id());
+
+ALTER TABLE homework ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users homework all" ON homework;
+CREATE POLICY "School users homework all" ON homework FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+
+ALTER TABLE exams ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users exams all" ON exams;
+CREATE POLICY "School users exams all" ON exams FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+
+ALTER TABLE exam_scores ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users exam_scores all" ON exam_scores;
+CREATE POLICY "School users exam_scores all" ON exam_scores FOR ALL TO authenticated USING (student_id IN (SELECT id FROM students WHERE school_id = my_school_id())) WITH CHECK (student_id IN (SELECT id FROM students WHERE school_id = my_school_id()));
+
+ALTER TABLE dorms ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users dorms select" ON dorms;
+CREATE POLICY "School users dorms select" ON dorms FOR SELECT TO authenticated USING (school_id = my_school_id());
+DROP POLICY IF EXISTS "School admins dorms write" ON dorms;
+CREATE POLICY "School admins dorms write" ON dorms FOR ALL TO authenticated USING (school_id = my_school_id() AND (is_school_admin() OR is_school_staff(my_school_id()))) WITH CHECK (school_id = my_school_id() AND (is_school_admin() OR is_school_staff(my_school_id())));
+
+ALTER TABLE dorm_students ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users dorm_students all" ON dorm_students;
+CREATE POLICY "School users dorm_students all" ON dorm_students FOR ALL TO authenticated USING (dorm_id IN (SELECT id FROM dorms WHERE school_id = my_school_id())) WITH CHECK (dorm_id IN (SELECT id FROM dorms WHERE school_id = my_school_id()));
+
+ALTER TABLE leave_requests ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users leave_requests all" ON leave_requests;
+CREATE POLICY "School users leave_requests all" ON leave_requests FOR ALL TO authenticated USING (school_id = my_school_id() OR EXISTS (SELECT 1 FROM users u WHERE u.id = staff_id AND u.school_id = my_school_id())) WITH CHECK (school_id = my_school_id() OR EXISTS (SELECT 1 FROM users u WHERE u.id = staff_id AND u.school_id = my_school_id()));
+
+ALTER TABLE subject_allocations ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users subject_allocations all" ON subject_allocations;
+CREATE POLICY "School users subject_allocations all" ON subject_allocations FOR ALL TO authenticated USING (class_id IN (SELECT id FROM classes WHERE school_id = my_school_id())) WITH CHECK (class_id IN (SELECT id FROM classes WHERE school_id = my_school_id()));
+
+ALTER TABLE health_records ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users health_records all" ON health_records;
+CREATE POLICY "School users health_records all" ON health_records FOR ALL TO authenticated USING (student_id IN (SELECT id FROM students WHERE school_id = my_school_id())) WITH CHECK (student_id IN (SELECT id FROM students WHERE school_id = my_school_id()));
+
+ALTER TABLE health_visits ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users health_visits all" ON health_visits;
+CREATE POLICY "School users health_visits all" ON health_visits FOR ALL TO authenticated USING (student_id IN (SELECT id FROM students WHERE school_id = my_school_id())) WITH CHECK (student_id IN (SELECT id FROM students WHERE school_id = my_school_id()));
+
+ALTER TABLE assets ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users assets all" ON assets;
+CREATE POLICY "School users assets all" ON assets FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+
+ALTER TABLE asset_assignments ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users asset_assignments all" ON asset_assignments;
+CREATE POLICY "School users asset_assignments all" ON asset_assignments FOR ALL TO authenticated USING (asset_id IN (SELECT id FROM assets WHERE school_id = my_school_id())) WITH CHECK (asset_id IN (SELECT id FROM assets WHERE school_id = my_school_id()));
+
+ALTER TABLE transport_routes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users transport_routes all" ON transport_routes;
+CREATE POLICY "School users transport_routes all" ON transport_routes FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+
+ALTER TABLE transport_students ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users transport_students all" ON transport_students;
+CREATE POLICY "School users transport_students all" ON transport_students FOR ALL TO authenticated USING (student_id IN (SELECT id FROM students WHERE school_id = my_school_id())) WITH CHECK (student_id IN (SELECT id FROM students WHERE school_id = my_school_id()));
+
+ALTER TABLE budgets ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users budgets all" ON budgets;
+CREATE POLICY "School users budgets all" ON budgets FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+
+ALTER TABLE expenses ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users expenses all" ON expenses;
+CREATE POLICY "School users expenses all" ON expenses FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+
+ALTER TABLE behavior_logs ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users behavior_logs all" ON behavior_logs;
+CREATE POLICY "School users behavior_logs all" ON behavior_logs FOR ALL TO authenticated USING (student_id IN (SELECT id FROM students WHERE school_id = my_school_id())) WITH CHECK (student_id IN (SELECT id FROM students WHERE school_id = my_school_id()));
+
+ALTER TABLE lesson_plans ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School staff lesson_plans all" ON lesson_plans;
+CREATE POLICY "School staff lesson_plans all" ON lesson_plans FOR ALL TO authenticated USING (school_id = my_school_id() AND is_school_staff(my_school_id())) WITH CHECK (school_id = my_school_id() AND is_school_staff(my_school_id()));
+
+ALTER TABLE scheme_of_work ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users scheme_of_work all" ON scheme_of_work;
+CREATE POLICY "School users scheme_of_work all" ON scheme_of_work FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+
+ALTER TABLE teacher_timetable ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users teacher_timetable all" ON teacher_timetable;
+CREATE POLICY "School users teacher_timetable all" ON teacher_timetable FOR ALL TO authenticated USING (EXISTS (SELECT 1 FROM users u WHERE u.id = teacher_timetable.teacher_id AND u.school_id = my_school_id())) WITH CHECK (EXISTS (SELECT 1 FROM users u WHERE u.id = teacher_timetable.teacher_id AND u.school_id = my_school_id()));
+
+ALTER TABLE dorm_attendance ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users dorm_attendance all" ON dorm_attendance;
+CREATE POLICY "School users dorm_attendance all" ON dorm_attendance FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+
+ALTER TABLE homework_submissions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users homework_submissions all" ON homework_submissions;
+CREATE POLICY "School users homework_submissions all" ON homework_submissions FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+
+ALTER TABLE uneb_candidates ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users uneb_candidates all" ON uneb_candidates;
+CREATE POLICY "School users uneb_candidates all" ON uneb_candidates FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+
+ALTER TABLE student_promotions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users student_promotions all" ON student_promotions;
+CREATE POLICY "School users student_promotions all" ON student_promotions FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+
+ALTER TABLE payment_plans ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users payment_plans all" ON payment_plans;
+CREATE POLICY "School users payment_plans all" ON payment_plans FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+
+ALTER TABLE payment_plan_installments ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users payment_plan_installments all" ON payment_plan_installments;
+CREATE POLICY "School users payment_plan_installments all" ON payment_plan_installments FOR ALL TO authenticated USING (plan_id IN (SELECT id FROM payment_plans WHERE school_id = my_school_id())) WITH CHECK (plan_id IN (SELECT id FROM payment_plans WHERE school_id = my_school_id()));
+
+ALTER TABLE leave_approvals ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users leave_approvals all" ON leave_approvals;
+CREATE POLICY "School users leave_approvals all" ON leave_approvals FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+
+ALTER TABLE expense_approvals ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users expense_approvals all" ON expense_approvals;
+CREATE POLICY "School users expense_approvals all" ON expense_approvals FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+
+ALTER TABLE topic_coverage ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users topic_coverage all" ON topic_coverage;
+CREATE POLICY "School users topic_coverage all" ON topic_coverage FOR ALL TO authenticated USING (class_id IN (SELECT id FROM classes WHERE school_id = my_school_id())) WITH CHECK (class_id IN (SELECT id FROM classes WHERE school_id = my_school_id()));
 
 -- ============================================
 -- INVOICES TABLE
