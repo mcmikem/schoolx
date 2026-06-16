@@ -80,13 +80,15 @@ const STANDARD_TOPICS: Record<string, string[]> = {
   ],
 };
 
-const ASSESSMENT_TYPES = ["ca1", "ca2", "ca3", "exam"] as const;
+const ASSESSMENT_TYPES = ["ca1", "ca2", "ca3", "ca4", "project", "exam"] as const;
 const COMPETENCY_ASSESSMENT_TYPES = ["competency"] as const;
 const ASSESSMENT_MAX: Record<string, number> = {
   ca1: 10,
   ca2: 10,
   ca3: 10,
-  exam: 70,
+  ca4: 10,
+  project: 20,
+  exam: 50,
 };
 
 async function saveGrade(grade: {
@@ -301,9 +303,12 @@ export default function GradesPage() {
     {},
   );
   const assessmentLabels: Record<string, string> = {
-    ca1: "Test 1",
-    ca2: "Test 2",
-    ca3: "Test 3",
+    ca1: "CA1",
+
+    ca2: "CA2",
+    ca3: "CA3",
+    ca4: "CA4",
+    project: "Project",
     exam: "Final Exam",
   };
   const touchStartX = useRef(0);
@@ -453,7 +458,7 @@ export default function GradesPage() {
               })
               .eq("class_id", selectedClass)
               .eq("subject_id", selectedSubject)
-              .in("assessment_type", ["ca1", "ca2", "ca3"])
+              .in("assessment_type", ["ca1", "ca2", "ca3", "ca4"])
               .eq("term", currentTerm)
               .eq("academic_year", academicYear),
           { timeoutMs: 10000, timeoutMessage: "Unlock CA timed out" },
@@ -825,6 +830,8 @@ export default function GradesPage() {
         "CA1",
         "CA2",
         "CA3",
+        "CA4",
+        "Project",
         "Exam",
         "Total",
         "Grade",
@@ -833,6 +840,8 @@ export default function GradesPage() {
         const ca1 = getMark(student.id, "ca1");
         const ca2 = getMark(student.id, "ca2");
         const ca3 = getMark(student.id, "ca3");
+        const ca4 = getMark(student.id, "ca4");
+        const project = getMark(student.id, "project");
         const exam = getMark(student.id, "exam");
         const total = getStudentTotal(student.id);
         const gradeInfo = total !== null ? getGrade(total) : null;
@@ -842,6 +851,8 @@ export default function GradesPage() {
           ca1 !== null ? String(ca1) : "",
           ca2 !== null ? String(ca2) : "",
           ca3 !== null ? String(ca3) : "",
+          ca4 !== null ? String(ca4) : "",
+          project !== null ? String(project) : "",
           exam !== null ? String(exam) : "",
           total !== null ? String(total) : "",
           gradeInfo ? gradeInfo.grade : "",
@@ -1639,13 +1650,13 @@ export default function GradesPage() {
                       <p className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-3">
                         Set All Students
                       </p>
-                      {(["ca1", "ca2", "ca3", "exam"] as const).map((type) => (
+                      {([...ASSESSMENT_TYPES] as const).map((type) => (
                         <div
                           key={type}
                           className="flex items-center gap-2 mb-2"
                         >
                           <span className="text-xs font-semibold text-on-surface-variant w-10">
-                            {type.toUpperCase()}
+                            {type === "ca1" ? "CA1" : type === "ca2" ? "CA2" : type === "ca3" ? "CA3" : type === "ca4" ? "CA4" : type === "project" ? "Proj" : type.toUpperCase()}
                           </span>
                           <input
                             type="number"
@@ -1759,18 +1770,11 @@ export default function GradesPage() {
                             </th>
                           ) : (
                             <>
-                              <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
-                                CA1 (10)
-                              </th>
-                              <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
-                                CA2 (10)
-                              </th>
-                              <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
-                                CA3 (10)
-                              </th>
-                              <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
-                                Exam (70)
-                              </th>
+                              {ASSESSMENT_TYPES.map((type) => (
+                                <th key={type} className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
+                                  {type === "ca1" ? "CA1" : type === "ca2" ? "CA2" : type === "ca3" ? "CA3" : type === "ca4" ? "CA4" : type === "project" ? "Project" : "Exam"} ({ASSESSMENT_MAX[type]})
+                                </th>
+                              ))}
                             </>
                           )}
                           <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
@@ -1885,7 +1889,7 @@ export default function GradesPage() {
                                     </div>
                                   </td>
                                 ) : (
-                                  ["ca1", "ca2", "ca3", "exam"].map((type) => (
+                                  [...ASSESSMENT_TYPES].map((type) => (
                                   <td key={type} className="px-4 py-5">
                                     <div className="relative">
                                       <input
@@ -2074,7 +2078,7 @@ export default function GradesPage() {
                             </div>
                           );
                         }
-                        return (["ca1", "ca2", "ca3", "exam"] as const).map((type) => {
+                        return ([...ASSESSMENT_TYPES] as const).map((type) => {
                           const val = getMark(studentId, type);
                           return (
                             <div key={type} className="space-y-2">

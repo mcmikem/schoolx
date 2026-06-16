@@ -85,54 +85,133 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
 
   headmaster: [
     {
-      label: "Main Hub",
-      icon: "dashboard",
+      label: "Today",
+      icon: "today",
       defaultOpen: true,
       items: [
-        { href: "/dashboard", label: "Dashboard Home", icon: "dashboard" },
+        { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
         {
-          href: "/dashboard/store/inventory",
-          label: "Inventory",
-          icon: "inventory_2",
+          href: "/dashboard/attendance",
+          label: "Attendance",
+          icon: "how_to_reg",
         },
-        ...(process.env.NODE_ENV !== "production"
-          ? [{
-              href: "/dashboard/analytics/dna",
-              label: "Performance DNA",
-              icon: "biotech",
-              badge: "New",
-            }]
-          : []),
         {
-          href: "/dashboard/analytics",
-          label: "Insights",
-          icon: "analytics",
+          href: "/dashboard/fees",
+          label: "Fees",
+          icon: "payments",
         },
         {
           href: "/dashboard/messages",
           label: "Messages",
           icon: "chat",
         },
-        ...(process.env.NODE_ENV !== "production"
-          ? [{
-              href: "/dashboard/suggestions",
-              label: "Suggestions",
-              icon: "lightbulb",
-            }]
-          : []),
       ],
     },
     {
-      label: "Students & Staff",
-      icon: "group",
+      label: "Daily Work",
+      icon: "work",
       defaultOpen: true,
-
       items: [
-        { href: "/dashboard/students", label: "Student Hub", icon: "group" },
+        { href: "/dashboard/students", label: "Students", icon: "group" },
+        { href: "/dashboard/staff", label: "Staff", icon: "person" },
+        {
+          href: "/dashboard/grades",
+          label: "Grades & Reports",
+          icon: "menu_book",
+        },
+        {
+          href: "/dashboard/timetable",
+          label: "Timetable",
+          icon: "calendar_month",
+        },
+        {
+          href: "/dashboard/calendar",
+          label: "School Calendar",
+          icon: "calendar_today",
+        },
+        {
+          href: "/dashboard/analytics",
+          label: "Analytics",
+          icon: "analytics",
+        },
+      ],
+    },
+    {
+      label: "Teaching & Exams",
+      icon: "school",
+      defaultOpen: false,
+      items: [
+        {
+          href: "/dashboard/exams",
+          label: "Exams",
+          icon: "fact_check",
+        },
+        {
+          href: "/dashboard/homework",
+          label: "Assignments",
+          icon: "assignment",
+        },
+        {
+          href: "/dashboard/syllabus",
+          label: "Syllabus",
+          icon: "track_changes",
+        },
+        {
+          href: "/dashboard/academic-terms",
+          label: "Academic Terms",
+          icon: "calendar_today",
+        },
+        {
+          href: "/dashboard/courses",
+          label: "Courses",
+          icon: "menu_book",
+        },
+        { href: "/dashboard/bulk-sms", label: "SMS Centre", icon: "sms" },
+      ],
+    },
+    {
+      label: "Reports & Readiness",
+      icon: "description",
+      defaultOpen: false,
+      items: [
         {
           href: "/dashboard/students/id-cards",
-          label: "Identity Center",
+          label: "ID Cards",
           icon: "id_card",
+        },
+        {
+          href: "/dashboard/reports",
+          label: "Financial Reports",
+          icon: "analytics",
+        },
+        {
+          href: "/dashboard/teacher-performance",
+          label: "Teacher Performance",
+          icon: "trending_up",
+          permissions: ["headmaster", "dean_of_studies", "admin"],
+        },
+        {
+          href: "/dashboard/data-quality",
+          label: "Data Quality",
+          icon: "rule",
+        },
+        { href: "/dashboard/audit", label: "Audit Log", icon: "history" },
+      ],
+    },
+    {
+      label: "School Office",
+      icon: "business",
+      defaultOpen: false,
+      items: [
+        {
+          href: "/dashboard/budget",
+          label: "Budget",
+          icon: "account_balance_wallet",
+        },
+        {
+          href: "/dashboard/payroll",
+          label: "Payroll",
+          icon: "payments",
         },
         {
           href: "/dashboard/students/graduation",
@@ -145,151 +224,13 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
           icon: "diversity_3",
         },
         {
-          href: "/dashboard/students/photos",
-          label: "Batch Photos",
-          icon: "photo_library",
-        },
-        ...(process.env.NODE_ENV !== "production"
-          ? [{
-              href: "/dashboard/students/conduct",
-              label: "Conduct & Merits",
-              icon: "military_tech",
-            }]
-          : []),
-        {
           href: "/dashboard/student-enrollments",
           label: "Enrollments",
           icon: "school",
         },
         {
-          href: "/dashboard/courses",
-          label: "Courses",
-          icon: "menu_book",
-        },
-        { href: "/dashboard/staff", label: "Staff Hub", icon: "person" },
-        {
-          href: "/dashboard/attendance",
-          label: "Attendance",
-          icon: "how_to_reg",
-        },
-        {
-          href: "/dashboard/teacher-performance",
-          label: "Performance",
-          icon: "trending_up",
-          permissions: ["headmaster", "dean_of_studies", "admin"],
-        },
-        {
-          href: "/dashboard/staff-performance",
-          label: "Staff Analytics",
-          icon: "analytics",
-          permissions: ["headmaster", "dean_of_studies", "admin"],
-        },
-      ],
-    },
-    {
-      label: "School Academics",
-      icon: "menu_book",
-
-      defaultOpen: false,
-      items: [
-        {
-          href: "/dashboard/academic-terms",
-          label: "Academic Terms",
-          icon: "calendar_today",
-        },
-        {
-          href: "/dashboard/grades",
-          label: "Grades & Reports",
-          icon: "menu_book",
-        },
-        {
-          href: "/dashboard/exams",
-          label: "Exams",
-          icon: "fact_check",
-        },
-        {
-          href: "/dashboard/calendar",
-          label: "School Calendar",
-          icon: "calendar_today",
-        },
-        {
-          href: "/dashboard/timetable",
-          label: "Timetable",
-          icon: "calendar_month",
-        },
-        {
-          href: "/dashboard/syllabus",
-          label: "Syllabus",
-          icon: "track_changes",
-        },
-        {
-          href: "/dashboard/homework",
-          label: "Assignments",
-          icon: "assignment",
-        },
-        { href: "/dashboard/bulk-sms", label: "SMS Centre", icon: "sms" },
-        { href: "/dashboard/sms-delivery", label: "SMS Delivery", icon: "summarize" },
-      ],
-    },
-    {
-      label: "Financial Hub",
-      icon: "payments",
-
-      defaultOpen: false,
-      items: [
-        { href: "/dashboard/fees", label: "Finance Hub", icon: "payments" },
-        {
-          href: "/dashboard/fee-terms",
-          label: "Fee Terms",
-          icon: "rule",
-        },
-        {
-          href: "/dashboard/budget",
-          label: "Budget",
-          icon: "account_balance_wallet",
-        },
-        {
-          href: "/dashboard/payroll",
-          label: "Payroll",
-          icon: "payments",
-        },
-        {
-          href: "/dashboard/reports",
-          label: "Financial Reports",
-          icon: "analytics",
-        },
-      ],
-    },
-    {
-      label: "More",
-      icon: "more_horiz",
-      defaultOpen: false,
-      priority: 1,
-      items: [
-        ...(process.env.NODE_ENV !== "production"
-          ? [{
-              href: "/dashboard/store/pos",
-              label: "Canteen POS",
-              icon: "shopping_cart",
-            }, {
-              href: "/dashboard/store/meal-scan",
-              label: "Meal Scan",
-              icon: "restaurant",
-            }]
-          : []),
-        {
-          href: "/dashboard/store/inventory",
-          label: "Inventory",
-          icon: "inventory",
-        },
-        {
-          href: "/dashboard/store/wallets",
-          label: "Student Wallets",
-          icon: "account_balance_wallet",
-        },
-        {
           href: "/dashboard/health",
-          label: "Health/Sick Bay",
+          label: "Health / Sick Bay",
           icon: "local_hospital",
         },
         {
@@ -303,6 +244,24 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
           label: "Boarding",
           icon: "bed",
         },
+      ],
+    },
+    {
+      label: "Other Tools",
+      icon: "more_horiz",
+      defaultOpen: false,
+      priority: 1,
+      items: [
+        {
+          href: "/dashboard/store/inventory",
+          label: "Inventory",
+          icon: "inventory",
+        },
+        {
+          href: "/dashboard/store/wallets",
+          label: "Student Wallets",
+          icon: "account_balance_wallet",
+        },
         {
           href: "/dashboard/settings",
           label: "Settings",
@@ -313,18 +272,31 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
           label: "Role Permissions",
           icon: "admin_panel_settings",
         },
-        {
-          href: "/dashboard/data-quality",
-          label: "Data Quality",
-          icon: "rule",
-        },
-        { href: "/dashboard/audit", label: "Audit Log", icon: "history" },
         { href: "/dashboard/audit/scan-events", label: "Scan Events", icon: "qr_code_scanner" },
         {
           href: "/dashboard/sync-center",
-          label: "Sync Center",
+          label: "Offline Sync",
           icon: "sync",
         },
+        ...(process.env.NODE_ENV !== "production"
+          ? [{
+              href: "/dashboard/store/pos",
+              label: "Canteen POS",
+              icon: "shopping_cart",
+            }, {
+              href: "/dashboard/store/meal-scan",
+              label: "Meal Scan",
+              icon: "restaurant",
+            }, {
+              href: "/dashboard/analytics/dna",
+              label: "Performance DNA",
+              icon: "biotech",
+            }, {
+              href: "/dashboard/suggestions",
+              label: "Suggestions",
+              icon: "lightbulb",
+            }]
+          : []),
       ],
     },
   ],
@@ -472,7 +444,8 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
 
   teacher: [
     {
-      label: "Main",
+      label: "My Day",
+      icon: "today",
       defaultOpen: true,
       items: [
         { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
@@ -484,30 +457,47 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
       ],
     },
     {
-      label: "Academics",
+      label: "Take Attendance",
+      icon: "how_to_reg",
       defaultOpen: true,
       items: [
         {
           href: "/dashboard/attendance",
-          label: "Attendance",
+          label: "Class Attendance",
           icon: "how_to_reg",
         },
+      ],
+    },
+    {
+      label: "Enter Marks",
+      icon: "grade",
+      defaultOpen: true,
+      items: [
         {
           href: "/dashboard/grades",
           label: "Record Grades",
-          icon: "menu_book",
+          icon: "grade",
         },
         { href: "/dashboard/exams", label: "Exams", icon: "fact_check" },
+      ],
+    },
+    {
+      label: "Assignments",
+      icon: "assignment",
+      defaultOpen: true,
+      items: [
         { href: "/dashboard/homework", label: "Homework", icon: "assignment" },
+        { href: "/dashboard/messages", label: "Messages", icon: "chat" },
       ],
     },
     {
       label: "Planning",
+      icon: "menu_book",
       defaultOpen: false,
       items: [
         {
           href: "/dashboard/syllabus",
-          label: "Syllabus Track",
+          label: "Syllabus",
           icon: "track_changes",
         },
         {
@@ -523,25 +513,12 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
       ],
     },
     {
-      label: "Services",
+      label: "Support",
+      icon: "support",
       defaultOpen: false,
       items: [
-        { href: "/dashboard/messages", label: "Messages", icon: "chat" },
         { href: "/dashboard/health", label: "Health", icon: "local_hospital" },
         { href: "/dashboard/library", label: "Library", icon: "local_library" },
-      ],
-    },
-    {
-      label: "School Xperience",
-      icon: "rocket_launch",
-      defaultOpen: false,
-      items: [
-        { href: "/dashboard/osx", label: "Chapter Home", icon: "home" },
-        {
-          href: "/dashboard/osx?tab=red",
-          label: "RED Campaign",
-          icon: "female",
-        },
       ],
     },
   ],

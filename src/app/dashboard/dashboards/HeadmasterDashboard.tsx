@@ -25,6 +25,7 @@ import { safeGetItem, safeSetItem } from "@/lib/safe-storage";
 import SchoolCalendar from "@/components/dashboard/SchoolCalendar";
 import OnboardingProgressBar from "@/components/OnboardingProgressBar";
 import SyllabusProgressWidget from "@/components/SyllabusProgressWidget";
+import { SchoolReadinessGuide } from "@/components/dashboard/SchoolReadinessGuide";
 
 function formatCurrency(amount: number) {
   if (amount >= 1000000) return `${(amount / 1000000).toFixed(1)}M`;
@@ -415,6 +416,42 @@ function HeadmasterDashboardContent() {
 
   return (
     <div className="content overflow-x-hidden">
+      <SchoolReadinessGuide
+        title="Before Inspection"
+        items={[
+          {
+            label: "Student records",
+            status: students.length > 0 ? "ok" : "missing",
+            link: "/dashboard/students?action=add",
+            detail: students.length > 0 ? `${students.length} enrolled` : "No students enrolled yet",
+          },
+          {
+            label: "Attendance taken today",
+            status: stats.presentToday > 0 ? "ok" : "pending",
+            link: "/dashboard/attendance",
+            detail: stats.presentToday > 0 ? `${stats.presentToday} present` : "Not taken yet",
+          },
+          {
+            label: "Fee collection",
+            status: collectionRate >= 60 ? "ok" : "pending",
+            link: "/dashboard/fees",
+            detail: collectionRate >= 60 ? `${collectionRate}% collected` : `${collectionRate}% collected — below 60% target`,
+          },
+          {
+            label: "Pending approvals",
+            status: totalPendingApprovals === 0 ? "ok" : "pending",
+            link: "/dashboard/expense-approvals",
+            detail: totalPendingApprovals === 0 ? "None" : `${totalPendingApprovals} item${totalPendingApprovals > 1 ? 's' : ''} waiting`,
+          },
+          {
+            label: "Classes with low attendance",
+            status: lowAttendanceClasses === 0 ? "ok" : "pending",
+            link: "/dashboard/attendance",
+            detail: lowAttendanceClasses === 0 ? "All classes on track" : `${lowAttendanceClasses} class${lowAttendanceClasses > 1 ? 'es' : ''} below 70%`,
+          },
+        ]}
+      />
+
       <section
         className="relative mb-6 overflow-hidden rounded-[36px] border border-white/65 p-4 shadow-[0_28px_70px_rgba(15,23,42,0.08)] sm:p-6"
         style={{

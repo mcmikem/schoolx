@@ -23,6 +23,7 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import { useToast } from "@/components/Toast";
 import { TopLoadingBar, StuckLoadingOverlay } from "@/components/ui/Skeleton";
 import OwlMascot from "@/components/brand/OwlMascot";
+import { TeacherQuickGuide } from "@/components/dashboard/SchoolReadinessGuide";
 
 import StatCard from "@/components/dashboard/StatCard";
 
@@ -126,6 +127,8 @@ function TeacherDashboardContent() {
         <div className="pointer-events-none absolute -right-16 bottom-0 h-40 w-40 rounded-full bg-[#d8e9fb]/60 blur-3xl" />
 
         <div className="relative z-10">
+      <TeacherQuickGuide />
+
       {/* Section 1: GREETING + MY DAY */}
       <section className="relative mb-6 overflow-hidden rounded-[34px] border border-white/70 bg-[linear-gradient(130deg,#f9fbff_0%,#eff6ff_40%,#f8faff_100%)] p-4 sm:p-6">
         <div className="flex items-start justify-between gap-3">

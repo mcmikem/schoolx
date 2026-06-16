@@ -68,6 +68,8 @@ export const ASSESSMENT_TYPES = {
   CA1: 'ca1',
   CA2: 'ca2',
   CA3: 'ca3',
+  CA4: 'ca4',
+  PROJECT: 'project',
   EXAM: 'exam',
 } as const
 
