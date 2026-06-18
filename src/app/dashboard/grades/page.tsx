@@ -524,6 +524,13 @@ export default function GradesPage() {
     return parts.reduce((sum, p) => (sum ?? 0) + (p ?? 0), 0) ?? null;
   };
 
+  const activeAssessmentTypes = useMemo(
+    () => ASSESSMENT_TYPES.filter((type) =>
+      filteredStudents.some((s) => marks[`${s.id}_${type}`] !== null && marks[`${s.id}_${type}`] !== undefined)
+    ),
+    [marks, filteredStudents],
+  );
+
   const debouncedAutoSave = useCallback(
     (studentId: string, type: string) => {
       const key = `${studentId}_${type}`;
@@ -1650,7 +1657,7 @@ export default function GradesPage() {
                       <p className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-3">
                         Set All Students
                       </p>
-                      {([...ASSESSMENT_TYPES] as const).map((type) => (
+                      {activeAssessmentTypes.map((type) => (
                         <div
                           key={type}
                           className="flex items-center gap-2 mb-2"
@@ -1770,7 +1777,7 @@ export default function GradesPage() {
                             </th>
                           ) : (
                             <>
-                              {ASSESSMENT_TYPES.map((type) => (
+                              {activeAssessmentTypes.map((type) => (
                                 <th key={type} className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
                                   {type === "ca1" ? "CA1" : type === "ca2" ? "CA2" : type === "ca3" ? "CA3" : type === "ca4" ? "CA4" : type === "project" ? "Project" : "Exam"} ({ASSESSMENT_MAX[type]})
                                 </th>
@@ -1889,7 +1896,7 @@ export default function GradesPage() {
                                     </div>
                                   </td>
                                 ) : (
-                                  [...ASSESSMENT_TYPES].map((type) => (
+                                  activeAssessmentTypes.map((type) => (
                                   <td key={type} className="px-4 py-5">
                                     <div className="relative">
                                       <input
@@ -2078,7 +2085,7 @@ export default function GradesPage() {
                             </div>
                           );
                         }
-                        return ([...ASSESSMENT_TYPES] as const).map((type) => {
+                        return activeAssessmentTypes.map((type) => {
                           const val = getMark(studentId, type);
                           return (
                             <div key={type} className="space-y-2">

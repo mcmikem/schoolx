@@ -292,15 +292,15 @@ function HeadmasterDashboardContent() {
   const quickActions = useMemo(
     () => [
       {
-        label: "Asset register",
-        href: "/dashboard/store/inventory",
-        icon: "inventory_2",
+        label: "Add student",
+        href: "/dashboard/students?action=add",
+        icon: "person_add",
         color: "navy",
       },
       {
-        label: "Enroll student",
-        href: "/dashboard/students?action=add",
-        icon: "person_add",
+        label: "View students",
+        href: "/dashboard/students",
+        icon: "group",
         color: "navy",
       },
       {
@@ -491,7 +491,7 @@ function HeadmasterDashboardContent() {
             style={{ border: `1px solid ${schoolPrimary}33`, color: schoolPrimary }}
           >
             <MaterialIcon icon="dashboard" className="text-[13px]" />
-            Command Deck
+            Dashboard
           </div>
         </div>
         <div className="relative z-10 mb-4">
@@ -578,8 +578,8 @@ function HeadmasterDashboardContent() {
           <div className="lg:col-span-2 rounded-[24px] bg-white border border-[#e5ecf4] p-4">
             <div className="flex items-center justify-between gap-3 mb-3">
               <div>
-                <p className="text-[11px] uppercase tracking-[0.16em] text-[#7f91aa] font-bold">Today Actions</p>
-                <p className="text-sm font-semibold text-[#17325f]">Fast tasks for operations control</p>
+                <p className="text-[11px] uppercase tracking-[0.16em] text-[#7f91aa] font-bold">Quick Tasks</p>
+                <p className="text-sm font-semibold text-[#17325f]">Things to do today</p>
               </div>
               <div className="text-[11px] font-semibold text-[#60748f]">{pendingTaskCount} pending tasks</div>
             </div>
@@ -652,6 +652,56 @@ function HeadmasterDashboardContent() {
 
       <div className="mt-6">
         <SyllabusProgressWidget />
+      </div>
+
+      {/* Term End Checklist */}
+      <div className="mt-6 rounded-[24px] border border-[#e5ecf4] bg-white p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="material-symbols-outlined text-[#17325f] text-lg">checklist</span>
+          <span className="text-xs font-bold uppercase tracking-[0.16em] text-[#17325f]">Term End Checklist</span>
+        </div>
+        <div className="space-y-2">
+          {[
+            {
+              label: "Report cards generated",
+              ok: stats.totalStudents ? stats.totalStudents > 0 : false,
+              link: "/dashboard/report-cards",
+            },
+            {
+              label: "Attendance captured for term",
+              ok: Object.keys(classAttendance).length > 0,
+              link: "/dashboard/attendance",
+            },
+            {
+              label: "Fees reconciled",
+              ok: collectionRate >= 80,
+              link: "/dashboard/fees",
+            },
+            {
+              label: "Students promoted (if end of year)",
+              ok: false,
+              link: "/dashboard/students/graduation",
+            },
+            {
+              label: "Inventory counted",
+              ok: false,
+              link: "/dashboard/store/inventory",
+            },
+          ].map((item) => (
+            <Link key={item.label} href={item.link}
+              className={`flex items-center gap-3 rounded-xl border p-3 ${
+                item.ok ? "border-[#d8efe7] bg-[#f3fbf8]" : "border-[#f5d0c5] bg-[#ffefe8]"
+              }`}
+            >
+              <span className={`material-symbols-outlined text-lg ${
+                item.ok ? "text-[#1f8a70]" : "text-[#c2472b]"
+              }`}>
+                {item.ok ? "check_circle" : "radio_button_unchecked"}
+              </span>
+              <span className="text-xs font-semibold text-[#17325f]">{item.label}</span>
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
   );
