@@ -1277,6 +1277,27 @@ export default function GradesPage() {
           }
         />
 
+        {/* Step Guide */}
+        <div className="flex items-center gap-2 sm:gap-4 px-1 mb-2">
+          {[
+            { step: 1, label: "Choose class", done: !!selectedClass },
+            { step: 2, label: "Choose subject", done: !!selectedSubject && !!selectedSubjectName },
+            { step: 3, label: "Enter marks", done: Object.keys(marks).length > 0 },
+          ].map((s, i) => (
+            <div key={s.step} className="flex items-center gap-2">
+              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                s.done ? "bg-[#1f8a70] text-white" : "bg-[#e5ecf4] text-[#7f91aa]"
+              }`}>
+                {s.done ? <span className="material-symbols-outlined text-sm">check</span> : s.step}
+              </div>
+              <span className={`text-xs font-semibold ${s.done ? "text-[#1f8a70]" : "text-[#7f91aa]"}`}>
+                {s.label}
+              </span>
+              {i < 2 && <span className="text-[#d7e3f2] hidden sm:inline">&rarr;</span>}
+            </div>
+          ))}
+        </div>
+
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[
             {

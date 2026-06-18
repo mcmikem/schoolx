@@ -321,6 +321,12 @@ function HeadmasterDashboardContent() {
         icon: "sms",
         color: "purple",
       },
+      {
+        label: "Print defaulters",
+        href: "/dashboard/fees?tab=defaulters",
+        icon: "print",
+        color: "red",
+      },
     ],
     [],
   );
@@ -414,8 +420,29 @@ function HeadmasterDashboardContent() {
     );
   }
 
+  const isFirstRun = students.length === 0 && classes.length === 0 && !isDataLoading;
+
   return (
     <div className="content overflow-x-hidden">
+      {isFirstRun && (
+        <div className="mb-6 rounded-[24px] border border-[#d6e4e8] bg-[linear-gradient(150deg,#eff7f5_0%,#eaf2f6_44%,#f8fbff_100%)] p-6 text-center">
+          <span className="material-symbols-outlined text-[#17325f] text-4xl">rocket_launch</span>
+          <h2 className="text-lg font-bold text-[#17325f] mt-2">Welcome to {school?.name || "your school"}!</h2>
+          <p className="text-sm text-[#60748f] mt-1 max-w-md mx-auto">Start by adding students and setting up your classes. Everything else will follow.</p>
+          <div className="flex flex-wrap justify-center gap-3 mt-4">
+            <Link href="/dashboard/students?action=add" className="rounded-xl bg-[#17325f] px-5 py-2.5 text-xs font-bold text-white hover:opacity-90">
+              Add first student
+            </Link>
+            <Link href="/dashboard/settings" className="rounded-xl border border-[#17325f] px-5 py-2.5 text-xs font-bold text-[#17325f] hover:bg-[#edf4ff]">
+              School settings
+            </Link>
+            <Link href="/dashboard/onboarding" className="rounded-xl border border-[#d7e3f2] px-5 py-2.5 text-xs font-bold text-[#60748f] hover:bg-[#f8fbff]">
+              Setup guide
+            </Link>
+          </div>
+        </div>
+      )}
+
       <SchoolReadinessGuide
         title="Before Inspection"
         items={[
