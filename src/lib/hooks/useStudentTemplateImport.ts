@@ -4,8 +4,6 @@ import { useCallback, useState } from "react";
 import Papa from "papaparse";
 import type { CreateStudentInput } from "@/types";
 import { resolveClassIdForImport } from "@/lib/student-hub";
-import ExcelJS from "exceljs";
-
 export type TemplateRow = Record<string, string>;
 
 interface ImportSummary {
@@ -56,6 +54,7 @@ export function useStudentTemplateImport(
   );
 
   const parseExcelTemplate = useCallback(async (file: File) => {
+    const ExcelJS = (await import("exceljs")).default;
     const workbook = new ExcelJS.Workbook();
     const buffer = await file.arrayBuffer();
     await workbook.xlsx.load(buffer);

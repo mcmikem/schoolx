@@ -69,7 +69,6 @@
     "date-fns": "^4.1.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "exceljs": "^4.4.0",
-    "framer-motion": "^12.38.0",
     "html5-qrcode": "^2.3.8",
     "idb": "^8.0.3",
     "jspdf": "^4.2.1",

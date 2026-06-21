@@ -13,7 +13,7 @@ import {
 } from "@/lib/featureStages";
 import MaterialIcon from "@/components/MaterialIcon";
 import SchoolColorPicker from "@/components/SchoolColorPicker";
-import { withTimeout } from "@/lib/hooks/utils";
+import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 
 interface GeneralSettingsProps {
   schoolData: {
@@ -283,7 +283,7 @@ export default function GeneralSettings({
             .update({ logo_url: publicUrl })
             .eq("id", school.id),
           15000,
-          null as any,
+          timeoutFallback(),
         );
 
         if (fallbackError) {
@@ -377,7 +377,7 @@ export default function GeneralSettings({
           .update({ feature_stage: stage })
           .eq("id", school.id),
         15000,
-        { error: new Error("Save timed out") } as any,
+        timeoutFallback(),
       );
       if (error) throw error;
       setSelectedStage(stage);
@@ -407,7 +407,7 @@ export default function GeneralSettings({
           })
           .eq("id", school.id),
         15000,
-        { error: new Error("Save timed out") } as any,
+        timeoutFallback(),
       );
       if (error) throw error;
       await refreshSchool();
@@ -471,9 +471,9 @@ export default function GeneralSettings({
             <div>
               <p className="text-sm font-medium mb-2">Head Teacher Signature</p>
               <div className="h-20 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden bg-gray-50">
-                {(school as any)?.signature_headteacher_url ? (
+                {school?.signature_headteacher_url ? (
                   <Image
-                    src={(school as any).signature_headteacher_url}
+                    src={school.signature_headteacher_url}
                     alt="Head Teacher Signature"
                     width={150}
                     height={60}
@@ -507,9 +507,9 @@ export default function GeneralSettings({
                 Class Teacher Signature
               </p>
               <div className="h-20 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden bg-gray-50">
-                {(school as any)?.signature_class_teacher_url ? (
+                {school?.signature_class_teacher_url ? (
                   <Image
-                    src={(school as any).signature_class_teacher_url}
+                    src={school.signature_class_teacher_url}
                     alt="Class Teacher Signature"
                     width={150}
                     height={60}

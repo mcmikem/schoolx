@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/index";
 import { withTimeout } from "@/lib/hooks/utils";
 import { logger } from "@/lib/logger";
 
+type SupabaseResponse<T = unknown> = { data: T | null; error: unknown | null; count?: number | null };
+
 interface SmsRecord {
   id: string;
   automation_type: string | null;
@@ -53,7 +55,7 @@ export default function SmsDeliveryPage() {
             .eq("school_id", schoolId)
             .eq("status", "sent"),
           10000,
-          { count: 0 } as any,
+          { data: null, error: null, count: 0 } as SupabaseResponse,
         ),
         withTimeout(
           supabase
@@ -63,7 +65,7 @@ export default function SmsDeliveryPage() {
             .eq("school_id", schoolId)
             .eq("status", "failed"),
           10000,
-          { count: 0 } as any,
+          { data: null, error: null, count: 0 } as SupabaseResponse,
         ),
         withTimeout(
           supabase
@@ -73,7 +75,7 @@ export default function SmsDeliveryPage() {
             .eq("school_id", schoolId)
             .eq("status", "pending"),
           10000,
-          { count: 0 } as any,
+          { data: null, error: null, count: 0 } as SupabaseResponse,
         ),
         withTimeout(
           supabase
@@ -83,7 +85,7 @@ export default function SmsDeliveryPage() {
             .order("sent_at", { ascending: false })
             .limit(50),
           10000,
-          { data: [] } as any,
+          { data: [], error: null } as SupabaseResponse,
         ),
         withTimeout(
           supabase
@@ -92,32 +94,32 @@ export default function SmsDeliveryPage() {
             .gte("sent_at", thirtyDaysAgo)
             .eq("school_id", schoolId),
           10000,
-          { data: [] } as any,
+          { data: [], error: null } as SupabaseResponse,
         ),
       ]);
 
       if (sentRes.status === "fulfilled") {
-        setSentCount((sentRes.value as any).count ?? 0);
+        setSentCount(sentRes.value.count ?? 0);
       }
       if (failedRes.status === "fulfilled") {
-        setFailedCount((failedRes.value as any).count ?? 0);
+        setFailedCount(failedRes.value.count ?? 0);
       }
       if (pendingRes.status === "fulfilled") {
-        setPendingCount((pendingRes.value as any).count ?? 0);
+        setPendingCount(pendingRes.value.count ?? 0);
       }
 
       if (recentRes.status === "fulfilled") {
-        const { data } = recentRes.value as any;
+        const { data } = recentRes.value;
         if (Array.isArray(data)) {
-          setRecentRecords(data);
+          setRecentRecords(data as SmsRecord[]);
         }
       }
 
       if (autoRes.status === "fulfilled") {
-        const { data } = autoRes.value as any;
+        const { data } = autoRes.value;
         if (Array.isArray(data)) {
           const grouped: Record<string, { sent: number; failed: number; total: number }> = {};
-          data.forEach((r: { automation_type: string | null; status: string }) => {
+          (data as { automation_type: string | null; status: string }[]).forEach((r) => {
             const type = r.automation_type || "manual";
             if (!grouped[type]) {
               grouped[type] = { sent: 0, failed: 0, total: 0 };

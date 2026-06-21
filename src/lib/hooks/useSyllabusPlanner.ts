@@ -5,28 +5,45 @@
 import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { logger } from "@/lib/logger";
-import { withTimeout } from "@/lib/hooks/utils";
+import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import type {
-  SyllabusTimelineEntry,
   AutoPlannerConfig,
 } from "@/lib/syllabus-planner-utils";
-import {
-  calculateTermDates,
-  distributeTopicsAcrossWeeks,
-  calculateSyllabusProgress,
-} from "@/lib/syllabus-planner-utils";
 
-export interface SyllabusWithTimeline {
+export interface SyllabusTopicWithCoverage {
   id: string;
   topic: string;
   subtopics: string[] | null;
   objectives: string | null;
   weeks_covered: string | null;
   resources: string | null;
-  status: string;
-  timeline?: SyllabusTimelineEntry[];
+  status: "not_started" | "in_progress" | "completed";
+  completed_date: string | null;
+  notes: string | null;
+  completion_percentage: number;
+  lessons_planned: number;
+  lessons_completed: number;
+  student_comprehension_rating: number | null;
+  teacher_notes: string | null;
+  challenges: string | null;
+  week_number: number | null;
   progress?: { overall_percentage: number; weeks_completed: number; weeks_total: number; on_track: boolean };
+  // Used by legacy SyllabusTimelineView component
+  timeline?: Array<{
+    id?: string;
+    week_number: number;
+    status: string;
+    completion_percentage: number;
+    planned_start_date?: string;
+    planned_end_date?: string;
+    lessons_planned?: number;
+    lessons_completed?: number;
+  }>;
 }
+
+// Backward-compatible aliases for legacy components
+// @deprecated Use SyllabusTopicWithCoverage instead
+export type SyllabusWithTimeline = SyllabusTopicWithCoverage;
 
 export interface TopicPerformance {
   id: string;
@@ -49,69 +66,55 @@ export function useSyllabusTracker(
   termNumber: number | string = 1,
   academicYear: string = new Date().getFullYear().toString()
 ) {
-  const [syllabi, setSyllabi] = useState<SyllabusWithTimeline[]>([]);
+  const [syllabi, setSyllabi] = useState<SyllabusTopicWithCoverage[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchSyllabusWithTimeline = useCallback(async () => {
+  const fetchSyllabusWithCoverage = useCallback(async () => {
     if (!schoolId || !classId || !subjectId) return;
 
     setLoading(true);
     setError(null);
 
     try {
-      // Fetch syllabus topics
-      const { data: syllabusData, error: syllabusError } = await withTimeout(
+      const { data, error: err } = await withTimeout(
         supabase
           .from("syllabus")
-          .select("*")
+          .select("*, topic_coverage(*)")
           .eq("school_id", schoolId)
           .eq("class_id", classId)
           .eq("subject_id", subjectId)
           .eq("term", termNumber)
           .eq("academic_year", academicYear),
         5000,
-        { data: null, error: null } as any
+        timeoutFallback()
       );
 
-      if (syllabusError) throw syllabusError;
+      if (err) throw err;
 
-      // Fetch timeline for each syllabus
-      const syllabusIds = (syllabusData || []).map((s: any) => s.id) || [];
-
-      if (syllabusIds.length === 0) {
-        setSyllabi([]);
-        return;
-      }
-
-      const { data: timelineData, error: timelineError } = await withTimeout<any>(
-        supabase
-          .from("syllabus_timeline")
-          .select("*")
-          .in("syllabus_id", syllabusIds)
-          .eq("term", termNumber)
-          .eq("academic_year", academicYear)
-          .order("week_number", { ascending: true }),
-        5000,
-        { data: null, error: null } as any
-      );
-
-      if (timelineError) throw timelineError;
-
-      // Combine data
-      const combined = (syllabusData || []).map((syl: any) => {
-        const timeline =
-          (timelineData || []).filter((t: any) => t.syllabus_id === syl.id) || [];
-        const progress = calculateSyllabusProgress(timeline);
-
+      const mapped = (data || []).map((row: any) => {
+        const cov = row.topic_coverage?.[0] || {};
         return {
-          ...syl,
-          timeline,
-          progress,
+          id: row.id,
+          topic: row.topic,
+          subtopics: row.subtopics,
+          objectives: row.objectives,
+          weeks_covered: row.weeks_covered,
+          resources: row.resources,
+          status: cov.status || "not_started",
+          completed_date: cov.completed_date || null,
+          notes: cov.notes || null,
+          completion_percentage: cov.completion_percentage || 0,
+          lessons_planned: cov.lessons_planned || 0,
+          lessons_completed: cov.lessons_completed || 0,
+          student_comprehension_rating: cov.student_comprehension_rating || null,
+          teacher_notes: cov.teacher_notes || null,
+          challenges: cov.challenges || null,
+          week_number: cov.week_number || null,
         };
       });
 
-      setSyllabi(combined);
+      setSyllabi(mapped);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch syllabus");
       logger.error(err);
@@ -121,68 +124,175 @@ export function useSyllabusTracker(
   }, [schoolId, classId, subjectId, termNumber, academicYear]);
 
   useEffect(() => {
-    fetchSyllabusWithTimeline();
-  }, [fetchSyllabusWithTimeline]);
+    fetchSyllabusWithCoverage();
+  }, [fetchSyllabusWithCoverage]);
 
   return {
     syllabi,
     loading,
     error,
-    refetch: fetchSyllabusWithTimeline,
+    refetch: fetchSyllabusWithCoverage,
   };
 }
 
-export function useTopicPerformance(
+export function useSyllabusTimeline(
   schoolId: string | undefined,
   classId: string | undefined,
   subjectId: string | undefined,
   termNumber: number | string = 1,
   academicYear: string = new Date().getFullYear().toString()
 ) {
-  const [performance, setPerformance] = useState<TopicPerformance[]>([]);
+  const [coverage, setCoverage] = useState<SyllabusTopicWithCoverage[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  const fetchPerformance = useCallback(async () => {
+  const fetchCoverage = useCallback(async () => {
     if (!schoolId || !classId || !subjectId) return;
 
     setLoading(true);
-    setError(null);
-
     try {
       const { data, error: err } = await withTimeout(
         supabase
-          .from("topic_performance")
-          .select("*")
+          .from("syllabus")
+          .select("*, topic_coverage(*)")
           .eq("school_id", schoolId)
           .eq("class_id", classId)
           .eq("subject_id", subjectId)
           .eq("term", termNumber)
           .eq("academic_year", academicYear)
-          .order("created_at", { ascending: false }),
+          .order("topic", { ascending: true }),
         5000,
-        { data: null, error: null } as any
+        timeoutFallback()
       );
 
       if (err) throw err;
-      setPerformance((data || []) as TopicPerformance[]);
+
+      const mapped = (data || []).map((row: any) => {
+        const cov = row.topic_coverage?.[0] || {};
+        return {
+          id: row.id,
+          topic: row.topic,
+          subtopics: row.subtopics,
+          objectives: row.objectives,
+          weeks_covered: row.weeks_covered,
+          resources: row.resources,
+          status: cov.status || "not_started",
+          completed_date: cov.completed_date || null,
+          notes: cov.notes || null,
+          completion_percentage: cov.completion_percentage || 0,
+          lessons_planned: cov.lessons_planned || 0,
+          lessons_completed: cov.lessons_completed || 0,
+          student_comprehension_rating: cov.student_comprehension_rating || null,
+          teacher_notes: cov.teacher_notes || null,
+          challenges: cov.challenges || null,
+          week_number: cov.week_number || null,
+        };
+      });
+
+      setCoverage(mapped);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fetch performance");
-      logger.error(err);
+      logger.error("Failed to fetch timeline:", err);
     } finally {
       setLoading(false);
     }
   }, [schoolId, classId, subjectId, termNumber, academicYear]);
 
+  const updateTopicStatus = useCallback(
+    async (
+      syllabusId: string,
+      status: "not_started" | "in_progress" | "completed",
+      completion_percentage: number = 0
+    ) => {
+      try {
+        const existing = coverage.find((c) => c.id === syllabusId);
+
+        if (existing?.status) {
+          const { data, error: err } = await withTimeout(
+            supabase
+              .from("topic_coverage")
+              .update({
+                status,
+                completion_percentage,
+                completed_date:
+                  status === "completed"
+                    ? new Date().toISOString().split("T")[0]
+                    : null,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("syllabus_id", syllabusId)
+              .select()
+              .single(),
+            5000,
+            timeoutFallback()
+          );
+
+          if (err) throw err;
+
+          setCoverage((prev) =>
+            prev.map((item) =>
+              item.id === syllabusId
+                ? { ...item, status, completion_percentage }
+                : item
+            )
+          );
+
+          return data;
+        } else {
+          const { data, error: err } = await withTimeout(
+            supabase
+              .from("topic_coverage")
+              .insert({
+                syllabus_id: syllabusId,
+                class_id: classId,
+                status,
+                completion_percentage,
+                completed_date:
+                  status === "completed"
+                    ? new Date().toISOString().split("T")[0]
+                    : null,
+              })
+              .select()
+              .single(),
+            5000,
+            timeoutFallback()
+          );
+
+          if (err) throw err;
+          return data;
+        }
+      } catch (err) {
+        logger.error("Failed to update coverage:", err);
+        throw err;
+      }
+    },
+    [coverage, classId]
+  );
+
   useEffect(() => {
-    fetchPerformance();
-  }, [fetchPerformance]);
+    fetchCoverage();
+  }, [fetchCoverage]);
 
   return {
-    performance,
+    coverage,
     loading,
-    error,
-    refetch: fetchPerformance,
+    updateTopicStatus,
+    refetch: fetchCoverage,
+  };
+}
+
+// @deprecated topic_performance table is no longer actively populated.
+// Returns empty data. Use topic_coverage for syllabus progress tracking instead.
+export function useTopicPerformance(
+  _schoolId: string | undefined,
+  _classId: string | undefined,
+  _subjectId: string | undefined,
+  _termNumber: number | string = 1,
+  _academicYear: string = new Date().getFullYear().toString()
+) {
+  return {
+    performance: [] as TopicPerformance[],
+    loading: false,
+    error: null,
+    refetch: async () => {},
   };
 }
 
@@ -218,10 +328,10 @@ export function useAutoPlannerConfig(schoolId: string | undefined) {
           .eq("school_id", schoolId)
           .maybeSingle(),
         5000,
-        { data: null, error: null } as any
+        timeoutFallback()
       );
 
-      if (err && err.code !== "PGRST116") throw err; // PGRST116 = no rows
+      if (err && (err as { code?: string }).code !== "PGRST116") throw err; // PGRST116 = no rows
 
       if (data) {
         setConfig(data);
@@ -254,7 +364,7 @@ export function useAutoPlannerConfig(schoolId: string | undefined) {
             .select()
             .single(),
           5000,
-          { data: null, error: null } as any
+          timeoutFallback()
         );
 
         if (err) throw err;
@@ -322,7 +432,7 @@ export function useLessonPlanGeneration(schoolId: string | undefined) {
             .select()
             .single(),
           5000,
-          { data: null, error: null } as any
+          timeoutFallback()
         );
 
         if (genError) throw genError;
@@ -352,98 +462,4 @@ export function useLessonPlanGeneration(schoolId: string | undefined) {
   };
 }
 
-export function useSyllabusTimeline(
-  schoolId: string | undefined,
-  classId: string | undefined,
-  subjectId: string | undefined,
-  termNumber: number | string = 1,
-  academicYear: string = new Date().getFullYear().toString()
-) {
-  const [timeline, setTimeline] = useState<SyllabusTimelineEntry[]>([]);
-  const [loading, setLoading] = useState(false);
 
-  const fetchTimeline = useCallback(async () => {
-    if (!schoolId || !classId || !subjectId) return;
-
-    setLoading(true);
-    try {
-      const { data, error: err } = await withTimeout(
-        supabase
-          .from("syllabus_timeline")
-          .select("*")
-          .eq("school_id", schoolId)
-          .eq("class_id", classId)
-          .eq("subject_id", subjectId)
-          .eq("term", termNumber)
-          .eq("academic_year", academicYear)
-          .order("week_number", { ascending: true }),
-        5000,
-        { data: null, error: null } as any
-      );
-
-      if (err) throw err;
-      setTimeline((data || []) as SyllabusTimelineEntry[]);
-    } catch (err) {
-      logger.error("Failed to fetch timeline:", err);
-    } finally {
-      setLoading(false);
-    }
-  }, [schoolId, classId, subjectId, termNumber, academicYear]);
-
-  const updateWeekStatus = useCallback(
-    async (
-      timelineId: string,
-      status: "not_started" | "in_progress" | "completed" | "postponed" | "accelerated",
-      completion_percentage: number = 0
-    ) => {
-      try {
-        const { data, error: err } = await withTimeout(
-          supabase
-            .from("syllabus_timeline")
-            .update({
-              status,
-              completion_percentage,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", timelineId)
-            .select()
-            .single(),
-          5000,
-          { data: null, error: null } as any
-        );
-
-        if (err) throw err;
-
-        // Update local state
-        setTimeline((prev) =>
-          prev.map((item) =>
-            item.id === timelineId
-              ? {
-                  ...item,
-                  status,
-                  completion_percentage,
-                }
-              : item
-          )
-        );
-
-        return data;
-      } catch (err) {
-        logger.error("Failed to update timeline:", err);
-        throw err;
-      }
-    },
-    []
-  );
-
-  useEffect(() => {
-    fetchTimeline();
-  }, [fetchTimeline]);
-
-  return {
-    timeline,
-    loading,
-    updateWeekStatus,
-    refetch: fetchTimeline,
-  };
-}

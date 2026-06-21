@@ -1,7 +1,6 @@
 "use client";
 import { useState, useCallback } from "react";
 import Papa from "papaparse";
-import ExcelJS from "exceljs";
 import { Modal, ModalFooter } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/index";
 import MaterialIcon from "@/components/MaterialIcon";
@@ -93,6 +92,7 @@ export function GradeImportModal({
   }, []);
 
   const parseExcel = async (file: File): Promise<Record<string, string>[]> => {
+    const ExcelJS = (await import("exceljs")).default;
     const workbook = new ExcelJS.Workbook();
     const buffer = await file.arrayBuffer();
     await workbook.xlsx.load(buffer);

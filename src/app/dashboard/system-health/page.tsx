@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/index";
 import { withTimeout } from "@/lib/hooks/utils";
 import { logger } from "@/lib/logger";
 
+type SupabaseResponse<T> = { data: T | null; error: unknown | null; count?: number | null };
+
 interface AutomationRun {
   id: string;
   type: "sms" | "automated";
@@ -44,7 +46,7 @@ export default function SystemHealthPage() {
       const [healthRes, bucketsResult, smsLogsResult, autoLogsResult, failedResult, schoolsResult, usersResult] =
         await Promise.allSettled([
           fetch("/api/health/").then((r) => r.json()),
-          withTimeout(supabase.storage.listBuckets(), 10000, { data: [] } as any),
+          withTimeout(supabase.storage.listBuckets(), 10000, { data: null, error: null } as any),
           withTimeout(
             supabase
               .from("sms_logs")
@@ -52,7 +54,7 @@ export default function SystemHealthPage() {
               .order("sent_at", { ascending: false })
               .limit(20),
             10000,
-            { data: [] } as any,
+            { data: [], error: null } as SupabaseResponse<unknown[]>,
           ),
           withTimeout(
             supabase
@@ -61,7 +63,7 @@ export default function SystemHealthPage() {
               .order("sent_at", { ascending: false })
               .limit(20),
             10000,
-            { data: [] } as any,
+            { data: [], error: null } as SupabaseResponse<unknown[]>,
           ),
           withTimeout(
             supabase
@@ -70,13 +72,13 @@ export default function SystemHealthPage() {
               .gte("created_at", twentyFourHoursAgo)
               .in("action", ["delete", "update"]),
             10000,
-            { count: 0 } as any,
+            { count: 0, data: null, error: null } as SupabaseResponse<unknown>,
           ),
-          withTimeout(supabase.from("schools").select("id", { count: "exact", head: true }), 10000, { count: 0 } as any),
+          withTimeout(supabase.from("schools").select("id", { count: "exact", head: true }), 10000, { count: 0, data: null, error: null } as SupabaseResponse<unknown>),
           withTimeout(
             supabase.from("users").select("id", { count: "exact", head: true }).eq("status", "active"),
             10000,
-            { count: 0 } as any,
+            { count: 0, data: null, error: null } as SupabaseResponse<unknown>,
           ),
         ]);
 
@@ -89,15 +91,17 @@ export default function SystemHealthPage() {
       }
 
       if (bucketsResult.status === "fulfilled") {
-        const { data: buckets } = bucketsResult.value as any;
+        const bucketsValue = bucketsResult.value as { data: { name: string }[] | null; error: unknown | null };
+        const buckets = bucketsValue.data;
         if (Array.isArray(buckets)) {
           const bucketInfo = await Promise.all(
             buckets.map(async (b: { name: string }) => {
-              const { data: files } = await withTimeout(
+              const listResult = await withTimeout(
                 supabase.storage.from(b.name).list("", { limit: 1000 }),
                 10000,
-                [] as any,
+                { data: null, error: null } as any,
               );
+              const files = listResult.data;
               return { name: b.name, fileCount: Array.isArray(files) ? files.length : 0 };
             }),
           );
@@ -107,30 +111,32 @@ export default function SystemHealthPage() {
 
       const runs: AutomationRun[] = [];
       if (smsLogsResult.status === "fulfilled") {
-        const { data } = smsLogsResult.value as any;
+        const smsValue = smsLogsResult.value as { data: unknown[] | null; error: unknown | null };
+        const data = smsValue.data;
         if (Array.isArray(data)) {
-          data.forEach((r: any) =>
+          (data as Record<string, unknown>[]).forEach((r) =>
             runs.push({
-              id: r.id,
+              id: String(r.id),
               type: "sms",
-              automation_type: r.automation_type,
-              status: r.status,
-              message: r.message,
-              parent_phone: r.parent_phone,
-              sent_at: r.sent_at,
+              automation_type: r.automation_type as string | undefined,
+              status: String(r.status),
+              message: r.message as string | undefined,
+              parent_phone: r.parent_phone as string | undefined,
+              sent_at: String(r.sent_at),
             }),
           );
         }
       }
       if (autoLogsResult.status === "fulfilled") {
-        const { data } = autoLogsResult.value as any;
+        const autoValue = autoLogsResult.value as { data: unknown[] | null; error: unknown | null };
+        const data = autoValue.data;
         if (Array.isArray(data)) {
-          data.forEach((r: any) =>
+          (data as Record<string, unknown>[]).forEach((r) =>
             runs.push({
-              id: r.id,
+              id: String(r.id),
               type: "automated",
-              status: r.status,
-              sent_at: r.sent_at,
+              status: String(r.status),
+              sent_at: String(r.sent_at),
             }),
           );
         }
@@ -139,13 +145,16 @@ export default function SystemHealthPage() {
       setAutomationRuns(runs.slice(0, 20));
 
       if (failedResult.status === "fulfilled") {
-        setFailedCount24h((failedResult.value as any).count ?? 0);
+        const failedVal = failedResult.value as { count?: number | null; error?: unknown | null };
+        setFailedCount24h(failedVal.count ?? 0);
       }
       if (schoolsResult.status === "fulfilled") {
-        setSchoolCount((schoolsResult.value as any).count ?? 0);
+        const schoolsVal = schoolsResult.value as { count?: number | null; error?: unknown | null };
+        setSchoolCount(schoolsVal.count ?? 0);
       }
       if (usersResult.status === "fulfilled") {
-        setActiveUserCount((usersResult.value as any).count ?? 0);
+        const usersVal = usersResult.value as { count?: number | null; error?: unknown | null };
+        setActiveUserCount(usersVal.count ?? 0);
       }
     } catch (e) {
       logger.error("System health fetch error:", e);
@@ -192,7 +201,7 @@ export default function SystemHealthPage() {
             .eq("school_id", school.id)
             .lt("sent_at", retentionCutoff),
           15000,
-          { error: null } as any,
+          { error: null } as { error: unknown | null; data: unknown },
         ),
         withTimeout(
           supabase
@@ -201,7 +210,7 @@ export default function SystemHealthPage() {
             .eq("school_id", school.id)
             .lt("sent_at", retentionCutoff),
           15000,
-          { error: null } as any,
+          { error: null } as { error: unknown | null; data: unknown },
         ),
       ]);
 

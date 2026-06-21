@@ -15,7 +15,7 @@ import { useParentPortalGuard } from "@/lib/hooks/useParentPortalGuard";
 import { useToast } from "@/components/Toast";
 import { logger } from "@/lib/logger";
 import { normalizeAuthPhone } from "@/lib/validation";
-import { withTimeout } from "@/lib/hooks/utils";
+import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import {
   calculateFeeStats,
   mapParentStudentLinks,
@@ -55,7 +55,7 @@ function ParentDashboardContent() {
   const [grades, setGrades] = useState<ParentPortalGradeRecord[]>([]);
   const [feeStructureItems, setFeeStructureItems] = useState<ParentPortalFeeStructureItem[]>([]);
   const [feePayments, setFeePayments] = useState<ParentPortalPayment[]>([]);
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<ParentPortalNotice[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [childDataLoading, setChildDataLoading] = useState(false);
 
@@ -198,37 +198,36 @@ function ParentDashboardContent() {
       const scopedChild = resolveSelectedChild(children, selectedChildId);
       if (!scopedChild) { setChildDataLoading(false); return; }
       try {
-        const timoutFallback = { data: null, error: new Error("Request timed out") };
         const attRes = await withTimeout(
           supabase.from("attendance").select("id, date, status, remarks").eq("student_id", scopedChild.id).limit(10),
           15000,
-          timoutFallback as any,
+          timeoutFallback(),
         );
         const gradesRes = await withTimeout(
           supabase.from("grades").select("id, score, max_score, grade, term, exam_type, teacher_comment, subjects(name)").eq("student_id", scopedChild.id).limit(6),
           15000,
-          timoutFallback as any,
+          timeoutFallback(),
         );
 
         const modernFeeTermsRes = await withTimeout(
           supabase.from("student_fee_terms").select("id, final_amount, academic_year, fee_terms(name)").eq("student_id", scopedChild.id).order("created_at", { ascending: false }),
           15000,
-          timoutFallback as any,
+          timeoutFallback(),
         );
         const modernPaymentsRes = await withTimeout(
           supabase.from("fee_payments").select("id, amount, payment_date, payment_method, transaction_reference, student_fee_terms!inner(student_id, fee_terms(name))").eq("student_fee_terms.student_id", scopedChild.id).order("payment_date", { ascending: false }),
           15000,
-          timoutFallback as any,
+          timeoutFallback(),
         );
         const legacyPaymentsRes = await withTimeout(
           supabase.from("fee_payments").select("id, amount_paid, payment_date, payment_method, payment_reference").eq("student_id", scopedChild.id),
           15000,
-          timoutFallback as any,
+          timeoutFallback(),
         );
         const legacyFeeTermsRes = await withTimeout(
           supabase.from("fee_structure").select("*").eq("school_id", scopedChild.school_id).is("deleted_at", null).or(`class_id.is.null,class_id.eq.${scopedChild.class_id}`),
           15000,
-          timoutFallback as any,
+          timeoutFallback(),
         );
 
         const normalizedFeeStructure = pickPreferredSchemaRows({
@@ -287,8 +286,8 @@ function ParentDashboardContent() {
   useEffect(() => {
     if (isDemo) {
       setNotifications([
-        { id: "1", type: "grade_posted", title: "New Grade Posted", message: "Math exam results ready", is_read: false, created_at: new Date().toISOString() },
-        { id: "2", type: "payment_received", title: "Payment Received", message: "UGX 50,000 received", is_read: true, created_at: new Date(Date.now() - 86400000).toISOString() },
+        { id: "1", type: "grade_posted", title: "New Grade Posted", content: "Math exam results ready", message: "Math exam results ready", is_read: false, created_at: new Date().toISOString() },
+        { id: "2", type: "payment_received", title: "Payment Received", content: "UGX 50,000 received", message: "UGX 50,000 received", is_read: true, created_at: new Date(Date.now() - 86400000).toISOString() },
       ]);
       setUnreadCount(1);
       return;
@@ -317,10 +316,10 @@ function ParentDashboardContent() {
           filter: `parent_id=eq.${user.id}`,
         },
         (payload) => {
-          const newNotification = payload.new as any;
-          setNotifications((prev) => [newNotification, ...prev]);
+          const newNotification = payload.new as Record<string, unknown>;
+          setNotifications((prev) => [newNotification as unknown as ParentPortalNotice, ...prev]);
           setUnreadCount((prev) => prev + 1);
-          toast.info(newNotification.title || "New notification");
+          toast.info(String(newNotification.title || "New notification"));
         },
       )
       .subscribe();
@@ -405,7 +404,7 @@ function ParentDashboardContent() {
     );
   }
 
-  const childPhotoUrl = (selectedChild as any)?.photo_url || (selectedChild as any)?.avatar_url || null;
+  const childPhotoUrl = selectedChild?.photo_url || selectedChild?.avatar_url || null;
   const childInitials = selectedChild ? `${selectedChild.first_name[0]}${selectedChild.last_name[0]}` : "";
   const todayDate = new Date().toISOString().split("T")[0];
   const todayAttendance = attendance.find((record) => record.date === todayDate) ?? null;

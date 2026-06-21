@@ -8,7 +8,7 @@ import { isDemoSchool } from '@/lib/demo-utils'
 import { logger } from "@/lib/logger";
 
 export function useDashboardStats(schoolId?: string) {
-  const [stats, setStats] = useState({ totalStudents: 0, presentToday: 0, feesCollected: 0, feesBalance: 0, totalClasses: 0, totalTeachers: 0 })
+  const [stats, setStats] = useState({ totalStudents: 0, maleStudents: 0, femaleStudents: 0, presentToday: 0, feesCollected: 0, feesBalance: 0, totalClasses: 0, totalTeachers: 0 })
   const [loading, setLoading] = useState(true)
   const { isDemo } = useAuth()
 
@@ -18,7 +18,7 @@ export function useDashboardStats(schoolId?: string) {
       if (!schoolId) { setLoading(false); return }
       
       if (isDemo || isDemoSchool(schoolId)) {
-        setStats({ totalStudents: 847, presentToday: 798, feesCollected: 45000000, feesBalance: 12500000, totalClasses: 12, totalTeachers: 24 })
+        setStats({ totalStudents: 847, maleStudents: 423, femaleStudents: 424, presentToday: 798, feesCollected: 45000000, feesBalance: 12500000, totalClasses: 12, totalTeachers: 24 })
         setLoading(false)
         return
       }
@@ -65,18 +65,29 @@ export function useDashboardStats(schoolId?: string) {
             )
           : Promise.resolve([] as Array<{ amount_paid: number | null }>)
 
-        const [studentCount, classCount, teacherCount, presentCount, payments, feeStructure] = await Promise.all([
+        const [studentCount, classCount, teacherCount, presentCount, payments, feeStructure, maleCount, femaleCount, studentClasses] = await Promise.all([
           withTimeout(supabase.from('students').select('id', { count: 'exact', head: true }).eq('school_id', querySchoolId).eq('status', 'active').then(r => r.count), 5000, 0),
           withTimeout(supabase.from('classes').select('id', { count: 'exact', head: true }).eq('school_id', querySchoolId).then(r => r.count), 5000, 0),
           withTimeout(supabase.from('users').select('id', { count: 'exact', head: true }).eq('school_id', querySchoolId).eq('role', 'teacher').then(r => r.count), 5000, 0),
           presentCountPromise,
           paymentsPromise,
-          withTimeout(supabase.from('fee_structure').select('amount').eq('school_id', querySchoolId).then(r => r.data), 5000, []),
+          withTimeout(supabase.from('fee_structure').select('amount, class_id').eq('school_id', querySchoolId).then(r => r.data), 5000, []),
+          withTimeout(supabase.from('students').select('id', { count: 'exact', head: true }).eq('school_id', querySchoolId).eq('status', 'active').eq('gender', 'M').then(r => r.count), 5000, 0),
+          withTimeout(supabase.from('students').select('id', { count: 'exact', head: true }).eq('school_id', querySchoolId).eq('status', 'active').eq('gender', 'F').then(r => r.count), 5000, 0),
+          withTimeout(supabase.from('students').select('class_id').eq('school_id', querySchoolId).eq('status', 'active').then(r => r.data || []), 5000, []),
         ])
         if (cancelled) return
         const totalCollected = (payments || []).reduce((sum: number, p: any) => sum + Number(p.amount_paid || 0), 0)
-        const totalExpected = (feeStructure || []).reduce((sum: number, f: any) => sum + Number(f.amount || 0), 0)
-        setStats({ totalStudents: studentCount || 0, presentToday: presentCount || 0, feesCollected: totalCollected, feesBalance: Math.max(0, totalExpected - totalCollected), totalClasses: classCount || 0, totalTeachers: teacherCount || 0 })
+
+        const classCounts: Record<string, number> = {}
+        ;(studentClasses as Array<{ class_id: string | null }> || []).forEach((s) => {
+          if (s.class_id) classCounts[s.class_id] = (classCounts[s.class_id] || 0) + 1
+        })
+        const totalExpected = (feeStructure || []).reduce((sum: number, f: any) => {
+          const count = f.class_id ? (classCounts[f.class_id] || 0) : (studentCount || 0)
+          return sum + (Number(f.amount || 0) * count)
+        }, 0)
+        setStats({ totalStudents: studentCount || 0, maleStudents: maleCount || 0, femaleStudents: femaleCount || 0, presentToday: presentCount || 0, feesCollected: totalCollected, feesBalance: Math.max(0, totalExpected - totalCollected), totalClasses: classCount || 0, totalTeachers: teacherCount || 0 })
       } catch (err) { logger.error('Error fetching stats:', err) }
       finally { if (!cancelled) setLoading(false) }
     }

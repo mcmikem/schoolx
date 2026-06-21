@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { memo, useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { offlineDB } from "@/lib/offline";
@@ -12,7 +12,7 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
-export function OfflineIndicator() {
+export const OfflineIndicator = memo(function OfflineIndicator() {
   const router = useRouter();
   const [isOnline, setIsOnline] = useState(true);
   const [pendingSync, setPendingSync] = useState(0);
@@ -328,7 +328,7 @@ export function OfflineIndicator() {
         `}</style>
     </div>
   );
-}
+})
 
 export function useOfflineSync() {
   const [pendingCount, setPendingCount] = useState(0);

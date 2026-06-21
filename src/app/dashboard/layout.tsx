@@ -27,6 +27,7 @@ import MaterialIcon from "@/components/MaterialIcon";
 import OwlAssistant from "@/components/OwlAssistant";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import CommandPalette from "@/components/CommandPalette";
+import RoleBasedWalkthrough from "@/components/RoleBasedWalkthrough";
 import { supabase } from "@/lib/supabase";
 
 function hasCompletedSetupProgress(value: unknown): boolean {
@@ -461,6 +462,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       </div>
 
       <MobileBottomNav />
+      <RoleBasedWalkthrough />
       <OwlAssistant />
       <PWAInstallPrompt />
       <CommandPalette />

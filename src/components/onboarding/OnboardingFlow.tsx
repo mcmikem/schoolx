@@ -10,7 +10,7 @@ import SkoolMateLogo from "@/components/SkoolMateLogo";
 import MaterialIcon from "@/components/MaterialIcon";
 import OwlStage from "@/components/brand/OwlStage";
 import OwlMascot from "@/components/brand/OwlMascot";
-import { motion, AnimatePresence } from "framer-motion";
+
 import { PLANS, normalizePlanType } from "@/lib/payments/subscription-client";
 import {
   getDistrictOptions,
@@ -1109,15 +1109,10 @@ export default function OnboardingFlow({
         {/* Right Side: Step Content */}
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
           <div className="flex-1 overflow-y-auto p-4 pb-28 md:p-8 md:pb-8 lg:p-12">
-            <AnimatePresence mode="wait">
+            <div className="animate-fade-in w-full">
               {/* Step 1: Welcome */}
               {step === 1 && (
-                <motion.div
-                  key="step1"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  className="flex-1 flex flex-col justify-center max-w-md mx-auto"
+                <div className="flex-1 flex flex-col justify-center max-w-md mx-auto"
                 >
                   <OwlStage
                     eyebrow="Launch setup"
@@ -1142,17 +1137,12 @@ export default function OnboardingFlow({
                   >
                     Start Simple Setup
                   </Button>
-                </motion.div>
+                </div>
               )}
 
               {/* Step 2: School Essentials */}
               {step === 2 && (
-                <motion.div
-                  key="step2"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
-                  className="flex-1 flex flex-col max-w-md mx-auto"
+                <div className="flex-1 flex flex-col max-w-md mx-auto"
                 >
                   <OwlStage
                     compact
@@ -1441,16 +1431,12 @@ export default function OnboardingFlow({
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
                     We preload common Uganda district, division, and parish options so school leaders can finish setup quickly even on slow connections.
                   </div>
-                </motion.div>
+                </div>
               )}
 
               {/* Step 3: Curriculum */}
               {step === 3 && (
-                <motion.div
-                  key="step3"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
+                <div
                   className="flex-1 flex flex-col max-w-md mx-auto"
                 >
                   <OwlStage
@@ -1597,16 +1583,12 @@ export default function OnboardingFlow({
                       )}
                     </div>
                   </div>
-                </motion.div>
+                </div>
               )}
 
               {/* Step 4: Boarding & Houses */}
               {step === 4 && (
-                <motion.div
-                  key="step4"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
+                <div
                   className="flex-1 flex flex-col max-w-md mx-auto"
                 >
                   <OwlStage
@@ -1896,16 +1878,12 @@ export default function OnboardingFlow({
                       </div>
                     )}
                   </div>
-                </motion.div>
+                </div>
               )}
 
               {/* Step 5: Academic Calendar */}
               {step === 5 && (
-                <motion.div
-                  key="step5"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
+                <div
                   className="flex-1 flex flex-col max-w-md mx-auto"
                 >
                   <OwlStage
@@ -1964,16 +1942,12 @@ export default function OnboardingFlow({
                       Save & Continue
                     </Button>
                   </div>
-                </motion.div>
+                </div>
               )}
 
               {/* Step 6: Fee Structure */}
               {step === 6 && (
-                <motion.div
-                  key="step6"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
+                <div
                   className="flex-1 flex flex-col max-w-md mx-auto"
                 >
                   <OwlStage
@@ -2109,16 +2083,12 @@ export default function OnboardingFlow({
                       Save & Continue
                     </Button>
                   </div>
-                </motion.div>
+                </div>
               )}
 
               {/* Step 7: Grading System */}
               {step === 7 && (
-                <motion.div
-                  key="step7"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
+                <div
                   className="flex-1 flex flex-col max-w-md mx-auto"
                 >
                   <OwlStage
@@ -2193,16 +2163,12 @@ export default function OnboardingFlow({
                       Save & Continue
                     </Button>
                   </div>
-                </motion.div>
+                </div>
               )}
 
               {/* Step 8: Report Card Branding */}
               {step === 8 && (
-                <motion.div
-                  key="step8"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
+                <div
                   className="flex-1 flex flex-col max-w-md mx-auto"
                 >
                   <OwlStage
@@ -2290,16 +2256,12 @@ export default function OnboardingFlow({
                       Save & Continue
                     </Button>
                   </div>
-                </motion.div>
+                </div>
               )}
 
               {/* Step 9: Features */}
               {step === 9 && (
-                <motion.div
-                  key="step9"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
+                <div
                   className="flex-1 flex flex-col max-w-md mx-auto"
                 >
                   <OwlStage
@@ -2340,16 +2302,12 @@ export default function OnboardingFlow({
                       </div>
                     ))}
                   </div>
-                </motion.div>
+                </div>
               )}
 
               {/* Step 10: Launch */}
               {step === 10 && (
-                <motion.div
-                  key="step10"
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: -20 }}
+                <div
                   className="flex-1 flex flex-col max-w-md mx-auto"
                 >
                   <h3 className="text-2xl font-bold text-slate-800 mb-2">
@@ -2391,9 +2349,9 @@ export default function OnboardingFlow({
                   >
                     Finish Setup & Launch
                   </Button>
-                </motion.div>
+                </div>
               )}
-            </AnimatePresence>
+            </div>
           </div>
 
           {/* Bottom Navigation - Fixed on mobile, inline on desktop */}

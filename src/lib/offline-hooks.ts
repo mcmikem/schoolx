@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { supabase } from './supabase'
 import { offlineDB, useOnlineStatus } from './offline'
+import { withTimeout, timeoutFallback } from '@/lib/hooks/utils'
 import type { Student, Attendance, Grade, FeePayment, FeeStructure } from '@/types'
 import { logger } from './logger'
 
@@ -47,7 +48,7 @@ export function useOfflineData<T>(
         if (isOnline && !skipCache) {
           void (async () => {
             try {
-              const result = await fetcherRef.current()
+              const result = await withTimeout(fetcherRef.current(), 30000, [] as T[])
               setData(result)
               setIsFromCache(false)
               await offlineDB.cacheFromServer(cacheKey, result as Record<string, unknown>[]) 
@@ -71,7 +72,7 @@ export function useOfflineData<T>(
 
     if (isOnline && !skipCache) {
       try {
-        const result = await fetcherRef.current()
+        const result = await withTimeout(fetcherRef.current(), 30000, [] as T[])
         setData(result)
         setIsFromCache(false)
         await offlineDB.cacheFromServer(cacheKey, result as Record<string, unknown>[])
@@ -215,17 +216,16 @@ export function useOfflineFees(schoolId?: string, options?: OfflineHookOptions &
         if (isOnline && !options?.skipCache) {
           void (async () => {
             try {
-              const { data: payments, error: payErr, count } = await supabase
+              const payResult = await withTimeout(supabase
                 .from('fee_payments')
                 .select('*, students!inner (id, first_name, last_name, school_id, classes (name))', { count: 'exact' })
                 .eq('students.school_id', schoolId)
                 .order('payment_date', { ascending: false })
-                .range(offset, offset + limit - 1)
-
-              if (payErr) throw payErr
-              const result = (payments as (FeePayment & { fee_structure?: FeeStructure })[]) || []
+                .range(offset, offset + limit - 1), 30000, timeoutFallback())
+              if (payResult.error) throw payResult.error
+              const result = (payResult.data as (FeePayment & { fee_structure?: FeeStructure })[]) || []
               setData(result)
-              if (count !== null) setTotalCount(count)
+              if (payResult.count !== null) setTotalCount(payResult.count)
               setIsFromCache(false)
               await offlineDB.cacheFromServer('fee_payments', result as unknown as Record<string, unknown>[])
             } catch (e: unknown) {
@@ -244,17 +244,16 @@ export function useOfflineFees(schoolId?: string, options?: OfflineHookOptions &
 
     if (isOnline && !options?.skipCache) {
       try {
-        const { data: payments, error: payErr, count } = await supabase
+        const payResult = await withTimeout(supabase
           .from('fee_payments')
           .select('*, students!inner (id, first_name, last_name, school_id, classes (name))', { count: 'exact' })
           .eq('students.school_id', schoolId)
           .order('payment_date', { ascending: false })
-          .range(offset, offset + limit - 1)
-
-        if (payErr) throw payErr
-        const result = (payments as (FeePayment & { fee_structure?: FeeStructure })[]) || []
+          .range(offset, offset + limit - 1), 30000, timeoutFallback())
+        if (payResult.error) throw payResult.error
+        const result = (payResult.data as (FeePayment & { fee_structure?: FeeStructure })[]) || []
         setData(result)
-        if (count !== null) setTotalCount(count)
+        if (payResult.count !== null) setTotalCount(payResult.count)
         setIsFromCache(false)
         await offlineDB.cacheFromServer('fee_payments', result as unknown as Record<string, unknown>[])
         setLoading(false)

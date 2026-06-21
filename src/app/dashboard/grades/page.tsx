@@ -48,37 +48,9 @@ interface TopicCoverage {
   teacher_id?: string;
 }
 
-const STANDARD_TOPICS: Record<string, string[]> = {
-  Mathematics: [
-    "Number operations",
-    "Fractions and decimals",
-    "Percentages",
-    "Ratio and proportion",
-    "Algebra",
-    "Geometry",
-    "Statistics",
-    "Probability",
-  ],
-  English: [
-    "Grammar",
-    "Comprehension",
-    "Composition",
-    "Poetry",
-    "Drama",
-    "Novel",
-    "Literature",
-    "Vocabulary",
-  ],
-  Science: [
-    "Living things",
-    "Materials",
-    "Forces and energy",
-    "Earth and space",
-    "Human body",
-    "Plants",
-    "Animals",
-  ],
-};
+const DEFAULT_TOPICS = [
+  "Topic 1", "Topic 2", "Topic 3", "Topic 4", "Topic 5",
+];
 
 const ASSESSMENT_TYPES = ["ca1", "ca2", "ca3", "ca4", "project", "exam"] as const;
 const COMPETENCY_ASSESSMENT_TYPES = ["competency"] as const;
@@ -251,6 +223,7 @@ export default function GradesPage() {
   const [selectedClass, setSelectedClass] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("");
   const [coverage, setCoverage] = useState<TopicCoverage[]>([]);
+  const [syllabusTopicNames, setSyllabusTopicNames] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [marks, setMarks] = useState<StudentMarks>({});
@@ -984,20 +957,37 @@ export default function GradesPage() {
   const fetchCoverage = useCallback(async () => {
     try {
       setLoading(true);
-      const result = await withTimeout(supabase
-        .from("topic_coverage")
-        .select(
-          "id, syllabus_id, class_id, teacher_id, status, syllabus!inner(topic, subject_id, term, academic_year)",
-        )
-        .eq("class_id", selectedClass)
-        .eq("syllabus.subject_id", selectedSubject)
-        .eq("syllabus.term", currentTerm)
-        .eq("syllabus.academic_year", academicYear), 15000, null as any);
-      const { data, error } = result || { data: [], error: null };
+      const [coverageResult, syllabusResult] = await Promise.all([
+        withTimeout(
+          supabase
+            .from("topic_coverage")
+            .select("id, syllabus_id, class_id, teacher_id, status, syllabus!inner(topic, subject_id, term, academic_year)")
+            .eq("class_id", selectedClass)
+            .eq("syllabus.subject_id", selectedSubject)
+            .eq("syllabus.term", currentTerm)
+            .eq("syllabus.academic_year", academicYear),
+          15000, null as any
+        ),
+        withTimeout(
+          supabase
+            .from("syllabus")
+            .select("topic")
+            .eq("class_id", selectedClass)
+            .eq("subject_id", selectedSubject)
+            .eq("term", currentTerm)
+            .eq("academic_year", academicYear)
+            .order("topic"),
+          10000, null as any
+        ),
+      ]);
 
-      if (error) throw error;
+      const { data: covData, error: covError } = coverageResult || { data: [], error: null };
+      if (covError) throw covError;
 
-      const mapped = (data || []).map((row: any) => ({
+      const { data: sylData, error: sylError } = syllabusResult || { data: [], error: null };
+      if (sylError) throw sylError;
+
+      const mapped = (covData || []).map((row: any) => ({
         id: row.id,
         syllabus_id: row.syllabus_id,
         class_id: row.class_id,
@@ -1006,6 +996,9 @@ export default function GradesPage() {
         topic_name: row.syllabus?.topic || "",
       }));
       setCoverage(mapped);
+      setSyllabusTopicNames(
+        (sylData || []).map((s: any) => s.topic).filter(Boolean)
+      );
     } catch (err) {
       logger.error("Error fetching coverage:", err);
     } finally {
@@ -1097,15 +1090,8 @@ export default function GradesPage() {
     ? `${selectedClassObj.name}${selectedClassObj.stream ? ` ${selectedClassObj.stream}` : ""}`
     : "";
   const topics = useMemo(
-    () =>
-      STANDARD_TOPICS[selectedSubjectName] || [
-        "Topic 1",
-        "Topic 2",
-        "Topic 3",
-        "Topic 4",
-        "Topic 5",
-      ],
-    [selectedSubjectName],
+    () => (syllabusTopicNames.length > 0 ? syllabusTopicNames : DEFAULT_TOPICS),
+    [syllabusTopicNames],
   );
 
   const coverageStats = useMemo(() => {

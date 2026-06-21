@@ -1,12 +1,13 @@
-"use client";
-
 export default function Loading() {
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top,#edf4ff_0%,#f7f4ec_56%,#f2ede2_100%)] flex items-center justify-center">
-      <div className="animate-pulse flex flex-col items-center gap-4">
-        <div className="h-16 w-16 rounded-full bg-[var(--surface-container)]" />
-        <div className="h-4 w-32 bg-[var(--surface-container)] rounded" />
+    <div className="space-y-4 p-4 sm:p-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[1,2,3,4].map(i => <div key={i} className="bg-[var(--surface)] rounded-xl p-4 border border-[var(--border)] animate-pulse"><div className="flex items-center gap-3"><div className="h-12 w-12 rounded-lg bg-[var(--surface-container)]" /><div className="space-y-2 flex-1"><div className="h-4 w-3/4 rounded bg-[var(--surface-container)]" /><div className="h-6 w-1/2 rounded bg-[var(--surface-container)]" /></div></div></div>)}
+      </div>
+      <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] animate-pulse">
+        <div className="p-4 border-b border-[var(--border)] space-y-2"><div className="h-5 w-32 rounded bg-[var(--surface-container)]" /><div className="h-3 w-48 rounded bg-[var(--surface-container)]" /></div>
+        {[1,2,3,4,5].map(i => <div key={i} className="p-4 border-b border-[var(--border)] flex items-center gap-4"><div className="h-10 w-10 rounded-full bg-[var(--surface-container)]" /><div className="flex-1 space-y-2"><div className="h-4 w-2/3 max-w-[220px] rounded bg-[var(--surface-container)]" /><div className="h-3 w-1/2 max-w-[160px] rounded bg-[var(--surface-container)]" /></div></div>)}
       </div>
     </div>
-  );
+  )
 }

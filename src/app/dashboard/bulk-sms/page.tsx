@@ -19,6 +19,40 @@ type MessageTemplate = {
   category: string;
 };
 
+interface ClassItem {
+  id: string;
+  name: string;
+  stream: string | null;
+}
+
+interface SmsLogItem {
+  id: string;
+  status: string;
+  message: string;
+  parent_phone: string;
+  sent_at: string;
+}
+
+interface StudentSearchResult {
+  id: string;
+  first_name: string;
+  last_name: string;
+  student_number: string;
+  class_id: string;
+}
+
+interface AcademicTermItem {
+  id: string;
+  is_current: boolean;
+  term_number: number;
+  academic_year: string;
+}
+
+interface ParentPhoneItem {
+  phone: string;
+  full_name: string;
+}
+
 const TEMPLATES: MessageTemplate[] = [
   { id: "fee_reminder", label: "Fee Reminder", icon: "payments", category: "Finance", body: "Dear Parent, this is a reminder that school fees for {student_name} are outstanding. Please clear UGX {amount} by {deadline}. Thank you." },
   { id: "absentee", label: "Absent Alert", icon: "event_busy", category: "Attendance", body: "Dear Parent, your child {student_name} was absent today ({date}). Please contact the school if this was unplanned. \u2014 {school_name}" },
@@ -44,18 +78,18 @@ export default function SMSCenterPage() {
   const [activeTemplate, setActiveTemplate] = useState<MessageTemplate>(TEMPLATES[0]);
   const [message, setMessage] = useState(TEMPLATES[0].body);
   const [segment, setSegment] = useState<Segment>("all");
-  const [classes, setClasses] = useState<any[]>([]);
+  const [classes, setClasses] = useState<ClassItem[]>([]);
   const [selectedClass, setSelectedClass] = useState("");
   const [minBalance, setMinBalance] = useState("");
   const [studentQuery, setStudentQuery] = useState("");
-  const [studentResults, setStudentResults] = useState<any[]>([]);
-  const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
+  const [studentResults, setStudentResults] = useState<StudentSearchResult[]>([]);
+  const [selectedStudent, setSelectedStudent] = useState<StudentSearchResult | null>(null);
   const [showStudentDropdown, setShowStudentDropdown] = useState(false);
   const [sending, setSending] = useState(false);
-  const [logs, setLogs] = useState<any[]>([]);
+  const [logs, setLogs] = useState<SmsLogItem[]>([]);
   const [charCount, setCharCount] = useState(0);
   const [recipientCount, setRecipientCount] = useState<number | null>(null);
-  const [currentTerm, setCurrentTerm] = useState<any>(null);
+  const [currentTerm, setCurrentTerm] = useState<AcademicTermItem | null>(null);
   const studentSearchRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -65,19 +99,19 @@ export default function SMSCenterPage() {
   useEffect(() => {
     if (!school?.id) return;
     withTimeout(
-      supabase.from("classes").select("id, name, stream").eq("school_id", school.id),
-      5000, [] as any
-    ).then((data: any) => setClasses(data || []));
+      supabase.from("classes").select("id, name, stream").eq("school_id", school.id).then(r => r.data),
+      5000, [] as ClassItem[]
+    ).then((data) => setClasses(data || []));
 
     withTimeout(
-      supabase.from("sms_logs").select("*").eq("school_id", school.id).order("sent_at", { ascending: false }).limit(20),
-      5000, [] as any
-    ).then((data: any) => setLogs(data || []));
+      supabase.from("sms_logs").select("*").eq("school_id", school.id).order("sent_at", { ascending: false }).limit(20).then(r => r.data),
+      5000, [] as SmsLogItem[]
+    ).then((data) => setLogs(data || []));
 
     withTimeout(
-      supabase.from("academic_terms").select("*").eq("school_id", school.id).eq("is_current", true).maybeSingle(),
-      5000, null as any
-    ).then((data: any) => setCurrentTerm(data || null));
+      supabase.from("academic_terms").select("*").eq("school_id", school.id).eq("is_current", true).maybeSingle().then(r => r.data),
+      5000, null as AcademicTermItem | null
+    ).then((data) => setCurrentTerm(data || null));
   }, [school?.id]);
 
   useEffect(() => {
@@ -103,10 +137,11 @@ export default function SMSCenterPage() {
           .select("id, first_name, last_name, student_number, class_id")
           .eq("school_id", school.id)
           .or(`first_name.ilike.%${studentQuery}%,last_name.ilike.%${studentQuery}%,student_number.ilike.%${studentQuery}%`)
-          .limit(10),
-        5000, [] as any
+          .limit(10)
+          .then(r => r.data),
+        5000, [] as StudentSearchResult[]
       );
-      setStudentResults((data as any) || []);
+      setStudentResults(data || []);
       setShowStudentDropdown(true);
     }, 300);
     return () => clearTimeout(timer);
@@ -150,8 +185,6 @@ export default function SMSCenterPage() {
   const fetchParentPhones = async (countOnly = false): Promise<{ phone: string; full_name: string }[]> => {
     if (!school?.id) return [];
 
-    const selectFields = countOnly ? "id" : "phone, full_name";
-
     if (segment === "all") {
       const data = await withTimeout(
         supabase
@@ -159,10 +192,11 @@ export default function SMSCenterPage() {
           .select("phone, full_name")
           .eq("school_id", school.id)
           .eq("role", "parent")
-          .not("phone", "is", null),
-        5000, [] as any
+          .not("phone", "is", null)
+          .then(r => r.data),
+        5000, [] as ParentPhoneItem[]
       );
-      return ((data as any) || []).map((p: any) => ({ phone: p.phone, full_name: p.full_name }));
+      return (data || []).map((p) => ({ phone: p.phone, full_name: p.full_name }));
     }
 
     let studentIds: string[] = [];
@@ -171,10 +205,10 @@ export default function SMSCenterPage() {
       case "class": {
         if (!selectedClass) return [];
         const data = await withTimeout(
-          supabase.from("students").select("id").eq("school_id", school.id).eq("class_id", selectedClass),
-          5000, [] as any
+          supabase.from("students").select("id").eq("school_id", school.id).eq("class_id", selectedClass).then(r => r.data),
+          5000, [] as { id: string }[]
         );
-        studentIds = ((data as any) || []).map((s: any) => s.id);
+        studentIds = (data || []).map((s) => s.id);
         break;
       }
       case "overdue": {
@@ -182,8 +216,8 @@ export default function SMSCenterPage() {
         if (currentTerm) {
           query = query.eq("academic_year", currentTerm.academic_year).eq("term", currentTerm.term_number);
         }
-        const data = await withTimeout(query, 5000, [] as any);
-        studentIds = [...new Set(((data as any) || []).map((f: any) => f.student_id))] as string[];
+        const data = await withTimeout(query.then(r => r.data), 5000, [] as { student_id: string }[]);
+        studentIds = [...new Set((data || []).map((f) => f.student_id))];
         break;
       }
       case "balance": {
@@ -192,8 +226,8 @@ export default function SMSCenterPage() {
         if (currentTerm) {
           query = query.eq("academic_year", currentTerm.academic_year).eq("term", currentTerm.term_number);
         }
-        const data = await withTimeout(query, 5000, [] as any);
-        studentIds = [...new Set(((data as any) || []).map((f: any) => f.student_id))] as string[];
+        const data = await withTimeout(query.then(r => r.data), 5000, [] as { student_id: string }[]);
+        studentIds = [...new Set((data || []).map((f) => f.student_id))];
         break;
       }
       case "student": {
@@ -206,11 +240,11 @@ export default function SMSCenterPage() {
     if (studentIds.length === 0) return [];
 
     const psData = await withTimeout(
-      supabase.from("parent_students").select("parent_id").in("student_id", studentIds),
-      5000, [] as any
+      supabase.from("parent_students").select("parent_id").in("student_id", studentIds).then(r => r.data),
+      5000, [] as { parent_id: string }[]
     );
 
-    const parentIds = [...new Set(((psData as any) || []).map((p: any) => p.parent_id))];
+    const parentIds = [...new Set((psData || []).map((p) => p.parent_id))];
     if (parentIds.length === 0) return [];
 
     const parents = await withTimeout(
@@ -219,11 +253,12 @@ export default function SMSCenterPage() {
         .select("phone, full_name")
         .in("id", parentIds)
         .eq("role", "parent")
-        .not("phone", "is", null),
-      5000, [] as any
+        .not("phone", "is", null)
+        .then(r => r.data),
+      5000, [] as ParentPhoneItem[]
     );
 
-    return ((parents as any) || []).map((p: any) => ({ phone: p.phone, full_name: p.full_name }));
+    return (parents || []).map((p) => ({ phone: p.phone, full_name: p.full_name }));
   };
 
   const handleSend = async () => {
@@ -257,8 +292,8 @@ export default function SMSCenterPage() {
       } else {
         toast.error("Failed to send SMS: " + (result.error || "Unknown error"));
       }
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to send SMS");
     } finally {
       setSending(false);
     }

@@ -1,4 +1,5 @@
 "use client";
+import { memo } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 
 const ACCENT_STYLES: Record<string, { solid: string; soft: string }> = {
@@ -33,7 +34,7 @@ interface StatCardProps {
   };
 }
 
-export default function StatCard({
+const StatCard = memo(function StatCard({
   label,
   value,
   subValue,
@@ -169,4 +170,6 @@ export default function StatCard({
       />
     </div>
   );
-}
+});
+
+export default StatCard;

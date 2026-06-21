@@ -10,6 +10,7 @@ export interface ParentPortalChild {
   parent_phone?: string | null;
   parent_phone2?: string | null;
   photo_url?: string | null;
+  avatar_url?: string | null;
   district_origin?: string | null;
   village?: string | null;
   attendance?: string;
@@ -18,12 +19,16 @@ export interface ParentPortalChild {
 }
 
 export interface ParentPortalNotice {
+  id?: string;
   title: string;
   content: string;
   created_at: string;
   icon?: string;
   color?: string;
   desc?: string;
+  type?: string;
+  message?: string;
+  is_read?: boolean;
 }
 
 export interface ParentPortalFeeStructureItem {

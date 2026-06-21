@@ -40,11 +40,13 @@ const DEMO_CHILDREN: ParentPortalChild[] = [
 
 const DEMO_NOTICES: ParentPortalNotice[] = [
   {
+    id: "demo-notice-1",
     title: "Visitation Day",
     content: "Parents are invited this Saturday from 9:00 AM to 1:00 PM.",
     created_at: `${TODAY}T08:30:00.000Z`,
   },
   {
+    id: "demo-notice-2",
     title: "Easter Break",
     content: "School will close on Friday and reopen on Tuesday morning.",
     created_at: "2026-04-12T10:00:00.000Z",

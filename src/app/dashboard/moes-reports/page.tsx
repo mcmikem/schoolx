@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
 import { supabase } from "@/lib/supabase";
-import ExcelJS from "exceljs";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -97,6 +96,7 @@ export default function MOESReportsPage() {
 
     setExporting(true);
     try {
+      const ExcelJS = (await import("exceljs")).default;
       const workbook = new ExcelJS.Workbook();
 
       const summarySheet = workbook.addWorksheet("Summary");

@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { memo, useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 interface Column<T> {
@@ -44,7 +44,7 @@ type SortDirection = "asc" | "desc" | null;
 const DEFAULT_ROW_HEIGHT = 48;
 const DEFAULT_OVERSCAN = 5;
 
-export default function DataTable<T extends Record<string, any>>({
+const DataTable = memo(function DataTable<T extends Record<string, any>>({
   data,
   columns,
   loading = false,
@@ -601,4 +601,6 @@ export default function DataTable<T extends Record<string, any>>({
       )}
     </div>
   );
-}
+})
+
+export default DataTable;

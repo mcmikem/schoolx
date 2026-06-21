@@ -35,18 +35,6 @@ import {
   Copy,
   Share2,
 } from "lucide-react";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-} from "recharts";
-
 import { useStudent, useClasses } from "@/lib/hooks";
 import { SendSMSModal } from "@/components/SendSMSModal";
 import { useToast } from "@/components/Toast";

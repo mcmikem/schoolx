@@ -1,4 +1,5 @@
 'use client'
+import { memo } from 'react'
 import MaterialIcon from '@/components/MaterialIcon'
 import { Button } from './ui/index'
 import EmptyStateGuide from '@/components/EmptyStateGuide'
@@ -19,7 +20,7 @@ interface EmptyStateProps {
   module?: string
 }
 
-export function EmptyState({ icon, title, description, action, secondaryAction, className = '', module }: EmptyStateProps) {
+export const EmptyState = memo(function EmptyState({ icon, title, description, action, secondaryAction, className = '', module }: EmptyStateProps) {
   if (module) {
     return <EmptyStateGuide module={module as any} />
   }
@@ -61,7 +62,7 @@ export function EmptyState({ icon, title, description, action, secondaryAction, 
       </div>
     </div>
   )
-}
+})
 
 export function NoStudents({ onAdd }: { onAdd: () => void }) {
   return (

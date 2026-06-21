@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
-import { withTimeout } from "@/lib/hooks/utils";
+import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import { loadSchoolSettings, saveSchoolSetting } from "@/lib/school-settings";
 import { type UserRole } from "@/lib/roles";
 import { DEFAULT_FEATURE_STAGE, type FeatureStage } from "@/lib/featureStages";
@@ -168,7 +168,7 @@ export default function SettingsPage() {
         grade_threshold: parseInt(settingsMap.grade_threshold) || 50,
         fee_threshold: parseInt(settingsMap.fee_threshold) || 50000,
       }));
-      const schoolResult = await withTimeout(supabase.from("schools").select("logo_url").eq("id", school.id).single(), 10000, null as any);
+      const schoolResult = await withTimeout(supabase.from("schools").select("logo_url").eq("id", school.id).single(), 10000, timeoutFallback());
       if (schoolResult?.data?.logo_url) setLogoUrl(schoolResult.data.logo_url);
     } catch (err) { logger.error("Error:", err); }
   }, [school?.id]);
@@ -210,9 +210,9 @@ export default function SettingsPage() {
     if (!school?.id) return;
     try {
       setLoadingUsers(true);
-      const result = await withTimeout(supabase.from("users").select("*").eq("school_id", school.id).order("created_at", { ascending: false }), 10000, null as any);
+      const result = await withTimeout(supabase.from("users").select("*").eq("school_id", school.id).order("created_at", { ascending: false }), 10000, timeoutFallback());
       if (result.error) throw result.error;
-      setUsers(result.data || []);
+      setUsers((result.data || []) as { id: string; full_name: string; phone: string; role: string; is_active: boolean }[]);
     } catch (err) { logger.error("Error:", err); }
     finally { setLoadingUsers(false); }
   }, [school?.id]);
@@ -221,8 +221,8 @@ export default function SettingsPage() {
     if (!school?.id) return;
     try {
       setLoadingHouses(true);
-      const result = await withTimeout(supabase.from("houses").select("*").eq("school_id", school.id).order("name"), 10000, null as any);
-      setHouses(result.data || []);
+      const result = await withTimeout(supabase.from("houses").select("*").eq("school_id", school.id).order("name"), 10000, timeoutFallback());
+      setHouses((result.data || []) as { id: string; name: string; color: string; motto?: string | null | undefined }[]);
     } catch { setHouses([]); }
     finally { setLoadingHouses(false); }
   }, [school?.id]);
@@ -296,7 +296,7 @@ export default function SettingsPage() {
     if (!school?.id) return;
     try {
       setSavingConfig(true);
-      const result = await withTimeout(supabase.from("schools").update({ student_id_format: schoolConfig.student_id_format, has_boarding: schoolConfig.has_boarding, has_houses: schoolConfig.has_houses, has_student_council: schoolConfig.has_student_council, has_prefects: schoolConfig.has_prefects, location_type: schoolConfig.location_type }).eq("id", school.id), 15000, null as any);
+      const result = await withTimeout(supabase.from("schools").update({ student_id_format: schoolConfig.student_id_format, has_boarding: schoolConfig.has_boarding, has_houses: schoolConfig.has_houses, has_student_council: schoolConfig.has_student_council, has_prefects: schoolConfig.has_prefects, location_type: schoolConfig.location_type }).eq("id", school.id), 15000, timeoutFallback());
       if (result?.error) throw result.error;
       toast.success("School configuration saved");
       await refreshSchool();
@@ -308,7 +308,7 @@ export default function SettingsPage() {
     if (!school?.id || !name.trim()) { return; }
     try {
       const { withTimeout } = await import('@/lib/hooks/utils');
-      const houseResult = await withTimeout(supabase.from("houses").insert({ school_id: school.id, name: name.trim(), color, motto: motto.trim() || null }), 15000, null as any);
+      const houseResult = await withTimeout(supabase.from("houses").insert({ school_id: school.id, name: name.trim(), color, motto: motto.trim() || null }), 15000, timeoutFallback());
       if (houseResult?.error) throw houseResult.error;
       toast.success("House added");
       await fetchHouses();
@@ -318,7 +318,7 @@ export default function SettingsPage() {
   const deleteHouse = async (id: string) => {
     try {
       const { withTimeout } = await import('@/lib/hooks/utils');
-      const houseDelResult = await withTimeout(supabase.from("houses").delete().eq("id", id), 15000, null as any);
+      const houseDelResult = await withTimeout(supabase.from("houses").delete().eq("id", id), 15000, timeoutFallback());
       if (houseDelResult?.error) throw houseDelResult.error;
       toast.success("House deleted");
       await fetchHouses();
@@ -329,7 +329,7 @@ export default function SettingsPage() {
     if (!school?.id || !name.trim()) { return; }
     try {
       const { withTimeout } = await import('@/lib/hooks/utils');
-      const classResult = await withTimeout(supabase.from("classes").upsert({ school_id: school.id, name: name.trim(), stream: stream.trim() || null, level: inferClassLevel(name, schoolType), academic_year: new Date().getFullYear().toString() }, { onConflict: "school_id,name,academic_year" }), 15000, null as any);
+      const classResult = await withTimeout(supabase.from("classes").upsert({ school_id: school.id, name: name.trim(), stream: stream.trim() || null, level: inferClassLevel(name, schoolType), academic_year: new Date().getFullYear().toString() }, { onConflict: "school_id,name,academic_year" }), 15000, timeoutFallback());
       if (classResult?.error) throw classResult.error;
       await refetchClasses();
       toast.success("Class added");
@@ -338,7 +338,7 @@ export default function SettingsPage() {
 
   const deleteClass = async (id: string) => {
     try {
-      const result = await withTimeout(supabase.from("classes").delete().eq("id", id), 15000, null as any);
+      const result = await withTimeout(supabase.from("classes").delete().eq("id", id), 15000, timeoutFallback());
       if (result?.error) throw result.error;
       await refetchClasses();
       toast.success("Class deleted");
@@ -348,7 +348,7 @@ export default function SettingsPage() {
   const seedDefaultClasses = async () => {
     if (!school?.id) return;
     try {
-      const result = await withTimeout(supabase.from("classes").upsert(buildDefaultClasses(school.id, schoolType, new Date().getFullYear().toString()), { onConflict: "school_id,name,academic_year" }), 15000, null as any);
+      const result = await withTimeout(supabase.from("classes").upsert(buildDefaultClasses(school.id, schoolType, new Date().getFullYear().toString()), { onConflict: "school_id,name,academic_year" }), 15000, timeoutFallback());
       if (result?.error) throw result.error;
       await refetchClasses();
       toast.success("Standard class structure loaded");
@@ -357,7 +357,7 @@ export default function SettingsPage() {
 
   const assignClassTeacher = async (classId: string, teacherId: string) => {
     try {
-      const result = await withTimeout(supabase.from("classes").update({ class_teacher_id: teacherId || null }).eq("id", classId), 15000, null as any);
+      const result = await withTimeout(supabase.from("classes").update({ class_teacher_id: teacherId || null }).eq("id", classId), 15000, timeoutFallback());
       if (result?.error) throw result.error;
       toast.success("Class teacher updated");
     } catch (err) { logger.error("Failed to update class teacher:", err); toast.error("Failed to update class teacher"); }
@@ -414,7 +414,7 @@ export default function SettingsPage() {
 
   const toggleUserStatus = async (id: string, currentStatus: boolean) => {
     try {
-      const result = await withTimeout(supabase.from("users").update({ is_active: !currentStatus }).eq("id", id), 15000, null as any);
+      const result = await withTimeout(supabase.from("users").update({ is_active: !currentStatus }).eq("id", id), 15000, timeoutFallback());
       if (result?.error) throw result.error;
       setUsers(users.map((u) => u.id === id ? { ...u, is_active: !currentStatus } : u));
       toast.success(currentStatus ? "User deactivated" : "User activated");
@@ -445,7 +445,7 @@ export default function SettingsPage() {
       toast.success("Preparing export...");
       const tables = ["students", "classes", "subjects", "attendance", "grades", "fee_structure", "fee_payments", "users"];
       const allData: Record<string, unknown[]> = {};
-      for (const table of tables) { const result = await withTimeout(supabase.from(table).select("*").eq("school_id", school.id), 15000, null as any); if (result?.data) allData[table] = result.data; }
+      for (const table of tables) { const result = await withTimeout(supabase.from(table).select("*").eq("school_id", school.id), 15000, timeoutFallback()); if (result?.data) allData[table] = result.data; }
       const blob = new Blob([JSON.stringify(allData, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a"); a.href = url; a.download = `skoolmate_backup_${school.name}_${new Date().toISOString().split("T")[0]}.json`; a.click();
@@ -458,7 +458,7 @@ export default function SettingsPage() {
     if (!school?.id) return;
     try {
       toast.success("Preparing student photo backup...");
-      const result = await withTimeout(supabase.from("students").select("*").eq("school_id", school.id), 15000, null as any);
+      const result = await withTimeout(supabase.from("students").select("*").eq("school_id", school.id), 15000, timeoutFallback());
       if (result?.error) throw result.error;
       const photoManifest = (result.data || []).map((student: Record<string, unknown>) => ({ id: student.id, student_number: student.student_number, first_name: student.first_name, last_name: student.last_name, photo_url: student.photo_url || null })).filter((s: Record<string, unknown>) => Boolean(s.photo_url));
       const blob = new Blob([JSON.stringify(photoManifest, null, 2)], { type: "application/json" });

@@ -3,8 +3,6 @@
  * Logic for timeline calculation, progress tracking, and lesson generation
  */
 
-import type { NSDCTopic } from "@/lib/ndc-syllabus";
-
 export interface SyllabusTimelineEntry {
   id: string;
   week_number: number;

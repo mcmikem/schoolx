@@ -181,8 +181,8 @@ export default function SyllabusTimelineView({
                           </span>
                         </div>
                         <p className="text-xs text-[var(--t3)]">
-                          {new Date(week.planned_start_date).toLocaleDateString()} -{" "}
-                          {new Date(week.planned_end_date).toLocaleDateString()}
+                          {week.planned_start_date ? new Date(week.planned_start_date).toLocaleDateString() : ""} -{" "}
+                          {week.planned_end_date ? new Date(week.planned_end_date).toLocaleDateString() : ""}
                         </p>
 
                         {/* Mini Progress */}

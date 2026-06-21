@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import type { FeePayment, FeeStructure, FeeAdjustment, CreatePaymentInput } from "@/types";
-import { getQuerySchoolId, withTimeout } from "./utils";
+import { getQuerySchoolId, withTimeout, timeoutFallback } from "./utils";
 import { getCachedData, setCachedData, invalidateCache } from "./queryCache";
 import {
   DEMO_FEE_PAYMENTS,
@@ -22,6 +22,7 @@ import {
   validateFeeStructureInput,
   validatePaymentInput,
 } from "@/lib/validation";
+
 
 let feePaymentsDeletedAtSupported: boolean | null = null;
 
@@ -268,7 +269,7 @@ export function useFeePayments(
           )
           .single(),
         15000,
-        { data: null, error: { message: "Payment save timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+        timeoutFallback(),
       );
       if (insertError) throw insertError;
       setPayments((prev) => [data as unknown as FeePayment, ...prev]);
@@ -310,7 +311,7 @@ export function useFeePayments(
 const { error: deleteError } = await withTimeout(
           supabase.from("fee_payments").update(payload).eq("id", id),
           15000,
-          { error: { message: "Payment delete timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+          timeoutFallback(),
         );
       if (deleteError) throw deleteError;
       setPayments((prev) => prev.filter((p) => p.id !== id));
@@ -496,7 +497,7 @@ const { data, error } = await withTimeout(
            .select()
            .single(),
          15000,
-         { data: null, error: { message: "Fee structure save timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+          timeoutFallback(),
        );
       if (error) throw error;
       setFeeStructure((prev) => [...prev, data]);
@@ -704,7 +705,7 @@ export function useFeeAdjustments(schoolId?: string) {
 const { data, error } = await withTimeout(
           supabase.from("fee_adjustments").insert(payload).select().single(),
           15000,
-          { data: null, error: { message: "Adjustment save timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+           timeoutFallback(),
         );
       if (error) throw error;
       setAdjustments((prev) => [data, ...prev]);
@@ -743,7 +744,7 @@ const { data, error } = await withTimeout(
 const { error: deleteError } = await withTimeout(
           supabase.from("fee_adjustments").update(payload).eq("id", id),
           15000,
-          { error: { message: "Adjustment delete timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+          timeoutFallback(),
         );
         if (deleteError) {
           // deleted_at may not exist yet — fall back to hard delete
@@ -751,7 +752,7 @@ const { error: deleteError } = await withTimeout(
             const { error: hardDeleteError } = await withTimeout(
               supabase.from("fee_adjustments").delete().eq("id", id),
               15000,
-              { error: { message: "Hard delete timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+              timeoutFallback(),
             );
           if (hardDeleteError) throw hardDeleteError;
         } else {
@@ -823,7 +824,7 @@ export function useBudget(schoolId?: string) {
 const { data, error } = await withTimeout(
           supabase.from("budgets").insert({ ...budget, school_id: querySchoolId }).select().single(),
           15000,
-          { data: null, error: { message: "Budget save timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+           timeoutFallback(),
         );
       if (error) throw error;
       setBudgets((prev) => [data, ...prev]);
@@ -850,7 +851,7 @@ const { data, error } = await withTimeout(
 const { data, error } = await withTimeout(
           supabase.from("expenses").insert({ ...expense, school_id: querySchoolId }).select().single(),
           15000,
-          { data: null, error: { message: "Expense save timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+           timeoutFallback(),
         );
       if (error) throw error;
       setExpenses((prev) => [data, ...prev]);
@@ -871,7 +872,7 @@ const { data, error } = await withTimeout(
 const { data, error } = await withTimeout(
           supabase.from("expenses").update({ status }).eq("id", id).select().single(),
           15000,
-          { data: null, error: { message: "Expense update timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+           timeoutFallback(),
         );
       if (error) throw error;
       setExpenses((prev) => prev.map((e) => (e.id === id ? data : e)));
@@ -885,7 +886,7 @@ const { data, error } = await withTimeout(
     async function fetchData() {
       if (isDemo || isDemoSchool(schoolId)) {
         setExpenses(DEMO_EXPENSES as unknown as DemoExpense[]);
-        setBudgets(DEMO_BUDGETS as any);
+        setBudgets(DEMO_BUDGETS as unknown as DemoExpense[]);
         setLoading(false);
         return;
       }

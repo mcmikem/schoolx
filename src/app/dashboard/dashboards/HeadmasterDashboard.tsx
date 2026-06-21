@@ -87,30 +87,16 @@ function HeadmasterDashboardContent() {
         ? "Good Afternoon"
         : "Good Evening";
 
-  const boysCount = useMemo(() => students.filter((s) => s.gender === "M").length, [students]);
-  const girlsCount = useMemo(() => students.filter((s) => s.gender === "F").length, [students]);
+  const boysCount = stats.maleStudents;
+  const girlsCount = stats.femaleStudents;
 
-  const totalFeesExpected = useMemo(() => students.reduce((total, student) => {
-    const classFees = feeStructure.filter(
-      (f) => !f.class_id || f.class_id === student.class_id,
-    );
-    const studentExpected = classFees.reduce(
-      (sum, f) => sum + Number(f.amount || 0),
-      0,
-    );
-    return total + studentExpected;
-  }, 0), [students, feeStructure]);
-
-  const totalFeesCollected = useMemo(
-    () => payments.reduce((sum, p) => sum + Number(p.amount_paid || 0), 0),
-    [payments],
-  );
+  const totalExpected = stats.feesCollected + stats.feesBalance;
 
   const collectionRate = useMemo(
-    () => totalFeesExpected > 0
-      ? Math.round((totalFeesCollected / totalFeesExpected) * 100)
+    () => totalExpected > 0
+      ? Math.round((stats.feesCollected / totalExpected) * 100)
       : 0,
-    [totalFeesExpected, totalFeesCollected],
+    [totalExpected, stats.feesCollected],
   );
 
   const { totalPresent, totalInClass, attendanceRate, absentCount } = useMemo(() => {
@@ -128,9 +114,9 @@ function HeadmasterDashboardContent() {
         : stats.presentToday > 0 && stats.totalStudents > 0
           ? Math.round((stats.presentToday / stats.totalStudents) * 100)
           : 0;
-    const absentCount = students.length - stats.presentToday;
+    const absentCount = stats.totalStudents - stats.presentToday;
     return { totalPresent, totalInClass, attendanceRate, absentCount };
-  }, [classAttendance, stats.presentToday, stats.totalStudents, students.length]);
+  }, [classAttendance, stats.presentToday, stats.totalStudents]);
 
   const hasAttendanceSignals = Object.keys(classAttendance).length > 0;
   const classesNotMarked = hasAttendanceSignals
@@ -420,7 +406,7 @@ function HeadmasterDashboardContent() {
     );
   }
 
-  const isFirstRun = students.length === 0 && classes.length === 0 && !isDataLoading;
+  const isFirstRun = stats.totalStudents === 0 && classes.length === 0 && !isDataLoading;
 
   return (
     <div className="content overflow-x-hidden">
@@ -448,9 +434,9 @@ function HeadmasterDashboardContent() {
         items={[
           {
             label: "Student records",
-            status: students.length > 0 ? "ok" : "missing",
+            status: stats.totalStudents > 0 ? "ok" : "missing",
             link: "/dashboard/students?action=add",
-            detail: students.length > 0 ? `${students.length} enrolled` : "No students enrolled yet",
+            detail: stats.totalStudents > 0 ? `${stats.totalStudents} enrolled` : "No students enrolled yet",
           },
           {
             label: "Attendance taken today",
@@ -558,7 +544,7 @@ function HeadmasterDashboardContent() {
             </div>
             <div>
               <p className={`text-[28px] font-bold leading-none ${collectionRate >= 70 ? 'text-[#1f8a70]' : 'text-[#c2472b]'}`}>
-                {totalFeesExpected > 0 ? `${collectionRate}%` : '--'}
+                {totalExpected > 0 ? `${collectionRate}%` : '--'}
               </p>
               <p className="text-[11px] font-medium text-[#7f91aa] mt-1">Fee collection</p>
             </div>

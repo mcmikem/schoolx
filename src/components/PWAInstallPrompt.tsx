@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { memo, useState, useEffect } from "react";
 import { APP_NAME } from "@/lib/app-name";
 
 interface BeforeInstallPromptEvent extends Event {
@@ -8,7 +8,7 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
-export function PWAInstallPrompt() {
+export const PWAInstallPrompt = memo(function PWAInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] =
     useState<BeforeInstallPromptEvent | null>(null);
   const [showBanner, setShowBanner] = useState(false);
@@ -97,4 +97,4 @@ export function PWAInstallPrompt() {
       </div>
     </div>
   );
-}
+})

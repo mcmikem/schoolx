@@ -1,4 +1,5 @@
 'use client'
+import { memo } from 'react'
 
 interface MaterialIconProps {
   icon?: string
@@ -8,7 +9,7 @@ interface MaterialIconProps {
   size?: number | string
 }
 
-export default function MaterialIcon({
+const MaterialIcon = memo(function MaterialIcon({
   icon,
   className = '',
   style,
@@ -25,4 +26,6 @@ export default function MaterialIcon({
       {iconName}
     </span>
   )
-}
+})
+
+export default MaterialIcon

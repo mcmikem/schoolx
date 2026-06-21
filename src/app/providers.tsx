@@ -6,7 +6,7 @@ import { ThemeProvider } from '@/lib/theme-context'
 import { NotificationsProvider } from '@/lib/notifications'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import { ToastProvider } from '@/components/Toast'
-import { StuckLoadingOverlay, TopLoadingBar } from '@/components/ui/Skeleton'
+import { StuckLoadingOverlay } from '@/components/ui/Skeleton'
 import { logger } from '@/lib/logger'
 import { setupErrorLogging } from '@/lib/error-logger'
 import BrandProvider from '@/components/BrandProvider'
@@ -109,14 +109,11 @@ function ServiceWorkerRegistration({ children }: { children: ReactNode }) {
 function LoadingChecker({ children }: { children: ReactNode }) {
   const { authInitialized } = useAuth()
 
-  // Do not block first paint on auth checks.
-  // Render app shell immediately and show only a lightweight top loading hint.
   if (!authInitialized) {
     return (
       <>
-        <TopLoadingBar />
         {children}
-        <StuckLoadingOverlay delay={8000} />
+        <StuckLoadingOverlay delay={12000} />
       </>
     )
   }
