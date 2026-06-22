@@ -207,7 +207,7 @@ export async function POST(request: NextRequest) {
         );
 
         if (smsResult.success) {
-          const { withTimeout } = await import('@/lib/hooks/utils');
+          const { withTimeout, timeoutFallback } = await import('@/lib/hooks/utils');
           const feeMsgResult = await withTimeout(
             supabase.from("messages").insert({
               school_id: school.schoolId,
@@ -219,7 +219,7 @@ export async function POST(request: NextRequest) {
               student_id: student.id,
             } as any),
             15000,
-            null as any
+            timeoutFallback()
           );
           const feeMsgError = feeMsgResult?.error;
 

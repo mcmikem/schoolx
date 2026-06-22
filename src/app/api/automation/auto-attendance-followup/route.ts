@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
         );
 
         if (smsResult.success) {
-          const { withTimeout } = await import('@/lib/hooks/utils');
+          const { withTimeout, timeoutFallback } = await import('@/lib/hooks/utils');
           // Log the message
           const attMsgResult = await withTimeout(
             supabase.from("messages").insert({
@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
               type: "attendance_followup",
             } as any),
             15000,
-            null as any
+            timeoutFallback()
           );
           const attMsgError = attMsgResult?.error;
 
@@ -178,7 +178,7 @@ export async function POST(request: NextRequest) {
               sent_at: sentAt,
             } as any),
             15000,
-            null as any
+            timeoutFallback()
           );
           const attLogError = attLogResult?.error;
 

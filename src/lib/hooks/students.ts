@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { logger } from "@/lib/logger";
 import type { Student, CreateStudentInput, Class } from "@/types";
 import { getQuerySchoolId, withTimeout } from "./utils";
+import type { PostgrestSingleResponse } from "@supabase/supabase-js";
 import { getCachedData, setCachedData, invalidateCache } from "./queryCache";
 import {
   getErrorMessage,
@@ -505,7 +506,7 @@ export function useStudents(
           .select("id")
           .single(),
         10000,
-        { data: null, error: { message: "Timeout", code: "TIMEOUT" } } as any,
+        { data: null, error: { message: "Timeout", code: "TIMEOUT", details: "", hint: "", name: "TimeoutError" }, count: null as number | null, status: 408, statusText: "Timeout", success: false } as unknown as PostgrestSingleResponse<{ id: string }>,
       );
 
       if (firstInsert.error) {
@@ -525,7 +526,7 @@ export function useStudents(
             .select("id")
             .single(),
           10000,
-          { data: null, error: { message: "Timeout", code: "TIMEOUT" } } as any,
+          { data: null, error: { message: "Timeout", code: "TIMEOUT", details: "", hint: "", name: "TimeoutError" }, count: null as number | null, status: 408, statusText: "Timeout", success: false } as unknown as PostgrestSingleResponse<{ id: string }>,
         );
 
         if (isMissingStudentColumnError(retryInsert.error, "photo_url")) {
@@ -542,7 +543,7 @@ export function useStudents(
               .select("id")
               .single(),
             10000,
-            { data: null, error: { message: "Timeout", code: "TIMEOUT" } } as any,
+            { data: null, error: { message: "Timeout", code: "TIMEOUT", details: "", hint: "", name: "TimeoutError" }, count: null as number | null, status: 408, statusText: "Timeout", success: false } as unknown as PostgrestSingleResponse<{ id: string }>,
           );
 
           if (legacyRetryInsert.error) throw legacyRetryInsert.error;
@@ -579,8 +580,8 @@ export function useStudents(
           admission_date: new Date().toISOString().split("T")[0],
           created_at: new Date().toISOString(),
           opening_balance:
-            typeof (studentPayload as any).opening_balance === "number"
-              ? (studentPayload as any).opening_balance
+            typeof (studentPayload as Record<string, unknown>).opening_balance === "number"
+              ? (studentPayload as Record<string, unknown>).opening_balance
               : 0,
         } as StudentWithClass;
       }
@@ -722,7 +723,7 @@ export function useStudents(
           .delete()
           .eq("id", id),
         15000,
-        { error: { message: "Delete timed out", code: "TIMEOUT", details: "", hint: "", name: "TimeoutError" } } as any,
+        { data: null, error: { message: "Delete timed out", code: "TIMEOUT", details: "", hint: "", name: "TimeoutError" }, count: null as number | null, status: 408, statusText: "Timeout", success: false } as unknown as PostgrestSingleResponse<never>,
       );
       if (deleteError) throw deleteError;
       setStudents((prev) => prev.filter((s) => s.id !== id));

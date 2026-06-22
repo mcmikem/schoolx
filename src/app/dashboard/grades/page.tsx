@@ -11,7 +11,7 @@ import {
 import { useOfflineStudents, useOfflineGrades } from "@/lib/offline-hooks";
 import { useToast } from "@/components/Toast";
 import { supabase } from "@/lib/supabase";
-import { withTimeout } from "@/lib/hooks/utils";
+import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import { calculateSubjectTotal, isCompetencyScale, COMPETENCY_SCHEME, CompetencyValue, getCompetencyLabel } from "@/lib/grading";
 import MaterialIcon from "@/components/MaterialIcon";
 import { logger } from "@/lib/logger";
@@ -210,7 +210,7 @@ export default function GradesPage() {
       const result = await withTimeout(supabase
         .from("teacher_subjects")
         .select("subject_id, class_id")
-        .eq("teacher_id", user.id), 10000, null as any);
+        .eq("teacher_id", user.id), 10000, timeoutFallback());
       const { data, error } = result || { data: [], error: null };
       if (error) {
         logger.error("Error fetching teacher subjects:", error);
@@ -966,7 +966,7 @@ export default function GradesPage() {
             .eq("syllabus.subject_id", selectedSubject)
             .eq("syllabus.term", currentTerm)
             .eq("syllabus.academic_year", academicYear),
-          15000, null as any
+          15000, timeoutFallback()
         ),
         withTimeout(
           supabase
@@ -977,7 +977,7 @@ export default function GradesPage() {
             .eq("term", currentTerm)
             .eq("academic_year", academicYear)
             .order("topic"),
-          10000, null as any
+          10000, timeoutFallback()
         ),
       ]);
 

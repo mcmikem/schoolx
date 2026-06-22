@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
     for (const member of staff as any[]) {
       try {
         // Check if payroll already exists for this staff member this month
-        const { data: existingPayroll } = await (supabase as any)
+        const { data: existingPayroll } = await supabase
           .from("payroll_records")
           .select("id")
           .eq("staff_id", member.id)
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
         );
 
         // Create payroll record
-        const { data: payrollRecord, error: payrollError } = await (supabase as any)
+        const { data: payrollRecord, error: payrollError } = await supabase
           .from("payroll_records")
           .insert({
             school_id: school.schoolId,
@@ -137,7 +137,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Create payroll deduction details
-        const { error: deductionError } = await (supabase as any).from("payroll_deductions").insert([
+        const { error: deductionError } = await supabase.from("payroll_deductions").insert([
           {
             payroll_record_id: payrollRecord.id,
             school_id: school.schoolId,
@@ -191,7 +191,7 @@ export async function POST(request: NextRequest) {
 
     // Create payroll summary
     if (processed.length > 0) {
-      const { error: summaryError } = await (supabase as any).from("payroll_summaries").insert({
+      const { error: summaryError } = await supabase.from("payroll_summaries").insert({
         school_id: school.schoolId,
         month: payrollMonth,
         year: payrollYear,

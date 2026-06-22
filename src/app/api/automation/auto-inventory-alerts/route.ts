@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Log the alert in the database
-        await (supabase as any).from("inventory_alerts").insert({
+        await supabase.from("inventory_alerts").insert({
           school_id: school.schoolId,
           asset_id: item.id,
           alert_type: "low_stock",

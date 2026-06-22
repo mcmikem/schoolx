@@ -119,7 +119,7 @@ export function useOfflineAcademicTerms(schoolId?: string, options?: OfflineHook
         .order('academic_year', { ascending: false })
         .order('term_number');
       if (error) throw error;
-      return (data as any[]) || [];
+      return (data as unknown[]) || [];
     },
     'academic_terms',
     schoolId ? { school_id: schoolId } : undefined,
@@ -296,7 +296,7 @@ export function useOfflineHealthRecords(schoolId?: string, options?: OfflineHook
         .order('admitted_at', { ascending: false })
         .limit(100);
       if (error) throw error;
-      return (data as any[]) || [];
+      return (data as unknown[]) || [];
     },
     'health_records',
     schoolId ? { school_id: schoolId } : undefined,
@@ -315,7 +315,7 @@ export function useOfflineCanteenItems(schoolId?: string, options?: OfflineHookO
         .eq('school_id', schoolId)
         .order('category', { ascending: true });
       if (error) throw error;
-      return (data as any[]) || [];
+      return (data as unknown[]) || [];
     },
     'canteen_items',
     schoolId ? { school_id: schoolId } : undefined,
@@ -335,7 +335,7 @@ export function useOfflineCanteenOrders(schoolId?: string, options?: OfflineHook
         .order('created_at', { ascending: false })
         .limit(50);
       if (error) throw error;
-      return (data as any[]) || [];
+      return (data as unknown[]) || [];
     },
     'canteen_orders',
     schoolId ? { school_id: schoolId } : undefined,
@@ -358,7 +358,7 @@ export function useOfflineHomework(schoolId?: string, academicYear?: string, ter
       if (classId) query = query.eq('class_id', classId);
       const { data, error } = await query;
       if (error) throw error;
-      return (data as any[]) || [];
+      return (data as unknown[]) || [];
     },
     'homework',
     schoolId && academicYear && term ? (classId ? { school_id: schoolId, academic_year: academicYear, term, class_id: classId } : { school_id: schoolId, academic_year: academicYear, term }) : undefined,
@@ -376,7 +376,7 @@ export function useOfflineHomeworkSubmissions(homeworkId?: string, schoolId?: st
         .select('*, students(first_name, last_name, classes(name))')
         .eq('homework_id', homeworkId);
       if (error) throw error;
-      return (data as any[]) || [];
+      return (data as unknown[]) || [];
     },
     'homework_submissions',
     homeworkId ? { homework_id: homeworkId } : undefined,
@@ -395,7 +395,7 @@ export function useOfflineClasses(schoolId?: string, options?: OfflineHookOption
         .eq('school_id', schoolId)
         .order('name');
       if (error) throw error;
-      return (data as any[]) || [];
+      return (data as unknown[]) || [];
     },
     'classes',
     schoolId ? { school_id: schoolId } : undefined,
@@ -414,7 +414,7 @@ export function useOfflineClassStudentsFull(schoolId?: string, classId?: string,
         .eq('school_id', schoolId)
         .eq('class_id', classId);
       if (error) throw error;
-      return (data as any[]) || [];
+      return (data as unknown[]) || [];
     },
     'students',
     schoolId && classId ? { school_id: schoolId, class_id: classId } : undefined,
@@ -434,7 +434,7 @@ export function useOfflineStudentsBasic(schoolId?: string, status?: string, opti
       if (status) query = query.eq('status', status);
       const { data, error } = await query;
       if (error) throw error;
-      return (data as any[]) || [];
+      return (data as unknown[]) || [];
     },
     'students',
     schoolId ? (status ? { school_id: schoolId, status } : { school_id: schoolId }) : undefined,
@@ -453,7 +453,7 @@ export function useOfflineFeeStructure(schoolId?: string, term?: number, options
         .eq('school_id', schoolId)
         .eq('term', term);
       if (error) throw error;
-      return (data as any[]) || [];
+      return (data as unknown[]) || [];
     },
     'fee_structure',
     schoolId && term ? { school_id: schoolId, term } : undefined,
@@ -476,7 +476,7 @@ export function useOfflineLeaveRequests(schoolId?: string, staffId?: string, isM
       }
       const { data, error } = await query;
       if (error) throw error;
-      return (data as any[]) || [];
+      return (data as unknown[]) || [];
     },
     'leave_requests',
     schoolId ? (isManager ? { school_id: schoolId } : { school_id: schoolId, staff_id: staffId }) : undefined,
@@ -496,7 +496,7 @@ export function useOfflinePromotionHistory(schoolId?: string, options?: OfflineH
         .order('created_at', { ascending: false })
         .limit(30);
       if (error) throw error;
-      return (data as any[]) || [];
+      return (data as unknown[]) || [];
     },
     'promotion_history',
     schoolId ? { school_id: schoolId } : undefined,
@@ -516,7 +516,7 @@ export function useOfflineClassStudents(schoolId?: string, classId?: string, opt
         .eq('class_id', classId)
         .order('first_name');
       if (error) throw error;
-      return (data as any[]) || [];
+      return (data as unknown[]) || [];
     },
     'students',
     schoolId && classId ? { school_id: schoolId, class_id: classId } : undefined,
@@ -535,7 +535,7 @@ export function useOfflineEvents(schoolId?: string, options?: OfflineHookOptions
         .eq('school_id', schoolId)
         .order('start_date');
       if (error) throw error;
-      return (data as any[]) || [];
+      return (data as unknown[]) || [];
     },
     'events',
     schoolId ? { school_id: schoolId } : undefined,

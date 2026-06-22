@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
         );
         if (smsRes.success) {
           // Log success
-          await (supabase as any).from("automated_message_logs").insert({
+          await supabase.from("automated_message_logs").insert({
             school_id: school.schoolId,
             trigger_id: "auto-installment-reminder",
             recipient_id: reminder.parentPhone,

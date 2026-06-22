@@ -47,11 +47,11 @@ export default function DormitoryPage() {
       reported_by: user!.id
     }
 
-    const { withTimeout } = await import('@/lib/hooks/utils');
+    const { withTimeout, timeoutFallback } = await import('@/lib/hooks/utils');
     const dormResult = await withTimeout(
       supabase.from('dorm_incidents').insert([incident]),
       15000,
-      null as any
+      timeoutFallback()
     );
     const error = dormResult?.error;
     if (error) {

@@ -67,7 +67,7 @@ export default function HomeworkSubmissionsPage() {
   }))
 
   const markSubmission = async (submission: any, marks: number, feedback: string) => {
-    const { withTimeout } = await import('@/lib/hooks/utils');
+    const { withTimeout, timeoutFallback } = await import('@/lib/hooks/utils');
     if (!submission.id) {
       const hwResult = await withTimeout(
         supabase.from('homework_submissions').insert({
@@ -80,7 +80,7 @@ export default function HomeworkSubmissionsPage() {
           status: 'graded'
         }),
         15000,
-        null as any
+        timeoutFallback()
       );
       const error = hwResult?.error;
       if (error) throw error;
@@ -88,7 +88,7 @@ export default function HomeworkSubmissionsPage() {
       const hwResult = await withTimeout(
         supabase.from('homework_submissions').update({ marks_obtained: marks, feedback, status: 'graded' }).eq('id', submission.id),
         15000,
-        null as any
+        timeoutFallback()
       );
       const error = hwResult?.error;
       if (error) throw error;

@@ -25,7 +25,7 @@ import {
   validateAttendanceInput,
 } from "@/lib/validation";
 import type { Student } from "@/types";
-import { withTimeout } from "@/lib/hooks/utils";
+import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import { getAutomationStatus, toggleAutomation } from "@/lib/sms-automation";
 
 const STATUS_CYCLE = ["absent", "present", "late", "excused"] as const;
@@ -332,7 +332,7 @@ export default function AttendancePage() {
         const attResult = await withTimeout(
           supabase.from("attendance").upsert(records as any, { onConflict: "student_id,date" }),
           15000,
-          null as any
+          timeoutFallback()
         );
         const error = attResult?.error;
         if (error) throw error;
@@ -508,7 +508,7 @@ export default function AttendancePage() {
           message: `SkoolMate Alert: ${student.first_name} was marked ABSENT today (${date}). Please confirm with school if this is unexpected.`,
           status: "sent",
           type: "attendance_alert",
-        }), 15000, null as any);
+        }), 15000, timeoutFallback());
         const msgError = msgResult?.error;
         if (msgError) throw msgError;
       }

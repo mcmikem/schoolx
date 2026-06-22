@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
 import { getQuerySchoolId, withTimeout } from './utils'
+import type { PostgrestSingleResponse } from '@supabase/supabase-js'
 import { isDemoSchool } from '@/lib/demo-utils'
 import { DEMO_BOOKS, DEMO_BOOK_ISSUES } from '@/lib/demo-data'
 import { logger } from "@/lib/logger";
@@ -18,8 +19,8 @@ export function useLibrary(schoolId?: string) {
       if (!schoolId) { setLoading(false); return }
 
       if (isDemo || isDemoSchool(schoolId)) {
-        setBooks(DEMO_BOOKS as any)
-        setIssues(DEMO_BOOK_ISSUES as any)
+        setBooks(DEMO_BOOKS as unknown as any[])
+        setIssues(DEMO_BOOK_ISSUES as unknown as any[])
         setLoading(false)
         return
       }
@@ -55,7 +56,7 @@ export function useLibrary(schoolId?: string) {
       return newBook
     }
     try {
-      const { data, error } = await withTimeout(supabase.from('library_books').insert({ ...book, school_id: schoolId }).select().single(), 15000, { data: null, error: { message: "Book creation timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any)
+      const { data, error } = await withTimeout(supabase.from('library_books').insert({ ...book, school_id: schoolId }).select().single(), 15000, { data: null, error: { message: "Book creation timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as unknown as PostgrestSingleResponse<never>)
       if (error) throw error
       setBooks(prev => [...prev, data])
       return data
@@ -69,7 +70,7 @@ export function useLibrary(schoolId?: string) {
       return newIssue
     }
     try {
-      const { data, error } = await withTimeout(supabase.from('library_issues').insert({ ...issue, school_id: schoolId }).select().single(), 15000, { data: null, error: { message: "Book issue timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any)
+      const { data, error } = await withTimeout(supabase.from('library_issues').insert({ ...issue, school_id: schoolId }).select().single(), 15000, { data: null, error: { message: "Book issue timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as unknown as PostgrestSingleResponse<never>)
       if (error) throw error
       setIssues(prev => [...prev, data])
       return data

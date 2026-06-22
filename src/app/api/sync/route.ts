@@ -79,7 +79,7 @@ async function resolveSchoolOwnership(params: {
       return { ok: false, error: `Missing id for ${action} on ${table}` }
     }
 
-    const { data: existing, error } = await (supabase as any)
+    const { data: existing, error } = await supabase
       .from(table)
       .select('school_id')
       .eq('id', recordId)
@@ -320,7 +320,7 @@ async function handleSyncPost(request: NextRequest) {
 
         switch (item.action) {
           case 'create': {
-            const { error } = await (supabase as any).from(item.table).insert(item.data)
+            const { error } = await supabase.from(item.table as any).insert(item.data as never)
             if (error) {
               failedCount++
               errors.push(`Create failed for ${item.table}`)
@@ -338,7 +338,7 @@ async function handleSyncPost(request: NextRequest) {
               continue
             }
             const { id, ...updateData } = item.data
-            const query = (supabase as any).from(item.table).update(updateData).eq('id', recordId)
+            const query = supabase.from(item.table as any).update(updateData as never).eq('id', recordId)
             const { error } = await query
             if (error) {
               failedCount++
@@ -356,9 +356,9 @@ async function handleSyncPost(request: NextRequest) {
               errors.push(`Missing id for delete on ${item.table}`)
               continue
             }
-            const query = (supabase as any).from(item.table)
+            const query = supabase.from(item.table as any)
             const { error } = SOFT_DELETE_TABLES.has(item.table)
-              ? await query.update({ deleted_at: new Date().toISOString() }).eq('id', deleteId)
+              ? await query.update({ deleted_at: new Date().toISOString() } as never).eq('id', deleteId)
               : await query.delete().eq('id', deleteId)
             if (error) {
               failedCount++

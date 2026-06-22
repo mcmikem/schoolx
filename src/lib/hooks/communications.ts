@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { getQuerySchoolId, withTimeout } from "./utils";
+import type { PostgrestSingleResponse } from "@supabase/supabase-js";
 import { DEMO_MESSAGES, DEMO_EVENTS, DEMO_NOTICES } from "@/lib/demo-data";
 import { isDemoSchool } from "@/lib/demo-utils";
 import { getErrorMessage } from "@/lib/validation";
@@ -188,7 +189,7 @@ export function useSMSTriggers(schoolId?: string) {
       const { error } = await withTimeout(supabase
         .from("sms_triggers")
         .update({ is_active: isActive })
-        .eq("id", id), 15000, { error: { message: "Trigger toggle timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any);
+        .eq("id", id), 15000, { error: { message: "Trigger toggle timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as unknown as PostgrestSingleResponse<never>);
       if (error) throw error;
       return { success: true };
     } catch (err: any) {
@@ -286,7 +287,7 @@ export function useSMSTriggers(schoolId?: string) {
         .select(
           "id, school_id, name, event_type, threshold_days, template_id, is_active, last_run_at, created_at",
         )
-        .single(), 15000, { data: null, error: { message: "Trigger creation timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any);
+        .single(), 15000, { data: null, error: { message: "Trigger creation timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as unknown as PostgrestSingleResponse<never>);
 
       if (error) throw error;
       setTriggers((prev) => [...prev, data]);
@@ -322,7 +323,7 @@ export function useSMSTriggers(schoolId?: string) {
         .select(
           "id, school_id, name, event_type, threshold_days, template_id, is_active, last_run_at, created_at",
         )
-        .single(), 15000, { data: null, error: { message: "Trigger update timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any);
+        .single(), 15000, { data: null, error: { message: "Trigger update timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as unknown as PostgrestSingleResponse<never>);
 
       if (error) throw error;
       setTriggers((prev) => prev.map((t) => (t.id === id ? data : t)));

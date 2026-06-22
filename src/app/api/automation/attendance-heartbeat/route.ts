@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
           );
           if (smsRes.success) {
             results.nudgesSent++;
-            const { withTimeout } = await import('@/lib/hooks/utils');
+            const { withTimeout, timeoutFallback } = await import('@/lib/hooks/utils');
             const hbResult = await withTimeout(
               supabase.from("automated_message_logs").insert({
                 school_id: school.schoolId,
@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
                 status: "sent",
               } as any),
               15000,
-              null as any
+              timeoutFallback()
             );
             const hbError = hbResult?.error;
           }

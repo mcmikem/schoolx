@@ -193,11 +193,11 @@ function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }
     if (!pendingDeleteEventId) return
     const id = pendingDeleteEventId
     setPendingDeleteEventId(null)
-    const { withTimeout } = await import('@/lib/hooks/utils');
+    const { withTimeout, timeoutFallback } = await import('@/lib/hooks/utils');
     const evResult = await withTimeout(
       supabase.from('events').delete().eq('id', id),
       15000,
-      null as any
+      timeoutFallback()
     );
     const error = evResult?.error;
     if (error) { toast.error('Failed to delete'); return }

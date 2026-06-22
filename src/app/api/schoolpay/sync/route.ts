@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
     let insertedSupplementary = 0;
 
     for (const tx of regularTransactions) {
-      const { withTimeout } = await import('@/lib/hooks/utils');
+      const { withTimeout, timeoutFallback } = await import('@/lib/hooks/utils');
       const { data: student } = await withTimeout(
         supabase
           .from("students")
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
           .eq("student_number", tx.studentPaymentCode)
           .maybeSingle(),
         15000,
-        null as any,
+        timeoutFallback(),
       );
 
       if (!student) {
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
           notes: `SchoolPay ${tx.channel} ${tx.transactionId}`,
         }),
         15000,
-        null as any
+        timeoutFallback()
       );
       const error = regResult?.error;
 
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
     }
 
     for (const tx of supplementaryPayments) {
-      const { withTimeout } = await import('@/lib/hooks/utils');
+      const { withTimeout, timeoutFallback } = await import('@/lib/hooks/utils');
       const { data: student } = await withTimeout(
         supabase
           .from("students")
@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
           .eq("student_number", tx.studentPaymentCode)
           .maybeSingle(),
         15000,
-        null as any,
+        timeoutFallback(),
       );
 
       if (!student) {
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
           notes: tx.feeDescription,
         }),
         15000,
-        null as any
+        timeoutFallback()
       );
       const error = suppResult?.error;
 

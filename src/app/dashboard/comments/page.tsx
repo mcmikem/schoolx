@@ -13,7 +13,7 @@ import { Card, CardBody } from '@/components/ui/Card'
 import { Button } from '@/components/ui/index'
 import { Tabs, TabPanel } from '@/components/ui/Tabs'
 import { logger } from '@/lib/logger'
-import { withTimeout } from '@/lib/hooks/utils'
+import { withTimeout, timeoutFallback } from '@/lib/hooks/utils'
 
 export default function CommentsPage() {
   const { school, user, isDemo } = useAuth()
@@ -121,7 +121,7 @@ export default function CommentsPage() {
           subject_id: selectedSubject,
           comment,
           created_by: user?.id,
-        }, { onConflict: 'student_id,subject_id' }), 15000, null as any)
+        }, { onConflict: 'student_id,subject_id' }), 15000, timeoutFallback())
         const error = cResult?.error
         if (!error) saved++
       }

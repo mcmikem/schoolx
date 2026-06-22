@@ -90,11 +90,11 @@ export default function AcademicTermsPage() {
         refetchTerms();
       }
     } else {
-      const { withTimeout } = await import('@/lib/hooks/utils');
+      const { withTimeout, timeoutFallback } = await import('@/lib/hooks/utils');
       const termResult = await withTimeout(
         supabase.from("academic_terms").insert(payload),
         15000,
-        null as any
+        timeoutFallback()
       );
       const error = termResult?.error;
 
@@ -124,14 +124,14 @@ export default function AcademicTermsPage() {
   const deleteTerm = async (termId: string) => {
     if (!canManageTerms) return;
     setPendingAction(() => async () => {
-      const { withTimeout } = await import('@/lib/hooks/utils');
+      const { withTimeout, timeoutFallback } = await import('@/lib/hooks/utils');
       const termDelResult = await withTimeout(
         supabase
           .from("academic_terms")
           .delete()
           .eq("id", termId),
         15000,
-        null as any
+        timeoutFallback()
       );
       const error = termDelResult?.error;
       if (error) {
@@ -173,11 +173,11 @@ export default function AcademicTermsPage() {
       is_current: false,
     }));
 
-    const { withTimeout } = await import('@/lib/hooks/utils');
+    const { withTimeout, timeoutFallback } = await import('@/lib/hooks/utils');
     const result = await withTimeout(
       supabase.from("academic_terms").insert(terms),
       15000,
-      null as any
+      timeoutFallback()
     );
     const error = result?.error;
     setGenerating(false);

@@ -92,8 +92,8 @@ export default function PromotionPage() {
         promotion_type: promotionType,
       }));
 
-    const { withTimeout: wtPromo } = await import('@/lib/hooks/utils');
-    const promoResult = await wtPromo(supabase.from("promotion_history").insert(historyRows), 15000, null as any);
+    const { withTimeout: wtPromo, timeoutFallback } = await import('@/lib/hooks/utils');
+    const promoResult = await wtPromo(supabase.from("promotion_history").insert(historyRows), 15000, timeoutFallback());
     const promoError = promoResult?.error;
     if (promoError) throw promoError;
 

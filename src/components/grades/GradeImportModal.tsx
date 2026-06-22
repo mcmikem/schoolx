@@ -1,6 +1,5 @@
 "use client";
 import { useState, useCallback } from "react";
-import Papa from "papaparse";
 import { Modal, ModalFooter } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/index";
 import MaterialIcon from "@/components/MaterialIcon";
@@ -144,6 +143,7 @@ export function GradeImportModal({
         setStatus("idle");
         return;
       } else {
+        const Papa = (await import("papaparse")).default;
         const result = await new Promise<Record<string, string>[]>((resolve, reject) => {
           Papa.parse<Record<string, string>>(file, {
             header: true,

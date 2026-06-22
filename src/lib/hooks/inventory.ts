@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
 import type { InventoryTransaction } from '@/types'
 import { getQuerySchoolId, withTimeout } from './utils'
+import type { PostgrestSingleResponse } from '@supabase/supabase-js'
 import { isDemoSchool } from '@/lib/demo-utils'
 import { DEMO_ASSETS, DEMO_BOOKS, DEMO_BOOK_ISSUES, DEMO_BUDGETS } from '@/lib/demo-data'
 import { logger } from "@/lib/logger";
@@ -16,7 +17,7 @@ export function useAssets(schoolId?: string) {
   const fetchAssets = useCallback(async () => {
     if (!schoolId) { setLoading(false); return }
     if (isDemo || isDemoSchool(schoolId)) {
-      setAssets(DEMO_ASSETS as any)
+      setAssets(DEMO_ASSETS as unknown as any[])
       setLoading(false)
       return
     }
@@ -40,7 +41,7 @@ export function useAssets(schoolId?: string) {
     }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo)
     try {
-      const { data, error } = await withTimeout(supabase.from('assets').insert({ ...asset, school_id: querySchoolId }).select().single(), 15000, { data: null, error: { message: "Asset creation timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any)
+      const { data, error } = await withTimeout(supabase.from('assets').insert({ ...asset, school_id: querySchoolId }).select().single(), 15000, { data: null, error: { message: "Asset creation timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as unknown as PostgrestSingleResponse<never>)
       if (error) throw error
       setAssets(prev => [data, ...prev])
       return data
@@ -53,7 +54,7 @@ export function useAssets(schoolId?: string) {
       return { id, ...updates }
     }
     try {
-      const { data, error } = await withTimeout(supabase.from('assets').update(updates).eq('id', id).select().single(), 15000, { data: null, error: { message: "Asset update timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any)
+      const { data, error } = await withTimeout(supabase.from('assets').update(updates).eq('id', id).select().single(), 15000, { data: null, error: { message: "Asset update timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as unknown as PostgrestSingleResponse<never>)
       if (error) throw error
       setAssets(prev => prev.map(a => a.id === id ? data : a))
       return data
@@ -66,7 +67,7 @@ export function useAssets(schoolId?: string) {
       return
     }
     try {
-      const { error } = await withTimeout(supabase.from('assets').delete().eq('id', id), 15000, { error: { message: "Asset deletion timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any)
+      const { error } = await withTimeout(supabase.from('assets').delete().eq('id', id), 15000, { error: { message: "Asset deletion timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as unknown as PostgrestSingleResponse<never>)
       if (error) throw error
       setAssets(prev => prev.filter(a => a.id !== id))
     } catch (err: any) { throw new Error(err.message) }
@@ -128,7 +129,7 @@ export function useInventory(schoolId?: string) {
           recorded_by,
           created_at
         `)
-        .single(), 15000, { data: null, error: { message: "Transaction creation timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any)
+        .single(), 15000, { data: null, error: { message: "Transaction creation timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as unknown as PostgrestSingleResponse<never>)
       if (error) throw error
 
       const stockChange = transaction.transaction_type === 'in' || transaction.transaction_type === 'return' 

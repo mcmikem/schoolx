@@ -180,7 +180,7 @@ export default function LessonPlansPage() {
         term: currentTerm || 1,
       }
       
-      const { withTimeout } = await import('@/lib/hooks/utils');
+      const { withTimeout, timeoutFallback } = await import('@/lib/hooks/utils');
       const query = selectedPlan
         ? supabase.from('lesson_plans').update(payload).eq('id', selectedPlan.id)
         : supabase.from('lesson_plans').insert(payload)
@@ -188,7 +188,7 @@ export default function LessonPlansPage() {
       const planResult = await withTimeout(
         query,
         15000,
-        null as any
+        timeoutFallback()
       );
       const error = planResult?.error;
       if (error) throw error
@@ -251,11 +251,11 @@ export default function LessonPlansPage() {
     if (!selectedPlan) return
     setConfirmDeletePlan(false)
     try {
-      const { withTimeout } = await import('@/lib/hooks/utils');
+      const { withTimeout, timeoutFallback } = await import('@/lib/hooks/utils');
       const delPlanResult = await withTimeout(
         supabase.from('lesson_plans').delete().eq('id', selectedPlan.id),
         15000,
-        null as any
+        timeoutFallback()
       );
       const error = delPlanResult?.error;
       if (error) throw error

@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuth } from '@/lib/auth-context'
 import type { Subject, School } from '@/types'
 import { getQuerySchoolId, withTimeout } from './utils'
+import type { PostgrestSingleResponse } from '@supabase/supabase-js'
 import { isDemoSchool } from '@/lib/demo-utils'
 import { logger } from "@/lib/logger";
 
@@ -32,7 +33,7 @@ export function useSubjects(schoolId?: string, autoSeed: boolean = true) {
         const { getDefaultSubjects } = await import('@/lib/curriculum')
         const defaultSubjects = getDefaultSubjects(schoolType)
         const seeds = defaultSubjects.map(s => ({ name: s.name, code: s.code, level: s.level, is_compulsory: s.is_compulsory, school_id: querySchoolId }))
-        const { data: inserted, error: insertError } = await withTimeout(supabase.from('subjects').insert(seeds).select('id, name, code, level, is_compulsory, school_id, created_at'), 15000, { data: null, error: { message: "Subject seed timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any)
+        const { data: inserted, error: insertError } = await withTimeout(supabase.from('subjects').insert(seeds).select('id, name, code, level, is_compulsory, school_id, created_at'), 15000, { data: null, error: { message: "Subject seed timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as unknown as PostgrestSingleResponse<never>)
         if (!insertError && inserted) currentSubjects = inserted.sort((a: any, b: any) => a.name.localeCompare(b.name))
       }
       setSubjects(currentSubjects as Subject[])
@@ -60,7 +61,7 @@ export function useSubjectAllocations(schoolId?: string, academicYear?: string) 
       const { data, error } = await withTimeout(supabase.from('subject_allocations')
         .insert({ ...allocation, school_id: querySchoolId })
         .select('id, school_id, teacher_id, subject_id, class_id, academic_year, term, is_class_teacher, created_at')
-        .single(), 15000, { data: null, error: { message: "Allocation creation timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any)
+        .single(), 15000, { data: null, error: { message: "Allocation creation timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as unknown as PostgrestSingleResponse<never>)
       if (error) throw error
       setAllocations(prev => [...prev, data])
       return data
@@ -73,7 +74,7 @@ export function useSubjectAllocations(schoolId?: string, academicYear?: string) 
       return
     }
     try {
-      const { error } = await withTimeout(supabase.from('subject_allocations').delete().eq('id', id), 15000, { error: { message: "Allocation deletion timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any)
+      const { error } = await withTimeout(supabase.from('subject_allocations').delete().eq('id', id), 15000, { error: { message: "Allocation deletion timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as unknown as PostgrestSingleResponse<never>)
       if (error) throw error
       setAllocations(prev => prev.filter(a => a.id !== id))
     } catch (err: any) { throw new Error(err.message) }

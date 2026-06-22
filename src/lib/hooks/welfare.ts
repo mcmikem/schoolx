@@ -22,7 +22,7 @@ export function useDormManager(schoolId?: string, dormId?: string) {
       }
 
       if (isDemo || isDemoSchool(schoolId)) {
-        setDorms(DEMO_DORMS as any)
+        setDorms(DEMO_DORMS as unknown as any[])
         setRooms([
           { id: 'demo-room-1', dorm_id: '1', room_number: 'A1', capacity: 8, current_occupancy: 6 },
           { id: 'demo-room-2', dorm_id: '1', room_number: 'A2', capacity: 8, current_occupancy: 7 },
@@ -74,8 +74,8 @@ export function useTransportManager(schoolId?: string) {
       }
 
       if (isDemo || isDemoSchool(schoolId)) {
-        setRoutes(DEMO_TRANSPORT_ROUTES as any)
-        setLogs(DEMO_TRANSPORT_LOGS as any)
+        setRoutes(DEMO_TRANSPORT_ROUTES as unknown as any[])
+        setLogs(DEMO_TRANSPORT_LOGS as unknown as any[])
         setLoading(false)
         return
       }

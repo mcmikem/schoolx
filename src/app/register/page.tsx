@@ -184,10 +184,10 @@ function RegisterPageContent() {
     if (!googleRegisterMode) return;
     const emailParam = searchParams?.get("email");
     if (emailParam) {
-      updateForm("email", emailParam);
+      setForm((prev) => ({ ...prev, email: emailParam }));
+      if (apiError) setApiError("");
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [googleRegisterMode, searchParams]);
+  }, [googleRegisterMode, searchParams, apiError]);
 
   const handleGoogleRegister = async () => {
     setGoogleLoading(true);

@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import Papa from "papaparse";
 import type { CreateStudentInput } from "@/types";
 import { resolveClassIdForImport } from "@/lib/student-hub";
 export type TemplateRow = Record<string, string>;
@@ -98,7 +97,7 @@ export function useStudentTemplateImport(
   }, []);
 
   const handleStudentTemplateUpload = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>) => {
+    async (event: React.ChangeEvent<HTMLInputElement>) => {
       const file = event.target.files?.[0];
       if (!file) return;
 
@@ -137,6 +136,7 @@ export function useStudentTemplateImport(
         return;
       }
 
+      const Papa = (await import("papaparse")).default;
       Papa.parse<TemplateRow>(file, {
         header: true,
         skipEmptyLines: true,

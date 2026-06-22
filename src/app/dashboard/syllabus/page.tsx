@@ -7,22 +7,7 @@ import { useAcademic } from "@/lib/academic-context";
 import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
 import { useToast } from "@/components/Toast";
-import {
-  S1_ALL_SUBJECTS,
-  S2_ALL_SUBJECTS,
-  S3_ALL_SUBJECTS,
-  S4_ALL_SUBJECTS,
-  S5_ALL_SUBJECTS,
-  S6_ALL_SUBJECTS,
-  P1_ALL_SUBJECTS,
-  P2_ALL_SUBJECTS,
-  P3_ALL_SUBJECTS,
-  P4_ALL_SUBJECTS,
-  P5_ALL_SUBJECTS,
-  P6_ALL_SUBJECTS,
-  P7_ALL_SUBJECTS,
-  NSDCTopic,
-} from "@/lib/ndc-syllabus";
+import type { NSDCTopic } from "@/lib/ndc-syllabus";
 import { logger } from "@/lib/logger";
 import { Button } from "@/components/ui/index";
 import {
@@ -73,11 +58,18 @@ export default function SyllabusPage() {
   });
   const [populating, setPopulating] = useState(false);
 
-  const getNDCCTopics = (): NSDCTopic[] => {
+  const getNDCCTopics = async (): Promise<NSDCTopic[]> => {
     const className = classes.find((c) => c.id === selectedClass)?.name || "";
     const subjectName =
       subjects.find((s) => s.id === selectedSubject)?.name || "";
     const { stage, level } = resolveCurriculumStage(className);
+
+    const {
+      P1_ALL_SUBJECTS, P2_ALL_SUBJECTS, P3_ALL_SUBJECTS,
+      P4_ALL_SUBJECTS, P5_ALL_SUBJECTS, P6_ALL_SUBJECTS, P7_ALL_SUBJECTS,
+      S1_ALL_SUBJECTS, S2_ALL_SUBJECTS, S3_ALL_SUBJECTS,
+      S4_ALL_SUBJECTS, S5_ALL_SUBJECTS, S6_ALL_SUBJECTS,
+    } = await import("@/lib/ndc-syllabus");
 
     const primaryMap: Record<number, NSDCTopic[]> = {
       1: P1_ALL_SUBJECTS,
@@ -116,7 +108,7 @@ export default function SyllabusPage() {
     try {
       const targetYear = buildAcademicYear(academicYear);
       const termNumber = Number(selectedTerm);
-      const ncdcTopics = getNDCCTopics().filter(
+      const ncdcTopics = (await getNDCCTopics()).filter(
         (topic) => topic.term === termNumber,
       );
 
@@ -163,11 +155,11 @@ export default function SyllabusPage() {
         return;
       }
 
-      const { withTimeout } = await import('@/lib/hooks/utils');
+      const { withTimeout, timeoutFallback } = await import('@/lib/hooks/utils');
       const sylResult = await withTimeout(
         supabase.from("syllabus").insert(toInsert),
         15000,
-        null as any
+        timeoutFallback()
       );
       const error = sylResult?.error;
       if (error) throw error;

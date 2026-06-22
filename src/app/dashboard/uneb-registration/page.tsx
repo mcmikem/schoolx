@@ -98,11 +98,11 @@ export default function UNEBRegistrationPage() {
         academic_year: new Date().getFullYear().toString(),
       }));
 
-      const { withTimeout } = await import('@/lib/hooks/utils');
+      const { withTimeout, timeoutFallback } = await import('@/lib/hooks/utils');
       const unebResult = await withTimeout(
         supabase.from("uneb_candidates").insert(records),
         15000,
-        null as any
+        timeoutFallback()
       );
       const error = unebResult?.error;
       if (error) throw error;
@@ -123,14 +123,14 @@ export default function UNEBRegistrationPage() {
     id: string,
     status: "registered" | "confirmed",
   ) => {
-    const { withTimeout } = await import('@/lib/hooks/utils');
+    const { withTimeout, timeoutFallback } = await import('@/lib/hooks/utils');
     const updateResult = await withTimeout(
       supabase
         .from("uneb_candidates")
         .update({ registration_status: status })
         .eq("id", id),
       15000,
-      null as any
+      timeoutFallback()
     );
     const error = updateResult?.error;
     if (!error) {

@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { withTimeout } from './utils'
+import type { PostgrestSingleResponse } from '@supabase/supabase-js'
 
 export function useSupabaseQuery<T>(
   table: string,
@@ -92,7 +93,7 @@ export function useSupabaseMutation<T>(table: string) {
           .select()
           .single(),
         15000,
-        { data: null, error: { message: 'Insert timed out', code: 'TIMEOUT', details: '', hint: '', name: 'TimeoutError' } } as any,
+        { data: null, error: { message: 'Insert timed out', code: 'TIMEOUT', details: '', hint: '', name: 'TimeoutError' } } as unknown as PostgrestSingleResponse<never>,
       )
 
       if (insertError) throw insertError
@@ -117,7 +118,7 @@ export function useSupabaseMutation<T>(table: string) {
           .select()
           .single(),
         15000,
-        { data: null, error: { message: 'Update timed out', code: 'TIMEOUT', details: '', hint: '', name: 'TimeoutError' } } as any,
+        { data: null, error: { message: 'Update timed out', code: 'TIMEOUT', details: '', hint: '', name: 'TimeoutError' } } as unknown as PostgrestSingleResponse<never>,
       )
 
       if (updateError) throw updateError
@@ -140,7 +141,7 @@ export function useSupabaseMutation<T>(table: string) {
           .delete()
           .eq('id', id),
         15000,
-        { error: { message: 'Delete timed out', code: 'TIMEOUT', details: '', hint: '', name: 'TimeoutError' } } as any,
+        { error: { message: 'Delete timed out', code: 'TIMEOUT', details: '', hint: '', name: 'TimeoutError' } } as unknown as PostgrestSingleResponse<never>,
       )
 
       if (deleteError) throw deleteError

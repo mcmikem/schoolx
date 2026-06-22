@@ -256,7 +256,7 @@ export async function POST(request: NextRequest) {
           }
 
           // Check for existing report card (idempotency)
-          const { data: existingCard } = await (supabase as any)
+          const { data: existingCard } = await supabase
             .from("report_cards")
             .select("id")
             .eq("student_id", student.id)
@@ -266,7 +266,7 @@ export async function POST(request: NextRequest) {
 
           if (existingCard && existingCard.length > 0) {
             // Update existing card instead of creating duplicate
-            const { data: updatedCard } = await (supabase as any)
+            const { data: updatedCard } = await supabase
               .from("report_cards")
               .update({
                 subjects: subjectResults,
@@ -287,7 +287,7 @@ export async function POST(request: NextRequest) {
             if (updatedCard) generatedCount++;
           } else {
             // Insert new report card
-            const { data: newCard, error: insertError } = await (supabase as any)
+            const { data: newCard, error: insertError } = await supabase
               .from("report_cards")
               .insert({
                 school_id: school.schoolId,
@@ -375,7 +375,7 @@ export async function POST(request: NextRequest) {
         .eq("term", term);
 
       // Create term archive record
-      const { data: archive, error: archiveError } = await (supabase as any)
+      const { data: archive, error: archiveError } = await supabase
         .from("term_archives")
         .insert({
           school_id: school.schoolId,

@@ -110,7 +110,7 @@ export default function HealthPage() {
         if (!studentRecord) throw new Error("Selected student was not found in this school");
       }
 
-      const { withTimeout } = await import('@/lib/hooks/utils');
+      const { withTimeout, timeoutFallback } = await import('@/lib/hooks/utils');
       const healthResult = await withTimeout(
         supabase.from("health_records").insert({
           school_id: school.id,
@@ -123,7 +123,7 @@ export default function HealthPage() {
           admitted_at: new Date().toISOString(),
         }),
         15000,
-        null as any
+        timeoutFallback()
       );
       const error = healthResult?.error;
       if (error) throw error;
@@ -142,7 +142,7 @@ export default function HealthPage() {
 
   const dischargeStudent = async (id: string, referred = false) => {
     setDischarging(id);
-    const { withTimeout } = await import('@/lib/hooks/utils');
+    const { withTimeout, timeoutFallback } = await import('@/lib/hooks/utils');
     const dischargeResult = await withTimeout(
       supabase
         .from("health_records")
@@ -152,7 +152,7 @@ export default function HealthPage() {
         })
         .eq("id", id),
       15000,
-      null as any
+      timeoutFallback()
     );
     const error = dischargeResult?.error;
     if (error) {

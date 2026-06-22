@@ -314,7 +314,7 @@ export default function SubstitutionsPage() {
         return;
       }
 
-      const { withTimeout } = await import('@/lib/hooks/utils');
+      const { withTimeout, timeoutFallback } = await import('@/lib/hooks/utils');
       const subResult = await withTimeout(
         supabase.from("teacher_substitutions").insert({
           school_id: school.id,
@@ -327,7 +327,7 @@ export default function SubstitutionsPage() {
           status: "completed",
         }),
         15000,
-        null as any
+        timeoutFallback()
       );
       const error = subResult?.error;
 

@@ -371,8 +371,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         return () => clearTimeout(timer);
       }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentPath, isDashboardHome, onboardingCompleted, user?.role, user?.id]);
+  }, [currentPath, isDashboardHome, onboardingCompleted, user?.role, user?.id, school, isBillingPath]);
 
 // Show minimal loading bar while auth is initializing.
   if (!authInitialized) {

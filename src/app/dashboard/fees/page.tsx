@@ -1041,13 +1041,13 @@ export default function FinanceHubPage() {
         });
       }
 
-      const { withTimeout } = await import('@/lib/hooks/utils');
+      const { withTimeout, timeoutFallback } = await import('@/lib/hooks/utils');
       const installmentResult = await withTimeout(
         supabase
           .from("payment_plan_installments")
           .insert(installmentData),
         15000,
-        null as any
+        timeoutFallback()
       );
       const installmentError = installmentResult?.error;
 
@@ -1072,14 +1072,14 @@ export default function FinanceHubPage() {
 
   const markInstallmentPaid = async (installmentId: string) => {
     try {
-      const { withTimeout } = await import('@/lib/hooks/utils');
+      const { withTimeout, timeoutFallback } = await import('@/lib/hooks/utils');
       const paymentResult = await withTimeout(
         supabase
           .from("payment_plan_installments")
           .update({ paid: true, paid_date: new Date().toISOString() })
           .eq("id", installmentId),
         15000,
-        null as any
+        timeoutFallback()
       );
       const paymentError = paymentResult?.error;
       if (paymentError) throw paymentError;

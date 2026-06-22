@@ -1,7 +1,7 @@
 "use client";
 
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
@@ -117,12 +117,15 @@ export default function SMSCenterPage() {
   useEffect(() => {
     if (!school?.id) return;
     const timer = setTimeout(async () => {
-      const count = await getRecipientCount();
-      setRecipientCount(count);
+      try {
+        const parents = await fetchParentPhones(true);
+        setRecipientCount(parents.length);
+      } catch {
+        setRecipientCount(0);
+      }
     }, 200);
     return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [segment, selectedClass, minBalance, selectedStudent, school?.id, currentTerm]);
+  }, [segment, selectedClass, minBalance, selectedStudent, school?.id, currentTerm, fetchParentPhones]);
 
   useEffect(() => {
     if (!school?.id || segment !== "student" || studentQuery.length < 2) {
@@ -182,7 +185,7 @@ export default function SMSCenterPage() {
     }
   };
 
-  const fetchParentPhones = async (countOnly = false): Promise<{ phone: string; full_name: string }[]> => {
+  const fetchParentPhones = useCallback(async (countOnly = false): Promise<{ phone: string; full_name: string }[]> => {
     if (!school?.id) return [];
 
     if (segment === "all") {
@@ -259,7 +262,7 @@ export default function SMSCenterPage() {
     );
 
     return (parents || []).map((p) => ({ phone: p.phone, full_name: p.full_name }));
-  };
+  }, [school?.id, segment, selectedClass, minBalance, selectedStudent, currentTerm]);
 
   const handleSend = async () => {
     if (!message || !school?.id) return;

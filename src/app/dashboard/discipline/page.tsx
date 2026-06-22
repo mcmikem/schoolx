@@ -131,7 +131,7 @@ export default function DisciplinePage() {
     if (!school?.id || !user?.id) return
 
     try {
-      const { withTimeout } = await import('@/lib/hooks/utils');
+      const { withTimeout, timeoutFallback } = await import('@/lib/hooks/utils');
       const discResult = await withTimeout(
         supabase.from('discipline').insert({
           school_id: school.id,
@@ -145,7 +145,7 @@ export default function DisciplinePage() {
           exam_id: newRecord.exam_id || null,
         }),
         15000,
-        null as any
+        timeoutFallback()
       );
       const error = discResult?.error;
 
@@ -162,14 +162,14 @@ export default function DisciplinePage() {
 
   const toggleResolved = async (id: string, currentStatus: boolean) => {
     try {
-      const { withTimeout } = await import('@/lib/hooks/utils');
+      const { withTimeout, timeoutFallback } = await import('@/lib/hooks/utils');
       const discUpdResult = await withTimeout(
         supabase
           .from('discipline')
           .update({ resolved: !currentStatus })
           .eq('id', id),
         15000,
-        null as any
+        timeoutFallback()
       );
       const error = discUpdResult?.error;
 
@@ -186,11 +186,11 @@ export default function DisciplinePage() {
     const id = pendingDeleteId
     setPendingDeleteId(null)
     try {
-      const { withTimeout } = await import('@/lib/hooks/utils');
+      const { withTimeout, timeoutFallback } = await import('@/lib/hooks/utils');
       const discDelResult = await withTimeout(
         supabase.from('discipline').delete().eq('id', id),
         15000,
-        null as any
+        timeoutFallback()
       );
       const error = discDelResult?.error;
       if (error) throw error

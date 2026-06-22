@@ -6,6 +6,7 @@ import { logger } from "@/lib/logger";
 import { getCachedResponse, cacheResponse, queueMutation, isOnline, generateCacheKey } from "@/lib/offline-db";
 import { generateWhatsAppShareLink } from "@/lib/whatsapp";
 import { withTimeout } from "./utils";
+import type { PostgrestSingleResponse } from "@supabase/supabase-js";
 
 interface FeeTerm {
   id: string;
@@ -188,7 +189,7 @@ export function useFeeTerms() {
             .select()
             .single(),
           15000,
-          { data: null, error: { message: "Fee term creation timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+          { data: null, error: { message: "Fee term creation timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as unknown as PostgrestSingleResponse<never>,
         );
 
         if (termError) throw termError;
@@ -208,7 +209,7 @@ export function useFeeTerms() {
                 })),
               ),
             15000,
-            { error: { message: "Fee term lines timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+            { error: { message: "Fee term lines timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as unknown as PostgrestSingleResponse<never>,
           );
 
           if (linesError) throw linesError;
@@ -317,7 +318,7 @@ export function useStudentFeeTerms(studentId?: string) {
             .select()
             .single(),
           15000,
-          { data: null, error: { message: "Fee term assignment timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+          { data: null, error: { message: "Fee term assignment timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as unknown as PostgrestSingleResponse<never>,
         );
 
         if (error) throw error;
@@ -357,7 +358,7 @@ export function useStudentFeeTerms(studentId?: string) {
             .select()
             .single(),
           15000,
-          { data: null, error: { message: "Payment creation timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+          { data: null, error: { message: "Payment creation timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as unknown as PostgrestSingleResponse<never>,
         );
 
         if (paymentError) throw paymentError;
@@ -379,7 +380,7 @@ export function useStudentFeeTerms(studentId?: string) {
               .update({ amount_paid: newPaid, status: newStat })
               .eq("id", payment.student_fee_term_id),
             15000,
-            { error: { message: "Payment update timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+            { error: { message: "Payment update timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as unknown as PostgrestSingleResponse<never>,
           );
         }
 

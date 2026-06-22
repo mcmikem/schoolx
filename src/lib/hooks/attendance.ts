@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { getQuerySchoolId, withTimeout } from "./utils";
+import type { PostgrestSingleResponse } from "@supabase/supabase-js";
 import { triggerAutomationEvent } from "../automation-engine";
 import { DEMO_ATTENDANCE, DemoAttendance } from "@/lib/demo-data";
 import { isDemoSchool } from "@/lib/demo-utils";
@@ -121,7 +122,7 @@ export function useAttendance(classId?: string, date?: string) {
           )
           .single(),
         15000,
-        { data: null, error: { message: "Attendance save timed out", name: "TimeoutError" } } as any,
+        { data: null, error: { message: "Attendance save timed out", name: "TimeoutError", details: "", hint: "", code: "" }, count: null as number | null, status: 408, statusText: "Timeout", success: false } as unknown as PostgrestSingleResponse<Record<string, unknown>>,
       );
       if (error) throw error;
       setAttendance((prev) => {
@@ -144,7 +145,7 @@ export function useAttendance(classId?: string, date?: string) {
             "Updated attendance record",
             previousRecord,
             data,
-            data.id,
+            (data as { id: string }).id,
           );
         } else {
           await logAuditEventWithOfflineSupport(
@@ -155,7 +156,7 @@ export function useAttendance(classId?: string, date?: string) {
             "create",
             "attendance",
             "Created attendance record",
-            data.id,
+            (data as { id: string }).id,
             undefined,
             data,
           );
@@ -356,7 +357,7 @@ const { data, error } = await withTimeout(
            .select("id, staff_id, date, status, remarks, created_at")
            .single(),
          15000,
-         { data: null, error: { message: "Staff attendance save timed out", name: "TimeoutError" } } as any,
+          { data: null, error: { message: "Staff attendance save timed out", name: "TimeoutError", details: "", hint: "", code: "" }, count: null as number | null, status: 408, statusText: "Timeout", success: false } as unknown as PostgrestSingleResponse<Record<string, unknown>>,
        );
       if (error) throw error;
       return data;
@@ -420,13 +421,13 @@ export function usePeriodAttendance(
           class_id: classId,
           status: "active",
         });
-        setStudents(cachedStudents as any[]);
+        setStudents(cachedStudents as unknown as any[]);
         const cachedAtt = await offlineDB.getAllFromCache("period_attendance", {
           class_id: classId,
           date,
           period,
         });
-        setAttendance(cachedAtt as any[]);
+        setAttendance(cachedAtt as unknown as any[]);
         setLoading(false);
         return;
       }
@@ -529,7 +530,7 @@ export function useDormAttendance(
       const cached = await offlineDB.getAllFromCache("dorms", {
         school_id: school.id,
       });
-      setDorms(cached as any[]);
+      setDorms(cached as unknown as any[]);
       return;
     }
     const { data } = await supabase
@@ -561,7 +562,7 @@ export function useDormAttendance(
           date,
           check_type: checkType,
         });
-        setAttendance(cachedAtt as any[]);
+        setAttendance(cachedAtt as unknown as any[]);
         setLoading(false);
         return;
       }

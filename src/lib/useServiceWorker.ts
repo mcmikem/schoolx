@@ -9,7 +9,7 @@ export function useServiceWorker() {
       if (process.env.NODE_ENV !== 'production' || isLocalhost) {
         navigator.serviceWorker.getRegistrations()
           .then((registrations) => Promise.all(registrations.map((registration) => registration.unregister())))
-          .catch(() => {})
+          .catch((err) => logger.debug('SW unregister error:', err))
         return
       }
 

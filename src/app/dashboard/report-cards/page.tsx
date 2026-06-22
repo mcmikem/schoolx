@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/index";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { APP_NAME } from "@/lib/app-name";
-import { withTimeout } from "@/lib/hooks/utils";
+import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import { calculateSubjectTotal } from "@/lib/grading";
 
 interface StudentReport {
@@ -184,7 +184,7 @@ export default function ReportCardsPage() {
         .eq("class_id", classId)
         .eq("term", currentTerm)
         .eq("academic_year", academicYear)
-        .in("assessment_type", ["numerical", "both", null]), 15000, null as any);
+        .in("assessment_type", ["numerical", "both", null]), 15000, timeoutFallback());
 
       if (gradesResult.error) throw gradesResult.error;
       gradesData = gradesResult.data || [];
@@ -196,7 +196,7 @@ export default function ReportCardsPage() {
           .eq("class_id", classId)
           .eq("term", currentTerm)
           .eq("academic_year", academicYear)
-          .in("assessment_type", ["competency", "both", null]), 15000, null as any);
+          .in("assessment_type", ["competency", "both", null]), 15000, timeoutFallback());
         
         if (!compResult.error) {
           competencyData = compResult.data || [];
@@ -384,7 +384,7 @@ export default function ReportCardsPage() {
           .eq("student_id", rpt.studentId)
           .eq("academic_year", academicYear)
           .eq("term", currentTerm)
-          .limit(1), 10000, null as any);
+          .limit(1), 10000, timeoutFallback());
         const existingCard = existingResult.data;
 
         const cardPayload = {
@@ -787,7 +787,7 @@ export default function ReportCardsPage() {
         message,
         status: "sent",
         type: "report_card"
-      }), 15000, null as any);
+      }), 15000, timeoutFallback());
       const error = msgResult?.error;
       if (error) throw error;
       toast.success(`Result summary sent to ${student.parent_phone}`);
