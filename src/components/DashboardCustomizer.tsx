@@ -123,6 +123,8 @@ export function useDashboardCustomization() {
     (updatedWidgets: DashboardWidget[]) => {
       setWidgets(updatedWidgets);
       if (typeof window !== "undefined") {
+        // Note: Customizations are currently stored in localStorage only.
+        // Future: Sync to server via supabase.from("dashboard_preferences").upsert()
         localStorage.setItem(
           `omuto_dashboard_widgets_${user?.id || "demo"}`,
           JSON.stringify(updatedWidgets),

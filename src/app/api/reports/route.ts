@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { logger } from "@/lib/logger";
 import {
   apiSuccess,
   apiError,
@@ -350,8 +351,8 @@ export async function POST(request: NextRequest) {
         const rank = studentAverages.findIndex((s) => s.studentId === studentId);
         if (rank !== -1) position = rank + 1;
       }
-    } catch {
-      // If position calculation fails, return null (non-critical)
+    } catch (posError) {
+      logger.warn("Position calculation failed (non-critical):", posError);
     }
 
     return apiSuccess({

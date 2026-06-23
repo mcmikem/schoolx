@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
@@ -69,6 +69,8 @@ export default function OnboardingTour() {
   const [currentStep, setCurrentStep] = useState(0);
   const [isActive, setIsActive] = useState(false);
   const [hasSeenTour, setHasSeenTour] = useState(false);
+  const [targetElement, setTargetElement] = useState<Element | null>(null);
+  const step = TOUR_STEPS[currentStep];
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -83,6 +85,15 @@ export default function OnboardingTour() {
       }
     }
   }, [user?.id, school, isDemo]);
+
+  useEffect(() => {
+    if (step?.target) {
+      const el = document.querySelector(step.target);
+      setTargetElement(el);
+    } else {
+      setTargetElement(null);
+    }
+  }, [step?.target]);
 
   useEffect(() => {
     if (isActive && currentStep >= TOUR_STEPS.length) {
@@ -117,14 +128,7 @@ export default function OnboardingTour() {
     }
   };
 
-  if (!isActive) {
-    return null;
-  }
-
-  const step = TOUR_STEPS[currentStep];
-  const targetElement = document.querySelector(step.target);
-
-  const getPosition = () => {
+  const getPosition = useCallback(() => {
     if (!targetElement) return { top: 20, left: 20 };
 
     try {
@@ -144,9 +148,13 @@ export default function OnboardingTour() {
     } catch {
       return { top: 20, left: 20 };
     }
-  };
+  }, [targetElement, step.position]);
 
   const position = getPosition();
+
+  if (!isActive) {
+    return null;
+  }
 
   return (
     <>

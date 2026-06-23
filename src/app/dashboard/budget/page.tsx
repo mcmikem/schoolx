@@ -10,6 +10,7 @@ import { Card, CardHeader, CardBody, CardTitle } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 import { Tabs, TabPanel } from "@/components/ui/Tabs";
 import { logger } from "@/lib/logger";
+import { withTimeout } from "@/lib/hooks/utils";
 
 interface BudgetItem {
   id?: string;
@@ -51,27 +52,29 @@ export default function BudgetPage() {
     if (!school?.id) return;
     setLoading(true);
     try {
-      const { count } = await supabase
+      const { count } = await withTimeout(supabase
         .from("students")
         .select("*", { count: "exact", head: true })
         .eq("school_id", school.id)
-        .eq("status", "active");
+        .eq("status", "active").then(r => r), 15000, { count: 0, data: null, error: null } as any);
       setStudentCount(count || 0);
 
-      const { data: feeData } = await supabase
+      const { data: feeData } = await withTimeout(supabase
         .from("fee_structure")
         .select("amount")
         .eq("school_id", school.id)
-        .limit(1);
+        .limit(1)
+        .then(r => r), 15000, { data: null, error: null } as any);
       const feeAmount = feeData?.[0]?.amount
         ? Number(feeData[0].amount)
         : 50000;
       setFeePerTerm(feeAmount);
 
-      const { data: budgetData } = await supabase
+      const { data: budgetData } = await withTimeout(supabase
         .from("budget_items")
         .select("*")
-        .eq("school_id", school.id);
+        .eq("school_id", school.id)
+        .then(r => r), 15000, { data: [], error: null } as any);
 
       const items: Record<string, BudgetItem> = {};
       budgetData?.forEach((b: any) => {
@@ -110,10 +113,11 @@ export default function BudgetPage() {
 
       setBudgetItems(items);
 
-      const { data: expenses } = await supabase
+      const { data: expenses } = await withTimeout(supabase
         .from("expenses")
         .select("category, amount")
-        .eq("school_id", school.id);
+        .eq("school_id", school.id)
+        .then(r => r), 15000, { data: [], error: null } as any);
 
       expenses?.forEach((e: any) => {
         const cat = (e.category || "").toLowerCase().replace(/\s+/g, "_");
@@ -122,10 +126,11 @@ export default function BudgetPage() {
         }
       });
 
-      const { data: fees } = await supabase
+      const { data: fees } = await withTimeout(supabase
         .from("fee_payments")
         .select("amount_paid, students!inner(school_id)")
-        .eq("students.school_id", school.id);
+        .eq("students.school_id", school.id)
+        .then(r => r), 15000, { data: [], error: null } as any);
       const totalFees =
         fees?.reduce((s: number, f: any) => s + Number(f.amount_paid), 0) || 0;
       if (items.fees) items.fees.actual = totalFees;
@@ -170,12 +175,13 @@ export default function BudgetPage() {
     try {
       for (const item of Object.values(budgetItems)) {
         if (item.id) {
-          await supabase
+          await withTimeout(supabase
             .from("budget_items")
             .update({ budgeted: item.budgeted })
-            .eq("id", item.id);
+            .eq("id", item.id)
+            .then(r => r), 15000, { data: null, error: null } as any);
         } else {
-          const { data } = await supabase
+          const { data } = await withTimeout(supabase
             .from("budget_items")
             .insert({
               school_id: school.id,
@@ -185,7 +191,8 @@ export default function BudgetPage() {
               actual: 0,
             })
             .select()
-            .single();
+            .single()
+            .then(r => r), 15000, { data: null, error: null } as any);
           if (data) item.id = data.id;
         }
       }

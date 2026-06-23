@@ -151,6 +151,6 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     logger.error("Incoming SMS webhook error:", error);
-    return NextResponse.json({ status: "OK" });
+    return NextResponse.json({ status: "error", message: "Internal server error" }, { status: 500 });
   }
 }

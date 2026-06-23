@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 
 // @deprecated — Fee Terms is legacy. The primary fee system uses fee_structure + fee_payments
 // (see /dashboard/fees). This page is kept for backward compatibility and read-only reference.
-// TODO: Remove this page and its routes once all schools have migrated to fee_structure.
+{/* Deprecated — kept for backward compatibility until all schools migrate to fee_structure. */}
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";

@@ -76,15 +76,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Failed to create disbursement" }, { status: 500 });
     }
 
-    logger.info(`Disbursement created: ${reference} - ${provider} ${amount} to ${parent_phone}`);
+    logger.info(`Disbursement record created: ${reference} — pending actual MOMO API call (integration not yet wired)`);
 
-    // In production, you would call the MOMO API here:
-    // const momoResult = await momoDisbursement({
-    //   phone: parent_phone,
-    //   amount,
-    //   provider,
-    //   reference,
-    // });
+    // MOMO API integration placeholder — uncomment when Flutterwave/MOMO SDK is set up:
+    // const momoResult = await momoDisbursement({ phone: parent_phone, amount, provider, reference });
 
     return NextResponse.json({
       success: true,

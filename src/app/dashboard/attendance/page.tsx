@@ -115,6 +115,7 @@ export default function AttendancePage() {
   const [filterStatus, setFilterStatus] = useState<"all" | AttendanceStatus>(
     "all",
   );
+  const [searchQuery, setSearchQuery] = useState("");
   const [attendPage, setAttendPage] = useState(1);
   const attendPerPage = 20;
   const attendOffset = (attendPage - 1) * attendPerPage;
@@ -294,9 +295,18 @@ export default function AttendancePage() {
   };
 
   const filteredStudents = useMemo(() => {
-    if (filterStatus === "all") return students;
-    return students.filter((s) => attendance[s.id] === filterStatus);
-  }, [students, attendance, filterStatus]);
+    let list = students;
+    if (filterStatus !== "all") {
+      list = list.filter((s) => attendance[s.id] === filterStatus);
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter((s) =>
+        `${s.first_name} ${s.last_name}`.toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [students, attendance, filterStatus, searchQuery]);
 
   const saveAttendance = async () => {
     if (!selectedClass || !user?.id) return;
@@ -915,6 +925,15 @@ export default function AttendancePage() {
                   </div>
                 </div>
 
+                <div className="flex flex-wrap gap-2">
+                  <input
+                    type="text"
+                    placeholder="Search student name..."
+                    className="w-full md:w-48 rounded-xl border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
                 <div className="flex gap-2">
                   {(["all", "present", "absent", "late", "excused"] as const).map((f) => (
                     <button
@@ -1028,7 +1047,7 @@ export default function AttendancePage() {
                   )}
                 </div>
 
-                <div className="fixed bottom-[80px] left-0 right-0 md:relative md:bottom-auto p-4 md:p-0 bg-surface/95 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none border-t border-outline-variant md:border-0 z-10">
+                <div className="fixed bottom-[calc(64px+env(safe-area-inset-bottom,0px))] left-0 right-0 md:relative md:bottom-auto p-4 md:p-0 bg-surface/95 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none border-t border-outline-variant md:border-0 z-10">
                   <Button
                     onClick={saveAttendance}
                     disabled={saving}
@@ -1225,7 +1244,7 @@ export default function AttendancePage() {
                   </div>
                 </TabPanel>
 
-                <div className="fixed bottom-[80px] left-0 right-0 md:relative md:bottom-auto p-4 md:p-0 bg-surface/95 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none border-t border-outline-variant md:border-0 z-10">
+                <div className="fixed bottom-[calc(64px+env(safe-area-inset-bottom,0px))] left-0 right-0 md:relative md:bottom-auto p-4 md:p-0 bg-surface/95 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none border-t border-outline-variant md:border-0 z-10">
                   <Button
                     onClick={saveAttendance}
                     disabled={saving || Object.keys(attendance).length === 0}

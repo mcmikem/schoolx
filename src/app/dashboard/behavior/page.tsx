@@ -72,6 +72,7 @@ export default function BehaviorPage() {
   const [submitting, setSubmitting] = useState(false);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [filterSeverity, setFilterSeverity] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const errorShownRef = useRef(false);
 
@@ -215,8 +216,13 @@ export default function BehaviorPage() {
   };
 
   const filteredLogs = logs.filter((log) => {
-    if (filterSeverity === "all") return true;
-    return log.severity === filterSeverity;
+    if (filterSeverity !== "all" && log.severity !== filterSeverity) return false;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const studentName = `${log.students?.first_name} ${log.students?.last_name}`.toLowerCase();
+      if (!studentName.includes(q) && !log.type.toLowerCase().includes(q)) return false;
+    }
+    return true;
   });
 
   const tabs = [
@@ -287,6 +293,15 @@ export default function BehaviorPage() {
       ) : (
         <Card>
           <CardBody className="p-0">
+            <div className="px-4 pt-4">
+              <input
+                type="text"
+                placeholder="Search by student or behavior..."
+                className="w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
             <div className="overflow-x-auto">
               <table className="table">
                 <thead>

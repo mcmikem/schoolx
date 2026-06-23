@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
+import { useToast } from "@/components/Toast";
 import { logger } from "@/lib/logger";
 import type { Student, CreateStudentInput, Class } from "@/types";
 import { getQuerySchoolId, withTimeout } from "./utils";
@@ -643,12 +644,16 @@ export function useStudents(
     }
     try {
       await assertUniqueStudentNumber(normalizedUpdates.student_number as string | undefined, id);
-      const firstUpdate = await supabase
-        .from("students")
-        .update(normalizedUpdates)
-        .eq("id", id)
-        .select(STUDENT_SELECT_FIELDS)
-        .single();
+      const firstUpdate = await withTimeout(
+        supabase
+          .from("students")
+          .update(normalizedUpdates)
+          .eq("id", id)
+          .select(STUDENT_SELECT_FIELDS)
+          .single(),
+        15000,
+        { data: null, error: { message: "Student update timed out", code: "TIMEOUT", details: "", hint: "", name: "TimeoutError" }, count: null as number | null, status: 408, statusText: "Timeout", success: false } as unknown as PostgrestSingleResponse<unknown>,
+      );
 
       let updatedStudent: StudentWithClass | null = null;
 
@@ -658,25 +663,8 @@ export function useStudents(
           firstUpdate.error,
         );
 
-        const retryUpdate = await supabase
-          .from("students")
-          .update(
-            buildPortableStudentPayload(
-              normalizedUpdates as Record<string, unknown>,
-            ),
-          )
-          .eq("id", id)
-          .select(
-            studentPhotoColumnSupported === false
-              ? STUDENT_SELECT_FIELDS_MINIMAL_LEGACY
-              : STUDENT_SELECT_FIELDS_MINIMAL,
-          )
-          .single();
-
-        if (isMissingStudentColumnError(retryUpdate.error, "photo_url")) {
-          studentPhotoColumnSupported = false;
-
-          const legacyRetryUpdate = await supabase
+        const retryUpdate = await withTimeout(
+          supabase
             .from("students")
             .update(
               buildPortableStudentPayload(
@@ -684,8 +672,33 @@ export function useStudents(
               ),
             )
             .eq("id", id)
-            .select(STUDENT_SELECT_FIELDS_MINIMAL_LEGACY)
-            .single();
+            .select(
+              studentPhotoColumnSupported === false
+                ? STUDENT_SELECT_FIELDS_MINIMAL_LEGACY
+                : STUDENT_SELECT_FIELDS_MINIMAL,
+            )
+            .single(),
+          15000,
+          { data: null, error: { message: "Student update retry timed out", code: "TIMEOUT", details: "", hint: "", name: "TimeoutError" }, count: null as number | null, status: 408, statusText: "Timeout", success: false } as unknown as PostgrestSingleResponse<unknown>,
+        );
+
+        if (isMissingStudentColumnError(retryUpdate.error, "photo_url")) {
+          studentPhotoColumnSupported = false;
+
+          const legacyRetryUpdate = await withTimeout(
+            supabase
+              .from("students")
+              .update(
+                buildPortableStudentPayload(
+                  normalizedUpdates as Record<string, unknown>,
+                ),
+              )
+              .eq("id", id)
+              .select(STUDENT_SELECT_FIELDS_MINIMAL_LEGACY)
+              .single(),
+            15000,
+            { data: null, error: { message: "Student update legacy retry timed out", code: "TIMEOUT", details: "", hint: "", name: "TimeoutError" }, count: null as number | null, status: 408, statusText: "Timeout", success: false } as unknown as PostgrestSingleResponse<unknown>,
+          );
 
           if (legacyRetryUpdate.error) throw legacyRetryUpdate.error;
           updatedStudent =
@@ -800,6 +813,7 @@ export function useClasses(schoolId?: string) {
   const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(true);
   const { isDemo } = useAuth();
+  const toast = useToast();
   const prevIsDemo = useRef(isDemo);
 
   useEffect(() => {
@@ -829,11 +843,15 @@ export function useClasses(schoolId?: string) {
     }
     try {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("classes")
-        .select("id, name, level, school_id, created_at, stream, academic_year")
-        .eq("school_id", querySchoolId)
-        .order("name");
+      const { data, error } = await withTimeout(
+        supabase
+          .from("classes")
+          .select("id, name, level, school_id, created_at, stream, academic_year")
+          .eq("school_id", querySchoolId)
+          .order("name"),
+        15000,
+        { data: null, error: { message: "Classes fetch timed out", code: "TIMEOUT", details: "", hint: "", name: "TimeoutError" }, count: null as number | null, status: 408, statusText: "Timeout", success: false } as unknown as PostgrestSingleResponse<unknown>,
+      );
 
       if (error) throw error;
 
@@ -841,10 +859,11 @@ export function useClasses(schoolId?: string) {
     } catch (err) {
       logger.warn("Classes fetch error:", err);
       setClasses([]);
+      toast?.error("Failed to load classes");
     } finally {
       setLoading(false);
     }
-  }, [schoolId, isDemo]);
+  }, [schoolId, isDemo, toast]);
 
   const createClass = async (newClass: Partial<Class>) => {
     if (isDemo || isDemoSchool(schoolId)) {
@@ -866,13 +885,17 @@ export function useClasses(schoolId?: string) {
       throw new Error("Class name and academic year are required");
     }
 
-    const { data: existingClass, error: checkError } = await supabase
-      .from("classes")
-      .select("id")
-      .eq("school_id", schoolId)
-      .eq("name", newClass.name.trim())
-      .eq("academic_year", newClass.academic_year)
-      .limit(1);
+    const { data: existingClass, error: checkError } = await withTimeout(
+      supabase
+        .from("classes")
+        .select("id")
+        .eq("school_id", schoolId)
+        .eq("name", newClass.name.trim())
+        .eq("academic_year", newClass.academic_year)
+        .limit(1),
+      15000,
+      { data: null, error: { message: "Class duplicate check timed out", code: "TIMEOUT", details: "", hint: "", name: "TimeoutError" }, count: null as number | null, status: 408, statusText: "Timeout", success: false } as any,
+    );
 
     if (checkError) {
       throw new Error(`Failed to check existing class: ${checkError.message}`);
@@ -885,11 +908,15 @@ export function useClasses(schoolId?: string) {
     }
 
     try {
-      const { data, error } = await supabase
-        .from("classes")
-        .insert({ ...newClass, school_id: schoolId })
-        .select()
-        .single();
+      const { data, error } = await withTimeout(
+        supabase
+          .from("classes")
+          .insert({ ...newClass, school_id: schoolId })
+          .select()
+          .single(),
+        15000,
+        { data: null, error: { message: "Class creation timed out", code: "TIMEOUT", details: "", hint: "", name: "TimeoutError" }, count: null as number | null, status: 408, statusText: "Timeout", success: false } as unknown as PostgrestSingleResponse<unknown>,
+      );
       if (error) throw error;
       setClasses((prev) => [...prev, data as Class]);
       return data as Class;
@@ -907,12 +934,16 @@ export function useClasses(schoolId?: string) {
     }
 
     try {
-      const { data, error } = await supabase
-        .from("classes")
-        .update(updates)
-        .eq("id", id)
-        .select()
-        .single();
+      const { data, error } = await withTimeout(
+        supabase
+          .from("classes")
+          .update(updates)
+          .eq("id", id)
+          .select()
+          .single(),
+        15000,
+        { data: null, error: { message: "Class update timed out", code: "TIMEOUT", details: "", hint: "", name: "TimeoutError" }, count: null as number | null, status: 408, statusText: "Timeout", success: false } as unknown as PostgrestSingleResponse<unknown>,
+      );
       if (error) throw error;
       setClasses((prev) =>
         prev.map((c) => (c.id === id ? (data as Class) : c)),

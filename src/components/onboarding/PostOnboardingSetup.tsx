@@ -185,6 +185,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
       toast.success(`${OPTIONAL_STEPS.find((s) => s.key === key)?.title} marked complete!`);
     } catch (err) {
       logger.warn("markComplete failed:", getErrorMessage(err));
+      toast.error("Failed to save progress. Please try again.");
     }
   }, [optionalStatus, school?.id, toast]);
 
@@ -198,6 +199,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
       toast.info(`${OPTIONAL_STEPS.find((s) => s.key === key)?.title} skipped for now.`);
     } catch (err) {
       logger.warn("markSkipped failed:", getErrorMessage(err));
+      toast.error("Failed to save. Please try again.");
     }
   }, [optionalStatus, school?.id, toast]);
 

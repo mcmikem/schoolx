@@ -278,11 +278,15 @@ export function useCourseClasses() {
   const assignCourse = useCallback(
     async (courseClass: Partial<CourseClass>) => {
       try {
-        const { data, error } = await supabase
-          .from("course_classes")
-          .insert(courseClass)
-          .select()
-          .single();
+        const { data, error } = await withTimeout(
+          supabase
+            .from("course_classes")
+            .insert(courseClass)
+            .select()
+            .single(),
+          15000,
+          { data: null, error: { message: "Course assignment timed out", code: "TIMEOUT" } } as any,
+        );
 
         if (error) throw error;
         toast.success("Course assigned to class");
@@ -299,10 +303,14 @@ export function useCourseClasses() {
   const updateCourseClass = useCallback(
     async (id: string, updates: Partial<CourseClass>) => {
       try {
-        const { error } = await supabase
-          .from("course_classes")
-          .update(updates)
-          .eq("id", id);
+        const { error } = await withTimeout(
+          supabase
+            .from("course_classes")
+            .update(updates)
+            .eq("id", id),
+          15000,
+          { error: { message: "Course class update timed out", code: "TIMEOUT" } } as any,
+        );
 
         if (error) throw error;
         toast.success("Assignment updated");

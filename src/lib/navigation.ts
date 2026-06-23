@@ -401,7 +401,7 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
       items: [
         { href: "/dashboard/fees", label: "Collect Fees", icon: "payments" },
         {
-          href: "/dashboard/fees?tab=invoicing",
+          href: "/dashboard/fees?tab=invoices",
           label: "Invoicing",
           icon: "description",
         },

@@ -424,9 +424,13 @@ export default function OnboardingFlow({
           .from("schools")
           .update({ logo_url: logoUrl })
           .eq("id", school.id);
-        if (updateError) logger.warn("Logo URL save failed:", updateError);
+        if (updateError) {
+          logger.warn("Failed to save logo URL:", updateError);
+          toast.error("Logo uploaded but failed to save. Please try again.");
+        } else {
+          toast.success("Logo uploaded");
+        }
       }
-      toast.success("Logo uploaded");
     } catch (err) {
       logger.error("Logo upload failed:", err);
       toast.error("Failed to upload logo. You can add it later in settings.");

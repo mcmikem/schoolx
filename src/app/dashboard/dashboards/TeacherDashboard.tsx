@@ -214,30 +214,35 @@ function TeacherDashboardContent() {
         <div className="flex items-center justify-between mb-3">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#7f91aa]">Today's Schedule</p>
-            <p className="text-sm font-semibold text-[#17325f]">Your classes and periods for today</p>
+            <p className="text-sm font-semibold text-[#17325f]">View your classes and periods for today</p>
           </div>
-          <Link href="/dashboard/timetable" className="text-xs font-bold text-[#17325f] underline-offset-2 hover:underline">View full timetable</Link>
-        </div>
-        <div className="rounded-xl border border-dashed border-[#d7e3f2] bg-[#f8fbff] p-6 text-center">
-          <span className="material-symbols-outlined text-[#7f91aa] text-3xl">calendar_month</span>
-          <p className="mt-2 text-sm font-semibold text-[#7f91aa]">Schedule loaded once timetable is configured</p>
-          <p className="text-xs text-[#a0b3c9] mt-1">Your period-by-period plan will appear here</p>
+          <Link href="/dashboard/timetable" className="rounded-xl bg-[#17325f] px-4 py-2 text-xs font-bold text-white hover:opacity-90">
+            Open timetable
+          </Link>
         </div>
       </div>
 
-      {/* Section 4: RECENT ACTIVITY */}
+      {/* Section 4: AT A GLANCE */}
       <div className="rounded-[22px] border border-[#e5ecf4] bg-white p-4">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#7f91aa]">Recent Activity</p>
-            <p className="text-sm font-semibold text-[#17325f]">Latest actions across your classes</p>
+            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#7f91aa]">At a Glance</p>
+            <p className="text-sm font-semibold text-[#17325f]">Your class overview</p>
           </div>
-          <span className="text-[11px] font-semibold text-[#60748f]">Today</span>
         </div>
-        <div className="rounded-xl border border-dashed border-[#d7e3f2] bg-[#f8fbff] p-6 text-center">
-          <span className="material-symbols-outlined text-[#7f91aa] text-3xl">history</span>
-          <p className="mt-2 text-sm font-semibold text-[#7f91aa]">No recent activity recorded yet</p>
-          <p className="text-xs text-[#a0b3c9] mt-1">Attendance marks, grade entries, and homework posts will appear here</p>
+        <div className="grid grid-cols-3 gap-3">
+          <div className="rounded-xl bg-[#f8fbff] border border-[#e5ecf4] p-3 text-center">
+            <span className="text-2xl font-bold text-[#17325f]">{myClasses.length}</span>
+            <p className="text-[10px] font-medium text-[#7f91aa] mt-1">Classes</p>
+          </div>
+          <div className="rounded-xl bg-[#f8fbff] border border-[#e5ecf4] p-3 text-center">
+            <span className="text-2xl font-bold text-[#17325f]">{mySubjects.length}</span>
+            <p className="text-[10px] font-medium text-[#7f91aa] mt-1">Subjects</p>
+          </div>
+          <div className="rounded-xl bg-[#f8fbff] border border-[#e5ecf4] p-3 text-center">
+            <span className="text-2xl font-bold text-[#17325f]">{students.length}</span>
+            <p className="text-[10px] font-medium text-[#7f91aa] mt-1">Students</p>
+          </div>
         </div>
       </div>
 

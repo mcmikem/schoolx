@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
 import { logger } from "@/lib/logger";
 import { getCachedResponse, cacheResponse, queueMutation, isOnline, generateCacheKey } from "@/lib/offline-db";
+import { withTimeout } from "@/lib/hooks/utils";
 
 interface Enrollment {
   id: string;
@@ -141,14 +142,18 @@ export function useStudentEnrollments(
       }
 
       try {
-        const { data, error } = await supabase
-          .from("student_enrollments")
-          .insert({
-            school_id: school.id,
-            ...enrollment,
-          })
-          .select()
-          .single();
+        const { data, error } = await withTimeout(
+          supabase
+            .from("student_enrollments")
+            .insert({
+              school_id: school.id,
+              ...enrollment,
+            })
+            .select()
+            .single(),
+          15000,
+          { data: null, error: { message: "Enrollment creation timed out", code: "TIMEOUT" } } as any,
+        );
 
         if (error) throw error;
         setEnrollments((prev) => [...prev, data]);
@@ -166,12 +171,16 @@ export function useStudentEnrollments(
   const updateEnrollment = useCallback(
     async (id: string, updates: Partial<Enrollment>) => {
       try {
-        const { data, error } = await supabase
-          .from("student_enrollments")
-          .update(updates)
-          .eq("id", id)
-          .select()
-          .single();
+        const { data, error } = await withTimeout(
+          supabase
+            .from("student_enrollments")
+            .update(updates)
+            .eq("id", id)
+            .select()
+            .single(),
+          15000,
+          { data: null, error: { message: "Enrollment update timed out", code: "TIMEOUT" } } as any,
+        );
 
         if (error) throw error;
         setEnrollments((prev) => prev.map((e) => (e.id === id ? data : e)));
@@ -204,13 +213,17 @@ export function useStudentEnrollments(
       newAcademicYear: string,
     ) => {
       try {
-        const { error } = await supabase
-          .from("student_enrollments")
-          .update({
-            state: "transferred",
-            completion_date: new Date().toISOString(),
-          })
-          .eq("id", enrollmentId);
+        const { error } = await withTimeout(
+          supabase
+            .from("student_enrollments")
+            .update({
+              state: "transferred",
+              completion_date: new Date().toISOString(),
+            })
+            .eq("id", enrollmentId),
+          15000,
+          { error: { message: "Transfer timed out", code: "TIMEOUT" } } as any,
+        );
 
         if (error) throw error;
 

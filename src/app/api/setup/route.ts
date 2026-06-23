@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { logger } from "@/lib/logger";
 import {
   apiSuccess,
   apiError,
@@ -406,8 +407,8 @@ export async function POST(request: NextRequest) {
     for (const sql of migrations) {
       try {
         await supabase.rpc("exec_sql", { sql });
-      } catch {
-        // Migration failures are non-fatal; tables may already be migrated
+      } catch (migrationError) {
+        logger.warn("Migration step failed (non-fatal, may already be applied):", migrationError);
       }
     }
 

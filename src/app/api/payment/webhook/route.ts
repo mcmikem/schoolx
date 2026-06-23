@@ -36,6 +36,8 @@ export async function POST(request: Request) {
     return new NextResponse("Webhook signature verification failed", { status: 400 });
   }
 
+  let hadError = false;
+
   // Handle the event
   switch (event.type) {
     case "checkout.session.completed": {
@@ -62,6 +64,7 @@ export async function POST(request: Request) {
           });
         } catch (error) {
           logger.error("Error handling checkout session completed:", error);
+          hadError = true;
         }
       }
 
@@ -101,6 +104,7 @@ export async function POST(request: Request) {
         });
       } catch (error) {
         logger.error("Error handling invoice.payment_succeeded:", error);
+        hadError = true;
       }
 
       try {
@@ -132,6 +136,7 @@ export async function POST(request: Request) {
         }
       } catch (error) {
         logger.error("Error sending payment receipt (non-critical):", error);
+        hadError = true;
       }
 
       break;
@@ -149,6 +154,7 @@ export async function POST(request: Request) {
         });
       } catch (error) {
         logger.error("Error handling invoice.payment_failed:", error);
+        hadError = true;
       }
 
       break;
@@ -168,6 +174,7 @@ export async function POST(request: Request) {
         });
       } catch (error) {
         logger.error("Error handling customer.subscription.created:", error);
+        hadError = true;
       }
 
       break;
@@ -187,6 +194,7 @@ export async function POST(request: Request) {
         });
       } catch (error) {
         logger.error("Error handling customer.subscription.updated:", error);
+        hadError = true;
       }
 
       break;
@@ -204,6 +212,7 @@ export async function POST(request: Request) {
         });
       } catch (error) {
         logger.error("Error handling customer.subscription.deleted:", error);
+        hadError = true;
       }
 
       break;
@@ -224,6 +233,7 @@ export async function POST(request: Request) {
         }
       } catch (error) {
         logger.error("Error handling charge.refunded:", error);
+        hadError = true;
       }
 
       break;
@@ -233,6 +243,9 @@ export async function POST(request: Request) {
       logger.debug(`Unhandled Stripe event type: ${event.type}`);
   }
 
+  if (hadError) {
+    return new NextResponse(JSON.stringify({ received: true, warning: "Some events failed processing" }), { status: 200 });
+  }
   return new NextResponse(JSON.stringify({ received: true }), { status: 200 });
 }
 

@@ -413,6 +413,7 @@ export function usePeriodAttendance(
       setLoading(false);
       return;
     }
+    setError(null);
     try {
       setLoading(true);
       if (!isOnline) {
@@ -476,6 +477,7 @@ export function usePeriodAttendance(
       period,
       status,
     };
+    const prevAttendance = attendance;
     setAttendance((prev) => {
       const existing = prev.findIndex((a) => a.student_id === studentId);
       if (existing >= 0) {
@@ -500,6 +502,7 @@ export function usePeriodAttendance(
           payload as unknown as Record<string, unknown>,
         ]);
       } catch {
+        setAttendance(prevAttendance);
         await offlineDB.save(
           "period_attendance",
           payload as unknown as Record<string, unknown>,
@@ -549,6 +552,7 @@ export function useDormAttendance(
       setLoading(false);
       return;
     }
+    setError(null);
     try {
       setLoading(true);
       if (!isOnline) {
@@ -605,6 +609,7 @@ export function useDormAttendance(
   }, [fetchData]);
 
   const markAttendance = async (studentId: string, status: string, extras?: Record<string, any>) => {
+    const prevAttendance = attendance;
     setAttendance((prev) => {
       const existing = prev.findIndex((a) => a.student_id === studentId);
       const payload = { student_id: studentId, status, ...extras };
@@ -638,6 +643,7 @@ export function useDormAttendance(
           payload as unknown as Record<string, unknown>,
         ]);
       } catch {
+        setAttendance(prevAttendance);
         await offlineDB.save(
           "dorm_attendance",
           payload as unknown as Record<string, unknown>,

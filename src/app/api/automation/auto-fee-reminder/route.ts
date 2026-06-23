@@ -221,7 +221,9 @@ export async function POST(request: NextRequest) {
             15000,
             timeoutFallback()
           );
-          const feeMsgError = feeMsgResult?.error;
+          if (feeMsgResult?.error) {
+            logger.error("Fee reminder message insert error:", feeMsgResult.error);
+          }
 
           results.remindersSent.push({
             studentId: student.id,

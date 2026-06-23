@@ -92,6 +92,85 @@ export default function SMSCenterPage() {
   const [currentTerm, setCurrentTerm] = useState<AcademicTermItem | null>(null);
   const studentSearchRef = useRef<HTMLDivElement>(null);
 
+  const fetchParentPhones = useCallback(async (countOnly = false): Promise<{ phone: string; full_name: string }[]> => {
+    if (!school?.id) return [];
+
+    if (segment === "all") {
+      const data = await withTimeout(
+        supabase
+          .from("users")
+          .select("phone, full_name")
+          .eq("school_id", school.id)
+          .eq("role", "parent")
+          .not("phone", "is", null)
+          .then(r => r.data),
+        5000, [] as ParentPhoneItem[]
+      );
+      return (data || []).map((p) => ({ phone: p.phone, full_name: p.full_name }));
+    }
+
+    let studentIds: string[] = [];
+
+    switch (segment) {
+      case "class": {
+        if (!selectedClass) return [];
+        const data = await withTimeout(
+          supabase.from("students").select("id").eq("school_id", school.id).eq("class_id", selectedClass).then(r => r.data),
+          5000, [] as { id: string }[]
+        );
+        studentIds = (data || []).map((s) => s.id);
+        break;
+      }
+      case "overdue": {
+        let query = supabase.from("student_fees").select("student_id").gt("balance", 0).eq("school_id", school.id);
+        if (currentTerm) {
+          query = query.eq("academic_year", currentTerm.academic_year).eq("term", currentTerm.term_number);
+        }
+        const data = await withTimeout(query.then(r => r.data), 5000, [] as { student_id: string }[]);
+        studentIds = [...new Set((data || []).map((f) => f.student_id))];
+        break;
+      }
+      case "balance": {
+        const bal = parseFloat(minBalance) || 0;
+        let query = supabase.from("student_fees").select("student_id").gt("balance", bal).eq("school_id", school.id);
+        if (currentTerm) {
+          query = query.eq("academic_year", currentTerm.academic_year).eq("term", currentTerm.term_number);
+        }
+        const data = await withTimeout(query.then(r => r.data), 5000, [] as { student_id: string }[]);
+        studentIds = [...new Set((data || []).map((f) => f.student_id))];
+        break;
+      }
+      case "student": {
+        if (!selectedStudent) return [];
+        studentIds = [selectedStudent.id];
+        break;
+      }
+    }
+
+    if (studentIds.length === 0) return [];
+
+    const psData = await withTimeout(
+      supabase.from("parent_students").select("parent_id").in("student_id", studentIds).then(r => r.data),
+      5000, [] as { parent_id: string }[]
+    );
+
+    const parentIds = [...new Set((psData || []).map((p) => p.parent_id))];
+    if (parentIds.length === 0) return [];
+
+    const parents = await withTimeout(
+      supabase
+        .from("users")
+        .select("phone, full_name")
+        .in("id", parentIds)
+        .eq("role", "parent")
+        .not("phone", "is", null)
+        .then(r => r.data),
+      5000, [] as ParentPhoneItem[]
+    );
+
+    return (parents || []).map((p) => ({ phone: p.phone, full_name: p.full_name }));
+  }, [school?.id, segment, selectedClass, minBalance, selectedStudent, currentTerm]);
+
   useEffect(() => {
     setCharCount(message.length);
   }, [message]);
@@ -174,95 +253,6 @@ export default function SMSCenterPage() {
       setShowStudentDropdown(false);
     }
   };
-
-  const getRecipientCount = async (): Promise<number> => {
-    if (!school?.id) return 0;
-    try {
-      const parents = await fetchParentPhones(true);
-      return parents.length;
-    } catch {
-      return 0;
-    }
-  };
-
-  const fetchParentPhones = useCallback(async (countOnly = false): Promise<{ phone: string; full_name: string }[]> => {
-    if (!school?.id) return [];
-
-    if (segment === "all") {
-      const data = await withTimeout(
-        supabase
-          .from("users")
-          .select("phone, full_name")
-          .eq("school_id", school.id)
-          .eq("role", "parent")
-          .not("phone", "is", null)
-          .then(r => r.data),
-        5000, [] as ParentPhoneItem[]
-      );
-      return (data || []).map((p) => ({ phone: p.phone, full_name: p.full_name }));
-    }
-
-    let studentIds: string[] = [];
-
-    switch (segment) {
-      case "class": {
-        if (!selectedClass) return [];
-        const data = await withTimeout(
-          supabase.from("students").select("id").eq("school_id", school.id).eq("class_id", selectedClass).then(r => r.data),
-          5000, [] as { id: string }[]
-        );
-        studentIds = (data || []).map((s) => s.id);
-        break;
-      }
-      case "overdue": {
-        let query = supabase.from("student_fees").select("student_id").gt("balance", 0).eq("school_id", school.id);
-        if (currentTerm) {
-          query = query.eq("academic_year", currentTerm.academic_year).eq("term", currentTerm.term_number);
-        }
-        const data = await withTimeout(query.then(r => r.data), 5000, [] as { student_id: string }[]);
-        studentIds = [...new Set((data || []).map((f) => f.student_id))];
-        break;
-      }
-      case "balance": {
-        const bal = parseFloat(minBalance) || 0;
-        let query = supabase.from("student_fees").select("student_id").gt("balance", bal).eq("school_id", school.id);
-        if (currentTerm) {
-          query = query.eq("academic_year", currentTerm.academic_year).eq("term", currentTerm.term_number);
-        }
-        const data = await withTimeout(query.then(r => r.data), 5000, [] as { student_id: string }[]);
-        studentIds = [...new Set((data || []).map((f) => f.student_id))];
-        break;
-      }
-      case "student": {
-        if (!selectedStudent) return [];
-        studentIds = [selectedStudent.id];
-        break;
-      }
-    }
-
-    if (studentIds.length === 0) return [];
-
-    const psData = await withTimeout(
-      supabase.from("parent_students").select("parent_id").in("student_id", studentIds).then(r => r.data),
-      5000, [] as { parent_id: string }[]
-    );
-
-    const parentIds = [...new Set((psData || []).map((p) => p.parent_id))];
-    if (parentIds.length === 0) return [];
-
-    const parents = await withTimeout(
-      supabase
-        .from("users")
-        .select("phone, full_name")
-        .in("id", parentIds)
-        .eq("role", "parent")
-        .not("phone", "is", null)
-        .then(r => r.data),
-      5000, [] as ParentPhoneItem[]
-    );
-
-    return (parents || []).map((p) => ({ phone: p.phone, full_name: p.full_name }));
-  }, [school?.id, segment, selectedClass, minBalance, selectedStudent, currentTerm]);
 
   const handleSend = async () => {
     if (!message || !school?.id) return;

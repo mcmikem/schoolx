@@ -85,7 +85,8 @@ export async function POST(request: NextRequest) {
         } else {
           results.errors++;
         }
-      } catch {
+      } catch (err) {
+        logger.error("Installment reminder SMS error:", err);
         results.errors++;
       }
     }

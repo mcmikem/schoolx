@@ -80,7 +80,9 @@ export async function POST(request: NextRequest) {
               15000,
               timeoutFallback()
             );
-            const hbError = hbResult?.error;
+            if (hbResult?.error) {
+              logger.error("Heartbeat log insert error:", hbResult.error);
+            }
           }
         } catch (err) {
           logger.error("Attendance heartbeat SMS failed:", err);

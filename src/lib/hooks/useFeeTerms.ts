@@ -289,11 +289,15 @@ export function useStudentFeeTerms(studentId?: string) {
       if (!school?.id) return null;
 
       try {
-        const { data: ftData, error: termError } = await supabase
-          .from("fee_terms")
-          .select("total_amount, discount_percentage")
-          .eq("id", assignment.fee_term_id)
-          .single();
+        const { data: ftData, error: termError } = await withTimeout(
+          supabase
+            .from("fee_terms")
+            .select("total_amount, discount_percentage")
+            .eq("id", assignment.fee_term_id)
+            .single(),
+          15000,
+          { data: null, error: { message: "Fee terms fetch timed out", code: "TIMEOUT" } } as any,
+        );
 
         if (termError || !ftData)
           throw termError || new Error("Fee term not found");
@@ -363,11 +367,15 @@ export function useStudentFeeTerms(studentId?: string) {
 
         if (paymentError) throw paymentError;
 
-        const { data: sftData } = await supabase
-          .from("student_fee_terms")
-          .select("amount_paid, final_amount")
-          .eq("id", payment.student_fee_term_id)
-          .single();
+        const { data: sftData } = await withTimeout(
+          supabase
+            .from("student_fee_terms")
+            .select("amount_paid, final_amount")
+            .eq("id", payment.student_fee_term_id)
+            .single(),
+          15000,
+          { data: null, error: { message: "Student fee terms fetch timed out", code: "TIMEOUT" } } as any,
+        );
 
         if (sftData) {
           const newPaid = (sftData.amount_paid || 0) + payment.amount;

@@ -2,6 +2,7 @@
 import { useState, useCallback } from 'react';
 import { PaymentModeSelect } from './PaymentModeSelect';
 import { type PaymentMode } from '@/types/payment';
+import { useToast } from '@/components/Toast';
 
 type RefundRequest = {
   studentId: string;
@@ -17,10 +18,13 @@ type RefundRequest = {
 export const RefundRequestModal = ({
   isOpen,
   onClose,
+  students = [],
 }: {
   isOpen: boolean;
   onClose: () => void;
+  students?: Array<{ id: string; first_name: string; last_name: string; student_number: string }>;
 }) => {
+  const toast = useToast();
   const [request, setRequest] = useState<RefundRequest>({
     studentId: '',
     amount: 0,
@@ -28,6 +32,9 @@ export const RefundRequestModal = ({
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [studentSearch, setStudentSearch] = useState('');
+  const [studentSearchResults, setStudentSearchResults] = useState<Array<{ id: string; first_name: string; last_name: string; student_number: string }>>([]);
+  const [selectedStudentName, setSelectedStudentName] = useState('');
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -53,7 +60,7 @@ export const RefundRequestModal = ({
         const data = await res.json();
         throw new Error(data.error ?? 'Failed to create refund');
       }
-      // Success – close modal and optionally refresh UI
+      toast.success("Refund request submitted successfully");
       onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -81,17 +88,48 @@ export const RefundRequestModal = ({
           </div>
         )}
         <div className="grid gap-4">
-          <label className="block">
-            <span className="text-sm font-medium text-gray-700">Student ID</span>
+          <div>
+            <label className="text-xs font-medium text-gray-700 block mb-1">Student</label>
             <input
               type="text"
-              name="studentId"
-              value={request.studentId}
-              onChange={handleChange}
+              placeholder="Search by name or admission number..."
               className="mt-1 block w-full rounded border border-gray-300 bg-white p-2 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-300"
-              required
+              value={studentSearch}
+              onChange={(e) => {
+                const val = e.target.value;
+                setStudentSearch(val);
+                if (val.length > 1) {
+                  const results = (students || []).filter(
+                    (s) =>
+                      `${s.first_name} ${s.last_name}`.toLowerCase().includes(val.toLowerCase()) ||
+                      (s.student_number || '').toLowerCase().includes(val.toLowerCase())
+                  );
+                  setStudentSearchResults(results);
+                } else {
+                  setStudentSearchResults([]);
+                }
+              }}
             />
-          </label>
+            {studentSearchResults.length > 0 && (
+              <div className="mt-1 max-h-40 overflow-y-auto bg-white border border-gray-300 rounded">
+                {studentSearchResults.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100"
+                    onClick={() => {
+                      setStudentSearch(`${s.first_name} ${s.last_name}`);
+                      setSelectedStudentName(`${s.first_name} ${s.last_name}`);
+                      setStudentSearchResults([]);
+                      setRequest((prev) => ({ ...prev, studentId: s.id }))
+                    }}
+                  >
+                    {s.first_name} {s.last_name} ({s.student_number})
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
           <label className="block">
             <span className="text-sm font-medium text-gray-700">Amount</span>
             <input

@@ -15,10 +15,12 @@ import {
 import { useDashboardExtraData } from "@/lib/hooks/useDashboardExtraData";
 import { useEffect, useMemo, useState, useRef } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
+import { useToast } from "@/components/Toast";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import DashboardInsights from "@/components/dashboard/DashboardInsights";
 import EcosystemPulse from "@/components/dashboard/EcosystemPulse";
 import { TopLoadingBar, StuckLoadingOverlay } from "@/components/ui/Skeleton";
+import { Button } from "@/components/ui/index";
 import OwlMascot from "@/components/brand/OwlMascot";
 import { toLocalDateString } from "@/lib/date-utils";
 import { safeGetItem, safeSetItem } from "@/lib/safe-storage";
@@ -328,6 +330,7 @@ function HeadmasterDashboardContent() {
     "medium",
   );
   const [tasks, setTasks] = useState<HeadmasterTask[]>([]);
+  const toast = useToast();
 
   const taskStorageKey = `hm_tasks_${school?.id || "default"}_${user?.id || "anon"}`;
 
@@ -362,6 +365,7 @@ function HeadmasterDashboardContent() {
     };
     setTasks((prev) => [nextTask, ...prev].slice(0, 12));
     setTaskTitle("");
+    toast.info("Saved in browser only — not synced across devices");
   };
 
   const toggleTask = (taskId: string) => {
@@ -422,7 +426,7 @@ function HeadmasterDashboardContent() {
             <Link href="/dashboard/settings" className="rounded-xl border border-[#17325f] px-5 py-2.5 text-xs font-bold text-[#17325f] hover:bg-[#edf4ff]">
               School settings
             </Link>
-            <Link href="/dashboard/onboarding" className="rounded-xl border border-[#d7e3f2] px-5 py-2.5 text-xs font-bold text-[#60748f] hover:bg-[#f8fbff]">
+            <Link href="/dashboard/settings?tab=checklist" className="rounded-xl border border-[#d7e3f2] px-5 py-2.5 text-xs font-bold text-[#60748f] hover:bg-[#f8fbff]">
               Setup guide
             </Link>
           </div>
@@ -608,6 +612,48 @@ function HeadmasterDashboardContent() {
                 </Link>
               ))}
             </div>
+            <div className="mt-3 flex gap-2">
+              <input
+                type="text"
+                className="flex-1 rounded-xl border border-[#e5ecf4] px-3 py-2 text-sm bg-[#f8fbff] focus:outline-none focus:border-[#17325f]"
+                placeholder="Add a task..."
+                value={taskTitle}
+                onChange={(e) => setTaskTitle(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && addTask()}
+              />
+              <Button variant="primary" size="sm" onClick={addTask} disabled={!taskTitle.trim()}>
+                Add
+              </Button>
+            </div>
+            {tasks.length > 0 && (
+              <div className="mt-3 space-y-1 max-h-48 overflow-y-auto">
+                {tasks.map((task) => (
+                  <div key={task.id} className="flex items-center gap-2 rounded-xl bg-[#f8fbff] px-3 py-2">
+                    <input
+                      type="checkbox"
+                      checked={task.done}
+                      onChange={() => toggleTask(task.id)}
+                      className="accent-[#17325f]"
+                    />
+                    <span className={`flex-1 text-xs ${task.done ? "line-through text-[#7f91aa]" : "text-[#17325f]"}`}>
+                      {task.title}
+                    </span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                      task.priority === "high" ? "bg-red-100 text-red-700" :
+                      task.priority === "medium" ? "bg-yellow-100 text-yellow-700" : "bg-green-100 text-green-700"
+                    }`}>
+                      {task.priority}
+                    </span>
+                    <button onClick={() => removeTask(task.id)} className="text-[#7f91aa] hover:text-red-500">
+                      <MaterialIcon icon="close" className="text-sm" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <p className="text-[10px] text-[#7f91aa] mt-2">
+              Tasks stored only in this browser. They will not sync across devices.
+            </p>
           </div>
 
           <div className="rounded-[24px] bg-white border border-[#e5ecf4] p-4">

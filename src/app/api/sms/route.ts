@@ -286,8 +286,8 @@ export async function PATCH(request: NextRequest) {
         .from("messages")
         .update({ delivery_status: status })
         .eq("message_id", id);
-    } catch {
-      // delivery_status column may not exist in older schema
+    } catch (deliveryError) {
+      logger.warn("Delivery status update failed (column may not exist yet):", deliveryError);
     }
 
     return apiSuccess({ received: true });

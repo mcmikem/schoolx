@@ -9,7 +9,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { logger } from "@/lib/logger";
 
-// Rate-limit: max 3 reset requests per IP per 15 minutes (in-memory, resets on cold start)
+// In-memory rate limiter — does not persist across serverless instances.
+// For production, replace with Redis or Supabase-based rate limiting.
 const resetAttempts = new Map<string, { count: number; resetAt: number }>();
 
 export async function POST(request: NextRequest) {

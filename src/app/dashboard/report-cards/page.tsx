@@ -117,11 +117,17 @@ export default function ReportCardsPage() {
     studentsProcessed: number;
     errors: number;
   }>({ current: 0, total: 0, currentClass: '', studentsProcessed: 0, errors: 0 });
+  const [searchQuery, setSearchQuery] = useState("");
 
   const filteredStudents = useMemo(() => {
     if (!selectedClass) return [];
-    return classStudents.filter((s) => s.class_id === selectedClass);
-  }, [classStudents, selectedClass]);
+    let list = classStudents.filter((s) => s.class_id === selectedClass);
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter((s) => `${s.first_name} ${s.last_name}`.toLowerCase().includes(q));
+    }
+    return list;
+  }, [classStudents, selectedClass, searchQuery]);
 
   const selectedClassObj = classes.find((c) => c.id === selectedClass);
   const selectedClassName = selectedClassObj ? `${selectedClassObj.name}${selectedClassObj.stream ? ` ${selectedClassObj.stream}` : ''}` : "";
@@ -1020,6 +1026,13 @@ export default function ReportCardsPage() {
       {generated && displayedReports.length > 0 && (
         <Card>
           <CardBody>
+            <input
+              type="text"
+              placeholder="Search by student name..."
+              className="w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm mb-4"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
                 <thead>

@@ -311,7 +311,7 @@ export function GradeImportModal({
         if (isDemo) {
           await new Promise((r) => setTimeout(r, 50));
         } else {
-          await withTimeout(
+          const gradeResult = await withTimeout(
             supabase
               .from("grades")
               .upsert(payload, {
@@ -321,8 +321,11 @@ export function GradeImportModal({
               .single()
               .then((r) => r),
             15000,
-            { data: { id: "timeout-fallback" }, error: null } as any,
+            { data: null, error: { message: "Query timed out" } } as any,
           );
+          if (gradeResult?.error) {
+            throw new Error(gradeResult.error.message);
+          }
         }
         success++;
       } catch (err) {

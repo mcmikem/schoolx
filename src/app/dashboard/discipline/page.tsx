@@ -69,6 +69,7 @@ export default function DisciplinePage() {
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
   const [filterResolved, setFilterResolved] = useState('all')
+  const [searchQuery, setSearchQuery] = useState('')
   const [exams, setExams] = useState<any[]>([])
   const [smsTarget, setSmsTarget] = useState<{ id: string; first_name: string; last_name: string; parent_phone?: string } | null>(null)
   const [newRecord, setNewRecord] = useState({
@@ -208,9 +209,13 @@ export default function DisciplinePage() {
   ]
 
   const filteredRecords = records.filter(r => {
-    if (filterResolved === 'all') return true
-    if (filterResolved === 'resolved') return r.resolved
-    if (filterResolved === 'pending') return !r.resolved
+    if (filterResolved === 'resolved' && !r.resolved) return false
+    if (filterResolved === 'pending' && r.resolved) return false
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase()
+      const studentName = `${r.students?.first_name} ${r.students?.last_name}`.toLowerCase()
+      if (!studentName.includes(q) && !r.incident_type.toLowerCase().includes(q)) return false
+    }
     return true
   })
 
@@ -414,6 +419,13 @@ export default function DisciplinePage() {
 
     return (
       <div className="space-y-4">
+        <input
+          type="text"
+          placeholder="Search by student or behavior..."
+          className="w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
         {filteredRecords.map((record) => (
           <Card key={record.id} className="p-6">
             <CardBody>

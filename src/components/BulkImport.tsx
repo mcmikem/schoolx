@@ -3,6 +3,7 @@ import { useState, useRef } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useClasses } from "@/lib/hooks";
 import { supabase } from "@/lib/supabase";
+import { withTimeout } from "@/lib/hooks/utils";
 
 interface StudentRow {
   student_number?: string;
@@ -239,10 +240,14 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
       }));
 
       try {
-        const { data, error: insertError } = await supabase
-          .from("students")
-          .insert(batch)
-          .select();
+        const { data, error: insertError } = await withTimeout(
+          supabase
+            .from("students")
+            .insert(batch)
+            .select(),
+          15000,
+          { data: null, error: { message: "Batch insert timed out", code: "TIMEOUT" } } as any,
+        );
 
         if (insertError) {
           results.failed += batch.length;

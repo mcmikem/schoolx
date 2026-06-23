@@ -290,6 +290,7 @@ export default function GradesPage() {
   const [gradePage, setGradePage] = useState(1);
   const gradesPerPage = 20;
   const [statusFilter, setStatusFilter] = useState<"all" | GradeWorkflowStatus>("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const filteredStudents = useMemo(() => {
     if (!selectedClass) return [];
@@ -308,12 +309,21 @@ export default function GradesPage() {
   }, [existingGrades]);
 
   const displayStudents = useMemo(() => {
-    if (statusFilter === "all") return filteredStudents;
-    return filteredStudents.filter((s) => {
-      const sStatus = studentStatusMap[s.id] || "draft";
-      return sStatus === statusFilter;
-    });
-  }, [filteredStudents, statusFilter, studentStatusMap]);
+    let list = filteredStudents;
+    if (statusFilter !== "all") {
+      list = list.filter((s) => {
+        const sStatus = studentStatusMap[s.id] || "draft";
+        return sStatus === statusFilter;
+      });
+    }
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter((s) =>
+        `${s.first_name} ${s.last_name}`.toLowerCase().includes(q)
+      );
+    }
+    return list;
+  }, [filteredStudents, statusFilter, studentStatusMap, searchQuery]);
 
   const gradeOffset = (gradePage - 1) * gradesPerPage;
   const gradeTotalPages = Math.max(
@@ -1576,6 +1586,13 @@ export default function GradesPage() {
                       : "Approved"}
               </button>
             ))}
+            <input
+              type="text"
+              placeholder="Search student..."
+              className="w-full md:w-48 rounded-xl border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
             <span className="text-xs text-on-surface-variant ml-auto">
               {displayStudents.length} of {filteredStudents.length} students
             </span>

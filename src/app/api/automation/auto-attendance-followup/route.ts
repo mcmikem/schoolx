@@ -165,7 +165,9 @@ export async function POST(request: NextRequest) {
             15000,
             timeoutFallback()
           );
-          const attMsgError = attMsgResult?.error;
+          if (attMsgResult?.error) {
+            logger.error("Attendance followup message insert error:", attMsgResult.error);
+          }
 
           // Log the automated message
           const attLogResult = await withTimeout(
@@ -180,7 +182,9 @@ export async function POST(request: NextRequest) {
             15000,
             timeoutFallback()
           );
-          const attLogError = attLogResult?.error;
+          if (attLogResult?.error) {
+            logger.error("Attendance followup log insert error:", attLogResult.error);
+          }
 
           smsResults.push({
             studentId: alert.studentId,

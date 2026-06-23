@@ -281,7 +281,7 @@ export default function SettingsPage() {
 
   const saveSettings = async (key: string, value: string) => {
     if (!school?.id) return;
-    try { await saveSchoolSetting(school.id, key, value); }
+    try { await saveSchoolSetting(school.id, key, value); toast.success("Setting saved"); }
     catch (err) { logger.error("Error:", err); }
   };
 

@@ -25,6 +25,7 @@ export default function SyllabusProgressWidget() {
 
   const [progressData, setProgressData] = useState<SubjectProgress[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!school?.id || !academicYear || !currentTerm) {
@@ -73,6 +74,7 @@ export default function SyllabusProgressWidget() {
         setProgressData(result);
       } catch (err) {
         logger.error("Failed to load syllabus progress:", err);
+        setFetchError("Failed to load syllabus data. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -112,6 +114,8 @@ export default function SyllabusProgressWidget() {
           <div className="flex items-center justify-center py-6">
             <div className="animate-spin w-6 h-6 border-2 border-[#17325F] border-t-transparent rounded-full" />
           </div>
+        ) : fetchError ? (
+          <div className="text-error text-sm p-4">{fetchError}</div>
         ) : progressData.length === 0 ? (
           <div className="text-center py-6">
             <MaterialIcon

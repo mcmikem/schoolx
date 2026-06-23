@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
 import { cardClassName } from "@/lib/utils";
 import { format } from "date-fns";
+import { withTimeout } from "@/lib/hooks/utils";
 import { calculateUgandaPayrollTaxes } from "@/lib/operations";
 import { useToast } from "@/components/Toast";
 import PersonInitials from "@/components/ui/PersonInitials";
@@ -70,6 +71,7 @@ export default function PayrollPage() {
   const [history, setHistory] = useState<PayrollHistoryRecord[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [progress, setProgress] = useState<ProgressState>({ open: false, total: 0, processed: 0, totalGross: 0, totalTax: 0, totalNet: 0 });
+  const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
     if (!school?.id) return;
@@ -155,7 +157,11 @@ export default function PayrollPage() {
           status: "processed",
           processed_by: user?.id
         };
-        const { error } = await supabase.from("payroll_history").upsert(record, { onConflict: "staff_id, month" });
+        const { error } = await withTimeout(
+          supabase.from("payroll_history").upsert(record, { onConflict: "staff_id, month" }).then(r => r),
+          15000,
+          { data: null, error: { message: "Payroll save timed out" } } as any,
+        );
         if (error) throw error;
         processed++;
         totalGross += pay.gross;
@@ -164,13 +170,17 @@ export default function PayrollPage() {
         setProgress((p) => ({ ...p, processed, totalGross, totalTax, totalNet }));
       }
       toast.success(`Payroll complete: ${processed} staff processed, UGX ${totalNet.toLocaleString()} net total.`);
-      supabase
-        .from("payroll_history")
-        .select("*")
-        .eq("school_id", school?.id)
-        .order("created_at", { ascending: false })
-        .limit(50)
-        .then(({ data }) => setHistory(data || []));
+      withTimeout(
+        supabase
+          .from("payroll_history")
+          .select("*")
+          .eq("school_id", school?.id)
+          .order("created_at", { ascending: false })
+          .limit(50)
+          .then(r => r),
+        15000,
+        { data: [], error: null } as any,
+      ).then(({ data }) => setHistory(data || []));
     } catch (err: any) {
       setProgress((p) => ({ ...p, error: err.message }));
       toast.error(err.message || "Failed to record payroll");
@@ -284,6 +294,20 @@ export default function PayrollPage() {
         ))}
       </div>
 
+      {/* Search */}
+      <div className="flex items-center gap-3 mb-4">
+        <input
+          type="text"
+          placeholder="Search by staff name..."
+          className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-slate-400"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+        <span className="text-xs text-slate-400 font-medium">
+          {staff.filter((s) => !searchQuery || s.full_name?.toLowerCase().includes(searchQuery.toLowerCase())).length} of {staff.length}
+        </span>
+      </div>
+
       {/* Payroll Table */}
       <div className={cardClassName + " overflow-hidden border-none shadow-xl shadow-slate-200/50"}>
         <div className="overflow-x-auto">
@@ -315,7 +339,7 @@ export default function PayrollPage() {
                       </td>
                     </tr>
                   )
-                : staff.map((member) => {
+                : staff.filter((s) => !searchQuery || s.full_name?.toLowerCase().includes(searchQuery.toLowerCase())).map((member) => {
                     const config = payroll[member.id] || { grade: GRADES[1], customGross: 0, deductions: 0 };
                     const pay = calculateStaffPay(member.id);
                     

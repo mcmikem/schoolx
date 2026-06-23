@@ -50,17 +50,17 @@ export async function GET(request: NextRequest) {
 
     const supabase = createServiceRoleClientOrThrow();
 
-    const attendanceQuery = supabase
+    let attendanceQuery = supabase
       .from("attendance")
       .select("id, student_id, class_id, date, status, recorded_by, created_at")
       .gte("date", date_from || "1970-01-01")
       .lte("date", date_to || "2099-12-31");
 
     if (class_id) {
-      attendanceQuery.eq("class_id", class_id);
+      attendanceQuery = attendanceQuery.eq("class_id", class_id);
     }
     if (student_id) {
-      attendanceQuery.eq("student_id", student_id);
+      attendanceQuery = attendanceQuery.eq("student_id", student_id);
     }
 
     const { data: attendance, error: attError } = await attendanceQuery;
