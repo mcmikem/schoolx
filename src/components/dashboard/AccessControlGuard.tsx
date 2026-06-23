@@ -12,12 +12,13 @@ import {
   useFeeStructure,
 } from "@/lib/hooks";
 import {
-  FEATURE_STAGES,
-  FeatureStage,
+  isModuleInFeatureStage,
+  getRequiredModuleForPath,
   DEFAULT_FEATURE_STAGE,
-  canUseModule,
-  ModuleKey,
-} from "@/lib/featureStages";
+  MODULE_CATALOG,
+  type ModuleKey,
+  type FeatureStage,
+} from "@/lib/modules/catalog";
 import { deepFreeze } from "@/lib/deep-freeze";
 import { resolveRouteAccess, useRoleRouteOverrides } from "@/lib/role-access-overrides";
 
@@ -94,98 +95,14 @@ const roleBasedRoutes: Record<string, keyof RolePermissions> = deepFreeze({
   "/dashboard/sync-center": "settings",
 });
 
-const MODULE_FOR_ROUTE: Record<string, ModuleKey> = deepFreeze({
-  "/dashboard": "dashboard",
-  "/dashboard/attendance": "attendance",
-  "/dashboard/period-attendance": "attendance",
-  "/dashboard/students": "attendance",
-  "/dashboard/students/graduation": "attendance",
-  "/dashboard/students/alumni": "attendance",
-  "/dashboard/students/photos": "attendance",
-  "/dashboard/student-enrollments": "attendance",
-  "/dashboard/student-lookup": "attendance",
-  "/dashboard/student-transfers": "attendance",
-  "/dashboard/dropout-tracking": "attendance",
-  "/dashboard/promotion": "attendance",
-  "/dashboard/grades": "marks",
-  "/dashboard/marks-completion": "marks",
-  "/dashboard/exams": "exam",
-  "/dashboard/uneb": "exam",
-  "/dashboard/uneb-registration": "exam",
-  "/dashboard/exam-timetable": "exam",
-  "/dashboard/comments": "communications",
-  "/dashboard/messages": "communications",
-  "/dashboard/notices": "communications",
-  "/dashboard/sms-templates": "communications",
-  "/dashboard/bulk-sms": "communications",
-  "/dashboard/calendar": "dashboard",
-  "/dashboard/feedback": "communications",
-  "/dashboard/homework": "marks",
-  "/dashboard/homework-submissions": "marks",
-  "/dashboard/lesson-plans": "marks",
-  "/dashboard/scheme-of-work": "marks",
-  "/dashboard/timetable": "marks",
-  "/dashboard/syllabus": "marks",
-  "/dashboard/courses": "marks",
-  "/dashboard/allocations": "marks",
-  "/dashboard/substitutions": "marks",
-  "/dashboard/discipline": "operations",
-  "/dashboard/behavior": "operations",
-  "/dashboard/warnings": "reports",
-  "/dashboard/report-cards": "reports",
-  "/dashboard/custom-reports": "reports",
-  "/dashboard/batch-reports": "reports",
-  "/dashboard/class-comparison": "analytics",
-  "/dashboard/teacher-performance": "analytics",
-  "/dashboard/dorm": "dorm",
-  "/dashboard/dorm-attendance": "dorm",
-  "/dashboard/health": "health",
-  "/dashboard/health-log": "health",
-  "/dashboard/library": "operations",
-  "/dashboard/visitors": "operations",
-  "/dashboard/transport": "operations",
-  "/dashboard/dorm-supplies": "operations",
-  "/dashboard/inventory": "operations",
-  "/dashboard/canteen": "operations",
-  "/dashboard/store": "operations",
-  "/dashboard/fees": "finance",
-  "/dashboard/fee-terms": "finance",
-  "/dashboard/payment-plans": "finance",
-  "/dashboard/invoicing": "finance",
-  "/dashboard/payroll": "finance",
-  "/dashboard/cashbook": "finance",
-  "/dashboard/budget": "finance",
-  "/dashboard/expense-approvals": "finance",
-  "/dashboard/reports": "reports",
-  "/dashboard/moes-reports": "reports",
-  "/dashboard/moes": "reports",
-  "/dashboard/analytics": "analytics",
-  "/dashboard/trends": "analytics",
-  "/dashboard/export": "exports",
-  "/dashboard/import": "exports",
-  "/dashboard/staff": "staff",
-  "/dashboard/staff-attendance": "staff",
-  "/dashboard/staff-reviews": "staff",
-  "/dashboard/staff-activity": "staff",
-  "/dashboard/leave": "staff",
-  "/dashboard/leave-approvals": "staff",
-  "/dashboard/workload": "staff",
-  "/dashboard/idcards": "operations",
-  "/dashboard/academic-terms": "operations",
-  "/dashboard/term-end": "operations",
-  "/dashboard/rollover": "operations",
-  "/dashboard/automation": "operations",
-  "/dashboard/auto-sms": "operations",
-  "/dashboard/workflows": "operations",
-  "/dashboard/board-report": "reports",
-  "/dashboard/osx": "operations",
-  "/dashboard/settings": "settings",
-  "/dashboard/audit": "settings",
-  "/dashboard/permissions": "settings",
-  "/dashboard/data-quality": "settings",
-  "/dashboard/sync-center": "settings",
-  "/dashboard/pricing": "settings",
-});
+// Build MODULE_FOR_ROUTE from the unified catalog for backward compat.
+const _MODULE_FOR_ROUTE_BUILDER: Record<string, ModuleKey> = {};
+for (const mod of MODULE_CATALOG) {
+  for (const prefix of mod.route_prefixes) {
+    _MODULE_FOR_ROUTE_BUILDER[prefix] = mod.module_key;
+  }
+}
+const MODULE_FOR_ROUTE: Record<string, ModuleKey> = deepFreeze({ ..._MODULE_FOR_ROUTE_BUILDER });
 
 export { roleBasedRoutes, MODULE_FOR_ROUTE };
 
@@ -284,22 +201,17 @@ export function useAccessControl() {
       }
     }
 
-    const stageRoute = Object.keys(MODULE_FOR_ROUTE).find((key) =>
-      pathname.startsWith(key),
-    );
-    if (stageRoute) {
-      const moduleKey = MODULE_FOR_ROUTE[stageRoute];
-      if (moduleKey && !canUseModule(featureStage, moduleKey)) {
-        const lastDenied = sessionStorage.getItem("lastDeniedPath");
-        if (lastDenied !== pathname) {
-          sessionStorage.setItem("lastDeniedPath", pathname);
-          toast?.error("Upgrade your package to access this module");
-        }
-        router.replace(
-          `/dashboard/no-access?reason=feature&from=${encodeURIComponent(pathname)}&module=${moduleKey}`,
-        );
-        return;
+    const moduleKey = getRequiredModuleForPath(pathname);
+    if (moduleKey && !isModuleInFeatureStage(featureStage, moduleKey)) {
+      const lastDenied = sessionStorage.getItem("lastDeniedPath");
+      if (lastDenied !== pathname) {
+        sessionStorage.setItem("lastDeniedPath", pathname);
+        toast?.error("Upgrade your package to access this module");
       }
+      router.replace(
+        `/dashboard/no-access?reason=feature&from=${encodeURIComponent(pathname)}&module=${moduleKey}`,
+      );
+      return;
     }
     sessionStorage.removeItem("lastDeniedPath");
   }, [user, pathname, toast, featureStage, router, overrides]);

@@ -27,6 +27,7 @@ import SystemPreferences from "@/components/settings/SystemPreferences";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { type ModuleKey } from "@/lib/modules/catalog";
 
+
 interface SchoolSettings {
   sms_notifications: boolean;
   attendance_alerts: boolean;
@@ -129,6 +130,7 @@ export default function SettingsPage() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedPaymentPlan, setSelectedPaymentPlan] = useState<string>("");
   const [paymentPhone, setPaymentPhone] = useState("");
+  const [paymentWhatsAppLink, setPaymentWhatsAppLink] = useState<string | null>(null);
   const searchParams = useSearchParams();
   const [selectedStage, setSelectedStage] = useState<FeatureStage>((school?.feature_stage as FeatureStage) || DEFAULT_FEATURE_STAGE);
   const [savingStage, setSavingStage] = useState(false);
@@ -148,6 +150,8 @@ export default function SettingsPage() {
   const [loadingModules, setLoadingModules] = useState(false);
   const [activatingModule, setActivatingModule] = useState<ModuleKey | null>(null);
   const [switchingBillingMode, setSwitchingBillingMode] = useState(false);
+  const [supportPhone, setSupportPhone] = useState("");
+  const [savingSupportPhone, setSavingSupportPhone] = useState(false);
   const schoolType = school?.school_type || "primary";
 
   useEffect(() => {
@@ -175,6 +179,13 @@ export default function SettingsPage() {
 
   useEffect(() => { if (school?.feature_stage) setSelectedStage(school.feature_stage as FeatureStage); }, [school?.feature_stage]);
   useEffect(() => { if (school?.id) fetchSettings(); }, [school?.id, fetchSettings]);
+
+  useEffect(() => {
+    if (!school?.id) return;
+    loadSchoolSettings(school.id).then((settingsMap) => {
+      if (settingsMap.support_phone) setSupportPhone(settingsMap.support_phone);
+    }).catch(() => {});
+  }, [school?.id]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -292,6 +303,20 @@ export default function SettingsPage() {
 
 
 
+  const saveSupportPhone = async () => {
+    if (!school?.id) return;
+    setSavingSupportPhone(true);
+    try {
+      await saveSchoolSetting(school.id, "support_phone", supportPhone.trim());
+      toast.success("Support contact saved");
+    } catch (err) {
+      logger.error("Failed to save support phone:", err);
+      toast.error("Failed to save support contact");
+    } finally {
+      setSavingSupportPhone(false);
+    }
+  };
+
   const saveSchoolConfig = async () => {
     if (!school?.id) return;
     try {
@@ -383,6 +408,7 @@ export default function SettingsPage() {
   const initiatePayment = async (provider: "mtn" | "airtel" | "paypal") => {
     if (!school?.id || !selectedPaymentPlan) return;
     setUpgradingPlan(true);
+    setPaymentWhatsAppLink(null);
     try {
       if (provider === "mtn" || provider === "airtel") {
         const phone = paymentPhone.trim();
@@ -390,16 +416,18 @@ export default function SettingsPage() {
         const response = await fetch("/api/payment/mobile-money/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ provider, plan: selectedPaymentPlan, phoneNumber: phone }) });
         const result = await parseApiResponse(response);
         if (!response.ok || result.error) {
+          if (typeof result.contactWhatsApp === "string") setPaymentWhatsAppLink(result.contactWhatsApp);
           throw new Error(
             typeof result.error === "string" ? result.error : "Payment failed",
           );
         }
-        if (result.paymentLink) { toast.success(typeof result.instructions === "string" ? result.instructions : "A payment prompt has been sent to your phone. Enter your PIN to complete."); setShowPaymentModal(false); setPaymentPhone(""); }
+        if (result.paymentLink) { toast.success(typeof result.instructions === "string" ? result.instructions : "A payment prompt has been sent to your phone. Enter your PIN to complete."); setShowPaymentModal(false); setPaymentPhone(""); setPaymentWhatsAppLink(null); }
         else throw new Error("Payment request failed. Please try again.");
       } else {
         const response = await fetch("/api/payment/checkout/", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ provider: "paypal", plan: selectedPaymentPlan }) });
         const result = await parseApiResponse(response);
         if (!response.ok || result.error) {
+          if (typeof result.contactWhatsApp === "string") setPaymentWhatsAppLink(result.contactWhatsApp);
           throw new Error(
             typeof result.error === "string" ? result.error : "Payment failed",
           );
@@ -643,6 +671,35 @@ export default function SettingsPage() {
             saving={saving} selectedStage={selectedStage} setSelectedStage={setSelectedStage}
             savingStage={savingStage} refreshSchool={refreshSchool}
           />
+          <Card>
+            <CardBody className="p-5 space-y-4">
+              <h3 className="font-semibold text-[var(--t1)]">Support Contact</h3>
+              <p className="text-sm text-[var(--t3)]">
+                Set a custom support phone number for your school. When payment or technical issues arise,
+                users will be directed to this number on WhatsApp. Leave empty to use the platform default.
+              </p>
+              <div className="flex items-end gap-3">
+                <div className="flex-1">
+                  <label className="block text-sm font-medium text-[var(--t2)] mb-1">Support WhatsApp Number</label>
+                  <input
+                    type="tel"
+                    value={supportPhone}
+                    onChange={(e) => setSupportPhone(e.target.value)}
+                    placeholder="e.g. 0772000000"
+                    className="input w-full"
+                  />
+                </div>
+                <Button
+                  size="sm"
+                  onClick={saveSupportPhone}
+                  loading={savingSupportPhone}
+                  disabled={savingSupportPhone}
+                >
+                  Save
+                </Button>
+              </div>
+            </CardBody>
+          </Card>
           <AcademicSettings />
         </div>
       </TabPanel>
@@ -1003,6 +1060,26 @@ export default function SettingsPage() {
                 <div className="text-left"><div className="font-semibold text-[var(--on-surface)]">PayPal</div><div className="text-xs text-[var(--t3)]">International cards accepted</div></div>
               </button>
             </div>
+            {paymentWhatsAppLink && (
+              <div className="mt-4 p-4 rounded-xl bg-red-50 border border-red-200">
+                <p className="text-sm font-medium text-red-700 mb-2">
+                  Online payment is currently unavailable
+                </p>
+                <p className="text-xs text-red-600 mb-3">
+                  You can complete your payment by contacting us on WhatsApp.
+                  Our team will guide you through the process.
+                </p>
+                <a
+                  href={paymentWhatsAppLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 rounded-xl bg-[#25D366] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#20BD5A] transition-colors"
+                >
+                  <MaterialIcon icon="chat" />
+                  Pay via WhatsApp
+                </a>
+              </div>
+            )}
           </div>
         </div>
       )}

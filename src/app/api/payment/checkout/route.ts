@@ -13,6 +13,7 @@ import {
 } from "@/lib/api-utils";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { logger } from "@/lib/logger";
+import { errorWithWhatsApp } from "@/lib/support-contact";
 
 const BILLING_ROLES = [
   "super_admin",
@@ -55,6 +56,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  let planInfo: { planName?: string; schoolName?: string } = {};
   try {
     const { success: rlOk } = rateLimit(request, 10, 600_000);
     if (!rlOk) {
@@ -71,12 +73,14 @@ export async function POST(request: NextRequest) {
     if (!roleCheck.ok) return roleCheck.response;
 
     const body = await request.json();
-    const { provider, plan, returnUrl, cancelUrl } = body as {
+    const { provider, returnUrl, cancelUrl } = body as {
       provider: "paypal";
       plan: PlanType;
       returnUrl?: string;
       cancelUrl?: string;
     };
+    const plan = body.plan as PlanType;
+    planInfo.planName = plan;
 
     if (!provider || !plan) {
       return NextResponse.json(
@@ -103,6 +107,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "School not found" }, { status: 404 });
     }
 
+    planInfo.schoolName = school.name;
     const amount = getPlanPrice(plan);
 
     if (amount <= 0) {
@@ -151,15 +156,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return NextResponse.json(
-      { error: "Invalid payment provider. Use PayPal." },
-      { status: 400 },
+    return errorWithWhatsApp(
+      "Online payment is currently unavailable. Please contact us to complete your subscription.",
+      503,
+      { schoolName: planInfo.schoolName, plan: planInfo.planName },
     );
   } catch (error) {
     logger.error("Checkout error:", error);
-    return NextResponse.json(
-      { error: "Failed to create checkout session" },
-      { status: 500 },
+    return errorWithWhatsApp(
+      "Payment processing encountered an error. Please try again or contact support.",
+      500,
+      { plan: planInfo.planName },
     );
   }
 }

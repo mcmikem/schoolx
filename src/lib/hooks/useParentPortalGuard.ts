@@ -15,7 +15,7 @@ export function useParentPortalGuard() {
   const featureStage =
     (school?.feature_stage as FeatureStage) || DEFAULT_FEATURE_STAGE;
   const parentPortalEnabled =
-    isDemo || canUseModule(featureStage, "parentPortal");
+    isDemo || canUseModule(featureStage, "parent_portal");
 
   useEffect(() => {
     if (!authInitialized) return;

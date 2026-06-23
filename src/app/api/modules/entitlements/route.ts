@@ -7,8 +7,9 @@ import {
   assertUserRoleOrDeny,
   createServiceRoleClientOrThrow,
 } from "@/lib/api-utils";
-import { getAnnualModulePrice, type ModuleKey } from "@/lib/modules/catalog";
+import { getAnnualModulePrice, resolveModuleKey, type ModuleKey } from "@/lib/modules/catalog";
 import { generateWhatsAppShareLink } from "@/lib/whatsapp";
+import { PLATFORM_SUPPORT_PHONE } from "@/lib/support-contact";
 
 const MODULE_ADMIN_ROLES = [
   "super_admin",
@@ -18,7 +19,7 @@ const MODULE_ADMIN_ROLES = [
   "bursar",
 ];
 
-const SUPPORT_WHATSAPP = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || "256700000000";
+const SUPPORT_WHATSAPP = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || PLATFORM_SUPPORT_PHONE;
 
 function normalizeSizeBand(value: unknown): "small" | "medium" | "large" {
   if (value === "medium" || value === "large") return value;
@@ -169,6 +170,9 @@ export async function POST(request: NextRequest) {
       return apiError("moduleKey is required", 400);
     }
 
+    // Resolve legacy module keys (e.g. "fees" → "finance") for backward compat
+    const resolvedModuleKey = resolveModuleKey(moduleKey);
+
     const isSuperAdmin = auth.context.user.role === "super_admin";
     const targetSchoolId =
       isSuperAdmin && typeof schoolId === "string" && schoolId.length > 0
@@ -206,7 +210,7 @@ export async function POST(request: NextRequest) {
     const { data: moduleItem, error: moduleError } = await supabase
       .from("module_catalog")
       .select("module_key, display_name, annual_price_small, annual_price_medium, annual_price_large, is_active")
-      .eq("module_key", moduleKey)
+      .eq("module_key", resolvedModuleKey)
       .maybeSingle();
 
     if (moduleError || !moduleItem || !moduleItem.is_active) {
@@ -228,7 +232,7 @@ export async function POST(request: NextRequest) {
         .upsert(
           {
             school_id: targetSchoolId,
-            module_key: moduleKey,
+            module_key: resolvedModuleKey,
             status: "pending",
             starts_at: startsAt.toISOString(),
             ends_at: endsAt.toISOString(),
@@ -275,7 +279,7 @@ export async function POST(request: NextRequest) {
         .from("school_module_purchases")
         .select("id")
         .eq("school_id", targetSchoolId)
-        .eq("module_key", moduleKey)
+        .eq("module_key", resolvedModuleKey)
         .eq("purchase_status", "pending")
         .order("created_at", { ascending: false })
         .limit(1)
@@ -291,7 +295,7 @@ export async function POST(request: NextRequest) {
           .from("school_module_purchases")
           .insert({
             school_id: targetSchoolId,
-            module_key: moduleKey,
+            module_key: resolvedModuleKey,
             amount_ugx: annualAmount,
             billing_period: "annual",
             purchase_status: "pending",
@@ -365,7 +369,7 @@ export async function POST(request: NextRequest) {
 
     return apiSuccess(
       {
-        module_key: moduleKey,
+        module_key: resolvedModuleKey,
         amount_ugx: annualAmount,
         starts_at: startsAt.toISOString(),
         ends_at: endsAt.toISOString(),

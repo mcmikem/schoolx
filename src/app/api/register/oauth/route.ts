@@ -24,6 +24,7 @@ import {
 import { logger } from "@/lib/logger";
 import { type ModuleKey } from "@/lib/modules/catalog";
 import { generateWhatsAppShareLink } from "@/lib/whatsapp";
+import { PLATFORM_SUPPORT_PHONE } from "@/lib/support-contact";
 
 interface OAuthRegisterRequest {
   schoolName: string;
@@ -44,14 +45,14 @@ interface OAuthRegisterRequest {
 
 const REGISTRATION_MODULE_KEYS: ModuleKey[] = [
   "reports",
-  "student_id",
+  "students",
   "canteen",
-  "fees",
+  "finance",
   "attendance",
-  "messages",
+  "communications",
 ];
 
-const SUPPORT_WHATSAPP = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || "256700000000";
+const SUPPORT_WHATSAPP = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || PLATFORM_SUPPORT_PHONE;
 
 function normalizeSelectedModules(raw: unknown): ModuleKey[] {
   if (!Array.isArray(raw)) return [];
@@ -148,7 +149,7 @@ export async function POST(request: NextRequest) {
     const normalizedModules = normalizeSelectedModules(selectedModules);
     const modulesToSeed: ModuleKey[] =
       normalizedBillingMode === "modular"
-        ? (normalizedModules.length > 0 ? normalizedModules : (["reports"] as ModuleKey[]))
+        ? (normalizedModules.length > 0 ? normalizedModules : (["reports", "attendance"] as ModuleKey[]))
         : [];
     const normalizedEmail = (email || authUser.email || "").trim().toLowerCase();
 

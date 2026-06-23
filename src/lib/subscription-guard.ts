@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { toLegacyModuleKey } from "./modules/catalog";
 
 type SubscriptionStatus =
   | "active"
@@ -153,11 +154,15 @@ export async function requireModuleEntitlement(params: {
     return { ok: true, school };
   }
 
+  // Check both new unified key and legacy DB key for backward compat
+  const legacyKey = toLegacyModuleKey(moduleKey);
+  const moduleKeys = legacyKey ? [moduleKey, legacyKey] : [moduleKey];
+
   const { data: entitlement, error: entitlementError } = await supabase
     .from("school_module_entitlements")
     .select("status, ends_at")
     .eq("school_id", schoolId)
-    .eq("module_key", moduleKey)
+    .in("module_key", moduleKeys)
     .maybeSingle();
 
   if (entitlementError && ["42P01", "42703"].includes(entitlementError.code || "")) {

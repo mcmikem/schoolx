@@ -36,6 +36,7 @@ import { buildDefaultClasses, type SchoolSetupType } from "@/lib/school-setup";
 import { logger } from "@/lib/logger";
 import { type ModuleKey } from "@/lib/modules/catalog";
 import { generateWhatsAppShareLink } from "@/lib/whatsapp";
+import { PLATFORM_SUPPORT_PHONE } from "@/lib/support-contact";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -75,14 +76,14 @@ interface RegisterRequest {
 
 const REGISTRATION_MODULE_KEYS: ModuleKey[] = [
   "reports",
-  "student_id",
+  "students",
   "canteen",
-  "fees",
+  "finance",
   "attendance",
-  "messages",
+  "communications",
 ];
 
-const SUPPORT_WHATSAPP = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || "256700000000";
+const SUPPORT_WHATSAPP = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || PLATFORM_SUPPORT_PHONE;
 
 function normalizeSelectedModules(raw: unknown): ModuleKey[] {
   if (!Array.isArray(raw)) return [];
@@ -225,7 +226,7 @@ export async function POST(request: NextRequest) {
     const normalizedModules = normalizeSelectedModules(selectedModules);
     const modulesToSeed: ModuleKey[] =
       normalizedBillingMode === "modular"
-        ? (normalizedModules.length > 0 ? normalizedModules : (["reports"] as ModuleKey[]))
+        ? (normalizedModules.length > 0 ? normalizedModules : (["reports", "attendance"] as ModuleKey[]))
         : [];
 
     if (schoolName.trim().length < 3) {

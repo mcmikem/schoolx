@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
 import { useSyncStatus } from "@/lib/useSyncStatus";
 import CollapsibleSidebar from "@/components/CollapsibleSidebar";
+import ContactSupport from "@/components/ContactSupport";
 import { getNavigationForRole } from "@/lib/navigation";
 import { canAccess, type UserRole } from "@/lib/roles";
 import { canUseModule, type FeatureStage, type ModuleKey, DEFAULT_FEATURE_STAGE } from "@/lib/featureStages";
@@ -193,8 +194,9 @@ export default function SidebarShell({
       />
 
       {showExpanded && (
-        <div className="px-4 py-3 border-t border-[var(--border)]">
+        <div className="px-4 py-3 border-t border-[var(--border)] space-y-2">
           <SyncStatus />
+          <ContactSupport variant="inline" label="Support" />
         </div>
       )}
     </aside>

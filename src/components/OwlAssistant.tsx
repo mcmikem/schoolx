@@ -3,6 +3,7 @@ import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import MaterialIcon from "@/components/MaterialIcon";
 import { usePathname } from "next/navigation";
+import { DEFAULT_WHATSAPP_ENV } from "@/lib/support-contact";
 
 interface Message {
   role: "user" | "assistant";
@@ -190,7 +191,7 @@ function formatMessage(text: string) {
   ));
 }
 
-const WHATSAPP_NUMBER = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || "256750028703";
+const WHATSAPP_NUMBER = DEFAULT_WHATSAPP_ENV;
 const WHATSAPP_MESSAGE = encodeURIComponent(
   "Hello SkoolMate team! I need help with the school management system.",
 );

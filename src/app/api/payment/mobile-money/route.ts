@@ -10,6 +10,7 @@ import { requireUserWithSchool, assertUserRoleOrDeny, rateLimit } from "@/lib/ap
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { logger } from "@/lib/logger";
 import { normalizeAuthPhone } from "@/lib/validation";
+import { errorWithWhatsApp } from "@/lib/support-contact";
 
 const BILLING_ROLES = [
   "super_admin",
@@ -22,6 +23,7 @@ const BILLING_ROLES = [
 const VALID_PLAN_TYPES = new Set<string>(PLAN_TYPES);
 
 export async function POST(request: NextRequest) {
+  let planInfo: { planName?: string; schoolName?: string } = {};
   try {
     const { success: rlOk } = rateLimit(request, 10, 600_000);
     if (!rlOk) {
@@ -43,6 +45,7 @@ export async function POST(request: NextRequest) {
       plan: PlanType;
       phoneNumber: string;
     };
+    planInfo.planName = plan;
 
     if (!provider || !plan || !phoneNumber) {
       return NextResponse.json(
@@ -84,6 +87,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "School not found" }, { status: 404 });
     }
 
+    planInfo.schoolName = school.name;
     const amount = getPlanPrice(plan);
 
     if (amount <= 0) {
@@ -142,9 +146,12 @@ export async function POST(request: NextRequest) {
     logger.error("Mobile money payment error:", error);
     const message = error instanceof Error ? error.message : "";
     const isConfigError = message.includes("not yet configured") || message.includes("environment variables");
-    return NextResponse.json(
-      { error: isConfigError ? "Mobile money not yet configured. Please contact support." : "Failed to initialize mobile money payment. Please try again or contact support." },
-      { status: isConfigError ? 503 : 500 },
+    return errorWithWhatsApp(
+      isConfigError
+        ? "Mobile money is not yet configured for online payments."
+        : "Failed to start mobile money payment. You can pay manually or contact support.",
+      isConfigError ? 503 : 500,
+      { schoolName: planInfo.schoolName, plan: planInfo.planName },
     );
   }
 }

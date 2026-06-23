@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { requireUserWithSchool, rateLimit } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
+import { errorWithWhatsApp } from "@/lib/support-contact";
 
 const BILLING_ROLES = ["school_admin", "admin", "headmaster", "bursar"];
 
@@ -28,12 +29,9 @@ export async function POST(request: NextRequest) {
     }
 
     if (process.env.ENABLE_MOMO_DISBURSEMENTS !== "true") {
-      return NextResponse.json(
-        {
-          error:
-            "Mobile money disbursement is not enabled yet. Use manual bank/mobile workflows for now.",
-        },
-        { status: 503 },
+      return errorWithWhatsApp(
+        "Mobile money disbursements are not yet available. Contact support or use manual bank transfer.",
+        503,
       );
     }
 
@@ -95,7 +93,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     logger.error("Disbursement error:", error);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    return errorWithWhatsApp("Failed to process disbursement. Contact support.", 500);
   }
 }
 
@@ -125,6 +123,6 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ success: true, disbursements });
   } catch (error) {
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    return errorWithWhatsApp("Failed to fetch disbursements. Contact support.", 500);
   }
 }

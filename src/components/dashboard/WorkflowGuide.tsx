@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/lib/auth-context'
 import MaterialIcon from '@/components/MaterialIcon'
+import { PLATFORM_SUPPORT_PHONE_DISPLAY, PLATFORM_SUPPORT_WHATSAPP_URL } from '@/lib/support-contact'
 
 type Step = {
   key: string
@@ -13,8 +14,8 @@ type Step = {
   icon: string
 }
 
-const SUPPORT_PHONE = "+256700000000"
-const SUPPORT_WHATSAPP_URL = "https://wa.me/256700000000"
+const SUPPORT_PHONE = PLATFORM_SUPPORT_PHONE_DISPLAY
+const SUPPORT_WHATSAPP_URL = PLATFORM_SUPPORT_WHATSAPP_URL
 
 const STEPS: Step[] = [
   { key: 'students', label: 'Add Learners', description: 'Start by adding your first student records', href: '/dashboard/students', icon: 'group_add' },

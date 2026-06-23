@@ -34,6 +34,7 @@ import { withSupabaseLockRetry } from "@/lib/supabase-lock";
 import MaterialIcon from "@/components/MaterialIcon";
 import { useFormValidation, ValidationRules, ValidatedInput } from "@/lib/useFormValidation";
 import { type ModuleKey } from "@/lib/modules/catalog";
+import { PLATFORM_SUPPORT_PHONE_DISPLAY, PLATFORM_SUPPORT_WHATSAPP_URL } from "@/lib/support-contact";
 
 const SCHOOL_TYPE_OPTIONS = [
   { value: "primary", label: "Primary School" },
@@ -52,8 +53,8 @@ const DISTRICT_OPTIONS = [
   ...getDistrictOptions(),
 ];
 
-const SUPPORT_PHONE = "+256700000000";
-const SUPPORT_WHATSAPP_URL = "https://wa.me/256700000000";
+const SUPPORT_PHONE = PLATFORM_SUPPORT_PHONE_DISPLAY;
+const SUPPORT_WHATSAPP_URL = PLATFORM_SUPPORT_WHATSAPP_URL;
 
 const PACKAGE_OPTIONS = [
   { value: "starter", label: "Starter" },
@@ -69,10 +70,10 @@ const BILLING_MODE_OPTIONS = [
 const REGISTRATION_MODULE_OPTIONS: Array<{ key: ModuleKey; label: string }> = [
   { key: "reports", label: "Reports & Exams" },
   { key: "attendance", label: "Attendance" },
-  { key: "fees", label: "Fees & Billing" },
-  { key: "messages", label: "Messages & SMS" },
+  { key: "finance", label: "Fees & Billing" },
+  { key: "communications", label: "Messages & SMS" },
   { key: "canteen", label: "Canteen / POS" },
-  { key: "student_id", label: "Student ID Cards" },
+  { key: "students", label: "Student ID Cards" },
 ];
 
 function RegisterPageContent() {
@@ -85,7 +86,7 @@ function RegisterPageContent() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [showAdvancedSchoolDetails, setShowAdvancedSchoolDetails] = useState(false);
   const [showOptionalContacts, setShowOptionalContacts] = useState(false);
-  const [selectedModules, setSelectedModules] = useState<ModuleKey[]>(["reports"]);
+  const [selectedModules, setSelectedModules] = useState<ModuleKey[]>(["reports", "attendance"]);
 
   const googleRegisterMode = searchParams?.get("oauth") === "1";
 

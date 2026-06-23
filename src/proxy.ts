@@ -15,7 +15,7 @@
 // To modify: Run full test suite (lint + typecheck + regression + e2e)
 // ============================================================================
 import { logger } from "@/lib/logger";
-import { getRequiredModuleForPath } from "@/lib/modules/catalog";
+import { getRequiredModuleForPath, toLegacyModuleKey } from "@/lib/modules/catalog";
 import { createMiddlewareClient } from "@/utils/supabase/middleware";
 import { type NextRequest, NextResponse } from "next/server";
 
@@ -400,11 +400,15 @@ export async function proxy(request: NextRequest) {
       const missingSchema = billingError && ["42P01", "42703"].includes((billingError as { code?: string }).code || "");
 
       if (!missingSchema && schoolBilling?.billing_mode === "modular") {
+        // Check both new unified key and legacy key for backward compat
+        const legacyKey = toLegacyModuleKey(requiredModule);
+        const moduleKeys = legacyKey ? [requiredModule, legacyKey] : [requiredModule];
+
         const { data: entitlement, error: entitlementError } = await supabase
           .from("school_module_entitlements")
           .select("status, ends_at")
           .eq("school_id", user.school_id)
-          .eq("module_key", requiredModule)
+          .in("module_key", moduleKeys)
           .maybeSingle();
 
         const entitlementMissingSchema = entitlementError && ["42P01", "42703"].includes((entitlementError as { code?: string }).code || "");

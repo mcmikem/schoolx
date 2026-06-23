@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { logger } from "@/lib/logger";
+import { errorWithWhatsApp } from "@/lib/support-contact";
 import {
   requireUserWithSchool,
   assertUserRoleOrDeny,
@@ -67,9 +68,9 @@ export async function POST(request: NextRequest) {
     const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 
     if (!stripeSecretKey) {
-      return NextResponse.json(
-        { error: "Payment processing not configured. Please contact support." },
-        { status: 503 },
+      return errorWithWhatsApp(
+        "Payment processing is not configured for your school. Please contact support to set up payments.",
+        503,
       );
     }
 
@@ -90,9 +91,9 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     logger.error("Portal session error:", error);
-    return NextResponse.json(
-      { error: "Failed to create portal session" },
-      { status: 500 },
+    return errorWithWhatsApp(
+      "Failed to access payment portal. Please try again or contact support.",
+      500,
     );
   }
 }

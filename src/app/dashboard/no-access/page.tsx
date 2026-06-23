@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useMemo } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
+import ContactSupport from "@/components/ContactSupport";
 
 function formatModuleLabel(moduleName: string): string {
   return moduleName
@@ -56,6 +57,20 @@ export default function NoAccessPage() {
           >
             {reason === "feature" ? "View Upgrade Options" : "Review My Access"}
           </Link>
+        </div>
+
+        <div className="mt-5">
+          <ContactSupport
+            variant="banner"
+            message={
+              reason === "feature"
+                ? "Need help upgrading your plan or activating a module?"
+                : "Need help resolving access permissions?"
+            }
+            context={{
+              moduleName: reason === "feature" ? formatModuleLabel(moduleName) : undefined,
+            }}
+          />
         </div>
       </div>
     </div>

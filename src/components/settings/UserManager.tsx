@@ -48,18 +48,18 @@ const ROLE_OPTIONS: {
     value: "school_admin",
     description:
       "Oversee operations, exports, dashboards, and general settings.",
-    modules: ["operations", "exports", "reports"],
+    modules: ["operations", "reports"],
   },
   {
     value: "dean_of_studies",
     description: "Academic oversight, grading, exams, and report card views.",
-    modules: ["marks", "exam", "reports"],
+    modules: ["marks", "exams", "reports"],
   },
   {
     value: "bursar",
     description:
       "Finance, invoicing, payroll, budgeting, and payment tracking.",
-    modules: ["finance", "exports"],
+    modules: ["finance", "payroll"],
   },
   {
     value: "secretary",
@@ -72,18 +72,24 @@ const MODULE_LABELS: Record<ModuleKey, string> = {
   dashboard: "Dashboard",
   attendance: "Attendance",
   marks: "Marks & Exams",
-  exam: "Exams",
+  exams: "Exams",
   communications: "Communication",
   finance: "Finance",
   reports: "Reports",
-  exports: "Exports",
   staff: "Staff",
   operations: "Operations",
   settings: "Settings",
-  parentPortal: "Parent Portal",
+  parent_portal: "Parent Portal",
   dorm: "Dorm",
   health: "Health",
   analytics: "Analytics",
+  canteen: "Canteen",
+  discipline: "Discipline",
+  library: "Library",
+  payroll: "Payroll",
+  students: "Students",
+  transport: "Transport",
+  assets: "Assets",
 };
 
 export default function UserManager({

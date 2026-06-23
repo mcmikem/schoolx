@@ -10,7 +10,7 @@ describe('Feature Stages', () => {
 
     test('academic stage has marks and exams', () => {
       expect(FEATURE_STAGES.academic.modules).toContain('marks')
-      expect(FEATURE_STAGES.academic.modules).toContain('exam')
+      expect(FEATURE_STAGES.academic.modules).toContain('exams')
       expect(FEATURE_STAGES.academic.modules).toContain('reports')
     })
 
@@ -21,7 +21,7 @@ describe('Feature Stages', () => {
 
     test('full stage has all modules', () => {
       const fullModules = FEATURE_STAGES.full.modules
-      expect(fullModules).toContain('parentPortal')
+      expect(fullModules).toContain('parent_portal')
       expect(fullModules).toContain('dorm')
       expect(fullModules).toContain('health')
       expect(fullModules).toContain('analytics')
@@ -47,7 +47,7 @@ describe('Feature Stages', () => {
 
     test('academic stage allows academic modules', () => {
       expect(canUseModule('academic', 'marks')).toBe(true)
-      expect(canUseModule('academic', 'exam')).toBe(true)
+      expect(canUseModule('academic', 'exams')).toBe(true)
       expect(canUseModule('academic', 'reports')).toBe(true)
     })
 
@@ -57,7 +57,7 @@ describe('Feature Stages', () => {
     })
 
     test('full stage allows all modules', () => {
-      const allModules: ModuleKey[] = ['dashboard', 'attendance', 'marks', 'exam', 'parentPortal', 'dorm', 'health', 'analytics']
+      const allModules: ModuleKey[] = ['dashboard', 'attendance', 'marks', 'exams', 'parent_portal', 'dorm', 'health', 'analytics']
       allModules.forEach(module => {
         expect(canUseModule('full', module)).toBe(true)
       })
@@ -66,7 +66,7 @@ describe('Feature Stages', () => {
     test('defaults to core for undefined stage', () => {
       expect(canUseModule(undefined, 'dashboard')).toBe(true)
       expect(canUseModule(undefined, 'attendance')).toBe(true)
-      expect(canUseModule(undefined, 'parentPortal')).toBe(false)
+      expect(canUseModule(undefined, 'parent_portal')).toBe(false)
     })
 
     test('handles null stage same as undefined', () => {
