@@ -28,8 +28,8 @@ CREATE TABLE IF NOT EXISTS schools (
     logo_url TEXT,
     primary_color TEXT DEFAULT '#1e3a5f',
     uneb_center_number TEXT,
-    subscription_plan TEXT CHECK (subscription_plan IN ('free_trial', 'basic', 'premium', 'max')) DEFAULT 'free_trial',
-    subscription_status TEXT CHECK (subscription_status IN ('active', 'expired', 'trial', 'past_due')) DEFAULT 'trial',
+    subscription_plan TEXT CHECK (subscription_plan IN ('free_trial', 'basic', 'premium', 'max', 'starter', 'growth', 'enterprise', 'lifetime')) DEFAULT 'free_trial',
+    subscription_status TEXT CHECK (subscription_status IN ('active', 'expired', 'trial', 'past_due', 'suspended', 'canceled', 'unpaid')) DEFAULT 'trial',
     trial_ends_at TIMESTAMPTZ,
     stripe_customer_id TEXT,
     stripe_subscription_id TEXT,
@@ -38,6 +38,21 @@ CREATE TABLE IF NOT EXISTS schools (
     next_payment_date TIMESTAMPTZ,
     signature_headteacher_url TEXT,
     signature_class_teacher_url TEXT,
+    billing_mode TEXT NOT NULL DEFAULT 'full_suite' CHECK (billing_mode IN ('full_suite', 'modular')),
+    school_size_band TEXT NOT NULL DEFAULT 'small' CHECK (school_size_band IN ('small', 'medium', 'large')),
+    feature_stage TEXT DEFAULT 'core',
+    support_phone TEXT DEFAULT '256727790003',
+    student_id_format TEXT DEFAULT 'STU{YYYY}{####}',
+    has_boarding BOOLEAN DEFAULT false,
+    has_houses BOOLEAN DEFAULT false,
+    has_student_council BOOLEAN DEFAULT false,
+    location_type TEXT CHECK (location_type IN ('urban', 'peri_urban', 'rural')) DEFAULT 'urban',
+    address TEXT,
+    motto TEXT,
+    principal_name TEXT,
+    report_header TEXT,
+    report_footer TEXT,
+    id_card_style TEXT DEFAULT 'standard',
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -2600,7 +2615,7 @@ CREATE TABLE IF NOT EXISTS expense_approvals (
 CREATE TABLE IF NOT EXISTS subscription_payments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE NOT NULL,
-    plan TEXT CHECK (plan IN ('free_trial', 'basic', 'premium', 'max')) NOT NULL,
+    plan TEXT CHECK (plan IN ('free_trial', 'basic', 'premium', 'max', 'starter', 'growth', 'enterprise', 'lifetime')) NOT NULL,
     amount NUMERIC(12,2) NOT NULL,
     currency TEXT DEFAULT 'UGX',
     provider TEXT CHECK (provider IN ('stripe', 'paypal', 'mtn', 'airtel')) NOT NULL,
@@ -2616,9 +2631,9 @@ CREATE TABLE IF NOT EXISTS subscription_payments (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS idx_subscription_payments_transaction ON subscription_payments(transaction_id);
 CREATE INDEX IF NOT EXISTS idx_subscription_payments_school ON subscription_payments(school_id);
 CREATE INDEX IF NOT EXISTS idx_subscription_payments_status ON subscription_payments(payment_status);
-CREATE INDEX IF NOT EXISTS idx_subscription_payments_transaction ON subscription_payments(transaction_id);
 
 -- ============================================
 -- PAYMENT HISTORY TABLE
@@ -3145,3 +3160,158 @@ CREATE INDEX IF NOT EXISTS idx_receipts_payment ON receipts(payment_id);
 ALTER TABLE receipts ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "School users receipts all" ON receipts;
 CREATE POLICY "School users receipts all" ON receipts FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+
+-- ============================================
+-- MODULE CATALOG TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS module_catalog (
+  module_key TEXT PRIMARY KEY,
+  display_name TEXT NOT NULL,
+  description TEXT,
+  icon TEXT,
+  annual_price_small NUMERIC(12,2) NOT NULL DEFAULT 0,
+  annual_price_medium NUMERIC(12,2) NOT NULL DEFAULT 0,
+  annual_price_large NUMERIC(12,2) NOT NULL DEFAULT 0,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  sort_order INTEGER NOT NULL DEFAULT 100,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+ALTER TABLE module_catalog ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Anyone authenticated can read module catalog" ON module_catalog FOR SELECT TO authenticated USING (true);
+
+-- ============================================
+-- SCHOOL MODULE ENTITLEMENTS TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS school_module_entitlements (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  module_key TEXT NOT NULL REFERENCES module_catalog(module_key) ON DELETE RESTRICT,
+  status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'trial', 'expired', 'canceled', 'pending')),
+  starts_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  ends_at TIMESTAMPTZ NOT NULL,
+  auto_renew BOOLEAN NOT NULL DEFAULT true,
+  source TEXT NOT NULL DEFAULT 'purchase',
+  created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (school_id, module_key)
+);
+
+CREATE INDEX IF NOT EXISTS idx_school_module_entitlements_school_status ON school_module_entitlements (school_id, status);
+CREATE INDEX IF NOT EXISTS idx_school_module_entitlements_module ON school_module_entitlements (module_key);
+ALTER TABLE school_module_entitlements ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "School users read own entitlements" ON school_module_entitlements FOR SELECT TO authenticated USING (school_id = my_school_id() OR is_school_admin());
+CREATE POLICY "School admins manage entitlements" ON school_module_entitlements FOR ALL TO authenticated USING (school_id = my_school_id() AND is_school_admin()) WITH CHECK (school_id = my_school_id() AND is_school_admin());
+
+-- ============================================
+-- SCHOOL MODULE PURCHASES TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS school_module_purchases (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  module_key TEXT NOT NULL REFERENCES module_catalog(module_key) ON DELETE RESTRICT,
+  amount_ugx NUMERIC(12,2) NOT NULL DEFAULT 0,
+  billing_period TEXT NOT NULL DEFAULT 'annual' CHECK (billing_period IN ('annual')),
+  purchase_status TEXT NOT NULL DEFAULT 'pending' CHECK (purchase_status IN ('pending', 'paid', 'failed', 'canceled', 'refunded')),
+  payment_provider TEXT,
+  payment_reference TEXT,
+  purchased_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  purchased_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  valid_until TIMESTAMPTZ,
+  notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_school_module_purchases_school_status ON school_module_purchases (school_id, purchase_status);
+CREATE INDEX IF NOT EXISTS idx_school_module_purchases_module ON school_module_purchases (module_key);
+ALTER TABLE school_module_purchases ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "School users read own purchases" ON school_module_purchases FOR SELECT TO authenticated USING (school_id = my_school_id() OR is_school_admin());
+CREATE POLICY "School admins manage purchases" ON school_module_purchases FOR ALL TO authenticated USING (school_id = my_school_id() AND is_school_admin()) WITH CHECK (school_id = my_school_id() AND is_school_admin());
+
+-- ============================================
+-- SUPPORT TICKETS TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS support_tickets (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
+  type TEXT NOT NULL CHECK (type IN ('bug', 'feature_request', 'custom_package', 'onboarding', 'other')),
+  title TEXT NOT NULL,
+  description TEXT,
+  status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'in_progress', 'resolved', 'closed')),
+  priority TEXT NOT NULL DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high', 'critical')),
+  admin_notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  resolved_at TIMESTAMPTZ,
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE support_tickets ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "School users read own tickets" ON support_tickets FOR SELECT TO authenticated USING (school_id = my_school_id() OR is_school_admin());
+CREATE POLICY "School admins create tickets" ON support_tickets FOR INSERT TO authenticated WITH CHECK (school_id = my_school_id());
+
+-- ============================================
+-- MOMO DISBURSEMENTS TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS momo_disbursements (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
+  student_id UUID REFERENCES students(id) ON DELETE CASCADE,
+  parent_phone TEXT NOT NULL,
+  provider TEXT NOT NULL CHECK (provider IN ('mtn', 'airtel')),
+  amount INTEGER NOT NULL,
+  reference TEXT NOT NULL,
+  status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'processing', 'completed', 'failed')),
+  external_transaction_id TEXT,
+  error_message TEXT,
+  created_by UUID REFERENCES users(id),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  completed_at TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS idx_momo_disbursements_school ON momo_disbursements(school_id);
+CREATE INDEX IF NOT EXISTS idx_momo_disbursements_status ON momo_disbursements(status);
+ALTER TABLE momo_disbursements ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "School admins manage disbursements" ON momo_disbursements FOR ALL TO authenticated USING (
+  EXISTS (SELECT 1 FROM users WHERE id = auth.uid() AND role IN ('school_admin', 'admin', 'headmaster', 'bursar'))
+);
+
+-- ============================================
+-- MODULE HELPER FUNCTIONS
+-- ============================================
+CREATE OR REPLACE FUNCTION get_module_price_ugx(
+  p_module_key TEXT,
+  p_size_band TEXT
+)
+RETURNS NUMERIC
+LANGUAGE sql
+STABLE
+AS $$
+  SELECT CASE p_size_band
+    WHEN 'large' THEN annual_price_large
+    WHEN 'medium' THEN annual_price_medium
+    ELSE annual_price_small
+  END
+  FROM module_catalog
+  WHERE module_key = p_module_key
+  LIMIT 1;
+$$;
+
+CREATE OR REPLACE FUNCTION is_module_access_active(
+  p_school_id UUID,
+  p_module_key TEXT
+)
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM school_module_entitlements e
+    WHERE e.school_id = p_school_id
+      AND e.module_key = p_module_key
+      AND e.status IN ('active', 'trial')
+      AND e.ends_at >= now()
+  );
+$$;

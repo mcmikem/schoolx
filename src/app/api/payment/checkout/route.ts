@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { createPayPalOrder } from "@/lib/payments/paypal";
 import { createMobileMoneyPaymentLink } from "@/lib/payments/mobile-money";
 import { PLAN_TYPES, PlanType } from "@/lib/subscription";
+import { normalizePlanType } from "@/lib/payments/subscription-client";
 import {
   getPlanPrice,
+  calculateTotalPrice,
   recordPayment,
 } from "@/lib/payments/utils";
 import {
@@ -79,7 +81,7 @@ export async function POST(request: NextRequest) {
       returnUrl?: string;
       cancelUrl?: string;
     };
-    const plan = body.plan as PlanType;
+    let plan = normalizePlanType(body.plan as string);
     planInfo.planName = plan;
 
     if (!provider || !plan) {
@@ -108,7 +110,13 @@ export async function POST(request: NextRequest) {
     }
 
     planInfo.schoolName = school.name;
-    const amount = getPlanPrice(plan);
+
+    const { count: studentCount } = await supabase
+      .from("students")
+      .select("*", { count: "exact", head: true })
+      .eq("school_id", school.id);
+
+    const amount = await calculateTotalPrice(plan, studentCount || 0);
 
     if (amount <= 0) {
       return NextResponse.json(
@@ -120,7 +128,7 @@ export async function POST(request: NextRequest) {
     if (provider === "paypal") {
       const baseUrl =
         process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
-      const ppReturnUrl = validateReturnUrl(returnUrl, baseUrl) + (returnUrl ? "" : "?success=true&provider=paypal");
+      const ppReturnUrl = validateReturnUrl(returnUrl, baseUrl) + (returnUrl ? "" : `/api/payment/capture/?plan=${plan}`);
       const ppCancelUrl = validateReturnUrl(cancelUrl, baseUrl) + (cancelUrl ? "" : "?canceled=true&provider=paypal");
 
       const orderAmount = Math.round((amount / 4100) * 100) / 100;

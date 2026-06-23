@@ -45,6 +45,18 @@ export function validatePaymentAmount(amount: number, plan: PlanType): boolean {
   return amount >= expectedAmount;
 }
 
+const MIN_STUDENT_COUNT = 50;
+
+export async function calculateTotalPrice(
+  plan: PlanType,
+  studentCount?: number,
+): Promise<number> {
+  const basePrice = getPlanPrice(plan);
+  if (plan === "lifetime") return basePrice;
+  const count = Math.max(studentCount || MIN_STUDENT_COUNT, MIN_STUDENT_COUNT);
+  return basePrice * count;
+}
+
 export async function recordPayment(params: {
   schoolId: string;
   plan: PlanType;
@@ -67,15 +79,6 @@ export async function recordPayment(params: {
 
   if (error) throw error;
   return data;
-}
-
-// Helper to calculate total based on student count
-export function calculateTotalPrice(
-  plan: PlanType,
-  studentCount: number,
-): number {
-  const perStudent = PLAN_PRICES[plan]?.term || 0;
-  return perStudent * studentCount;
 }
 
 // Payment intent for mobile money (MTN/Airtel)

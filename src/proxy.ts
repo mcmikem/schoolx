@@ -15,7 +15,7 @@
 // To modify: Run full test suite (lint + typecheck + regression + e2e)
 // ============================================================================
 import { logger } from "@/lib/logger";
-import { getRequiredModuleForPath, toLegacyModuleKey } from "@/lib/modules/catalog";
+import { getRequiredModuleForPath, toLegacyModuleKey, isModuleInFeatureStage } from "@/lib/modules/catalog";
 import { createMiddlewareClient } from "@/utils/supabase/middleware";
 import { type NextRequest, NextResponse } from "next/server";
 
@@ -385,51 +385,62 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(inactiveUrl);
   }
 
-  // Modular schools only get routes for active modules.
-  // Full-suite schools keep all existing access paths unchanged.
+  // Enforce module access: modular mode checks entitlements, full_suite checks feature_stage.
   const requiredModule = getRequiredModuleForPath(pathname);
   if (requiredModule && user?.school_id) {
     try {
       const { data: schoolBilling, error: billingError } = await supabase
         .from("schools")
-        .select("billing_mode")
+        .select("billing_mode, feature_stage")
         .eq("id", user.school_id)
         .maybeSingle();
 
-      // If the modular tables/migration are not available yet, fail open to avoid outages.
+      // If the schema is not available yet, fail open to avoid outages.
       const missingSchema = billingError && ["42P01", "42703"].includes((billingError as { code?: string }).code || "");
 
-      if (!missingSchema && schoolBilling?.billing_mode === "modular") {
-        // Check both new unified key and legacy key for backward compat
-        const legacyKey = toLegacyModuleKey(requiredModule);
-        const moduleKeys = legacyKey ? [requiredModule, legacyKey] : [requiredModule];
+      if (!missingSchema && schoolBilling) {
+        if (schoolBilling.billing_mode === "modular") {
+          // Check both new unified key and legacy key for backward compat
+          const legacyKey = toLegacyModuleKey(requiredModule);
+          const moduleKeys = legacyKey ? [requiredModule, legacyKey] : [requiredModule];
 
-        const { data: entitlement, error: entitlementError } = await supabase
-          .from("school_module_entitlements")
-          .select("status, ends_at")
-          .eq("school_id", user.school_id)
-          .in("module_key", moduleKeys)
-          .maybeSingle();
+          const { data: entitlement, error: entitlementError } = await supabase
+            .from("school_module_entitlements")
+            .select("status, ends_at")
+            .eq("school_id", user.school_id)
+            .in("module_key", moduleKeys)
+            .maybeSingle();
 
-        const entitlementMissingSchema = entitlementError && ["42P01", "42703"].includes((entitlementError as { code?: string }).code || "");
+          const entitlementMissingSchema = entitlementError && ["42P01", "42703"].includes((entitlementError as { code?: string }).code || "");
 
-        if (!entitlementMissingSchema) {
-          const isActiveState = entitlement?.status === "active" || entitlement?.status === "trial";
-          const hasValidEndDate = entitlement?.ends_at
-            ? new Date(entitlement.ends_at).getTime() > Date.now()
-            : false;
+          if (!entitlementMissingSchema) {
+            const isActiveState = entitlement?.status === "active" || entitlement?.status === "trial";
+            const hasValidEndDate = entitlement?.ends_at
+              ? new Date(entitlement.ends_at).getTime() > Date.now()
+              : false;
 
-          if (!isActiveState || !hasValidEndDate) {
-            const upgradeUrl = new URL("/dashboard/settings", request.url);
-            upgradeUrl.searchParams.set("tab", "subscription");
+            if (!isActiveState || !hasValidEndDate) {
+              const upgradeUrl = new URL("/dashboard/settings", request.url);
+              upgradeUrl.searchParams.set("tab", "subscription");
+              upgradeUrl.searchParams.set("module", requiredModule);
+              upgradeUrl.searchParams.set("reason", "module_locked");
+              return NextResponse.redirect(upgradeUrl);
+            }
+          }
+        } else {
+          // Full suite mode — check feature_stage
+          const stage = (schoolBilling.feature_stage || "core") as import("@/lib/modules/catalog").FeatureStage;
+          if (!isModuleInFeatureStage(stage, requiredModule)) {
+            const upgradeUrl = new URL("/dashboard/no-access", request.url);
+            upgradeUrl.searchParams.set("reason", "feature");
+            upgradeUrl.searchParams.set("from", pathname);
             upgradeUrl.searchParams.set("module", requiredModule);
-            upgradeUrl.searchParams.set("reason", "module_locked");
             return NextResponse.redirect(upgradeUrl);
           }
         }
       }
     } catch {
-      // Ignore transient errors in modular checks to avoid blocking valid sessions.
+      // Ignore transient errors in module checks to avoid blocking valid sessions.
     }
   }
 

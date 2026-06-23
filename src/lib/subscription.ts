@@ -370,7 +370,10 @@ export async function sendPaymentReceipt(
   },
 ) {
   try {
-    const supabase = await createSupabaseServerClient();
+    const [receiptsModule, supabase] = await Promise.all([
+      import("@/lib/payments/receipts"),
+      createSupabaseServerClient(),
+    ]);
 
     const { data: school, error: schoolError } = await supabase
       .from("schools")
@@ -383,23 +386,41 @@ export async function sendPaymentReceipt(
       throw schoolError;
     }
 
-    const formattedAmount = new Intl.NumberFormat("en-UG", {
-      style: "currency",
-      currency: "UGX",
-    }).format(paymentData.amount);
+    const receiptNumber = await receiptsModule.generateReceiptNumber();
 
-    logger.debug(`Sending payment receipt to ${school.email}:`, {
-      subject: `Payment Receipt - ${school.name}`,
-      amount: formattedAmount,
+    const receiptData = {
+      schoolName: school.name,
+      schoolCode: school.school_code,
+      schoolEmail: school.email || undefined,
+      schoolPhone: school.phone || undefined,
+      amount: paymentData.amount,
+      currency: paymentData.currency,
+      plan: paymentData.plan,
+      provider: paymentData.provider,
+      transactionId: paymentData.transactionId,
+      paymentDate: paymentData.date,
+      receiptNumber,
+    };
+
+    const emailResult = await receiptsModule.sendEmailReceipt(schoolId, receiptData);
+    if (!emailResult.success) {
+      logger.warn("Email receipt not sent:", emailResult.message);
+    }
+
+    if (school.phone) {
+      const smsResult = await receiptsModule.sendSMSReceipt(schoolId, receiptData);
+      if (!smsResult.success) {
+        logger.warn("SMS receipt not sent:", smsResult.message);
+      }
+    }
+
+    logger.info("Payment receipt sent", {
+      schoolId,
+      receiptNumber,
       plan: paymentData.plan,
     });
 
-    if (school.phone) {
-      const smsMessage = `Payment confirmed for ${school.name}. Amount: ${formattedAmount}. Plan: ${paymentData.plan}. Thank you!`;
-      logger.debug(`Sending SMS to ${school.phone}:`, smsMessage);
-    }
-
-    return { success: true };
+    return { success: true, receiptNumber };
   } catch (error) {
     logger.error("Error sending payment receipt:", error);
     throw error;

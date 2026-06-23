@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createMobileMoneyPaymentLink } from "@/lib/payments/mobile-money";
 import { PLAN_TYPES, PlanType } from "@/lib/subscription";
+import { normalizePlanType } from "@/lib/payments/subscription-client";
 import {
   getPlanPrice,
+  calculateTotalPrice,
   recordPayment,
   savePendingMobilePayment,
 } from "@/lib/payments/utils";
@@ -40,11 +42,11 @@ export async function POST(request: NextRequest) {
     if (!roleCheck.ok) return roleCheck.response;
 
     const body = await request.json();
-    const { provider, plan, phoneNumber } = body as {
+    const { provider, phoneNumber } = body as {
       provider: "mtn" | "airtel";
-      plan: PlanType;
       phoneNumber: string;
     };
+    const plan = normalizePlanType(body.plan as string);
     planInfo.planName = plan;
 
     if (!provider || !plan || !phoneNumber) {
@@ -88,7 +90,13 @@ export async function POST(request: NextRequest) {
     }
 
     planInfo.schoolName = school.name;
-    const amount = getPlanPrice(plan);
+
+    const { count: studentCount } = await supabase
+      .from("students")
+      .select("*", { count: "exact", head: true })
+      .eq("school_id", school.id);
+
+    const amount = await calculateTotalPrice(plan, studentCount || 0);
 
     if (amount <= 0) {
       return NextResponse.json(
