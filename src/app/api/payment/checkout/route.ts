@@ -7,7 +7,9 @@ import {
   getPlanPrice,
   calculateTotalPrice,
   recordPayment,
+  STRIPE_PRICE_IDS,
 } from "@/lib/payments/utils";
+import { createCheckoutSession } from "@/lib/payments/stripe";
 import {
   requireUserWithSchool,
   assertUserRoleOrDeny,
@@ -76,7 +78,7 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json();
     const { provider, returnUrl, cancelUrl } = body as {
-      provider: "paypal";
+      provider: "paypal" | "stripe";
       plan: PlanType;
       returnUrl?: string;
       cancelUrl?: string;
@@ -122,6 +124,49 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Selected plan is not billable" },
         { status: 400 },
+      );
+    }
+
+    if (provider === "stripe") {
+      const priceId = STRIPE_PRICE_IDS[plan];
+      if (!priceId) {
+        return NextResponse.json(
+          { error: "Stripe price not configured for this plan" },
+          { status: 400 },
+        );
+      }
+
+      const baseUrl =
+        process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+      const successUrl = `${baseUrl}/api/payment/capture/?plan=${plan}&provider=stripe`;
+      const cancelUrl = `${baseUrl}/dashboard/settings?tab=subscription&canceled=true&provider=stripe`;
+
+      const session = await createCheckoutSession({
+        priceId,
+        quantity: studentCount || 50,
+        schoolId: school.id,
+        plan,
+        successUrl,
+        cancelUrl,
+        customerEmail: auth.context.user.email,
+      });
+
+      await recordPayment({
+        schoolId: school.id,
+        plan,
+        amount: (session.amount_total || 0) / 100,
+        provider: "stripe",
+        transactionId: session.id,
+        paymentStatus: "pending",
+      });
+
+      return NextResponse.json(
+        {
+          success: true,
+          url: session.url,
+          sessionId: session.id,
+        },
+        { status: 200 },
       );
     }
 

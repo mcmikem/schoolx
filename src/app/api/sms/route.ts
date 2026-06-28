@@ -9,7 +9,10 @@ import {
   assertUserRoleOrDeny,
   createServiceRoleClientOrThrow,
 } from "@/lib/api-utils";
-import { requireActiveSubscription } from "@/lib/subscription-guard";
+import {
+  requireActiveSubscription,
+  requireModuleEntitlement,
+} from "@/lib/subscription-guard";
 import {
   formatUgandaPhone,
   getAfricasTalkingConfig,
@@ -57,6 +60,14 @@ async function handlePost(request: NextRequest) {
     if (!roleCheck.ok) return roleCheck.response;
 
     const supabase = createServiceRoleClientOrThrow();
+
+    const moduleCheck = await requireModuleEntitlement({
+      supabase,
+      schoolId: scope.schoolId,
+      moduleKey: "communications",
+    });
+    if (!moduleCheck.ok) return moduleCheck.response;
+
     const subCheck = await requireActiveSubscription({
       supabase,
       schoolId,
@@ -167,6 +178,14 @@ async function handlePut(request: NextRequest) {
     }
 
     const supabase = createServiceRoleClientOrThrow();
+
+    const moduleCheck = await requireModuleEntitlement({
+      supabase,
+      schoolId: scope.schoolId,
+      moduleKey: "communications",
+    });
+    if (!moduleCheck.ok) return moduleCheck.response;
+
     const subCheck = await requireActiveSubscription({
       supabase,
       schoolId,
@@ -238,6 +257,14 @@ export async function GET(request: NextRequest) {
     if (!scope.ok) return scope.response;
 
     const supabase = await createSupabaseServerClient();
+
+    const moduleCheck = await requireModuleEntitlement({
+      supabase,
+      schoolId: scope.schoolId,
+      moduleKey: "communications",
+    });
+    if (!moduleCheck.ok) return moduleCheck.response;
+
     const { data: messages, error } = await supabase
       .from("messages")
       .select("id, phone, message, status, created_at")

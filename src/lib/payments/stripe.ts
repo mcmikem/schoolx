@@ -156,6 +156,43 @@ export async function getSubscription(subscriptionId: string) {
   }
 }
 
+// Create a checkout session
+export async function createCheckoutSession(params: {
+  priceId: string;
+  quantity: number;
+  schoolId: string;
+  plan: string;
+  successUrl: string;
+  cancelUrl: string;
+  customerEmail?: string;
+  metadata?: Record<string, string>;
+}) {
+  try {
+    const session = await getStripeClientOrThrow().checkout.sessions.create({
+      mode: "payment",
+      line_items: [
+        {
+          price: params.priceId,
+          quantity: Math.max(params.quantity, 1),
+        },
+      ],
+      customer_email: params.customerEmail,
+      success_url: params.successUrl,
+      cancel_url: params.cancelUrl,
+      metadata: {
+        school_id: params.schoolId,
+        plan: params.plan,
+        ...params.metadata,
+      },
+    });
+
+    return session;
+  } catch (error) {
+    logger.error("Error creating checkout session:", error);
+    throw new Error("Failed to create checkout session");
+  }
+}
+
 // Create a customer
 export async function createCustomer(
   email: string,

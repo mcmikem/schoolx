@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
 import { MtnMomoClient, MoneyUnifyClient } from "@/lib/payments/mobile-money";
 import {
   updatePaymentStatus,
@@ -8,29 +9,41 @@ import {
 } from "@/lib/payments/utils";
 import { sendPaymentReceipt } from "@/lib/subscription";
 import { logger } from "@/lib/logger";
+import { checkAndRecordIdempotency, markWebhookProcessed } from "@/lib/payments/idempotency";
 
-// Mobile money webhook handler — handles both MTN MoMo and MoneyUnify callbacks.
-// Security: Neither provider uses HMAC signatures on callbacks, so we always re-verify
-// payment status via the respective API before processing.
+function verifyMoneyUnifySignature(body: string, signature: string): boolean {
+  try {
+    const authId = process.env.MONEY_UNIFY_AUTH_ID || "";
+    if (!authId || !signature) return false;
+    const expected = crypto
+      .createHmac("sha256", authId)
+      .update(body)
+      .digest("hex");
+    return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
+  } catch {
+    return false;
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
-    const allowInsecure =
-      process.env.NODE_ENV === "development" &&
-      process.env.ALLOW_INSECURE_WEBHOOKS === "true";
-
     const body = await request.text();
     let payload: Record<string, unknown>;
 
     try {
       payload = JSON.parse(body) as Record<string, unknown>;
     } catch {
-      if (allowInsecure) {
-        logger.warn("Mobile money webhook: invalid JSON allowed in development mode");
-        return NextResponse.json({ received: true });
-      }
       logger.error("Mobile money webhook: invalid JSON body");
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
+    }
+
+    // MoneyUnify sends an HMAC-SHA256 signature in X-Signature header
+    const moneyUnifySignature = request.headers.get("x-signature") || "";
+    const providerName = moneyUnifySignature ? "moneyunify" : "mtn_momo";
+
+    if (moneyUnifySignature && !verifyMoneyUnifySignature(body, moneyUnifySignature)) {
+      logger.error("Mobile money webhook: invalid MoneyUnify signature");
+      return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
 
     // MTN MoMo sends X-Reference-Id header or puts referenceId in body.
@@ -44,15 +57,22 @@ export async function POST(request: NextRequest) {
     const referenceId = mtnReferenceId || moneyUnifyTxId;
 
     if (!referenceId) {
-      if (allowInsecure) {
-        logger.warn("Mobile money webhook: missing referenceId allowed in development mode");
-        return NextResponse.json({ received: true });
-      }
       logger.error("Mobile money webhook: missing referenceId");
       return NextResponse.json({ error: "Missing referenceId" }, { status: 400 });
     }
 
     logger.debug(`Mobile money webhook received for referenceId: ${referenceId}`);
+
+    // Idempotency check
+    const { shouldProcess } = await checkAndRecordIdempotency(
+      referenceId,
+      providerName,
+      "mobile_money_callback",
+      { referenceId, provider: providerName },
+    );
+    if (!shouldProcess) {
+      return NextResponse.json({ received: true, skipped: "duplicate" });
+    }
 
     // Look up the pending payment to know which provider to re-verify with
     const pendingPayment = await getPendingMobilePayment(referenceId);
@@ -60,6 +80,7 @@ export async function POST(request: NextRequest) {
     if (!pendingPayment) {
       // Unknown payment — acknowledge and ignore to avoid retry loops
       logger.debug(`No pending payment found for referenceId: ${referenceId} — ignoring`);
+      await markWebhookProcessed(referenceId, providerName);
       return NextResponse.json({ received: true });
     }
 
@@ -130,12 +151,15 @@ export async function POST(request: NextRequest) {
       }
 
       logger.debug(`Mobile money payment completed for school: ${pendingPayment.school_id}, amount: ${amount}`);
+      await markWebhookProcessed(referenceId, providerName);
     } else if (verifiedStatus === "FAILED") {
       await updatePendingMobilePayment(referenceId, "failed");
       await updatePaymentStatus(referenceId, "failed");
       logger.debug(`Mobile money payment failed for referenceId: ${referenceId}`);
+      await markWebhookProcessed(referenceId, providerName);
     } else {
       logger.debug(`Mobile money payment still pending for referenceId: ${referenceId}`);
+      await markWebhookProcessed(referenceId, providerName);
     }
 
     return NextResponse.json({ received: true });

@@ -103,6 +103,10 @@ export function validateEnv(): EnvValidationResult {
     warnings.push("Resend not configured. Email features will be unavailable.");
   }
 
+  if (!process.env.FX_RATE_FALLBACK) {
+    warnings.push("FX_RATE_FALLBACK not set. Defaulting to 3700 UGX/USD.");
+  }
+
   return {
     valid: errors.length === 0,
     errors,

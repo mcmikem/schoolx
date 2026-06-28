@@ -3,9 +3,11 @@ import Stripe from "stripe";
 import {
   sendPaymentReceipt,
   handleSubscriptionChange,
+  PLAN_PRICES,
 } from "@/lib/subscription";
 import { PlanType } from "@/lib/payments/subscription-client";
 import { logger } from "@/lib/logger";
+import { checkAndRecordIdempotency, markWebhookProcessed } from "@/lib/payments/idempotency";
 
 export async function POST(request: Request) {
   const body = await request.text();
@@ -37,6 +39,17 @@ export async function POST(request: Request) {
   }
 
   let hadError = false;
+
+  // Idempotency check: skip duplicate webhook deliveries
+  const { shouldProcess } = await checkAndRecordIdempotency(
+    event.id,
+    "stripe",
+    event.type,
+    { id: event.id, type: event.type },
+  );
+  if (!shouldProcess) {
+    return new NextResponse(JSON.stringify({ received: true, skipped: "duplicate" }), { status: 200 });
+  }
 
   // Handle the event
   switch (event.type) {
@@ -243,6 +256,7 @@ export async function POST(request: Request) {
       logger.debug(`Unhandled Stripe event type: ${event.type}`);
   }
 
+  await markWebhookProcessed(event.id, "stripe", hadError ? "Some events failed processing" : undefined);
   if (hadError) {
     return new NextResponse(JSON.stringify({ received: true, warning: "Some events failed processing" }), { status: 200 });
   }
@@ -266,14 +280,19 @@ function determinePlanFromPrice(price: any): PlanType {
     if (plan) return plan;
   }
 
-  // Fallback: try to determine from amount (in cents)
+  // Fallback: try to determine from amount (in cents) converted to UGX via dynamic rate
   const amount = price?.unit_amount;
   if (amount) {
-    // These are approximate USD amounts in cents (converted from UGX pricing)
-    if (amount <= 500) return "starter"; // Starter
-    if (amount <= 3500) return "growth"; // Growth
-    if (amount <= 5500) return "enterprise"; // Enterprise
-    return "lifetime"; // Lifetime
+    // Use inline rate since this runs synchronously in the webhook handler
+    const rate = Number(process.env.FX_RATE_FALLBACK) || 3700;
+    const ugxAmount = Math.round((amount / 100) * rate);
+    const ugxPrice = PLAN_PRICES;
+
+    if (ugxAmount >= (ugxPrice.lifetime.oneTime || 12000000)) return "lifetime";
+    if (ugxAmount >= (ugxPrice.enterprise.term || 5500) * 50) return "enterprise";
+    if (ugxAmount >= (ugxPrice.growth.term || 3500) * 50) return "growth";
+    if (ugxAmount >= (ugxPrice.starter.term || 2000) * 50) return "starter";
+    return "free_trial";
   }
 
   // Default to growth if we can't determine

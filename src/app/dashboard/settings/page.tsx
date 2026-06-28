@@ -147,6 +147,8 @@ export default function SettingsPage() {
   const [schoolSizeBand, setSchoolSizeBand] = useState<"small" | "medium" | "large">("small");
   const [moduleCatalog, setModuleCatalog] = useState<ModuleCatalogItem[]>([]);
   const [moduleEntitlements, setModuleEntitlements] = useState<ModuleEntitlement[]>([]);
+  const [paymentHistory, setPaymentHistory] = useState<any[]>([]);
+  const [paymentHistoryLoading, setPaymentHistoryLoading] = useState(false);
   const [loadingModules, setLoadingModules] = useState(false);
   const [activatingModule, setActivatingModule] = useState<ModuleKey | null>(null);
   const [switchingBillingMode, setSwitchingBillingMode] = useState(false);
@@ -277,6 +279,14 @@ export default function SettingsPage() {
       setSchoolSizeBand(payload.school?.school_size_band || "small");
       setModuleCatalog(Array.isArray(payload.catalog) ? payload.catalog : []);
       setModuleEntitlements(Array.isArray(payload.entitlements) ? payload.entitlements : []);
+
+      const payRes = await fetch("/api/payment/invoices/?limit=10");
+      if (payRes.ok) {
+        const payBody = await payRes.json();
+        if (payBody.success && Array.isArray(payBody.data)) {
+          setPaymentHistory(payBody.data);
+        }
+      }
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to load module billing");
     } finally {
@@ -1026,6 +1036,72 @@ export default function SettingsPage() {
                   <div><div className="font-semibold text-sm">Auto-SMS Reminders</div><div className="text-xs text-[var(--t3)]">Recover fees 3.5x faster with automatic, personalized SMS nudges to parents.</div></div>
                 </div>
               </div>
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardBody>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-[var(--on-surface)]">Payment History</h3>
+                  <p className="text-sm text-[var(--t3)]">Recent subscription payments and transactions</p>
+                </div>
+                {paymentHistory.length > 0 && (
+                  <span className="text-[11px] text-[var(--t3)]">
+                    Last 10 payments
+                  </span>
+                )}
+              </div>
+              {paymentHistory.length === 0 ? (
+                <div className="text-sm text-[var(--t3)] py-4 text-center">
+                  No payment history yet.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-[var(--border)] text-[var(--t3)] text-[11px] uppercase tracking-wider">
+                        <th className="text-left py-2 pr-3">Date</th>
+                        <th className="text-left py-2 pr-3">Plan</th>
+                        <th className="text-left py-2 pr-3">Provider</th>
+                        <th className="text-right py-2 pr-3">Amount</th>
+                        <th className="text-right py-2">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paymentHistory.map((p: any, idx: number) => (
+                        <tr key={p.transaction_id || idx} className="border-b border-[var(--border)] last:border-0">
+                          <td className="py-2.5 pr-3 text-[var(--t1)] whitespace-nowrap">
+                            {p.paid_at
+                              ? new Date(p.paid_at).toLocaleDateString()
+                              : p.created_at
+                                ? new Date(p.created_at).toLocaleDateString()
+                                : "-"}
+                          </td>
+                          <td className="py-2.5 pr-3 capitalize text-[var(--t2)]">{p.plan || "-"}</td>
+                          <td className="py-2.5 pr-3 text-[var(--t2)]">{p.provider || "-"}</td>
+                          <td className="py-2.5 pr-3 text-right font-semibold">
+                            UGX {Number(p.amount || 0).toLocaleString()}
+                          </td>
+                          <td className="py-2.5 text-right">
+                            <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                              p.payment_status === "completed"
+                                ? "bg-green-100 text-green-700"
+                                : p.payment_status === "pending"
+                                  ? "bg-amber-100 text-amber-700"
+                                  : p.payment_status === "failed"
+                                    ? "bg-red-100 text-red-700"
+                                    : "bg-gray-100 text-gray-500"
+                            }`}>
+                              {p.payment_status || "unknown"}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </CardBody>
           </Card>
         </div>

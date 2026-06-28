@@ -10,6 +10,7 @@ import {
   createServiceRoleClientOrThrow,
 } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
+import { requireModuleEntitlement } from "@/lib/subscription-guard";
 
 const STUDENT_MGMT_ROLES = [
   "super_admin",
@@ -41,6 +42,13 @@ export async function GET(request: NextRequest) {
     }
 
     const supabase = createServiceRoleClientOrThrow();
+
+    const moduleCheck = await requireModuleEntitlement({
+      supabase,
+      schoolId: schoolId as string,
+      moduleKey: "students",
+    });
+    if (!moduleCheck.ok) return moduleCheck.response;
 
     let query = supabase
       .from("students")
@@ -111,6 +119,13 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = createServiceRoleClientOrThrow();
+
+    const moduleCheck = await requireModuleEntitlement({
+      supabase,
+      schoolId,
+      moduleKey: "students",
+    });
+    if (!moduleCheck.ok) return moduleCheck.response;
 
     const payload = {
       school_id: schoolId,

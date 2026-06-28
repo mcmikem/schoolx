@@ -35,6 +35,38 @@ export async function seedDemoData() {
 
     if (schoolError) throw schoolError;
 
+    // Ensure subscription_plan is set
+    if (!school.subscription_plan || school.subscription_plan === "free_trial") {
+      await supabase
+        .from("schools")
+        .update({
+          subscription_plan: "growth",
+          subscription_status: "trial",
+          trial_ends_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        })
+        .eq("id", DEMO_SCHOOL_ID);
+    }
+
+    // Seed a subscription_payments record so billing history isn't empty
+    const { data: existingPay } = await supabase
+      .from("subscription_payments")
+      .select("id")
+      .eq("school_id", DEMO_SCHOOL_ID)
+      .eq("transaction_id", "DEMO-TRIAL-GROWTH")
+      .maybeSingle();
+
+    if (!existingPay) {
+      await supabase.from("subscription_payments").insert({
+        school_id: DEMO_SCHOOL_ID,
+        plan: "growth",
+        amount: 175000,
+        provider: "system",
+        transaction_id: "DEMO-TRIAL-GROWTH",
+        payment_status: "completed",
+        paid_at: new Date().toISOString(),
+      });
+    }
+
     // 2. Add Classes
     const classes = [
       {

@@ -63,7 +63,33 @@ services:
     restart: unless-stopped
     mem_limit: 128m
     cpus: "0.5"
-    command: sh -c "while true; do curl -s -H 'Authorization: Bearer $$CRON_SECRET' http://app:3000/api/cron/sms-reminders/ && sleep 86400; done"
+    command: sh -c "
+      while true; do
+        curl -s -H 'Authorization: Bearer $$CRON_SECRET' http://app:3000/api/cron/sms-reminders/ &
+        curl -s -H 'Authorization: Bearer $$CRON_SECRET' http://app:3000/api/cron/expire-entitlements/ &
+        sleep 3600
+      done
+    "
+    depends_on:
+      app:
+        condition: service_healthy
+    networks:
+      - skoolmate_network
+
+  # Daily cron for size band recalculation
+  cron-daily:
+    image: alpine/curl:latest
+    environment:
+      - CRON_SECRET=${CRON_SECRET}
+    restart: unless-stopped
+    mem_limit: 128m
+    cpus: "0.5"
+    command: sh -c "
+      while true; do
+        curl -s -H 'Authorization: Bearer $$CRON_SECRET' http://app:3000/api/cron/recalculate-size-bands/
+        sleep 86400
+      done
+    "
     depends_on:
       app:
         condition: service_healthy

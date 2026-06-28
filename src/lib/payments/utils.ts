@@ -170,18 +170,15 @@ export async function updatePendingMobilePayment(
 ) {
   const supabase = await createSupabaseServerClient();
 
-  let query = supabase
+  const currentStatus = expectedCurrentStatus || "pending";
+
+  const { data, error } = await supabase
     .from("pending_mobile_payments")
     .update({ status })
     .eq("reference", reference)
+    .eq("status", currentStatus)
     .select()
     .single();
-
-  if (expectedCurrentStatus) {
-    query = query.neq("status", "completed");
-  }
-
-  const { data, error } = await query;
 
   if (error) {
     if (error.code === "PGRST116") {

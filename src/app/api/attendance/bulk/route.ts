@@ -9,6 +9,7 @@ import {
   createServiceRoleClientOrThrow,
   validateRequiredFields,
 } from "@/lib/api-utils";
+import { requireModuleEntitlement } from "@/lib/subscription-guard";
 
 const ATTENDANCE_ALLOWED_ROLES = [
   "super_admin",
@@ -61,6 +62,13 @@ export async function POST(request: NextRequest) {
     }
 
     const supabase = createServiceRoleClientOrThrow();
+
+    const moduleCheck = await requireModuleEntitlement({
+      supabase,
+      schoolId: scope.schoolId,
+      moduleKey: "attendance",
+    });
+    if (!moduleCheck.ok) return moduleCheck.response;
 
     const { data: classData, error: classError } = await supabase
       .from("classes")

@@ -8,8 +8,6 @@ export async function GET(request: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;
   const isAuthenticated = !cronSecret || authHeader === `Bearer ${cronSecret}`;
 
-  // Unauthenticated requests get a basic health check (for Docker/uptime monitoring)
-  // Authenticated requests get full diagnostic details
   if (!isAuthenticated) {
     return NextResponse.json({
       status: "ok",
@@ -18,8 +16,10 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  const checks: Record<string, string> = {};
+  const checks: Record<string, string | { read: string; write: string }> = {};
+  const details: Record<string, unknown> = {};
 
+  // --- Database health (read & write) ---
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -29,25 +29,62 @@ export async function GET(request: NextRequest) {
         auth: { autoRefreshToken: false, persistSession: false },
       });
 
-      const { error } = await supabase
+      const { error: readError, count } = await supabase
         .from("users")
         .select("id", { count: "exact", head: true })
         .limit(1);
 
-      checks.database = error ? "error" : "connected";
+      const readOk = !readError;
+
+      const { error: writeError } = await supabase
+        .from("rate_limit_log")
+        .insert({ key: "__health_check__", created_at: new Date().toISOString() });
+
+      if (!writeError) {
+        await supabase
+          .from("rate_limit_log")
+          .delete()
+          .eq("key", "__health_check__");
+      }
+
+      checks.database = {
+        read: readOk ? "ok" : "error",
+        write: writeError ? "error" : "ok",
+      };
+      if (count !== null) details.totalUsers = count;
     } else {
       checks.database = "not_configured";
     }
-  } catch {
-    checks.database = "error";
+  } catch (e) {
+    checks.database = { read: "error", write: "error" };
+    details.dbError = e instanceof Error ? e.message : String(e);
   }
 
+  // --- Redis (env check only — full check requires ioredis) ---
   const redisUrl = process.env.REDIS_URL;
   if (redisUrl && !redisUrl.includes("username:password")) {
     checks.redis = "configured";
   } else {
     checks.redis = "not_configured";
   }
+
+  // --- Memory ---
+  if (typeof process.memoryUsage === "function") {
+    const mem = process.memoryUsage();
+    details.memory = {
+      rss: `${Math.round(mem.rss / 1024 / 1024)} MB`,
+      heapTotal: `${Math.round(mem.heapTotal / 1024 / 1024)} MB`,
+      heapUsed: `${Math.round(mem.heapUsed / 1024 / 1024)} MB`,
+    };
+  }
+
+  // --- Env integrity ---
+  const envChecks: Record<string, boolean> = {
+    NEXT_PUBLIC_SUPABASE_URL: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+    SUPABASE_SERVICE_ROLE_KEY: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
+    CRON_SECRET: !!process.env.CRON_SECRET,
+  };
+  details.env = envChecks;
 
   return NextResponse.json({
     status: "ok",
@@ -56,5 +93,6 @@ export async function GET(request: NextRequest) {
     version: "1.0.0",
     environment: process.env.NODE_ENV || "development",
     ...checks,
+    ...details,
   });
 }

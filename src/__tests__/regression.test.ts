@@ -174,7 +174,7 @@ describe("Production Hardening Regression Tests", () => {
       expect(stripeWebhook).toContain("charge.refunded");
     });
 
-    it("should have NODE_ENV guard in mobile money webhook", () => {
+    it("should have MoneyUnify HMAC signature verification in mobile money webhook", () => {
       const mobileMoney = require("fs").readFileSync(
         require("path").join(
           process.cwd(),
@@ -182,7 +182,8 @@ describe("Production Hardening Regression Tests", () => {
         ),
         "utf8",
       );
-      expect(mobileMoney).toContain('process.env.NODE_ENV === "development"');
+      expect(mobileMoney).toContain("verifyMoneyUnifySignature");
+      expect(mobileMoney).toContain("crypto.timingSafeEqual");
     });
   });
 

@@ -76,7 +76,7 @@ interface PlatformStats {
   newThisMonth: number;
 }
 
-type Tab = "overview" | "schools" | "users" | "register" | "settings";
+type Tab = "overview" | "schools" | "users" | "register" | "modules" | "settings";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -1608,6 +1608,8 @@ export default function SuperAdminPage() {
   const [tab, setTab] = useState<Tab>("overview");
   const [schools, setSchools] = useState<School[]>([]);
   const [users, setUsers] = useState<UserRow[]>([]);
+  const [pendingModules, setPendingModules] = useState<any[]>([]);
+  const [modulesLoading, setModulesLoading] = useState(false);
   const [stats, setStats] = useState<PlatformStats>({
     totalSchools: 0,
     activeSchools: 0,
@@ -1905,6 +1907,7 @@ export default function SuperAdminPage() {
       icon: "manage_accounts",
     },
     { id: "register", label: "Register School", icon: "add_business" },
+    { id: "modules", label: "Modules", icon: "extension" },
     { id: "settings", label: "Settings", icon: "tune" },
   ];
 
@@ -2683,6 +2686,144 @@ export default function SuperAdminPage() {
                   setTab("schools");
                 }}
               />
+            </div>
+          )}
+
+          {tab === "modules" && (
+            <div className="space-y-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="font-['Sora'] text-[15px] font-bold text-[var(--t1)]">
+                    Module Approvals
+                  </h2>
+                  <p className="text-[12px] text-[var(--t3)] mt-0.5">
+                    Review and approve pending module requests from schools.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setModulesLoading(true);
+                    try {
+                      const res = await fetch("/api/modules/entitlements/?scope=all_pending");
+                      const body = await res.json();
+                      setPendingModules(body.data?.requests || []);
+                    } catch {
+                      toast.error("Failed to load pending requests");
+                    } finally {
+                      setModulesLoading(false);
+                    }
+                  }}
+                  disabled={modulesLoading}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--bg)] text-[var(--t2)] text-[12px] font-semibold transition-colors disabled:opacity-40"
+                >
+                  <MaterialIcon
+                    icon="refresh"
+                    style={{ fontSize: 15 }}
+                    className={modulesLoading ? "animate-spin" : ""}
+                  />
+                  Refresh
+                </button>
+              </div>
+
+              {pendingModules.length === 0 && !modulesLoading && (
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-8 text-center">
+                  <MaterialIcon icon="check_circle" style={{ fontSize: 36, color: "var(--t3)" }} />
+                  <p className="text-[13px] text-[var(--t3)] mt-2">No pending module requests.</p>
+                </div>
+              )}
+
+              {modulesLoading && (
+                <div className="flex items-center justify-center py-12">
+                  <OwlLoader />
+                </div>
+              )}
+
+              {pendingModules.length > 0 && (
+                <div className="space-y-3">
+                  {pendingModules.map((req: any) => (
+                    <div
+                      key={`${req.school_id}-${req.module_key}`}
+                      className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 flex items-center justify-between gap-4"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-['Sora'] text-[13px] font-bold text-[var(--t1)] truncate">
+                            {req.school_name}
+                          </span>
+                          <span className="text-[10px] text-[var(--t3)]">
+                            {req.school_code}
+                          </span>
+                        </div>
+                        <p className="text-[12px] text-[var(--t2)] mt-0.5">
+                          Requesting <strong>{req.module_name}</strong>
+                          {req.district && <> &middot; {req.district}</>}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              const res = await fetch("/api/modules/entitlements/", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                  schoolId: req.school_id,
+                                  moduleKey: req.module_key,
+                                  action: "approve",
+                                }),
+                              });
+                              if (!res.ok) throw new Error("Approval failed");
+                              toast.success(`${req.module_name} approved for ${req.school_name}`);
+                              setPendingModules((prev) =>
+                                prev.filter(
+                                  (r: any) =>
+                                    !(r.school_id === req.school_id && r.module_key === req.module_key),
+                                ),
+                              );
+                            } catch {
+                              toast.error("Failed to approve module");
+                            }
+                          }}
+                          className="px-3 py-1.5 rounded-xl bg-emerald-500 text-white text-[11px] font-bold hover:bg-emerald-600 transition-colors"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            try {
+                              const res = await fetch("/api/modules/entitlements/", {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({
+                                  schoolId: req.school_id,
+                                  moduleKey: req.module_key,
+                                  action: "reject",
+                                }),
+                              });
+                              if (!res.ok) throw new Error("Rejection failed");
+                              toast.success(`Request for ${req.module_name} rejected`);
+                              setPendingModules((prev) =>
+                                prev.filter(
+                                  (r: any) =>
+                                    !(r.school_id === req.school_id && r.module_key === req.module_key),
+                                ),
+                              );
+                            } catch {
+                              toast.error("Failed to reject request");
+                            }
+                          }}
+                          className="px-3 py-1.5 rounded-xl border border-red-200 text-red-600 text-[11px] font-bold hover:bg-red-50 transition-colors"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
