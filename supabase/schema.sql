@@ -273,7 +273,7 @@ CREATE TABLE IF NOT EXISTS grades (
     student_id UUID REFERENCES students(id) ON DELETE CASCADE,
     subject_id UUID REFERENCES subjects(id) ON DELETE CASCADE,
     class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
-    assessment_type TEXT CHECK (assessment_type IN ('ca1', 'ca2', 'ca3', 'ca4', 'project', 'exam', 'competency')) NOT NULL,
+    assessment_type TEXT CHECK (assessment_type IN ('ca1', 'ca2', 'ca3', 'ca4', 'project', 'exam', 'competency', 'u1', 'u2', 'eot')) NOT NULL,
     score NUMERIC(5,2) NOT NULL,
     max_score NUMERIC(5,2) DEFAULT 100,
     term INTEGER CHECK (term IN (1, 2, 3)) NOT NULL,
@@ -284,6 +284,9 @@ CREATE TABLE IF NOT EXISTS grades (
     locked_by UUID REFERENCES users(id),
     locked_at TIMESTAMPTZ,
     competency_level TEXT,
+    topic_name TEXT,
+    teacher_remark TEXT,
+    identifier_score NUMERIC(3,1),
     created_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(student_id, subject_id, assessment_type, term, academic_year)
 );
@@ -1003,6 +1006,15 @@ CREATE TABLE IF NOT EXISTS report_cards (
     attendance_rate NUMERIC,
     generated_at TIMESTAMPTZ,
     generated_by TEXT,
+    report_format TEXT DEFAULT 'numerical' CHECK (report_format IN ('numerical', 'competency', 'cbc')),
+    identifier_total NUMERIC,
+    formative_total NUMERIC,
+    summative_total NUMERIC,
+    grading_scheme JSONB,
+    date_of_issue DATE,
+    next_term_opens DATE,
+    class_teacher_name TEXT,
+    head_teacher_name TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(student_id, academic_year, term)
 );

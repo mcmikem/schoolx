@@ -42,6 +42,7 @@ import { calculateStudentFeePosition } from "@/lib/operations";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useUndo, UndoNotification } from "@/lib/useUndo";
 import { PageGuidance } from "@/components/PageGuidance";
+import { EmptyState } from "@/components/EmptyState";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
 import { getErrorMessage } from "@/lib/validation";
@@ -1487,17 +1488,11 @@ export default function FinanceHubPage() {
 
             {balanceSubTab === "balances" && (
               filteredBalances.length === 0 ? (
-                <div className="text-center py-12 text-on-surface-variant">
-                  <MaterialIcon className="text-4xl text-on-surface-variant/30 mb-4">
-                    account_balance
-                  </MaterialIcon>
-                  <h3 className="text-lg font-semibold text-on-surface mb-2">
-                    No student balances
-                  </h3>
-                  <p className="text-sm text-on-surface-variant">
-                    Add students and fee structures to see balances
-                  </p>
-                </div>
+                <EmptyState
+                  icon="account_balance"
+                  title="No student balances"
+                  description="Add students and fee structures to see balances"
+                />
               ) : (
                 <FeeTable
                   balances={filteredBalances}

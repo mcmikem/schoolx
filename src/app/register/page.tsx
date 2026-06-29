@@ -63,8 +63,8 @@ const PACKAGE_OPTIONS = [
 ];
 
 const BILLING_MODE_OPTIONS = [
-  { value: "full_suite", label: "Full Suite (all modules)" },
-  { value: "modular", label: "Modular (choose modules)" },
+  { value: "full_suite", label: "All modules included" },
+  { value: "modular", label: "Pick individual modules" },
 ];
 
 const REGISTRATION_MODULE_OPTIONS: Array<{ key: ModuleKey; label: string }> = [

@@ -22,12 +22,6 @@ export async function GET(request: NextRequest) {
     }
 
     if (!expired || expired.length === 0) {
-      // Side-effect: clean up old rate_limit_log rows
-      await supabase
-        .from("rate_limit_log")
-        .delete()
-        .lt("created_at", new Date(Date.now() - 3600000).toISOString());
-
       return NextResponse.json({
         success: true,
         timestamp: now,
@@ -63,6 +57,11 @@ export async function GET(request: NextRequest) {
     }
 
     logger.info(`Expired ${expired.length} school module entitlements`);
+
+    await supabase
+      .from("rate_limit_log")
+      .delete()
+      .lt("created_at", new Date(Date.now() - 3600000).toISOString());
 
     return NextResponse.json({
       success: true,

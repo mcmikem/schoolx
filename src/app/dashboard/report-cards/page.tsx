@@ -24,6 +24,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { APP_NAME } from "@/lib/app-name";
 import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import { calculateSubjectTotal } from "@/lib/grading";
+import { calculateFormativeScore, calculateSummativeScore, getCBCGrade, escapeHtml, generateCBCReportHTML } from "@/lib/cbc-report";
 
 interface StudentReport {
   studentId: string;
@@ -100,7 +101,7 @@ export default function ReportCardsPage() {
   const { feeStructure } = useFeeStructure(school?.id);
 
   const [selectedClass, setSelectedClass] = useState("");
-  const [reportFormat, setReportFormat] = useState<"numerical" | "competency" | "both">("numerical");
+  const [reportFormat, setReportFormat] = useState<"numerical" | "competency" | "both" | "cbc">("numerical");
   const [generated, setGenerated] = useState(false);
   const [hideWithFees, setHideWithFees] = useState(false);
   const [reports, setReports] = useState<StudentReport[]>([]);
@@ -169,6 +170,9 @@ export default function ReportCardsPage() {
     className: string,
     students: any[],
   ): Promise<{ reports: StudentReport[]; missingMarks: boolean }> {
+    if (reportFormat === "cbc") {
+      return generateCBCReports(classId, className, students);
+    }
     let gradesData: any[] = [];
     let competencyData: any[] = [];
 
@@ -325,6 +329,113 @@ export default function ReportCardsPage() {
       r.subjects.some((s: any) => s.isMissing),
     );
 
+    return { reports: reportList, missingMarks: missing };
+  }
+
+  async function generateCBCReports(
+    classId: string,
+    className: string,
+    students: any[],
+  ): Promise<{ reports: StudentReport[]; missingMarks: boolean }> {
+    if (students.length === 0) return { reports: [], missingMarks: false };
+
+    const { supabase: sb } = await import("@/lib/supabase");
+
+    const [u1Result, u2Result, eotResult] = await Promise.all([
+      withTimeout(sb.from("grades").select("*, subjects(id, name)").eq("class_id", classId).eq("term", currentTerm).eq("academic_year", academicYear).eq("assessment_type", "u1"), 15000, timeoutFallback()),
+      withTimeout(sb.from("grades").select("*, subjects(id, name)").eq("class_id", classId).eq("term", currentTerm).eq("academic_year", academicYear).eq("assessment_type", "u2"), 15000, timeoutFallback()),
+      withTimeout(sb.from("grades").select("*, subjects(id, name)").eq("class_id", classId).eq("term", currentTerm).eq("academic_year", academicYear).eq("assessment_type", "eot"), 15000, timeoutFallback()),
+    ]);
+
+    const u1Grades = u1Result.data || [];
+    const u2Grades = u2Result.data || [];
+    const eotGrades = eotResult.data || [];
+
+    const subjectOrder = subjects.map((s: any) => s.name);
+
+    const reportList: StudentReport[] = students.map((student) => {
+      const studentU1 = u1Grades.filter((g: any) => g.student_id === student.id);
+      const studentU2 = u2Grades.filter((g: any) => g.student_id === student.id);
+      const studentEot = eotGrades.filter((g: any) => g.student_id === student.id);
+
+      const subjectsCBC = subjectOrder.map((subjName) => {
+        const u1ForSubj = studentU1.filter((g: any) => g.subjects?.name === subjName);
+        const u2ForSubj = studentU2.filter((g: any) => g.subjects?.name === subjName);
+        const eotForSubj = studentEot.filter((g: any) => g.subjects?.name === subjName);
+
+        const u1Avg = u1ForSubj.length > 0
+          ? u1ForSubj.reduce((s: number, g: any) => s + Number(g.identifier_score || g.score || 0), 0) / u1ForSubj.length
+          : 0;
+        const u2Avg = u2ForSubj.length > 0
+          ? u2ForSubj.reduce((s: number, g: any) => s + Number(g.identifier_score || g.score || 0), 0) / u2ForSubj.length
+          : 0;
+        const avgIdentifier = (u1Avg + u2Avg) / 2;
+        const formativeScore = calculateFormativeScore(avgIdentifier);
+        const eotScore = eotForSubj.length > 0 ? Number(eotForSubj[0].score || 0) : 0;
+        const summativeScore = calculateSummativeScore(eotScore);
+        const totalMark = Math.round(formativeScore + summativeScore);
+        const grade = getCBCGrade(totalMark);
+
+        const learningOutcomes: { description: string; u1Score: number; u2Score: number }[] = [];
+        const maxLen = Math.max(u1ForSubj.length, u2ForSubj.length);
+        for (let i = 0; i < maxLen; i++) {
+          learningOutcomes.push({
+            description: u1ForSubj[i]?.topic_name || u2ForSubj[i]?.topic_name || `Learning outcome ${i + 1}`,
+            u1Score: u1ForSubj[i] ? Number(u1ForSubj[i].identifier_score || u1ForSubj[i].score || 0) : 0,
+            u2Score: u2ForSubj[i] ? Number(u2ForSubj[i].identifier_score || u2ForSubj[i].score || 0) : 0,
+          });
+        }
+
+        return {
+          name: subjName,
+          score: totalMark,
+          grade,
+          gradeColor: grade === "A+" || grade === "A" ? "text-green-600" : grade === "B" || grade === "C" ? "text-blue-600" : grade === "D" || grade === "E" ? "text-amber-600" : "text-red-500",
+          isMissing: u1ForSubj.length === 0 && u2ForSubj.length === 0 && eotForSubj.length === 0,
+          teacherName: u1ForSubj[0]?.teacher_remark ? "Subject Teacher" : "Subject Teacher",
+          teacherRemark: u1ForSubj[0]?.teacher_remark || "",
+          teacherInitials: "",
+          learningOutcomes,
+          u1Average: Math.round(u1Avg * 10) / 10,
+          u2Average: Math.round(u2Avg * 10) / 10,
+          averageIdentifier: Math.round(avgIdentifier * 10) / 10,
+          formativeScore,
+          eotScore,
+          summativeScore,
+        };
+      });
+
+      const totalMarks = subjectsCBC.reduce((sum, s) => sum + s.score, 0);
+      const numSubjects = subjectsCBC.length || 1;
+      const average = Math.round((totalMarks / numSubjects) * 10) / 10;
+
+      return {
+        studentId: student.id,
+        name: `${student.first_name} ${student.last_name}`,
+        studentNumber: student.student_number || "",
+        gender: student.gender,
+        photoUrl: student.photo_url,
+        className,
+        subjects: subjectsCBC as any,
+        totalMarks,
+        maxMarks: numSubjects * 100,
+        average,
+        position: 0,
+        division: getCBCGrade(average),
+        classTeacherComment: "",
+        hmComment: "",
+        feeBalance: getStudentFeeBalance(student.id),
+      } as StudentReport;
+    });
+
+    reportList.sort((a, b) => b.totalMarks - a.totalMarks);
+    reportList.forEach((r, i) => {
+      r.position = i + 1;
+      r.classTeacherComment = getAutoComment(r.position);
+      r.hmComment = getAutoComment(r.position);
+    });
+
+    const missing = reportList.some((r) => r.subjects.some((s: any) => s.isMissing));
     return { reports: reportList, missingMarks: missing };
   }
 
@@ -524,6 +635,10 @@ export default function ReportCardsPage() {
   };
 
   const handlePrintReport = (report: StudentReport) => {
+    if (reportFormat === "cbc") {
+      handlePrintCBCReport(report);
+      return;
+    }
     const studentComment = comments[report.studentId] || {
       classTeacher: "",
       hm: "",
@@ -643,8 +758,90 @@ export default function ReportCardsPage() {
     setTimeout(() => printWindow.print(), 500);
   };
 
+  const handlePrintCBCReport = (report: StudentReport) => {
+    const student = classStudents.find((s) => s.id === report.studentId);
+    if (!student) return;
+    const classTeacherName = (selectedClassObj as any)?.class_teacher_name || "Class Teacher";
+    const studentComment = comments[report.studentId] || { classTeacher: "", hm: "" };
+
+    const cbcData = {
+      school: {
+        name: school?.name || "School Name",
+        schoolCode: (school as any)?.school_code || "",
+        unebCenterNumber: (school as any)?.uneb_center_number || "",
+        phone: school?.phone || "",
+        email: school?.email || "",
+        address: (school as any)?.address || "",
+        logoUrl: school?.logo_url || "",
+        motto: (school as any)?.motto || "",
+        primaryColor: school?.primary_color || "#002045",
+      },
+      student: {
+        firstName: student.first_name,
+        lastName: student.last_name,
+        fullName: report.name,
+        studentNumber: report.studentNumber,
+        photoUrl: report.photoUrl || "",
+        className: report.className,
+        formClass: "Form",
+        gender: report.gender,
+      },
+      term: currentTerm,
+      academicYear,
+      examTitle: `End of Term ${currentTerm} Exams - ${academicYear}`,
+      subjects: report.subjects.map((s, idx) => ({
+        name: s.name,
+        teacherName: (s as any).teacherName || "Subject Teacher",
+        teacherRemark: (s as any).teacherRemark || "",
+        teacherInitials: (s as any).teacherInitials || "",
+        learningOutcomes: (s as any).learningOutcomes || [{ description: "General competency", u1Score: (s as any).u1Average || 0, u2Score: (s as any).u2Average || 0 }],
+        u1Average: (s as any).u1Average || 0,
+        u2Average: (s as any).u2Average || 0,
+        averageIdentifier: (s as any).averageIdentifier || 0,
+        formativeScore: (s as any).formativeScore || 0,
+        eotScore: (s as any).eotScore || 0,
+        summativeScore: (s as any).summativeScore || 0,
+        totalMark: s.score,
+        grade: s.grade,
+      })),
+      summary: {
+        totalIdentifier: 0,
+        totalFormative: 0,
+        totalEot: 0,
+        totalMarkSum: report.totalMarks,
+        overallAverage: report.average,
+        averageGrade: report.division,
+      },
+      gradingScheme: "See below",
+      identifierRanges: [
+        { level: 3, label: "Outstanding", descriptor: "Most or all LO's achieved for overall achievement", min: 2.50, max: 3.00 },
+        { level: 2, label: "Moderate", descriptor: "Many LO's achieved, enough for overall achievement", min: 1.50, max: 2.49 },
+        { level: 1, label: "Basic", descriptor: "Few LO's achieved, but not sufficient for overall achievement", min: 0.90, max: 1.49 },
+      ],
+      classTeacher: { name: classTeacherName, comment: studentComment.classTeacher },
+      headTeacher: { name: (school as any)?.principal_name || "Headteacher", comment: studentComment.hm },
+      nextTermOpens: "February 3, 2025",
+      dateOfIssue: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }),
+    };
+
+    const printHtml = generateCBCReportHTML(cbcData);
+
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+    printWindow.document.open();
+    printWindow.document.write(printHtml);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => printWindow.print(), 500);
+  };
+
   const handlePrintAll = () => {
     if (displayedReports.length === 0) return;
+
+    if (reportFormat === "cbc") {
+      toast.info("Print individual reports using the print button per student");
+      return;
+    }
     
     const schoolName = school?.name || "School Name";
     const schoolColor = school?.primary_color || "#002045";
@@ -940,12 +1137,13 @@ export default function ReportCardsPage() {
               </label>
               <select
                 value={reportFormat}
-                onChange={(e) => setReportFormat(e.target.value as "numerical" | "competency" | "both")}
+                onChange={(e) => setReportFormat(e.target.value as "numerical" | "competency" | "both" | "cbc")}
                 className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
               >
                 <option value="numerical">Numerical (Marks)</option>
                 <option value="competency">CBC Competency</option>
                 <option value="both">Combined (Marks + Competency)</option>
+                <option value="cbc">CBC/NCDC Report (A4)</option>
               </select>
             </div>
           </div>

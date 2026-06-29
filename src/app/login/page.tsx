@@ -441,11 +441,25 @@ export default function LoginPage() {
             </button>
           </div>
 
-          <p className="mt-6 text-center text-sm text-slate-600">
-            Don&apos;t have an account?{" "}
-            <Link href="/register" className="font-medium text-slate-900 hover:underline">
-              Register
-            </Link>
+          <p className="mt-6 text-center text-sm text-slate-600 space-y-2">
+            <span>
+              Don&apos;t have an account?{" "}
+              <Link href="/register" className="font-medium text-slate-900 hover:underline">
+                Register
+              </Link>
+            </span>
+            <br />
+            <span>
+              Want to see it first?{" "}
+              <a
+                href="https://wa.me/256700000000?text=Hi%2C%20I%27d%20like%20a%20demo%20of%20SkoolMate"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-slate-900 hover:underline"
+              >
+                Book a free walkthrough
+              </a>
+            </span>
           </p>
         </div>
       </div>

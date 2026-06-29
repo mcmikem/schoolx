@@ -180,9 +180,7 @@ export async function requireModuleEntitlement(params: {
   }
 
   const isActiveState = entitlement?.status === "active" || entitlement?.status === "trial";
-  const hasValidEndDate = entitlement?.ends_at
-    ? new Date(entitlement.ends_at).getTime() > Date.now()
-    : false;
+  const hasValidEndDate = !entitlement?.ends_at || new Date(entitlement.ends_at).getTime() > Date.now();
 
   if (isActiveState && hasValidEndDate) {
     return { ok: true, school };

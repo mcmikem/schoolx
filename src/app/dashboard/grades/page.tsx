@@ -1619,6 +1619,7 @@ export default function GradesPage() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setInlineEntryMode(true)}
+                    title="Enter marks in a grid table"
                     className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
                       inlineEntryMode
                         ? "bg-primary text-on-primary shadow-sm"
@@ -1632,6 +1633,7 @@ export default function GradesPage() {
                   </button>
                   <button
                     onClick={() => setInlineEntryMode(false)}
+                    title="Enter marks one student at a time"
                     className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all md:hidden ${
                       !inlineEntryMode
                         ? "bg-primary text-on-primary shadow-sm"
@@ -1647,6 +1649,7 @@ export default function GradesPage() {
                 <div className="flex flex-wrap items-center gap-2">
                   <button
                     onClick={() => setCompetencyMode(!competencyMode)}
+                    title={competencyMode ? "Switch to marks-based grading" : "Switch to competency-based assessment"}
                     className={`px-3 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5 ${
                       competencyMode
                         ? "bg-amber-100 text-amber-800 border border-amber-300"

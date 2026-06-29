@@ -12,6 +12,7 @@ import { TabPanel } from "@/components/ui/Tabs";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/index";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
+import { PageGuidance } from "@/components/PageGuidance";
 import BulkImport from "@/components/BulkImport";
 import StudentWorkspaceShell from "@/components/students/StudentWorkspaceShell";
 import StudentRegistryPanel from "@/components/students/StudentRegistryPanel";
@@ -556,6 +557,15 @@ export default function StudentHubPage() {
             )
           }
           variant="premium"
+        />
+
+        <PageGuidance
+          title="How to manage students"
+          tips={[
+            { icon: "person_add", text: "Add students one by one or import from a spreadsheet." },
+            { icon: "swap_horiz", text: "Use Transfers when a student moves to another class or school." },
+            { icon: "group", text: "Track at-risk students and manage promotions between classes." },
+          ]}
         />
 
         <StudentWorkspaceShell

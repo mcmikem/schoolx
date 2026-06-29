@@ -10,6 +10,7 @@ import {
   STRIPE_PRICE_IDS,
 } from "@/lib/payments/utils";
 import { createCheckoutSession } from "@/lib/payments/stripe";
+import { getExchangeRate } from "@/lib/payments/exchange-rate";
 import {
   requireUserWithSchool,
   assertUserRoleOrDeny,
@@ -176,7 +177,8 @@ export async function POST(request: NextRequest) {
       const ppReturnUrl = validateReturnUrl(returnUrl, baseUrl) + (returnUrl ? "" : `/api/payment/capture/?plan=${plan}`);
       const ppCancelUrl = validateReturnUrl(cancelUrl, baseUrl) + (cancelUrl ? "" : "?canceled=true&provider=paypal");
 
-      const orderAmount = Math.round((amount / 4100) * 100) / 100;
+      const rate = await getExchangeRate("USD", "UGX");
+      const orderAmount = Math.round((amount / rate) * 100) / 100;
 
       const order = await createPayPalOrder(
         orderAmount * 100,

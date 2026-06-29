@@ -61,20 +61,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: true, timestamp: now, updated: 0, message: "All schools already in correct size band" });
     }
 
-    const idsToUpdate = updates.map((u) => u.id);
-    const { error: updateError } = await supabase
-      .from("schools")
-      .update({ school_size_band: "small" })
-      .in("id", idsToUpdate);
-
-    if (updateError) {
-      logger.error("Recalculate-size-bands: batch update failed, trying individually");
-      for (const u of updates) {
-        await supabase
-          .from("schools")
-          .update({ school_size_band: u.newBand })
-          .eq("id", u.id);
-      }
+    for (const u of updates) {
+      await supabase
+        .from("schools")
+        .update({ school_size_band: u.newBand })
+        .eq("id", u.id);
     }
 
     const logEntries = updates.map((u) => ({

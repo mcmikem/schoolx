@@ -605,6 +605,7 @@ export default function AttendancePage() {
           <button
             onClick={handleToggleAbsenteeAlert}
             disabled={loadingAutomation}
+            title={absenteeAlertEnabled ? "Disable absentee SMS alerts" : "Enable absentee SMS alerts"}
             className={`relative w-14 h-8 rounded-full transition-colors duration-200 min-w-[56px] shrink-0 ${absenteeAlertEnabled ? "bg-error" : "bg-surface-container-highest"}`}
             role="switch"
             aria-checked={absenteeAlertEnabled}
@@ -736,6 +737,7 @@ export default function AttendancePage() {
                       <button
                         key={s}
                         onClick={() => handleBulkMark(s)}
+                        title={`Mark all students as ${cfg.label.toLowerCase()}`}
                         disabled={
                           bulkProgress?.running || !selectedClass || !isOnline
                         }
@@ -884,6 +886,7 @@ export default function AttendancePage() {
                 </div>
                 <button
                   onClick={() => setRollCallMode(!rollCallMode)}
+                  title={rollCallMode ? "Switch to list view" : "Call out names one by one"}
                   className={`relative w-14 h-8 rounded-full transition-colors duration-200 min-w-[56px] ${
                     rollCallMode ? "bg-primary" : "bg-surface-container-highest"
                   }`}

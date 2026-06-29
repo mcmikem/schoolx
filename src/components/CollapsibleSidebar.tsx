@@ -140,6 +140,7 @@ export default function CollapsibleSidebar({ groups, onNavigate, compact = false
               <Link
                 key={item.href}
                 href={item.href}
+                title={item.label}
                 onClick={onNavigate}
                 className="flex items-center gap-2 px-3 py-2 rounded-lg text-[12px] text-[var(--t2)] hover:bg-[var(--surface-container-low)] no-underline"
               >
@@ -160,6 +161,7 @@ export default function CollapsibleSidebar({ groups, onNavigate, compact = false
             <div key={group.label} className="sidebar-group">
               <button
                 onClick={() => toggleGroup(group.label)}
+                title={group.label}
                 className={cn(
                   "flex items-center w-full px-3 py-2.5 text-[10px] font-extrabold uppercase tracking-widest transition-colors duration-150 outline-none rounded-lg",
                   hasActive || isOpen ? "text-[var(--primary)]" : "text-[var(--t4)] hover:text-[var(--t2)] hover:bg-[var(--surface-container-low)]"
@@ -186,6 +188,7 @@ export default function CollapsibleSidebar({ groups, onNavigate, compact = false
                       <Link
                         key={item.href}
                         href={item.href}
+                        title={item.label}
                         onClick={() => {
                           trackRecentPage(item.href, item.label, item.icon)
                           onNavigate?.()

@@ -13,6 +13,20 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   icon?: React.ReactNode;
 }
 
+function extractButtonLabel(children: React.ReactNode): string {
+  if (typeof children === "string") return children;
+  if (Array.isArray(children)) {
+    for (const child of children) {
+      const text = extractButtonLabel(child);
+      if (text) return text;
+    }
+  }
+  if (children && typeof children === "object" && "props" in children) {
+    return extractButtonLabel((children as any).props?.children);
+  }
+  return "";
+}
+
 export function Button({
   children,
   variant = "primary",
@@ -21,6 +35,7 @@ export function Button({
   icon,
   className = "",
   disabled,
+  title,
   ...props
 }: ButtonProps) {
   const baseClass =
@@ -47,6 +62,7 @@ export function Button({
     <button
       className={`${baseClass} ${variants[variant]} ${sizes[size]} ${disabled || loading ? "opacity-50 cursor-not-allowed" : ""} ${className}`}
       disabled={disabled || loading}
+      title={title || extractButtonLabel(children) || undefined}
       {...props}
     >
       {loading ? (

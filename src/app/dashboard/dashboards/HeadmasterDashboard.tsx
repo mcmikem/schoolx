@@ -1,75 +1,35 @@
 "use client";
 import Link from "next/link";
-import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
-import { supabase } from "@/lib/supabase";
 import { useAcademic } from "@/lib/academic-context";
 import {
   useDashboardStats,
   useStudents,
-  useFeePayments,
   useFeeStructure,
   useClasses,
-  useStaff,
 } from "@/lib/hooks";
 import { useDashboardExtraData } from "@/lib/hooks/useDashboardExtraData";
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useEffect, useMemo, useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
-import { useToast } from "@/components/Toast";
 import ErrorBoundary from "@/components/ErrorBoundary";
-import DashboardInsights from "@/components/dashboard/DashboardInsights";
-import EcosystemPulse from "@/components/dashboard/EcosystemPulse";
 import { TopLoadingBar, StuckLoadingOverlay } from "@/components/ui/Skeleton";
-import { Button } from "@/components/ui/index";
 import OwlMascot from "@/components/brand/OwlMascot";
-import { toLocalDateString } from "@/lib/date-utils";
-import { safeGetItem, safeSetItem } from "@/lib/safe-storage";
-import SchoolCalendar from "@/components/dashboard/SchoolCalendar";
-import OnboardingProgressBar from "@/components/OnboardingProgressBar";
-import SyllabusProgressWidget from "@/components/SyllabusProgressWidget";
-import { SchoolReadinessGuide } from "@/components/dashboard/SchoolReadinessGuide";
-
-function formatCurrency(amount: number) {
-  if (amount >= 1000000) return `${(amount / 1000000).toFixed(1)}M`;
-  if (amount >= 1000) return `${(amount / 1000).toFixed(0)}K`;
-  return `${amount}`;
-}
-
-const DAY_MAP = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
-
-type HeadmasterTask = {
-  id: string;
-  title: string;
-  dueDate: string;
-  priority: "low" | "medium" | "high";
-  done: boolean;
-};
 
 function HeadmasterDashboardContent() {
-  const { school, user, isDemo } = useAuth();
+  const { school, user } = useAuth();
   const { academicYear, currentTerm } = useAcademic();
 
   const { stats, loading: statsLoading } = useDashboardStats(school?.id);
   const { students = [] } = useStudents(school?.id);
-  const { payments = [] } = useFeePayments(school?.id);
   const { feeStructure = [] } = useFeeStructure(school?.id);
   const { classes = [] } = useClasses(school?.id);
-  const { staff = [] } = useStaff(school?.id);
   const [loadingTimedOut, setLoadingTimedOut] = useState(false);
 
   const {
-    classAttendance,
-    atRiskStudents,
-    smsStats,
     pendingExpenses,
     pendingLeave,
-    feesToday,
-    feesThisWeek,
-    feesThisTerm,
-    staffOnDuty,
     overdueFeeCount,
     lowAttendanceClasses,
-    dropoutRiskCount,
     loading: loadingExtra,
   } = useDashboardExtraData(
     school?.id,
@@ -101,80 +61,11 @@ function HeadmasterDashboardContent() {
     [totalExpected, stats.feesCollected],
   );
 
-  const { totalPresent, totalInClass, attendanceRate, absentCount } = useMemo(() => {
-    const totalPresent = Object.values(classAttendance).reduce(
-      (sum, c) => sum + c.present,
-      0,
-    );
-    const totalInClass = Object.values(classAttendance).reduce(
-      (sum, c) => sum + c.total,
-      0,
-    );
-    const attendanceRate =
-      totalInClass > 0
-        ? Math.round((totalPresent / totalInClass) * 100)
-        : stats.presentToday > 0 && stats.totalStudents > 0
-          ? Math.round((stats.presentToday / stats.totalStudents) * 100)
-          : 0;
-    const absentCount = stats.totalStudents - stats.presentToday;
-    return { totalPresent, totalInClass, attendanceRate, absentCount };
-  }, [classAttendance, stats.presentToday, stats.totalStudents]);
-
-  const hasAttendanceSignals = Object.keys(classAttendance).length > 0;
-  const classesNotMarked = hasAttendanceSignals
-    ? classes.filter(
-        (c: any) => !classAttendance[c.id] || classAttendance[c.id].total === 0,
-      ).length
-    : 0;
-
-  const totalPendingApprovals = pendingExpenses + pendingLeave;
-
-  const alertCount = loadingExtra
-    ? 0
-    : classesNotMarked +
-      atRiskStudents.length +
-      dropoutRiskCount +
-      lowAttendanceClasses +
-      (overdueFeeCount > 0 ? 1 : 0) +
-      (totalPendingApprovals > 0 ? 1 : 0);
-
-  const focusItems = useMemo(
-    () => [
-      {
-        id: "low-attendance",
-        label: "Low attendance classes",
-        value: loadingExtra ? null : lowAttendanceClasses,
-        description: "Classes with less than 70% present today",
-        link: "/dashboard/attendance",
-        status: lowAttendanceClasses > 0 ? "alert" : "ok",
-      },
-      {
-        id: "overdue-fees",
-        label: "Overdue fees",
-        value: loadingExtra ? null : overdueFeeCount,
-        description: "Students with unsettled balances this term",
-        link: "/dashboard/fees",
-        status: overdueFeeCount > 0 ? "alert" : "ok",
-      },
-      {
-        id: "pending-approvals",
-        label: "Pending approvals",
-        value: loadingExtra ? null : totalPendingApprovals,
-        description: "Expenses or leave requests waiting for action",
-        link:
-          totalPendingApprovals > 0
-            ? "/dashboard/expense-approvals"
-            : "/dashboard/leave-approvals",
-        status: totalPendingApprovals > 0 ? "alert" : "ok",
-      },
-    ],
-    [
-      lowAttendanceClasses,
-      overdueFeeCount,
-      totalPendingApprovals,
-      loadingExtra,
-    ],
-  );
+  const attendanceRate = useMemo(() => {
+    return stats.presentToday > 0 && stats.totalStudents > 0
+      ? Math.round((stats.presentToday / stats.totalStudents) * 100)
+      : 0;
+  }, [stats.presentToday, stats.totalStudents]);
 
   const todayDayName = currentDate.toLocaleDateString("en-UG", {
     weekday: "long",
@@ -184,98 +75,6 @@ function HeadmasterDashboardContent() {
     month: "short",
     year: "numeric",
   });
-  const dayOfWeekNum = currentDate.getDay();
-  const todayDayKey = DAY_MAP[dayOfWeekNum];
-
-  const classesToday = useMemo(() => {
-    if (!classes.length) return [];
-    return classes
-      .filter((c: any) => {
-        const timetableEntries = (c as any).timetable_entries || [];
-        return timetableEntries.some((e: any) => e.day_of_week === todayDayKey);
-      })
-      .slice(0, 6);
-  }, [classes, todayDayKey]);
-
-  const upcomingDeadlines = useMemo(() => {
-    const deadlines: {
-      label: string;
-      date: string;
-      type: string;
-      link: string;
-    }[] = [];
-    if (overdueFeeCount > 0) {
-      deadlines.push({
-        label: `${overdueFeeCount} students with overdue fees`,
-        date: "Overdue",
-        type: "fee",
-        link: "/dashboard/fees",
-      });
-    }
-    if (classesNotMarked > 0) {
-      deadlines.push({
-        label: `${classesNotMarked} classes pending attendance`,
-        date: "Today",
-        type: "attendance",
-        link: "/dashboard/attendance",
-      });
-    }
-    if (pendingExpenses > 0) {
-      deadlines.push({
-        label: `${pendingExpenses} expenses awaiting approval`,
-        date: "Pending",
-        type: "approval",
-        link: "/dashboard/expense-approvals",
-      });
-    }
-    if (pendingLeave > 0) {
-      deadlines.push({
-        label: `${pendingLeave} leave requests pending`,
-        date: "Pending",
-        type: "approval",
-        link: "/dashboard/leave-approvals",
-      });
-    }
-    return deadlines.slice(0, 5);
-  }, [overdueFeeCount, classesNotMarked, pendingExpenses, pendingLeave]);
-
-  const recentAuditEvents = useMemo(() => {
-    const events: {
-      action: string;
-      detail: string;
-      time: string;
-      icon: string;
-      color: string;
-    }[] = [];
-    payments.slice(0, 3).forEach((payment: any) => {
-      events.push({
-        action: "Payment received",
-        detail: `${payment.students?.first_name || "Student"} ${payment.students?.last_name || ""} · UGX ${formatCurrency(payment.amount_paid)}`,
-        time: payment.payment_date || "Today",
-        icon: "payments",
-        color: "var(--green)",
-      });
-    });
-    if (smsStats.sentToday > 0) {
-      events.push({
-        action: "SMS sent",
-        detail: `${smsStats.sentToday} messages delivered`,
-        time: "Today",
-        icon: "sms",
-        color: "var(--navy)",
-      });
-    }
-    if (pendingLeave > 0) {
-      events.push({
-        action: "Leave request submitted",
-        detail: `${pendingLeave} pending review`,
-        time: "Recent",
-        icon: "event_busy",
-        color: "var(--amber)",
-      });
-    }
-    return events.slice(0, 5);
-  }, [payments, smsStats, pendingLeave]);
 
   const quickActions = useMemo(
     () => [
@@ -319,69 +118,6 @@ function HeadmasterDashboardContent() {
     [],
   );
 
-  const schoolPrimary = school?.primary_color || "#17325f";
-  const schoolAccent = school?.accent_color || "#5b7aa6";
-
-  const [taskTitle, setTaskTitle] = useState("");
-  const [taskDueDate, setTaskDueDate] = useState(
-    toLocalDateString(),
-  );
-  const [taskPriority, setTaskPriority] = useState<"low" | "medium" | "high">(
-    "medium",
-  );
-  const [tasks, setTasks] = useState<HeadmasterTask[]>([]);
-  const toast = useToast();
-
-  const taskStorageKey = `hm_tasks_${school?.id || "default"}_${user?.id || "anon"}`;
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      const saved = safeGetItem(taskStorageKey);
-      if (!saved) return;
-      const parsed = JSON.parse(saved) as HeadmasterTask[];
-      if (Array.isArray(parsed)) {
-        setTasks(parsed.slice(0, 12));
-      }
-    } catch {
-      setTasks([]);
-    }
-  }, [taskStorageKey]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    safeSetItem(taskStorageKey, JSON.stringify(tasks));
-  }, [taskStorageKey, tasks]);
-
-  const addTask = () => {
-    const cleaned = taskTitle.trim();
-    if (!cleaned) return;
-    const nextTask: HeadmasterTask = {
-      id: `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      title: cleaned,
-      dueDate: taskDueDate,
-      priority: taskPriority,
-      done: false,
-    };
-    setTasks((prev) => [nextTask, ...prev].slice(0, 12));
-    setTaskTitle("");
-    toast.info("Saved in browser only — not synced across devices");
-  };
-
-  const toggleTask = (taskId: string) => {
-    setTasks((prev) =>
-      prev.map((task) =>
-        task.id === taskId ? { ...task, done: !task.done } : task,
-      ),
-    );
-  };
-
-  const removeTask = (taskId: string) => {
-    setTasks((prev) => prev.filter((task) => task.id !== taskId));
-  };
-
-  const pendingTaskCount = tasks.filter((task) => !task.done).length;
-
   const isDataLoading = statsLoading || loadingExtra;
   
   useEffect(() => {
@@ -412,356 +148,120 @@ function HeadmasterDashboardContent() {
 
   const isFirstRun = stats.totalStudents === 0 && classes.length === 0 && !isDataLoading;
 
+  const hasAlerts = (stats.presentToday === 0 && classes.length > 0) || pendingLeave > 0 || pendingExpenses > 0 || overdueFeeCount > 0 || lowAttendanceClasses > 0;
+
   return (
     <div className="content overflow-x-hidden">
-      {isFirstRun && (
-        <div className="mb-6 rounded-[24px] border border-[#d6e4e8] bg-[linear-gradient(150deg,#eff7f5_0%,#eaf2f6_44%,#f8fbff_100%)] p-6 text-center">
+      {isFirstRun ? (
+        <div className="rounded-[24px] border border-[#d6e4e8] bg-[linear-gradient(150deg,#eff7f5_0%,#eaf2f6_44%,#f8fbff_100%)] p-6 text-center mb-6">
           <span className="material-symbols-outlined text-[#17325f] text-4xl">rocket_launch</span>
           <h2 className="text-lg font-bold text-[#17325f] mt-2">Welcome to {school?.name || "your school"}!</h2>
-          <p className="text-sm text-[#60748f] mt-1 max-w-md mx-auto">Start by adding students and setting up your classes. Everything else will follow.</p>
+          <p className="text-sm text-[#60748f] mt-1 max-w-md mx-auto">Start by adding students and setting up your classes.</p>
           <div className="flex flex-wrap justify-center gap-3 mt-4">
-            <Link href="/dashboard/students?action=add" className="rounded-xl bg-[#17325f] px-5 py-2.5 text-xs font-bold text-white hover:opacity-90">
+            <Link href="/dashboard/students?action=add" title="Add your first student" className="rounded-xl bg-[#17325f] px-5 py-2.5 text-xs font-bold text-white hover:opacity-90">
               Add first student
             </Link>
-            <Link href="/dashboard/settings" className="rounded-xl border border-[#17325f] px-5 py-2.5 text-xs font-bold text-[#17325f] hover:bg-[#edf4ff]">
-              School settings
-            </Link>
-            <Link href="/dashboard/settings?tab=checklist" className="rounded-xl border border-[#d7e3f2] px-5 py-2.5 text-xs font-bold text-[#60748f] hover:bg-[#f8fbff]">
+            <Link href="/dashboard/settings?tab=checklist" title="View setup progress" className="rounded-xl border border-[#17325f] px-5 py-2.5 text-xs font-bold text-[#17325f] hover:bg-[#edf4ff]">
               Setup guide
             </Link>
           </div>
         </div>
-      )}
-
-      <SchoolReadinessGuide
-        title="Before Inspection"
-        items={[
-          {
-            label: "Student records",
-            status: stats.totalStudents > 0 ? "ok" : "missing",
-            link: "/dashboard/students?action=add",
-            detail: stats.totalStudents > 0 ? `${stats.totalStudents} enrolled` : "No students enrolled yet",
-          },
-          {
-            label: "Attendance taken today",
-            status: stats.presentToday > 0 ? "ok" : "pending",
-            link: "/dashboard/attendance",
-            detail: stats.presentToday > 0 ? `${stats.presentToday} present` : "Not taken yet",
-          },
-          {
-            label: "Fee collection",
-            status: collectionRate >= 60 ? "ok" : "pending",
-            link: "/dashboard/fees",
-            detail: collectionRate >= 60 ? `${collectionRate}% collected` : `${collectionRate}% collected — below 60% target`,
-          },
-          {
-            label: "Pending approvals",
-            status: totalPendingApprovals === 0 ? "ok" : "pending",
-            link: "/dashboard/expense-approvals",
-            detail: totalPendingApprovals === 0 ? "None" : `${totalPendingApprovals} item${totalPendingApprovals > 1 ? 's' : ''} waiting`,
-          },
-          {
-            label: "Classes with low attendance",
-            status: lowAttendanceClasses === 0 ? "ok" : "pending",
-            link: "/dashboard/attendance",
-            detail: lowAttendanceClasses === 0 ? "All classes on track" : `${lowAttendanceClasses} class${lowAttendanceClasses > 1 ? 'es' : ''} below 70%`,
-          },
-        ]}
-      />
-
-      <section
-        className="relative mb-6 overflow-hidden rounded-[36px] border border-white/65 p-4 shadow-[0_28px_70px_rgba(15,23,42,0.08)] sm:p-6"
-        style={{
-          backgroundImage: `linear-gradient(135deg, ${schoolPrimary}12 0%, ${schoolAccent}14 44%, #f7f9fc 100%)`,
-        }}
-      >
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div
-            className="absolute -left-16 bottom-0 h-48 w-48 rounded-full blur-3xl"
-            style={{ backgroundColor: `${schoolAccent}40` }}
-          />
-          <div
-            className="absolute right-0 top-0 h-56 w-56 rounded-full blur-3xl"
-            style={{ backgroundColor: `${schoolPrimary}30` }}
-          />
-          <div
-            className="absolute right-10 top-10 h-24 w-24 rounded-full border border-white/70 bg-white/35"
-            style={{
-              boxShadow: `0 8px 30px ${schoolPrimary}24`,
-            }}
-          >
-            {school?.logo_url ? (
-              <Image
-                src={school.logo_url}
-                alt={`${school?.name || "School"} logo`}
-                width={96}
-                height={96}
-                className="h-full w-full rounded-full object-cover p-2"
-              />
-            ) : null}
-          </div>
-        </div>
-
-        <div className="relative z-10 mb-4">
-          <div
-            className="inline-flex items-center gap-2 rounded-full bg-white/80 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.22em] shadow-sm"
-            style={{ border: `1px solid ${schoolPrimary}33`, color: schoolPrimary }}
-          >
-            <MaterialIcon icon="dashboard" className="text-[13px]" />
-            Dashboard
-          </div>
-        </div>
-        <div className="relative z-10 mb-4">
-          <h1 className="text-2xl font-bold font-['Sora']" style={{ color: schoolPrimary }}>{greeting}, {user?.full_name?.split(" ")[0]}</h1>
-          <p className="text-sm text-[#60748f] mt-1">{school?.name} · {todayDayName}, {todayFormatted} · {academicYear} Term {currentTerm}</p>
-        </div>
-
-        <OnboardingProgressBar />
-
-        {/* Section 1: BIG NUMBERS STRIP */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="rounded-[24px] bg-white border border-[#e5ecf4] p-4 flex items-center gap-4">
-            <div className="h-12 w-12 rounded-[16px] bg-[#edf4ff] flex items-center justify-center shrink-0">
-              <span className="material-symbols-outlined text-[24px] text-[#17325f]">groups</span>
-            </div>
+      ) : (
+        <>
+          {/* Greeting — compact */}
+          <div className="mb-4 flex items-center justify-between">
             <div>
-              <p className="text-[28px] font-bold text-[#17325f] leading-none">{stats.totalStudents || students.length || 0}</p>
-              <p className="text-[11px] font-medium text-[#7f91aa] mt-1">{boysCount}B · {girlsCount}G</p>
+              <h1 className="text-xl font-bold font-['Sora'] text-[var(--t1)]">{greeting}, {user?.full_name?.split(" ")[0]}</h1>
+              <p className="text-xs text-[var(--t3)] mt-0.5">{school?.name} · {todayDayName}, {todayFormatted} · Term {currentTerm}</p>
             </div>
+            {stats.presentToday > 0 && (
+              <div className="hidden sm:flex items-center gap-2 rounded-full bg-[var(--green-soft)] px-4 py-1.5">
+                <span className="w-2 h-2 rounded-full bg-[var(--green)]" />
+                <span className="text-xs font-semibold text-[var(--green)]">{attendanceRate}% attendance today</span>
+              </div>
+            )}
           </div>
 
-          <div className="rounded-[24px] bg-white border border-[#e5ecf4] p-4 flex items-center gap-4">
-            <div className={`h-12 w-12 rounded-[16px] flex items-center justify-center shrink-0 ${attendanceRate >= 80 ? 'bg-[#e1f3ee]' : 'bg-[#fff5e8]'}`}>
-              <span className={`material-symbols-outlined text-[24px] ${attendanceRate >= 80 ? 'text-[#1f8a70]' : 'text-[#b45309]'}`}>how_to_reg</span>
+          {/* Pulse check: 3 key metrics */}
+          <div className="grid grid-cols-3 gap-3 mb-5">
+            <div className="rounded-2xl bg-white border border-[var(--border)] p-4">
+              <p className="text-[11px] font-medium text-[var(--t3)]">Students</p>
+              <p className="text-2xl font-bold text-[var(--t1)] mt-1">{stats.totalStudents || students.length || 0}</p>
+              <p className="text-[11px] text-[var(--t3)] mt-0.5">{boysCount}B · {girlsCount}G</p>
             </div>
-            <div>
-              <p className={`text-[28px] font-bold leading-none ${stats.presentToday > 0 ? (attendanceRate >= 80 ? 'text-[#1f8a70]' : 'text-[#b45309]') : 'text-[#c7d4e4]'}`}>
+            <div className="rounded-2xl bg-white border border-[var(--border)] p-4">
+              <p className="text-[11px] font-medium text-[var(--t3)]">Attendance</p>
+              <p className={`text-2xl font-bold mt-1 ${stats.presentToday > 0 ? (attendanceRate >= 80 ? 'text-[var(--green)]' : 'text-[var(--amber)]') : 'text-[var(--t4)]'}`}>
                 {stats.presentToday > 0 ? `${attendanceRate}%` : '--'}
               </p>
-              <p className="text-[11px] font-medium text-[#7f91aa] mt-1">{stats.presentToday > 0 ? `${stats.presentToday} present today` : 'Not taken yet'}</p>
+              <p className="text-[11px] text-[var(--t3)] mt-0.5">{stats.presentToday > 0 ? `${stats.presentToday} present today` : 'Not taken'}</p>
             </div>
-          </div>
-
-          <div className="rounded-[24px] bg-white border border-[#e5ecf4] p-4 flex items-center gap-4">
-            <div className={`h-12 w-12 rounded-[16px] flex items-center justify-center shrink-0 ${collectionRate >= 70 ? 'bg-[#e1f3ee]' : 'bg-[#ffefe8]'}`}>
-              <span className={`material-symbols-outlined text-[24px] ${collectionRate >= 70 ? 'text-[#1f8a70]' : 'text-[#c2472b]'}`}>payments</span>
-            </div>
-            <div>
-              <p className={`text-[28px] font-bold leading-none ${collectionRate >= 70 ? 'text-[#1f8a70]' : 'text-[#c2472b]'}`}>
+            <div className="rounded-2xl bg-white border border-[var(--border)] p-4">
+              <p className="text-[11px] font-medium text-[var(--t3)]">Fees</p>
+              <p className={`text-2xl font-bold mt-1 ${totalExpected > 0 ? (collectionRate >= 70 ? 'text-[var(--green)]' : 'text-[var(--red)]') : 'text-[var(--t4)]'}`}>
                 {totalExpected > 0 ? `${collectionRate}%` : '--'}
               </p>
-              <p className="text-[11px] font-medium text-[#7f91aa] mt-1">Fee collection</p>
+              <p className="text-[11px] text-[var(--t3)] mt-0.5">{overdueFeeCount > 0 ? `${overdueFeeCount} overdue` : 'On track'}</p>
             </div>
           </div>
-        </div>
 
-        {/* Section 2: NEEDS ACTION — only if pending items */}
-        {(stats.presentToday === 0 && classes.length > 0) || pendingLeave > 0 || pendingExpenses > 0 ? (
-          <div className="space-y-3 mb-6">
-            {stats.presentToday === 0 && classes.length > 0 && (
-              <div className="rounded-[20px] bg-[#ffefe8] border border-[#f5d0c5] p-4 flex items-center gap-3">
-                <span className="material-symbols-outlined text-[#c2472b] text-2xl">how_to_reg</span>
-                <div className="flex-1">
-                  <p className="text-sm font-bold text-[#17325f]">Attendance today</p>
-                  <p className="text-xs text-[#6b7f99]">Not taken yet for any class</p>
+          {/* Alerts — only when something needs attention */}
+          {hasAlerts && (
+            <div className="space-y-2 mb-5">
+              {stats.presentToday === 0 && classes.length > 0 && (
+                <div className="rounded-xl bg-[#ffefe8] border border-[#f5d0c5] px-4 py-3 flex items-center gap-3">
+                  <span className="material-symbols-outlined text-[#c2472b] text-xl">how_to_reg</span>
+                  <p className="flex-1 text-sm font-semibold text-[#17325f]">Attendance not taken yet</p>
+                  <Link href="/dashboard/attendance" className="rounded-lg bg-[#c2472b] px-3 py-1.5 text-xs font-bold text-white">Take now</Link>
                 </div>
-                <Link href="/dashboard/attendance" className="shrink-0 rounded-xl bg-[#c2472b] px-4 py-2 text-xs font-bold text-white">Take now</Link>
-              </div>
-            )}
-            {pendingLeave > 0 && (
-              <div className="rounded-[20px] bg-[#fff5e8] border border-[#f5deb3] p-4 flex items-center gap-3">
-                <span className="material-symbols-outlined text-[#b45309] text-2xl">event_busy</span>
-                <div className="flex-1">
-                  <p className="text-sm font-bold text-[#17325f]">{pendingLeave} leave request{pendingLeave > 1 ? 's' : ''}</p>
-                  <p className="text-xs text-[#6b7f99]">Pending your approval</p>
+              )}
+              {overdueFeeCount > 0 && (
+                <div className="rounded-xl bg-[#ffefe8] border border-[#f5d0c5] px-4 py-3 flex items-center gap-3">
+                  <span className="material-symbols-outlined text-[#c2472b] text-xl">payments</span>
+                  <p className="flex-1 text-sm font-semibold text-[#17325f]">{overdueFeeCount} student{overdueFeeCount > 1 ? 's' : ''} with overdue fees</p>
+                  <Link href="/dashboard/fees" className="rounded-lg bg-[#c2472b] px-3 py-1.5 text-xs font-bold text-white">View</Link>
                 </div>
-                <Link href="/dashboard/leave-approvals" className="shrink-0 rounded-xl bg-[#b45309] px-4 py-2 text-xs font-bold text-white">Review</Link>
-              </div>
-            )}
-            {pendingExpenses > 0 && (
-              <div className="rounded-[20px] bg-[#ffefe8] border border-[#f5d0c5] p-4 flex items-center gap-3">
-                <span className="material-symbols-outlined text-[#c2472b] text-2xl">receipt</span>
-                <div className="flex-1">
-                  <p className="text-sm font-bold text-[#17325f]">{pendingExpenses} expense{pendingExpenses > 1 ? 's' : ''}</p>
-                  <p className="text-xs text-[#6b7f99]">Awaiting your sign-off</p>
+              )}
+              {lowAttendanceClasses > 0 && (
+                <div className="rounded-xl bg-[#fff5e8] border border-[#f5deb3] px-4 py-3 flex items-center gap-3">
+                  <span className="material-symbols-outlined text-[#b45309] text-xl">warning</span>
+                  <p className="flex-1 text-sm font-semibold text-[#17325f]">{lowAttendanceClasses} class{lowAttendanceClasses > 1 ? 'es' : ''} below 70% attendance</p>
+                  <Link href="/dashboard/attendance" className="rounded-lg bg-[#b45309] px-3 py-1.5 text-xs font-bold text-white">View</Link>
                 </div>
-                <Link href="/dashboard/expense-approvals" className="shrink-0 rounded-xl bg-[#c2472b] px-4 py-2 text-xs font-bold text-white">Review</Link>
-              </div>
-            )}
+              )}
+              {pendingLeave > 0 && (
+                <div className="rounded-xl bg-[#fff5e8] border border-[#f5deb3] px-4 py-3 flex items-center gap-3">
+                  <span className="material-symbols-outlined text-[#b45309] text-xl">event_busy</span>
+                  <p className="flex-1 text-sm font-semibold text-[#17325f]">{pendingLeave} leave request{pendingLeave > 1 ? 's' : ''} to review</p>
+                  <Link href="/dashboard/leave-approvals" className="rounded-lg bg-[#b45309] px-3 py-1.5 text-xs font-bold text-white">Review</Link>
+                </div>
+              )}
+              {pendingExpenses > 0 && (
+                <div className="rounded-xl bg-[#ffefe8] border border-[#f5d0c5] px-4 py-3 flex items-center gap-3">
+                  <span className="material-symbols-outlined text-[#c2472b] text-xl">receipt</span>
+                  <p className="flex-1 text-sm font-semibold text-[#17325f]">{pendingExpenses} expense{pendingExpenses > 1 ? 's' : ''} to approve</p>
+                  <Link href="/dashboard/expense-approvals" className="rounded-lg bg-[#c2472b] px-3 py-1.5 text-xs font-bold text-white">Review</Link>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Quick actions row */}
+          <div className="grid grid-cols-4 gap-2 mb-5">
+            {quickActions.slice(0, 4).map((action) => (
+              <Link
+                key={action.href}
+                href={action.href}
+                title={action.label}
+                className="flex flex-col items-center gap-1 rounded-xl bg-white border border-[var(--border)] py-3 hover:bg-[var(--surface-container)] transition-colors"
+              >
+                <span className="material-symbols-outlined text-[var(--t1)] text-xl">{action.icon}</span>
+                <span className="text-[10px] font-semibold text-[var(--t2)]">{action.label}</span>
+              </Link>
+            ))}
           </div>
-        ) : null}
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-          <div className="lg:col-span-2 rounded-[24px] bg-white border border-[#e5ecf4] p-4">
-            <div className="flex items-center justify-between gap-3 mb-3">
-              <div>
-                <p className="text-[11px] uppercase tracking-[0.16em] text-[#7f91aa] font-bold">Quick Tasks</p>
-                <p className="text-sm font-semibold text-[#17325f]">Things to do today</p>
-              </div>
-              <div className="text-[11px] font-semibold text-[#60748f]">{pendingTaskCount} pending tasks</div>
-            </div>
-            <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-              {quickActions.map((action) => (
-                <Link
-                  key={action.href}
-                  href={action.href}
-                  className="rounded-xl border border-[#e5ecf4] bg-[#f8fbff] p-3 hover:bg-[#edf4ff] transition-colors"
-                >
-                  <span className="material-symbols-outlined text-[#17325f] text-[20px]">{action.icon}</span>
-                  <div className="text-xs font-bold text-[#17325f] mt-2">{action.label}</div>
-                </Link>
-              ))}
-            </div>
-            <div className="mt-3 flex gap-2">
-              <input
-                type="text"
-                className="flex-1 rounded-xl border border-[#e5ecf4] px-3 py-2 text-sm bg-[#f8fbff] focus:outline-none focus:border-[#17325f]"
-                placeholder="Add a task..."
-                value={taskTitle}
-                onChange={(e) => setTaskTitle(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && addTask()}
-              />
-              <Button variant="primary" size="sm" onClick={addTask} disabled={!taskTitle.trim()}>
-                Add
-              </Button>
-            </div>
-            {tasks.length > 0 && (
-              <div className="mt-3 space-y-1 max-h-48 overflow-y-auto">
-                {tasks.map((task) => (
-                  <div key={task.id} className="flex items-center gap-2 rounded-xl bg-[#f8fbff] px-3 py-2">
-                    <input
-                      type="checkbox"
-                      checked={task.done}
-                      onChange={() => toggleTask(task.id)}
-                      className="accent-[#17325f]"
-                    />
-                    <span className={`flex-1 text-xs ${task.done ? "line-through text-[#7f91aa]" : "text-[#17325f]"}`}>
-                      {task.title}
-                    </span>
-                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                      task.priority === "high" ? "bg-red-100 text-red-700" :
-                      task.priority === "medium" ? "bg-yellow-100 text-yellow-700" : "bg-green-100 text-green-700"
-                    }`}>
-                      {task.priority}
-                    </span>
-                    <button onClick={() => removeTask(task.id)} className="text-[#7f91aa] hover:text-red-500">
-                      <MaterialIcon icon="close" className="text-sm" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-            <p className="text-[10px] text-[#7f91aa] mt-2">
-              Tasks stored only in this browser. They will not sync across devices.
-            </p>
-          </div>
-
-          <div className="rounded-[24px] bg-white border border-[#e5ecf4] p-4">
-            <p className="text-[11px] uppercase tracking-[0.16em] text-[#7f91aa] font-bold mb-3">Exceptions First</p>
-            <div className="space-y-3">
-              {focusItems.map((item) => (
-                <Link key={item.id} href={item.link} className="block rounded-xl border border-[#e5ecf4] p-3 hover:bg-[#f8fbff] transition-colors">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-xs font-semibold text-[#17325f]">{item.label}</span>
-                    <span className={`text-xs font-bold ${item.status === "alert" ? "text-[#c2472b]" : "text-[#1f8a70]"}`}>
-                      {item.value ?? "--"}
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-[#7f91aa] mt-1">{item.description}</p>
-                </Link>
-              ))}
-
-              {upcomingDeadlines.slice(0, 2).map((item) => (
-                <Link key={item.label} href={item.link} className="block rounded-xl border border-[#f5deb3] bg-[#fffaf1] p-3">
-                  <div className="text-xs font-semibold text-[#17325f]">{item.label}</div>
-                  <div className="text-[11px] text-[#b45309] mt-1">{item.date}</div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Section 3: CALENDAR */}
-        {/* Section 3: CALENDAR */}
-        <div className="mb-6">
-          <SchoolCalendar schoolId={school?.id} userId={user?.id} />
-        </div>
-      </section>
-
-      <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 mb-6">
-        <div className="xl:col-span-3">
-          <DashboardInsights
-            stats={stats}
-            attendanceRate={attendanceRate}
-            collectionRate={collectionRate}
-            students={students}
-            payments={payments}
-            loading={loadingExtra}
-            isDemo={isDemo}
-          />
-        </div>
-        <div className="xl:col-span-1">
-          <EcosystemPulse
-            payments={payments}
-            smsStats={smsStats}
-            loading={loadingExtra}
-          />
-        </div>
-      </div>
-
-      <div className="mt-6">
-        <SyllabusProgressWidget />
-      </div>
-
-      {/* Term End Checklist */}
-      <div className="mt-6 rounded-[24px] border border-[#e5ecf4] bg-white p-4">
-        <div className="flex items-center gap-2 mb-3">
-          <span className="material-symbols-outlined text-[#17325f] text-lg">checklist</span>
-          <span className="text-xs font-bold uppercase tracking-[0.16em] text-[#17325f]">Term End Checklist</span>
-        </div>
-        <div className="space-y-2">
-          {[
-            {
-              label: "Report cards generated",
-              ok: stats.totalStudents ? stats.totalStudents > 0 : false,
-              link: "/dashboard/report-cards",
-            },
-            {
-              label: "Attendance captured for term",
-              ok: Object.keys(classAttendance).length > 0,
-              link: "/dashboard/attendance",
-            },
-            {
-              label: "Fees reconciled",
-              ok: collectionRate >= 80,
-              link: "/dashboard/fees",
-            },
-            {
-              label: "Students promoted (if end of year)",
-              ok: false,
-              link: "/dashboard/students/graduation",
-            },
-            {
-              label: "Inventory counted",
-              ok: false,
-              link: "/dashboard/store/inventory",
-            },
-          ].map((item) => (
-            <Link key={item.label} href={item.link}
-              className={`flex items-center gap-3 rounded-xl border p-3 ${
-                item.ok ? "border-[#d8efe7] bg-[#f3fbf8]" : "border-[#f5d0c5] bg-[#ffefe8]"
-              }`}
-            >
-              <span className={`material-symbols-outlined text-lg ${
-                item.ok ? "text-[#1f8a70]" : "text-[#c2472b]"
-              }`}>
-                {item.ok ? "check_circle" : "radio_button_unchecked"}
-              </span>
-              <span className="text-xs font-semibold text-[#17325f]">{item.label}</span>
-            </Link>
-          ))}
-        </div>
-      </div>
+        </>
+      )}
     </div>
   );
 }

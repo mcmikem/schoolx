@@ -418,9 +418,7 @@ export async function proxy(request: NextRequest) {
 
           if (!entitlementMissingSchema) {
             const isActiveState = entitlement?.status === "active" || entitlement?.status === "trial";
-            const hasValidEndDate = entitlement?.ends_at
-              ? new Date(entitlement.ends_at).getTime() > Date.now()
-              : false;
+            const hasValidEndDate = !entitlement?.ends_at || new Date(entitlement.ends_at).getTime() > Date.now();
 
             if (!isActiveState || !hasValidEndDate) {
               const upgradeUrl = new URL("/dashboard/settings", request.url);

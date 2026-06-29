@@ -28,6 +28,7 @@ import OwlAssistant from "@/components/OwlAssistant";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import CommandPalette from "@/components/CommandPalette";
 import RoleBasedWalkthrough from "@/components/RoleBasedWalkthrough";
+import OnboardingTour from "@/components/OnboardingTour";
 import { supabase } from "@/lib/supabase";
 
 function hasCompletedSetupProgress(value: unknown): boolean {
@@ -462,6 +463,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
       <MobileBottomNav />
       <RoleBasedWalkthrough />
+      {onboardingCompleted && <OnboardingTour />}
       <OwlAssistant />
       <PWAInstallPrompt />
       <CommandPalette />

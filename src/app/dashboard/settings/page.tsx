@@ -868,8 +868,8 @@ export default function SettingsPage() {
             <CardBody>
               <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between mb-4">
                 <div>
-                  <h2 className="text-lg font-semibold text-[var(--on-surface)]">Modular Access</h2>
-                  <p className="text-sm text-[var(--t3)]">Choose full suite or modular mode, then activate only what your school needs.</p>
+                  <h2 className="text-lg font-semibold text-[var(--on-surface)]">Choose Your Modules</h2>
+                  <p className="text-sm text-[var(--t3)]">Get all modules included, or pick only the ones your school needs.</p>
                 </div>
                 <div className="px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-[var(--surface-container-low)] text-[var(--t2)]">
                   {billingMode === "modular" ? `Modular (${schoolSizeBand})` : "Full Suite"}
@@ -889,7 +889,7 @@ export default function SettingsPage() {
                   disabled={!isSupabaseConfigured}
                   onClick={() => switchBillingMode("full_suite")}
                 >
-                  Full Suite Mode
+                  All Modules Included
                 </Button>
                 <Button
                   variant={billingMode === "modular" ? "primary" : "secondary"}
@@ -897,14 +897,14 @@ export default function SettingsPage() {
                   disabled={!isSupabaseConfigured}
                   onClick={() => switchBillingMode("modular")}
                 >
-                  Modular Mode
+                  Pick Individual Modules
                 </Button>
               </div>
 
               {loadingModules ? (
                 <div className="text-sm text-[var(--t3)]">Loading module catalog...</div>
               ) : !isSupabaseConfigured ? (
-                <div className="text-sm text-[var(--t3)]">Connect Supabase to view and manage the module catalog.</div>
+                <div className="text-sm text-[var(--t3)]">Connect to a database to view and manage your modules.</div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {moduleCatalog.map((module) => {
