@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
@@ -24,8 +25,9 @@ import { useToast } from "@/components/Toast";
 import { TopLoadingBar, StuckLoadingOverlay } from "@/components/ui/Skeleton";
 import OwlMascot from "@/components/brand/OwlMascot";
 import { TeacherQuickGuide } from "@/components/dashboard/SchoolReadinessGuide";
-
-import StatCard from "@/components/dashboard/StatCard";
+import SkoolMateLogo from "@/components/SkoolMateLogo";
+import SchoolCalendar from "@/components/dashboard/SchoolCalendar";
+import TaskManager from "@/components/dashboard/TaskManager";
 
 function TeacherDashboardContent() {
   const router = useRouter();
@@ -47,7 +49,7 @@ function TeacherDashboardContent() {
     }
     const timer = window.setTimeout(() => {
       setLoadingTimedOut(true);
-    }, 12000);
+    }, 3000);
     return () => window.clearTimeout(timer);
   }, [dataLoading]);
 
@@ -106,6 +108,41 @@ function TeacherDashboardContent() {
     },
   ];
 
+  const tasks = useMemo(() => {
+    const items = [];
+    if (attendancePending) {
+      items.push({
+        id: "attendance",
+        label: "Take attendance for today",
+        icon: "how_to_reg",
+        priority: "urgent" as const,
+        href: "/dashboard/attendance",
+        cta: "Take now",
+      });
+    }
+    if (classesWithNoStudents > 0) {
+      items.push({
+        id: "no-students",
+        label: `${classesWithNoStudents} class${classesWithNoStudents > 1 ? "es" : ""} with no students assigned`,
+        icon: "warning",
+        priority: "attention" as const,
+        href: "/dashboard/students",
+        cta: "Assign",
+      });
+    }
+    if (needsSetup) {
+      items.push({
+        id: "setup",
+        label: "Complete class and subject setup",
+        icon: "rocket_launch",
+        priority: "urgent" as const,
+        href: "/dashboard/settings?tab=checklist",
+        cta: "Setup",
+      });
+    }
+    return items;
+  }, [attendancePending, classesWithNoStudents, needsSetup]);
+
   if (dataLoading && !loadingTimedOut) {
     return (
       <div className="min-h-screen bg-[var(--bg)] flex flex-col">
@@ -121,142 +158,164 @@ function TeacherDashboardContent() {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
-      <div className="relative overflow-hidden rounded-[28px] border border-[#d6e4e8] bg-[linear-gradient(150deg,#eff7f5_0%,#eaf2f6_44%,#f8fbff_100%)] p-4 sm:p-6">
-        <div className="pointer-events-none absolute -left-20 -top-20 h-48 w-48 rounded-full bg-[#b7dfd8]/40 blur-3xl" />
-        <div className="pointer-events-none absolute -right-16 bottom-0 h-40 w-40 rounded-full bg-[#d8e9fb]/60 blur-3xl" />
-
-        <div className="relative z-10">
+    <div className="content overflow-x-hidden">
       <TeacherQuickGuide />
 
-      {/* Section 1: GREETING + MY DAY */}
-      <section className="relative mb-6 overflow-hidden rounded-[34px] border border-white/70 bg-[linear-gradient(130deg,#f9fbff_0%,#eff6ff_40%,#f8faff_100%)] p-4 sm:p-6">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-[#7f91aa]">{todayLabel}</p>
-            <h1 className="mt-1 text-3xl font-bold text-[#17325f]">{greeting}, {user?.full_name?.split(" ")[0]}</h1>
-            <p className="mt-1 text-sm text-[#60748f]">{school?.name} · Term {currentTerm} · {academicYear}</p>
-          </div>
-          <div className="rounded-full bg-[#17325f] px-4 py-2 text-center">
-            <p className="text-2xl font-bold text-white">{myClasses.length}</p>
-            <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-white/70">Classes</p>
-          </div>
-        </div>
-      </section>
+      {/* ── Hero: Big Logo + School Branding ── */}
+      <div className="relative mb-6 overflow-hidden rounded-[32px] border border-[#d6e4e8] bg-[linear-gradient(150deg,#eff7f5_0%,#eaf2f6_44%,#f8fbff_100%)] p-5 sm:p-7">
+        <div className="pointer-events-none absolute -left-16 -top-16 h-52 w-52 rounded-full bg-[#b7dfd8]/30 blur-3xl" />
+        <div className="pointer-events-none absolute -right-10 -bottom-10 h-36 w-36 rounded-full bg-[#d8e9fb]/40 blur-3xl" />
+        <div className="pointer-events-none absolute left-1/2 top-0 h-20 w-60 -translate-x-1/2 rounded-full bg-[#c8dce8]/20 blur-2xl" />
 
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-        <div className="lg:col-span-2 rounded-[22px] border border-[#e5ecf4] bg-white p-4">
-          <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#7f91aa]">Today Actions</div>
-          <div className="grid grid-cols-2 gap-3 mt-3">
-            {todayActions.map((action) => (
-              <Link
-                key={action.href}
-                href={action.href}
-                className="rounded-xl border border-[#e5ecf4] bg-[#f8fbff] p-3 hover:bg-[#edf4ff] transition-colors"
-              >
-                <span className={`material-symbols-outlined text-[20px] ${action.tone}`}>{action.icon}</span>
-                <div className="text-xs font-bold text-[#17325f] mt-2">{action.label}</div>
-              </Link>
-            ))}
+        <div className="relative z-10 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            {school?.logo_url ? (
+              <Image src={school.logo_url} alt={school?.name || "School"} width={80} height={80} className="object-contain rounded-xl" unoptimized />
+            ) : (
+              <SkoolMateLogo size="xl" showText variant="default" />
+            )}
+          </div>
+          <div className="hidden sm:flex items-center gap-3">
+            <div className="rounded-full bg-[#17325f] px-4 py-2 text-center">
+              <p className="text-xl font-bold text-white leading-none">{myClasses.length}</p>
+              <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-white/70">Classes</p>
+            </div>
           </div>
         </div>
 
-        <div className="rounded-[22px] border border-[#e5ecf4] bg-white p-4">
-          <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#7f91aa]">Exceptions First</div>
-          <div className="space-y-3 mt-3">
-            <div className={`rounded-xl border p-3 ${attendancePending ? "border-[#f5d0c5] bg-[#ffefe8]" : "border-[#d8efe7] bg-[#f3fbf8]"}`}>
-              <div className="text-xs font-semibold text-[#17325f]">Attendance status</div>
-              <div className={`text-sm font-bold mt-1 ${attendancePending ? "text-[#c2472b]" : "text-[#1f8a70]"}`}>
-                {attendancePending ? "Pending for today" : "Captured"}
+        <div className="relative z-10 mt-4 flex flex-wrap items-center gap-3 border-t border-[#c8dce8]/40 pt-4">
+          <div className="flex items-center gap-2 text-xs text-[#42638d]">
+            <MaterialIcon icon="today" className="text-base" />
+            <span className="font-semibold">{todayLabel}</span>
+          </div>
+          <div className="text-xs text-[#42638d]">
+            <span className="font-semibold">{school?.name}</span> · Term {currentTerm} · {academicYear}
+          </div>
+          {stats?.totalStudents > 0 && (
+            <div className="ml-auto flex items-center gap-1.5 rounded-full bg-[#edf4ff] px-3 py-1">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#17325f]" />
+              <span className="text-[11px] font-bold text-[#17325f]">{students.length} students</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Two-Column Layout ── */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+        {/* ── Left Column ── */}
+        <div className="xl:col-span-2 space-y-5">
+          {/* Today Actions + At a Glance row */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <div className="rounded-2xl border border-[#eef2f8] bg-white p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#17325f]/10">
+                  <MaterialIcon icon="today" className="text-sm text-[#17325f]" />
+                </div>
+                <h2 className="text-sm font-bold text-[#17325f] font-['Sora']">Today Actions</h2>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {todayActions.map((action) => (
+                  <Link
+                    key={action.href}
+                    href={action.href}
+                    className="flex items-center gap-2.5 rounded-xl border border-[#eef2f8] bg-[#f8fbff] p-3 transition-all hover:border-[#c8dce8] hover:bg-[#edf4ff] hover:shadow-sm active:scale-95"
+                  >
+                    <span className={`material-symbols-outlined text-lg ${action.tone}`}>{action.icon}</span>
+                    <span className="text-[11px] font-bold text-[#17325f]">{action.label}</span>
+                  </Link>
+                ))}
               </div>
             </div>
-            <div className={`rounded-xl border p-3 ${classesWithNoStudents > 0 ? "border-[#f5deb3] bg-[#fff8eb]" : "border-[#e5ecf4] bg-[#f8fbff]"}`}>
-              <div className="text-xs font-semibold text-[#17325f]">Class data quality</div>
-              <div className="text-sm font-bold mt-1 text-[#17325f]">
-                {classesWithNoStudents > 0
-                  ? `${classesWithNoStudents} class(es) have no students`
-                  : "All classes have student records"}
-              </div>
-            </div>
-            <div className="rounded-xl border border-[#e5ecf4] bg-[#f8fbff] p-3">
-              <div className="text-xs font-semibold text-[#17325f]">My teaching load</div>
-              <div className="text-sm font-bold mt-1 text-[#17325f]">{myClasses.length} classes · {mySubjects.length} subjects</div>
-            </div>
-          </div>
-        </div>
-      </section>
 
-      {/* Section 2: MY CLASSES */}
-      {myClasses.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
-          {myClasses.map((cls: any) => {
-            const count = students.filter((s) => s.class_id === cls.id).length;
-            return (
-              <div key={cls.id} className="rounded-[20px] bg-white border border-[#e5ecf4] p-4">
-                <p className="text-lg font-bold text-[#17325f]">{cls.name}</p>
-                <p className="text-xs text-[#7f91aa] mt-0.5">{count} student{count !== 1 ? 's' : ''}</p>
-                <div className="flex gap-2 mt-3">
-                  <Link href={`/dashboard/attendance?class=${cls.id}`} className="flex-1 rounded-xl bg-[#17325f] py-2 text-center text-xs font-bold text-white hover:opacity-90">Attendance</Link>
-                  <Link href={`/dashboard/grades?class=${cls.id}`} className="flex-1 rounded-xl bg-[#edf4ff] py-2 text-center text-xs font-bold text-[#17325f] hover:bg-[#dce8f5]">Grades</Link>
+            <div className="rounded-2xl border border-[#eef2f8] bg-white p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#1f8a70]/10">
+                  <MaterialIcon icon="insights" className="text-sm text-[#1f8a70]" />
+                </div>
+                <h2 className="text-sm font-bold text-[#17325f] font-['Sora']">At a Glance</h2>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div className="rounded-xl bg-[#f8fbff] border border-[#eef2f8] p-3 text-center">
+                  <span className="text-xl font-bold text-[#17325f]">{myClasses.length}</span>
+                  <p className="text-[10px] font-medium text-[#7f91aa]">Classes</p>
+                </div>
+                <div className="rounded-xl bg-[#f8fbff] border border-[#eef2f8] p-3 text-center">
+                  <span className="text-xl font-bold text-[#17325f]">{mySubjects.length}</span>
+                  <p className="text-[10px] font-medium text-[#7f91aa]">Subjects</p>
+                </div>
+                <div className="rounded-xl bg-[#f8fbff] border border-[#eef2f8] p-3 text-center">
+                  <span className="text-xl font-bold text-[#17325f]">{students.length}</span>
+                  <p className="text-[10px] font-medium text-[#7f91aa]">Students</p>
                 </div>
               </div>
-            );
-          })}
-        </div>
-      ) : (
-        <div className="rounded-[20px] bg-white border border-dashed border-[#d7e3f2] p-6 text-center mb-6">
-          <p className="text-sm font-semibold text-[#7f91aa]">No classes assigned yet</p>
-        </div>
-      )}
+            </div>
+          </div>
 
-      {/* Section 3: TODAY'S SCHEDULE */}
-      <div className="rounded-[22px] border border-[#e5ecf4] bg-white p-4 mb-4">
-        <div className="flex items-center justify-between mb-3">
+          {/* Task Manager */}
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#7f91aa]">Today's Schedule</p>
-            <p className="text-sm font-semibold text-[#17325f]">View your classes and periods for today</p>
+            <div className="mb-3 flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#17325f]">
+                <MaterialIcon icon="assignment" className="text-sm text-white" />
+              </div>
+              <h2 className="text-sm font-bold text-[#17325f] font-['Sora']">Task Manager</h2>
+              {tasks.length > 0 && (
+                <span className="rounded-full bg-[#c2472b]/10 px-2.5 py-0.5 text-[10px] font-bold text-[#c2472b]">
+                  {tasks.length} pending
+                </span>
+              )}
+            </div>
+            <TaskManager tasks={tasks} emptyMessage="All caught up! No pending tasks." />
           </div>
-          <Link href="/dashboard/timetable" className="rounded-xl bg-[#17325f] px-4 py-2 text-xs font-bold text-white hover:opacity-90">
-            Open timetable
-          </Link>
-        </div>
-      </div>
 
-      {/* Section 4: AT A GLANCE */}
-      <div className="rounded-[22px] border border-[#e5ecf4] bg-white p-4">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#7f91aa]">At a Glance</p>
-            <p className="text-sm font-semibold text-[#17325f]">Your class overview</p>
-          </div>
-        </div>
-        <div className="grid grid-cols-3 gap-3">
-          <div className="rounded-xl bg-[#f8fbff] border border-[#e5ecf4] p-3 text-center">
-            <span className="text-2xl font-bold text-[#17325f]">{myClasses.length}</span>
-            <p className="text-[10px] font-medium text-[#7f91aa] mt-1">Classes</p>
-          </div>
-          <div className="rounded-xl bg-[#f8fbff] border border-[#e5ecf4] p-3 text-center">
-            <span className="text-2xl font-bold text-[#17325f]">{mySubjects.length}</span>
-            <p className="text-[10px] font-medium text-[#7f91aa] mt-1">Subjects</p>
-          </div>
-          <div className="rounded-xl bg-[#f8fbff] border border-[#e5ecf4] p-3 text-center">
-            <span className="text-2xl font-bold text-[#17325f]">{students.length}</span>
-            <p className="text-[10px] font-medium text-[#7f91aa] mt-1">Students</p>
-          </div>
-        </div>
-      </div>
+          {/* My Classes */}
+          {myClasses.length > 0 && (
+            <div>
+              <div className="mb-3 flex items-center gap-2">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#17325f]/10">
+                  <MaterialIcon icon="school" className="text-sm text-[#17325f]" />
+                </div>
+                <h2 className="text-sm font-bold text-[#17325f] font-['Sora']">My Classes</h2>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {myClasses.map((cls: any) => {
+                  const count = students.filter((s) => s.class_id === cls.id).length;
+                  return (
+                    <div key={cls.id} className="group rounded-2xl bg-white border border-[#eef2f8] p-4 transition-all hover:shadow-md hover:-translate-y-0.5">
+                      <p className="text-base font-bold text-[#17325f]">{cls.name}</p>
+                      <p className="text-xs text-[#7f91aa] mt-0.5">{count} student{count !== 1 ? "s" : ""}</p>
+                      <div className="flex gap-2 mt-3">
+                        <Link href={`/dashboard/attendance?class=${cls.id}`} className="flex-1 rounded-xl bg-[#17325f] py-1.5 text-center text-[10px] font-bold text-white hover:opacity-90 transition-opacity">Attendance</Link>
+                        <Link href={`/dashboard/grades?class=${cls.id}`} className="flex-1 rounded-xl bg-[#edf4ff] py-1.5 text-center text-[10px] font-bold text-[#17325f] hover:bg-[#dce8f5] transition-colors">Grades</Link>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
-      {/* Section 5: PENDING ACTIONS */}
-      {stats?.presentToday === 0 && myClasses.length > 0 && (
-        <div className="rounded-[20px] bg-[#ffefe8] border border-[#f5d0c5] p-4 flex items-center gap-3 mt-4">
-          <span className="material-symbols-outlined text-[#c2472b] text-2xl">how_to_reg</span>
-          <div className="flex-1">
-            <p className="text-sm font-bold text-[#17325f]">Mark attendance</p>
-            <p className="text-xs text-[#6b7f99]">Not yet taken for today</p>
+          {/* Today's Schedule */}
+          <div className="rounded-2xl border border-[#eef2f8] bg-white p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#b45309]/10">
+                  <MaterialIcon icon="calendar_month" className="text-sm text-[#b45309]" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-[#17325f] font-['Sora']">Today's Schedule</p>
+                  <p className="text-[11px] text-[#7f91aa]">View your classes and periods for today</p>
+                </div>
+              </div>
+              <Link href="/dashboard/timetable" className="rounded-xl bg-[#17325f] px-4 py-2 text-[11px] font-bold text-white hover:opacity-90 transition-opacity">
+                Open timetable
+              </Link>
+            </div>
           </div>
-          <Link href="/dashboard/attendance" className="shrink-0 rounded-xl bg-[#c2472b] px-4 py-2 text-xs font-bold text-white">Take now</Link>
         </div>
-      )}
+
+        {/* ── Right Column: Calendar ── */}
+        <div className="space-y-5">
+          <SchoolCalendar schoolId={school?.id} userId={user?.id} />
         </div>
       </div>
     </div>

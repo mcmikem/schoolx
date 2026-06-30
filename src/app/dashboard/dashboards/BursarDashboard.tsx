@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import Link from "next/link";
 import { useMemo } from "react";
 import { useAuth } from "@/lib/auth-context";
@@ -10,6 +11,9 @@ import {
 } from "@/lib/hooks";
 import MaterialIcon from "@/components/MaterialIcon";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import SkoolMateLogo from "@/components/SkoolMateLogo";
+import SchoolCalendar from "@/components/dashboard/SchoolCalendar";
+import TaskManager from "@/components/dashboard/TaskManager";
 
 import StatCard from "@/components/dashboard/StatCard";
 import DashboardInsights from "@/components/dashboard/DashboardInsights";
@@ -176,82 +180,183 @@ function BursarDashboardContent() {
     month: "short",
   });
 
+  const tasks = useMemo(() => {
+    const items = [];
+    if (totalArrears > 0) {
+      items.push({
+        id: "arrears",
+        label: `${overdueCount} student${overdueCount > 1 ? "s" : ""} in arrears — UGX ${totalArrears.toLocaleString()} total`,
+        icon: "payments",
+        priority: "urgent" as const,
+        href: "/dashboard/fees",
+        cta: "View",
+      });
+    }
+    if (highRiskArrearsCount > 0) {
+      items.push({
+        id: "high-risk",
+        label: `${highRiskArrearsCount} high-risk arrears above UGX 300,000`,
+        icon: "warning",
+        priority: "attention" as const,
+        href: "/dashboard/fees?tab=defaulters",
+        cta: "Review",
+      });
+    }
+    return items;
+  }, [totalArrears, overdueCount, highRiskArrearsCount]);
+
   return (
-    <div className="p-4 sm:p-6 lg:p-8">
-      <div className="relative overflow-hidden rounded-[28px] border border-[#d6e4e8] bg-[linear-gradient(150deg,#eff7f5_0%,#eaf2f6_44%,#f8fbff_100%)] p-4 sm:p-6">
-        <div className="pointer-events-none absolute -left-20 -top-20 h-48 w-48 rounded-full bg-[#b7dfd8]/40 blur-3xl" />
-        <div className="pointer-events-none absolute -right-16 bottom-0 h-40 w-40 rounded-full bg-[#d8e9fb]/60 blur-3xl" />
+    <div className="content overflow-x-hidden">
+      {/* ── Hero: Big Logo + School Branding ── */}
+      <div className="relative mb-6 overflow-hidden rounded-[32px] border border-[#d6e4e8] bg-[linear-gradient(150deg,#eff7f5_0%,#eaf2f6_44%,#f8fbff_100%)] p-5 sm:p-7">
+        <div className="pointer-events-none absolute -left-16 -top-16 h-52 w-52 rounded-full bg-[#b7dfd8]/30 blur-3xl" />
+        <div className="pointer-events-none absolute -right-10 -bottom-10 h-36 w-36 rounded-full bg-[#d8e9fb]/40 blur-3xl" />
+        <div className="pointer-events-none absolute left-1/2 top-0 h-20 w-60 -translate-x-1/2 rounded-full bg-[#c8dce8]/20 blur-2xl" />
 
-        <div className="relative z-10">
-      <div className="mb-4">
-        <h1 className="text-xl font-bold text-[#17325f] font-['Sora']">{greeting}, {user?.full_name?.split(" ")[0]}</h1>
-        <p className="text-sm text-[#60748f]">{school?.name} · {todayLabel}</p>
-      </div>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <div className="rounded-[20px] bg-white border border-[#e5ecf4] p-4">
-          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#7f91aa]">Expected</p>
-          <p className="mt-1 text-2xl font-bold text-[#17325f]">UGX {formatCurrency(totalFeesExpected)}</p>
-        </div>
-        <div className="rounded-[20px] bg-white border border-[#e5ecf4] p-4">
-          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#7f91aa]">Collected</p>
-          <p className="mt-1 text-2xl font-bold text-[#1f8a70]">UGX {formatCurrency(totalFeesCollected)}</p>
-        </div>
-        <div className="rounded-[20px] bg-white border border-[#e5ecf4] p-4">
-          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#7f91aa]">Arrears</p>
-          <p className={`mt-1 text-2xl font-bold ${totalArrears > 0 ? 'text-[#c2472b]' : 'text-[#1f8a70]'}`}>UGX {formatCurrency(totalArrears)}</p>
-        </div>
-        <div className="rounded-[20px] bg-white border border-[#e5ecf4] p-4">
-          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#7f91aa]">Rate</p>
-          <p className={`mt-1 text-2xl font-bold ${collectionRate >= 70 ? 'text-[#1f8a70]' : collectionRate >= 40 ? 'text-[#b45309]' : 'text-[#c2472b]'}`}>{collectionRate}%</p>
-        </div>
-      </div>
-
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
-        <div className="lg:col-span-2 rounded-[22px] border border-[#e5ecf4] bg-white p-4">
-          <div className="text-[11px] uppercase tracking-[0.16em] text-[#7f91aa] font-bold">Today Actions</div>
-          <div className="grid grid-cols-2 xl:grid-cols-4 gap-3 mt-3">
-            {todayActions.map((action) => (
-              <Link
-                key={action.label}
-                href={action.href}
-                className="rounded-xl border border-[#e5ecf4] bg-[#f8fbff] p-3 hover:bg-[#edf4ff] transition-colors"
-              >
-                <span className="material-symbols-outlined text-[20px] text-[#17325f]">{action.icon}</span>
-                <div className="text-xs font-bold text-[#17325f] mt-2">{action.label}</div>
-              </Link>
-            ))}
+        <div className="relative z-10 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            {school?.logo_url ? (
+              <Image src={school.logo_url} alt={school?.name || "School"} width={80} height={80} className="object-contain rounded-xl" unoptimized />
+            ) : (
+              <SkoolMateLogo size="xl" showText variant="default" />
+            )}
+          </div>
+          <div className="hidden sm:block text-right">
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#42638d]">
+              Term {currentTerm} · {academicYear}
+            </p>
+            <p className="mt-0.5 text-[13px] font-semibold text-[#17325f]">
+              {school?.name}
+            </p>
           </div>
         </div>
 
-        <div className="rounded-[22px] border border-[#e5ecf4] bg-white p-4">
-          <div className="text-[11px] uppercase tracking-[0.16em] text-[#7f91aa] font-bold">Exceptions First</div>
-          <div className="space-y-3 mt-3">
-            <div className={`rounded-xl border p-3 ${totalArrears > 0 ? "border-[#f5d0c5] bg-[#ffefe8]" : "border-[#d8efe7] bg-[#f3fbf8]"}`}>
-              <div className="text-xs font-semibold text-[#17325f]">Collection gap</div>
-              <div className={`text-sm font-bold mt-1 ${totalArrears > 0 ? "text-[#c2472b]" : "text-[#1f8a70]"}`}>
-                {totalArrears > 0 ? `UGX ${totalArrears.toLocaleString()}` : "Target met"}
+        <div className="relative z-10 mt-4 flex flex-wrap items-center gap-3 border-t border-[#c8dce8]/40 pt-4">
+          <div className="flex items-center gap-2 text-xs text-[#42638d]">
+            <MaterialIcon icon="today" className="text-base" />
+            <span className="font-semibold">{todayLabel}</span>
+          </div>
+          <div className="text-xs text-[#42638d]">
+            <span className="font-semibold">{students.length} students enrolled</span>
+          </div>
+          {collectionRate > 0 && (
+            <div className={`ml-auto flex items-center gap-1.5 rounded-full px-3 py-1 ${
+              collectionRate >= 70 ? "bg-[#1f8a70]/10" : "bg-[#c2472b]/10"
+            }`}>
+              <span className={`h-1.5 w-1.5 rounded-full ${
+                collectionRate >= 70 ? "bg-[#1f8a70]" : "bg-[#c2472b]"
+              }`} />
+              <span className={`text-[11px] font-bold ${
+                collectionRate >= 70 ? "text-[#1f8a70]" : "text-[#c2472b]"
+              }`}>{collectionRate}% collected</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Two-Column Layout ── */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+        {/* ── Left Column ── */}
+        <div className="xl:col-span-2 space-y-5">
+          {/* Fee metrics */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div className="group rounded-2xl bg-white border border-[#eef2f8] p-4 transition-all hover:shadow-md hover:-translate-y-0.5">
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#7f91aa]">Expected</p>
+              <p className="mt-1 text-xl font-bold text-[#17325f]">UGX {formatCurrency(totalFeesExpected)}</p>
+            </div>
+            <div className="group rounded-2xl bg-white border border-[#eef2f8] p-4 transition-all hover:shadow-md hover:-translate-y-0.5">
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#7f91aa]">Collected</p>
+              <p className="mt-1 text-xl font-bold text-[#1f8a70]">UGX {formatCurrency(totalFeesCollected)}</p>
+            </div>
+            <div className="group rounded-2xl bg-white border border-[#eef2f8] p-4 transition-all hover:shadow-md hover:-translate-y-0.5">
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#7f91aa]">Arrears</p>
+              <p className={`mt-1 text-xl font-bold ${totalArrears > 0 ? "text-[#c2472b]" : "text-[#1f8a70]"}`}>UGX {formatCurrency(totalArrears)}</p>
+            </div>
+            <div className="group rounded-2xl bg-white border border-[#eef2f8] p-4 transition-all hover:shadow-md hover:-translate-y-0.5">
+              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#7f91aa]">Rate</p>
+              <p className={`mt-1 text-xl font-bold ${
+                collectionRate >= 70 ? "text-[#1f8a70]" : collectionRate >= 40 ? "text-[#b45309]" : "text-[#c2472b]"
+              }`}>{collectionRate}%</p>
+            </div>
+          </div>
+
+          {/* Task Manager */}
+          <div>
+            <div className="mb-3 flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#17325f]">
+                <MaterialIcon icon="assignment" className="text-sm text-white" />
               </div>
+              <h2 className="text-sm font-bold text-[#17325f] font-['Sora']">Task Manager</h2>
+              {tasks.length > 0 && (
+                <span className="rounded-full bg-[#c2472b]/10 px-2.5 py-0.5 text-[10px] font-bold text-[#c2472b]">
+                  {tasks.length} pending
+                </span>
+              )}
             </div>
-            <div className={`rounded-xl border p-3 ${highRiskArrearsCount > 0 ? "border-[#f5deb3] bg-[#fff8eb]" : "border-[#e5ecf4] bg-[#f8fbff]"}`}>
-              <div className="text-xs font-semibold text-[#17325f]">High-risk arrears</div>
-              <div className="text-sm font-bold mt-1 text-[#17325f]">{highRiskArrearsCount} learner(s) above UGX 300,000</div>
+            <TaskManager tasks={tasks} emptyMessage="All caught up! No pending tasks." />
+          </div>
+
+          {/* Today Actions */}
+          <div className="rounded-2xl border border-[#eef2f8] bg-white p-4">
+            <div className="mb-3 flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#17325f]/10">
+                <MaterialIcon icon="today" className="text-sm text-[#17325f]" />
+              </div>
+              <h2 className="text-sm font-bold text-[#17325f] font-['Sora']">Today Actions</h2>
             </div>
-            <div className="rounded-xl border border-[#e5ecf4] bg-[#f8fbff] p-3">
-              <div className="text-xs font-semibold text-[#17325f]">Students in arrears</div>
-              <div className="text-sm font-bold mt-1 text-[#17325f]">{overdueCount} out of {students.length}</div>
+            <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
+              {todayActions.map((action) => (
+                <Link
+                  key={action.label}
+                  href={action.href}
+                  className="flex items-center gap-2.5 rounded-xl border border-[#eef2f8] bg-[#f8fbff] p-3 transition-all hover:border-[#c8dce8] hover:bg-[#edf4ff] hover:shadow-sm active:scale-95"
+                >
+                  <span className="material-symbols-outlined text-lg text-[#17325f]">{action.icon}</span>
+                  <span className="text-[11px] font-bold text-[#17325f]">{action.label}</span>
+                </Link>
+              ))}
             </div>
-            <div className="rounded-xl border border-[#e5ecf4] bg-[#f8fbff] p-3">
-              <div className="text-xs font-semibold text-[#17325f]">Month trend</div>
-              <div className={`text-sm font-bold mt-1 ${collectionTrend >= 0 ? "text-[#1f8a70]" : "text-[#c2472b]"}`}>
-                {collectionTrend >= 0 ? "+" : ""}{collectionTrend}% vs last month
+          </div>
+
+          {/* Exceptions First */}
+          <div className="rounded-2xl border border-[#eef2f8] bg-white p-4">
+            <div className="mb-3 flex items-center gap-2">
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#b45309]/10">
+                <MaterialIcon icon="warning" className="text-sm text-[#b45309]" />
+              </div>
+              <h2 className="text-sm font-bold text-[#17325f] font-['Sora']">Exceptions First</h2>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className={`rounded-xl border p-3 ${totalArrears > 0 ? "border-[#f5d0c5] bg-[#ffefe8]" : "border-[#d8efe7] bg-[#f3fbf8]"}`}>
+                <div className="text-xs font-semibold text-[#17325f]">Collection gap</div>
+                <div className={`text-sm font-bold mt-1 ${totalArrears > 0 ? "text-[#c2472b]" : "text-[#1f8a70]"}`}>
+                  {totalArrears > 0 ? `UGX ${totalArrears.toLocaleString()}` : "Target met"}
+                </div>
+              </div>
+              <div className={`rounded-xl border p-3 ${highRiskArrearsCount > 0 ? "border-[#f5deb3] bg-[#fff8eb]" : "border-[#eef2f8] bg-[#f8fbff]"}`}>
+                <div className="text-xs font-semibold text-[#17325f]">High-risk arrears</div>
+                <div className="text-sm font-bold mt-1 text-[#17325f]">{highRiskArrearsCount} above UGX 300,000</div>
+              </div>
+              <div className="rounded-xl border border-[#eef2f8] bg-[#f8fbff] p-3">
+                <div className="text-xs font-semibold text-[#17325f]">Students in arrears</div>
+                <div className="text-sm font-bold mt-1 text-[#17325f]">{overdueCount} of {students.length}</div>
+              </div>
+              <div className="rounded-xl border border-[#eef2f8] bg-[#f8fbff] p-3">
+                <div className="text-xs font-semibold text-[#17325f]">Month trend</div>
+                <div className={`text-sm font-bold mt-1 ${collectionTrend >= 0 ? "text-[#1f8a70]" : "text-[#c2472b]"}`}>
+                  {collectionTrend >= 0 ? "+" : ""}{collectionTrend}% vs last month
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
 
-      <TopDefaulters students={students} feeStructure={feeStructure} payments={payments} />
-      <RecentPayments payments={payments} students={students} thisMonthTotal={thisMonthTotal} />
+          <TopDefaulters students={students} feeStructure={feeStructure} payments={payments} />
+          <RecentPayments payments={payments} students={students} thisMonthTotal={thisMonthTotal} />
+        </div>
+
+        {/* ── Right Column: Calendar ── */}
+        <div className="space-y-5">
+          <SchoolCalendar schoolId={school?.id} userId={user?.id} />
         </div>
       </div>
     </div>

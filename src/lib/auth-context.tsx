@@ -272,12 +272,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkUser = useCallback(async () => {
     // Safety timer: fallback to non-loading state if auth takes too long.
-    // 8s accounts for slow connections (3G, VPN, cold-start Supabase).
-    // Only fires if auth hasn't already resolved.
     const safetyTimer = setTimeout(() => {
       setLoading(false);
       setAuthInitialized(true);
-    }, 8000);
+    }, 2000);
 
     try {
       const demoUserStr = readDemoStorage();
@@ -470,7 +468,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const isCurrentlyDemo = readDemoStorage() !== null;
 
-          if (isCurrentlyDemo && event !== "SIGNED_OUT") return;
+          if (isCurrentlyDemo && event !== "SIGNED_OUT") {
+            setLoading(false);
+            setAuthInitialized(true);
+            return;
+          }
 
           if (
             event === "SIGNED_IN" ||
@@ -501,7 +503,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               logger.warn("[Auth] onAuthStateChange handler safety timer — forcing authInitialized");
               setLoading(false);
               setAuthInitialized(true);
-            }, 8000);
+            }, 2000);
 
             try {
               const {

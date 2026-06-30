@@ -150,7 +150,7 @@ export default function DashboardRouter() {
     const timer = window.setTimeout(() => {
       setLoadingTimedOut(true);
       logger.warn("[DashboardRouter] loading timed out, continuing with best available state");
-    }, 12000);
+    }, 3000);
     return () => window.clearTimeout(timer);
   }, [loading]);
 

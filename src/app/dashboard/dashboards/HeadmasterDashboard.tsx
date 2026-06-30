@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
@@ -14,6 +15,9 @@ import MaterialIcon from "@/components/MaterialIcon";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { TopLoadingBar, StuckLoadingOverlay } from "@/components/ui/Skeleton";
 import OwlMascot from "@/components/brand/OwlMascot";
+import SkoolMateLogo from "@/components/SkoolMateLogo";
+import SchoolCalendar from "@/components/dashboard/SchoolCalendar";
+import TaskManager from "@/components/dashboard/TaskManager";
 
 function HeadmasterDashboardContent() {
   const { school, user } = useAuth();
@@ -38,8 +42,6 @@ function HeadmasterDashboardContent() {
     currentTerm,
     academicYear,
   );
-
-
 
   const currentDate = useMemo(() => new Date(), []);
   const greeting =
@@ -82,44 +84,93 @@ function HeadmasterDashboardContent() {
         label: "Add student",
         href: "/dashboard/students?action=add",
         icon: "person_add",
-        color: "navy",
       },
       {
-        label: "View students",
+        label: "Students",
         href: "/dashboard/students",
         icon: "group",
-        color: "navy",
       },
       {
-        label: "Take attendance",
+        label: "Attendance",
         href: "/dashboard/attendance",
         icon: "how_to_reg",
-        color: "green",
       },
       {
-        label: "Record payment",
+        label: "Fees",
         href: "/dashboard/fees",
         icon: "payments",
-        color: "amber",
       },
       {
-        label: "Send reminder",
+        label: "Messages",
         href: "/dashboard/messages",
         icon: "sms",
-        color: "purple",
       },
       {
-        label: "Print defaulters",
+        label: "Defaulters",
         href: "/dashboard/fees?tab=defaulters",
         icon: "print",
-        color: "red",
       },
     ],
     [],
   );
 
+  const tasks = useMemo(() => {
+    const items = [];
+    if (stats.presentToday === 0 && classes.length > 0) {
+      items.push({
+        id: "attendance",
+        label: "Attendance not taken for today",
+        icon: "how_to_reg",
+        priority: "urgent" as const,
+        href: "/dashboard/attendance",
+        cta: "Take now",
+      });
+    }
+    if (overdueFeeCount > 0) {
+      items.push({
+        id: "fees",
+        label: `${overdueFeeCount} student${overdueFeeCount > 1 ? "s" : ""} with overdue fees`,
+        icon: "payments",
+        priority: "urgent" as const,
+        href: "/dashboard/fees",
+        cta: "View",
+      });
+    }
+    if (lowAttendanceClasses > 0) {
+      items.push({
+        id: "low-attendance",
+        label: `${lowAttendanceClasses} class${lowAttendanceClasses > 1 ? "es" : ""} below 70% attendance`,
+        icon: "warning",
+        priority: "attention" as const,
+        href: "/dashboard/attendance",
+        cta: "View",
+      });
+    }
+    if (pendingLeave > 0) {
+      items.push({
+        id: "leave",
+        label: `${pendingLeave} leave request${pendingLeave > 1 ? "s" : ""} to review`,
+        icon: "event_busy",
+        priority: "attention" as const,
+        href: "/dashboard/leave-approvals",
+        cta: "Review",
+      });
+    }
+    if (pendingExpenses > 0) {
+      items.push({
+        id: "expenses",
+        label: `${pendingExpenses} expense${pendingExpenses > 1 ? "s" : ""} to approve`,
+        icon: "receipt",
+        priority: "attention" as const,
+        href: "/dashboard/expense-approvals",
+        cta: "Approve",
+      });
+    }
+    return items;
+  }, [stats.presentToday, classes.length, overdueFeeCount, lowAttendanceClasses, pendingLeave, pendingExpenses]);
+
   const isDataLoading = statsLoading || loadingExtra;
-  
+
   useEffect(() => {
     if (!isDataLoading) {
       setLoadingTimedOut(false);
@@ -127,7 +178,7 @@ function HeadmasterDashboardContent() {
     }
     const timer = window.setTimeout(() => {
       setLoadingTimedOut(true);
-    }, 12000);
+    }, 3000);
     return () => window.clearTimeout(timer);
   }, [isDataLoading]);
 
@@ -148,8 +199,6 @@ function HeadmasterDashboardContent() {
 
   const isFirstRun = stats.totalStudents === 0 && classes.length === 0 && !isDataLoading;
 
-  const hasAlerts = (stats.presentToday === 0 && classes.length > 0) || pendingLeave > 0 || pendingExpenses > 0 || overdueFeeCount > 0 || lowAttendanceClasses > 0;
-
   return (
     <div className="content overflow-x-hidden">
       {isFirstRun ? (
@@ -168,97 +217,147 @@ function HeadmasterDashboardContent() {
         </div>
       ) : (
         <>
-          {/* Greeting — compact */}
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <h1 className="text-xl font-bold font-['Sora'] text-[var(--t1)]">{greeting}, {user?.full_name?.split(" ")[0]}</h1>
-              <p className="text-xs text-[var(--t3)] mt-0.5">{school?.name} · {todayDayName}, {todayFormatted} · Term {currentTerm}</p>
-            </div>
-            {stats.presentToday > 0 && (
-              <div className="hidden sm:flex items-center gap-2 rounded-full bg-[var(--green-soft)] px-4 py-1.5">
-                <span className="w-2 h-2 rounded-full bg-[var(--green)]" />
-                <span className="text-xs font-semibold text-[var(--green)]">{attendanceRate}% attendance today</span>
+          {/* ── Hero: Big Logo + School Branding ── */}
+          <div className="relative mb-6 overflow-hidden rounded-[32px] border border-[#d6e4e8] bg-[linear-gradient(150deg,#eff7f5_0%,#eaf2f6_44%,#f8fbff_100%)] p-5 sm:p-7">
+            <div className="pointer-events-none absolute -left-16 -top-16 h-52 w-52 rounded-full bg-[#b7dfd8]/30 blur-3xl" />
+            <div className="pointer-events-none absolute -right-10 -bottom-10 h-36 w-36 rounded-full bg-[#d8e9fb]/40 blur-3xl" />
+            <div className="pointer-events-none absolute left-1/2 top-0 h-20 w-60 -translate-x-1/2 rounded-full bg-[#c8dce8]/20 blur-2xl" />
+
+            <div className="relative z-10 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                {school?.logo_url ? (
+                  <Image src={school.logo_url} alt={school?.name || "School"} width={80} height={80} className="object-contain rounded-xl" unoptimized />
+                ) : (
+                  <SkoolMateLogo size="xl" showText variant="default" />
+                )}
               </div>
-            )}
+              <div className="hidden sm:block text-right">
+                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#42638d]">
+                  Term {currentTerm} · {academicYear}
+                </p>
+                <p className="mt-0.5 text-[13px] font-semibold text-[#17325f]">
+                  {school?.name}
+                </p>
+              </div>
+            </div>
+
+            <div className="relative z-10 mt-4 flex flex-wrap items-center gap-3 border-t border-[#c8dce8]/40 pt-4">
+              <div className="flex items-center gap-2 text-xs text-[#42638d]">
+                <MaterialIcon icon="today" className="text-base" />
+                <span className="font-semibold">{todayDayName}, {todayFormatted}</span>
+              </div>
+              {stats.totalStudents > 0 && (
+                <div className="flex items-center gap-2 text-xs text-[#42638d]">
+                  <MaterialIcon icon="groups" className="text-base" />
+                  <span className="font-semibold">{stats.totalStudents} students enrolled</span>
+                </div>
+              )}
+              {stats.presentToday > 0 && (
+                <div className="ml-auto flex items-center gap-1.5 rounded-full bg-[#1f8a70]/10 px-3 py-1">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#1f8a70]" />
+                  <span className="text-[11px] font-bold text-[#1f8a70]">{attendanceRate}% attendance today</span>
+                </div>
+              )}
+            </div>
           </div>
 
-          {/* Pulse check: 3 key metrics */}
-          <div className="grid grid-cols-3 gap-3 mb-5">
-            <div className="rounded-2xl bg-white border border-[var(--border)] p-4">
-              <p className="text-[11px] font-medium text-[var(--t3)]">Students</p>
-              <p className="text-2xl font-bold text-[var(--t1)] mt-1">{stats.totalStudents || students.length || 0}</p>
-              <p className="text-[11px] text-[var(--t3)] mt-0.5">{boysCount}B · {girlsCount}G</p>
-            </div>
-            <div className="rounded-2xl bg-white border border-[var(--border)] p-4">
-              <p className="text-[11px] font-medium text-[var(--t3)]">Attendance</p>
-              <p className={`text-2xl font-bold mt-1 ${stats.presentToday > 0 ? (attendanceRate >= 80 ? 'text-[var(--green)]' : 'text-[var(--amber)]') : 'text-[var(--t4)]'}`}>
-                {stats.presentToday > 0 ? `${attendanceRate}%` : '--'}
-              </p>
-              <p className="text-[11px] text-[var(--t3)] mt-0.5">{stats.presentToday > 0 ? `${stats.presentToday} present today` : 'Not taken'}</p>
-            </div>
-            <div className="rounded-2xl bg-white border border-[var(--border)] p-4">
-              <p className="text-[11px] font-medium text-[var(--t3)]">Fees</p>
-              <p className={`text-2xl font-bold mt-1 ${totalExpected > 0 ? (collectionRate >= 70 ? 'text-[var(--green)]' : 'text-[var(--red)]') : 'text-[var(--t4)]'}`}>
-                {totalExpected > 0 ? `${collectionRate}%` : '--'}
-              </p>
-              <p className="text-[11px] text-[var(--t3)] mt-0.5">{overdueFeeCount > 0 ? `${overdueFeeCount} overdue` : 'On track'}</p>
-            </div>
-          </div>
+          {/* ── Two-Column Layout ── */}
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+            {/* ── Left Column: Metrics + Task Manager ── */}
+            <div className="xl:col-span-2 space-y-5">
+              {/* Pulse check */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="group rounded-2xl bg-white border border-[#eef2f8] p-4 transition-all hover:shadow-md hover:-translate-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#eef5ff] text-[#17325f]">
+                      <MaterialIcon icon="group" className="text-base" />
+                    </div>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#7f91aa]">Students</p>
+                  </div>
+                  <p className="mt-2 text-3xl font-bold text-[#17325f] font-['Sora']">{stats.totalStudents || students.length || 0}</p>
+                  <p className="mt-0.5 text-xs text-[#7f91aa]">
+                    <span className="font-semibold text-[#17325f]">{boysCount}B</span> · <span className="font-semibold text-[#17325f]">{girlsCount}G</span>
+                  </p>
+                </div>
 
-          {/* Alerts — only when something needs attention */}
-          {hasAlerts && (
-            <div className="space-y-2 mb-5">
-              {stats.presentToday === 0 && classes.length > 0 && (
-                <div className="rounded-xl bg-[#ffefe8] border border-[#f5d0c5] px-4 py-3 flex items-center gap-3">
-                  <span className="material-symbols-outlined text-[#c2472b] text-xl">how_to_reg</span>
-                  <p className="flex-1 text-sm font-semibold text-[#17325f]">Attendance not taken yet</p>
-                  <Link href="/dashboard/attendance" className="rounded-lg bg-[#c2472b] px-3 py-1.5 text-xs font-bold text-white">Take now</Link>
+                <div className="group rounded-2xl bg-white border border-[#eef2f8] p-4 transition-all hover:shadow-md hover:-translate-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${stats.presentToday > 0 && attendanceRate >= 80 ? "bg-[#e5f6ef] text-[#1f8a70]" : "bg-[#ffefe8] text-[#c2472b]"}`}>
+                      <MaterialIcon icon="how_to_reg" className="text-base" />
+                    </div>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#7f91aa]">Attendance</p>
+                  </div>
+                  <p className={`mt-2 text-3xl font-bold font-['Sora'] ${stats.presentToday > 0 ? (attendanceRate >= 80 ? "text-[#1f8a70]" : "text-[#b45309]") : "text-[#7f91aa]"}`}>
+                    {stats.presentToday > 0 ? `${attendanceRate}%` : "--"}
+                  </p>
+                  <p className="mt-0.5 text-xs text-[#7f91aa]">
+                    {stats.presentToday > 0
+                      ? <span className="font-semibold">{stats.presentToday} present today</span>
+                      : "Not taken yet"}
+                  </p>
                 </div>
-              )}
-              {overdueFeeCount > 0 && (
-                <div className="rounded-xl bg-[#ffefe8] border border-[#f5d0c5] px-4 py-3 flex items-center gap-3">
-                  <span className="material-symbols-outlined text-[#c2472b] text-xl">payments</span>
-                  <p className="flex-1 text-sm font-semibold text-[#17325f]">{overdueFeeCount} student{overdueFeeCount > 1 ? 's' : ''} with overdue fees</p>
-                  <Link href="/dashboard/fees" className="rounded-lg bg-[#c2472b] px-3 py-1.5 text-xs font-bold text-white">View</Link>
-                </div>
-              )}
-              {lowAttendanceClasses > 0 && (
-                <div className="rounded-xl bg-[#fff5e8] border border-[#f5deb3] px-4 py-3 flex items-center gap-3">
-                  <span className="material-symbols-outlined text-[#b45309] text-xl">warning</span>
-                  <p className="flex-1 text-sm font-semibold text-[#17325f]">{lowAttendanceClasses} class{lowAttendanceClasses > 1 ? 'es' : ''} below 70% attendance</p>
-                  <Link href="/dashboard/attendance" className="rounded-lg bg-[#b45309] px-3 py-1.5 text-xs font-bold text-white">View</Link>
-                </div>
-              )}
-              {pendingLeave > 0 && (
-                <div className="rounded-xl bg-[#fff5e8] border border-[#f5deb3] px-4 py-3 flex items-center gap-3">
-                  <span className="material-symbols-outlined text-[#b45309] text-xl">event_busy</span>
-                  <p className="flex-1 text-sm font-semibold text-[#17325f]">{pendingLeave} leave request{pendingLeave > 1 ? 's' : ''} to review</p>
-                  <Link href="/dashboard/leave-approvals" className="rounded-lg bg-[#b45309] px-3 py-1.5 text-xs font-bold text-white">Review</Link>
-                </div>
-              )}
-              {pendingExpenses > 0 && (
-                <div className="rounded-xl bg-[#ffefe8] border border-[#f5d0c5] px-4 py-3 flex items-center gap-3">
-                  <span className="material-symbols-outlined text-[#c2472b] text-xl">receipt</span>
-                  <p className="flex-1 text-sm font-semibold text-[#17325f]">{pendingExpenses} expense{pendingExpenses > 1 ? 's' : ''} to approve</p>
-                  <Link href="/dashboard/expense-approvals" className="rounded-lg bg-[#c2472b] px-3 py-1.5 text-xs font-bold text-white">Review</Link>
-                </div>
-              )}
-            </div>
-          )}
 
-          {/* Quick actions row */}
-          <div className="grid grid-cols-4 gap-2 mb-5">
-            {quickActions.slice(0, 4).map((action) => (
-              <Link
-                key={action.href}
-                href={action.href}
-                title={action.label}
-                className="flex flex-col items-center gap-1 rounded-xl bg-white border border-[var(--border)] py-3 hover:bg-[var(--surface-container)] transition-colors"
-              >
-                <span className="material-symbols-outlined text-[var(--t1)] text-xl">{action.icon}</span>
-                <span className="text-[10px] font-semibold text-[var(--t2)]">{action.label}</span>
-              </Link>
-            ))}
+                <div className="group rounded-2xl bg-white border border-[#eef2f8] p-4 transition-all hover:shadow-md hover:-translate-y-0.5">
+                  <div className="flex items-center gap-2">
+                    <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${totalExpected > 0 && collectionRate >= 70 ? "bg-[#e5f6ef] text-[#1f8a70]" : "bg-[#ffefe8] text-[#c2472b]"}`}>
+                      <MaterialIcon icon="payments" className="text-base" />
+                    </div>
+                    <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#7f91aa]">Fees</p>
+                  </div>
+                  <p className={`mt-2 text-3xl font-bold font-['Sora'] ${totalExpected > 0 ? (collectionRate >= 70 ? "text-[#1f8a70]" : "text-[#c2472b]") : "text-[#7f91aa]"}`}>
+                    {totalExpected > 0 ? `${collectionRate}%` : "--"}
+                  </p>
+                  <p className="mt-0.5 text-xs text-[#7f91aa]">
+                    {overdueFeeCount > 0
+                      ? <span className="font-semibold text-[#c2472b]">{overdueFeeCount} overdue</span>
+                      : "On track"}
+                  </p>
+                </div>
+              </div>
+
+              {/* Task Manager */}
+              <div>
+                <div className="mb-3 flex items-center gap-2">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#17325f]">
+                    <MaterialIcon icon="assignment" className="text-sm text-white" />
+                  </div>
+                  <h2 className="text-sm font-bold text-[#17325f] font-['Sora']">Task Manager</h2>
+                  {tasks.length > 0 && (
+                    <span className="rounded-full bg-[#c2472b]/10 px-2.5 py-0.5 text-[10px] font-bold text-[#c2472b]">
+                      {tasks.length} pending
+                    </span>
+                  )}
+                </div>
+                <TaskManager tasks={tasks} emptyMessage="All caught up! No pending tasks." />
+              </div>
+            </div>
+
+            {/* ── Right Column: Calendar + Quick Actions ── */}
+            <div className="space-y-5">
+              <SchoolCalendar schoolId={school?.id} userId={user?.id} />
+
+              {/* Quick Actions */}
+              <div className="rounded-2xl border border-[#eef2f8] bg-white p-4">
+                <div className="mb-3 flex items-center gap-2">
+                  <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#b45309]/10">
+                    <MaterialIcon icon="bolt" className="text-sm text-[#b45309]" />
+                  </div>
+                  <h2 className="text-sm font-bold text-[#17325f] font-['Sora']">Quick Actions</h2>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {quickActions.map((action) => (
+                    <Link
+                      key={action.href}
+                      href={action.href}
+                      className="group flex flex-col items-center gap-1 rounded-xl border border-[#eef2f8] bg-[#f8fbff] py-3 transition-all hover:border-[#c8dce8] hover:bg-[#edf4ff] hover:shadow-sm active:scale-95"
+                    >
+                      <span className="material-symbols-outlined text-lg text-[#42638d] group-hover:text-[#17325f]">{action.icon}</span>
+                      <span className="text-[10px] font-bold text-[#7f91aa] group-hover:text-[#17325f]">{action.label}</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         </>
       )}

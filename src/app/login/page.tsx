@@ -309,7 +309,7 @@ export default function LoginPage() {
               <p className="font-medium mb-1">Demo Accounts</p>
               <p className="font-mono">256700000001 / 256700000002</p>
               <p className="font-mono">256700000003 / 256700000004</p>
-              <p className="mt-1 text-amber-600">Password: any will work</p>
+               <p className="mt-1 text-amber-600">Password: <span className="font-mono font-bold">skoolmate123</span></p>
             </div>
           )}
 

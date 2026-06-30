@@ -289,7 +289,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     }
     const timer = setTimeout(() => {
       setLoadingTimedOut(true);
-    }, 10000);
+    }, 3000);
     return () => clearTimeout(timer);
   }, [loading]);
 
@@ -463,7 +463,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
       <MobileBottomNav />
       <RoleBasedWalkthrough />
-      {onboardingCompleted && <OnboardingTour />}
+      {/* OnboardingTour disabled — overlay blocked entire dashboard. Enable from help menu when ready. */}
+      {/* {onboardingCompleted && <OnboardingTour />} */}
       <OwlAssistant />
       <PWAInstallPrompt />
       <CommandPalette />
