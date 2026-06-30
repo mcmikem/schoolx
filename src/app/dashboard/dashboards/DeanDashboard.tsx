@@ -101,13 +101,14 @@ function DeanDashboardContent() {
             ) : (
               <SkoolMateLogo size="xl" showText variant="default" />
             )}
+            <div className="flex flex-col">
+              <p className="text-xs font-semibold text-[#17325f]">{greeting}, {user?.full_name?.split(" ")[0]}</p>
+              <p className="text-[11px] text-[#42638d]">Dean of Academics · {school?.name}</p>
+            </div>
           </div>
           <div className="hidden sm:block text-right">
             <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#42638d]">
               Term {currentTerm} · {academicYear}
-            </p>
-            <p className="mt-0.5 text-[13px] font-semibold text-[#17325f]">
-              Dean of Academics · {school?.name}
             </p>
           </div>
         </div>
@@ -118,7 +119,7 @@ function DeanDashboardContent() {
             <span className="font-semibold">{todayLabel}</span>
           </div>
           <div className="text-xs text-[#42638d]">
-            <span className="font-semibold">{students.length} students · {classes.length} classes</span>
+            <span className="font-semibold">{stats.totalStudents} students · {classes.length} classes</span>
           </div>
           {stats?.presentToday > 0 && (
             <div className="ml-auto flex items-center gap-1.5 rounded-full bg-[#1f8a70]/10 px-3 py-1">
@@ -142,7 +143,7 @@ function DeanDashboardContent() {
                 </div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#7f91aa]">Students</p>
               </div>
-              <p className="mt-2 text-2xl font-bold text-[#17325f] font-['Sora']">{students.length}</p>
+              <p className="mt-2 text-2xl font-bold text-[#17325f] font-['Sora']">{stats.totalStudents}</p>
               <p className="mt-0.5 text-xs text-[#7f91aa]">{classes.length} classes</p>
             </div>
 

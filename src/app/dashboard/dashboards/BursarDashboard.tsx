@@ -220,13 +220,14 @@ function BursarDashboardContent() {
             ) : (
               <SkoolMateLogo size="xl" showText variant="default" />
             )}
+            <div className="flex flex-col">
+              <p className="text-xs font-semibold text-[#17325f]">{greeting}, {user?.full_name?.split(" ")[0]}</p>
+              <p className="text-[11px] text-[#42638d]">{school?.name}</p>
+            </div>
           </div>
           <div className="hidden sm:block text-right">
             <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#42638d]">
               Term {currentTerm} · {academicYear}
-            </p>
-            <p className="mt-0.5 text-[13px] font-semibold text-[#17325f]">
-              {school?.name}
             </p>
           </div>
         </div>

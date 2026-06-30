@@ -190,7 +190,7 @@ describe("🔒 LOCKDOWN: Auth Context", () => {
 
   it("must have safety timer for auth initialization", () => {
     expect(authContext).toContain("safetyTimer");
-    expect(authContext).toContain("8000");
+    expect(authContext).toContain("2000");
   });
 
   it("must have signIn lock to prevent double-click", () => {

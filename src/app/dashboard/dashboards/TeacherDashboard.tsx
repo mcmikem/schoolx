@@ -143,7 +143,7 @@ function TeacherDashboardContent() {
     return items;
   }, [attendancePending, classesWithNoStudents, needsSetup]);
 
-  if (dataLoading && !loadingTimedOut) {
+  if ((!school?.id || dataLoading) && !loadingTimedOut) {
     return (
       <div className="min-h-screen bg-[var(--bg)] flex flex-col">
         <TopLoadingBar />
@@ -167,21 +167,25 @@ function TeacherDashboardContent() {
         <div className="pointer-events-none absolute -right-10 -bottom-10 h-36 w-36 rounded-full bg-[#d8e9fb]/40 blur-3xl" />
         <div className="pointer-events-none absolute left-1/2 top-0 h-20 w-60 -translate-x-1/2 rounded-full bg-[#c8dce8]/20 blur-2xl" />
 
-        <div className="relative z-10 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            {school?.logo_url ? (
-              <Image src={school.logo_url} alt={school?.name || "School"} width={80} height={80} className="object-contain rounded-xl" unoptimized />
-            ) : (
-              <SkoolMateLogo size="xl" showText variant="default" />
-            )}
-          </div>
-          <div className="hidden sm:flex items-center gap-3">
-            <div className="rounded-full bg-[#17325f] px-4 py-2 text-center">
-              <p className="text-xl font-bold text-white leading-none">{myClasses.length}</p>
-              <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-white/70">Classes</p>
+            <div className="relative z-10 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                {school?.logo_url ? (
+                  <Image src={school.logo_url} alt={school?.name || "School"} width={80} height={80} className="object-contain rounded-xl" unoptimized />
+                ) : (
+                  <SkoolMateLogo size="xl" showText variant="default" />
+                )}
+                <div className="flex flex-col">
+                  <p className="text-xs font-semibold text-[#17325f]">{greeting}, {user?.full_name?.split(" ")[0]}</p>
+                  <p className="text-[11px] text-[#42638d]">{school?.name}</p>
+                </div>
+              </div>
+              <div className="hidden sm:flex items-center gap-3">
+                <div className="rounded-full bg-[#17325f] px-4 py-2 text-center">
+                  <p className="text-xl font-bold text-white leading-none">{myClasses.length}</p>
+                  <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-white/70">Classes</p>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
 
         <div className="relative z-10 mt-4 flex flex-wrap items-center gap-3 border-t border-[#c8dce8]/40 pt-4">
           <div className="flex items-center gap-2 text-xs text-[#42638d]">
@@ -194,7 +198,7 @@ function TeacherDashboardContent() {
           {stats?.totalStudents > 0 && (
             <div className="ml-auto flex items-center gap-1.5 rounded-full bg-[#edf4ff] px-3 py-1">
               <span className="h-1.5 w-1.5 rounded-full bg-[#17325f]" />
-              <span className="text-[11px] font-bold text-[#17325f]">{students.length} students</span>
+              <span className="text-[11px] font-bold text-[#17325f]">{stats.totalStudents} students</span>
             </div>
           )}
         </div>
@@ -244,7 +248,7 @@ function TeacherDashboardContent() {
                   <p className="text-[10px] font-medium text-[#7f91aa]">Subjects</p>
                 </div>
                 <div className="rounded-xl bg-[#f8fbff] border border-[#eef2f8] p-3 text-center">
-                  <span className="text-xl font-bold text-[#17325f]">{students.length}</span>
+                  <span className="text-xl font-bold text-[#17325f]">{stats.totalStudents}</span>
                   <p className="text-[10px] font-medium text-[#7f91aa]">Students</p>
                 </div>
               </div>

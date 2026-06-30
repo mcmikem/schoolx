@@ -182,7 +182,7 @@ function HeadmasterDashboardContent() {
     return () => window.clearTimeout(timer);
   }, [isDataLoading]);
 
-  if (isDataLoading && !loadingTimedOut) {
+  if ((!school?.id || isDataLoading) && !loadingTimedOut) {
     return (
       <div className="min-h-screen bg-[var(--bg)] flex flex-col">
         <TopLoadingBar />
@@ -197,7 +197,7 @@ function HeadmasterDashboardContent() {
     );
   }
 
-  const isFirstRun = stats.totalStudents === 0 && classes.length === 0 && !isDataLoading;
+  const isFirstRun = school?.id && stats.totalStudents === 0 && classes.length === 0 && !isDataLoading;
 
   return (
     <div className="content overflow-x-hidden">
@@ -230,13 +230,14 @@ function HeadmasterDashboardContent() {
                 ) : (
                   <SkoolMateLogo size="xl" showText variant="default" />
                 )}
+                <div className="flex flex-col">
+                  <p className="text-xs font-semibold text-[#17325f]">{greeting}, {user?.full_name?.split(" ")[0]}</p>
+                  <p className="text-[11px] text-[#42638d]">{school?.name}</p>
+                </div>
               </div>
               <div className="hidden sm:block text-right">
                 <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#42638d]">
                   Term {currentTerm} · {academicYear}
-                </p>
-                <p className="mt-0.5 text-[13px] font-semibold text-[#17325f]">
-                  {school?.name}
                 </p>
               </div>
             </div>
@@ -274,7 +275,7 @@ function HeadmasterDashboardContent() {
                     </div>
                     <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#7f91aa]">Students</p>
                   </div>
-                  <p className="mt-2 text-3xl font-bold text-[#17325f] font-['Sora']">{stats.totalStudents || students.length || 0}</p>
+                  <p className="mt-2 text-3xl font-bold text-[#17325f] font-['Sora']">{stats.totalStudents}</p>
                   <p className="mt-0.5 text-xs text-[#7f91aa]">
                     <span className="font-semibold text-[#17325f]">{boysCount}B</span> · <span className="font-semibold text-[#17325f]">{girlsCount}G</span>
                   </p>

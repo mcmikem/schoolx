@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { isDemoSchool } from "@/lib/demo-utils";
@@ -58,6 +58,11 @@ export function useDashboardExtraData(
   const [dropoutRiskCount, setDropoutRiskCount] = useState(0);
   const [isStale, setIsStale] = useState(false);
   const { isDemo } = useAuth();
+
+  const studentsRef = useRef(students);
+  useEffect(() => { studentsRef.current = students; }, [students]);
+  const feeStructureRef = useRef(feeStructure);
+  useEffect(() => { feeStructureRef.current = feeStructure; }, [feeStructure]);
 
   useEffect(() => {
     if (!schoolId) {
@@ -222,7 +227,7 @@ export function useDashboardExtraData(
         const attendanceByClass: Record<string, ClassAttendance> = {};
         const hasAttendanceMarkedToday = (attendanceRes.data?.length || 0) > 0;
         const studentClassMap: Record<string, string> = {};
-        students.forEach((s) => {
+        studentsRef.current.forEach((s) => {
           studentClassMap[s.id] = s.class_id;
         });
 
@@ -257,7 +262,7 @@ export function useDashboardExtraData(
 
         const atRisk = Object.entries(studentScores)
           .filter(([_, scores]) => scores.filter((s) => s < 50).length >= 2)
-          .map(([studentId]) => students.find((s) => s.id === studentId))
+          .map(([studentId]) => studentsRef.current.find((s) => s.id === studentId))
           .filter(Boolean)
           .slice(0, 5);
         setAtRiskStudents(atRisk);
@@ -272,7 +277,7 @@ export function useDashboardExtraData(
               { allAbsent: boolean; count: number }
             > = {};
             const activeStudentIds = new Set(
-              students.filter((s) => s.status === "active").map((s) => s.id),
+              studentsRef.current.filter((s) => s.status === "active").map((s) => s.id),
             );
 
             dropoutAttData.forEach((r: any) => {
@@ -337,7 +342,7 @@ export function useDashboardExtraData(
         setStaffOnDuty(staffAttRes.data?.length || 0);
 
         let overdueCount = 0;
-        if (feeStructure.length > 0) {
+        if (feeStructureRef.current.length > 0) {
           const paidByStudent: Record<string, number> = {};
           allPayments?.forEach((p: any) => {
             const sid = p.student_id || "";
@@ -346,9 +351,9 @@ export function useDashboardExtraData(
                 (paidByStudent[sid] || 0) + Number(p.amount_paid);
           });
 
-          overdueCount = students.filter(
+          overdueCount = studentsRef.current.filter(
             (student) => {
-              const expectedForStudent = feeStructure
+              const expectedForStudent = feeStructureRef.current
                 .filter(
                   (fee) => !fee.class_id || fee.class_id === student.class_id,
                 )
@@ -404,7 +409,7 @@ export function useDashboardExtraData(
     return () => {
       cancelled = true;
     };
-  }, [schoolId, currentTerm, academicYear, students, feeStructure, isDemo]);
+  }, [schoolId, currentTerm, academicYear, isDemo]);
 
   useEffect(() => {
     const handleOnline = () => {

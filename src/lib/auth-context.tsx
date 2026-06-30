@@ -469,6 +469,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const isCurrentlyDemo = readDemoStorage() !== null;
 
           if (isCurrentlyDemo && event !== "SIGNED_OUT") {
+            try {
+              const demoUserStr = readDemoStorage();
+              if (!demoUserStr) {
+                clearDemoStorage();
+                setLoading(false);
+                setAuthInitialized(true);
+                return;
+              }
+              const decrypted = decryptDemoData(demoUserStr);
+              if (decrypted) {
+                const { demoUser, demoSchool } = JSON.parse(decrypted);
+                setUser({
+                  id: "demo-user",
+                  auth_id: "demo",
+                  school_id: demoSchool.id,
+                  full_name: demoUser.name,
+                  phone: "0700000000",
+                  role: sanitizeDemoRole(demoUser.role),
+                  avatar_url: undefined,
+                  is_active: true,
+                  created_at: new Date().toISOString(),
+                } as User);
+                setSchool({
+                  id: demoSchool.id,
+                  name: demoSchool.name,
+                  school_code: demoSchool.school_code || "DEMO001",
+                  district: demoSchool.district || "Kampala",
+                  school_type: demoSchool.school_type || "primary",
+                  ownership: demoSchool.ownership || "private",
+                  primary_color: demoSchool.primary_color || "#001F3F",
+                  logo_url: demoSchool.logo_url || "",
+                  subscription_plan: demoSchool.subscription_plan || "growth",
+                  subscription_status: demoSchool.subscription_status || "active",
+                  feature_stage: (demoSchool.feature_stage as FeatureStage) || "full",
+                  created_at: new Date().toISOString(),
+                });
+                setIsDemo(true);
+                setIsTrialExpired(false);
+              }
+            } catch (e) {
+              logger.error("[Auth] Error parsing demo data in onAuthStateChange:", e);
+              clearDemoStorage();
+            }
             setLoading(false);
             setAuthInitialized(true);
             return;
