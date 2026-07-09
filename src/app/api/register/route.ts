@@ -151,6 +151,24 @@ function generateSchoolCode(schoolName: string, district: string): string {
 
 export async function POST(request: NextRequest) {
   logger.debug("[Register] START - Processing registration request");
+  // Rollback queue: each created resource registers a cleanup callback.
+  // On any error, all registered cleanups run in reverse order.
+  const rollbacks: Array<() => Promise<void>> = [];
+
+  async function rollbackAll() {
+    const errors: unknown[] = [];
+    for (let i = rollbacks.length - 1; i >= 0; i--) {
+      try {
+        await rollbacks[i]();
+      } catch (e) {
+        errors.push(e);
+      }
+    }
+    if (errors.length > 0) {
+      logger.error("[Register] Rollback errors:", errors);
+    }
+  }
+
   try {
     // Rate limit: 5 registrations per IP per 10 minutes
     logger.debug("[Register] Step 1: Checking rate limit");
@@ -194,7 +212,6 @@ export async function POST(request: NextRequest) {
 
     // Honeypot: bots fill hidden fields; humans leave them blank
     if (_gotcha) {
-      // Silently reject with a 200 so bots don't know they were blocked
       return apiSuccess({ message: "Registration received." });
     }
 
@@ -210,7 +227,6 @@ export async function POST(request: NextRequest) {
       return apiError("All required fields must be filled", 400);
     }
 
-    // Input length limits to prevent oversized payloads
     if (schoolName.trim().length > 200) return apiError("School name is too long", 400);
     if (district.trim().length > 100) return apiError("District name is too long", 400);
     if (subcounty.trim().length > 100) return apiError("Sub-county is too long", 400);
@@ -250,12 +266,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate email if provided
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return apiError("Invalid email format", 400);
     }
 
-    // Normalize phone number (remove spaces, dashes, keep only digits)
     logger.debug("[Register] Step 3: Normalizing phone");
     const normalizedPhone = normalizeAuthPhone(adminPhone);
 
@@ -266,7 +280,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create admin client (bypasses RLS)
     logger.debug("[Register] Step 4: Creating Supabase admin client");
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
@@ -291,13 +304,11 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Generate unique school code
-    // Generate unique school code with timestamp component to avoid race conditions
     let schoolCode = generateSchoolCode(schoolName, district);
     schoolCode = schoolCode + Date.now().toString(36).slice(-2).toUpperCase();
-    let attempts = 0;
-    const maxAttempts = 10;
+    let codeAttempts = 0;
 
-    while (attempts < maxAttempts) {
+    while (codeAttempts < 10) {
       const { data: existingSchool } = await supabaseAdmin
         .from("schools")
         .select("id")
@@ -306,12 +317,11 @@ export async function POST(request: NextRequest) {
 
       if (!existingSchool) break;
 
-      // Generate new code if collision
       schoolCode = generateSchoolCode(schoolName, district);
-      attempts++;
+      codeAttempts++;
     }
 
-    if (attempts >= maxAttempts) {
+    if (codeAttempts >= 10) {
       return apiError(
         "Unable to generate unique school code. Please try again.",
         400,
@@ -329,7 +339,7 @@ export async function POST(request: NextRequest) {
       await supabaseAdmin.auth.admin.createUser({
         email: emailForAuth,
         password: password,
-        email_confirm: true, // Auto-confirm email
+        email_confirm: true,
         user_metadata: {
           full_name: adminName,
           phone: normalizedPhone,
@@ -338,7 +348,6 @@ export async function POST(request: NextRequest) {
       });
 
     if (authError) {
-      // Check if it's a duplicate email error
       if (
         authError.message.includes("already registered") ||
         authError.message.includes("duplicate")
@@ -350,6 +359,7 @@ export async function POST(request: NextRequest) {
       }
       throw authError;
     }
+    rollbacks.push(async () => { await supabaseAdmin.auth.admin.deleteUser(authData.user.id); });
 
     // 4. Create school record
     const { data: schoolData, error: schoolError } = await supabaseAdmin
@@ -376,17 +386,8 @@ export async function POST(request: NextRequest) {
       .select()
       .single();
 
-    if (schoolError) {
-      // Cleanup: delete auth user if school creation fails
-      if (authData?.user) {
-        try {
-          await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
-        } catch (deleteErr) {
-          logger.error("[Register] Failed to cleanup auth user:", deleteErr);
-        }
-      }
-      throw schoolError;
-    }
+    if (schoolError) throw schoolError;
+    rollbacks.push(async () => { await supabaseAdmin.from("schools").delete().eq("id", schoolData.id); });
 
     // 5. Create user record
     const { data: createdUser, error: userError } = await supabaseAdmin
@@ -403,24 +404,7 @@ export async function POST(request: NextRequest) {
       .select("id")
       .single();
 
-    if (userError) {
-      // Cleanup: delete auth user and school if user creation fails
-      const cleanupErrors: Error[] = [];
-      try {
-        await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
-      } catch (deleteErr) {
-        cleanupErrors.push(deleteErr instanceof Error ? deleteErr : new Error(String(deleteErr)));
-      }
-      try {
-        await supabaseAdmin.from("schools").delete().eq("id", schoolData.id);
-      } catch (deleteErr) {
-        cleanupErrors.push(deleteErr instanceof Error ? deleteErr : new Error(String(deleteErr)));
-      }
-      if (cleanupErrors.length > 0) {
-        logger.error("[Register] Cleanup errors:", cleanupErrors);
-      }
-      throw userError;
-    }
+    if (userError) throw userError;
 
     let moduleRequestLink: string | null = null;
     let moduleRequestMessage: string | null = null;
@@ -446,20 +430,7 @@ export async function POST(request: NextRequest) {
         .from("school_module_entitlements")
         .upsert(entitlementRows, { onConflict: "school_id,module_key" });
 
-      if (entitlementError) {
-        // Cleanup: delete auth user and school if entitlement request creation fails
-        try {
-          await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
-        } catch (deleteErr) {
-          logger.error("[Register] Failed to cleanup auth user:", deleteErr);
-        }
-        try {
-          await supabaseAdmin.from("schools").delete().eq("id", schoolData.id);
-        } catch (deleteErr) {
-          logger.error("[Register] Failed to cleanup school:", deleteErr);
-        }
-        throw entitlementError;
-      }
+      if (entitlementError) throw entitlementError;
 
       const message = formatModuleRequestMessage({
         schoolName,
@@ -488,11 +459,9 @@ export async function POST(request: NextRequest) {
     }
 
     // 6. Auto-seed essential curriculum data
-    // Run setup and await it so the serverless function doesn't terminate and kill the process.
     try {
       const currentYear = new Date().getFullYear().toString();
 
-      // Create subjects
       const defaultSubjects = getDefaultSubjects(schoolType);
       if (defaultSubjects.length > 0) {
         const subjectRecords = defaultSubjects.map((s) => ({
@@ -510,7 +479,6 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Create classes
       const defaultClasses = buildDefaultClasses(
         schoolData.id,
         schoolType as SchoolSetupType,
@@ -525,7 +493,6 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Create academic year
       const { data: academicYear, error: ayError } = await supabaseAdmin
         .from("academic_years")
         .insert({
@@ -540,7 +507,6 @@ export async function POST(request: NextRequest) {
         logger.warn("[Setup] Academic year seed failed:", ayError);
       }
 
-      // Create terms
       if (academicYear) {
         const defaultAcademicTerms = buildUgandaAcademicTerms(
           schoolData.id,
@@ -578,16 +544,12 @@ export async function POST(request: NextRequest) {
       if (eventsError) {
         logger.warn("[Setup] Events seed failed:", eventsError);
       }
-
-      // Setup complete
-      if (process.env.NODE_ENV !== "production") {
-        logger.debug("[Setup] Auto-setup completed for new school");
-      }
     } catch (setupError) {
-      logger.error("[Setup] Auto-setup failed:", setupError);
+      logger.error("[Setup] Auto-setup failed, rolling back registration:", setupError);
+      await rollbackAll();
+      return apiError("Registration could not be completed. Please try again.", 500);
     }
 
-    // Return success
     return apiSuccess(
       {
         schoolId: schoolData.id,
@@ -600,7 +562,7 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     logger.error("[Register Error]", error);
-    // Provide more specific error messages for common database issues
+    await rollbackAll();
     if (error instanceof Error) {
       const msg = error.message.toLowerCase();
       if (
