@@ -37,13 +37,13 @@ import { type ModuleKey } from "@/lib/modules/catalog";
 import { PLATFORM_SUPPORT_PHONE_DISPLAY, PLATFORM_SUPPORT_WHATSAPP_URL } from "@/lib/support-contact";
 
 const SCHOOL_TYPE_OPTIONS = [
-  { value: "primary", label: "Primary School" },
+  { value: "primary", label: "Primary School  ★ Recommended" },
   { value: "secondary", label: "Secondary School" },
   { value: "combined", label: "Combined (Primary and Secondary)" },
 ];
 
 const OWNERSHIP_OPTIONS = [
-  { value: "private", label: "Private" },
+  { value: "private", label: "Private  ★ Recommended" },
   { value: "government", label: "Government" },
   { value: "government_aided", label: "Government Aided" },
 ];
@@ -57,7 +57,7 @@ const SUPPORT_PHONE = PLATFORM_SUPPORT_PHONE_DISPLAY;
 const SUPPORT_WHATSAPP_URL = PLATFORM_SUPPORT_WHATSAPP_URL;
 
 const PACKAGE_OPTIONS = [
-  { value: "starter", label: "Starter" },
+  { value: "starter", label: "Starter  ★ Recommended" },
   { value: "growth", label: "Growth" },
   { value: "enterprise", label: "Enterprise" },
 ];

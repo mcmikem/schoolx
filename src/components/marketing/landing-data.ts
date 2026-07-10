@@ -41,6 +41,7 @@ export const plans = [
     price: "UGX 2,000",
     cadence: "per student/term",
     bestFor: "Rural primary · under 200 students",
+    contrastLabel: "≈ 550 UGX/student/month — less than a soda",
     features: [
       "Student records & profiles",
       "Daily attendance",
@@ -51,12 +52,19 @@ export const plans = [
       "ID card generation",
       "Up to 3 admin users",
     ],
+    lossItems: [
+      "No parent portal — parents can't check results online",
+      "No bulk SMS — you type messages one by one",
+      "No NCDC syllabus tools — scheme of work stays manual",
+      "No UNEB registration — candidates handled offline",
+    ],
   },
   {
     name: "Growth",
     price: "UGX 3,500",
     cadence: "per student/term",
     bestFor: "Urban primary · 200-500 students",
+    contrastLabel: "≈ 1,170 UGX/student/month — less than a chapati a day",
     features: [
       "Everything in Starter",
       "Bulk SMS (200/term included)",
@@ -69,12 +77,18 @@ export const plans = [
       "Up to 10 admin users",
     ],
     featured: true,
+    lossItems: [
+      "No UNEB registration — candidates need manual handling",
+      "No payroll — staff salaries managed elsewhere",
+      "No AI insights — trends are calculated by hand",
+    ],
   },
   {
     name: "Enterprise",
     price: "UGX 5,500",
     cadence: "per student/term",
     bestFor: "Secondary · 500+ students",
+    contrastLabel: "≈ 1,830 UGX/student/month — less than a bottle of water a day",
     features: [
       "Everything in Growth",
       "UNEB candidate registration",
@@ -92,6 +106,7 @@ export const plans = [
     price: "UGX 8-15M",
     cadence: "one-time",
     description: "Ownership, no monthly fees",
+    contrastLabel: "≈ 2 years of Enterprise — own it forever",
     features: [
       "All Enterprise features",
       "Source code license",
