@@ -852,6 +852,45 @@ router.replace("/dashboard/");
                     </div>
                   )}
 
+                  {/* IKEA Effect: "Your school so far" preview — builds ownership before final commitment */}
+                  <div className="rounded-2xl border border-[#17325F]/10 bg-gradient-to-br from-[#f0f7ff] to-white p-5 shadow-sm">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#17325F] text-white">
+                        <MaterialIcon icon="school" className="text-lg" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-[#17325F]">Your school so far</p>
+                        <p className="text-[11px] text-slate-500">You've already set up:</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
+                      <div>
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">School</span>
+                        <p className="font-semibold text-slate-900 truncate">{form.schoolName || "—"}</p>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Type</span>
+                        <p className="text-slate-700 capitalize">{form.schoolType}</p>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Plan</span>
+                        <p className="text-slate-700 capitalize">{form.selectedPackage}</p>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Ownership</span>
+                        <p className="text-slate-700 capitalize">{form.ownership.replace(/_/g, " ")}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Location</span>
+                        <p className="text-slate-700 truncate">{form.district || "—"}{form.subcounty ? `, ${form.subcounty}` : ""}</p>
+                      </div>
+                    </div>
+                    <div className="mt-3 rounded-xl bg-[#17325F]/5 px-3 py-2 text-xs text-[#17325F] flex items-center gap-1.5">
+                      <MaterialIcon icon="lock" className="text-sm" />
+                      One more step to activate — create your admin account below.
+                    </div>
+                  </div>
+
                   <ValidatedInput
                     label="Your Full Name"
                     type="text"

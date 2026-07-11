@@ -484,6 +484,48 @@ export default function HomePage() {
           </FadeIn>
         </section>
 
+        {/* ===== INTERACTIVE DASHBOARD PREVIEW (Reciprocity) ===== */}
+        <section className="relative overflow-hidden bg-[#f2f6fe] py-18 sm:py-24">
+          <div className="absolute top-[-20%] right-[-10%] h-[60%] w-[50%] rounded-full bg-[#d6e4ff] blur-[120px] opacity-40" />
+          <div className="absolute bottom-[-20%] left-[-10%] h-[50%] w-[40%] rounded-full bg-[#dff3e5] blur-[120px] opacity-30" />
+          <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <FadeIn>
+              <div className="text-center mb-4">
+                <span className="inline-flex items-center gap-2 rounded-full border border-[#17325F]/10 bg-white px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[#17325F] shadow-sm">
+                  <MaterialIcon icon="travel_explore" className="text-sm" />
+                  See it for yourself
+                </span>
+              </div>
+              <h2 className="text-center font-['Sora'] text-3xl font-semibold tracking-[-0.03em] text-slate-950 sm:text-4xl">
+                Your school dashboard,
+                <br />
+                <span className="text-[#2E9448]">fully interactive</span>
+              </h2>
+              <p className="mx-auto mt-4 max-w-2xl text-center text-lg text-slate-600">
+                Click through the tabs below. This is exactly what you and your
+                staff will see every morning — no sign-up required.
+              </p>
+            </FadeIn>
+            <div className="mt-10 max-w-5xl mx-auto">
+              <DesktopMockup />
+            </div>
+            <FadeIn delay={200}>
+              <div className="mt-10 text-center">
+                <p className="text-sm text-slate-500 mb-4">
+                  No catch. No credit card. Start your 30-day free trial.
+                </p>
+                <Link
+                  href="/register"
+                  className="btn btn-primary px-8 py-4 text-base inline-flex items-center gap-2"
+                >
+                  Start free trial
+                  <MaterialIcon icon="arrow_forward" className="text-lg" />
+                </Link>
+              </div>
+            </FadeIn>
+          </div>
+        </section>
+
         {/* ===== ROLE SWITCHER ===== */}
         <RoleSwitcher />
 

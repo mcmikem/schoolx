@@ -70,10 +70,10 @@ export default function OnboardingFlow({
     pathname ||
     (typeof window !== "undefined" ? window.location.pathname : "");
   const toast = useToast();
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(3);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
+  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set([1, 2]));
 
   const currentYear = new Date().getFullYear().toString();
   const schoolType = (school?.school_type as SchoolSetupType) || "primary";
@@ -976,7 +976,7 @@ export default function OnboardingFlow({
 
   if (!school) return null;
 
-  const progressPercent = Math.round((step / TOTAL_STEPS) * 100);
+  const progressPercent = Math.round((completedSteps.size / TOTAL_STEPS) * 100);
 
   if (
     currentPath.startsWith("/dashboard/fees") ||

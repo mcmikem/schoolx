@@ -17,6 +17,18 @@ const getStoredCurrentTerm = (): 1 | 2 | 3 => {
   return raw === '2' || raw === '3' ? (Number(raw) as 1 | 2 | 3) : 1
 }
 
+// Uganda academic calendar: determine term from current date
+function resolveTermByDate(now: Date = new Date()): 1 | 2 | 3 {
+  const month = now.getMonth() + 1
+  const day = now.getDate()
+  const isTerm1 = month === 2 || month === 3 || month === 4 || (month === 5 && day <= 3)
+  const isTerm2 = (month === 5 && day >= 27) || month === 6 || month === 7 || (month === 8 && day <= 23)
+  const isTerm3 = (month === 9 && day >= 16) || month === 10 || month === 11 || (month === 12 && day <= 6)
+  if (isTerm2) return 2
+  if (isTerm3) return 3
+  return 1
+}
+
 interface AcademicContextType {
   academicYear: string
   currentTerm: 1 | 2 | 3
@@ -52,8 +64,11 @@ export function AcademicProvider({ children }: { children: ReactNode }) {
     }
 
     if (isDemo) {
+      // Still resolve term by date — just skip DB sync
+      const demoTerm = resolveTermByDate()
+      setCurrentTermState(demoTerm)
+      localStorage.setItem('current_term', demoTerm.toString())
       setAcademicYearState(getStoredAcademicYear())
-      setCurrentTermState(getStoredCurrentTerm())
       setLockedTerms([])
       setLoading(false)
       return
@@ -66,57 +81,66 @@ export function AcademicProvider({ children }: { children: ReactNode }) {
       let activeYear = getStoredAcademicYear()
       let activeTerm = getStoredCurrentTerm()
 
-      if (Object.keys(settings).length > 0) {
-        if (settings.academic_year) {
-          activeYear = settings.academic_year
-          setAcademicYearState(activeYear)
-          localStorage.setItem('academic_year', activeYear)
-        }
+      // Try to determine term from academic_terms date ranges
+      const { data: allTerms } = await supabase
+        .from('academic_terms')
+        .select('term_number, start_date, end_date, academic_year')
+        .eq('school_id', school.id)
 
-        if (settings.current_term) {
-          activeTerm = Number(settings.current_term) as 1 | 2 | 3
-          setCurrentTermState(activeTerm)
-          localStorage.setItem('current_term', settings.current_term.toString())
-        }
+      const today = new Date()
+      const todayStr = today.toISOString().split('T')[0]
 
-        const locked = Object.keys(settings)
-          .filter(k => k.startsWith('term_locked_') && settings[k] === 'true')
-          .map(k => k.replace('term_locked_', ''))
-        setLockedTerms(locked)
+      type TermRow = NonNullable<typeof allTerms>[number]
+      let matchedTerm: TermRow | undefined
+      // Exact date range match
+      if (allTerms?.length) {
+        matchedTerm = allTerms.find(
+          (t) => t.start_date <= todayStr && t.end_date >= todayStr,
+        )
+      }
 
-        if (settings.passing_mark) {
-          setPassingMark(Number(settings.passing_mark))
-        }
-
-        if (settings.grade_labels) {
-          try {
-            setGradeLabels(JSON.parse(settings.grade_labels))
-          } catch (e) {
-            logger.warn('Failed to parse grade_labels:', e)
-          }
-        }
-
-        // Fetch term dates from academic_terms table
-        const { data: termData } = await supabase
-          .from('academic_terms')
-          .select('start_date, end_date')
-          .eq('school_id', school.id)
-          .eq('term_number', activeTerm)
-          .eq('academic_year', activeYear)
-          .maybeSingle()
-
-        if (termData) {
-          setCurrentTermStartDate(termData.start_date)
-          setCurrentTermEndDate(termData.end_date)
-        }
+      // Fallback: Uganda calendar date ranges
+      if (!matchedTerm) {
+        activeTerm = resolveTermByDate(today)
       } else {
-        const initialYear = getStoredAcademicYear()
-        const initialTerm = String(getStoredCurrentTerm())
+        activeTerm = matchedTerm.term_number as 1 | 2 | 3
+        if (matchedTerm.academic_year) activeYear = matchedTerm.academic_year
+        if (matchedTerm.start_date) setCurrentTermStartDate(matchedTerm.start_date)
+        if (matchedTerm.end_date) setCurrentTermEndDate(matchedTerm.end_date)
+      }
 
+      // Always persist the resolved term
+      setCurrentTermState(activeTerm)
+      localStorage.setItem('current_term', activeTerm.toString())
+      setAcademicYearState(activeYear)
+      localStorage.setItem('academic_year', activeYear)
+
+      // Sync to DB (best-effort)
+      try {
         await Promise.all([
-          saveSchoolSetting(school.id, 'academic_year', initialYear),
-          saveSchoolSetting(school.id, 'current_term', initialTerm),
+          saveSchoolSetting(school.id, 'current_term', activeTerm.toString()),
+          saveSchoolSetting(school.id, 'academic_year', activeYear),
         ])
+      } catch {
+        // Non-critical — term is already set in state + localStorage
+      }
+
+      // Load remaining settings
+      const locked = Object.keys(settings)
+        .filter(k => k.startsWith('term_locked_') && settings[k] === 'true')
+        .map(k => k.replace('term_locked_', ''))
+      setLockedTerms(locked)
+
+      if (settings.passing_mark) {
+        setPassingMark(Number(settings.passing_mark))
+      }
+
+      if (settings.grade_labels) {
+        try {
+          setGradeLabels(JSON.parse(settings.grade_labels))
+        } catch (e) {
+          logger.warn('Failed to parse grade_labels:', e)
+        }
       }
     } catch (err) {
       logger.warn('Academic settings fallback in use:', getErrorMessage(err))
