@@ -10,12 +10,17 @@
 //   - All public paths must be in alwaysPublicPaths (login, register, auth/callback, etc.)
 //   - Demo session validation must check DEMO_ALLOWED_ROLES allowlist
 //   - Security headers (CSP) must allow local Supabase in dev mode
-//   - CSRF tokens must be issued on every response
+//   - CSRF tokens must be issued on every response (rotated on mutation requests)
 //
 // To modify: Run full test suite (lint + typecheck + regression + e2e)
 // ============================================================================
 import { logger } from "@/lib/logger";
-import { getRequiredModuleForPath, getModuleDefinition, toLegacyModuleKey, isModuleInFeatureStage } from "@/lib/modules/catalog";
+import {
+  getRequiredModuleForPath,
+  getModuleDefinition,
+  toLegacyModuleKey,
+  isModuleInFeatureStage,
+} from "@/lib/modules/catalog";
 import { createMiddlewareClient } from "@/utils/supabase/middleware";
 import { type NextRequest, NextResponse } from "next/server";
 
@@ -38,12 +43,10 @@ const isValidAnonKey = (key: string) => {
   return sbPublishable || eyJ;
 };
 
-const hasUsableSupabaseConfig =
-  isValidHttpUrl(supabaseUrl) && isValidAnonKey(supabaseAnonKey);
+const hasUsableSupabaseConfig = isValidHttpUrl(supabaseUrl) && isValidAnonKey(supabaseAnonKey);
 const DEMO_KEY = "skoolmate_demo_v1";
 const DEMO_MODE_ENABLED =
-  process.env.NODE_ENV === "development" &&
-  process.env.NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES === "true";
+  process.env.NODE_ENV === "development" && process.env.NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES === "true";
 const DEMO_ALLOWED_ROLES = new Set([
   "headmaster",
   "dean_of_studies",
@@ -130,9 +133,7 @@ function applySecurityHeaders(response: NextResponse) {
   response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
   response.headers.set("X-XSS-Protection", "0");
   const isProduction = process.env.NODE_ENV === "production";
-  const imgSrc = isProduction
-    ? "img-src 'self' data: blob: https:"
-    : "img-src 'self' data: blob: https: http:";
+  const imgSrc = isProduction ? "img-src 'self' data: blob: https:" : "img-src 'self' data: blob: https: http:";
   const scriptSrc = isProduction
     ? "script-src 'self' 'unsafe-inline' https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ blob:"
     : "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ blob:";
@@ -175,13 +176,10 @@ function applySecurityHeaders(response: NextResponse) {
     cspDirectives.push("upgrade-insecure-requests");
   }
 
-  response.headers.set(
-    "Content-Security-Policy",
-    cspDirectives.join("; "),
-  );
+  response.headers.set("Content-Security-Policy", cspDirectives.join("; "));
 }
 
-function issueCSRFToken(response: NextResponse) {
+function setCSRFToken(response: NextResponse) {
   const array = new Uint8Array(32);
   crypto.getRandomValues(array);
   const token = Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join("");
@@ -195,11 +193,21 @@ function issueCSRFToken(response: NextResponse) {
   });
 }
 
+function isMutationRequest(request: NextRequest): boolean {
+  return !["GET", "HEAD", "OPTIONS"].includes(request.method);
+}
+
+function ensureCSRFToken(request: NextRequest, response: NextResponse): void {
+  if (isMutationRequest(request)) {
+    setCSRFToken(response);
+  } else if (!request.cookies.get("csrf-token")) {
+    setCSRFToken(response);
+  }
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const normalizedPath = pathname.endsWith("/") && pathname.length > 1
-    ? pathname.slice(0, -1)
-    : pathname;
+  const normalizedPath = pathname.endsWith("/") && pathname.length > 1 ? pathname.slice(0, -1) : pathname;
 
   // Backward compatibility for stale cached clients that still use old
   // upgrade/payment-plan fee tab URLs.
@@ -214,18 +222,14 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next({ request });
   }
 
-  const isPublicPath =
-    pathname === "/" ||
-    alwaysPublicPaths.some((path) => matchesPathPrefix(pathname, path));
+  const isPublicPath = pathname === "/" || alwaysPublicPaths.some((path) => matchesPathPrefix(pathname, path));
 
   const isSetupPath = SETUP_PATHS.some((path) => matchesPathPrefix(pathname, path));
 
   if (isPublicPath) {
     const response = NextResponse.next({ request });
     applySecurityHeaders(response);
-    if (!request.cookies.get("csrf-token")) {
-      issueCSRFToken(response);
-    }
+    ensureCSRFToken(request, response);
     return response;
   }
 
@@ -242,9 +246,7 @@ export async function proxy(request: NextRequest) {
         return NextResponse.next({ request });
       }
       const checkClient = checkClientResult.supabase;
-      const { count, error } = await checkClient
-        .from("schools")
-        .select("*", { count: "exact", head: true });
+      const { count, error } = await checkClient.from("schools").select("*", { count: "exact", head: true });
       if (error) {
         return NextResponse.next({ request });
       }
@@ -272,17 +274,11 @@ export async function proxy(request: NextRequest) {
   // protected app shells hydrate on the client.
   if (
     process.env.NODE_ENV !== "production" &&
-    (
-      pathname.startsWith("/dashboard") ||
-      pathname.startsWith("/super-admin") ||
-      pathname.startsWith("/parent-portal")
-    )
+    (pathname.startsWith("/dashboard") || pathname.startsWith("/super-admin") || pathname.startsWith("/parent-portal"))
   ) {
     const response = NextResponse.next({ request });
     applySecurityHeaders(response);
-    if (!request.cookies.get("csrf-token")) {
-      issueCSRFToken(response);
-    }
+    ensureCSRFToken(request, response);
     return response;
   }
 
@@ -322,9 +318,7 @@ export async function proxy(request: NextRequest) {
 
   applySecurityHeaders(supabaseResponse);
 
-  if (!request.cookies.get("csrf-token")) {
-    issueCSRFToken(supabaseResponse);
-  }
+  ensureCSRFToken(request, supabaseResponse);
 
   const {
     data: { user: authUser },
@@ -354,11 +348,9 @@ export async function proxy(request: NextRequest) {
     // redirect loops; client auth guards still enforce access.
     if (
       hasAuthSessionCookie(request) &&
-      (
-        pathname.startsWith("/dashboard") ||
+      (pathname.startsWith("/dashboard") ||
         pathname.startsWith("/super-admin") ||
-        pathname.startsWith("/parent-portal")
-      )
+        pathname.startsWith("/parent-portal"))
     ) {
       supabaseResponse.headers.set("x-auth-status", "cookie-present-user-unverified");
       return supabaseResponse;
@@ -414,7 +406,8 @@ export async function proxy(request: NextRequest) {
             .in("module_key", moduleKeys)
             .maybeSingle();
 
-          const entitlementMissingSchema = entitlementError && ["42P01", "42703"].includes((entitlementError as { code?: string }).code || "");
+          const entitlementMissingSchema =
+            entitlementError && ["42P01", "42703"].includes((entitlementError as { code?: string }).code || "");
 
           if (!entitlementMissingSchema) {
             const isActiveState = entitlement?.status === "active" || entitlement?.status === "trial";

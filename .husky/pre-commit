@@ -74,11 +74,16 @@ fi
 
 echo "🔒 Running pre-commit checks..."
 
-echo "  [1/3] Linting staged files..."
-npx lint-staged --config lint-staged.config.json 2>&1
-if [ $? -ne 0 ]; then
-  echo "❌ Lint failed. Fix errors before committing."
-  exit 1
+echo "  [1/3] Auto-formatting and linting staged files..."
+STAGED_TS=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(ts|tsx|js|jsx)$' | tr '\n' ' ' || true)
+if [ -n "$STAGED_TS" ]; then
+  npx biome format --write $STAGED_TS 2>&1 > /dev/null
+  npx biome lint $STAGED_TS 2>&1
+  if [ $? -ne 0 ]; then
+    echo "❌ Lint failed. Fix errors before committing."
+    exit 1
+  fi
+  git add $STAGED_TS
 fi
 echo "  ✅ Lint passed"
 
