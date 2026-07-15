@@ -110,11 +110,6 @@ html {
   --grad-teal: linear-gradient(135deg, #14b8a6 0%, #2dd4bf 100%);
   --grad-navy: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
   --grad-amber: linear-gradient(135deg, #ea580c 0%, #f97316 100%);
-  --grad-surface: linear-gradient(
-    180deg,
-    rgba(255, 255, 255, 0.9) 0%,
-    rgba(255, 255, 255, 0.6) 100%
-  );
 }
 
 .glass-premium {
@@ -452,7 +447,7 @@ table tr {
 
   .btn {
     @apply inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-[14px] text-[13px] font-semibold cursor-pointer border-none transition-all duration-[var(--dur)] ease-[var(--ease)] tracking-tight whitespace-nowrap active:scale-[0.98];
-    font-family: "Inter", sans-serif;
+    font-family: "DM Sans", sans-serif;
   }
 
   .btn-primary {
@@ -1035,16 +1030,6 @@ table tr {
   animation: float-gentle 3s infinite ease-in-out;
 }
 
-@keyframes hero-float-desktop {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0) rotateX(0deg) rotateY(0deg);
-  }
-  50% {
-    transform: translate3d(0, -10px, 0) rotateX(0.6deg) rotateY(-1deg);
-  }
-}
-
 /* -- DASHBOARD LAYOUT - SIDEBAR & RESPONSIVE STYLES ------- */
 /*  Previously injected as a JSX <style> block on every render.  */
 /*  Moved here so it is cached by the browser and not duplicated. */
@@ -1166,7 +1151,7 @@ table tr {
 }
 
 /* Tablet / mobile: sidebar covers with overlay */
-@media (max-width: 1279px) {
+@media (max-width: 1023px) {
   .sidebar-overlay {
     display: none !important;
   }
@@ -1197,10 +1182,26 @@ table tr {
   }
 }
 
+/* Tablet landscape (1024-1279px): sidebar always visible, narrower */
 @media (min-width: 1024px) and (max-width: 1279px) {
+  .sidebar {
+    transform: translateX(0) !important;
+    pointer-events: auto !important;
+    opacity: 1 !important;
+    width: 220px !important;
+  }
+  .sidebar + .sidebar-overlay {
+    display: none !important;
+  }
   .main-content {
-    margin-left: 0 !important;
-    width: 100% !important;
+    margin-left: 220px !important;
+    width: calc(100% - 220px) !important;
+  }
+  .sidebar-close-btn {
+    display: flex !important;
+  }
+  .search-bar {
+    display: none !important;
   }
 }
 

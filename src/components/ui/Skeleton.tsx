@@ -29,18 +29,11 @@ function useDelayedVisible(delayMs: number) {
 }
 
 export function Skeleton({ className = "" }: SkeletonProps) {
-  return (
-    <div
-      className={cn(
-        "animate-pulse bg-[var(--surface-container)] rounded-lg",
-        className,
-      )}
-    />
-  );
+  return <div className={cn("animate-pulse bg-[var(--surface-container)] rounded-lg", className)} />;
 }
 
 export function TableSkeleton({ rows = 5 }: { rows?: number }) {
-  const visible = useDelayedVisible(250);
+  const visible = useDelayedVisible(0);
   if (!visible) return null;
 
   return (
@@ -53,10 +46,7 @@ export function TableSkeleton({ rows = 5 }: { rows?: number }) {
         <Skeleton className="h-4 w-16" />
       </div>
       {Array.from({ length: rows }).map((_, i) => (
-        <div
-          key={i}
-          className="flex gap-4 px-4 py-4 border-b border-[var(--border)]"
-        >
+        <div key={i} className="flex gap-4 px-4 py-4 border-b border-[var(--border)]">
           <Skeleton className="h-4 w-12" />
           <Skeleton className="h-4 w-32" />
           <Skeleton className="h-4 w-24" />
@@ -69,16 +59,11 @@ export function TableSkeleton({ rows = 5 }: { rows?: number }) {
 }
 
 export function CardSkeleton({ className = "" }: SkeletonProps) {
-  const visible = useDelayedVisible(250);
+  const visible = useDelayedVisible(0);
   if (!visible) return null;
 
   return (
-    <div
-      className={cn(
-        "bg-[var(--surface)] rounded-xl border border-[var(--border)] p-4",
-        className,
-      )}
-    >
+    <div className={cn("bg-[var(--surface)] rounded-xl border border-[var(--border)] p-4", className)}>
       <div className="flex items-center justify-between mb-4">
         <Skeleton className="h-4 w-24" />
         <Skeleton className="h-8 w-8 rounded-lg" />
@@ -90,7 +75,7 @@ export function CardSkeleton({ className = "" }: SkeletonProps) {
 }
 
 export function StatSkeleton() {
-  const visible = useDelayedVisible(250);
+  const visible = useDelayedVisible(0);
   if (!visible) return null;
 
   return (
@@ -103,7 +88,7 @@ export function StatSkeleton() {
 }
 
 export function PageLoader({ message = "Loading..." }: { message?: string }) {
-  const visible = useDelayedVisible(300);
+  const visible = useDelayedVisible(0);
   if (!visible) return null;
 
   return (
@@ -114,16 +99,12 @@ export function PageLoader({ message = "Loading..." }: { message?: string }) {
   );
 }
 
-export function FullPageLoader({
-  message = "Loading...",
-}: {
-  message?: string;
-}) {
-  const visible = useDelayedVisible(300);
+export function FullPageLoader({ message = "Loading..." }: { message?: string }) {
+  const visible = useDelayedVisible(0);
   if (!visible) return null;
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[400px]">
+    <div className="flex flex-col items-center justify-center min-h-[400px]" role="status" aria-live="polite">
       <OwlMascot
         size={68}
         premium
@@ -141,7 +122,12 @@ export function FullPageLoader({
 
 export function TopLoadingBar() {
   return (
-    <div className="fixed top-0 left-0 right-0 z-[9999] h-1 overflow-hidden">
+    <div
+      className="fixed top-0 left-0 right-0 z-[9999] h-1 overflow-hidden"
+      role="progressbar"
+      aria-label="Page loading"
+      aria-busy="true"
+    >
       <div className="h-full w-full bg-[var(--primary)]/20">
         <div className="h-full w-1/3 bg-[var(--primary)] rounded-full animate-loading-bar" />
       </div>
@@ -159,11 +145,7 @@ export function TopLoadingBar() {
   );
 }
 
-export function MinimalLoadingScreen({
-  message = "Verifying your session...",
-}: {
-  message?: string;
-}) {
+export function MinimalLoadingScreen({ message = "Verifying your session..." }: { message?: string }) {
   return (
     <div className="min-h-screen bg-[var(--bg)] flex flex-col">
       <TopLoadingBar />
@@ -178,13 +160,7 @@ export function MinimalLoadingScreen({
   );
 }
 
-export function StuckLoadingOverlay({
-  delay = 10000,
-  onRefresh,
-}: {
-  delay?: number;
-  onRefresh?: () => void;
-}) {
+export function StuckLoadingOverlay({ delay = 10000, onRefresh }: { delay?: number; onRefresh?: () => void }) {
   const router = useRouter();
   const [visible, setVisible] = useState(false);
 
@@ -202,14 +178,9 @@ export function StuckLoadingOverlay({
     >
       <div className="bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-2xl p-4">
         <div className="flex items-start gap-3">
-          <MaterialIcon
-            icon="hourglass_empty"
-            className="text-2xl text-[var(--warning)] shrink-0 mt-0.5"
-          />
+          <MaterialIcon icon="hourglass_empty" className="text-2xl text-[var(--warning)] shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-[var(--t1)]">
-              Taking longer than usual?
-            </p>
+            <p className="text-sm font-semibold text-[var(--t1)]">Taking longer than usual?</p>
             <p className="text-xs text-[var(--t3)] mt-1 leading-relaxed">
               The app might still be loading. Try refreshing if this persists.
             </p>
@@ -231,7 +202,7 @@ export function StuckLoadingOverlay({
 }
 
 export function DashboardSkeleton() {
-  const visible = useDelayedVisible(300);
+  const visible = useDelayedVisible(0);
   if (!visible) return null;
 
   return (
