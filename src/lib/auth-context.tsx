@@ -272,8 +272,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const checkUser = useCallback(async () => {
     // Safety timer: fallback to non-loading state if auth takes too long.
-    // 8s accounts for slow connections (3G, VPN, cold-start Supabase).
-    // Only fires if auth hasn't already resolved.
     const safetyTimer = setTimeout(() => {
       setLoading(false);
       setAuthInitialized(true);
@@ -805,9 +803,9 @@ signInLockTimer.current = setTimeout(() => {
                   "events",
                   "timetable",
                 ])
-                .catch(() => {});
+                .catch((err) => logger.warn("[auth] Background offlineDB refresh failed", err));
             })
-            .catch(() => {});
+            .catch((err) => logger.warn("[auth] Dynamic import of offlineDB failed", err));
 
           releaseSignInLock();
           // Return success — onAuthStateChange handler is the single source of

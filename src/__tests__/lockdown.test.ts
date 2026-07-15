@@ -212,6 +212,23 @@ describe("🔒 LOCKDOWN: Auth Context", () => {
     expect(authContext).toContain("readDemoStorage");
   });
 
+  it("must NOT short-circuit on demo data when SIGNED_IN fires", () => {
+    // The broken pattern was: if (isCurrentlyDemo && event !== "SIGNED_OUT") return;
+    // This silently swallows real SIGNED_IN events when demo localStorage exists.
+    // The correct handler clears demo storage on SIGNED_IN and falls through.
+    const demoCheckLine = authContext.match(
+      /if \(isCurrentlyDemo && event !== "SIGNED_OUT"\)\s*\{/,
+    );
+    expect(demoCheckLine).toBeTruthy();
+    const lineStart = authContext.indexOf(demoCheckLine![0]);
+    const block = authContext.slice(lineStart, lineStart + 1600);
+    // Must not be the broken single-line return
+    expect(block).not.toMatch(/isCurrentlyDemo && event !== "SIGNED_OUT"\) return;/);
+    // Must have the SIGNED_IN branch that clears demo storage
+    expect(block).toContain('if (event === "SIGNED_IN") {');
+    expect(block).toContain("clearDemoStorage()");
+  });
+
   it("must handle 401/404/502/503/504 errors in fetchUserData", () => {
     expect(authContext).toContain("res.status === 404");
     expect(authContext).toContain("res.status === 401");
