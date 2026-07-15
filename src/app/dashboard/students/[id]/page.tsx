@@ -65,15 +65,9 @@ type FeeRecord = {
 function useStudentData(studentId: string, isDemo: boolean, isConstrainedNetwork: boolean) {
   const [attendancePct, setAttendancePct] = useState(0);
   const [feePosition, setFeePosition] = useState({ paid: 0, total: 0 });
-  const [gradeHistory, setGradeHistory] = useState<
-    { term: string; average: number }[]
-  >([]);
-  const [subjectScores, setSubjectScores] = useState<
-    { subject: string; score: number }[]
-  >([]);
-  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>(
-    [],
-  );
+  const [gradeHistory, setGradeHistory] = useState<{ term: string; average: number }[]>([]);
+  const [subjectScores, setSubjectScores] = useState<{ subject: string; score: number }[]>([]);
+  const [attendanceRecords, setAttendanceRecords] = useState<AttendanceRecord[]>([]);
   const [detailsLoading, setDetailsLoading] = useState(false);
   const [detailsError, setDetailsError] = useState<string | null>(null);
 
@@ -118,10 +112,7 @@ function useStudentData(studentId: string, isDemo: boolean, isConstrainedNetwork
             .eq("student_id", studentId)
             .order("date", { ascending: false })
             .limit(isConstrainedNetwork ? 45 : 180),
-          supabase
-            .from("student_fees")
-            .select("amount_paid, total_fees")
-            .eq("student_id", studentId),
+          supabase.from("student_fees").select("amount_paid, total_fees").eq("student_id", studentId),
           supabase
             .from("grades")
             .select("subject_id, score, term, subjects(name)")
@@ -138,14 +129,8 @@ function useStudentData(studentId: string, isDemo: boolean, isConstrainedNetwork
           setAttendanceRecords([]);
         } else {
           const safeAttendance = (attData || []) as AttendanceRecord[];
-          const present = safeAttendance.filter(
-            (record) => record.status === "present",
-          ).length;
-          setAttendancePct(
-            safeAttendance.length > 0
-              ? Math.round((present / safeAttendance.length) * 100)
-              : 0,
-          );
+          const present = safeAttendance.filter((record) => record.status === "present").length;
+          setAttendancePct(safeAttendance.length > 0 ? Math.round((present / safeAttendance.length) * 100) : 0);
           setAttendanceRecords([...safeAttendance].reverse());
         }
 
@@ -155,14 +140,8 @@ function useStudentData(studentId: string, isDemo: boolean, isConstrainedNetwork
         } else {
           const feeRows = (feeData || []) as FeeRecord[];
           setFeePosition({
-            paid: feeRows.reduce(
-              (sum, row) => sum + Number(row.amount_paid || 0),
-              0,
-            ),
-            total: feeRows.reduce(
-              (sum, row) => sum + Number(row.total_fees || 0),
-              0,
-            ),
+            paid: feeRows.reduce((sum, row) => sum + Number(row.amount_paid || 0), 0),
+            total: feeRows.reduce((sum, row) => sum + Number(row.total_fees || 0), 0),
           });
         }
 
@@ -174,14 +153,9 @@ function useStudentData(studentId: string, isDemo: boolean, isConstrainedNetwork
           const safeGrades = (gradesData || []) as GradeRecord[];
           setSubjectScores(
             safeGrades
-              .filter(
-                (grade): grade is GradeRecord & { score: number } =>
-                  typeof grade.score === "number",
-              )
+              .filter((grade): grade is GradeRecord & { score: number } => typeof grade.score === "number")
               .map((grade) => {
-                const subjectName = Array.isArray(grade.subjects)
-                  ? grade.subjects[0]?.name
-                  : grade.subjects?.name;
+                const subjectName = Array.isArray(grade.subjects) ? grade.subjects[0]?.name : grade.subjects?.name;
                 return {
                   subject: subjectName || grade.subject_id || "Unknown",
                   score: grade.score,
@@ -198,10 +172,7 @@ function useStudentData(studentId: string, isDemo: boolean, isConstrainedNetwork
                 ? [
                     {
                       term: "Current",
-                      average: Math.round(
-                        validScores.reduce((sum, score) => sum + score, 0) /
-                          validScores.length,
-                      ),
+                      average: Math.round(validScores.reduce((sum, score) => sum + score, 0) / validScores.length),
                     },
                   ]
                 : [],
@@ -222,11 +193,7 @@ function useStudentData(studentId: string, isDemo: boolean, isConstrainedNetwork
         }
       } catch (error) {
         if (!cancelled) {
-          setDetailsError(
-            error instanceof Error
-              ? error.message
-              : "Unable to load student analytics",
-          );
+          setDetailsError(error instanceof Error ? error.message : "Unable to load student analytics");
         }
       } finally {
         if (!cancelled) {
@@ -256,12 +223,7 @@ function AttendanceRing({ percentage }: { percentage: number }) {
   const radius = 36;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (percentage / 100) * circumference;
-  const color =
-    percentage >= 80
-      ? "var(--green)"
-      : percentage >= 60
-        ? "var(--amber)"
-        : "var(--red)";
+  const color = percentage >= 80 ? "var(--green)" : percentage >= 60 ? "var(--amber)" : "var(--red)";
 
   return (
     <div className="flex flex-col items-center">
@@ -278,28 +240,17 @@ function AttendanceRing({ percentage }: { percentage: number }) {
         />
       </svg>
       <div className="-mt-14 text-center">
-        <div className="text-lg font-extrabold text-[var(--t1)]">
-          {percentage}%
-        </div>
-        <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--t3)]">
-          Attendance
-        </div>
+        <div className="text-lg font-extrabold text-[var(--t1)]">{percentage}%</div>
+        <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--t3)]">Attendance</div>
       </div>
     </div>
   );
 }
 
-function AttendanceHeatmap({
-  records,
-  isDemo,
-}: {
-  records: AttendanceRecord[];
-  isDemo: boolean;
-}) {
+function AttendanceHeatmap({ records, isDemo }: { records: AttendanceRecord[]; isDemo: boolean }) {
   const days = useMemo(() => {
     if (isDemo) {
-      const result: { status: "present" | "absent" | "late"; date: Date }[] =
-        [];
+      const result: { status: "present" | "absent" | "late"; date: Date }[] = [];
       for (let i = 29; i >= 0; i--) {
         const d = new Date();
         d.setDate(d.getDate() - i);
@@ -313,15 +264,13 @@ function AttendanceHeatmap({
       return result;
     }
 
-    return records
-      .slice(-30)
-      .map((record) => {
-        const parsedDate = record.date ? new Date(record.date) : new Date();
-        return {
-          date: Number.isNaN(parsedDate.getTime()) ? new Date() : parsedDate,
-          status: record.status,
-        };
-      });
+    return records.slice(-30).map((record) => {
+      const parsedDate = record.date ? new Date(record.date) : new Date();
+      return {
+        date: Number.isNaN(parsedDate.getTime()) ? new Date() : parsedDate,
+        status: record.status,
+      };
+    });
   }, [records, isDemo]);
 
   const colorMap = {
@@ -365,9 +314,7 @@ function FeeProgressBar({ paid, total }: { paid: number; total: number }) {
     <div>
       <div className="flex items-center justify-between mb-2">
         <span className="text-sm font-semibold text-[var(--t1)]">
-          {isPaid
-            ? "Fully Paid"
-            : `UGX ${balance.toLocaleString()} outstanding`}
+          {isPaid ? "Fully Paid" : `UGX ${balance.toLocaleString()} outstanding`}
         </span>
         <span
           className={`text-xs font-bold px-2 py-0.5 rounded-full ${
@@ -381,9 +328,7 @@ function FeeProgressBar({ paid, total }: { paid: number; total: number }) {
       </div>
       <div className="h-3 bg-[var(--bg)] rounded-full overflow-hidden">
         <div
-          className={`h-full rounded-full transition-all duration-700 ${
-            isPaid ? "bg-emerald-500" : "bg-red-500"
-          }`}
+          className={`h-full rounded-full transition-all duration-700 ${isPaid ? "bg-emerald-500" : "bg-red-500"}`}
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -395,11 +340,7 @@ function FeeProgressBar({ paid, total }: { paid: number; total: number }) {
   );
 }
 
-function GradeSparkline({
-  data,
-}: {
-  data: { term: string; average: number }[];
-}) {
+function GradeSparkline({ data }: { data: { term: string; average: number }[] }) {
   const width = 120;
   const height = 40;
   const padding = 4;
@@ -410,10 +351,7 @@ function GradeSparkline({
 
   const points = data.map((d, i) => {
     const x = padding + (i / denominator) * (width - padding * 2);
-    const y =
-      height -
-      padding -
-      ((d.average - minVal) / range) * (height - padding * 2);
+    const y = height - padding - ((d.average - minVal) / range) * (height - padding * 2);
     return `${x},${y}`;
   });
 
@@ -434,10 +372,7 @@ function GradeSparkline({
         />
         {data.map((d, i) => {
           const x = padding + (i / denominator) * (width - padding * 2);
-          const y =
-            height -
-            padding -
-            ((d.average - minVal) / range) * (height - padding * 2);
+          const y = height - padding - ((d.average - minVal) / range) * (height - padding * 2);
           return (
             <circle
               key={i}
@@ -450,13 +385,7 @@ function GradeSparkline({
         })}
       </svg>
       <div>
-        <div
-          className={`text-lg font-extrabold ${
-            trend ? "text-emerald-600" : "text-red-600"
-          }`}
-        >
-          {lastVal}%
-        </div>
+        <div className={`text-lg font-extrabold ${trend ? "text-emerald-600" : "text-red-600"}`}>{lastVal}%</div>
         <div className="flex items-center gap-0.5 text-[10px] font-bold text-[var(--t3)] uppercase tracking-wider">
           {trend ? (
             <TrendingUp className="w-3 h-3 text-emerald-500" />
@@ -572,26 +501,21 @@ export default function StudentProfilePage() {
 
   const analyticsStudentId = studentProfile?.id || "";
 
-  const {
-    attendancePct,
-    feePosition,
-    gradeHistory,
-    subjectScores,
-    attendanceRecords,
-    detailsLoading,
-    detailsError,
-  } = useStudentData(analyticsStudentId, isDemo, isConstrainedNetwork);
+  const { attendancePct, feePosition, gradeHistory, subjectScores, attendanceRecords, detailsLoading, detailsError } =
+    useStudentData(analyticsStudentId, isDemo, isConstrainedNetwork);
 
   const [activeTab, setActiveTab] = useState("overview");
   const [smsOpen, setSmsOpen] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [portalCreds, setPortalCreds] = useState<{
     parentPhone: string;
-    generatedPassword: string;
+    generatedPassword?: string;
     parentName: string;
+    credentialsDelivered: boolean;
   } | null>(null);
   const [whatsappSent, setWhatsappSent] = useState(false);
   const [whatsappLink, setWhatsappLink] = useState<string | null>(null);
+  const [creatingPortal, setCreatingPortal] = useState(false);
 
   const [guardians, setGuardians] = useState<any[]>([]);
   const [guardiansLoading, setGuardiansLoading] = useState(false);
@@ -637,7 +561,9 @@ export default function StudentProfilePage() {
     fetchGuardians();
     fetchSmsHistory();
 
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [studentId, isDemo]);
 
   const handleAddGuardian = async () => {
@@ -647,39 +573,20 @@ export default function StudentProfilePage() {
     }
     setGuardianSaving(true);
     try {
-      const { data: existingUser, error: lookupError } = await supabase
-        .from("users")
-        .select("id, full_name, phone")
-        .eq("phone", guardianForm.phone)
-        .maybeSingle();
-
-      let parentId: string;
-      if (existingUser) {
-        parentId = existingUser.id;
-      } else {
-        const { data: newUser, error: createError } = await supabase
-          .from("users")
-          .insert({
-            school_id: school.id,
-            full_name: guardianForm.name,
-            phone: guardianForm.phone,
-            email: guardianForm.email || null,
-            role: "parent",
-          })
-          .select("id")
-          .single();
-        if (createError) throw createError;
-        parentId = newUser.id;
-      }
-
-      const { error: linkError } = await supabase
-        .from("parent_students")
-        .insert({
-          parent_id: parentId,
-          student_id: studentId,
+      const res = await fetch("/api/students/create-parent-portal/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          studentId,
+          schoolId: school.id,
+          phone: guardianForm.phone,
+          fullName: guardianForm.name,
           relationship: guardianForm.relationship,
-        });
-      if (linkError) throw linkError;
+          sendCredentials: false,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to add guardian");
 
       const { data: guardianData } = await supabase
         .from("parent_students")
@@ -698,7 +605,8 @@ export default function StudentProfilePage() {
         refetch();
       }
 
-      toast.success("Guardian added");
+      const msg = data.generatedPassword ? `Guardian added. Password: ${data.generatedPassword}` : "Guardian added";
+      toast.success(msg);
       setShowGuardianModal(false);
       setGuardianForm({ name: "", phone: "", relationship: "parent", email: "" });
     } catch (err: unknown) {
@@ -711,24 +619,48 @@ export default function StudentProfilePage() {
   const handleSetPrimaryGuardian = async (guardian: any) => {
     const name = guardian.users?.full_name || guardianForm.name;
     const phone = guardian.users?.phone || guardianForm.phone;
-    await supabase
-      .from("students")
-      .update({ parent_name: name, parent_phone: phone })
-      .eq("id", studentId);
+    await supabase.from("students").update({ parent_name: name, parent_phone: phone }).eq("id", studentId);
     refetch();
     toast.success("Primary guardian updated");
   };
 
-  const handleProfileUpdate = useCallback(async (id: string, data: any) => {
-    const normalized = normalizeStudentInput(data);
-    const { error } = await withTimeout(
-      supabase.from("students").update(normalized).eq("id", id),
-      15000,
-      { data: null, error: { message: "Save timed out", name: "TimeoutError" } } as any,
-    );
-    if (error) throw error;
-    refetch();
-  }, [refetch]);
+  const handleCreatePortalAccess = async () => {
+    if (!school?.id || !studentId) return;
+    setCreatingPortal(true);
+    try {
+      const res = await fetch("/api/students/create-parent-portal/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ studentId, schoolId: school.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to create parent portal");
+      setPortalCreds({
+        parentPhone: data.parentPhone,
+        generatedPassword: data.generatedPassword,
+        parentName: data.parentName,
+        credentialsDelivered: data.credentialsDelivered,
+      });
+      toast.success(data.message);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to create parent portal");
+    } finally {
+      setCreatingPortal(false);
+    }
+  };
+
+  const handleProfileUpdate = useCallback(
+    async (id: string, data: any) => {
+      const normalized = normalizeStudentInput(data);
+      const { error } = await withTimeout(supabase.from("students").update(normalized).eq("id", id), 15000, {
+        data: null,
+        error: { message: "Save timed out", name: "TimeoutError" },
+      } as any);
+      if (error) throw error;
+      refetch();
+    },
+    [refetch],
+  );
 
   if (studentLoading)
     return (
@@ -740,9 +672,7 @@ export default function StudentProfilePage() {
   if (error || !student)
     return (
       <div className="p-8 text-center">
-        <div className="text-red-600 dark:text-red-400 mb-4">
-          Student not found
-        </div>
+        <div className="text-red-600 dark:text-red-400 mb-4">Student not found</div>
         <Link href="/dashboard/students" className="btn btn-primary">
           Back to Students
         </Link>
@@ -760,11 +690,11 @@ export default function StudentProfilePage() {
   return (
     <PageErrorBoundary>
       <div className="space-y-6">
-                {isConstrainedNetwork && (
-                  <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200">
-                    Data saver mode is active. This profile is showing lightweight analytics for faster loading.
-                  </div>
-                )}
+        {isConstrainedNetwork && (
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200">
+            Data saver mode is active. This profile is showing lightweight analytics for faster loading.
+          </div>
+        )}
         {detailsError && (
           <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-200">
             Some student analytics could not be loaded: {detailsError}
@@ -833,12 +763,26 @@ export default function StudentProfilePage() {
         <div className="grid gap-3 grid-cols-2 xl:grid-cols-4">
           {[
             { label: "Attendance", value: `${attendancePct}%`, tone: "text-emerald-600 dark:text-emerald-400" },
-            { label: "Balance", value: outstandingBalance > 0 ? `UGX ${outstandingBalance.toLocaleString()}` : "Cleared", tone: outstandingBalance > 0 ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400" },
-            { label: "Average", value: latestGrade !== null ? `${latestGrade}%` : "No grades", tone: "text-blue-600 dark:text-blue-400" },
+            {
+              label: "Balance",
+              value: outstandingBalance > 0 ? `UGX ${outstandingBalance.toLocaleString()}` : "Cleared",
+              tone:
+                outstandingBalance > 0 ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400",
+            },
+            {
+              label: "Average",
+              value: latestGrade !== null ? `${latestGrade}%` : "No grades",
+              tone: "text-blue-600 dark:text-blue-400",
+            },
             { label: "Contacts", value: `${parentContacts} linked`, tone: "text-gray-900 dark:text-gray-100" },
           ].map((item) => (
-            <div key={item.label} className="rounded-2xl border border-gray-100 bg-gray-50/80 p-3 dark:border-gray-700 dark:bg-gray-700/30">
-              <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">{item.label}</div>
+            <div
+              key={item.label}
+              className="rounded-2xl border border-gray-100 bg-gray-50/80 p-3 dark:border-gray-700 dark:bg-gray-700/30"
+            >
+              <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">
+                {item.label}
+              </div>
               <div className={`mt-1 text-sm font-bold ${item.tone}`}>{item.value}</div>
             </div>
           ))}
@@ -942,6 +886,34 @@ export default function StudentProfilePage() {
                 </div>
               )}
             </div>
+            {student.parent_phone && (
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button
+                  onClick={handleCreatePortalAccess}
+                  disabled={creatingPortal}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                >
+                  <User className="h-3.5 w-3.5" />
+                  {creatingPortal ? "Creating..." : "Create Parent Portal Access"}
+                </button>
+              </div>
+            )}
+            {portalCreds && (
+              <div className="mt-3 rounded-xl bg-green-50 px-4 py-3 text-sm text-green-800 dark:bg-green-950/40 dark:text-green-200">
+                <p className="font-medium">{portalCreds.parentName}</p>
+                <p className="mt-1">Phone: {portalCreds.parentPhone}</p>
+                {portalCreds.generatedPassword && (
+                  <p className="mt-1 font-mono text-xs">
+                    Password: <span className="font-bold">{portalCreds.generatedPassword}</span>
+                  </p>
+                )}
+                {portalCreds.credentialsDelivered ? (
+                  <p className="mt-1 text-green-600">Credentials sent via WhatsApp</p>
+                ) : (
+                  <p className="mt-1 text-amber-600">Share the password above with the parent</p>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
@@ -971,9 +943,7 @@ export default function StudentProfilePage() {
 
         <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-900 dark:text-gray-100">
-              Guardians
-            </h3>
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100">Guardians</h3>
             <button
               onClick={() => setShowGuardianModal(true)}
               className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-700"
@@ -988,16 +958,12 @@ export default function StudentProfilePage() {
               <Skeleton className="h-12 w-full rounded-xl" />
             </div>
           ) : guardians.length === 0 ? (
-            <p className="text-sm text-[var(--t3)]">
-              No additional guardians linked. Primary guardian is shown above.
-            </p>
+            <p className="text-sm text-[var(--t3)]">No additional guardians linked. Primary guardian is shown above.</p>
           ) : (
             <div className="space-y-2">
               {guardians.map((g) => {
                 const user = g.users || {};
-                const isPrimary =
-                  user.full_name === student.parent_name ||
-                  user.phone === student.parent_phone;
+                const isPrimary = user.full_name === student.parent_name || user.phone === student.parent_phone;
                 return (
                   <div
                     key={g.id}
@@ -1005,9 +971,7 @@ export default function StudentProfilePage() {
                   >
                     <div>
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">
-                          {user.full_name || "Unknown"}
-                        </span>
+                        <span className="text-sm font-medium">{user.full_name || "Unknown"}</span>
                         {isPrimary && (
                           <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
                             Primary
@@ -1016,9 +980,7 @@ export default function StudentProfilePage() {
                       </div>
                       <div className="text-xs text-[var(--t3)]">
                         {user.phone || ""}
-                        {g.relationship !== "parent"
-                          ? ` · ${g.relationship}`
-                          : ""}
+                        {g.relationship !== "parent" ? ` · ${g.relationship}` : ""}
                       </div>
                     </div>
                     {!isPrimary && (
@@ -1045,21 +1007,14 @@ export default function StudentProfilePage() {
           {smsHistoryLoading ? (
             <Skeleton className="h-32 w-full rounded-xl" />
           ) : smsHistory.length === 0 ? (
-            <p className="text-sm text-[var(--t3)]">
-              No SMS messages have been sent to this student&apos;s parents.
-            </p>
+            <p className="text-sm text-[var(--t3)]">No SMS messages have been sent to this student&apos;s parents.</p>
           ) : (
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {smsHistory.map((msg) => (
-                <div
-                  key={msg.id}
-                  className="rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-700/30"
-                >
+                <div key={msg.id} className="rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-700/30">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-medium text-[var(--t3)]">
-                      {msg.sent_at
-                        ? new Date(msg.sent_at).toLocaleString()
-                        : new Date(msg.created_at).toLocaleString()}
+                      {msg.sent_at ? new Date(msg.sent_at).toLocaleString() : new Date(msg.created_at).toLocaleString()}
                     </span>
                     <span
                       className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
@@ -1075,14 +1030,8 @@ export default function StudentProfilePage() {
                       {msg.status}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">
-                    {msg.message}
-                  </p>
-                  {msg.phone && (
-                    <p className="text-xs text-[var(--t3)] mt-1">
-                      To: {msg.phone}
-                    </p>
-                  )}
+                  <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">{msg.message}</p>
+                  {msg.phone && <p className="text-xs text-[var(--t3)] mt-1">To: {msg.phone}</p>}
                 </div>
               ))}
             </div>
@@ -1119,16 +1068,9 @@ export default function StudentProfilePage() {
           className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
           onClick={() => setShowGuardianModal(false)}
         >
-          <div
-            className="bg-[var(--surface)] rounded-2xl w-full max-w-md p-6"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="text-lg font-bold text-[var(--t1)] mb-2">
-              Add Guardian
-            </h3>
-            <p className="text-sm text-[var(--t3)] mb-5">
-              Search existing users or add a new parent/guardian.
-            </p>
+          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-md p-6" onClick={(e) => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-[var(--t1)] mb-2">Add Guardian</h3>
+            <p className="text-sm text-[var(--t3)] mb-5">Search existing users or add a new parent/guardian.</p>
             <div className="space-y-4">
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2">
@@ -1137,9 +1079,7 @@ export default function StudentProfilePage() {
                 <input
                   type="text"
                   value={guardianForm.name}
-                  onChange={(e) =>
-                    setGuardianForm({ ...guardianForm, name: e.target.value })
-                  }
+                  onChange={(e) => setGuardianForm({ ...guardianForm, name: e.target.value })}
                   className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
                   placeholder="e.g. John Doe"
                   required
@@ -1152,9 +1092,7 @@ export default function StudentProfilePage() {
                 <input
                   type="tel"
                   value={guardianForm.phone}
-                  onChange={(e) =>
-                    setGuardianForm({ ...guardianForm, phone: e.target.value })
-                  }
+                  onChange={(e) => setGuardianForm({ ...guardianForm, phone: e.target.value })}
                   className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
                   placeholder="0700000000"
                   required
@@ -1167,9 +1105,7 @@ export default function StudentProfilePage() {
                 <input
                   type="email"
                   value={guardianForm.email}
-                  onChange={(e) =>
-                    setGuardianForm({ ...guardianForm, email: e.target.value })
-                  }
+                  onChange={(e) => setGuardianForm({ ...guardianForm, email: e.target.value })}
                   className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
                   placeholder="guardian@example.com"
                 />

@@ -25,7 +25,14 @@ export async function POST(request: NextRequest) {
   });
 
   const body = await request.json();
-  const { studentId, schoolId } = body as { studentId?: string; schoolId?: string };
+  const { studentId, schoolId, phone, fullName, relationship, sendCredentials } = body as {
+    studentId?: string;
+    schoolId?: string;
+    phone?: string;
+    fullName?: string;
+    relationship?: string;
+    sendCredentials?: boolean;
+  };
   if (!studentId || !schoolId) {
     return NextResponse.json({ error: "studentId and schoolId required" }, { status: 400 });
   }
@@ -49,7 +56,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Student not found" }, { status: 404 });
   }
 
-  const parentPhone = student.parent_phone?.replace(/[^0-9]/g, "");
+  const rawPhone = phone || student.parent_phone;
+  const parentPhone = rawPhone?.replace(/[^0-9]/g, "");
   if (!parentPhone || parentPhone.length < 9) {
     return NextResponse.json({ error: "Student has no valid parent phone number" }, { status: 400 });
   }
@@ -63,20 +71,14 @@ export async function POST(request: NextRequest) {
     .eq("school_id", schoolId)
     .maybeSingle();
 
-  const parentName = student.parent_name?.trim() || `Parent of ${student.first_name}`;
+  const parentName = fullName?.trim() || student.parent_name?.trim() || `Parent of ${student.first_name}`;
   const generatedPassword = generateTemporaryPassword();
   const authEmail = buildAuthEmailFromPhone(phoneNormalized);
-  const e164Phone = phoneNormalized.startsWith("+")
-    ? phoneNormalized
-    : `+${phoneNormalized}`;
+  const e164Phone = phoneNormalized.startsWith("+") ? phoneNormalized : `+${phoneNormalized}`;
 
   // Fetch school name for WhatsApp message
   let schoolName = "SkoolMate";
-  const { data: school } = await supabaseAdmin
-    .from("schools")
-    .select("name")
-    .eq("id", schoolId)
-    .maybeSingle();
+  const { data: school } = await supabaseAdmin.from("schools").select("name").eq("id", schoolId).maybeSingle();
   if (school?.name) schoolName = school.name;
 
   const portalUrl = `${request.nextUrl.origin}/parent-portal`;
@@ -98,27 +100,25 @@ export async function POST(request: NextRequest) {
       .eq("student_id", student.id)
       .maybeSingle();
 
+    const linkRelation = relationship || "parent";
     if (!existingLink) {
       await supabaseAdmin.from("parent_students").insert({
         parent_id: existingUser.id,
         student_id: student.id,
-        relationship: "parent",
+        relationship: linkRelation,
       });
     }
 
     if (existingUser.auth_id) {
-      const { error: rotatePasswordError } = await supabaseAdmin.auth.admin.updateUserById(
-        existingUser.auth_id,
-        {
-          password: generatedPassword,
-          user_metadata: {
-            full_name: parentName,
-            phone: phoneNormalized,
-            role: "parent",
-            must_change_password: true,
-          },
+      const { error: rotatePasswordError } = await supabaseAdmin.auth.admin.updateUserById(existingUser.auth_id, {
+        password: generatedPassword,
+        user_metadata: {
+          full_name: parentName,
+          phone: phoneNormalized,
+          role: "parent",
+          must_change_password: true,
         },
-      );
+      });
 
       if (rotatePasswordError) {
         logger.error("[create-parent-portal] Failed to rotate password for existing parent:", rotatePasswordError);
@@ -126,14 +126,19 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Generate WhatsApp share link for existing parent credentials
+    const shouldDeliver = sendCredentials !== false;
     let credentialsDelivered = false;
-    try {
-      const { generateWhatsAppShareLink } = await import("@/lib/whatsapp");
-      const link = generateWhatsAppShareLink(phoneNormalized, `Hello ${parentName}! Your SkoolMate parent portal credentials.\n\nLogin: ${phoneNormalized}\nPassword: ${generatedPassword}\nLink: ${portalUrl}\n\n- ${schoolName}`);
-      credentialsDelivered = Boolean(link);
-    } catch {
-      credentialsDelivered = false;
+    if (shouldDeliver) {
+      try {
+        const { generateWhatsAppShareLink } = await import("@/lib/whatsapp");
+        const link = generateWhatsAppShareLink(
+          phoneNormalized,
+          `Hello ${parentName}! Your SkoolMate parent portal credentials.\n\nLogin: ${phoneNormalized}\nPassword: ${generatedPassword}\nLink: ${portalUrl}\n\n- ${schoolName}`,
+        );
+        credentialsDelivered = Boolean(link);
+      } catch {
+        credentialsDelivered = false;
+      }
     }
 
     return NextResponse.json({
@@ -143,7 +148,8 @@ export async function POST(request: NextRequest) {
       parentPhone: phoneNormalized,
       authEmail,
       credentialsDelivered,
-      credentialsExposed: false,
+      credentialsExposed: !shouldDeliver ? true : false,
+      ...(shouldDeliver ? {} : { generatedPassword }),
     });
   }
 
@@ -214,17 +220,16 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Failed to create parent profile" }, { status: 500 });
   }
 
+  const linkRelation = relationship || "parent";
   const { error: linkError } = await supabaseAdmin.from("parent_students").insert({
     parent_id: parentUserId,
     student_id: student.id,
-    relationship: "parent",
+    relationship: linkRelation,
   });
 
   if (linkError) {
     logger.warn("[create-parent-portal] parent_students link failed:", linkError);
-    return NextResponse.json(
-      { created: false, error: "Failed to create student-parent link" },
-    );
+    return NextResponse.json({ created: false, error: "Failed to create student-parent link" });
   }
 
   // Fetch linked children to return to frontend
@@ -233,24 +238,29 @@ export async function POST(request: NextRequest) {
     .select("student:students(*, class:classes(name))")
     .eq("parent_id", parentUserId);
 
-  // Auto-send via WhatsApp if configured
+  const shouldDeliver = sendCredentials !== false;
   let credentialsDelivered = false;
   let whatsappSent = false;
-  try {
-    if (isWhatsAppConfigured()) {
-      const waResult = await sendParentPortalCredentials(whatsappOpts);
-      credentialsDelivered = Boolean(waResult.shareLink);
-      whatsappSent = waResult.success && !waResult.demo;
-      if (waResult.success && !waResult.demo) {
-        logger.info(`[create-parent-portal] WhatsApp credentials sent to ${phoneNormalized}`);
+  if (shouldDeliver) {
+    try {
+      if (isWhatsAppConfigured()) {
+        const waResult = await sendParentPortalCredentials(whatsappOpts);
+        credentialsDelivered = Boolean(waResult.shareLink);
+        whatsappSent = waResult.success && !waResult.demo;
+        if (waResult.success && !waResult.demo) {
+          logger.info(`[create-parent-portal] WhatsApp credentials sent to ${phoneNormalized}`);
+        }
+      } else {
+        const { generateWhatsAppShareLink } = await import("@/lib/whatsapp");
+        const link = generateWhatsAppShareLink(
+          phoneNormalized,
+          `Hello ${parentName}! Your SkoolMate parent portal is ready.\n\nLogin: ${phoneNormalized}\nPassword: ${generatedPassword}\nLink: ${portalUrl}\n\n- ${schoolName}`,
+        );
+        credentialsDelivered = Boolean(link);
       }
-    } else {
-      const { generateWhatsAppShareLink } = await import("@/lib/whatsapp");
-      const link = generateWhatsAppShareLink(phoneNormalized, `Hello ${parentName}! Your SkoolMate parent portal is ready.\n\nLogin: ${phoneNormalized}\nPassword: ${generatedPassword}\nLink: ${portalUrl}\n\n- ${schoolName}`);
-      credentialsDelivered = Boolean(link);
+    } catch (e) {
+      logger.warn("[create-parent-portal] WhatsApp send failed (non-blocking):", e);
     }
-  } catch (e) {
-    logger.warn("[create-parent-portal] WhatsApp send failed (non-blocking):", e);
   }
 
   return NextResponse.json({
@@ -259,8 +269,9 @@ export async function POST(request: NextRequest) {
     parentName,
     parentPhone: phoneNormalized,
     credentialsDelivered,
-    credentialsExposed: false,
+    credentialsExposed: !shouldDeliver ? true : false,
     whatsappSent,
+    ...(shouldDeliver ? {} : { generatedPassword }),
     linkedChildren: linkedChildren || [],
   });
 }
