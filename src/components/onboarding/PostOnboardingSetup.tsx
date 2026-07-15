@@ -18,9 +18,20 @@ interface Props {
 }
 
 const OPTIONAL_STEPS = [
-  { key: "sms_automation", title: "SMS Automation", icon: "sync_alt", desc: "Auto-send fee reminders, absence alerts, and more" },
+  {
+    key: "sms_automation",
+    title: "SMS Automation",
+    icon: "sync_alt",
+    desc: "Auto-send fee reminders, absence alerts, and more",
+  },
   { key: "import_students", title: "Import Students", icon: "group_add", desc: "Bulk upload students from a CSV file" },
   { key: "signatures", title: "Signatures", icon: "signature", desc: "Upload headteacher & class teacher signatures" },
+  {
+    key: "boarding_setup",
+    title: "Boarding & Houses",
+    icon: "hotel",
+    desc: "Set up dormitories and competition houses",
+  },
 ];
 
 const OPTIONAL_SETUP_STATUS_KEY = "optional_setup_status";
@@ -64,6 +75,15 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
     failed: number;
   }>({ step: "upload", rows: [], errors: [], success: 0, failed: 0 });
 
+  const [boardingConfig, setBoardingConfig] = useState({
+    hasBoarding: false,
+    dormCount: 1,
+    dormitories: [{ name: "", type: "boys" as "boys" | "girls", capacity: 40 }],
+    hasHouses: false,
+    houseCount: 1,
+    houses: [{ name: "", color: "#3b82f6" }] as { name: string; color: string }[],
+  });
+
   const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -79,7 +99,9 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
       const rows = lines.slice(1).map((line) => {
         const vals = line.split(",").map((v) => v.trim());
         const row: Record<string, string> = {};
-        headers.forEach((h, i) => { row[h] = vals[i] || ""; });
+        headers.forEach((h, i) => {
+          row[h] = vals[i] || "";
+        });
         return row;
       });
       setImportState({ ...importState, step: "preview", rows });
@@ -112,11 +134,14 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
   };
 
   const downloadCsvTemplate = () => {
-    const csv = "first_name,last_name,gender,class_name,parent_name,parent_phone\nJane,Doe,F,P.1,Parent Name,0700000000\nJohn,Smith,M,S.1,Guardian Name,0700000001";
+    const csv =
+      "first_name,last_name,gender,class_name,parent_name,parent_phone\nJane,Doe,F,P.1,Parent Name,0700000000\nJohn,Smith,M,S.1,Guardian Name,0700000001";
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url; a.download = "student_import_template.csv"; a.click();
+    a.href = url;
+    a.download = "student_import_template.csv";
+    a.click();
     URL.revokeObjectURL(url);
   };
 
@@ -125,10 +150,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
     try {
       const [checklistResponse, statusMap] = await Promise.all([
         withTimeout(
-          supabase
-            .from("setup_checklist")
-            .select("item_key, is_completed")
-            .eq("school_id", school.id),
+          supabase.from("setup_checklist").select("item_key, is_completed").eq("school_id", school.id),
           10000,
           timeoutFallback(),
         ),
@@ -159,13 +181,12 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
     checkCompletedItems();
   }, [checkCompletedItems]);
 
-  const markComplete = useCallback(async (key: string) => {
-    if (!school?.id) return;
-    try {
-      const { error } = await withTimeout(
-        supabase
-          .from("setup_checklist")
-          .upsert(
+  const markComplete = useCallback(
+    async (key: string) => {
+      if (!school?.id) return;
+      try {
+        const { error } = await withTimeout(
+          supabase.from("setup_checklist").upsert(
             {
               school_id: school.id,
               item_key: key,
@@ -174,34 +195,39 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
             },
             { onConflict: "school_id,item_key" },
           ),
-        15000,
-        timeoutFallback(),
-      );
-      if (error) throw error;
-      const nextStatus: OptionalStatusMap = { ...optionalStatus, [key]: "completed" };
-      await saveSchoolSetting(school.id, OPTIONAL_SETUP_STATUS_KEY, nextStatus);
-      setOptionalStatus(nextStatus);
-      setCompleted((prev) => Array.from(new Set([...prev, key])));
-      toast.success(`${OPTIONAL_STEPS.find((s) => s.key === key)?.title} marked complete!`);
-    } catch (err) {
-      logger.warn("markComplete failed:", getErrorMessage(err));
-      toast.error("Failed to save progress. Please try again.");
-    }
-  }, [optionalStatus, school?.id, toast]);
+          15000,
+          timeoutFallback(),
+        );
+        if (error) throw error;
+        const nextStatus: OptionalStatusMap = { ...optionalStatus, [key]: "completed" };
+        await saveSchoolSetting(school.id, OPTIONAL_SETUP_STATUS_KEY, nextStatus);
+        setOptionalStatus(nextStatus);
+        setCompleted((prev) => Array.from(new Set([...prev, key])));
+        toast.success(`${OPTIONAL_STEPS.find((s) => s.key === key)?.title} marked complete!`);
+      } catch (err) {
+        logger.warn("markComplete failed:", getErrorMessage(err));
+        toast.error("Failed to save progress. Please try again.");
+      }
+    },
+    [optionalStatus, school?.id, toast],
+  );
 
-  const markSkipped = useCallback(async (key: string) => {
-    if (!school?.id) return;
-    try {
-      const nextStatus: OptionalStatusMap = { ...optionalStatus, [key]: "skipped" };
-      await saveSchoolSetting(school.id, OPTIONAL_SETUP_STATUS_KEY, nextStatus);
-      setOptionalStatus(nextStatus);
-      setCompleted((prev) => Array.from(new Set([...prev, key])));
-      toast.info(`${OPTIONAL_STEPS.find((s) => s.key === key)?.title} skipped for now.`);
-    } catch (err) {
-      logger.warn("markSkipped failed:", getErrorMessage(err));
-      toast.error("Failed to save. Please try again.");
-    }
-  }, [optionalStatus, school?.id, toast]);
+  const markSkipped = useCallback(
+    async (key: string) => {
+      if (!school?.id) return;
+      try {
+        const nextStatus: OptionalStatusMap = { ...optionalStatus, [key]: "skipped" };
+        await saveSchoolSetting(school.id, OPTIONAL_SETUP_STATUS_KEY, nextStatus);
+        setOptionalStatus(nextStatus);
+        setCompleted((prev) => Array.from(new Set([...prev, key])));
+        toast.info(`${OPTIONAL_STEPS.find((s) => s.key === key)?.title} skipped for now.`);
+      } catch (err) {
+        logger.warn("markSkipped failed:", getErrorMessage(err));
+        toast.error("Failed to save. Please try again.");
+      }
+    },
+    [optionalStatus, school?.id, toast],
+  );
 
   const saveSmsAutomations = async () => {
     if (!school?.id) return;
@@ -214,7 +240,10 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
             .from("sms_triggers")
             .delete()
             .eq("school_id", school.id)
-            .in("event_type", active.map((a) => a.event_type)),
+            .in(
+              "event_type",
+              active.map((a) => a.event_type),
+            ),
           15000,
           timeoutFallback(),
         );
@@ -227,11 +256,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
           message_template: a.message_template || null,
           is_active: true,
         }));
-        const { error } = await withTimeout(
-          supabase.from("sms_triggers").insert(rows),
-          15000,
-          timeoutFallback(),
-        );
+        const { error } = await withTimeout(supabase.from("sms_triggers").insert(rows), 15000, timeoutFallback());
         if (error) throw error;
       }
       await markComplete("sms_automation");
@@ -248,30 +273,45 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
       const url = URL.createObjectURL(file);
       img.onload = () => {
         URL.revokeObjectURL(url);
-        let w = img.width, h = img.height;
-        if (w > maxW) { h = (h * maxW) / w; w = maxW; }
-        if (h > maxH) { w = (w * maxH) / h; h = maxH; }
+        let w = img.width,
+          h = img.height;
+        if (w > maxW) {
+          h = (h * maxW) / w;
+          w = maxW;
+        }
+        if (h > maxH) {
+          w = (w * maxH) / h;
+          h = maxH;
+        }
         const canvas = document.createElement("canvas");
-        canvas.width = w; canvas.height = h;
+        canvas.width = w;
+        canvas.height = h;
         const ctx = canvas.getContext("2d");
-        if (!ctx) { reject(new Error("Canvas not available")); return; }
+        if (!ctx) {
+          reject(new Error("Canvas not available"));
+          return;
+        }
         ctx.drawImage(img, 0, 0, w, h);
         canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Compression failed"))), "image/jpeg", quality);
       };
-      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Failed to load image")); };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error("Failed to load image"));
+      };
       img.src = url;
     });
   };
 
-  const uploadSignatureToStorage = async (file: File, type: "headteacher" | "class_teacher"): Promise<string | null> => {
+  const uploadSignatureToStorage = async (
+    file: File,
+    type: "headteacher" | "class_teacher",
+  ): Promise<string | null> => {
     if (!school?.id) return null;
     try {
       const compressed = await compressImage(file);
       const filePath = `signature-${school.id}-${type}.jpg`;
-        let { error: uploadError } = await withTimeout(
-        supabase.storage
-          .from("school-logos")
-          .upload(filePath, compressed, { contentType: "image/jpeg", upsert: true }),
+      let { error: uploadError } = await withTimeout(
+        supabase.storage.from("school-logos").upload(filePath, compressed, { contentType: "image/jpeg", upsert: true }),
         30000,
         storageTimeoutFallback(),
       );
@@ -322,10 +362,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
 
       if (Object.keys(updateData).length > 0) {
         const { error } = await withTimeout(
-          supabase
-            .from("schools")
-            .update(updateData)
-            .eq("id", school.id),
+          supabase.from("schools").update(updateData).eq("id", school.id),
           15000,
           timeoutFallback(),
         );
@@ -342,12 +379,66 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
     }
   };
 
+  const saveBoardingSetup = async () => {
+    if (!school?.id) return;
+    setLoading(true);
+    try {
+      if (boardingConfig.hasBoarding) {
+        const dormsData = boardingConfig.dormitories
+          .filter((d) => d.name.trim())
+          .map((d) => ({
+            school_id: school.id,
+            name: d.name.trim(),
+            type: d.type,
+            capacity: d.capacity,
+          }));
+        if (dormsData.length > 0) {
+          const { error: dormsError } = await withTimeout(
+            supabase.from("dorms").insert(dormsData),
+            15000,
+            timeoutFallback(),
+          );
+          if (dormsError) {
+            logger.warn("Dorms insert failed:", dormsError);
+            toast.warning("Some dormitories could not be saved. You can add them later.");
+          }
+        }
+      }
+      if (boardingConfig.hasHouses) {
+        const housesData = boardingConfig.houses
+          .filter((h) => h.name.trim())
+          .map((h) => ({
+            school_id: school.id,
+            name: h.name.trim(),
+            color: h.color || null,
+          }));
+        if (housesData.length > 0) {
+          const { error: housesError } = await withTimeout(
+            supabase.from("houses").insert(housesData),
+            15000,
+            timeoutFallback(),
+          );
+          if (housesError) {
+            logger.warn("Houses insert failed:", housesError);
+            toast.warning("Some houses could not be saved. You can add them later.");
+          }
+        }
+      }
+      await markComplete("boarding_setup");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to save boarding setup"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!school) return null;
 
   const incompleteSteps = OPTIONAL_STEPS.filter((s) => !completed.includes(s.key));
-  const progress = OPTIONAL_STEPS.length > 0
-    ? Math.round(((OPTIONAL_STEPS.length - incompleteSteps.length) / OPTIONAL_STEPS.length) * 100)
-    : 100;
+  const progress =
+    OPTIONAL_STEPS.length > 0
+      ? Math.round(((OPTIONAL_STEPS.length - incompleteSteps.length) / OPTIONAL_STEPS.length) * 100)
+      : 100;
 
   return (
     <>
@@ -370,7 +461,6 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
       {/* Panel — bottom sheet on mobile, right panel on md+ */}
       {isOpen && (
         <div className="fixed inset-x-0 bottom-0 z-[85] flex flex-col rounded-t-2xl bg-white shadow-2xl md:inset-x-auto md:inset-y-0 md:right-0 md:w-[360px] md:rounded-none md:max-h-full max-h-[78vh] transition-all duration-300">
-
           {/* Drag handle (mobile only) */}
           <div className="flex justify-center pt-2.5 pb-0 md:hidden flex-shrink-0">
             <div className="h-1 w-10 rounded-full bg-slate-200" />
@@ -396,10 +486,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
 
           {/* Progress bar */}
           <div className="h-0.5 flex-shrink-0 bg-slate-100">
-            <div
-              className="h-full bg-[var(--primary)] transition-all duration-500"
-              style={{ width: `${progress}%` }}
-            />
+            <div className="h-full bg-[var(--primary)] transition-all duration-500" style={{ width: `${progress}%` }} />
           </div>
 
           {/* Steps */}
@@ -409,8 +496,12 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                 <OwlMascot size={56} premium ring glow animated />
                 <h3 className="font-bold text-base">All Done!</h3>
                 <p className="text-sm text-[var(--t3)]">Your school is fully configured.</p>
-                <Button onClick={onComplete} className="w-full mt-2">Go to Dashboard</Button>
-                <Button variant="ghost" className="w-full" onClick={() => setIsOpen(false)}>Keep exploring</Button>
+                <Button onClick={onComplete} className="w-full mt-2">
+                  Go to Dashboard
+                </Button>
+                <Button variant="ghost" className="w-full" onClick={() => setIsOpen(false)}>
+                  Keep exploring
+                </Button>
               </div>
             ) : (
               incompleteSteps.map((item) => {
@@ -442,7 +533,10 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                         {item.key === "sms_automation" && (
                           <>
                             {smsAutomations.map((auto, i) => (
-                              <div key={auto.event_type} className="rounded-xl border border-slate-200 bg-white p-3 space-y-2">
+                              <div
+                                key={auto.event_type}
+                                className="rounded-xl border border-slate-200 bg-white p-3 space-y-2"
+                              >
                                 <label className="flex items-center justify-between gap-2">
                                   <span className="text-sm font-medium text-slate-700">{auto.name}</span>
                                   <input
@@ -483,21 +577,28 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                             {importState.step === "upload" && (
                               <div className="space-y-2">
                                 <p className="text-xs text-slate-500">
-                                  CSV columns: first_name, last_name, gender (M/F), class_name, parent_name, parent_phone
+                                  CSV columns: first_name, last_name, gender (M/F), class_name, parent_name,
+                                  parent_phone
                                 </p>
                                 <label className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border-2 border-dashed border-slate-300 bg-white px-4 py-5 text-sm text-slate-600 hover:border-slate-400">
                                   <MaterialIcon icon="upload_file" className="text-lg" />
                                   Choose CSV file
                                   <input type="file" accept=".csv" onChange={handleImportFile} className="hidden" />
                                 </label>
-                                <button type="button" onClick={downloadCsvTemplate} className="text-xs text-[var(--primary)] hover:underline">
+                                <button
+                                  type="button"
+                                  onClick={downloadCsvTemplate}
+                                  className="text-xs text-[var(--primary)] hover:underline"
+                                >
                                   Download template CSV
                                 </button>
                               </div>
                             )}
                             {importState.step === "preview" && (
                               <div className="space-y-2">
-                                <p className="text-sm font-semibold text-slate-700">{importState.rows.length} students found</p>
+                                <p className="text-sm font-semibold text-slate-700">
+                                  {importState.rows.length} students found
+                                </p>
                                 <div className="max-h-36 overflow-y-auto rounded-xl border border-slate-200 text-xs">
                                   <table className="w-full">
                                     <thead className="bg-slate-100 text-left">
@@ -510,7 +611,9 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                                     <tbody>
                                       {importState.rows.slice(0, 10).map((r, i) => (
                                         <tr key={i} className="border-t border-slate-100">
-                                          <td className="px-2 py-1">{r.first_name} {r.last_name}</td>
+                                          <td className="px-2 py-1">
+                                            {r.first_name} {r.last_name}
+                                          </td>
                                           <td className="px-2 py-1">{r.gender}</td>
                                           <td className="px-2 py-1">{r.class_name}</td>
                                         </tr>
@@ -522,7 +625,11 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                                   <Button size="sm" onClick={handleRunImport} className="flex-1">
                                     Import {importState.rows.length}
                                   </Button>
-                                  <Button size="sm" variant="secondary" onClick={() => setImportState((p) => ({ ...p, step: "upload", rows: [] }))}>
+                                  <Button
+                                    size="sm"
+                                    variant="secondary"
+                                    onClick={() => setImportState((p) => ({ ...p, step: "upload", rows: [] }))}
+                                  >
                                     Change
                                   </Button>
                                 </div>
@@ -541,10 +648,18 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                                 </div>
                                 {importState.failed > 0 && (
                                   <div className="max-h-28 overflow-y-auto rounded-xl bg-red-50 px-3 py-2 text-xs text-red-700 space-y-0.5">
-                                    {importState.errors.slice(0, 10).map((e, i) => <p key={i}>{e}</p>)}
+                                    {importState.errors.slice(0, 10).map((e, i) => (
+                                      <p key={i}>{e}</p>
+                                    ))}
                                   </div>
                                 )}
-                                <Button size="sm" onClick={() => setImportState({ step: "upload", rows: [], errors: [], success: 0, failed: 0 })} className="w-full">
+                                <Button
+                                  size="sm"
+                                  onClick={() =>
+                                    setImportState({ step: "upload", rows: [], errors: [], success: 0, failed: 0 })
+                                  }
+                                  className="w-full"
+                                >
                                   Done
                                 </Button>
                               </div>
@@ -560,10 +675,16 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                                 <label className="mb-1 block text-xs font-semibold text-slate-600">
                                   {type === "headteacher" ? "Headteacher" : "Class Teacher"} Signature
                                 </label>
-                                {(type === "headteacher" ? signatures.headteacherPreview : signatures.classTeacherPreview) && (
+                                {(type === "headteacher"
+                                  ? signatures.headteacherPreview
+                                  : signatures.classTeacherPreview) && (
                                   <div className="mb-2">
                                     <Image
-                                      src={type === "headteacher" ? signatures.headteacherPreview : signatures.classTeacherPreview}
+                                      src={
+                                        type === "headteacher"
+                                          ? signatures.headteacherPreview
+                                          : signatures.classTeacherPreview
+                                      }
                                       alt={`${type} signature preview`}
                                       width={80}
                                       height={80}
@@ -579,9 +700,17 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                                     const file = e.target.files?.[0];
                                     if (!file) return;
                                     if (type === "headteacher") {
-                                      setSignatures((s) => ({ ...s, headteacher: file, headteacherPreview: URL.createObjectURL(file) }));
+                                      setSignatures((s) => ({
+                                        ...s,
+                                        headteacher: file,
+                                        headteacherPreview: URL.createObjectURL(file),
+                                      }));
                                     } else {
-                                      setSignatures((s) => ({ ...s, class_teacher: file, classTeacherPreview: URL.createObjectURL(file) }));
+                                      setSignatures((s) => ({
+                                        ...s,
+                                        class_teacher: file,
+                                        classTeacherPreview: URL.createObjectURL(file),
+                                      }));
                                     }
                                   }}
                                   className="w-full text-sm"
@@ -590,6 +719,202 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                             ))}
                             <Button size="sm" onClick={saveSignatures} loading={uploadingSignature} className="w-full">
                               Upload Signatures
+                            </Button>
+                          </div>
+                        )}
+
+                        {/* Boarding Setup */}
+                        {item.key === "boarding_setup" && (
+                          <div className="space-y-3">
+                            <label className="flex items-center gap-3 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={boardingConfig.hasBoarding}
+                                onChange={() =>
+                                  setBoardingConfig((prev) => ({
+                                    ...prev,
+                                    hasBoarding: !prev.hasBoarding,
+                                  }))
+                                }
+                                className="h-5 w-5 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                              />
+                              <span className="text-sm font-semibold text-slate-700">
+                                Does your school have boarding facilities?
+                              </span>
+                            </label>
+
+                            {boardingConfig.hasBoarding && (
+                              <>
+                                <div>
+                                  <label className="block text-xs font-semibold text-slate-600 mb-1">
+                                    Number of Dormitories
+                                  </label>
+                                  <div className="flex items-center gap-3">
+                                    <input
+                                      type="range"
+                                      min={1}
+                                      max={10}
+                                      value={boardingConfig.dormCount}
+                                      onChange={(e) => {
+                                        const count = Number(e.target.value);
+                                        setBoardingConfig((prev) => ({
+                                          ...prev,
+                                          dormCount: count,
+                                          dormitories: Array.from(
+                                            { length: count },
+                                            (_, i) =>
+                                              prev.dormitories[i] || {
+                                                name: "",
+                                                type: "boys" as const,
+                                                capacity: 40,
+                                              },
+                                          ),
+                                        }));
+                                      }}
+                                      className="flex-1 accent-teal-600"
+                                    />
+                                    <span className="text-xs font-semibold text-slate-700 w-5 text-center">
+                                      {boardingConfig.dormCount}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <div className="space-y-2">
+                                  {boardingConfig.dormitories.slice(0, boardingConfig.dormCount).map((dorm, i) => (
+                                    <div key={i} className="flex items-center gap-1.5">
+                                      <input
+                                        placeholder={`Dorm ${i + 1} name`}
+                                        value={dorm.name}
+                                        onChange={(e) =>
+                                          setBoardingConfig((prev) => {
+                                            const updated = [...prev.dormitories];
+                                            updated[i] = { ...updated[i], name: e.target.value };
+                                            return { ...prev, dormitories: updated };
+                                          })
+                                        }
+                                        className="flex-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-800 outline-none focus:border-slate-400"
+                                      />
+                                      <select
+                                        value={dorm.type}
+                                        onChange={(e) =>
+                                          setBoardingConfig((prev) => {
+                                            const updated = [...prev.dormitories];
+                                            updated[i] = { ...updated[i], type: e.target.value as "boys" | "girls" };
+                                            return { ...prev, dormitories: updated };
+                                          })
+                                        }
+                                        className="rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-800 outline-none focus:border-slate-400"
+                                      >
+                                        <option value="boys">Boys</option>
+                                        <option value="girls">Girls</option>
+                                      </select>
+                                      <input
+                                        type="number"
+                                        min={1}
+                                        placeholder="Cap"
+                                        value={dorm.capacity}
+                                        onChange={(e) =>
+                                          setBoardingConfig((prev) => {
+                                            const updated = [...prev.dormitories];
+                                            updated[i] = { ...updated[i], capacity: Number(e.target.value) };
+                                            return { ...prev, dormitories: updated };
+                                          })
+                                        }
+                                        className="w-14 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-800 outline-none focus:border-slate-400"
+                                      />
+                                    </div>
+                                  ))}
+                                </div>
+                              </>
+                            )}
+
+                            {!boardingConfig.hasBoarding && (
+                              <p className="text-xs text-slate-500">
+                                No boarding? You can still set competition houses below.
+                              </p>
+                            )}
+
+                            <div className="pt-1 border-t border-slate-200">
+                              <label className="flex items-center gap-2 cursor-pointer mb-2">
+                                <input
+                                  type="checkbox"
+                                  checked={boardingConfig.hasHouses}
+                                  onChange={() =>
+                                    setBoardingConfig((prev) => ({
+                                      ...prev,
+                                      hasHouses: !prev.hasHouses,
+                                    }))
+                                  }
+                                  className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                                />
+                                <span className="text-xs font-semibold text-slate-700">Sports/competition houses?</span>
+                              </label>
+
+                              {boardingConfig.hasHouses && (
+                                <>
+                                  <div className="flex items-center gap-3 mb-2">
+                                    <input
+                                      type="range"
+                                      min={1}
+                                      max={8}
+                                      value={boardingConfig.houseCount}
+                                      onChange={(e) => {
+                                        const count = Number(e.target.value);
+                                        setBoardingConfig((prev) => ({
+                                          ...prev,
+                                          houseCount: count,
+                                          houses: Array.from(
+                                            { length: count },
+                                            (_, i) =>
+                                              prev.houses[i] || {
+                                                name: "",
+                                                color: "#3b82f6",
+                                              },
+                                          ),
+                                        }));
+                                      }}
+                                      className="flex-1 accent-teal-600"
+                                    />
+                                    <span className="text-xs font-semibold text-slate-700 w-5 text-center">
+                                      {boardingConfig.houseCount}
+                                    </span>
+                                  </div>
+                                  <div className="space-y-1.5">
+                                    {boardingConfig.houses.slice(0, boardingConfig.houseCount).map((house, i) => (
+                                      <div key={i} className="flex items-center gap-1.5">
+                                        <input
+                                          placeholder={`House ${i + 1} name`}
+                                          value={house.name}
+                                          onChange={(e) =>
+                                            setBoardingConfig((prev) => {
+                                              const updated = [...prev.houses];
+                                              updated[i] = { ...updated[i], name: e.target.value };
+                                              return { ...prev, houses: updated };
+                                            })
+                                          }
+                                          className="flex-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-800 outline-none focus:border-slate-400"
+                                        />
+                                        <input
+                                          type="color"
+                                          value={house.color}
+                                          onChange={(e) =>
+                                            setBoardingConfig((prev) => {
+                                              const updated = [...prev.houses];
+                                              updated[i] = { ...updated[i], color: e.target.value };
+                                              return { ...prev, houses: updated };
+                                            })
+                                          }
+                                          className="h-8 w-10 rounded border border-slate-200 bg-white"
+                                        />
+                                      </div>
+                                    ))}
+                                  </div>
+                                </>
+                              )}
+                            </div>
+
+                            <Button size="sm" onClick={saveBoardingSetup} loading={loading} className="w-full">
+                              Save Boarding Setup
                             </Button>
                           </div>
                         )}
@@ -650,12 +975,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
       )}
 
       {/* Backdrop — mobile only */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 z-[84] bg-black/30 md:hidden"
-          onClick={() => setIsOpen(false)}
-        />
-      )}
+      {isOpen && <div className="fixed inset-0 z-[84] bg-black/30 md:hidden" onClick={() => setIsOpen(false)} />}
     </>
   );
 }

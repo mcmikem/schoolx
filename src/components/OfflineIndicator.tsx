@@ -19,8 +19,7 @@ export const OfflineIndicator = memo(function OfflineIndicator() {
   const [syncing, setSyncing] = useState(false);
   const [showIndicator, setShowIndicator] = useState(false);
   const [swUpdateReady, setSwUpdateReady] = useState(false);
-  const [installPrompt, setInstallPrompt] =
-    useState<BeforeInstallPromptEvent | null>(null);
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstall, setShowInstall] = useState(false);
 
   const syncData = useCallback(async () => {
@@ -92,16 +91,21 @@ export const OfflineIndicator = memo(function OfflineIndicator() {
 
     const checkPending = async () => {
       try {
+        const online = navigator.onLine;
+        setIsOnline(online);
         const pending = await offlineDB.getPendingSync();
         setPendingSync(pending.length);
         if (pending.length > 0) setShowIndicator(true);
+        if (online && pending.length > 0) {
+          await syncData();
+        }
       } catch {
         // Ignore errors
       }
     };
 
     const handleSwMessage = (event: MessageEvent) => {
-      if (event.data?.type === 'SYNC_REQUESTED') {
+      if (event.data?.type === "SYNC_REQUESTED") {
         syncData();
       }
     };
@@ -153,14 +157,7 @@ export const OfflineIndicator = memo(function OfflineIndicator() {
     }
   };
 
-  if (
-    !showIndicator &&
-    isOnline &&
-    pendingSync === 0 &&
-    !swUpdateReady &&
-    !showInstall
-  )
-    return null;
+  if (!showIndicator && isOnline && pendingSync === 0 && !swUpdateReady && !showInstall) return null;
 
   return (
     <div
@@ -280,21 +277,14 @@ export const OfflineIndicator = memo(function OfflineIndicator() {
         >
           {syncing ? (
             <>
-              <MaterialIcon
-                icon="sync"
-                style={{ animation: "spin 1s linear infinite", fontSize: 16 }}
-              />
+              <MaterialIcon icon="sync" style={{ animation: "spin 1s linear infinite", fontSize: 16 }} />
               Syncing {pendingSync} items...
             </>
           ) : !isOnline ? (
             <>
               <MaterialIcon icon="wifi_off" style={{ fontSize: 16 }} />
               Offline - Changes saved locally
-              {pendingSync > 0 && (
-                <span style={{ opacity: 0.9, fontWeight: 400 }}>
-                  ({pendingSync} pending)
-                </span>
-              )}
+              {pendingSync > 0 && <span style={{ opacity: 0.9, fontWeight: 400 }}>({pendingSync} pending)</span>}
             </>
           ) : pendingSync > 0 ? (
             <>
@@ -328,7 +318,7 @@ export const OfflineIndicator = memo(function OfflineIndicator() {
         `}</style>
     </div>
   );
-})
+});
 
 export function useOfflineSync() {
   const [pendingCount, setPendingCount] = useState(0);

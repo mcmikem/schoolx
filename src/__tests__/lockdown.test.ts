@@ -65,7 +65,7 @@ describe("🔒 LOCKDOWN: Login Page", () => {
 
   it("must have Google OAuth with correct callback URL", () => {
     expect(loginPage).toContain("/auth/callback");
-    expect(loginPage).toContain("prompt: \"select_account\"");
+    expect(loginPage).toContain('prompt: "select_account"');
   });
 
   it("must have OTP mode toggle", () => {
@@ -149,8 +149,8 @@ describe("🔒 LOCKDOWN: Auth Context", () => {
   });
 
   it("must use router.replace() for signOut redirect", () => {
-    expect(authContext).toContain("router.replace(\"/login\")");
-    expect(authContext).not.toContain("router.push(\"/login\")");
+    expect(authContext).toContain('router.replace("/login")');
+    expect(authContext).not.toContain('router.push("/login")');
   });
 
   it("must use router.replace() for visibility change redirect", () => {
@@ -216,9 +216,7 @@ describe("🔒 LOCKDOWN: Auth Context", () => {
     // The broken pattern was: if (isCurrentlyDemo && event !== "SIGNED_OUT") return;
     // This silently swallows real SIGNED_IN events when demo localStorage exists.
     // The correct handler clears demo storage on SIGNED_IN and falls through.
-    const demoCheckLine = authContext.match(
-      /if \(isCurrentlyDemo && event !== "SIGNED_OUT"\)\s*\{/,
-    );
+    const demoCheckLine = authContext.match(/if \(isCurrentlyDemo && event !== "SIGNED_OUT"\)\s*\{/);
     expect(demoCheckLine).toBeTruthy();
     const lineStart = authContext.indexOf(demoCheckLine![0]);
     const block = authContext.slice(lineStart, lineStart + 1600);
@@ -404,7 +402,7 @@ describe("🔒 LOCKDOWN: Auth Callback", () => {
 
   it("must sanitize next param to prevent open redirect", () => {
     expect(callback).toContain("sanitizeNext");
-    expect(callback).toContain("startsWith(\"/\")");
+    expect(callback).toContain('startsWith("/")');
   });
 });
 
@@ -535,7 +533,7 @@ describe("🔒 LOCKDOWN: Password Reset APIs", () => {
 describe("🔒 LOCKDOWN: Onboarding", () => {
   const onboarding = read("src/components/onboarding/OnboardingFlow.tsx");
 
-  it("must have 10 steps", () => {
+  it("must have 5 steps", () => {
     expect(onboarding).toContain("TOTAL_STEPS");
   });
 

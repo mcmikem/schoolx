@@ -12,15 +12,8 @@ import OwlStage from "@/components/brand/OwlStage";
 import OwlMascot from "@/components/brand/OwlMascot";
 
 import { PLANS, normalizePlanType } from "@/lib/payments/subscription-client";
-import {
-  getDistrictOptions,
-  getParishOptions,
-  getSubcountyOptions,
-} from "@/lib/uganda-admin";
-import {
-  buildUgandaAcademicTerms,
-  buildUgandaCalendarEvents,
-} from "@/lib/uganda-school-calendar";
+import { getDistrictOptions, getParishOptions, getSubcountyOptions } from "@/lib/uganda-admin";
+import { buildUgandaAcademicTerms, buildUgandaCalendarEvents } from "@/lib/uganda-school-calendar";
 import {
   buildDefaultClasses,
   buildDefaultTimetableSlots,
@@ -57,28 +50,20 @@ interface FeeClassOption {
   stream?: string | null;
 }
 
-export default function OnboardingFlow({
-  onComplete,
-  onDismiss,
-}: {
-  onComplete: () => void;
-  onDismiss?: () => void;
-}) {
+export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: () => void; onDismiss?: () => void }) {
   const { school, refreshSchool } = useAuth();
   const pathname = usePathname();
-  const currentPath =
-    pathname ||
-    (typeof window !== "undefined" ? window.location.pathname : "");
+  const currentPath = pathname || (typeof window !== "undefined" ? window.location.pathname : "");
   const toast = useToast();
-  const [step, setStep] = useState(3);
+  const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set([1, 2]));
+  const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
 
   const currentYear = new Date().getFullYear().toString();
   const schoolType = (school?.school_type as SchoolSetupType) || "primary";
 
-  // Step 2: School details
+  // School details
   const [branding, setBranding] = useState({
     primary_color: school?.primary_color || "#0d9488",
     accent_color: school?.accent_color || "#3b82f6",
@@ -93,13 +78,16 @@ export default function OnboardingFlow({
     motto: school?.motto || "",
     phone: school?.phone || "",
     email: school?.email || "",
-    uneb_center_number: school?.uneb_center_number || ((school as unknown as Record<string, unknown>)?.uneab_center_number as string) || "",
+    uneb_center_number:
+      school?.uneb_center_number ||
+      ((school as unknown as Record<string, unknown>)?.uneab_center_number as string) ||
+      "",
     ownership: school?.ownership || "private",
     address: school?.address || "",
   });
   const [localSchoolType, setLocalSchoolType] = useState<SchoolSetupType>(schoolType);
 
-  // Step 3: Curriculum
+  // Curriculum
   const getTemplateForType = (type: SchoolSetupType) => {
     if (type === "secondary") return SECONDARY_TEMPLATE;
     if (type === "combined")
@@ -124,7 +112,7 @@ export default function OnboardingFlow({
     { name: "Home Economics", code: "HEC" },
   ];
 
-  // Step 4: Boarding
+  // Boarding
   const [boardingConfig, setBoardingConfig] = useState({
     hasBoarding: false,
     dormCount: 1,
@@ -134,7 +122,7 @@ export default function OnboardingFlow({
     houses: [{ name: "", color: "#3b82f6" }] as HouseDraft[],
   });
 
-  // Step 5: Academic Calendar
+  // Academic Calendar
   const [terms, setTerms] = useState(
     buildUgandaAcademicTerms("preview", currentYear).map((term) => ({
       name: term.name,
@@ -145,7 +133,7 @@ export default function OnboardingFlow({
     })),
   );
 
-  // Step 6: Fee Structure
+  // Fee Structure
   const [fees, setFees] = useState<FeeDraft[]>([
     {
       name: "Tuition",
@@ -164,7 +152,7 @@ export default function OnboardingFlow({
   ]);
   const [feeClassOptions, setFeeClassOptions] = useState<FeeClassOption[]>([]);
 
-  // Step 7: Grading
+  // Grading
   const [gradingPrefs, setGradingPrefs] = useState({
     passing_mark: 50,
     grades: [
@@ -176,7 +164,7 @@ export default function OnboardingFlow({
     ],
   });
 
-  // Step 8: Report Card Branding
+  // Report Card Branding
   const [reportBrand, setReportBrand] = useState({
     header: ((school as unknown as Record<string, unknown>)?.report_header_text as string) || "",
     footer: ((school as unknown as Record<string, unknown>)?.report_footer_text as string) || "",
@@ -187,27 +175,19 @@ export default function OnboardingFlow({
     show_remarks: (school as unknown as Record<string, unknown>)?.show_remarks_in_report !== false,
   });
 
-  // Step 9: Features
-  const [featureStage, setFeatureStage] = useState<
-    "core" | "academic" | "finance" | "full"
-  >(
-    (school?.feature_stage as "core" | "academic" | "finance" | "full") ||
-      "core",
+  // Features
+  const [featureStage, setFeatureStage] = useState<"core" | "academic" | "finance" | "full">(
+    (school?.feature_stage as "core" | "academic" | "finance" | "full") || "core",
   );
 
   const selectedPlan = PLANS[normalizePlanType(school?.subscription_plan || "free")];
 
   // Steps config
   const steps: StepConfig[] = [
-    { title: "Welcome", icon: "waving_hand" },
-    { title: "School Info", icon: "domain" },
-    { title: "Curriculum", icon: "auto_stories" },
-    { title: "Boarding", icon: "hotel" },
-    { title: "Calendar", icon: "calendar_month" },
-    { title: "Fees", icon: "payments" },
-    { title: "Grading", icon: "grade" },
-    { title: "Reports", icon: "badge" },
-    { title: "Features", icon: "widgets" },
+    { title: "School & Subjects", icon: "auto_stories" },
+    { title: "Calendar & Fees", icon: "payments" },
+    { title: "Grading & Reports", icon: "badge" },
+    { title: "Boarding & Features", icon: "widgets" },
     { title: "Launch", icon: "verified" },
   ];
 
@@ -223,9 +203,7 @@ export default function OnboardingFlow({
     const name = customSubjectInput.trim();
     if (!name) return;
 
-    const alreadyExists = selectedSubjects.some(
-      (s) => s.toLowerCase() === name.toLowerCase(),
-    );
+    const alreadyExists = selectedSubjects.some((s) => s.toLowerCase() === name.toLowerCase());
     if (alreadyExists) {
       setCustomSubjectInput("");
       return;
@@ -363,33 +341,42 @@ export default function OnboardingFlow({
   );
 
   useEffect(() => {
-    if (step === 6 && school?.id) {
+    if (step === 2 && school?.id) {
       void ensureFeeClassOptions();
     }
   }, [step, school?.id, ensureFeeClassOptions]);
 
-  const compressImage = (
-    file: File,
-    maxW: number,
-    maxH: number,
-    quality: number,
-  ): Promise<Blob> => {
+  const compressImage = (file: File, maxW: number, maxH: number, quality: number): Promise<Blob> => {
     return new Promise((resolve, reject) => {
       const img = new window.Image();
       const url = URL.createObjectURL(file);
       img.onload = () => {
         URL.revokeObjectURL(url);
-        let w = img.width, h = img.height;
-        if (w > maxW) { h = h * maxW / w; w = maxW; }
-        if (h > maxH) { w = w * maxH / h; h = maxH; }
+        let w = img.width,
+          h = img.height;
+        if (w > maxW) {
+          h = (h * maxW) / w;
+          w = maxW;
+        }
+        if (h > maxH) {
+          w = (w * maxH) / h;
+          h = maxH;
+        }
         const canvas = document.createElement("canvas");
-        canvas.width = w; canvas.height = h;
+        canvas.width = w;
+        canvas.height = h;
         const ctx = canvas.getContext("2d");
-        if (!ctx) { reject(new Error("Canvas not available")); return; }
+        if (!ctx) {
+          reject(new Error("Canvas not available"));
+          return;
+        }
         ctx.drawImage(img, 0, 0, w, h);
-        canvas.toBlob((b) => b ? resolve(b) : reject(new Error("Compression failed")), "image/jpeg", quality);
+        canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("Compression failed"))), "image/jpeg", quality);
       };
-      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Failed to load image")); };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error("Failed to load image"));
+      };
       img.src = url;
     });
   };
@@ -414,16 +401,11 @@ export default function OnboardingFlow({
         .from("school-logos")
         .upload(filePath, compressed, { contentType: file.type, upsert: true });
       if (uploadError) throw uploadError;
-      const { data: urlData } = supabase.storage
-        .from("school-logos")
-        .getPublicUrl(filePath);
+      const { data: urlData } = supabase.storage.from("school-logos").getPublicUrl(filePath);
       const logoUrl = urlData?.publicUrl;
       if (logoUrl) {
         setBranding((prev) => ({ ...prev, logo_url: logoUrl }));
-        const { error: updateError } = await supabase
-          .from("schools")
-          .update({ logo_url: logoUrl })
-          .eq("id", school.id);
+        const { error: updateError } = await supabase.from("schools").update({ logo_url: logoUrl }).eq("id", school.id);
         if (updateError) {
           logger.warn("Failed to save logo URL:", updateError);
           toast.error("Logo uploaded but failed to save. Please try again.");
@@ -439,7 +421,7 @@ export default function OnboardingFlow({
     }
   };
 
-  // Save terms (Step 5)
+  // Save terms
   const saveTerms = async (): Promise<boolean> => {
     if (!school?.id) return false;
     setSaving(true);
@@ -465,7 +447,6 @@ export default function OnboardingFlow({
       }
 
       toast.success("Academic calendar saved");
-      markStepComplete(5);
       return true;
     } catch (err: unknown) {
       toast.error(getErrorMessage(err, "Failed to save terms"));
@@ -475,7 +456,7 @@ export default function OnboardingFlow({
     }
   };
 
-  // Save fees (Step 6)
+  // Save fees
   const saveFees = async (): Promise<boolean> => {
     if (!school?.id) return false;
     setSaving(true);
@@ -484,16 +465,13 @@ export default function OnboardingFlow({
       const feeRows = buildFeeRows(classOptions);
 
       if (feeRows.length > 0) {
-        const { error: insertError } = await supabase
-          .from("fee_structure")
-          .upsert(feeRows, {
-            onConflict: "school_id,class_id,name,term,academic_year",
-          });
+        const { error: insertError } = await supabase.from("fee_structure").upsert(feeRows, {
+          onConflict: "school_id,class_id,name,term,academic_year",
+        });
         if (insertError) throw insertError;
       }
 
       toast.success("Fee structure saved");
-      markStepComplete(6);
       return true;
     } catch (err: unknown) {
       toast.error(getErrorMessage(err, "Failed to save fees"));
@@ -503,7 +481,7 @@ export default function OnboardingFlow({
     }
   };
 
-  // Save grading (Step 7)
+  // Save grading
   const saveGradingPrefs = async (): Promise<boolean> => {
     if (!school?.id) return false;
     setSaving(true);
@@ -525,7 +503,6 @@ export default function OnboardingFlow({
       if (gradesError) throw gradesError;
 
       toast.success("Grading system saved");
-      markStepComplete(7);
       return true;
     } catch (err: unknown) {
       toast.error(getErrorMessage(err, "Failed to save grading preferences"));
@@ -535,7 +512,7 @@ export default function OnboardingFlow({
     }
   };
 
-  // Save report branding (Step 8)
+  // Save report branding
   const saveReportBranding = async (): Promise<boolean> => {
     if (!school?.id) return false;
     setSaving(true);
@@ -554,7 +531,6 @@ export default function OnboardingFlow({
         .eq("id", school.id);
       if (error) throw error;
       toast.success("Report card settings saved");
-      markStepComplete(8);
       return true;
     } catch (err: unknown) {
       toast.error(getErrorMessage(err, "Failed to save report card settings"));
@@ -630,48 +606,74 @@ export default function OnboardingFlow({
         throw updateError;
       }
 
-      // Save per-step data that might have been skipped via the "Next" button
+      // Save per-step data that might have been skipped
       await Promise.all([
-        // Fees (step 6) — only if not already saved
-        !completedSteps.has(6) ? (async () => {
-          try {
-            const classOptions = await ensureFeeClassOptions();
-            const feeRows = buildFeeRows(classOptions);
-            if (feeRows.length > 0) {
-              const { error: fErr } = await supabase.from("fee_structure").upsert(feeRows, {
-                onConflict: "school_id,class_id,name,term,academic_year",
-              });
-              if (fErr) logger.warn("Auto-save fees failed:", fErr);
-            }
-          } catch (e) { logger.warn("Auto-save fees error:", e); }
-        })() : Promise.resolve(),
-        // Grading (step 7) — only if not already saved
-        !completedSteps.has(7) ? (async () => {
-          try {
-            await supabase.from("school_settings").upsert(
-              { school_id: school!.id, key: "passing_mark", value: String(gradingPrefs.passing_mark) },
-              { onConflict: "school_id,key" },
-            );
-            await supabase.from("school_settings").upsert(
-              { school_id: school!.id, key: "grade_labels", value: JSON.stringify(gradingPrefs.grades) },
-              { onConflict: "school_id,key" },
-            );
-          } catch (e) { logger.warn("Auto-save grading error:", e); }
-        })() : Promise.resolve(),
-        // Report branding (step 8) — only if not already saved
-        !completedSteps.has(8) ? (async () => {
-          try {
-            await supabase.from("schools").update({
-              report_header_text: reportBrand.header || null,
-              report_footer_text: reportBrand.footer || null,
-              receipt_footer_text: reportBrand.receipt_footer || null,
-              show_position_in_report: reportBrand.show_position,
-              show_conduct_in_report: reportBrand.show_conduct,
-              show_attendance_in_report: reportBrand.show_attendance,
-              show_remarks_in_report: reportBrand.show_remarks,
-            }).eq("id", school!.id);
-          } catch (e) { logger.warn("Auto-save report branding error:", e); }
-        })() : Promise.resolve(),
+        !completedSteps.has(2)
+          ? (async () => {
+              try {
+                const classOptions = await ensureFeeClassOptions();
+                const feeRows = buildFeeRows(classOptions);
+                if (feeRows.length > 0) {
+                  const { error: fErr } = await supabase.from("fee_structure").upsert(feeRows, {
+                    onConflict: "school_id,class_id,name,term,academic_year",
+                  });
+                  if (fErr) logger.warn("Auto-save fees failed:", fErr);
+                }
+                const termRows = terms
+                  .filter((t) => t.start && t.end)
+                  .map((term) => ({
+                    school_id: school!.id,
+                    name: term.name,
+                    code: term.code || `T${term.term_number}-${new Date().getFullYear()}`,
+                    term_number: term.term_number || 0,
+                    start_date: term.start,
+                    end_date: term.end,
+                    academic_year: new Date().getFullYear().toString(),
+                    is_current: false,
+                  }));
+                if (termRows.length > 0) {
+                  const { error: tErr } = await supabase.from("academic_terms").upsert(termRows, {
+                    onConflict: "school_id,term_number,academic_year",
+                  });
+                  if (tErr) logger.warn("Auto-save terms failed:", tErr);
+                }
+              } catch (e) {
+                logger.warn("Auto-save calendar/fees error:", e);
+              }
+            })()
+          : Promise.resolve(),
+        !completedSteps.has(3)
+          ? (async () => {
+              try {
+                await supabase
+                  .from("school_settings")
+                  .upsert(
+                    { school_id: school!.id, key: "passing_mark", value: String(gradingPrefs.passing_mark) },
+                    { onConflict: "school_id,key" },
+                  );
+                await supabase
+                  .from("school_settings")
+                  .upsert(
+                    { school_id: school!.id, key: "grade_labels", value: JSON.stringify(gradingPrefs.grades) },
+                    { onConflict: "school_id,key" },
+                  );
+                await supabase
+                  .from("schools")
+                  .update({
+                    report_header_text: reportBrand.header || null,
+                    report_footer_text: reportBrand.footer || null,
+                    receipt_footer_text: reportBrand.receipt_footer || null,
+                    show_position_in_report: reportBrand.show_position,
+                    show_conduct_in_report: reportBrand.show_conduct,
+                    show_attendance_in_report: reportBrand.show_attendance,
+                    show_remarks_in_report: reportBrand.show_remarks,
+                  })
+                  .eq("id", school!.id);
+              } catch (e) {
+                logger.warn("Auto-save grading/reports error:", e);
+              }
+            })()
+          : Promise.resolve(),
       ]);
 
       const checklistItems = [
@@ -685,12 +687,10 @@ export default function OnboardingFlow({
         { item_key: "grading_config", item_label: "Grading System" },
       ];
 
-      const { error: checklistError } = await supabase
-        .from("setup_checklist")
-        .upsert(
-          checklistItems.map((item) => ({ ...item, school_id: school!.id })),
-          { onConflict: "school_id,item_key" },
-        );
+      const { error: checklistError } = await supabase.from("setup_checklist").upsert(
+        checklistItems.map((item) => ({ ...item, school_id: school!.id })),
+        { onConflict: "school_id,item_key" },
+      );
 
       if (checklistError) {
         logger.warn("Checklist upsert failed:", checklistError);
@@ -716,20 +716,12 @@ export default function OnboardingFlow({
               .eq("academic_year", currentYear);
 
             if (!count) {
-              const classData = buildDefaultClasses(
-                school!.id,
-                localSchoolType,
-                currentYear,
-              );
-              const { error: classError } = await supabase
-                .from("classes")
-                .insert(classData);
+              const classData = buildDefaultClasses(school!.id, localSchoolType, currentYear);
+              const { error: classError } = await supabase.from("classes").insert(classData);
               if (classError) {
-                const { error: upsertError } = await supabase
-                  .from("classes")
-                  .upsert(classData, {
-                    onConflict: "school_id,name,academic_year",
-                  });
+                const { error: upsertError } = await supabase.from("classes").upsert(classData, {
+                  onConflict: "school_id,name,academic_year",
+                });
                 if (upsertError) {
                   logger.error("Classes upsert error:", upsertError);
                   failedSeeding.push("Classes");
@@ -751,15 +743,11 @@ export default function OnboardingFlow({
 
             if (!count) {
               const termData = buildUgandaAcademicTerms(school!.id, currentYear);
-              const { error: termError } = await supabase
-                .from("academic_terms")
-                .insert(termData);
+              const { error: termError } = await supabase.from("academic_terms").insert(termData);
               if (termError) {
-                const { error: upsertError } = await supabase
-                  .from("academic_terms")
-                  .upsert(termData, {
-                    onConflict: "school_id,academic_year,term_number",
-                  });
+                const { error: upsertError } = await supabase.from("academic_terms").upsert(termData, {
+                  onConflict: "school_id,academic_year,term_number",
+                });
                 if (upsertError) {
                   logger.error("Terms upsert error:", upsertError);
                   failedSeeding.push("Academic Terms");
@@ -825,12 +813,8 @@ export default function OnboardingFlow({
 
         if (!count) {
           const templateSubjects = getTemplateForType(localSchoolType).subjects;
-          const additionalMap = new Map(
-            ADDITIONAL_OPTIONAL_SUBJECTS.map((s) => [s.name.toLowerCase(), s]),
-          );
-          const templateMap = new Map(
-            templateSubjects.map((s) => [s.name.toLowerCase(), s]),
-          );
+          const additionalMap = new Map(ADDITIONAL_OPTIONAL_SUBJECTS.map((s) => [s.name.toLowerCase(), s]));
+          const templateMap = new Map(templateSubjects.map((s) => [s.name.toLowerCase(), s]));
 
           const selectedRows: TemplateSubject[] = selectedSubjects.map((name) => {
             const key = name.toLowerCase();
@@ -857,22 +841,18 @@ export default function OnboardingFlow({
             };
           });
 
-          const uniqueRows = Array.from(
-            new Map(selectedRows.map((row) => [row.name.toLowerCase(), row])).values(),
-          );
+          const uniqueRows = Array.from(new Map(selectedRows.map((row) => [row.name.toLowerCase(), row])).values());
 
           if (uniqueRows.length > 0) {
-            const { error: subjectsError } = await supabase
-              .from("subjects")
-              .insert(
-                uniqueRows.map((row) => ({
-                  school_id: school!.id,
-                  name: row.name,
-                  code: row.code,
-                  level: row.level,
-                  is_compulsory: row.is_compulsory,
-                })),
-              );
+            const { error: subjectsError } = await supabase.from("subjects").insert(
+              uniqueRows.map((row) => ({
+                school_id: school!.id,
+                name: row.name,
+                code: row.code,
+                level: row.level,
+                is_compulsory: row.is_compulsory,
+              })),
+            );
             if (subjectsError) {
               logger.warn("Subjects insert failed:", subjectsError);
               failedSeeding.push("Subjects");
@@ -896,9 +876,7 @@ export default function OnboardingFlow({
               capacity: d.capacity,
             }));
           if (dormsData.length > 0) {
-            const { error: dormsError } = await supabase
-              .from("dorms")
-              .insert(dormsData);
+            const { error: dormsError } = await supabase.from("dorms").insert(dormsData);
             if (dormsError) {
               logger.warn("Dorms insert failed:", dormsError);
               failedSeeding.push("Dormitories");
@@ -921,9 +899,7 @@ export default function OnboardingFlow({
               color: h.color || null,
             }));
           if (housesData.length > 0) {
-            const { error: housesError } = await supabase
-              .from("houses")
-              .insert(housesData);
+            const { error: housesError } = await supabase.from("houses").insert(housesData);
             if (housesError) {
               logger.warn("Houses insert failed:", housesError);
               failedSeeding.push("Houses");
@@ -943,15 +919,11 @@ export default function OnboardingFlow({
           `Setup complete, but these items failed to seed and can be added later: ${failedSeeding.join(", ")}`,
         );
       } else {
-        toast.success(
-          "Setup complete. Your school can start working immediately.",
-        );
+        toast.success("Setup complete. Your school can start working immediately.");
       }
     } catch (error: unknown) {
       logger.error("Final error:", error);
-      toast.error(
-        getErrorMessage(error, "Failed to save your setup. Please try again."),
-      );
+      toast.error(getErrorMessage(error, "Failed to save your setup. Please try again."));
       setLoading(false);
     }
   };
@@ -965,13 +937,22 @@ export default function OnboardingFlow({
     setStep(prevStep);
   };
 
-  // Generic next that triggers per-step saves for steps that need it
   const handleGenericNext = async () => {
-    if (step === 5) { if (await saveTerms()) handleNext(6); }
-    else if (step === 6) { if (await saveFees()) handleNext(7); }
-    else if (step === 7) { if (await saveGradingPrefs()) handleNext(8); }
-    else if (step === 8) { if (await saveReportBranding()) handleNext(9); }
-    else { handleNext(step + 1); }
+    if (step === 2) {
+      if (await saveTerms()) {
+        markStepComplete(2);
+        await saveFees();
+        handleNext(3);
+      }
+    } else if (step === 3) {
+      if (await saveGradingPrefs()) {
+        markStepComplete(3);
+        await saveReportBranding();
+        handleNext(4);
+      }
+    } else {
+      handleNext(step + 1);
+    }
   };
 
   if (!school) return null;
@@ -1007,9 +988,7 @@ export default function OnboardingFlow({
             <span className="text-xs font-semibold text-slate-500">
               Step {step} of {TOTAL_STEPS}
             </span>
-            <span className="text-xs font-semibold text-teal-600">
-              {progressPercent}%
-            </span>
+            <span className="text-xs font-semibold text-teal-600">{progressPercent}%</span>
           </div>
           <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
             <div
@@ -1042,11 +1021,7 @@ export default function OnboardingFlow({
                 }
               }}
               className={`rounded-full transition-all duration-200 ${
-                isActive
-                  ? "w-6 h-2 bg-teal-500"
-                  : isPassed
-                    ? "w-2 h-2 bg-teal-300"
-                    : "w-2 h-2 bg-slate-200"
+                isActive ? "w-6 h-2 bg-teal-500" : isPassed ? "w-2 h-2 bg-teal-300" : "w-2 h-2 bg-slate-200"
               }`}
               aria-label={`Go to step ${stepNum}: ${s.title}`}
             />
@@ -1054,9 +1029,7 @@ export default function OnboardingFlow({
         })}
       </div>
 
-      <div
-        className="relative flex w-full h-full min-h-0 md:h-auto md:max-h-[80vh] md:min-h-0 flex-col md:flex-row md:overflow-hidden md:rounded-[36px] md:shadow-[0_38px_90px_rgba(15,23,42,0.16)] md:ring-1 md:ring-black/5"
-      >
+      <div className="relative flex w-full h-full min-h-0 md:h-auto md:max-h-[80vh] md:min-h-0 flex-col md:flex-row md:overflow-hidden md:rounded-[36px] md:shadow-[0_38px_90px_rgba(15,23,42,0.16)] md:ring-1 md:ring-black/5">
         {/* Left Side: Progress & Info - Desktop only */}
         <div className="relative hidden md:flex md:w-1/3 md:min-h-[600px] flex-col overflow-hidden bg-[linear-gradient(160deg,#0b1c39_0%,#17325f_54%,#1a4b79_100%)] p-10 text-white">
           <div className="absolute top-0 right-0 w-full h-full opacity-30 pointer-events-none">
@@ -1087,10 +1060,7 @@ export default function OnboardingFlow({
                       ${isPassed ? "bg-teal-400 border-teal-400" : isActive ? "border-white" : "border-white/30"}`}
                     >
                       {isPassed ? (
-                        <MaterialIcon
-                          icon="check"
-                          className="text-white text-lg"
-                        />
+                        <MaterialIcon icon="check" className="text-white text-lg" />
                       ) : (
                         <MaterialIcon
                           icon={s.icon}
@@ -1098,9 +1068,7 @@ export default function OnboardingFlow({
                         />
                       )}
                     </div>
-                    <span
-                      className={`font-medium ${isActive ? "text-white text-lg" : "text-white/70"}`}
-                    >
+                    <span className={`font-medium ${isActive ? "text-white text-lg" : "text-white/70"}`}>
                       {s.title}
                     </span>
                   </div>
@@ -1114,63 +1082,33 @@ export default function OnboardingFlow({
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
           <div className="flex-1 overflow-y-auto p-4 pb-28 md:p-8 md:pb-8 lg:p-12">
             <div className="animate-fade-in w-full">
-              {/* Step 1: Welcome */}
+              {/* Step 1: School & Subjects (Welcome + School Info + Curriculum) */}
               {step === 1 && (
-                <div className="flex-1 flex flex-col justify-center max-w-md mx-auto"
-                >
+                <div className="flex-1 flex flex-col max-w-lg mx-auto">
                   <OwlStage
-                    eyebrow="Launch setup"
-                    title={`Welcome to ${APP_NAME}`}
-                    description="We will guide you one step at a time. Most schools finish this setup in 10-15 minutes, and you can update anything later."
-                    chips={[
-                      "Simple school profile",
-                      "Ready-to-use curriculum",
-                      "Guided launch checklist",
-                    ]}
-                    className="mb-8"
-                  />
-                  <div className="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
-                    <p className="font-semibold text-slate-900">Need a guided setup call?</p>
-                    <p className="mt-1">If this feels too technical, our team can help you complete setup by phone or WhatsApp.</p>
-                  </div>
-                  <Button
-                    variant="primary"
-                    onClick={() => handleNext(2)}
-                    className="w-max"
-                    icon={<MaterialIcon icon="arrow_forward" />}
-                  >
-                    Start Simple Setup
-                  </Button>
-                </div>
-              )}
-
-              {/* Step 2: School Essentials */}
-              {step === 2 && (
-                <div className="flex-1 flex flex-col max-w-md mx-auto"
-                >
-                  <OwlStage
-                    compact
-                    eyebrow="School identity"
-                    title="School details"
-                    description="Enter the basic details your staff and parents know. You can change these later in Settings."
-                    chips={[
-                      "Official school name",
-                      "Local area details",
-                      "Primary theme color",
-                    ]}
+                    eyebrow="Welcome"
+                    title={`Set up ${APP_NAME}`}
+                    description="We will guide you through the essentials. Most schools finish in 5-10 minutes, and you can update anything later."
+                    chips={["School profile & subjects", "Calendar & fee structure", "Grading & report cards"]}
                     className="mb-6"
                   />
 
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 mb-6">
+                    <p className="font-semibold text-slate-900">Need a guided setup call?</p>
+                    <p className="mt-1">
+                      If this feels too technical, our team can help you complete setup by phone or WhatsApp.
+                    </p>
+                  </div>
+
+                  <hr className="border-slate-200 mb-6" />
+                  <h3 className="text-lg font-bold text-slate-800 mb-4">School Details</h3>
+
                   <div className="space-y-4 mb-6">
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">
-                        School Name
-                      </label>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">School Name</label>
                       <Input
                         value={schoolDetails.name}
-                        onChange={(e) =>
-                          setSchoolDetails({ ...schoolDetails, name: e.target.value })
-                        }
+                        onChange={(e) => setSchoolDetails({ ...schoolDetails, name: e.target.value })}
                         placeholder="St. Mary&apos;s Primary School"
                       />
                     </div>
@@ -1181,21 +1119,20 @@ export default function OnboardingFlow({
                       </label>
                       <Input
                         value={schoolDetails.motto}
-                        onChange={(e) =>
-                          setSchoolDetails({ ...schoolDetails, motto: e.target.value })
-                        }
+                        onChange={(e) => setSchoolDetails({ ...schoolDetails, motto: e.target.value })}
                         placeholder="For God and My Country"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">
-                        Ownership Type
-                      </label>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Ownership Type</label>
                       <select
                         value={schoolDetails.ownership}
                         onChange={(e) =>
-                          setSchoolDetails({ ...schoolDetails, ownership: e.target.value as "private" | "government" | "government_aided" })
+                          setSchoolDetails({
+                            ...schoolDetails,
+                            ownership: e.target.value as "private" | "government" | "government_aided",
+                          })
                         }
                         className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none focus:border-slate-400"
                       >
@@ -1211,9 +1148,7 @@ export default function OnboardingFlow({
                       </label>
                       <Input
                         value={schoolDetails.phone}
-                        onChange={(e) =>
-                          setSchoolDetails({ ...schoolDetails, phone: e.target.value })
-                        }
+                        onChange={(e) => setSchoolDetails({ ...schoolDetails, phone: e.target.value })}
                         placeholder="0772 123456"
                       />
                     </div>
@@ -1224,9 +1159,7 @@ export default function OnboardingFlow({
                       </label>
                       <Input
                         value={schoolDetails.email}
-                        onChange={(e) =>
-                          setSchoolDetails({ ...schoolDetails, email: e.target.value })
-                        }
+                        onChange={(e) => setSchoolDetails({ ...schoolDetails, email: e.target.value })}
                         placeholder="admin@school.ug"
                       />
                     </div>
@@ -1237,19 +1170,14 @@ export default function OnboardingFlow({
                       </label>
                       <Input
                         value={schoolDetails.uneb_center_number}
-                        onChange={(e) =>
-                          setSchoolDetails({ ...schoolDetails, uneb_center_number: e.target.value })
-                        }
+                        onChange={(e) => setSchoolDetails({ ...schoolDetails, uneb_center_number: e.target.value })}
                         placeholder="U0012"
                       />
                     </div>
 
                     <Select
                       label="District"
-                      options={[
-                        { value: "", label: "Select district" },
-                        ...getDistrictOptions(),
-                      ]}
+                      options={[{ value: "", label: "Select district" }, ...getDistrictOptions()]}
                       value={schoolDetails.district}
                       onChange={(e) =>
                         setSchoolDetails({
@@ -1281,10 +1209,7 @@ export default function OnboardingFlow({
                       label="Parish / Ward"
                       options={[
                         { value: "", label: "Select parish or ward (optional)" },
-                        ...getParishOptions(
-                          schoolDetails.district,
-                          schoolDetails.subcounty,
-                        ),
+                        ...getParishOptions(schoolDetails.district, schoolDetails.subcounty),
                       ]}
                       value={schoolDetails.parish}
                       onChange={(e) =>
@@ -1296,9 +1221,7 @@ export default function OnboardingFlow({
                     />
 
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">
-                        School Type
-                      </label>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">School Type</label>
                       <div className="grid grid-cols-3 gap-2">
                         {(
                           [
@@ -1366,9 +1289,7 @@ export default function OnboardingFlow({
                     </div>
 
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">
-                        Primary Color
-                      </label>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">Primary Color</label>
                       <div className="flex gap-3 flex-wrap">
                         {["#0d9488", "#2563eb", "#0f172a", "#16a34a", "#dc2626"].map((color) => (
                           <button
@@ -1386,9 +1307,7 @@ export default function OnboardingFlow({
                           <input
                             type="color"
                             value={branding.primary_color}
-                            onChange={(e) =>
-                              setBranding({ ...branding, primary_color: e.target.value })
-                            }
+                            onChange={(e) => setBranding({ ...branding, primary_color: e.target.value })}
                             className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
                           />
                           <div className="w-10 h-10 rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center">
@@ -1419,9 +1338,7 @@ export default function OnboardingFlow({
                           <input
                             type="color"
                             value={branding.accent_color}
-                            onChange={(e) =>
-                              setBranding({ ...branding, accent_color: e.target.value })
-                            }
+                            onChange={(e) => setBranding({ ...branding, accent_color: e.target.value })}
                             className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
                           />
                           <div className="w-10 h-10 rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center">
@@ -1432,37 +1349,20 @@ export default function OnboardingFlow({
                     </div>
                   </div>
 
-                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
-                    We preload common Uganda district, division, and parish options so school leaders can finish setup quickly even on slow connections.
+                  <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 mb-6">
+                    We preload common Uganda district, division, and parish options so school leaders can finish setup
+                    quickly even on slow connections.
                   </div>
-                </div>
-              )}
 
-              {/* Step 3: Curriculum */}
-              {step === 3 && (
-                <div
-                  className="flex-1 flex flex-col max-w-md mx-auto"
-                >
-                  <OwlStage
-                    compact
-                    eyebrow="Curriculum ready"
-                    title="Choose your subjects"
-                    description={`Select optional subjects. Core subjects are already selected.`}
-                    chips={[
-                      localSchoolType === "primary" ? "P.1 – P.7" : localSchoolType === "secondary" ? "S.1 – S.6" : "P.1 – S.6",
-                      "Customise your curriculum",
-                    ]}
-                    className="mb-6"
-                  />
+                  <hr className="border-slate-200 mb-6" />
+                  <h3 className="text-lg font-bold text-slate-800 mb-4">Curriculum & Subjects</h3>
 
                   <div className="mb-6 rounded-2xl border border-slate-100 bg-slate-50 p-4 shadow-sm max-h-[50vh] overflow-y-auto">
                     <div className="mb-4">
-                      <h4 className="text-sm font-semibold text-slate-700 mb-2">
-                        Core Subjects
-                      </h4>
+                      <h4 className="text-sm font-semibold text-slate-700 mb-2">Core Subjects</h4>
                       <div className="flex flex-wrap gap-2">
-                        {getTemplateForType(localSchoolType).subjects
-                          .filter((s) => s.is_compulsory)
+                        {getTemplateForType(localSchoolType)
+                          .subjects.filter((s) => s.is_compulsory)
                           .map((subj, idx) => (
                             <span
                               key={`core-${subj.code}-${subj.name}-${idx}`}
@@ -1481,8 +1381,8 @@ export default function OnboardingFlow({
                           Optional Subjects <span className="text-slate-400 font-normal">(toggle on/off)</span>
                         </h4>
                         <div className="space-y-1.5">
-                          {getTemplateForType(localSchoolType).subjects
-                            .filter((s) => !s.is_compulsory)
+                          {getTemplateForType(localSchoolType)
+                            .subjects.filter((s) => !s.is_compulsory)
                             .map((subj, idx) => (
                               <label
                                 key={`optional-${subj.code}-${subj.name}-${idx}`}
@@ -1546,9 +1446,7 @@ export default function OnboardingFlow({
                     )}
 
                     <div className="mt-4 border-t border-slate-200 pt-4">
-                      <h4 className="text-sm font-semibold text-slate-700 mb-2">
-                        Custom Subject
-                      </h4>
+                      <h4 className="text-sm font-semibold text-slate-700 mb-2">Custom Subject</h4>
                       <div className="flex gap-2">
                         <input
                           type="text"
@@ -1590,314 +1488,20 @@ export default function OnboardingFlow({
                 </div>
               )}
 
-              {/* Step 4: Boarding & Houses */}
-              {step === 4 && (
-                <div
-                  className="flex-1 flex flex-col max-w-md mx-auto"
-                >
+              {/* Step 2: Calendar & Fees */}
+              {step === 2 && (
+                <div className="flex-1 flex flex-col max-w-lg mx-auto">
                   <OwlStage
                     compact
-                    eyebrow="Accommodation"
-                    title="Boarding & Houses"
-                    description="Set up dormitories and sports houses so students can be assigned easily."
-                    chips={["Dormitory setup", "Competition houses"]}
+                    eyebrow="Academic Calendar & Fees"
+                    title="Set term dates and fees"
+                    description="Uganda term dates are preloaded. Adjust them and define your fee structure."
+                    chips={["3 terms per year", "Per-term billing"]}
                     className="mb-6"
                   />
 
-                  <div className="mb-6 rounded-2xl border border-slate-100 bg-slate-50 p-4 shadow-sm">
-                    <div className="mb-4">
-                      <label className="flex items-center gap-3 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={boardingConfig.hasBoarding}
-                          onChange={() =>
-                            setBoardingConfig((prev) => ({
-                              ...prev,
-                              hasBoarding: !prev.hasBoarding,
-                            }))
-                          }
-                          className="h-5 w-5 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
-                        />
-                        <span className="text-sm font-semibold text-slate-700">
-                          Does your school have boarding facilities?
-                        </span>
-                      </label>
-                    </div>
-
-                    {boardingConfig.hasBoarding && (
-                      <>
-                        <div className="mb-3">
-                          <label className="block text-sm font-semibold text-slate-700 mb-2">
-                            Number of Dormitories
-                          </label>
-                          <div className="flex items-center gap-3">
-                            <input
-                              type="range"
-                              min={1}
-                              max={10}
-                              value={boardingConfig.dormCount}
-                              onChange={(e) => {
-                                const count = Number(e.target.value);
-                                setBoardingConfig((prev) => ({
-                                  ...prev,
-                                  dormCount: count,
-                                  dormitories: Array.from(
-                                    { length: count },
-                                    (_, i) =>
-                                      prev.dormitories[i] || {
-                                        name: "",
-                                        type: "boys" as const,
-                                        capacity: 40,
-                                      },
-                                  ),
-                                }));
-                              }}
-                              className="flex-1 accent-teal-600"
-                            />
-                            <span className="text-sm font-semibold text-slate-700 w-6 text-center">
-                              {boardingConfig.dormCount}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="space-y-2 mb-4">
-                          {boardingConfig.dormitories
-                            .slice(0, boardingConfig.dormCount)
-                            .map((dorm, i) => (
-                              <div key={i} className="flex items-center gap-2">
-                                <input
-                                  placeholder={`Dormitory ${i + 1} name`}
-                                  value={dorm.name}
-                                  onChange={(e) =>
-                                    setBoardingConfig((prev) => {
-                                      const updated = [...prev.dormitories];
-                                      updated[i] = { ...updated[i], name: e.target.value };
-                                      return { ...prev, dormitories: updated };
-                                    })
-                                  }
-                                  className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-slate-400"
-                                />
-                                <select
-                                  value={dorm.type}
-                                  onChange={(e) =>
-                                    setBoardingConfig((prev) => {
-                                      const updated = [...prev.dormitories];
-                                      updated[i] = { ...updated[i], type: e.target.value as "boys" | "girls" };
-                                      return { ...prev, dormitories: updated };
-                                    })
-                                  }
-                                  className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-slate-400"
-                                >
-                                  <option value="boys">Boys</option>
-                                  <option value="girls">Girls</option>
-                                </select>
-                                <input
-                                  type="number"
-                                  min={1}
-                                  placeholder="Capacity"
-                                  value={dorm.capacity}
-                                  onChange={(e) =>
-                                    setBoardingConfig((prev) => {
-                                      const updated = [...prev.dormitories];
-                                      updated[i] = { ...updated[i], capacity: Number(e.target.value) };
-                                      return { ...prev, dormitories: updated };
-                                    })
-                                  }
-                                  className="w-20 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-slate-400"
-                                />
-                              </div>
-                            ))}
-                        </div>
-
-                        <div className="pt-3 border-t border-slate-200">
-                          <label className="flex items-center gap-3 cursor-pointer mb-3">
-                            <input
-                              type="checkbox"
-                              checked={boardingConfig.hasHouses}
-                              onChange={() =>
-                                setBoardingConfig((prev) => ({
-                                  ...prev,
-                                  hasHouses: !prev.hasHouses,
-                                }))
-                              }
-                              className="h-5 w-5 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
-                            />
-                            <span className="text-sm font-semibold text-slate-700">
-                              Sports/competition houses?
-                            </span>
-                          </label>
-
-                          {boardingConfig.hasHouses && (
-                            <>
-                              <div className="flex items-center gap-3 mb-2">
-                                <input
-                                  type="range"
-                                  min={1}
-                                  max={8}
-                                  value={boardingConfig.houseCount}
-                                  onChange={(e) => {
-                                    const count = Number(e.target.value);
-                                    setBoardingConfig((prev) => ({
-                                      ...prev,
-                                      houseCount: count,
-                                      houses: Array.from(
-                                        { length: count },
-                                        (_, i) =>
-                                          prev.houses[i] || {
-                                            name: "",
-                                            color: "#3b82f6",
-                                          },
-                                      ),
-                                    }));
-                                  }}
-                                  className="flex-1 accent-teal-600"
-                                />
-                                <span className="text-sm font-semibold text-slate-700 w-6 text-center">
-                                  {boardingConfig.houseCount}
-                                </span>
-                              </div>
-                              <div className="space-y-2">
-                                {boardingConfig.houses
-                                  .slice(0, boardingConfig.houseCount)
-                                  .map((house, i) => (
-                                      <div key={i} className="flex items-center gap-2">
-                                        <input
-                                          placeholder={`House ${i + 1} name`}
-                                          value={house.name}
-                                          onChange={(e) =>
-                                            setBoardingConfig((prev) => {
-                                              const updated = [...prev.houses];
-                                              updated[i] = { ...updated[i], name: e.target.value };
-                                              return { ...prev, houses: updated };
-                                            })
-                                          }
-                                          className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-slate-400"
-                                        />
-                                        <input
-                                          type="color"
-                                          value={house.color}
-                                          onChange={(e) =>
-                                            setBoardingConfig((prev) => {
-                                              const updated = [...prev.houses];
-                                              updated[i] = { ...updated[i], color: e.target.value };
-                                              return { ...prev, houses: updated };
-                                            })
-                                          }
-                                          className="h-10 w-12 rounded border border-slate-200 bg-white"
-                                        />
-                                      </div>
-                                  ))}
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </>
-                    )}
-
-                    {!boardingConfig.hasBoarding && (
-                      <div className="space-y-3">
-                        <p className="text-sm text-slate-500">
-                          No boarding? That&apos;s fine. You can still set competition houses now.
-                        </p>
-                        <label className="flex items-center gap-3 cursor-pointer">
-                          <input
-                            type="checkbox"
-                            checked={boardingConfig.hasHouses}
-                            onChange={() =>
-                              setBoardingConfig((prev) => ({
-                                ...prev,
-                                hasHouses: !prev.hasHouses,
-                              }))
-                            }
-                            className="h-5 w-5 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
-                          />
-                          <span className="text-sm font-semibold text-slate-700">
-                            Sports/competition houses?
-                          </span>
-                        </label>
-
-                        {boardingConfig.hasHouses && (
-                          <>
-                            <div className="flex items-center gap-3 mb-2">
-                              <input
-                                type="range"
-                                min={1}
-                                max={8}
-                                value={boardingConfig.houseCount}
-                                onChange={(e) => {
-                                  const count = Number(e.target.value);
-                                  setBoardingConfig((prev) => ({
-                                    ...prev,
-                                    houseCount: count,
-                                    houses: Array.from(
-                                      { length: count },
-                                      (_, i) =>
-                                        prev.houses[i] || {
-                                          name: "",
-                                          color: "#3b82f6",
-                                        },
-                                    ),
-                                  }));
-                                }}
-                                className="flex-1 accent-teal-600"
-                              />
-                              <span className="text-sm font-semibold text-slate-700 w-6 text-center">
-                                {boardingConfig.houseCount}
-                              </span>
-                            </div>
-                            <div className="space-y-2">
-                              {boardingConfig.houses
-                                .slice(0, boardingConfig.houseCount)
-                                .map((house, i) => (
-                                  <div key={i} className="flex items-center gap-2">
-                                    <input
-                                      placeholder={`House ${i + 1} name`}
-                                      value={house.name}
-                                      onChange={(e) =>
-                                        setBoardingConfig((prev) => {
-                                          const updated = [...prev.houses];
-                                          updated[i] = { ...updated[i], name: e.target.value };
-                                          return { ...prev, houses: updated };
-                                        })
-                                      }
-                                      className="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 outline-none focus:border-slate-400"
-                                    />
-                                    <input
-                                      type="color"
-                                      value={house.color}
-                                      onChange={(e) =>
-                                        setBoardingConfig((prev) => {
-                                          const updated = [...prev.houses];
-                                          updated[i] = { ...updated[i], color: e.target.value };
-                                          return { ...prev, houses: updated };
-                                        })
-                                      }
-                                      className="h-10 w-12 rounded border border-slate-200 bg-white"
-                                    />
-                                  </div>
-                                ))}
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Step 5: Academic Calendar */}
-              {step === 5 && (
-                <div
-                  className="flex-1 flex flex-col max-w-md mx-auto"
-                >
-                  <OwlStage
-                    compact
-                    eyebrow="Academic Calendar"
-                    title="Set term dates"
-                    description="Uganda term dates are preloaded. Adjust start and end dates to match your school calendar."
-                    chips={["3 terms per year", "Holiday windows included"]}
-                    className="mb-6"
-                  />
+                  <hr className="border-slate-200 mb-6" />
+                  <h3 className="text-lg font-bold text-slate-800 mb-4">Term Dates</h3>
 
                   <div className="mb-6 rounded-2xl border border-slate-100 bg-slate-50 p-4 shadow-sm space-y-3">
                     {terms.map((term, i) => (
@@ -1933,35 +1537,10 @@ export default function OnboardingFlow({
                         </div>
                       </div>
                     ))}
-
-                    <Button
-                      size="sm"
-                      onClick={async () => {
-                        await saveTerms();
-                        setTimeout(() => handleNext(6), 600);
-                      }}
-                      loading={saving}
-                      className="w-full"
-                    >
-                      Save & Continue
-                    </Button>
                   </div>
-                </div>
-              )}
 
-              {/* Step 6: Fee Structure */}
-              {step === 6 && (
-                <div
-                  className="flex-1 flex flex-col max-w-md mx-auto"
-                >
-                  <OwlStage
-                    compact
-                    eyebrow="Fee Structure"
-                    title="Set class-based fees"
-                    description="Define fee categories, amounts, term, and target class while onboarding."
-                    chips={["UGX currency", "Per-term billing"]}
-                    className="mb-6"
-                  />
+                  <hr className="border-slate-200 mb-6" />
+                  <h3 className="text-lg font-bold text-slate-800 mb-4">Fee Structure</h3>
 
                   <div className="mb-6 rounded-2xl border border-slate-100 bg-slate-50 p-4 shadow-sm space-y-3">
                     <p className="text-xs font-medium text-slate-500">
@@ -2074,41 +1653,28 @@ export default function OnboardingFlow({
                     >
                       Add Fee
                     </Button>
-
-                    <Button
-                      size="sm"
-                      onClick={async () => {
-                        await saveFees();
-                        setTimeout(() => handleNext(7), 600);
-                      }}
-                      loading={saving}
-                      className="w-full"
-                    >
-                      Save & Continue
-                    </Button>
                   </div>
                 </div>
               )}
 
-              {/* Step 7: Grading System */}
-              {step === 7 && (
-                <div
-                  className="flex-1 flex flex-col max-w-md mx-auto"
-                >
+              {/* Step 3: Grading & Reports */}
+              {step === 3 && (
+                <div className="flex-1 flex flex-col max-w-lg mx-auto">
                   <OwlStage
                     compact
-                    eyebrow="Grading System"
-                    title="Set grading ranges"
-                    description="Define the passing mark and grade ranges used in report cards and exams."
+                    eyebrow="Grading & Reports"
+                    title="Set grading and report card preferences"
+                    description="Define the passing mark, grade ranges, and report card branding."
                     chips={["A–E grades", "Customizable ranges"]}
                     className="mb-6"
                   />
 
+                  <hr className="border-slate-200 mb-6" />
+                  <h3 className="text-lg font-bold text-slate-800 mb-4">Grading System</h3>
+
                   <div className="mb-6 rounded-2xl border border-slate-100 bg-slate-50 p-4 shadow-sm space-y-3">
                     <div>
-                      <label className="text-sm font-semibold text-slate-700 mb-2 block">
-                        Passing Mark (%)
-                      </label>
+                      <label className="text-sm font-semibold text-slate-700 mb-2 block">Passing Mark (%)</label>
                       <input
                         type="number"
                         value={gradingPrefs.passing_mark}
@@ -2154,41 +1720,14 @@ export default function OnboardingFlow({
                         </div>
                       ))}
                     </div>
-
-                    <Button
-                      size="sm"
-                      onClick={async () => {
-                        await saveGradingPrefs();
-                        setTimeout(() => handleNext(8), 600);
-                      }}
-                      loading={saving}
-                      className="w-full"
-                    >
-                      Save & Continue
-                    </Button>
                   </div>
-                </div>
-              )}
 
-              {/* Step 8: Report Card Branding */}
-              {step === 8 && (
-                <div
-                  className="flex-1 flex flex-col max-w-md mx-auto"
-                >
-                  <OwlStage
-                    compact
-                    eyebrow="Report Cards"
-                    title="Report card branding"
-                    description="Customize the text and sections that appear on printed report cards and fee receipts."
-                    chips={["Header/footer text", "Section toggles"]}
-                    className="mb-6"
-                  />
+                  <hr className="border-slate-200 mb-6" />
+                  <h3 className="text-lg font-bold text-slate-800 mb-4">Report Card Branding</h3>
 
                   <div className="mb-6 rounded-2xl border border-slate-100 bg-slate-50 p-4 shadow-sm space-y-3">
                     <div>
-                      <label className="text-xs font-semibold text-slate-600 mb-1 block">
-                        Report Header Text
-                      </label>
+                      <label className="text-xs font-semibold text-slate-600 mb-1 block">Report Header Text</label>
                       <input
                         type="text"
                         value={reportBrand.header}
@@ -2198,9 +1737,7 @@ export default function OnboardingFlow({
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-slate-600 mb-1 block">
-                        Report Footer Text
-                      </label>
+                      <label className="text-xs font-semibold text-slate-600 mb-1 block">Report Footer Text</label>
                       <input
                         type="text"
                         value={reportBrand.footer}
@@ -2210,9 +1747,7 @@ export default function OnboardingFlow({
                       />
                     </div>
                     <div>
-                      <label className="text-xs font-semibold text-slate-600 mb-1 block">
-                        Receipt Footer Text
-                      </label>
+                      <label className="text-xs font-semibold text-slate-600 mb-1 block">Receipt Footer Text</label>
                       <input
                         type="text"
                         value={reportBrand.receipt_footer}
@@ -2247,42 +1782,53 @@ export default function OnboardingFlow({
                         </label>
                       ))}
                     </div>
-
-                    <Button
-                      size="sm"
-                      onClick={async () => {
-                        await saveReportBranding();
-                        setTimeout(() => handleNext(9), 600);
-                      }}
-                      loading={saving}
-                      className="w-full"
-                    >
-                      Save & Continue
-                    </Button>
                   </div>
                 </div>
               )}
 
-              {/* Step 9: Features */}
-              {step === 9 && (
-                <div
-                  className="flex-1 flex flex-col max-w-md mx-auto"
-                >
+              {/* Step 4: Features */}
+              {step === 4 && (
+                <div className="flex-1 flex flex-col max-w-lg mx-auto">
                   <OwlStage
                     compact
-                    eyebrow="Module access"
+                    eyebrow="Modules"
                     title="Select your features"
-                    description="Turn on the modules your school needs immediately. Start lean or go full-suite, then expand later."
-                    chips={[selectedPlan.name, "Flexible rollout"]}
+                    description="Choose which modules your school needs immediately. Start lean or go full-suite, then expand later."
+                    chips={["Flexible rollout", selectedPlan.name]}
                     className="mb-6"
                   />
 
+                  <h3 className="text-lg font-bold text-slate-800 mb-4">Feature Selection</h3>
+
                   <div className="space-y-3 mb-6">
+                    <p className="text-xs text-slate-500 mb-3">
+                      Turn on the modules your school needs immediately. Start lean or go full-suite, then expand later.
+                    </p>
                     {[
-                      { key: "core", label: "Core Essentials", desc: "Attendance, Students, Basic Reports", icon: "school" },
-                      { key: "academic", label: "Academic Focus", desc: "Core + Grades, Exams, Report Cards", icon: "menu_book" },
-                      { key: "finance", label: "Finance & Operations", desc: "Core + Fees, Payroll, Budgeting", icon: "account_balance" },
-                      { key: "full", label: "Full Suite", desc: "Everything including Parent Portal, Analytics", icon: "rocket_launch" },
+                      {
+                        key: "core",
+                        label: "Core Essentials",
+                        desc: "Attendance, Students, Basic Reports",
+                        icon: "school",
+                      },
+                      {
+                        key: "academic",
+                        label: "Academic Focus",
+                        desc: "Core + Grades, Exams, Report Cards",
+                        icon: "menu_book",
+                      },
+                      {
+                        key: "finance",
+                        label: "Finance & Operations",
+                        desc: "Core + Fees, Payroll, Budgeting",
+                        icon: "account_balance",
+                      },
+                      {
+                        key: "full",
+                        label: "Full Suite",
+                        desc: "Everything including Parent Portal, Analytics",
+                        icon: "rocket_launch",
+                      },
                     ].map((option) => (
                       <div
                         key={option.key}
@@ -2309,16 +1855,13 @@ export default function OnboardingFlow({
                 </div>
               )}
 
-              {/* Step 10: Launch */}
-              {step === 10 && (
-                <div
-                  className="flex-1 flex flex-col max-w-md mx-auto"
-                >
-                  <h3 className="text-2xl font-bold text-slate-800 mb-2">
-                    Launch Ready
-                  </h3>
+              {/* Step 5: Launch */}
+              {step === 5 && (
+                <div className="flex-1 flex flex-col max-w-md mx-auto">
+                  <h3 className="text-2xl font-bold text-slate-800 mb-2">Launch Ready</h3>
                   <p className="text-slate-500 mb-6">
-                    Your school package, default calendar, and starter setup are already in place so the team can begin working immediately.
+                    Your school package, default calendar, and starter setup are already in place so the team can begin
+                    working immediately.
                   </p>
 
                   <div className="grid grid-cols-1 gap-4 mb-6">
@@ -2344,13 +1887,7 @@ export default function OnboardingFlow({
                     </div>
                   </div>
 
-                  <Button
-                    variant="primary"
-                    onClick={handleComplete}
-                    loading={loading}
-                    className="w-full"
-                    size="lg"
-                  >
+                  <Button variant="primary" onClick={handleComplete} loading={loading} className="w-full" size="lg">
                     Finish Setup & Launch
                   </Button>
                 </div>
@@ -2358,30 +1895,24 @@ export default function OnboardingFlow({
             </div>
           </div>
 
-          {/* Bottom Navigation - Fixed on mobile, inline on desktop */}
+          {/* Bottom Navigation - Mobile */}
           {step > 1 && step < TOTAL_STEPS && (
-            <div className="md:hidden sticky bottom-0 bg-white border-t border-slate-100 px-4 py-3" style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0.75rem))" }}>
+            <div
+              className="md:hidden sticky bottom-0 bg-white border-t border-slate-100 px-4 py-3"
+              style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0.75rem))" }}
+            >
               <div className="flex gap-3">
-                <Button
-                  variant="secondary"
-                  onClick={() => handleBack(step - 1)}
-                  className="flex-1"
-                >
+                <Button variant="secondary" onClick={() => handleBack(step - 1)} className="flex-1">
                   Back
                 </Button>
-                <Button
-                  variant="primary"
-                  loading={saving}
-                  onClick={handleGenericNext}
-                  className="flex-1"
-                >
+                <Button variant="primary" loading={saving} onClick={handleGenericNext} className="flex-1">
                   {step === TOTAL_STEPS - 1 ? "Review & Launch" : "Next"}
                 </Button>
               </div>
             </div>
           )}
 
-          {/* Desktop bottom nav for step 2-9 */}
+          {/* Desktop bottom nav for steps 2-4 */}
           {step > 1 && step < TOTAL_STEPS && (
             <div className="hidden md:flex gap-3 px-8 pb-8 pt-4">
               <Button variant="secondary" onClick={() => handleBack(step - 1)}>
