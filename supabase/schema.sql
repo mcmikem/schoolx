@@ -182,6 +182,7 @@ CREATE TABLE IF NOT EXISTS houses (
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     name TEXT NOT NULL,
     color TEXT,
+    motto TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

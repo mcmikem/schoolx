@@ -26,12 +26,8 @@ const OPTIONAL_STEPS = [
   },
   { key: "import_students", title: "Import Students", icon: "group_add", desc: "Bulk upload students from a CSV file" },
   { key: "signatures", title: "Signatures", icon: "signature", desc: "Upload headteacher & class teacher signatures" },
-  {
-    key: "boarding_setup",
-    title: "Boarding & Houses",
-    icon: "hotel",
-    desc: "Set up dormitories and competition houses",
-  },
+  { key: "dormitories", title: "Dormitories", icon: "hotel", desc: "Set up boarding dormitories" },
+  { key: "houses", title: "Competition Houses", icon: "flag", desc: "Set up sports houses with colors" },
 ];
 
 const OPTIONAL_SETUP_STATUS_KEY = "optional_setup_status";
@@ -75,10 +71,13 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
     failed: number;
   }>({ step: "upload", rows: [], errors: [], success: 0, failed: 0 });
 
-  const [boardingConfig, setBoardingConfig] = useState({
+  const [dormConfig, setDormConfig] = useState({
     hasBoarding: false,
     dormCount: 1,
     dormitories: [{ name: "", type: "boys" as "boys" | "girls", capacity: 40 }],
+  });
+
+  const [houseConfig, setHouseConfig] = useState({
     hasHouses: false,
     houseCount: 1,
     houses: [{ name: "", color: "#3b82f6" }] as { name: string; color: string }[],
@@ -379,12 +378,12 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
     }
   };
 
-  const saveBoardingSetup = async () => {
+  const saveDormitories = async () => {
     if (!school?.id) return;
     setLoading(true);
     try {
-      if (boardingConfig.hasBoarding) {
-        const dormsData = boardingConfig.dormitories
+      if (dormConfig.hasBoarding) {
+        const dormsData = dormConfig.dormitories
           .filter((d) => d.name.trim())
           .map((d) => ({
             school_id: school.id,
@@ -401,11 +400,26 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
           if (dormsError) {
             logger.warn("Dorms insert failed:", dormsError);
             toast.warning("Some dormitories could not be saved. You can add them later.");
+            setLoading(false);
+            return;
           }
         }
       }
-      if (boardingConfig.hasHouses) {
-        const housesData = boardingConfig.houses
+      await markComplete("dormitories");
+      toast.success("Dormitories saved");
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to save dormitories"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveHouses = async () => {
+    if (!school?.id) return;
+    setLoading(true);
+    try {
+      if (houseConfig.hasHouses) {
+        const housesData = houseConfig.houses
           .filter((h) => h.name.trim())
           .map((h) => ({
             school_id: school.id,
@@ -421,12 +435,15 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
           if (housesError) {
             logger.warn("Houses insert failed:", housesError);
             toast.warning("Some houses could not be saved. You can add them later.");
+            setLoading(false);
+            return;
           }
         }
       }
-      await markComplete("boarding_setup");
+      await markComplete("houses");
+      toast.success("Competition houses saved");
     } catch (err: unknown) {
-      toast.error(getErrorMessage(err, "Failed to save boarding setup"));
+      toast.error(getErrorMessage(err, "Failed to save houses"));
     } finally {
       setLoading(false);
     }
@@ -724,14 +741,14 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                         )}
 
                         {/* Boarding Setup */}
-                        {item.key === "boarding_setup" && (
+                        {item.key === "dormitories" && (
                           <div className="space-y-3">
                             <label className="flex items-center gap-3 cursor-pointer">
                               <input
                                 type="checkbox"
-                                checked={boardingConfig.hasBoarding}
+                                checked={dormConfig.hasBoarding}
                                 onChange={() =>
-                                  setBoardingConfig((prev) => ({
+                                  setDormConfig((prev) => ({
                                     ...prev,
                                     hasBoarding: !prev.hasBoarding,
                                   }))
@@ -743,7 +760,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                               </span>
                             </label>
 
-                            {boardingConfig.hasBoarding && (
+                            {dormConfig.hasBoarding && (
                               <>
                                 <div>
                                   <label className="block text-xs font-semibold text-slate-600 mb-1">
@@ -754,10 +771,10 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                                       type="range"
                                       min={1}
                                       max={10}
-                                      value={boardingConfig.dormCount}
+                                      value={dormConfig.dormCount}
                                       onChange={(e) => {
                                         const count = Number(e.target.value);
-                                        setBoardingConfig((prev) => ({
+                                        setDormConfig((prev) => ({
                                           ...prev,
                                           dormCount: count,
                                           dormitories: Array.from(
@@ -774,19 +791,19 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                                       className="flex-1 accent-teal-600"
                                     />
                                     <span className="text-xs font-semibold text-slate-700 w-5 text-center">
-                                      {boardingConfig.dormCount}
+                                      {dormConfig.dormCount}
                                     </span>
                                   </div>
                                 </div>
 
                                 <div className="space-y-2">
-                                  {boardingConfig.dormitories.slice(0, boardingConfig.dormCount).map((dorm, i) => (
+                                  {dormConfig.dormitories.slice(0, dormConfig.dormCount).map((dorm, i) => (
                                     <div key={i} className="flex items-center gap-1.5">
                                       <input
                                         placeholder={`Dorm ${i + 1} name`}
                                         value={dorm.name}
                                         onChange={(e) =>
-                                          setBoardingConfig((prev) => {
+                                          setDormConfig((prev) => {
                                             const updated = [...prev.dormitories];
                                             updated[i] = { ...updated[i], name: e.target.value };
                                             return { ...prev, dormitories: updated };
@@ -797,7 +814,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                                       <select
                                         value={dorm.type}
                                         onChange={(e) =>
-                                          setBoardingConfig((prev) => {
+                                          setDormConfig((prev) => {
                                             const updated = [...prev.dormitories];
                                             updated[i] = { ...updated[i], type: e.target.value as "boys" | "girls" };
                                             return { ...prev, dormitories: updated };
@@ -814,7 +831,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                                         placeholder="Cap"
                                         value={dorm.capacity}
                                         onChange={(e) =>
-                                          setBoardingConfig((prev) => {
+                                          setDormConfig((prev) => {
                                             const updated = [...prev.dormitories];
                                             updated[i] = { ...updated[i], capacity: Number(e.target.value) };
                                             return { ...prev, dormitories: updated };
@@ -828,93 +845,96 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                               </>
                             )}
 
-                            {!boardingConfig.hasBoarding && (
-                              <p className="text-xs text-slate-500">
-                                No boarding? You can still set competition houses below.
-                              </p>
+                            <Button size="sm" onClick={saveDormitories} loading={loading} className="w-full">
+                              Save Dormitories
+                            </Button>
+                          </div>
+                        )}
+
+                        {item.key === "houses" && (
+                          <div className="space-y-3">
+                            <p className="text-xs text-slate-500 mb-1">
+                              Set up competition/sports houses. Each student can be assigned a house.
+                            </p>
+                            <label className="flex items-center gap-2 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={houseConfig.hasHouses}
+                                onChange={() =>
+                                  setHouseConfig((prev) => ({
+                                    ...prev,
+                                    hasHouses: !prev.hasHouses,
+                                  }))
+                                }
+                                className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                              />
+                              <span className="text-xs font-semibold text-slate-700">Enable competition houses</span>
+                            </label>
+
+                            {houseConfig.hasHouses && (
+                              <>
+                                <div className="flex items-center gap-3">
+                                  <input
+                                    type="range"
+                                    min={1}
+                                    max={8}
+                                    value={houseConfig.houseCount}
+                                    onChange={(e) => {
+                                      const count = Number(e.target.value);
+                                      setHouseConfig((prev) => ({
+                                        ...prev,
+                                        houseCount: count,
+                                        houses: Array.from(
+                                          { length: count },
+                                          (_, i) =>
+                                            prev.houses[i] || {
+                                              name: "",
+                                              color: "#3b82f6",
+                                            },
+                                        ),
+                                      }));
+                                    }}
+                                    className="flex-1 accent-teal-600"
+                                  />
+                                  <span className="text-xs font-semibold text-slate-700 w-5 text-center">
+                                    {houseConfig.houseCount}
+                                  </span>
+                                </div>
+                                <div className="space-y-1.5">
+                                  {houseConfig.houses.slice(0, houseConfig.houseCount).map((house, i) => (
+                                    <div key={i} className="flex items-center gap-1.5">
+                                      <input
+                                        placeholder={`House ${i + 1} name`}
+                                        value={house.name}
+                                        onChange={(e) =>
+                                          setHouseConfig((prev) => {
+                                            const updated = [...prev.houses];
+                                            updated[i] = { ...updated[i], name: e.target.value };
+                                            return { ...prev, houses: updated };
+                                          })
+                                        }
+                                        className="flex-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-800 outline-none focus:border-slate-400"
+                                      />
+                                      <input
+                                        type="color"
+                                        value={house.color}
+                                        onChange={(e) =>
+                                          setHouseConfig((prev) => {
+                                            const updated = [...prev.houses];
+                                            updated[i] = { ...updated[i], color: e.target.value };
+                                            return { ...prev, houses: updated };
+                                          })
+                                        }
+                                        className="h-8 w-10 rounded border border-slate-200 bg-white"
+                                      />
+                                    </div>
+                                  ))}
+                                </div>
+                              </>
                             )}
 
-                            <div className="pt-1 border-t border-slate-200">
-                              <label className="flex items-center gap-2 cursor-pointer mb-2">
-                                <input
-                                  type="checkbox"
-                                  checked={boardingConfig.hasHouses}
-                                  onChange={() =>
-                                    setBoardingConfig((prev) => ({
-                                      ...prev,
-                                      hasHouses: !prev.hasHouses,
-                                    }))
-                                  }
-                                  className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
-                                />
-                                <span className="text-xs font-semibold text-slate-700">Sports/competition houses?</span>
-                              </label>
-
-                              {boardingConfig.hasHouses && (
-                                <>
-                                  <div className="flex items-center gap-3 mb-2">
-                                    <input
-                                      type="range"
-                                      min={1}
-                                      max={8}
-                                      value={boardingConfig.houseCount}
-                                      onChange={(e) => {
-                                        const count = Number(e.target.value);
-                                        setBoardingConfig((prev) => ({
-                                          ...prev,
-                                          houseCount: count,
-                                          houses: Array.from(
-                                            { length: count },
-                                            (_, i) =>
-                                              prev.houses[i] || {
-                                                name: "",
-                                                color: "#3b82f6",
-                                              },
-                                          ),
-                                        }));
-                                      }}
-                                      className="flex-1 accent-teal-600"
-                                    />
-                                    <span className="text-xs font-semibold text-slate-700 w-5 text-center">
-                                      {boardingConfig.houseCount}
-                                    </span>
-                                  </div>
-                                  <div className="space-y-1.5">
-                                    {boardingConfig.houses.slice(0, boardingConfig.houseCount).map((house, i) => (
-                                      <div key={i} className="flex items-center gap-1.5">
-                                        <input
-                                          placeholder={`House ${i + 1} name`}
-                                          value={house.name}
-                                          onChange={(e) =>
-                                            setBoardingConfig((prev) => {
-                                              const updated = [...prev.houses];
-                                              updated[i] = { ...updated[i], name: e.target.value };
-                                              return { ...prev, houses: updated };
-                                            })
-                                          }
-                                          className="flex-1 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-800 outline-none focus:border-slate-400"
-                                        />
-                                        <input
-                                          type="color"
-                                          value={house.color}
-                                          onChange={(e) =>
-                                            setBoardingConfig((prev) => {
-                                              const updated = [...prev.houses];
-                                              updated[i] = { ...updated[i], color: e.target.value };
-                                              return { ...prev, houses: updated };
-                                            })
-                                          }
-                                          className="h-8 w-10 rounded border border-slate-200 bg-white"
-                                        />
-                                      </div>
-                                    ))}
-                                  </div>
-                                </>
-                              )}
-                            </div>
-
-                            <Button size="sm" onClick={saveBoardingSetup} loading={loading} className="w-full">
-                              Save Boarding Setup
+                            <Button size="sm" onClick={saveHouses} loading={loading} className="w-full">
+                              Save Houses
                             </Button>
                           </div>
                         )}

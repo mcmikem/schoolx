@@ -25,6 +25,7 @@ import { PRIMARY_TEMPLATE, SECONDARY_TEMPLATE, type TemplateSubject } from "@/li
 import { logger } from "@/lib/logger";
 import { getErrorMessage } from "@/lib/validation";
 import { APP_NAME } from "@/lib/app-name";
+import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 
 interface StepConfig {
   title: string;
@@ -876,7 +877,11 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
               capacity: d.capacity,
             }));
           if (dormsData.length > 0) {
-            const { error: dormsError } = await supabase.from("dorms").insert(dormsData);
+            const { error: dormsError } = await withTimeout(
+              supabase.from("dorms").insert(dormsData),
+              15000,
+              timeoutFallback(),
+            );
             if (dormsError) {
               logger.warn("Dorms insert failed:", dormsError);
               failedSeeding.push("Dormitories");
@@ -899,7 +904,11 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
               color: h.color || null,
             }));
           if (housesData.length > 0) {
-            const { error: housesError } = await supabase.from("houses").insert(housesData);
+            const { error: housesError } = await withTimeout(
+              supabase.from("houses").insert(housesData),
+              15000,
+              timeoutFallback(),
+            );
             if (housesError) {
               logger.warn("Houses insert failed:", housesError);
               failedSeeding.push("Houses");
