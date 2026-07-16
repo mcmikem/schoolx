@@ -34,7 +34,7 @@ const OPTIONAL_SETUP_STATUS_KEY = "optional_setup_status";
 type OptionalStatusMap = Record<string, "completed" | "skipped">;
 
 export default function PostOnboardingSetup({ onComplete }: Props) {
-  const { school, refreshSchool } = useAuth();
+  const { school, isDemo, refreshSchool } = useAuth();
   const toast = useToast();
   const [isOpen, setIsOpen] = useState(true);
   const [expandedKey, setExpandedKey] = useState<string | null>(OPTIONAL_STEPS[0]?.key ?? null);
@@ -233,6 +233,12 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
     setLoading(true);
     try {
       const active = smsAutomations.filter((a) => a.is_active);
+      if (isDemo && active.length > 0) {
+        toast.info("Demo mode: SMS automation settings saved locally.");
+        await markComplete("sms_automation");
+        setLoading(false);
+        return;
+      }
       if (active.length > 0) {
         const { error: delError } = await withTimeout(
           supabase
@@ -341,6 +347,11 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
 
   const saveSignatures = async () => {
     if (!school?.id) return;
+    if (isDemo) {
+      await markComplete("signatures");
+      toast.info("Demo mode: Signatures saved locally.");
+      return;
+    }
     setUploadingSignature(true);
     try {
       let headteacherUrl = "";
@@ -382,7 +393,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
     if (!school?.id) return;
     setLoading(true);
     try {
-      if (dormConfig.hasBoarding) {
+      if (dormConfig.hasBoarding && !isDemo) {
         const dormsData = dormConfig.dormitories
           .filter((d) => d.name.trim())
           .map((d) => ({
@@ -399,7 +410,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
           );
           if (dormsError) {
             logger.warn("Dorms insert failed:", dormsError);
-            toast.warning("Some dormitories could not be saved. You can add them later.");
+            toast.error(dormsError.message || "Failed to save dormitories. Check console for details.");
             setLoading(false);
             return;
           }
@@ -418,7 +429,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
     if (!school?.id) return;
     setLoading(true);
     try {
-      if (houseConfig.hasHouses) {
+      if (houseConfig.hasHouses && !isDemo) {
         const housesData = houseConfig.houses
           .filter((h) => h.name.trim())
           .map((h) => ({
@@ -434,7 +445,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
           );
           if (housesError) {
             logger.warn("Houses insert failed:", housesError);
-            toast.warning("Some houses could not be saved. You can add them later.");
+            toast.error(housesError.message || "Failed to save houses. Check console for details.");
             setLoading(false);
             return;
           }

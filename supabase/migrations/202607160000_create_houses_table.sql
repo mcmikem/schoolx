@@ -1,6 +1,7 @@
--- Create houses table and add motto column
+
+-- Create houses table (sports/competition houses)
 -- The table was only in schema.sql, never created via migration.
--- This is the earliest migration referencing houses, so create it here.
+-- This fixes "relation houses does not exist" errors when saving houses.
 
 CREATE TABLE IF NOT EXISTS houses (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
