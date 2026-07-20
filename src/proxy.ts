@@ -55,6 +55,7 @@ const DEMO_ALLOWED_ROLES = new Set([
   "secretary",
   "dorm_master",
   "parent",
+  "marketer",
 ]);
 
 function hasValidDemoSession(request: NextRequest) {

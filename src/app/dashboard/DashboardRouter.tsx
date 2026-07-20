@@ -7,11 +7,20 @@ import { useAuth } from "@/lib/auth-context";
 import { DashboardSkeleton } from "@/components/Skeletons";
 import { logger } from "@/lib/logger";
 
-const HeadmasterDashboard = dynamic(() => import("./dashboards/HeadmasterDashboard"), { loading: () => <DashboardSkeleton /> });
+const HeadmasterDashboard = dynamic(() => import("./dashboards/HeadmasterDashboard"), {
+  loading: () => <DashboardSkeleton />,
+});
 const DeanDashboard = dynamic(() => import("./dashboards/DeanDashboard"), { loading: () => <DashboardSkeleton /> });
 const BursarDashboard = dynamic(() => import("./dashboards/BursarDashboard"), { loading: () => <DashboardSkeleton /> });
-const TeacherDashboard = dynamic(() => import("./dashboards/TeacherDashboard"), { loading: () => <DashboardSkeleton /> });
-const SuperAdminDashboard = dynamic(() => import("./dashboards/SuperAdminDashboard"), { loading: () => <DashboardSkeleton /> });
+const TeacherDashboard = dynamic(() => import("./dashboards/TeacherDashboard"), {
+  loading: () => <DashboardSkeleton />,
+});
+const SuperAdminDashboard = dynamic(() => import("./dashboards/SuperAdminDashboard"), {
+  loading: () => <DashboardSkeleton />,
+});
+const MarketerDashboard = dynamic(() => import("./dashboards/MarketerDashboard"), {
+  loading: () => <DashboardSkeleton />,
+});
 
 function getFirstName(fullName?: string | null) {
   return fullName?.trim().split(" ").filter(Boolean)[0] || "User";
@@ -21,11 +30,7 @@ function SecretaryDashboard() {
   const { user, school } = useAuth();
   const currentDate = new Date();
   const greeting =
-    currentDate.getHours() < 12
-      ? "Good Morning"
-      : currentDate.getHours() < 17
-        ? "Good Afternoon"
-        : "Good Evening";
+    currentDate.getHours() < 12 ? "Good Morning" : currentDate.getHours() < 17 ? "Good Afternoon" : "Good Evening";
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -42,7 +47,10 @@ function SecretaryDashboard() {
         </div>
 
         <div className="relative z-10 grid grid-cols-1 gap-4 md:grid-cols-2">
-          <Link href="/dashboard/messages?tab=notices" className="rounded-2xl border border-[#d8e7ea] bg-white/90 p-4 transition hover:bg-white">
+          <Link
+            href="/dashboard/messages?tab=notices"
+            className="rounded-2xl border border-[#d8e7ea] bg-white/90 p-4 transition hover:bg-white"
+          >
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#7a8f9b]">Notices</span>
               <span className="material-symbols-outlined text-[#1f4a67]">campaign</span>
@@ -51,7 +59,10 @@ function SecretaryDashboard() {
             <p className="mt-1 text-xs text-[#6f8794]">View announcements and visitor log updates.</p>
           </Link>
 
-          <Link href="/dashboard/messages" className="rounded-2xl border border-[#d8e7ea] bg-white/90 p-4 transition hover:bg-white">
+          <Link
+            href="/dashboard/messages"
+            className="rounded-2xl border border-[#d8e7ea] bg-white/90 p-4 transition hover:bg-white"
+          >
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#7a8f9b]">Communication</span>
               <span className="material-symbols-outlined text-[#0b7a68]">chat</span>
@@ -69,11 +80,7 @@ function DormMasterDashboard() {
   const { user, school } = useAuth();
   const currentDate = new Date();
   const greeting =
-    currentDate.getHours() < 12
-      ? "Good Morning"
-      : currentDate.getHours() < 17
-        ? "Good Afternoon"
-        : "Good Evening";
+    currentDate.getHours() < 12 ? "Good Morning" : currentDate.getHours() < 17 ? "Good Afternoon" : "Good Evening";
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
@@ -90,7 +97,10 @@ function DormMasterDashboard() {
         </div>
 
         <div className="relative z-10 grid grid-cols-1 gap-4 md:grid-cols-3">
-          <Link href="/dashboard/dorm" className="rounded-2xl border border-[#d8e7ea] bg-white/90 p-4 transition hover:bg-white">
+          <Link
+            href="/dashboard/dorm"
+            className="rounded-2xl border border-[#d8e7ea] bg-white/90 p-4 transition hover:bg-white"
+          >
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#7a8f9b]">Management</span>
               <span className="material-symbols-outlined text-[#1f4a67]">bed</span>
@@ -99,7 +109,10 @@ function DormMasterDashboard() {
             <p className="mt-1 text-xs text-[#6f8794]">Assignments, beds, and boarding allocations.</p>
           </Link>
 
-          <Link href="/dashboard/dorm-attendance" className="rounded-2xl border border-[#d8e7ea] bg-white/90 p-4 transition hover:bg-white">
+          <Link
+            href="/dashboard/dorm-attendance"
+            className="rounded-2xl border border-[#d8e7ea] bg-white/90 p-4 transition hover:bg-white"
+          >
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#7a8f9b]">Night check</span>
               <span className="material-symbols-outlined text-[#0b7a68]">nightlight</span>
@@ -108,7 +121,10 @@ function DormMasterDashboard() {
             <p className="mt-1 text-xs text-[#6f8794]">Track student presence and absences nightly.</p>
           </Link>
 
-          <Link href="/dashboard/health" className="rounded-2xl border border-[#d8e7ea] bg-white/90 p-4 transition hover:bg-white">
+          <Link
+            href="/dashboard/health"
+            className="rounded-2xl border border-[#d8e7ea] bg-white/90 p-4 transition hover:bg-white"
+          >
             <div className="flex items-center justify-between">
               <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#7a8f9b]">Welfare</span>
               <span className="material-symbols-outlined text-[#b86e00]">medical_services</span>
@@ -128,9 +144,7 @@ export default function DashboardRouter() {
   const [loadingTimedOut, setLoadingTimedOut] = useState(false);
 
   const requiresSetup =
-    !!user &&
-    user.role !== "super_admin" &&
-    (!school || !school.name || school.name === "My School");
+    !!user && user.role !== "super_admin" && (!school || !school.name || school.name === "My School");
 
   useEffect(() => {
     if (!authInitialized || !requiresSetup) return;
@@ -197,12 +211,10 @@ export default function DashboardRouter() {
       return <SecretaryDashboard />;
     case "dorm_master":
       return <DormMasterDashboard />;
+    case "marketer":
+      return <MarketerDashboard />;
     default:
-      logger.warn(
-        "[DashboardRouter] Unknown role:",
-        role,
-        "- defaulting to TeacherDashboard",
-      );
+      logger.warn("[DashboardRouter] Unknown role:", role, "- defaulting to TeacherDashboard");
       return <TeacherDashboard />;
   }
 }

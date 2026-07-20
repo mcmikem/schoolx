@@ -13,20 +13,8 @@ import { isSupabaseConfigured } from "@/lib/supabase";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type SubscriptionPlan =
-  | "starter"
-  | "growth"
-  | "enterprise"
-  | "lifetime"
-  | "free_trial";
-type SubscriptionStatus =
-  | "active"
-  | "trial"
-  | "expired"
-  | "past_due"
-  | "canceled"
-  | "unpaid"
-  | "suspended";
+type SubscriptionPlan = "starter" | "growth" | "enterprise" | "lifetime" | "free_trial";
+type SubscriptionStatus = "active" | "trial" | "expired" | "past_due" | "canceled" | "unpaid" | "suspended";
 type FeatureStage = "core" | "academic" | "finance" | "full";
 
 interface School {
@@ -76,7 +64,7 @@ interface PlatformStats {
   newThisMonth: number;
 }
 
-type Tab = "overview" | "schools" | "users" | "register" | "modules" | "settings";
+type Tab = "overview" | "schools" | "users" | "register" | "modules" | "marketers" | "settings";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -104,10 +92,7 @@ const PLAN_PRICES: Record<string, string> = {
   free_trial: "Free",
 };
 
-const STATUS_STYLES: Record<
-  string,
-  { bg: string; text: string; label: string }
-> = {
+const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
   active: { bg: "#ccfbf1", text: "#0d9488", label: "Active" },
   trial: { bg: "#dbeafe", text: "#1d4ed8", label: "Trial" },
   expired: { bg: "#fee2e2", text: "#dc2626", label: "Expired" },
@@ -136,6 +121,7 @@ const ROLE_COLORS: Record<string, string> = {
   dorm_master: "#0891b2",
   parent: "#f59e0b",
   student: "#64748b",
+  marketer: "#ec4899",
 };
 
 const ALL_ROLES = [
@@ -148,6 +134,7 @@ const ALL_ROLES = [
   "dorm_master",
   "parent",
   "student",
+  "marketer",
 ];
 
 // ─── API helper ───────────────────────────────────────────────────────────────
@@ -175,29 +162,19 @@ async function postAdminAction(payload: Record<string, unknown>): Promise<Respon
   }
 }
 
-async function adminAction(
-  action: string,
-  params: Record<string, unknown>,
-): Promise<void> {
+async function adminAction(action: string, params: Record<string, unknown>): Promise<void> {
   const res = await postAdminAction({ action, ...params });
   const data = await parseApiResponse(res);
   if (!res.ok || !data.success) {
-    throw new Error(
-      typeof data.error === "string" ? data.error : "Operation failed",
-    );
+    throw new Error(typeof data.error === "string" ? data.error : "Operation failed");
   }
 }
 
-async function adminActionResult<T>(
-  action: string,
-  params: Record<string, unknown>,
-): Promise<T> {
+async function adminActionResult<T>(action: string, params: Record<string, unknown>): Promise<T> {
   const res = await postAdminAction({ action, ...params });
   const data = await parseApiResponse(res);
   if (!res.ok || !data.success) {
-    throw new Error(
-      typeof data.error === "string" ? data.error : "Operation failed",
-    );
+    throw new Error(typeof data.error === "string" ? data.error : "Operation failed");
   }
   return data as T;
 }
@@ -211,9 +188,7 @@ async function parseApiResponse(response: Response): Promise<Record<string, any>
     } catch {
       return {
         success: false,
-        error: response.ok
-          ? "Unexpected response from server"
-          : "Server returned invalid JSON",
+        error: response.ok ? "Unexpected response from server" : "Server returned invalid JSON",
       };
     }
   }
@@ -221,9 +196,7 @@ async function parseApiResponse(response: Response): Promise<Record<string, any>
   const text = await response.text().catch(() => "");
   const trimmed = text.trim();
   const isHtml = /^<!doctype html|^<html/i.test(trimmed);
-  const fallbackMessage = response.ok
-    ? "Unexpected response from server"
-    : "Server returned an unexpected error page";
+  const fallbackMessage = response.ok ? "Unexpected response from server" : "Server returned an unexpected error page";
 
   return {
     success: false,
@@ -251,13 +224,7 @@ function timeSince(d: string) {
 
 // ─── UI Atoms ─────────────────────────────────────────────────────────────────
 
-function Toggle({
-  value,
-  onChange,
-}: {
-  value: boolean;
-  onChange: (v: boolean) => void;
-}) {
+function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
   return (
     <button
       type="button"
@@ -317,21 +284,14 @@ function StatCard({
       <div className="stat-inner">
         <div className="stat-meta">
           <div className="stat-label">{label}</div>
-          <div
-            className="stat-icon-box"
-            style={{ background: `${color}18`, color }}
-          >
+          <div className="stat-icon-box" style={{ background: `${color}18`, color }}>
             <MaterialIcon icon={icon} style={{ fontSize: 20 }} />
           </div>
         </div>
         <div className="stat-val" style={{ color }}>
           {value}
         </div>
-        {sub && (
-          <div className="text-[12px] text-[var(--t3)] mt-1.5 font-medium">
-            {sub}
-          </div>
-        )}
+        {sub && <div className="text-[12px] text-[var(--t3)] mt-1.5 font-medium">{sub}</div>}
       </div>
     </div>
   );
@@ -361,17 +321,10 @@ function ConfirmDialog({
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
-      <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-        onClick={onCancel}
-      />
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onCancel} />
       <div className="relative bg-[var(--surface)] rounded-2xl shadow-2xl border border-[var(--border)] w-full max-w-sm max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto p-6">
-        <h3 className="font-['Sora'] text-[15px] font-bold text-[var(--t1)] mb-2">
-          {title}
-        </h3>
-        <p className="text-[13px] text-[var(--t2)] mb-5 leading-relaxed">
-          {body}
-        </p>
+        <h3 className="font-['Sora'] text-[15px] font-bold text-[var(--t1)] mb-2">{title}</h3>
+        <p className="text-[13px] text-[var(--t2)] mb-5 leading-relaxed">{body}</p>
         <div className="flex gap-2 justify-end">
           <button
             onClick={onCancel}
@@ -414,9 +367,7 @@ function SchoolDetailSheet({
   const [color, setColor] = useState(school.primary_color || "#001F3F");
   const [plan, setPlan] = useState(school.subscription_plan);
   const [status, setStatus] = useState(school.subscription_status);
-  const [stage, setStage] = useState<FeatureStage>(
-    school.feature_stage || "full",
-  );
+  const [stage, setStage] = useState<FeatureStage>(school.feature_stage || "full");
   const [trialDays, setTrialDays] = useState(14);
   const [saving, setSaving] = useState(false);
   const [showSuspendConfirm, setShowSuspendConfirm] = useState(false);
@@ -424,17 +375,11 @@ function SchoolDetailSheet({
   // Customization
   const [address, setAddress] = useState(school.address || "");
   const [motto, setMotto] = useState(school.motto || "");
-  const [principalName, setPrincipalName] = useState(
-    school.principal_name || "",
-  );
+  const [principalName, setPrincipalName] = useState(school.principal_name || "");
   const [reportHeader, setReportHeader] = useState(school.report_header || "");
   const [reportFooter, setReportFooter] = useState(school.report_footer || "");
-  const [idCardStyle, setIdCardStyle] = useState(
-    school.id_card_style || "standard",
-  );
-  const [activeSection, setActiveSection] = useState<
-    "details" | "subscription" | "customize"
-  >("details");
+  const [idCardStyle, setIdCardStyle] = useState(school.id_card_style || "standard");
+  const [activeSection, setActiveSection] = useState<"details" | "subscription" | "customize">("details");
 
   const requireLiveSupabase = () => {
     if (isSupabaseConfigured) return true;
@@ -611,10 +556,7 @@ function SchoolDetailSheet({
       />
 
       <div className="fixed inset-0 z-40 flex items-center justify-end p-4">
-        <div
-          className="absolute inset-0 bg-black/30 backdrop-blur-sm"
-          onClick={onClose}
-        />
+        <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onClose} />
         <div className="relative bg-[var(--surface)] rounded-2xl shadow-2xl border border-[var(--border)] w-full max-w-md h-full max-h-[90vh] overflow-y-auto flex flex-col">
           {/* Header */}
           <div className="flex items-center gap-3 px-5 py-4 border-b border-[var(--border)] sticky top-0 bg-[var(--surface)] z-10">
@@ -623,19 +565,13 @@ function SchoolDetailSheet({
               style={{ background: color }}
             >
               {school.logo_url ? (
-                <Image 
-                  src={school.logo_url}
-                  alt={school.name}
-                  className="w-full h-full object-cover"
-                />
+                <Image src={school.logo_url} alt={school.name} className="w-full h-full object-cover" />
               ) : (
                 name.slice(0, 2).toUpperCase()
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="font-['Sora'] text-[13px] font-bold text-[var(--t1)] truncate">
-                {name || school.name}
-              </div>
+              <div className="font-['Sora'] text-[13px] font-bold text-[var(--t1)] truncate">{name || school.name}</div>
               <div className="text-[10px] text-[var(--t3)]">
                 {school.school_code} · {fmtDate(school.created_at)}
               </div>
@@ -698,9 +634,7 @@ function SchoolDetailSheet({
                             onChange={(e) => setColor(e.target.value)}
                             className="w-9 h-9 rounded-lg border border-[var(--border)] cursor-pointer flex-shrink-0"
                           />
-                          <span className="text-[11px] text-[var(--t3)] font-mono">
-                            {color}
-                          </span>
+                          <span className="text-[11px] text-[var(--t3)] font-mono">{color}</span>
                         </div>
                       </div>
                       <div>
@@ -740,16 +674,11 @@ function SchoolDetailSheet({
                     },
                     { label: "Code", value: school.school_code },
                   ].map((row) => (
-                    <div
-                      key={row.label}
-                      className="rounded-xl bg-[var(--bg)] px-3 py-2.5"
-                    >
+                    <div key={row.label} className="rounded-xl bg-[var(--bg)] px-3 py-2.5">
                       <div className="text-[10px] text-[var(--t3)] font-semibold uppercase tracking-wide mb-0.5">
                         {row.label}
                       </div>
-                      <div className="text-[12px] font-semibold text-[var(--t1)] truncate">
-                        {row.value}
-                      </div>
+                      <div className="text-[12px] font-semibold text-[var(--t1)] truncate">{row.value}</div>
                     </div>
                   ))}
                 </div>
@@ -764,25 +693,15 @@ function SchoolDetailSheet({
                     Subscription Plan
                   </label>
                   <div className="grid grid-cols-3 gap-2">
-                    {(
-                      [
-                        "starter",
-                        "growth",
-                        "enterprise",
-                        "lifetime",
-                        "free_trial",
-                      ] as SubscriptionPlan[]
-                    ).map((p) => (
+                    {(["starter", "growth", "enterprise", "lifetime", "free_trial"] as SubscriptionPlan[]).map((p) => (
                       <button
                         key={p}
                         type="button"
                         onClick={() => setPlan(p)}
                         className="rounded-xl border-2 px-2 py-2 text-center transition-all"
                         style={{
-                          borderColor:
-                            plan === p ? PLAN_COLORS[p] : "var(--border)",
-                          background:
-                            plan === p ? `${PLAN_COLORS[p]}12` : "var(--bg)",
+                          borderColor: plan === p ? PLAN_COLORS[p] : "var(--border)",
+                          background: plan === p ? `${PLAN_COLORS[p]}12` : "var(--bg)",
                         }}
                       >
                         <div
@@ -793,9 +712,7 @@ function SchoolDetailSheet({
                         >
                           {PLAN_LABELS[p]}
                         </div>
-                        <div className="text-[9px] text-[var(--t3)] mt-0.5">
-                          {PLAN_PRICES[p]}
-                        </div>
+                        <div className="text-[9px] text-[var(--t3)] mt-0.5">{PLAN_PRICES[p]}</div>
                       </button>
                     ))}
                   </div>
@@ -805,34 +722,26 @@ function SchoolDetailSheet({
                     Subscription Status
                   </label>
                   <div className="grid grid-cols-3 gap-2">
-                    {(
-                      [
-                        "active",
-                        "trial",
-                        "expired",
-                        "suspended",
-                        "past_due",
-                        "canceled",
-                      ] as SubscriptionStatus[]
-                    ).map((st) => {
-                      const sty = STATUS_STYLES[st];
-                      return (
-                        <button
-                          key={st}
-                          type="button"
-                          onClick={() => setStatus(st)}
-                          className="rounded-xl border-2 px-2 py-2 text-center text-[11px] font-bold transition-all"
-                          style={{
-                            borderColor:
-                              status === st ? sty.text : "var(--border)",
-                            background: status === st ? sty.bg : "var(--bg)",
-                            color: status === st ? sty.text : "var(--t3)",
-                          }}
-                        >
-                          {sty.label}
-                        </button>
-                      );
-                    })}
+                    {(["active", "trial", "expired", "suspended", "past_due", "canceled"] as SubscriptionStatus[]).map(
+                      (st) => {
+                        const sty = STATUS_STYLES[st];
+                        return (
+                          <button
+                            key={st}
+                            type="button"
+                            onClick={() => setStatus(st)}
+                            className="rounded-xl border-2 px-2 py-2 text-center text-[11px] font-bold transition-all"
+                            style={{
+                              borderColor: status === st ? sty.text : "var(--border)",
+                              background: status === st ? sty.bg : "var(--bg)",
+                              color: status === st ? sty.text : "var(--t3)",
+                            }}
+                          >
+                            {sty.label}
+                          </button>
+                        );
+                      },
+                    )}
                   </div>
                 </div>
                 <div>
@@ -840,19 +749,15 @@ function SchoolDetailSheet({
                     Feature Access Level
                   </label>
                   <div className="grid grid-cols-2 gap-2">
-                    {(
-                      ["core", "academic", "finance", "full"] as FeatureStage[]
-                    ).map((fs) => (
+                    {(["core", "academic", "finance", "full"] as FeatureStage[]).map((fs) => (
                       <button
                         key={fs}
                         type="button"
                         onClick={() => setStage(fs)}
                         className="rounded-xl border-2 px-3 py-2 text-[11px] font-bold transition-all text-left"
                         style={{
-                          borderColor:
-                            stage === fs ? "var(--primary)" : "var(--border)",
-                          background:
-                            stage === fs ? "var(--primary-soft)" : "var(--bg)",
+                          borderColor: stage === fs ? "var(--primary)" : "var(--border)",
+                          background: stage === fs ? "var(--primary-soft)" : "var(--bg)",
                           color: stage === fs ? "var(--primary)" : "var(--t3)",
                         }}
                       >
@@ -862,9 +767,7 @@ function SchoolDetailSheet({
                   </div>
                 </div>
                 <div className="rounded-xl bg-[#fffbeb] border border-[#fef3c7] p-4">
-                  <div className="text-[12px] font-bold text-[#b45309] mb-3">
-                    Extend / Activate Trial
-                  </div>
+                  <div className="text-[12px] font-bold text-[#b45309] mb-3">Extend / Activate Trial</div>
                   <div className="flex gap-2 items-center">
                     <select
                       value={trialDays}
@@ -896,12 +799,9 @@ function SchoolDetailSheet({
                   </div>
                 </div>
                 <div className="rounded-xl border border-red-200 bg-red-50 p-4 space-y-2">
-                  <div className="text-[12px] font-bold text-red-700">
-                    Danger Zone
-                  </div>
+                  <div className="text-[12px] font-bold text-red-700">Danger Zone</div>
                   <p className="text-[11px] text-red-600">
-                    Suspending blocks all access. Data is preserved and can be
-                    restored.
+                    Suspending blocks all access. Data is preserved and can be restored.
                   </p>
                   <button
                     type="button"
@@ -912,8 +812,7 @@ function SchoolDetailSheet({
                     Suspend School
                   </button>
                   <p className="text-[11px] text-red-600 pt-1">
-                    Permanent delete removes ALL data — students, fees, grades,
-                    staff. Cannot be undone.
+                    Permanent delete removes ALL data — students, fees, grades, staff. Cannot be undone.
                   </p>
                   <button
                     type="button"
@@ -932,9 +831,8 @@ function SchoolDetailSheet({
               <div className="space-y-4">
                 <div className="p-3 rounded-xl bg-[var(--primary-soft,#e0f2f1)] border border-[var(--primary)]/20">
                   <p className="text-[11px] text-[var(--t2)] leading-relaxed">
-                    Customization fields appear on <strong>Report Cards</strong>{" "}
-                    and <strong>Student ID Cards</strong> for this school. These
-                    override the defaults.
+                    Customization fields appear on <strong>Report Cards</strong> and <strong>Student ID Cards</strong>{" "}
+                    for this school. These override the defaults.
                   </p>
                 </div>
 
@@ -987,9 +885,7 @@ function SchoolDetailSheet({
                     <div>
                       <label className="block text-[10px] text-[var(--t3)] mb-1 font-semibold uppercase tracking-wide">
                         Report Header Text
-                        <span className="ml-1 normal-case text-[var(--t4)]">
-                          (appears at top of report card)
-                        </span>
+                        <span className="ml-1 normal-case text-[var(--t4)]">(appears at top of report card)</span>
                       </label>
                       <textarea
                         className={`${ic} resize-none`}
@@ -1002,9 +898,7 @@ function SchoolDetailSheet({
                     <div>
                       <label className="block text-[10px] text-[var(--t3)] mb-1 font-semibold uppercase tracking-wide">
                         Report Footer Text
-                        <span className="ml-1 normal-case text-[var(--t4)]">
-                          (appears at bottom of report card)
-                        </span>
+                        <span className="ml-1 normal-case text-[var(--t4)]">(appears at bottom of report card)</span>
                       </label>
                       <textarea
                         className={`${ic} resize-none`}
@@ -1045,31 +939,19 @@ function SchoolDetailSheet({
                         onClick={() => setIdCardStyle(style.value)}
                         className="rounded-xl border-2 px-3 py-3 text-center transition-all"
                         style={{
-                          borderColor:
-                            idCardStyle === style.value
-                              ? "var(--primary)"
-                              : "var(--border)",
-                          background:
-                            idCardStyle === style.value
-                              ? "var(--primary-soft,#e0f2f1)"
-                              : "var(--bg)",
+                          borderColor: idCardStyle === style.value ? "var(--primary)" : "var(--border)",
+                          background: idCardStyle === style.value ? "var(--primary-soft,#e0f2f1)" : "var(--bg)",
                         }}
                       >
                         <div
                           className="text-[12px] font-bold mb-1"
                           style={{
-                            color:
-                              idCardStyle === style.value
-                                ? "var(--primary)"
-                                : "var(--t1)",
+                            color: idCardStyle === style.value ? "var(--primary)" : "var(--t1)",
                           }}
                         >
                           {style.label}
                         </div>
-                        <div
-                          className="text-[10px]"
-                          style={{ color: "var(--t3)" }}
-                        >
+                        <div className="text-[10px]" style={{ color: "var(--t3)" }}>
                           {style.desc}
                         </div>
                       </button>
@@ -1082,20 +964,13 @@ function SchoolDetailSheet({
                   <div className="px-3 py-2 bg-[var(--bg)] text-[10px] font-bold text-[var(--t3)] uppercase tracking-wide border-b border-[var(--border)]">
                     Preview — Report Card Header
                   </div>
-                  <div
-                    className="p-4 text-center"
-                    style={{ borderTop: `3px solid ${color}` }}
-                  >
+                  <div className="p-4 text-center" style={{ borderTop: `3px solid ${color}` }}>
                     <div
                       className="w-10 h-10 rounded-full mx-auto mb-2 flex items-center justify-center text-white text-xs font-bold overflow-hidden"
                       style={{ background: color }}
                     >
                       {school.logo_url ? (
-                        <Image 
-                          src={school.logo_url}
-                          alt=""
-                          className="w-full h-full object-cover"
-                        />
+                        <Image src={school.logo_url} alt="" className="w-full h-full object-cover" />
                       ) : (
                         name.slice(0, 2).toUpperCase()
                       )}
@@ -1103,16 +978,8 @@ function SchoolDetailSheet({
                     <div className="text-[13px] font-bold text-[var(--t1)] whitespace-pre-line">
                       {reportHeader || name}
                     </div>
-                    {motto && (
-                      <div className="text-[10px] text-[var(--t3)] italic mt-1">
-                        "{motto}"
-                      </div>
-                    )}
-                    {address && (
-                      <div className="text-[10px] text-[var(--t4)] mt-0.5">
-                        {address}
-                      </div>
-                    )}
+                    {motto && <div className="text-[10px] text-[var(--t3)] italic mt-1">"{motto}"</div>}
+                    {address && <div className="text-[10px] text-[var(--t4)] mt-0.5">{address}</div>}
                   </div>
                 </div>
               </div>
@@ -1154,8 +1021,7 @@ function RegisterSchoolForm({ onDone }: { onDone: () => void }) {
     trial_days: "30",
   });
 
-  const set = (k: string, v: string) =>
-    setForm((prev) => ({ ...prev, [k]: v }));
+  const set = (k: string, v: string) => setForm((prev) => ({ ...prev, [k]: v }));
 
   const requireLiveSupabase = () => {
     if (isSupabaseConfigured) return true;
@@ -1165,11 +1031,7 @@ function RegisterSchoolForm({ onDone }: { onDone: () => void }) {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (
-      !form.name.trim() ||
-      !form.district.trim() ||
-      !form.school_code.trim()
-    ) {
+    if (!form.name.trim() || !form.district.trim() || !form.school_code.trim()) {
       toast.error("Name, code, and district are required");
       return;
     }
@@ -1287,13 +1149,9 @@ function RegisterSchoolForm({ onDone }: { onDone: () => void }) {
             onChange={(e) => set("subscription_plan", e.target.value)}
             className="w-full rounded-xl bg-[var(--bg)] border border-[var(--border)] px-4 py-2.5 text-[13px] text-[var(--t1)] outline-none focus:border-[var(--primary)]"
           >
-            <option value="starter">
-              Starter \u2014 UGX 2,000/student/term
-            </option>
+            <option value="starter">Starter \u2014 UGX 2,000/student/term</option>
             <option value="growth">Growth \u2014 UGX 3,500/student/term</option>
-            <option value="enterprise">
-              Enterprise \u2014 UGX 5,000/student/term
-            </option>
+            <option value="enterprise">Enterprise \u2014 UGX 5,000/student/term</option>
             <option value="lifetime">Lifetime License</option>
             <option value="free_trial">Free Trial</option>
           </select>
@@ -1338,9 +1196,7 @@ function RegisterSchoolForm({ onDone }: { onDone: () => void }) {
             onChange={(e) => set("primary_color", e.target.value)}
             className="w-10 h-10 rounded-lg border border-[var(--border)] cursor-pointer"
           />
-          <span className="text-[12px] text-[var(--t3)] font-mono">
-            {form.primary_color}
-          </span>
+          <span className="text-[12px] text-[var(--t3)] font-mono">{form.primary_color}</span>
         </div>
       </div>
       <div className="pt-2">
@@ -1436,28 +1292,20 @@ function UserActions({
   };
 
   if (u.role === "super_admin") {
-    return (
-      <span className="text-[10px] text-[var(--t4)] italic">Protected</span>
-    );
+    return <span className="text-[10px] text-[var(--t4)] italic">Protected</span>;
   }
 
   return (
     <>
       <ConfirmDialog
         open={confirm.open}
-        title={
-          confirm.type === "delete"
-            ? `Delete ${u.full_name}?`
-            : `Deactivate ${u.full_name}?`
-        }
+        title={confirm.type === "delete" ? `Delete ${u.full_name}?` : `Deactivate ${u.full_name}?`}
         body={
           confirm.type === "delete"
             ? "This permanently deletes the user and their login. Cannot be undone."
             : "This user will lose the ability to sign in. You can reactivate them later."
         }
-        confirmLabel={
-          confirm.type === "delete" ? "Delete Permanently" : "Deactivate"
-        }
+        confirmLabel={confirm.type === "delete" ? "Delete Permanently" : "Deactivate"}
         danger
         loading={busy}
         onConfirm={() => {
@@ -1471,14 +1319,9 @@ function UserActions({
       {/* Password Reset Modal */}
       {showResetPwd && (
         <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
-          <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            onClick={() => setShowResetPwd(false)}
-          />
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowResetPwd(false)} />
           <div className="relative bg-[var(--surface)] rounded-2xl shadow-2xl border border-[var(--border)] w-full max-w-xs max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto p-6">
-            <h3 className="font-['Sora'] text-[14px] font-bold text-[var(--t1)] mb-1">
-              Reset Password
-            </h3>
+            <h3 className="font-['Sora'] text-[14px] font-bold text-[var(--t1)] mb-1">Reset Password</h3>
             <p className="text-[12px] text-[var(--t3)] mb-4">{u.full_name}</p>
             <form onSubmit={doResetPassword} className="space-y-3">
               <input
@@ -1525,9 +1368,7 @@ function UserActions({
           <button
             type="button"
             disabled={busy}
-            onClick={() =>
-              doUpdate({ is_active: true }, `${u.full_name} reactivated`)
-            }
+            onClick={() => doUpdate({ is_active: true }, `${u.full_name} reactivated`)}
             className="px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-[#ccfbf1] text-[#0d9488] hover:opacity-80 disabled:opacity-40"
           >
             Reactivate
@@ -1554,10 +1395,7 @@ function UserActions({
                   type="button"
                   onClick={() => {
                     setShowRoleMenu(false);
-                    doUpdate(
-                      { role: r },
-                      `Role changed to ${r.replace(/_/g, " ")}`,
-                    );
+                    doUpdate({ role: r }, `Role changed to ${r.replace(/_/g, " ")}`);
                   }}
                   className={`w-full text-left px-3 py-1.5 text-[11px] font-semibold hover:bg-[var(--bg)] ${u.role === r ? "text-[var(--primary)]" : "text-[var(--t1)]"}`}
                 >
@@ -1626,9 +1464,7 @@ export default function SuperAdminPage() {
   const [userSearch, setUserSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
-  const [planBreakdown, setPlanBreakdown] = useState<
-    { plan: string; count: number }[]
-  >([]);
+  const [planBreakdown, setPlanBreakdown] = useState<{ plan: string; count: number }[]>([]);
   const [settings, setSettings] = useState({
     demo_mode: false,
     sms_enabled: true,
@@ -1649,8 +1485,7 @@ export default function SuperAdminPage() {
   const [confirmLoading, setConfirmLoading] = useState(false);
 
   useEffect(() => {
-    if (authInitialized && user && user.role !== "super_admin")
-      router.replace("/dashboard");
+    if (authInitialized && user && user.role !== "super_admin") router.replace("/dashboard");
     if (authInitialized && !user) router.replace("/login");
   }, [authInitialized, user, router]);
 
@@ -1659,10 +1494,7 @@ export default function SuperAdminPage() {
       const saved = localStorage.getItem("platform_settings");
       if (saved) setSettings((prev) => ({ ...prev, ...JSON.parse(saved) }));
     } catch (error) {
-      logger.error(
-        "Failed to load platform settings from localStorage:",
-        error,
-      );
+      logger.error("Failed to load platform settings from localStorage:", error);
     }
   }, []);
 
@@ -1672,57 +1504,36 @@ export default function SuperAdminPage() {
       const res = await fetch("/api/super-admin/data");
       const body = await parseApiResponse(res);
       if (!res.ok || !body.success) {
-        throw new Error(
-          typeof body.error === "string" ? body.error : `HTTP ${res.status}`,
-        );
+        throw new Error(typeof body.error === "string" ? body.error : `HTTP ${res.status}`);
       }
 
-      const schoolList: School[] = Array.isArray(body.schools)
-        ? (body.schools as School[])
-        : [];
-      const userList: UserRow[] = Array.isArray(body.users)
-        ? (body.users as UserRow[])
-        : [];
+      const schoolList: School[] = Array.isArray(body.schools) ? (body.schools as School[]) : [];
+      const userList: UserRow[] = Array.isArray(body.users) ? (body.users as UserRow[]) : [];
       const schoolNameMap: Record<string, string> = {};
       schoolList.forEach((s) => {
         schoolNameMap[s.id] = s.name;
       });
       const enrichedUsers = userList.map((u) => ({
         ...u,
-        school_name: u.school_id
-          ? schoolNameMap[u.school_id] || "Unknown"
-          : "\u2014",
+        school_name: u.school_id ? schoolNameMap[u.school_id] || "Unknown" : "\u2014",
       }));
 
       const now = new Date();
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      const active = schoolList.filter(
-        (s) => s.subscription_status === "active",
-      ).length;
-      const trial = schoolList.filter(
-        (s) => s.subscription_status === "trial",
-      ).length;
+      const active = schoolList.filter((s) => s.subscription_status === "active").length;
+      const trial = schoolList.filter((s) => s.subscription_status === "trial").length;
       const expired = schoolList.filter((s) =>
-        ["expired", "canceled", "suspended", "past_due", "unpaid"].includes(
-          s.subscription_status,
-        ),
+        ["expired", "canceled", "suspended", "past_due", "unpaid"].includes(s.subscription_status),
       ).length;
-      const newMonth = schoolList.filter(
-        (s) => new Date(s.created_at) >= monthStart,
-      ).length;
-      const totalStudents = schoolList.reduce(
-        (sum, s) => sum + (Number(s.student_count) || 0),
-        0,
-      );
+      const newMonth = schoolList.filter((s) => new Date(s.created_at) >= monthStart).length;
+      const totalStudents = schoolList.reduce((sum, s) => sum + (Number(s.student_count) || 0), 0);
 
       const planMap: Record<string, number> = {};
       schoolList.forEach((s) => {
         const p = s.subscription_plan || "free_trial";
         planMap[p] = (planMap[p] || 0) + 1;
       });
-      setPlanBreakdown(
-        Object.entries(planMap).map(([plan, count]) => ({ plan, count })),
-      );
+      setPlanBreakdown(Object.entries(planMap).map(([plan, count]) => ({ plan, count })));
       setSchools(schoolList);
       setUsers(enrichedUsers);
       setStats({
@@ -1735,13 +1546,9 @@ export default function SuperAdminPage() {
         newThisMonth: newMonth,
       });
     } catch (e: any) {
-      const message =
-        typeof e?.message === "string" ? e.message : "Unknown load error";
+      const message = typeof e?.message === "string" ? e.message : "Unknown load error";
       toast.error("Failed to load data. Check your connection.");
-      if (
-        message.includes("Unexpected response from server") ||
-        message.includes("unexpected error page")
-      ) {
+      if (message.includes("Unexpected response from server") || message.includes("unexpected error page")) {
         logger.warn("[SuperAdmin] loadData degraded mode:", message);
       } else {
         logger.error("[SuperAdmin] loadData error:", e);
@@ -1762,10 +1569,8 @@ export default function SuperAdminPage() {
       s.name.toLowerCase().includes(q) ||
       s.district.toLowerCase().includes(q) ||
       (s.school_code || "").toLowerCase().includes(q);
-    const matchStatus =
-      statusFilter === "all" || s.subscription_status === statusFilter;
-    const matchPlan =
-      planFilter === "all" || s.subscription_plan === planFilter;
+    const matchStatus = statusFilter === "all" || s.subscription_status === statusFilter;
+    const matchPlan = planFilter === "all" || s.subscription_plan === planFilter;
     return matchSearch && matchStatus && matchPlan;
   });
 
@@ -1781,13 +1586,8 @@ export default function SuperAdminPage() {
     );
   });
 
-  const doConfirm = (
-    title: string,
-    body: string,
-    label: string,
-    action: () => Promise<void>,
-    danger = false,
-  ) => setConfirm({ open: true, title, body, label, action, danger });
+  const doConfirm = (title: string, body: string, label: string, action: () => Promise<void>, danger = false) =>
+    setConfirm({ open: true, title, body, label, action, danger });
 
   const runConfirm = async () => {
     setConfirmLoading(true);
@@ -1810,11 +1610,7 @@ export default function SuperAdminPage() {
           fields: { subscription_status: "suspended" },
         });
         setSchools((prev) =>
-          prev.map((x) =>
-            x.id === s.id
-              ? { ...x, subscription_status: "suspended" as SubscriptionStatus }
-              : x,
-          ),
+          prev.map((x) => (x.id === s.id ? { ...x, subscription_status: "suspended" as SubscriptionStatus } : x)),
         );
         toast.success(`${s.name} suspended`);
       },
@@ -1828,11 +1624,7 @@ export default function SuperAdminPage() {
         fields: { subscription_status: "active" },
       });
       setSchools((prev) =>
-        prev.map((x) =>
-          x.id === s.id
-            ? { ...x, subscription_status: "active" as SubscriptionStatus }
-            : x,
-        ),
+        prev.map((x) => (x.id === s.id ? { ...x, subscription_status: "active" as SubscriptionStatus } : x)),
       );
       toast.success("School reactivated");
     } catch (e: any) {
@@ -1861,13 +1653,10 @@ export default function SuperAdminPage() {
   }
   if (user?.role !== "super_admin") return null;
 
-  const alerts: { color: string; icon: string; title: string; sub: string }[] =
-    [];
+  const alerts: { color: string; icon: string; title: string; sub: string }[] = [];
   schools.forEach((s) => {
     if (s.subscription_status === "trial" && s.trial_ends_at) {
-      const daysLeft = Math.ceil(
-        (new Date(s.trial_ends_at).getTime() - Date.now()) / 86400000,
-      );
+      const daysLeft = Math.ceil((new Date(s.trial_ends_at).getTime() - Date.now()) / 86400000);
       if (daysLeft <= 5 && daysLeft >= 0)
         alerts.push({
           color: "#b45309",
@@ -1894,8 +1683,7 @@ export default function SuperAdminPage() {
 
   const maxPlan = Math.max(...planBreakdown.map((p) => p.count), 1);
   const hr = new Date().getHours();
-  const greeting =
-    hr < 12 ? "Good morning" : hr < 17 ? "Good afternoon" : "Good evening";
+  const greeting = hr < 12 ? "Good morning" : hr < 17 ? "Good afternoon" : "Good evening";
   const firstName = user.full_name?.trim().split(" ")[0] || "Admin";
 
   const TABS: { id: Tab; label: string; icon: string }[] = [
@@ -1907,6 +1695,7 @@ export default function SuperAdminPage() {
       icon: "manage_accounts",
     },
     { id: "register", label: "Register School", icon: "add_business" },
+    { id: "marketers", label: "Marketers", icon: "campaign" },
     { id: "modules", label: "Modules", icon: "extension" },
     { id: "settings", label: "Settings", icon: "tune" },
   ];
@@ -1929,9 +1718,7 @@ export default function SuperAdminPage() {
           school={selectedSchool}
           onClose={() => setSelectedSchool(null)}
           onUpdated={(updated) => {
-            setSchools((prev) =>
-              prev.map((s) => (s.id === updated.id ? updated : s)),
-            );
+            setSchools((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
             setSelectedSchool(null);
           }}
           onDeleted={(id) => {
@@ -1948,10 +1735,7 @@ export default function SuperAdminPage() {
               className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-md border border-[var(--border)]"
               style={{ background: "var(--navy)" }}
             >
-              <MaterialIcon
-                icon="shield"
-                style={{ fontSize: 28, color: "white" }}
-              />
+              <MaterialIcon icon="shield" style={{ fontSize: 28, color: "white" }} />
             </div>
             <div className="flex-1 min-w-0">
               <h1 className="font-['Sora'] text-xl font-bold text-[var(--t1)] leading-tight">
@@ -1973,11 +1757,7 @@ export default function SuperAdminPage() {
               title="Refresh data"
               className="p-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--bg)] text-[var(--t3)] transition-colors disabled:opacity-40"
             >
-              <MaterialIcon
-                icon="refresh"
-                style={{ fontSize: 18 }}
-                className={dataLoading ? "animate-spin" : ""}
-              />
+              <MaterialIcon icon="refresh" style={{ fontSize: 18 }} className={dataLoading ? "animate-spin" : ""} />
             </button>
             <button
               onClick={handleSignOut}
@@ -2014,20 +1794,14 @@ export default function SuperAdminPage() {
                 />
                 <StatCard
                   label="Total Students"
-                  value={
-                    dataLoading
-                      ? "\u2026"
-                      : stats.totalStudents.toLocaleString()
-                  }
+                  value={dataLoading ? "\u2026" : stats.totalStudents.toLocaleString()}
                   sub="Across all schools"
                   icon="groups"
                   color="#0d9488"
                 />
                 <StatCard
                   label="System Users"
-                  value={
-                    dataLoading ? "\u2026" : stats.totalUsers.toLocaleString()
-                  }
+                  value={dataLoading ? "\u2026" : stats.totalUsers.toLocaleString()}
                   sub="Staff + admin accounts"
                   icon="manage_accounts"
                   color="#7c3aed"
@@ -2044,13 +1818,8 @@ export default function SuperAdminPage() {
               {alerts.length > 0 && (
                 <div className="rounded-2xl border border-[#fde68a] bg-[#fffbeb] p-4">
                   <div className="flex items-center gap-2 mb-3">
-                    <MaterialIcon
-                      icon="warning"
-                      style={{ fontSize: 16, color: "#b45309" }}
-                    />
-                    <span className="text-[12px] font-bold text-[#b45309]">
-                      Needs Attention ({alerts.length})
-                    </span>
+                    <MaterialIcon icon="warning" style={{ fontSize: 16, color: "#b45309" }} />
+                    <span className="text-[12px] font-bold text-[#b45309]">Needs Attention ({alerts.length})</span>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2">
                     {alerts.slice(0, 6).map((a, i) => (
@@ -2062,18 +1831,11 @@ export default function SuperAdminPage() {
                           className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
                           style={{ background: `${a.color}18`, color: a.color }}
                         >
-                          <MaterialIcon
-                            icon={a.icon}
-                            style={{ fontSize: 14 }}
-                          />
+                          <MaterialIcon icon={a.icon} style={{ fontSize: 14 }} />
                         </div>
                         <div className="min-w-0">
-                          <div className="text-[12px] font-semibold text-[var(--t1)] truncate">
-                            {a.title}
-                          </div>
-                          <div className="text-[10px] text-[var(--t3)] truncate">
-                            {a.sub}
-                          </div>
+                          <div className="text-[12px] font-semibold text-[var(--t1)] truncate">{a.title}</div>
+                          <div className="text-[10px] text-[var(--t3)] truncate">{a.sub}</div>
                         </div>
                       </div>
                     ))}
@@ -2084,27 +1846,18 @@ export default function SuperAdminPage() {
               <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
                 <div className="xl:col-span-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden">
                   <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
-                    <div className="font-['Sora'] text-[13px] font-bold text-[var(--t1)]">
-                      Recent Schools
-                    </div>
+                    <div className="font-['Sora'] text-[13px] font-bold text-[var(--t1)]">Recent Schools</div>
                     <button
                       onClick={() => setTab("schools")}
                       className="text-[11px] text-[var(--navy)] font-semibold hover:underline flex items-center gap-1"
                     >
-                      View all{" "}
-                      <MaterialIcon
-                        icon="arrow_forward"
-                        style={{ fontSize: 12 }}
-                      />
+                      View all <MaterialIcon icon="arrow_forward" style={{ fontSize: 12 }} />
                     </button>
                   </div>
                   <div className="divide-y divide-[var(--border)]">
                     {dataLoading
                       ? Array.from({ length: 5 }).map((_, i) => (
-                          <div
-                            key={i}
-                            className="flex items-center gap-3 px-5 py-3 animate-pulse"
-                          >
+                          <div key={i} className="flex items-center gap-3 px-5 py-3 animate-pulse">
                             <div className="w-8 h-8 rounded-xl bg-[var(--bg)] flex-shrink-0" />
                             <div className="flex-1 space-y-1.5">
                               <div className="h-3 w-36 bg-[var(--bg)] rounded" />
@@ -2126,11 +1879,7 @@ export default function SuperAdminPage() {
                               }}
                             >
                               {s.logo_url ? (
-                                <Image 
-                                  src={s.logo_url}
-                                  alt={s.name}
-                                  className="w-full h-full object-cover"
-                                />
+                                <Image src={s.logo_url} alt={s.name} className="w-full h-full object-cover" />
                               ) : (
                                 s.name.slice(0, 2).toUpperCase()
                               )}
@@ -2141,9 +1890,7 @@ export default function SuperAdminPage() {
                               </div>
                               <div className="text-[10px] text-[var(--t3)]">
                                 {s.district} \u00b7 {s.school_type}
-                                {s.student_count
-                                  ? ` \u00b7 ${s.student_count.toLocaleString()} students`
-                                  : ""}
+                                {s.student_count ? ` \u00b7 ${s.student_count.toLocaleString()} students` : ""}
                               </div>
                             </div>
                             <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -2159,13 +1906,9 @@ export default function SuperAdminPage() {
                 </div>
                 <div className="space-y-4">
                   <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
-                    <div className="font-['Sora'] text-[13px] font-bold text-[var(--t1)] mb-4">
-                      Subscription Mix
-                    </div>
+                    <div className="font-['Sora'] text-[13px] font-bold text-[var(--t1)] mb-4">Subscription Mix</div>
                     {!dataLoading && planBreakdown.length === 0 && (
-                      <p className="text-[12px] text-[var(--t3)]">
-                        No data yet
-                      </p>
+                      <p className="text-[12px] text-[var(--t3)]">No data yet</p>
                     )}
                     <div className="space-y-3">
                       {planBreakdown.map(({ plan, count }) => (
@@ -2177,9 +1920,7 @@ export default function SuperAdminPage() {
                             >
                               {PLAN_LABELS[plan] || plan}
                             </span>
-                            <span className="text-[12px] font-bold text-[var(--t1)]">
-                              {count}
-                            </span>
+                            <span className="text-[12px] font-bold text-[var(--t1)]">{count}</span>
                           </div>
                           <div className="h-2 rounded-full bg-[var(--bg)] overflow-hidden">
                             <div
@@ -2195,9 +1936,7 @@ export default function SuperAdminPage() {
                     </div>
                   </div>
                   <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
-                    <div className="font-['Sora'] text-[13px] font-bold text-[var(--t1)] mb-3">
-                      School Status
-                    </div>
+                    <div className="font-['Sora'] text-[13px] font-bold text-[var(--t1)] mb-3">School Status</div>
                     <div className="space-y-2">
                       {[
                         {
@@ -2227,20 +1966,11 @@ export default function SuperAdminPage() {
                           className="flex items-center gap-2.5 rounded-xl px-3 py-2.5"
                           style={{ background: item.bg }}
                         >
-                          <MaterialIcon
-                            icon={item.icon}
-                            style={{ fontSize: 15, color: item.color }}
-                          />
-                          <span
-                            className="text-[12px] font-semibold flex-1"
-                            style={{ color: item.color }}
-                          >
+                          <MaterialIcon icon={item.icon} style={{ fontSize: 15, color: item.color }} />
+                          <span className="text-[12px] font-semibold flex-1" style={{ color: item.color }}>
                             {item.label}
                           </span>
-                          <span
-                            className="text-[15px] font-extrabold font-['Sora']"
-                            style={{ color: item.color }}
-                          >
+                          <span className="text-[15px] font-extrabold font-['Sora']" style={{ color: item.color }}>
                             {dataLoading ? "\u2026" : item.value}
                           </span>
                         </div>
@@ -2251,9 +1981,7 @@ export default function SuperAdminPage() {
               </div>
 
               <div>
-                <div className="text-[12px] font-bold text-[var(--t1)] mb-3 uppercase tracking-wide">
-                  Quick Actions
-                </div>
+                <div className="text-[12px] font-bold text-[var(--t1)] mb-3 uppercase tracking-wide">Quick Actions</div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
                   {[
                     {
@@ -2298,12 +2026,8 @@ export default function SuperAdminPage() {
                         <MaterialIcon icon={a.icon} style={{ fontSize: 20 }} />
                       </div>
                       <div>
-                        <div className="font-['Sora'] text-[13px] font-bold text-[var(--t1)]">
-                          {a.label}
-                        </div>
-                        <div className="text-[11px] text-[var(--t3)] mt-0.5">
-                          {a.desc}
-                        </div>
+                        <div className="font-['Sora'] text-[13px] font-bold text-[var(--t1)]">{a.label}</div>
+                        <div className="text-[11px] text-[var(--t3)] mt-0.5">{a.desc}</div>
                       </div>
                     </button>
                   ))}
@@ -2311,13 +2035,9 @@ export default function SuperAdminPage() {
               </div>
 
               <div className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-[12px] text-[var(--t3)]">
-                <MaterialIcon
-                  icon="verified_user"
-                  style={{ fontSize: 15, color: "var(--green)" }}
-                />
-                Logged in as{" "}
-                <strong className="text-[var(--t1)]">{user.full_name}</strong>{" "}
-                \u00b7 Super Admin \u00b7 Full platform access
+                <MaterialIcon icon="verified_user" style={{ fontSize: 15, color: "var(--green)" }} />
+                Logged in as <strong className="text-[var(--t1)]">{user.full_name}</strong> \u00b7 Super Admin \u00b7
+                Full platform access
               </div>
             </div>
           )}
@@ -2380,23 +2100,13 @@ export default function SuperAdminPage() {
                     <div className="w-7 h-7 border-[3px] border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
                   </div>
                 ) : filteredSchools.length === 0 ? (
-                  <div className="py-16 text-center text-[13px] text-[var(--t3)]">
-                    No schools match your filters
-                  </div>
+                  <div className="py-16 text-center text-[13px] text-[var(--t3)]">No schools match your filters</div>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full">
                       <thead>
                         <tr className="border-b border-[var(--border)] bg-[var(--bg)]">
-                          {[
-                            "School",
-                            "District",
-                            "Plan",
-                            "Status",
-                            "Students",
-                            "Joined",
-                            "Actions",
-                          ].map((h) => (
+                          {["School", "District", "Plan", "Status", "Students", "Joined", "Actions"].map((h) => (
                             <th
                               key={h}
                               className={`px-4 py-3 text-[10px] font-bold text-[var(--t3)] uppercase tracking-wide ${h === "Students" ? "text-right" : h === "Actions" ? "text-center" : "text-left"}`}
@@ -2408,25 +2118,17 @@ export default function SuperAdminPage() {
                       </thead>
                       <tbody className="divide-y divide-[var(--border)]">
                         {filteredSchools.map((s) => (
-                          <tr
-                            key={s.id}
-                            className="hover:bg-[var(--bg)] transition-colors"
-                          >
+                          <tr key={s.id} className="hover:bg-[var(--bg)] transition-colors">
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-2.5">
                                 <div
                                   className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 overflow-hidden"
                                   style={{
-                                    background:
-                                      s.primary_color || "var(--navy)",
+                                    background: s.primary_color || "var(--navy)",
                                   }}
                                 >
                                   {s.logo_url ? (
-                                    <Image 
-                                      src={s.logo_url}
-                                      alt={s.name}
-                                      className="w-full h-full object-cover"
-                                    />
+                                    <Image src={s.logo_url} alt={s.name} className="w-full h-full object-cover" />
                                   ) : (
                                     s.name.slice(0, 2).toUpperCase()
                                   )}
@@ -2441,9 +2143,7 @@ export default function SuperAdminPage() {
                                 </div>
                               </div>
                             </td>
-                            <td className="px-4 py-3 text-[12px] text-[var(--t2)]">
-                              {s.district}
-                            </td>
+                            <td className="px-4 py-3 text-[12px] text-[var(--t2)]">{s.district}</td>
                             <td className="px-4 py-3">
                               <PlanBadge plan={s.subscription_plan} />
                             </td>
@@ -2453,9 +2153,7 @@ export default function SuperAdminPage() {
                             <td className="px-4 py-3 text-right text-[12px] font-semibold text-[var(--t1)]">
                               {s.student_count?.toLocaleString() ?? "\u2014"}
                             </td>
-                            <td className="px-4 py-3 text-[11px] text-[var(--t3)]">
-                              {fmtDate(s.created_at)}
-                            </td>
+                            <td className="px-4 py-3 text-[11px] text-[var(--t3)]">{fmtDate(s.created_at)}</td>
                             <td className="px-4 py-3">
                               <div className="flex items-center justify-center gap-1">
                                 <button
@@ -2464,10 +2162,7 @@ export default function SuperAdminPage() {
                                   onClick={() => setSelectedSchool(s)}
                                   className="p-1.5 rounded-lg hover:bg-[var(--bg)] text-[var(--t2)] transition-colors"
                                 >
-                                  <MaterialIcon
-                                    icon="edit"
-                                    style={{ fontSize: 15 }}
-                                  />
+                                  <MaterialIcon icon="edit" style={{ fontSize: 15 }} />
                                 </button>
                                 {s.subscription_status !== "suspended" ? (
                                   <button
@@ -2476,10 +2171,7 @@ export default function SuperAdminPage() {
                                     onClick={() => suspendSchool(s)}
                                     className="p-1.5 rounded-lg hover:bg-[#fee2e2] text-[#dc2626] transition-colors"
                                   >
-                                    <MaterialIcon
-                                      icon="block"
-                                      style={{ fontSize: 15 }}
-                                    />
+                                    <MaterialIcon icon="block" style={{ fontSize: 15 }} />
                                   </button>
                                 ) : (
                                   <button
@@ -2488,10 +2180,7 @@ export default function SuperAdminPage() {
                                     onClick={() => reactivateSchool(s)}
                                     className="p-1.5 rounded-lg hover:bg-[#ccfbf1] text-[#0d9488] transition-colors"
                                   >
-                                    <MaterialIcon
-                                      icon="check_circle"
-                                      style={{ fontSize: 15 }}
-                                    />
+                                    <MaterialIcon icon="check_circle" style={{ fontSize: 15 }} />
                                   </button>
                                 )}
                               </div>
@@ -2562,22 +2251,13 @@ export default function SuperAdminPage() {
                     <div className="w-7 h-7 border-[3px] border-[var(--primary)] border-t-transparent rounded-full animate-spin" />
                   </div>
                 ) : filteredUsers.length === 0 ? (
-                  <div className="py-16 text-center text-[13px] text-[var(--t3)]">
-                    No users found
-                  </div>
+                  <div className="py-16 text-center text-[13px] text-[var(--t3)]">No users found</div>
                 ) : (
                   <div className="overflow-x-auto">
                     <table className="w-full">
                       <thead>
                         <tr className="border-b border-[var(--border)] bg-[var(--bg)]">
-                          {[
-                            "User",
-                            "Role",
-                            "School",
-                            "Joined",
-                            "Status",
-                            "Actions",
-                          ].map((h) => (
+                          {["User", "Role", "School", "Joined", "Status", "Actions"].map((h) => (
                             <th
                               key={h}
                               className={`px-4 py-3 text-[10px] font-bold text-[var(--t3)] uppercase tracking-wide ${h === "Status" || h === "Actions" ? "text-center" : "text-left"}`}
@@ -2601,16 +2281,13 @@ export default function SuperAdminPage() {
                                     className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-white text-[10px] font-bold"
                                     style={{ background: rc }}
                                   >
-                                    {u.full_name?.slice(0, 1).toUpperCase() ||
-                                      "?"}
+                                    {u.full_name?.slice(0, 1).toUpperCase() || "?"}
                                   </div>
                                   <div>
                                     <div className="text-[12px] font-semibold text-[var(--t1)]">
                                       {u.full_name || "\u2014"}
                                     </div>
-                                    <div className="text-[10px] text-[var(--t3)]">
-                                      {u.phone}
-                                    </div>
+                                    <div className="text-[10px] text-[var(--t3)]">{u.phone}</div>
                                   </div>
                                 </div>
                               </td>
@@ -2625,9 +2302,7 @@ export default function SuperAdminPage() {
                               <td className="px-4 py-3 text-[12px] text-[var(--t2)] max-w-[160px] truncate">
                                 {u.school_name || "\u2014"}
                               </td>
-                              <td className="px-4 py-3 text-[11px] text-[var(--t3)]">
-                                {fmtDate(u.created_at)}
-                              </td>
+                              <td className="px-4 py-3 text-[11px] text-[var(--t3)]">{fmtDate(u.created_at)}</td>
                               <td className="px-4 py-3 text-center">
                                 {u.is_active ? (
                                   <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#ccfbf1] text-[#0d9488]">
@@ -2643,19 +2318,9 @@ export default function SuperAdminPage() {
                                 <UserActions
                                   user={u}
                                   onUpdated={(patch) =>
-                                    setUsers((prev) =>
-                                      prev.map((x) =>
-                                        x.id === patch.id
-                                          ? { ...x, ...patch }
-                                          : x,
-                                      ),
-                                    )
+                                    setUsers((prev) => prev.map((x) => (x.id === patch.id ? { ...x, ...patch } : x)))
                                   }
-                                  onDeleted={(id) =>
-                                    setUsers((prev) =>
-                                      prev.filter((x) => x.id !== id),
-                                    )
-                                  }
+                                  onDeleted={(id) => setUsers((prev) => prev.filter((x) => x.id !== id))}
                                 />
                               </td>
                             </tr>
@@ -2672,12 +2337,9 @@ export default function SuperAdminPage() {
           {tab === "register" && (
             <div className="space-y-5">
               <div>
-                <h2 className="font-['Sora'] text-[15px] font-bold text-[var(--t1)]">
-                  Register New School
-                </h2>
+                <h2 className="font-['Sora'] text-[15px] font-bold text-[var(--t1)]">Register New School</h2>
                 <p className="text-[12px] text-[var(--t3)] mt-0.5">
-                  The school will be created on trial by default. Adjust plan
-                  and duration below.
+                  The school will be created on trial by default. Adjust plan and duration below.
                 </p>
               </div>
               <RegisterSchoolForm
@@ -2693,9 +2355,7 @@ export default function SuperAdminPage() {
             <div className="space-y-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="font-['Sora'] text-[15px] font-bold text-[var(--t1)]">
-                    Module Approvals
-                  </h2>
+                  <h2 className="font-['Sora'] text-[15px] font-bold text-[var(--t1)]">Module Approvals</h2>
                   <p className="text-[12px] text-[var(--t3)] mt-0.5">
                     Review and approve pending module requests from schools.
                   </p>
@@ -2751,9 +2411,7 @@ export default function SuperAdminPage() {
                           <span className="font-['Sora'] text-[13px] font-bold text-[var(--t1)] truncate">
                             {req.school_name}
                           </span>
-                          <span className="text-[10px] text-[var(--t3)]">
-                            {req.school_code}
-                          </span>
+                          <span className="text-[10px] text-[var(--t3)]">{req.school_code}</span>
                         </div>
                         <p className="text-[12px] text-[var(--t2)] mt-0.5">
                           Requesting <strong>{req.module_name}</strong>
@@ -2778,8 +2436,7 @@ export default function SuperAdminPage() {
                               toast.success(`${req.module_name} approved for ${req.school_name}`);
                               setPendingModules((prev) =>
                                 prev.filter(
-                                  (r: any) =>
-                                    !(r.school_id === req.school_id && r.module_key === req.module_key),
+                                  (r: any) => !(r.school_id === req.school_id && r.module_key === req.module_key),
                                 ),
                               );
                             } catch {
@@ -2807,8 +2464,7 @@ export default function SuperAdminPage() {
                               toast.success(`Request for ${req.module_name} rejected`);
                               setPendingModules((prev) =>
                                 prev.filter(
-                                  (r: any) =>
-                                    !(r.school_id === req.school_id && r.module_key === req.module_key),
+                                  (r: any) => !(r.school_id === req.school_id && r.module_key === req.module_key),
                                 ),
                               );
                             } catch {
@@ -2827,15 +2483,13 @@ export default function SuperAdminPage() {
             </div>
           )}
 
+          {tab === "marketers" && <MarketersTab />}
+
           {tab === "settings" && (
             <div className="max-w-xl space-y-6">
               <div>
-                <h2 className="font-['Sora'] text-[15px] font-bold text-[var(--t1)]">
-                  Platform Settings
-                </h2>
-                <p className="text-[12px] text-[var(--t3)] mt-0.5">
-                  Global configuration for the SkoolMate platform.
-                </p>
+                <h2 className="font-['Sora'] text-[15px] font-bold text-[var(--t1)]">Platform Settings</h2>
+                <p className="text-[12px] text-[var(--t3)] mt-0.5">Global configuration for the SkoolMate platform.</p>
               </div>
               <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden">
                 {[
@@ -2875,26 +2529,18 @@ export default function SuperAdminPage() {
                       <MaterialIcon icon={item.icon} style={{ fontSize: 18 }} />
                     </div>
                     <div className="flex-1">
-                      <div className="text-[13px] font-semibold text-[var(--t1)]">
-                        {item.label}
-                      </div>
-                      <div className="text-[11px] text-[var(--t3)]">
-                        {item.desc}
-                      </div>
+                      <div className="text-[13px] font-semibold text-[var(--t1)]">{item.label}</div>
+                      <div className="text-[11px] text-[var(--t3)]">{item.desc}</div>
                     </div>
                     <Toggle
                       value={settings[item.key]}
-                      onChange={(v) =>
-                        setSettings((s) => ({ ...s, [item.key]: v }))
-                      }
+                      onChange={(v) => setSettings((s) => ({ ...s, [item.key]: v }))}
                     />
                   </div>
                 ))}
               </div>
               <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 space-y-4">
-                <div className="font-['Sora'] text-[13px] font-bold text-[var(--t1)] mb-1">
-                  Support Contact
-                </div>
+                <div className="font-['Sora'] text-[13px] font-bold text-[var(--t1)] mb-1">Support Contact</div>
                 {[
                   {
                     label: "Support Email",
@@ -2916,9 +2562,7 @@ export default function SuperAdminPage() {
                     <input
                       type={f.type}
                       value={settings[f.key]}
-                      onChange={(e) =>
-                        setSettings((s) => ({ ...s, [f.key]: e.target.value }))
-                      }
+                      onChange={(e) => setSettings((s) => ({ ...s, [f.key]: e.target.value }))}
                       placeholder={f.placeholder}
                       className="w-full rounded-xl bg-[var(--bg)] border border-[var(--border)] px-4 py-2.5 text-[13px] text-[var(--t1)] outline-none focus:border-[var(--primary)] transition-colors"
                     />
@@ -2956,5 +2600,369 @@ export default function SuperAdminPage() {
         </div>
       </div>
     </PageErrorBoundary>
+  );
+}
+
+const DEFAULT_MARKETER_PASSWORD = "Omutofoundation";
+
+interface MarketerRow {
+  id: string;
+  full_name: string;
+  phone?: string;
+  email?: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+interface EarningsSummary {
+  total: number;
+  pending: number;
+  paid: number;
+  schools_count: number;
+}
+
+function MarketersTab() {
+  const [marketers, setMarketers] = useState<MarketerRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [email, setEmail] = useState("");
+  const [fullName, setFullName] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [earningsMap, setEarningsMap] = useState<Record<string, { data: any[]; summary: EarningsSummary }>>({});
+  const [earningForm, setEarningForm] = useState({
+    earning_type: "onboarding_bonus",
+    amount: "",
+    notes: "",
+    school_id: "",
+  });
+  const [schoolsList, setSchoolsList] = useState<{ id: string; name: string }[]>([]);
+  const toast = { success: (m: string) => setSuccess(m), error: (m: string) => setError(m) };
+
+  const fetchMarketers = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/marketers/");
+      const body = await res.json();
+      if (body.success) setMarketers(body.data || []);
+      else setError(body.error || "Failed to load");
+    } catch {
+      setError("Network error");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchMarketers();
+  }, [fetchMarketers]);
+
+  useEffect(() => {
+    fetch("/api/schools/")
+      .then((r) => r.json())
+      .then((b) => {
+        if (b.success) setSchoolsList((b.data || []).map((s: any) => ({ id: s.id, name: s.name })));
+      })
+      .catch(() => {});
+  }, []);
+
+  const createMarketer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+    if (!email.trim()) {
+      setError("Email is required");
+      return;
+    }
+    setCreating(true);
+    try {
+      const res = await fetch("/api/marketers/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim(), full_name: fullName.trim() || undefined }),
+      });
+      const body = await res.json();
+      if (body.success) {
+        toast.success(`Marketer created. Default password: ${DEFAULT_MARKETER_PASSWORD}`);
+        setEmail("");
+        setFullName("");
+        fetchMarketers();
+      } else {
+        setError(body.error || "Failed to create");
+      }
+    } catch {
+      setError("Network error");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const toggleExpand = async (marketerId: string) => {
+    if (expandedId === marketerId) {
+      setExpandedId(null);
+      return;
+    }
+    setExpandedId(marketerId);
+    if (earningsMap[marketerId]) return;
+    try {
+      const res = await fetch(`/api/marketers/earnings/?marketer_id=${marketerId}`);
+      const body = await res.json();
+      if (body.success) {
+        const list = body.data || [];
+        const total = list.reduce((s: number, e: any) => s + Number(e.amount), 0);
+        const pending = list
+          .filter((e: any) => e.status === "pending" || e.status === "approved")
+          .reduce((s: number, e: any) => s + Number(e.amount), 0);
+        const paid = list
+          .filter((e: any) => e.status === "paid")
+          .reduce((s: number, e: any) => s + Number(e.amount), 0);
+        const schools = [...new Set(list.filter((e: any) => e.school_id).map((e: any) => e.school_id))].length;
+        setEarningsMap((m) => ({
+          ...m,
+          [marketerId]: { data: list, summary: { total, pending, paid, schools_count: schools } },
+        }));
+      }
+    } catch {}
+  };
+
+  const addEarning = async (marketerId: string) => {
+    if (!earningForm.amount) return;
+    try {
+      const res = await fetch("/api/marketers/earnings/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          marketer_id: marketerId,
+          earning_type: earningForm.earning_type,
+          amount: Number(earningForm.amount),
+          school_id: earningForm.school_id || null,
+          notes: earningForm.notes || null,
+        }),
+      });
+      const body = await res.json();
+      if (body.success) {
+        toast.success("Earning added");
+        setEarningForm({ earning_type: "onboarding_bonus", amount: "", notes: "", school_id: "" });
+        toggleExpand(marketerId);
+      } else {
+        setError(body.error || "Failed to add earning");
+      }
+    } catch {
+      setError("Network error");
+    }
+  };
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="font-['Sora'] text-[15px] font-bold text-[var(--t1)]">Field Marketers</h2>
+          <p className="text-[12px] text-[var(--t3)] mt-0.5">Manage marketing team accounts and commissions.</p>
+        </div>
+      </div>
+
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
+        <h3 className="font-['Sora'] text-[13px] font-bold text-[var(--t1)] mb-3">Add Marketer</h3>
+        <form onSubmit={createMarketer} className="flex items-end gap-3">
+          <div className="flex-1">
+            <label className="block text-[11px] font-semibold text-[var(--t3)] mb-1">Email *</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="marketer@example.com"
+              required
+              className="w-full px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-[13px] text-[var(--t1)] placeholder:text-[var(--t4)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30"
+            />
+          </div>
+          <div className="flex-1">
+            <label className="block text-[11px] font-semibold text-[var(--t3)] mb-1">Full Name</label>
+            <input
+              type="text"
+              value={fullName}
+              onChange={(e) => setFullName(e.target.value)}
+              placeholder="Jane Marketer"
+              className="w-full px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-[13px] text-[var(--t1)] placeholder:text-[var(--t4)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={creating}
+            className="px-4 py-2 rounded-xl bg-[var(--primary)] text-white text-[12px] font-bold hover:opacity-90 transition-opacity disabled:opacity-60 whitespace-nowrap"
+          >
+            {creating ? "Creating\u2026" : "Create Marketer"}
+          </button>
+        </form>
+        {error && <p className="mt-2 text-[11px] text-red-600">{error}</p>}
+        {success && <p className="mt-2 text-[11px] text-green-600">{success}</p>}
+        <p className="mt-2 text-[11px] text-[var(--t4)]">
+          Default password: <code className="font-bold text-[var(--t2)]">{DEFAULT_MARKETER_PASSWORD}</code>
+        </p>
+      </div>
+
+      <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden">
+        <div className="px-4 py-3 border-b border-[var(--border)]">
+          <h3 className="font-['Sora'] text-[13px] font-bold text-[var(--t1)]">Marketers ({marketers.length})</h3>
+        </div>
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-[var(--primary)]" />
+          </div>
+        ) : marketers.length === 0 ? (
+          <p className="text-center py-8 text-[12px] text-[var(--t4)]">No marketers yet.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-[12px]">
+              <thead>
+                <tr className="border-b border-[var(--border)] bg-[var(--bg)]">
+                  <th className="text-left px-4 py-2.5 font-semibold text-[var(--t3)]">Name</th>
+                  <th className="text-left px-4 py-2.5 font-semibold text-[var(--t3)]">Email</th>
+                  <th className="text-left px-4 py-2.5 font-semibold text-[var(--t3)]">Total Earned</th>
+                  <th className="text-left px-4 py-2.5 font-semibold text-[var(--t3)]">Pending</th>
+                  <th className="text-left px-4 py-2.5 font-semibold text-[var(--t3)]">Status</th>
+                  <th className="text-left px-4 py-2.5 font-semibold text-[var(--t3)]">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {marketers.map((m) => {
+                  const em = earningsMap[m.id];
+                  return (
+                    <tr
+                      key={m.id}
+                      className="border-b border-[var(--border)] hover:bg-[var(--bg)] transition-colors cursor-pointer"
+                      onClick={() => toggleExpand(m.id)}
+                    >
+                      <td className="px-4 py-2.5 font-semibold text-[var(--t1)]">{m.full_name || "—"}</td>
+                      <td className="px-4 py-2.5 text-[var(--t2)]">{m.email || "—"}</td>
+                      <td className="px-4 py-2.5 font-semibold text-[var(--t1)]">
+                        {em ? `UGX ${em.summary.total.toLocaleString()}` : "—"}
+                      </td>
+                      <td className="px-4 py-2.5 text-[#d97706] font-semibold">
+                        {em ? `UGX ${em.summary.pending.toLocaleString()}` : "—"}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${m.is_active ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"}`}
+                        >
+                          {m.is_active ? "Active" : "Inactive"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <span className="text-[11px] text-[var(--primary)] font-semibold">
+                          {expandedId === m.id ? "▲" : "▼"} Details
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {expandedId && earningsMap[expandedId] && (
+          <div className="border-t border-[var(--border)] p-4 bg-[var(--bg)] space-y-4">
+            <div className="flex gap-4">
+              <div className="text-[12px]">
+                <span className="font-semibold text-[var(--t1)]">Total:</span> UGX{" "}
+                {earningsMap[expandedId].summary.total.toLocaleString()}
+              </div>
+              <div className="text-[12px]">
+                <span className="font-semibold text-[#d97706]">Pending:</span> UGX{" "}
+                {earningsMap[expandedId].summary.pending.toLocaleString()}
+              </div>
+              <div className="text-[12px]">
+                <span className="font-semibold text-[#0d9488]">Paid:</span> UGX{" "}
+                {earningsMap[expandedId].summary.paid.toLocaleString()}
+              </div>
+              <div className="text-[12px]">
+                <span className="font-semibold text-[var(--t1)]">Schools:</span>{" "}
+                {earningsMap[expandedId].summary.schools_count}
+              </div>
+            </div>
+            <div className="flex items-end gap-2 border-t border-[var(--border)] pt-3">
+              <select
+                value={earningForm.earning_type}
+                onChange={(e) => setEarningForm((f) => ({ ...f, earning_type: e.target.value }))}
+                className="px-2 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[11px]"
+              >
+                <option value="onboarding_bonus">Onboarding Bonus</option>
+                <option value="subscription_commission">Subscription</option>
+                <option value="performance_bonus">Performance Bonus</option>
+                <option value="adjustment">Adjustment</option>
+              </select>
+              <input
+                type="number"
+                value={earningForm.amount}
+                onChange={(e) => setEarningForm((f) => ({ ...f, amount: e.target.value }))}
+                placeholder="Amount"
+                className="w-24 px-2 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[11px]"
+              />
+              <select
+                value={earningForm.school_id}
+                onChange={(e) => setEarningForm((f) => ({ ...f, school_id: e.target.value }))}
+                className="px-2 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[11px] max-w-[160px]"
+              >
+                <option value="">No school</option>
+                {schoolsList.slice(0, 50).map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="text"
+                value={earningForm.notes}
+                onChange={(e) => setEarningForm((f) => ({ ...f, notes: e.target.value }))}
+                placeholder="Notes"
+                className="w-32 px-2 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[11px]"
+              />
+              <button
+                onClick={() => addEarning(expandedId)}
+                className="px-3 py-1.5 rounded-lg bg-[var(--primary)] text-white text-[11px] font-bold hover:opacity-90"
+              >
+                Add
+              </button>
+            </div>
+            <div className="overflow-x-auto">
+              {earningsMap[expandedId].data.length === 0 ? (
+                <p className="text-[11px] text-[var(--t4)] py-2">No earnings recorded</p>
+              ) : (
+                <table className="w-full text-[11px]">
+                  <thead>
+                    <tr className="border-b border-[var(--border)]">
+                      <th className="text-left px-3 py-1.5 font-semibold text-[var(--t3)]">Type</th>
+                      <th className="text-left px-3 py-1.5 font-semibold text-[var(--t3)]">Amount</th>
+                      <th className="text-left px-3 py-1.5 font-semibold text-[var(--t3)]">Status</th>
+                      <th className="text-left px-3 py-1.5 font-semibold text-[var(--t3)]">Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {earningsMap[expandedId].data.map((e: any) => (
+                      <tr key={e.id} className="border-b border-[var(--border)]">
+                        <td className="px-3 py-1.5 text-[var(--t1)]">{e.earning_type.replace(/_/g, " ")}</td>
+                        <td className="px-3 py-1.5 font-semibold text-[var(--t1)]">
+                          UGX {Number(e.amount).toLocaleString()}
+                        </td>
+                        <td className="px-3 py-1.5">
+                          <span
+                            className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${e.status === "paid" ? "bg-green-100 text-green-700" : e.status === "pending" ? "bg-yellow-100 text-yellow-700" : e.status === "approved" ? "bg-blue-100 text-blue-700" : "bg-red-100 text-red-600"}`}
+                          >
+                            {e.status}
+                          </span>
+                        </td>
+                        <td className="px-3 py-1.5 text-[var(--t3)]">
+                          {new Date(e.created_at).toLocaleDateString("en-UG", { day: "numeric", month: "short" })}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

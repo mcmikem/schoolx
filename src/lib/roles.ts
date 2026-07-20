@@ -12,7 +12,8 @@ export type UserRole =
   | "school_admin"
   | "super_admin"
   | "secretary"
-  | "dorm_master";
+  | "dorm_master"
+  | "marketer";
 
 export interface RolePermissions {
   students: boolean;
@@ -280,6 +281,28 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = deepFreeze({
     payroll: false,
     performance: false,
   },
+  marketer: {
+    students: false,
+    attendance: false,
+    grades: false,
+    fees: false,
+    fee_status: false,
+    messages: false,
+    reports: true,
+    staff: false,
+    settings: false,
+    discipline: false,
+    invoicing: false,
+    assets: false,
+    analytics: true,
+    export: false,
+    boardReport: false,
+    autoSMS: false,
+    warnings: false,
+    visitors: false,
+    payroll: false,
+    performance: false,
+  },
 });
 
 export const ROLE_LABELS: Record<UserRole, string> = deepFreeze({
@@ -294,6 +317,7 @@ export const ROLE_LABELS: Record<UserRole, string> = deepFreeze({
   super_admin: "Super Admin",
   secretary: "Secretary",
   dorm_master: "Dorm Master",
+  marketer: "Field Marketer",
 });
 
 export const ROLE_ORDER: readonly UserRole[] = deepFreeze([
@@ -308,6 +332,7 @@ export const ROLE_ORDER: readonly UserRole[] = deepFreeze([
   "dorm_master",
   "board",
   "parent",
+  "marketer",
 ]);
 
 export const PERMISSION_LABELS: Record<keyof RolePermissions, string> = deepFreeze({

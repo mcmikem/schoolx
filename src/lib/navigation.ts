@@ -30,17 +30,13 @@ type NavigationRole = Extract<
   | "secretary"
   | "dorm_master"
   | "parent"
+  | "marketer"
 >;
 
-const HEADMASTER_EQUIVALENT_NAV_ROLES = deepFreeze([
-  "admin",
-  "school_admin",
-  "board",
-] as const);
+const HEADMASTER_EQUIVALENT_NAV_ROLES = deepFreeze(["admin", "school_admin", "board"] as const);
 
 // Define navigation by role
-export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
-  deepFreeze({
+export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> = deepFreeze({
   super_admin: [
     {
       label: "System Control HUB",
@@ -279,23 +275,28 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
           icon: "sync",
         },
         ...(process.env.NODE_ENV !== "production"
-          ? [{
-              href: "/dashboard/store/pos",
-              label: "Canteen POS",
-              icon: "shopping_cart",
-            }, {
-              href: "/dashboard/store/meal-scan",
-              label: "Meal Scan",
-              icon: "restaurant",
-            }, {
-              href: "/dashboard/analytics/dna",
-              label: "Performance DNA",
-              icon: "biotech",
-            }, {
-              href: "/dashboard/suggestions",
-              label: "Suggestions",
-              icon: "lightbulb",
-            }]
+          ? [
+              {
+                href: "/dashboard/store/pos",
+                label: "Canteen POS",
+                icon: "shopping_cart",
+              },
+              {
+                href: "/dashboard/store/meal-scan",
+                label: "Meal Scan",
+                icon: "restaurant",
+              },
+              {
+                href: "/dashboard/analytics/dna",
+                label: "Performance DNA",
+                icon: "biotech",
+              },
+              {
+                href: "/dashboard/suggestions",
+                label: "Suggestions",
+                icon: "lightbulb",
+              },
+            ]
           : []),
       ],
     },
@@ -803,14 +804,34 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> =
       ],
     },
   ],
-  });
+  marketer: [
+    {
+      label: "Dashboard",
+      icon: "dashboard",
+      defaultOpen: true,
+      items: [
+        {
+          href: "/dashboard",
+          label: "Overview",
+          icon: "dashboard",
+        },
+        {
+          href: "/dashboard/marketer/schools",
+          label: "All Schools",
+          icon: "school",
+        },
+        {
+          href: "/dashboard/marketer/onboarding",
+          label: "Onboarding Tracker",
+          icon: "rocket_launch",
+        },
+      ],
+    },
+  ],
+});
 
 export function getNavigationForRole(role: string): readonly NavGroup[] {
-  if (
-    HEADMASTER_EQUIVALENT_NAV_ROLES.some(
-      (allowedRole) => allowedRole === role,
-    )
-  ) {
+  if (HEADMASTER_EQUIVALENT_NAV_ROLES.some((allowedRole) => allowedRole === role)) {
     return navigationByRole.headmaster;
   }
   if (role in navigationByRole) {

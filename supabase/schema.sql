@@ -53,6 +53,7 @@ CREATE TABLE IF NOT EXISTS schools (
     report_header TEXT,
     report_footer TEXT,
     id_card_style TEXT DEFAULT 'standard',
+    onboarded_by UUID REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -66,7 +67,7 @@ CREATE TABLE IF NOT EXISTS users (
     full_name TEXT NOT NULL,
     phone TEXT NOT NULL,
     email TEXT,
-    role TEXT CHECK (role IN ('super_admin', 'school_admin', 'teacher', 'student', 'parent')) NOT NULL,
+    role TEXT CHECK (role IN ('super_admin', 'school_admin', 'admin', 'headmaster', 'board', 'dean_of_studies', 'bursar', 'teacher', 'secretary', 'dorm_master', 'student', 'parent', 'marketer')) NOT NULL,
     avatar_url TEXT,
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMPTZ DEFAULT NOW()
@@ -2712,6 +2713,63 @@ DROP POLICY IF EXISTS "School users pending mobile payments all" ON pending_mobi
 CREATE POLICY "School users pending mobile payments all" ON pending_mobile_payments FOR ALL TO authenticated USING (
   school_id = my_school_id()
 );
+
+-- ============================================
+-- MARKETER COMMISSION SYSTEM
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS marketer_earnings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    marketer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    school_id UUID REFERENCES schools(id) ON DELETE SET NULL,
+    earning_type TEXT NOT NULL CHECK (earning_type IN ('onboarding_bonus', 'subscription_commission', 'performance_bonus', 'adjustment')),
+    amount NUMERIC(12,2) NOT NULL,
+    currency TEXT DEFAULT 'UGX',
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'cancelled', 'paid')),
+    notes TEXT,
+    period_start DATE,
+    period_end DATE,
+    paid_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_marketer_earnings_marketer ON marketer_earnings (marketer_id);
+CREATE INDEX IF NOT EXISTS idx_marketer_earnings_status ON marketer_earnings (status);
+CREATE INDEX IF NOT EXISTS idx_marketer_earnings_school ON marketer_earnings (school_id);
+
+ALTER TABLE marketer_earnings ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "marketer_earnings_super_admin" ON marketer_earnings;
+CREATE POLICY "marketer_earnings_super_admin" ON marketer_earnings FOR ALL TO authenticated
+  USING (EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'super_admin'))
+  WITH CHECK (EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'super_admin'));
+
+DROP POLICY IF EXISTS "marketer_earnings_self_read" ON marketer_earnings;
+CREATE POLICY "marketer_earnings_self_read" ON marketer_earnings FOR SELECT TO authenticated
+  USING (marketer_id IN (SELECT id FROM users WHERE auth_id = auth.uid()));
+
+CREATE TABLE IF NOT EXISTS marketer_payouts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    marketer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    amount NUMERIC(12,2) NOT NULL,
+    currency TEXT DEFAULT 'UGX',
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'paid', 'cancelled')),
+    paid_at TIMESTAMPTZ,
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_marketer_payouts_marketer ON marketer_payouts (marketer_id);
+CREATE INDEX IF NOT EXISTS idx_marketer_payouts_status ON marketer_payouts (status);
+
+ALTER TABLE marketer_payouts ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "marketer_payouts_super_admin" ON marketer_payouts;
+CREATE POLICY "marketer_payouts_super_admin" ON marketer_payouts FOR ALL TO authenticated
+  USING (EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'super_admin'))
+  WITH CHECK (EXISTS (SELECT 1 FROM users WHERE auth_id = auth.uid() AND role = 'super_admin'));
+
+DROP POLICY IF EXISTS "marketer_payouts_self_read" ON marketer_payouts;
+CREATE POLICY "marketer_payouts_self_read" ON marketer_payouts FOR SELECT TO authenticated
+  USING (marketer_id IN (SELECT id FROM users WHERE auth_id = auth.uid()));
 
 -- ============================================
 -- ADDITIONAL TABLES FOR PRODUCTION READINESS

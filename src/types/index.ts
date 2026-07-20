@@ -54,7 +54,8 @@ export type UserRole =
   | "secretary"
   | "dorm_master"
   | "student"
-  | "parent";
+  | "parent"
+  | "marketer";
 
 export interface User {
   id: string;
