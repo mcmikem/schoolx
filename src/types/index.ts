@@ -564,6 +564,7 @@ export interface Asset {
   purchased_date?: string;
   supplier?: string;
   serial_number?: string;
+  reorder_level: number;
   is_consumable: boolean;
   min_stock_level: number;
   created_at: string;

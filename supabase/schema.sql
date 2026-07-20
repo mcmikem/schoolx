@@ -240,6 +240,9 @@ ALTER TABLE students ADD COLUMN IF NOT EXISTS student_council_role TEXT;
 ALTER TABLE students ADD COLUMN IF NOT EXISTS opening_balance NUMERIC(12,2) DEFAULT 0;
 ALTER TABLE students ADD COLUMN IF NOT EXISTS nin TEXT;
 
+CREATE INDEX IF NOT EXISTS idx_students_school_status
+  ON public.students (school_id, status);
+
 -- ============================================
 -- 8. TEACHER SUBJECTS (Teacher-Subject assignments)
 -- ============================================
@@ -428,6 +431,9 @@ WITH CHECK (
   school_id = my_school_id()
 );
 
+CREATE INDEX IF NOT EXISTS idx_events_school_start_date
+  ON public.events (school_id, start_date DESC);
+
 -- School settings (RLS with my_school_id() helper — SECURITY DEFINER bypasses recursion)
 DROP POLICY IF EXISTS "School users can access school_settings" ON school_settings;
 CREATE POLICY "School users can access school_settings"
@@ -454,6 +460,9 @@ CREATE TABLE IF NOT EXISTS messages (
     sent_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+CREATE INDEX IF NOT EXISTS idx_messages_school_created
+  ON public.messages (school_id, created_at DESC);
 
 -- ============================================
 -- 16. SCHOOL SETTINGS
@@ -2326,6 +2335,7 @@ CREATE TABLE IF NOT EXISTS assets (
     purchased_date DATE,
     supplier TEXT,
     serial_number TEXT,
+    reorder_level INTEGER DEFAULT 0,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

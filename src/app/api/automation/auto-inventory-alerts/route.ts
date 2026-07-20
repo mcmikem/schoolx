@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
     });
     if (!subCheck.ok) return subCheck.response;
 
-    // Get all inventory items (assets) — reorder_level is stored in inventory_alerts
+    // Get all inventory items (assets) with reorder thresholds
     const { data: items, error: itemsError } = await supabase
       .from("assets")
       .select(
@@ -31,7 +31,8 @@ export async function POST(request: NextRequest) {
         category,
         quantity,
         unit_price,
-        supplier
+        supplier,
+        reorder_level
       `,
       )
       .eq("school_id", school.schoolId);
@@ -52,18 +53,7 @@ export async function POST(request: NextRequest) {
 
     for (const item of items as any[]) {
       const currentStock = item.quantity || 0;
-
-      // Check if this asset has a reorder threshold set in inventory_alerts
-      const { data: alertThreshold } = await supabase
-        .from("inventory_alerts")
-        .select("reorder_level, deficit")
-        .eq("asset_id", item.id)
-        .eq("school_id", school.schoolId)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      const reorderLevel = Number(alertThreshold?.reorder_level || 0);
+      const reorderLevel = Number(item.reorder_level || 0);
 
       if (reorderLevel > 0 && currentStock <= reorderLevel) {
         const deficit = reorderLevel - currentStock;
