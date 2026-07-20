@@ -24,15 +24,25 @@ export async function POST(request: NextRequest) {
     auth: { persistSession: false },
   });
 
-  const body = await request.json();
-  const { studentId, schoolId, phone, fullName, relationship, sendCredentials } = body as {
-    studentId?: string;
-    schoolId?: string;
-    phone?: string;
-    fullName?: string;
-    relationship?: string;
-    sendCredentials?: boolean;
-  };
+  let studentId: string | undefined;
+  let schoolId: string | undefined;
+  let phone: string | undefined;
+  let fullName: string | undefined;
+  let relationship: string | undefined;
+  let sendCredentials: boolean | undefined;
+
+  try {
+    const body = await request.json();
+    studentId = body.studentId;
+    schoolId = body.schoolId;
+    phone = body.phone;
+    fullName = body.fullName;
+    relationship = body.relationship;
+    sendCredentials = body.sendCredentials;
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
   if (!studentId || !schoolId) {
     return NextResponse.json({ error: "studentId and schoolId required" }, { status: 400 });
   }

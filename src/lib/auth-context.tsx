@@ -19,25 +19,14 @@
 // To modify: Run full test suite (lint + typecheck + regression + e2e)
 // ============================================================================
 "use client";
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-  ReactNode,
-  useCallback,
-  useRef,
-} from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback, useRef } from "react";
 import { supabase } from "./supabase";
 import { useRouter } from "next/navigation";
 import type { User, School } from "@/types";
 import { logger } from "./logger";
 import { getErrorMessage } from "./validation";
 import { buildAuthEmailFromPhone, buildAuthLoginAttempts } from "./auth-login";
-import {
-  isSupabaseLockAbortError,
-  withSupabaseLockRetry,
-} from "./supabase-lock";
+import { isSupabaseLockAbortError, withSupabaseLockRetry } from "./supabase-lock";
 import {
   AuthContextType,
   sanitizeDemoRole,
@@ -47,14 +36,8 @@ import {
   isSubscriptionActiveCheck,
   getSubscriptionPlan as getPlan,
 } from "./auth-context-types";
-import {
-  decryptDemoData,
-  readDemoStorage,
-  clearDemoStorage,
-} from "./auth-demo";
-import {
-  buildPhoneLookupCandidates,
-} from "./auth-phone";
+import { decryptDemoData, readDemoStorage, clearDemoStorage } from "./auth-demo";
+import { buildPhoneLookupCandidates } from "./auth-phone";
 import { FeatureStage, DEFAULT_FEATURE_STAGE } from "./featureStages";
 import type { PlanType } from "./payments/subscription-client";
 
@@ -92,10 +75,7 @@ function isNetworkError(error: unknown): boolean {
 
 function isAuthSessionMissingError(error: unknown): boolean {
   const msg = getErrorMessage(error, "").toLowerCase();
-  return (
-    msg.includes("session") &&
-    (msg.includes("missing") || msg.includes("not found"))
-  );
+  return msg.includes("session") && (msg.includes("missing") || msg.includes("not found"));
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -134,29 +114,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [school]);
 
   const fetchUserData = useCallback(
-    async (
-      authId: string,
-      retryCount = 0,
-    ): Promise<{ role: string } | null> => {
+    async (authId: string, retryCount = 0): Promise<{ role: string } | null> => {
       if (authFetchAborted.current || !supabase) return null;
 
       try {
         // getSession() can return a stale access_token if it hasn't refreshed yet.
         // Prefer refreshSession() so we always send a current token to /api/auth/me/.
         // Both calls have 10s timeouts to prevent infinite loading when Supabase hangs.
-        let session = (await Promise.race([
-          supabase.auth.getSession(),
-          new Promise<never>((_, reject) =>
-            setTimeout(() => reject(new Error("getSession timed out")), 10000),
-          ),
-        ]) as Awaited<ReturnType<typeof supabase.auth.getSession>>).data.session;
+        let session = (
+          (await Promise.race([
+            supabase.auth.getSession(),
+            new Promise<never>((_, reject) => setTimeout(() => reject(new Error("getSession timed out")), 10000)),
+          ])) as Awaited<ReturnType<typeof supabase.auth.getSession>>
+        ).data.session;
         if (session && session.expires_at && session.expires_at * 1000 < Date.now() + 10000) {
-          const { data: refreshed } = await Promise.race([
+          const { data: refreshed } = (await Promise.race([
             supabase.auth.refreshSession(),
-            new Promise<never>((_, reject) =>
-              setTimeout(() => reject(new Error("refreshSession timed out")), 10000),
-            ),
-          ]) as Awaited<ReturnType<typeof supabase.auth.refreshSession>>;
+            new Promise<never>((_, reject) => setTimeout(() => reject(new Error("refreshSession timed out")), 10000)),
+          ])) as Awaited<ReturnType<typeof supabase.auth.refreshSession>>;
           if (refreshed.session) session = refreshed.session;
         }
         const token = session?.access_token;
@@ -176,7 +151,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Retry once on transient server errors (502, 503, 504)
           if (retryCount < 1 && (res.status === 502 || res.status === 503 || res.status === 504)) {
             logger.warn(`[Auth] Profile fetch got ${res.status}, retrying...`);
-            await new Promise(r => setTimeout(r, 1000));
+            await new Promise((r) => setTimeout(r, 1000));
             return fetchUserData(authId, retryCount + 1);
           }
           if (res.status === 404) {
@@ -190,7 +165,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             if (retryCount < 1) {
               logger.warn("[Auth] Profile fetch 401 — refreshing session and retrying");
               await supabase.auth.refreshSession();
-              await new Promise(r => setTimeout(r, 500));
+              await new Promise((r) => setTimeout(r, 500));
               return fetchUserData(authId, retryCount + 1);
             }
             logger.warn("[Auth] Profile fetch auth token rejected after refresh — clearing state");
@@ -216,10 +191,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return newUser;
         });
         try {
-          localStorage.setItem(
-            OFFLINE_USER_KEY,
-            JSON.stringify(newUser),
-          );
+          localStorage.setItem(OFFLINE_USER_KEY, JSON.stringify(newUser));
         } catch (error) {
           logger.warn("Failed to persist offline user data:", error);
         }
@@ -233,16 +205,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (schoolData) {
           const schoolObj = {
             ...schoolData,
-            feature_stage:
-              (schoolData.feature_stage as FeatureStage) ||
-              DEFAULT_FEATURE_STAGE,
+            feature_stage: (schoolData.feature_stage as FeatureStage) || DEFAULT_FEATURE_STAGE,
           };
           setSchool(schoolObj);
           try {
-            localStorage.setItem(
-              OFFLINE_SCHOOL_KEY,
-              JSON.stringify(schoolObj),
-            );
+            localStorage.setItem(OFFLINE_SCHOOL_KEY, JSON.stringify(schoolObj));
           } catch (error) {
             logger.warn("Failed to persist offline school data:", error);
           }
@@ -254,9 +221,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         const errMsg = getErrorMessage(error);
         // Retry once on network errors
-        if (retryCount < 1 && (errMsg.includes("network") || errMsg.includes("fetch") || errMsg.includes("timed out") || errMsg.includes("abort"))) {
+        if (
+          retryCount < 1 &&
+          (errMsg.includes("network") ||
+            errMsg.includes("fetch") ||
+            errMsg.includes("timed out") ||
+            errMsg.includes("abort"))
+        ) {
           logger.warn("[Auth] Profile fetch network error, retrying...");
-          await new Promise(r => setTimeout(r, 1500));
+          await new Promise((r) => setTimeout(r, 1500));
           return fetchUserData(authId, retryCount + 1);
         }
         if (typeof navigator !== "undefined" && navigator.onLine) {
@@ -308,8 +281,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               logo_url: demoSchool.logo_url || "",
               subscription_plan: demoSchool.subscription_plan || "growth",
               subscription_status: demoSchool.subscription_status || "active",
-              feature_stage:
-                (demoSchool.feature_stage as FeatureStage) || "full",
+              feature_stage: (demoSchool.feature_stage as FeatureStage) || "full",
               created_at: new Date().toISOString(),
             });
             setIsDemo(true);
@@ -328,12 +300,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           const {
             data: { session },
-          } = await Promise.race([
+          } = (await Promise.race([
             supabase!.auth.getSession(),
-            new Promise<never>((_, reject) =>
-              setTimeout(() => reject(new Error("getSession timed out")), 10000),
-            ),
-          ]) as Awaited<ReturnType<typeof supabase.auth.getSession>>;
+            new Promise<never>((_, reject) => setTimeout(() => reject(new Error("getSession timed out")), 10000)),
+          ])) as Awaited<ReturnType<typeof supabase.auth.getSession>>;
           if (!session) {
             setUser(null);
             setSchool(null);
@@ -365,14 +335,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           let authUserError: unknown = null;
           let authUser: User | null = null;
           try {
-            const result = await Promise.race([
-              withSupabaseLockRetry(
-                async () => await supabase!.auth.getUser(),
-              ),
+            const result = (await Promise.race([
+              withSupabaseLockRetry(async () => await supabase!.auth.getUser()),
               new Promise<never>((_, reject) =>
                 setTimeout(() => reject(new Error("getUser timed out in checkUser")), 10000),
               ),
-            ]) as { data: { user: User | null } };
+            ])) as { data: { user: User | null } };
             authUser = result.data.user;
           } catch (err) {
             authUserError = err;
@@ -524,11 +492,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
           }
 
-          if (
-            event === "SIGNED_IN" ||
-            event === "INITIAL_SESSION" ||
-            event === "TOKEN_REFRESHED"
-          ) {
+          if (event === "SIGNED_IN" || event === "INITIAL_SESSION" || event === "TOKEN_REFRESHED") {
             // Fast path: no session means no user — skip getUser() entirely.
             if (event === "INITIAL_SESSION" && !session) {
               setUser(null);
@@ -553,22 +517,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               logger.warn("[Auth] onAuthStateChange handler safety timer — forcing authInitialized");
               setLoading(false);
               setAuthInitialized(true);
-            }, 2000);
+            }, 8000);
 
             try {
               const {
                 data: { user: verifiedUser },
-              }: { data: { user: User | null } } = await Promise.race([
-                withSupabaseLockRetry(
-                  async () => await supabase!.auth.getUser(),
-                ),
+              }: { data: { user: User | null } } = (await Promise.race([
+                withSupabaseLockRetry(async () => await supabase!.auth.getUser()),
                 new Promise<never>((_, reject) =>
-                  setTimeout(
-                    () => reject(new Error("getUser() timed out in auth state handler")),
-                    10000,
-                  ),
+                  setTimeout(() => reject(new Error("getUser() timed out in auth state handler")), 10000),
                 ),
-              ]) as { data: { user: User | null } };
+              ])) as { data: { user: User | null } };
 
               if (verifiedUser) {
                 authCheckedRef.current = true;
@@ -581,9 +540,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     clearAuthState();
                   }
                 } catch {
-                  logger.warn(
-                    "[Auth] fetchUserData failed in state change handler",
-                  );
+                  logger.warn("[Auth] fetchUserData failed in state change handler");
                 }
                 if (!handlerSafetyFired) {
                   setIsDemo(false);
@@ -620,10 +577,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setLoading(false);
           setAuthInitialized(true);
           if (!isSupabaseLockAbortError(error)) {
-            logger.error(
-              "[Auth] Auth state change handler failed:",
-              getErrorMessage(error),
-            );
+            logger.error("[Auth] Auth state change handler failed:", getErrorMessage(error));
           }
         }
       });
@@ -644,46 +598,41 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const userRef = useRef(user);
   userRef.current = user;
 
-useEffect(() => {
+  useEffect(() => {
     if (!supabase) return;
+    const visibilityTimerRef = { current: null as ReturnType<typeof setTimeout> | null };
     const handleVisibilityChange = () => {
       if (document.visibilityState !== "visible") return;
-      // Wait 3s for onAuthStateChange to fire after tab becomes visible.
-      // Browsers throttle background JS, so auth state change events are
-      // delayed. Without this delay, getUser() races with TOKEN_REFRESHED
-      // and returns stale/null data, incorrectly logging the user out.
-      const timer = setTimeout(async () => {
-        // If the user state was already cleared by onAuthStateChange, skip.
+      if (visibilityTimerRef.current) clearTimeout(visibilityTimerRef.current);
+      visibilityTimerRef.current = setTimeout(async () => {
+        visibilityTimerRef.current = null;
         if (!userRef.current) return;
         try {
-          // Use getSession() first — it's a local check with no network call.
-          // Only proceed if there's genuinely no session at all.
-          const { data: { session } } = await supabase!.auth.getSession();
-          if (session) return; // Session exists — let onAuthStateChange handle validation
-          // No session — verify with the server before logging out.
-          // On slow networks, getUser() can fail silently even with a valid session.
-          const { data: { user: freshUser }, error: freshError } = await supabase!.auth.getUser();
+          const {
+            data: { session },
+          } = await supabase!.auth.getSession();
+          if (session) return;
+          const {
+            data: { user: freshUser },
+            error: freshError,
+          } = await supabase!.auth.getUser();
           if (!freshUser && !isNetworkError(freshError)) {
             setUser(null);
             setSchool(null);
             router.replace("/login");
           }
         } catch (err) {
-          // Never log out on network errors — poor internet is common in Uganda.
           if (!isNetworkError(err)) {
-            logger.error(
-              "[Auth] Visibility change check failed:",
-              getErrorMessage(err),
-            );
+            logger.error("[Auth] Visibility change check failed:", getErrorMessage(err));
           }
         }
       }, 3000);
-      // Return cleanup for the timer — but we can't return from a non-async
-      // callback. The timer auto-cleans after firing.
     };
     document.addEventListener("visibilitychange", handleVisibilityChange);
-    return () =>
+    return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      if (visibilityTimerRef.current) clearTimeout(visibilityTimerRef.current);
+    };
   }, [router]);
 
   const SESSION_TIMEOUT_MS_REF = useRef(30 * 60 * 1000);
@@ -709,7 +658,7 @@ useEffect(() => {
       signInLock.current = true;
       // Safety: if a request hangs forever (poor internet), auto-release the
       // lock after 25s so the user can retry without refreshing the page.
-signInLockTimer.current = setTimeout(() => {
+      signInLockTimer.current = setTimeout(() => {
         logger.warn("[Auth] signInLock auto-released after timeout");
         signInLock.current = false;
         signInLockTimer.current = null;
@@ -739,12 +688,7 @@ signInLockTimer.current = setTimeout(() => {
                     password,
                   }),
             ),
-            new Promise<never>((_, reject) =>
-              setTimeout(
-                () => reject(new Error("Login attempt timed out")),
-                15000,
-              ),
-            ),
+            new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Login attempt timed out")), 15000)),
           ]);
 
           if (error) {
@@ -756,17 +700,13 @@ signInLockTimer.current = setTimeout(() => {
               errMsg.includes("wrong password") ||
               errMsg.includes("incorrect password");
             const isUserNotFound =
-              errMsg.includes("user not found") ||
-              errMsg.includes("no user") ||
-              errMsg.includes("email not found");
+              errMsg.includes("user not found") || errMsg.includes("no user") || errMsg.includes("email not found");
 
             // Only fast-fail on explicit "wrong password" - we can't distinguish
             // "user doesn't exist" from "wrong password" when Supabase returns
             // "invalid credentials". Try all formats to be safe.
             const isExplicitWrongPassword =
-              isInvalidCredentials &&
-              (errMsg.includes("wrong password") ||
-                errMsg.includes("incorrect password"));
+              isInvalidCredentials && (errMsg.includes("wrong password") || errMsg.includes("incorrect password"));
 
             if (isExplicitWrongPassword && attempts.length === 1) {
               // Only fail fast if there's exactly one attempt and we got explicit
@@ -816,13 +756,9 @@ signInLockTimer.current = setTimeout(() => {
             role: data.user.user_metadata?.role || "admin",
           };
         } catch (attemptError) {
-          if (
-            attemptError instanceof Error &&
-            attemptError.message === "Login attempt timed out"
-          ) {
+          if (attemptError instanceof Error && attemptError.message === "Login attempt timed out") {
             lastError = {
-              message:
-                "Connection timed out. Please check your internet and try again.",
+              message: "Connection timed out. Please check your internet and try again.",
             };
           } else {
             lastError = attemptError;
@@ -868,16 +804,11 @@ signInLockTimer.current = setTimeout(() => {
   async function refreshSchool() {
     if (!user?.school_id || !supabase) return;
     try {
-      const { data: schoolData } = await supabase
-        .from("schools")
-        .select("*")
-        .eq("id", user.school_id)
-        .single();
+      const { data: schoolData } = await supabase.from("schools").select("*").eq("id", user.school_id).single();
       if (schoolData) {
         setSchool({
           ...schoolData,
-          feature_stage:
-            (schoolData.feature_stage as FeatureStage) || DEFAULT_FEATURE_STAGE,
+          feature_stage: (schoolData.feature_stage as FeatureStage) || DEFAULT_FEATURE_STAGE,
         });
         setIsTrialExpired(computeTrialExpired(schoolData));
       }
@@ -902,8 +833,7 @@ signInLockTimer.current = setTimeout(() => {
       if (data.school) {
         setSchool({
           ...data.school,
-          feature_stage:
-            (data.school.feature_stage as FeatureStage) || DEFAULT_FEATURE_STAGE,
+          feature_stage: (data.school.feature_stage as FeatureStage) || DEFAULT_FEATURE_STAGE,
         });
         setIsTrialExpired(computeTrialExpired(data.school));
       }

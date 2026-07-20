@@ -123,21 +123,20 @@ export function NotificationsProvider({
 
       if (canSeeFees) {
         try {
-          const [{ data: feeStructure, error: feeError }, { data: payments, error: paymentsError }] = await Promise.all([
-            supabase.from("fee_structure").select("amount").eq("school_id", schoolId),
-            activeStudentIds.length > 0
-              ? supabase.from("fee_payments").select("amount_paid").in("student_id", activeStudentIds)
-              : Promise.resolve({ data: [], error: null }),
-          ]);
+          const [{ data: feeStructure, error: feeError }, { data: payments, error: paymentsError }] = await Promise.all(
+            [
+              supabase.from("fee_structure").select("amount").eq("school_id", schoolId),
+              activeStudentIds.length > 0
+                ? supabase.from("fee_payments").select("amount_paid").in("student_id", activeStudentIds)
+                : Promise.resolve({ data: [], error: null }),
+            ],
+          );
 
           if (feeError) throw feeError;
           if (paymentsError) throw paymentsError;
 
           const totalExpected =
-            (feeStructure || []).reduce(
-              (sum, fee) => sum + Number(fee.amount || 0),
-              0,
-            ) * activeStudentIds.length;
+            (feeStructure || []).reduce((sum, fee) => sum + Number(fee.amount || 0), 0) * activeStudentIds.length;
           const totalCollected = (payments || []).reduce((sum, payment) => sum + Number(payment.amount_paid || 0), 0);
           const balance = totalExpected - totalCollected;
 
@@ -216,7 +215,15 @@ export function NotificationsProvider({
 
   return (
     <NotificationsContext.Provider
-      value={{ notifications, unreadCount, loading, markAsRead, markAllAsRead, addNotification, refresh: fetchNotifications }}
+      value={{
+        notifications,
+        unreadCount,
+        loading,
+        markAsRead,
+        markAllAsRead,
+        addNotification,
+        refresh: fetchNotifications,
+      }}
     >
       {children}
     </NotificationsContext.Provider>
@@ -248,28 +255,34 @@ interface ToastContextType {
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
 
-export function ToastProvider({ children }: { children: ReactNode }) {
+export function InlineToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
   }, []);
 
-  const showToast = useCallback((message: string, type: ToastType = "info", duration = 4000) => {
-    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    setToasts((prev) => [...prev, { id, type, message, duration }]);
-    if (duration > 0) {
-      window.setTimeout(() => removeToast(id), duration);
-    }
-  }, [removeToast]);
+  const showToast = useCallback(
+    (message: string, type: ToastType = "info", duration = 4000) => {
+      const id = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      setToasts((prev) => [...prev, { id, type, message, duration }]);
+      if (duration > 0) {
+        window.setTimeout(() => removeToast(id), duration);
+      }
+    },
+    [removeToast],
+  );
 
-  const contextValue = useMemo(() => ({
-    showToast,
-    success: (message: string) => showToast(message, "success"),
-    error: (message: string) => showToast(message, "error", 6000),
-    warning: (message: string) => showToast(message, "warning"),
-    info: (message: string) => showToast(message, "info"),
-  }), [showToast]);
+  const contextValue = useMemo(
+    () => ({
+      showToast,
+      success: (message: string) => showToast(message, "success"),
+      error: (message: string) => showToast(message, "error", 6000),
+      warning: (message: string) => showToast(message, "warning"),
+      info: (message: string) => showToast(message, "info"),
+    }),
+    [showToast],
+  );
 
   return (
     <ToastContext.Provider value={contextValue}>
@@ -281,8 +294,24 @@ export function ToastProvider({ children }: { children: ReactNode }) {
             className="flex items-start gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-lg"
           >
             <MaterialIcon
-              icon={toast.type === "success" ? "check_circle" : toast.type === "error" ? "cancel" : toast.type === "warning" ? "warning" : "info"}
-              className={toast.type === "success" ? "text-emerald-500" : toast.type === "error" ? "text-red-500" : toast.type === "warning" ? "text-amber-500" : "text-blue-500"}
+              icon={
+                toast.type === "success"
+                  ? "check_circle"
+                  : toast.type === "error"
+                    ? "cancel"
+                    : toast.type === "warning"
+                      ? "warning"
+                      : "info"
+              }
+              className={
+                toast.type === "success"
+                  ? "text-emerald-500"
+                  : toast.type === "error"
+                    ? "text-red-500"
+                    : toast.type === "warning"
+                      ? "text-amber-500"
+                      : "text-blue-500"
+              }
               size={20}
             />
             <p className="flex-1 text-sm font-medium text-[var(--t1)]">{toast.message}</p>
@@ -299,10 +328,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   );
 }
 
-export function useToast() {
+export function useInlineToast() {
   const context = useContext(ToastContext);
   if (!context) {
-    throw new Error("useToast must be used within a ToastProvider");
+    throw new Error("useInlineToast must be used within an InlineToastProvider");
   }
   return context;
 }

@@ -40,8 +40,7 @@ function createMockQueryBuilder() {
     limit: () => builder,
     range: () => builder,
     match: () => builder,
-    then: (resolve: (value: typeof listResult) => unknown) =>
-      Promise.resolve(resolve(listResult)),
+    then: (resolve: (value: typeof listResult) => unknown) => Promise.resolve(resolve(listResult)),
     catch: () => Promise.resolve(listResult),
     finally: () => Promise.resolve(listResult),
     single: async () => itemResult,
@@ -80,9 +79,7 @@ export async function createSupabaseServerClient() {
   const cookieStore = await cookies();
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  const allowMockClient =
-    process.env.NODE_ENV === "test" ||
-    process.env.ALLOW_SUPABASE_MOCK === "true";
+  const allowMockClient = process.env.NODE_ENV === "test" || process.env.ALLOW_SUPABASE_MOCK === "true";
 
   if (
     !isValidHttpUrl(supabaseUrl) ||
@@ -105,6 +102,21 @@ export async function createSupabaseServerClient() {
     return mock as ReturnType<typeof createServerClient>;
   }
 
+  function createFetchWithTimeout(defaultTimeout = 30000) {
+    return (input: RequestInfo | URL, init?: RequestInit) => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), defaultTimeout);
+      const signal = init?.signal;
+      if (signal) {
+        signal.addEventListener("abort", () => {
+          clearTimeout(timeoutId);
+          controller.abort();
+        });
+      }
+      return fetch(input, { ...init, signal: controller.signal }).finally(() => clearTimeout(timeoutId));
+    };
+  }
+
   return createServerClient(supabaseUrl as string, supabaseAnonKey as string, {
     cookies: {
       get(name: string) {
@@ -121,6 +133,9 @@ export async function createSupabaseServerClient() {
       remove(name: string, options: CookieOptions) {
         cookieStore.set({ name, value: "", ...options });
       },
+    },
+    global: {
+      fetch: createFetchWithTimeout(30000),
     },
   });
 }

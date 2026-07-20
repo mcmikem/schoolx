@@ -1,18 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { detectInstallmentReminders } from "@/lib/operations";
 import { logger } from "@/lib/logger";
-import {
-  requireCronSecretOrDeny,
-  createServiceRoleClientOrThrow,
-  requireExistingSchoolOrDeny,
-} from "@/lib/api-utils";
+import { requireCronSecretOrDeny, createServiceRoleClientOrThrow, requireExistingSchoolOrDeny } from "@/lib/api-utils";
 import { sendAfricasTalkingSMSWithRetry } from "@/lib/africas-talking";
 
 export async function POST(request: NextRequest) {
   try {
     const cron = requireCronSecretOrDeny(request);
     if (!cron.ok) return cron.response;
-
 
     const { schoolId, daysNotice } = await request.json();
     const supabase = createServiceRoleClientOrThrow();
@@ -67,20 +62,24 @@ export async function POST(request: NextRequest) {
 
       // Send SMS
       try {
-        const smsRes = await sendAfricasTalkingSMSWithRetry(
-          reminder.parentPhone,
-          reminder.smsMessage,
-          { formatUgandaNumber: true },
-        );
+        const smsRes = await sendAfricasTalkingSMSWithRetry(reminder.parentPhone, reminder.smsMessage, {
+          formatUgandaNumber: true,
+        });
         if (smsRes.success) {
           // Log success
-          await supabase.from("automated_message_logs").insert({
-            school_id: school.schoolId,
-            trigger_id: "auto-installment-reminder",
-            recipient_id: reminder.parentPhone,
-            record_id: reminder.planId,
-            status: "sent",
-          });
+          const { withTimeout, timeoutFallback } = await import("@/lib/hooks/utils");
+          await withTimeout(
+            supabase.from("automated_message_logs").insert({
+              school_id: school.schoolId,
+              trigger_id: "auto-installment-reminder",
+              recipient_id: reminder.parentPhone,
+              record_id: reminder.planId,
+              status: "sent",
+              sent_at: new Date().toISOString(),
+            }),
+            15000,
+            timeoutFallback(),
+          );
           results.sent++;
         } else {
           results.errors++;
@@ -97,4 +96,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Automation failed" }, { status: 500 });
   }
 }
-

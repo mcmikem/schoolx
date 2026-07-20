@@ -8,17 +8,12 @@ import {
   generateAutoComment,
 } from "@/lib/automation";
 import { logger } from "@/lib/logger";
-import {
-  requireCronSecretOrDeny,
-  createServiceRoleClientOrThrow,
-  requireExistingSchoolOrDeny,
-} from "@/lib/api-utils";
+import { requireCronSecretOrDeny, createServiceRoleClientOrThrow, requireExistingSchoolOrDeny } from "@/lib/api-utils";
 
 export async function POST(request: NextRequest) {
   try {
     const cron = requireCronSecretOrDeny(request);
     if (!cron.ok) return cron.response;
-
 
     const { schoolId, classIds, academicYear, term } = await request.json();
     const supabase = createServiceRoleClientOrThrow();
@@ -26,10 +21,7 @@ export async function POST(request: NextRequest) {
     if (!school.ok) return school.response;
 
     if (!classIds || !Array.isArray(classIds) || classIds.length === 0) {
-      return NextResponse.json(
-        { error: "Missing or invalid parameter: classIds (array required)" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Missing or invalid parameter: classIds (array required)" }, { status: 400 });
     }
 
     const currentYear = academicYear || new Date().getFullYear().toString();
@@ -66,14 +58,12 @@ export async function POST(request: NextRequest) {
 
     const studentIds = (students as any[]).map((s) => s.id);
 
-    const [
-      { data: allGrades, error: gradesError },
-      { data: allAttendance, error: attendanceError },
-    ] = await Promise.all([
-      supabase
-        .from("student_grades")
-        .select(
-          `
+    const [{ data: allGrades, error: gradesError }, { data: allAttendance, error: attendanceError }] =
+      await Promise.all([
+        supabase
+          .from("student_grades")
+          .select(
+            `
           id,
           student_id,
           subject_id,
@@ -85,17 +75,17 @@ export async function POST(request: NextRequest) {
           exam_score,
           subjects (name)
         `,
-        )
-        .in("student_id", studentIds)
-        .eq("academic_year", currentYear)
-        .eq("term", currentTerm),
-      supabase
-        .from("attendance")
-        .select("student_id, status, date")
-        .in("student_id", studentIds)
-        .gte("date", `${currentYear}-01-01`)
-        .lte("date", `${currentYear}-12-31`),
-    ]);
+          )
+          .in("student_id", studentIds)
+          .eq("academic_year", currentYear)
+          .eq("term", currentTerm),
+        supabase
+          .from("attendance")
+          .select("student_id, status, date")
+          .in("student_id", studentIds)
+          .gte("date", `${currentYear}-01-01`)
+          .lte("date", `${currentYear}-12-31`),
+      ]);
 
     if (gradesError) {
       return NextResponse.json(
@@ -107,23 +97,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const gradesByStudent = (allGrades || []).reduce(
-      (acc: Record<string, any[]>, grade: any) => {
-        if (!acc[grade.student_id]) acc[grade.student_id] = [];
-        acc[grade.student_id].push(grade);
-        return acc;
-      },
-      {},
-    );
+    const gradesByStudent = (allGrades || []).reduce((acc: Record<string, any[]>, grade: any) => {
+      if (!acc[grade.student_id]) acc[grade.student_id] = [];
+      acc[grade.student_id].push(grade);
+      return acc;
+    }, {});
 
-    const attendanceByStudent = (allAttendance || []).reduce(
-      (acc: Record<string, any[]>, record: any) => {
-        if (!acc[record.student_id]) acc[record.student_id] = [];
-        acc[record.student_id].push(record);
-        return acc;
-      },
-      {},
-    );
+    const attendanceByStudent = (allAttendance || []).reduce((acc: Record<string, any[]>, record: any) => {
+      if (!acc[record.student_id]) acc[record.student_id] = [];
+      acc[record.student_id].push(record);
+      return acc;
+    }, {});
 
     const results: {
       generated: any[];
@@ -139,9 +123,7 @@ export async function POST(request: NextRequest) {
 
     for (const student of students as any[]) {
       try {
-        const studentClass = Array.isArray(student.classes)
-          ? student.classes[0]
-          : student.classes;
+        const studentClass = Array.isArray(student.classes) ? student.classes[0] : student.classes;
 
         if (!studentClass) {
           results.skipped.push({
@@ -224,10 +206,7 @@ export async function POST(request: NextRequest) {
         } else if (level.startsWith("S") && level.includes("6")) {
           const principalScores = subjectScores.slice(0, 3);
           const subsidiaryScores = subjectScores.slice(3);
-          const uaceResult = computeUACEResult(
-            principalScores,
-            subsidiaryScores,
-          );
+          const uaceResult = computeUACEResult(principalScores, subsidiaryScores);
           division = uaceResult.division;
           aggregate = uaceResult.points;
         }
@@ -237,11 +216,8 @@ export async function POST(request: NextRequest) {
 
         const totalDays = studentAttendance.length || 0;
         const presentDays =
-          studentAttendance.filter(
-            (r: any) => r.status === "present" || r.status === "late",
-          ).length || 0;
-        const attendanceRate =
-          totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 0;
+          studentAttendance.filter((r: any) => r.status === "present" || r.status === "late").length || 0;
+        const attendanceRate = totalDays > 0 ? Math.round((presentDays / totalDays) * 100) : 0;
 
         // Check if report card already exists
         const { data: existingCards } = await supabase
@@ -324,7 +300,7 @@ export async function POST(request: NextRequest) {
         // Send via email if parent email is configured
         if (student.parent_email) {
           try {
-            await sendReportCardEmail(
+            const emailResult = await sendReportCardEmail(
               student.parent_email,
               `${student.first_name} ${student.last_name}`,
               studentClass.name,
@@ -335,10 +311,18 @@ export async function POST(request: NextRequest) {
               attendanceRate,
             );
 
-            results.emailed.push({
-              studentId: student.id,
-              email: student.parent_email,
-            });
+            if (emailResult.success) {
+              results.emailed.push({
+                studentId: student.id,
+                email: student.parent_email,
+              });
+            } else {
+              results.errors.push({
+                studentId: student.id,
+                name: `${student.first_name} ${student.last_name}`,
+                reason: emailResult.error || "Email sending failed",
+              });
+            }
           } catch (emailErr) {
             results.errors.push({
               studentId: student.id,

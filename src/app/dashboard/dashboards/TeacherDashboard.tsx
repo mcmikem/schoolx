@@ -1,23 +1,13 @@
 "use client";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
-import {
-  useStudents,
-  useClasses,
-  useSubjects,
-  useDashboardStats,
-} from "@/lib/hooks";
+import { useStudents, useClasses, useSubjects, useDashboardStats } from "@/lib/hooks";
 import { withTimeout } from "@/lib/hooks/utils";
 import { useState, useMemo, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import {
-  buildDefaultClasses,
-  buildDefaultTimetableSlots,
-  type SchoolSetupType,
-} from "@/lib/school-setup";
+import { buildDefaultClasses, buildDefaultTimetableSlots, type SchoolSetupType } from "@/lib/school-setup";
 import { getDefaultSubjects } from "@/lib/curriculum";
 import MaterialIcon from "@/components/MaterialIcon";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -25,9 +15,10 @@ import { useToast } from "@/components/Toast";
 import { TopLoadingBar, StuckLoadingOverlay } from "@/components/ui/Skeleton";
 import OwlMascot from "@/components/brand/OwlMascot";
 import { TeacherQuickGuide } from "@/components/dashboard/SchoolReadinessGuide";
-import SkoolMateLogo from "@/components/SkoolMateLogo";
 import SchoolCalendar from "@/components/dashboard/SchoolCalendar";
 import TaskManager from "@/components/dashboard/TaskManager";
+import CollapsibleSection from "@/components/ui/CollapsibleSection";
+import SchoolHero from "@/components/dashboard/SchoolHero";
 
 function TeacherDashboardContent() {
   const router = useRouter();
@@ -55,20 +46,13 @@ function TeacherDashboardContent() {
 
   const currentDate = new Date();
   const greeting =
-    currentDate.getHours() < 12
-      ? "Good Morning"
-      : currentDate.getHours() < 17
-        ? "Good Afternoon"
-        : "Good Evening";
+    currentDate.getHours() < 12 ? "Good Morning" : currentDate.getHours() < 17 ? "Good Afternoon" : "Good Evening";
 
   const myClasses = classes;
   const mySubjects = subjects;
   const needsSetup = classes.length === 0 || subjects.length === 0;
   const attendanceRate = useMemo(
-    () =>
-      stats?.totalStudents > 0
-        ? Math.round((stats.presentToday / stats.totalStudents) * 100)
-        : 0,
+    () => (stats?.totalStudents > 0 ? Math.round((stats.presentToday / stats.totalStudents) * 100) : 0),
     [stats?.totalStudents, stats?.presentToday],
   );
   const todayLabel = currentDate.toLocaleDateString("en-UG", {
@@ -153,6 +137,7 @@ function TeacherDashboardContent() {
             <p className="mt-4 text-sm text-[var(--t3)]">Loading your dashboard...</p>
           </div>
         </div>
+        <StuckLoadingOverlay />
       </div>
     );
   }
@@ -161,48 +146,80 @@ function TeacherDashboardContent() {
     <div className="content overflow-x-hidden">
       <TeacherQuickGuide />
 
-      {/* ── Hero: Big Logo + School Branding ── */}
-      <div className="relative mb-6 overflow-hidden rounded-[32px] border border-[#d6e4e8] bg-[linear-gradient(150deg,#eff7f5_0%,#eaf2f6_44%,#f8fbff_100%)] p-5 sm:p-7">
-        <div className="pointer-events-none absolute -left-16 -top-16 h-52 w-52 rounded-full bg-[#b7dfd8]/30 blur-3xl" />
-        <div className="pointer-events-none absolute -right-10 -bottom-10 h-36 w-36 rounded-full bg-[#d8e9fb]/40 blur-3xl" />
-        <div className="pointer-events-none absolute left-1/2 top-0 h-20 w-60 -translate-x-1/2 rounded-full bg-[#c8dce8]/20 blur-2xl" />
-
-            <div className="relative z-10 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                {school?.logo_url ? (
-                  <Image src={school.logo_url} alt={school?.name || "School"} width={80} height={80} className="object-contain rounded-xl" unoptimized />
-                ) : (
-                  <SkoolMateLogo size="xl" showText variant="default" />
-                )}
-                <div className="flex flex-col">
-                  <p className="text-xs font-semibold text-[#17325f]">{greeting}, {user?.full_name?.split(" ")[0]}</p>
-                  <p className="text-[11px] text-[#42638d]">{school?.name}</p>
-                </div>
-              </div>
-              <div className="hidden sm:flex items-center gap-3">
-                <div className="rounded-full bg-[#17325f] px-4 py-2 text-center">
-                  <p className="text-xl font-bold text-white leading-none">{myClasses.length}</p>
-                  <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-white/70">Classes</p>
-                </div>
-              </div>
-            </div>
-
-        <div className="relative z-10 mt-4 flex flex-wrap items-center gap-3 border-t border-[#c8dce8]/40 pt-4">
-          <div className="flex items-center gap-2 text-xs text-[#42638d]">
-            <MaterialIcon icon="today" className="text-base" />
-            <span className="font-semibold">{todayLabel}</span>
+      <SchoolHero
+        school={school}
+        greeting={greeting}
+        userName={user?.full_name?.split(" ")[0] || ""}
+        dateLabel={todayLabel}
+        rightSection={
+          <div className="rounded-full bg-[#17325f] px-4 py-2 text-center">
+            <p className="text-xl font-bold text-white leading-none">{myClasses.length}</p>
+            <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-white/70">Classes</p>
           </div>
+        }
+        bottomCenter={
           <div className="text-xs text-[#42638d]">
             <span className="font-semibold">{school?.name}</span> · Term {currentTerm} · {academicYear}
           </div>
-          {stats?.totalStudents > 0 && (
-            <div className="ml-auto flex items-center gap-1.5 rounded-full bg-[#edf4ff] px-3 py-1">
+        }
+        bottomRight={
+          stats?.totalStudents > 0 ? (
+            <div className="flex items-center gap-1.5 rounded-full bg-[#edf4ff] px-3 py-1">
               <span className="h-1.5 w-1.5 rounded-full bg-[#17325f]" />
               <span className="text-[11px] font-bold text-[#17325f]">{stats.totalStudents} students</span>
             </div>
-          )}
+          ) : undefined
+        }
+      />
+
+      {/* ── My Day Summary ── */}
+      {stats && (
+        <div className="mb-5 grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div
+            className={`rounded-2xl border p-4 ${!attendancePending ? "border-[#d8efe7] bg-[#f3fbf8]" : "border-[#f5d0c5] bg-[#ffefe8]"}`}
+          >
+            <div className="flex items-center gap-2">
+              <MaterialIcon
+                icon={!attendancePending ? "check_circle" : "how_to_reg"}
+                className={`text-lg ${!attendancePending ? "text-[#1f8a70]" : "text-[#c2472b]"}`}
+              />
+              <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#7f91aa]">Attendance</span>
+            </div>
+            <p className={`mt-1 text-lg font-bold ${!attendancePending ? "text-[#1f8a70]" : "text-[#c2472b]"}`}>
+              {!attendancePending ? "Done" : "Pending"}
+            </p>
+            <p className="text-[10px] text-[#7f91aa] mt-0.5">
+              {stats.presentToday > 0 ? `${stats.presentToday} present today` : "Not taken yet"}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-[#eef2f8] bg-white p-4">
+            <div className="flex items-center gap-2">
+              <MaterialIcon icon="assignment" className="text-lg text-[#17325f]" />
+              <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#7f91aa]">Tasks</span>
+            </div>
+            <p className="mt-1 text-lg font-bold text-[#17325f]">{tasks.length}</p>
+            <p className="text-[10px] text-[#7f91aa] mt-0.5">
+              {tasks.length === 1 ? "Pending item" : tasks.length > 0 ? "Pending items" : "All clear"}
+            </p>
+          </div>
+          <div className="rounded-2xl border border-[#eef2f8] bg-white p-4">
+            <div className="flex items-center gap-2">
+              <MaterialIcon icon="school" className="text-lg text-[#b45309]" />
+              <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#7f91aa]">Classes</span>
+            </div>
+            <p className="mt-1 text-lg font-bold text-[#17325f]">{myClasses.length}</p>
+            <p className="text-[10px] text-[#7f91aa] mt-0.5">{mySubjects.length} subjects</p>
+          </div>
+          <div className="rounded-2xl border border-[#eef2f8] bg-white p-4">
+            <div className="flex items-center gap-2">
+              <MaterialIcon icon="group" className="text-lg text-[#1f8a70]" />
+              <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-[#7f91aa]">Students</span>
+            </div>
+            <p className="mt-1 text-lg font-bold text-[#17325f]">{stats.totalStudents}</p>
+            <p className="text-[10px] text-[#7f91aa] mt-0.5">Enrolled</p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ── Two-Column Layout ── */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
@@ -255,21 +272,14 @@ function TeacherDashboardContent() {
             </div>
           </div>
 
-          {/* Task Manager */}
-          <div>
-            <div className="mb-3 flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#17325f]">
-                <MaterialIcon icon="assignment" className="text-sm text-white" />
-              </div>
-              <h2 className="text-sm font-bold text-[#17325f] font-['Sora']">Task Manager</h2>
-              {tasks.length > 0 && (
-                <span className="rounded-full bg-[#c2472b]/10 px-2.5 py-0.5 text-[10px] font-bold text-[#c2472b]">
-                  {tasks.length} pending
-                </span>
-              )}
-            </div>
+          <CollapsibleSection
+            title="Task Manager"
+            badge={tasks.length > 0 ? tasks.length : null}
+            storageKey={`teacher-tasks-${school?.id}`}
+            defaultOpen={tasks.length > 0}
+          >
             <TaskManager tasks={tasks} emptyMessage="All caught up! No pending tasks." />
-          </div>
+          </CollapsibleSection>
 
           {/* My Classes */}
           {myClasses.length > 0 && (
@@ -284,12 +294,27 @@ function TeacherDashboardContent() {
                 {myClasses.map((cls: any) => {
                   const count = students.filter((s) => s.class_id === cls.id).length;
                   return (
-                    <div key={cls.id} className="group rounded-2xl bg-white border border-[#eef2f8] p-4 transition-all hover:shadow-md hover:-translate-y-0.5">
+                    <div
+                      key={cls.id}
+                      className="group rounded-2xl bg-white border border-[#eef2f8] p-4 transition-all hover:shadow-md hover:-translate-y-0.5"
+                    >
                       <p className="text-base font-bold text-[#17325f]">{cls.name}</p>
-                      <p className="text-xs text-[#7f91aa] mt-0.5">{count} student{count !== 1 ? "s" : ""}</p>
+                      <p className="text-xs text-[#7f91aa] mt-0.5">
+                        {count} student{count !== 1 ? "s" : ""}
+                      </p>
                       <div className="flex gap-2 mt-3">
-                        <Link href={`/dashboard/attendance?class=${cls.id}`} className="flex-1 rounded-xl bg-[#17325f] py-1.5 text-center text-[10px] font-bold text-white hover:opacity-90 transition-opacity">Attendance</Link>
-                        <Link href={`/dashboard/grades?class=${cls.id}`} className="flex-1 rounded-xl bg-[#edf4ff] py-1.5 text-center text-[10px] font-bold text-[#17325f] hover:bg-[#dce8f5] transition-colors">Grades</Link>
+                        <Link
+                          href={`/dashboard/attendance?class=${cls.id}`}
+                          className="flex-1 rounded-xl bg-[#17325f] py-1.5 text-center text-[10px] font-bold text-white hover:opacity-90 transition-opacity"
+                        >
+                          Attendance
+                        </Link>
+                        <Link
+                          href={`/dashboard/grades?class=${cls.id}`}
+                          className="flex-1 rounded-xl bg-[#edf4ff] py-1.5 text-center text-[10px] font-bold text-[#17325f] hover:bg-[#dce8f5] transition-colors"
+                        >
+                          Grades
+                        </Link>
                       </div>
                     </div>
                   );
@@ -310,7 +335,10 @@ function TeacherDashboardContent() {
                   <p className="text-[11px] text-[#7f91aa]">View your classes and periods for today</p>
                 </div>
               </div>
-              <Link href="/dashboard/timetable" className="rounded-xl bg-[#17325f] px-4 py-2 text-[11px] font-bold text-white hover:opacity-90 transition-opacity">
+              <Link
+                href="/dashboard/timetable"
+                className="rounded-xl bg-[#17325f] px-4 py-2 text-[11px] font-bold text-white hover:opacity-90 transition-opacity"
+              >
                 Open timetable
               </Link>
             </div>
@@ -322,6 +350,7 @@ function TeacherDashboardContent() {
           <SchoolCalendar schoolId={school?.id} userId={user?.id} />
         </div>
       </div>
+      <StuckLoadingOverlay />
     </div>
   );
 }

@@ -17,19 +17,8 @@ export interface School {
   motto?: string;
   uneb_center_number?: string;
   address?: string;
-  subscription_plan:
-    | "free_trial"
-    | "basic"
-    | "premium"
-    | "max";
-  subscription_status:
-    | "active"
-    | "expired"
-    | "trial"
-    | "past_due"
-    | "canceled"
-    | "unpaid"
-    | "suspended";
+  subscription_plan: "free_trial" | "basic" | "premium" | "max";
+  subscription_status: "active" | "expired" | "trial" | "past_due" | "canceled" | "unpaid" | "suspended";
   price_per_student?: number;
   payment_frequency?: "term" | "annual" | "one_time";
   student_count?: number;
@@ -257,7 +246,7 @@ export interface FeePayment {
   fee_id?: string;
   student_fee_term_id?: string;
   amount_paid: number;
-  payment_method: "cash" | "mobile_money" | "bank" | "installment";
+  payment_method: "cash" | "mobile_money" | "bank" | "installment" | "in_kind";
   payment_reference?: string;
   paid_by?: string;
   notes?: string;
@@ -273,7 +262,7 @@ export interface CreatePaymentInput {
   student_id: string;
   fee_id?: string;
   amount_paid: number;
-  payment_method: "cash" | "mobile_money" | "bank" | "installment";
+  payment_method: "cash" | "mobile_money" | "bank" | "installment" | "in_kind";
   payment_reference?: string;
   paid_by?: string;
   notes?: string;
@@ -284,7 +273,7 @@ export interface FeeAdjustment {
   school_id: string;
   student_id: string;
   amount: number;
-  adjustment_type: "discount" | "scholarship" | "penalty" | "manual_credit" | "write_off" | "bursary";
+  adjustment_type: "discount" | "scholarship" | "penalty" | "manual_credit" | "write_off" | "bursary" | "amnesty";
   notes?: string;
   recorded_by?: string;
   deleted_at?: string;
@@ -407,10 +396,7 @@ export interface CalendarEvent {
 
 // Report types
 export interface ReportCard {
-  student: Pick<
-    Student,
-    "first_name" | "last_name" | "student_number" | "gender" | "photo_url"
-  > & {
+  student: Pick<Student, "first_name" | "last_name" | "student_number" | "gender" | "photo_url"> & {
     ple_index_number?: string;
     classes?: Pick<Class, "name" | "level">;
   };
@@ -568,14 +554,7 @@ export interface Asset {
   id: string;
   school_id: string;
   name: string;
-  category:
-    | "furniture"
-    | "electronics"
-    | "textbooks"
-    | "equipment"
-    | "vehicle"
-    | "building"
-    | "other";
+  category: "furniture" | "electronics" | "textbooks" | "equipment" | "vehicle" | "building" | "other";
   description?: string;
   current_stock: number;
   unit_price?: number;
@@ -720,11 +699,7 @@ export interface SMSTrigger {
   id: string;
   school_id: string;
   name: string;
-  event_type:
-    | "fee_overdue"
-    | "student_absent"
-    | "staff_absent"
-    | "exam_results";
+  event_type: "fee_overdue" | "student_absent" | "staff_absent" | "exam_results";
   threshold_days: number;
   template_id?: string;
   is_active: boolean;

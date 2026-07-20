@@ -8,12 +8,7 @@ import { useAcademic } from "@/lib/academic-context";
 // uses fee_structure instead. The fee_terms module at /dashboard/fee-terms is
 // legacy and kept for backward compatibility only. See the deprecation notice
 // in fee-terms/page.tsx for details.
-import {
-  useClasses,
-  useFeeAdjustments,
-  useFeePayments,
-  useFeeStructure,
-} from "@/lib/hooks";
+import { useClasses, useFeeAdjustments, useFeePayments, useFeeStructure } from "@/lib/hooks";
 import { useOfflineStudents, useOfflineFees } from "@/lib/offline-hooks";
 import { useToast } from "@/components/Toast";
 import { useFormDraft } from "@/lib/useAutoSave";
@@ -84,11 +79,7 @@ export default function FinanceHubPage() {
   const [paymentsPage, setPaymentsPage] = useState(1);
   const itemsPerPage = 50;
 
-  const {
-    data: students,
-    loading: studentsLoading,
-    error: studentsError,
-  } = useOfflineStudents(school?.id);
+  const { data: students, loading: studentsLoading, error: studentsError } = useOfflineStudents(school?.id);
 
   const offset = (paymentsPage - 1) * itemsPerPage;
   const {
@@ -105,9 +96,7 @@ export default function FinanceHubPage() {
     deleteFeeStructure,
     refetch: refetchFeeStructure,
   } = useFeeStructure(school?.id);
-  const { adjustments, createAdjustment, deleteAdjustment } = useFeeAdjustments(
-    school?.id,
-  );
+  const { adjustments, createAdjustment, deleteAdjustment } = useFeeAdjustments(school?.id);
   const { createPayment, deletePayment } = useFeePayments(school?.id);
   const receiptRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -124,13 +113,9 @@ export default function FinanceHubPage() {
   } | null>(null);
   const [deleting, setDeleting] = useState(false);
   const undo = useUndo();
-  const [selectedStudent, setSelectedStudent] = useState<StudentBalance | null>(
-    null,
-  );
+  const [selectedStudent, setSelectedStudent] = useState<StudentBalance | null>(null);
   const [selectedClass, setSelectedClass] = useState("all");
-  const [statusFilter, setStatusFilter] = useState<
-    "all" | "unpaid" | "partial" | "paid" | "written_off"
-  >("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "unpaid" | "partial" | "paid" | "written_off">("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [saving, setSaving] = useState(false);
   const [sendingReminders, setSendingReminders] = useState(false);
@@ -194,13 +179,7 @@ export default function FinanceHubPage() {
 
   const [newAdjustment, setNewAdjustment] = useState<{
     student_id: string;
-    adjustment_type:
-      | "discount"
-      | "scholarship"
-      | "penalty"
-      | "manual_credit"
-      | "write_off"
-      | "bursary";
+    adjustment_type: "discount" | "scholarship" | "penalty" | "manual_credit" | "write_off" | "bursary" | "amnesty";
     amount: string;
     description: string;
   }>({
@@ -226,28 +205,19 @@ export default function FinanceHubPage() {
   const [feePage, setFeePage] = useState(1);
   const feesPerPage = 10;
   const feeOffset = (feePage - 1) * feesPerPage;
-  const feeTotalPages = Math.max(
-    1,
-    Math.ceil(feeStructure.length / feesPerPage),
-  );
+  const feeTotalPages = Math.max(1, Math.ceil(feeStructure.length / feesPerPage));
 
   useEffect(() => {
     setFeePage(1);
   }, [school?.id]);
 
   useEffect(() => {
-    if (
-      feeStructure.length > 0 &&
-      feePage > Math.ceil(feeStructure.length / feesPerPage)
-    ) {
+    if (feeStructure.length > 0 && feePage > Math.ceil(feeStructure.length / feesPerPage)) {
       setFeePage(1);
     }
   }, [feeStructure.length, feePage, feesPerPage]);
 
-  const paginatedFeeStructure = feeStructure.slice(
-    feeOffset,
-    feeOffset + feesPerPage,
-  );
+  const paginatedFeeStructure = feeStructure.slice(feeOffset, feeOffset + feesPerPage);
 
   const [invoiceClassFilter, setInvoiceClassFilter] = useState("all");
   const [cashbookDateFilter, setCashbookDateFilter] = useState("today");
@@ -343,16 +313,10 @@ export default function FinanceHubPage() {
     (student: (typeof students)[number]) => {
       const studentClassId = student.class_id;
       const studentPayments = paymentsByStudent.get(student.id) || [];
-      const applicableFees = [
-        ...(feesByClass.get(null) || []),
-        ...(feesByClass.get(studentClassId ?? null) || []),
-      ];
+      const applicableFees = [...(feesByClass.get(null) || []), ...(feesByClass.get(studentClassId ?? null) || [])];
       const studentAdjustments = adjustmentsByStudent.get(student.id) || [];
       const feePosition = calculateStudentFeePosition({
-        feeTotal: applicableFees.reduce(
-          (sum, f) => sum + Number(f.amount || 0),
-          0,
-        ),
+        feeTotal: applicableFees.reduce((sum, f) => sum + Number(f.amount || 0), 0),
         payments: studentPayments,
         adjustments: studentAdjustments,
         openingBalance: Number(student.opening_balance || 0),
@@ -405,34 +369,22 @@ export default function FinanceHubPage() {
         const matchesSearch =
           s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           s.student_number.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesClass =
-          selectedClass === "all" || s.class_name === selectedClass;
-        const matchesStatus =
-          statusFilter === "all" || s.status === statusFilter;
+        const matchesClass = selectedClass === "all" || s.class_name === selectedClass;
+        const matchesStatus = statusFilter === "all" || s.status === statusFilter;
         return matchesSearch && matchesClass && matchesStatus;
       })
       .sort((a, b) => b.balance - a.balance);
   }, [studentBalances, searchTerm, selectedClass, statusFilter]);
 
   const stats = useMemo(() => {
-    const totalExpected = studentBalances.reduce(
-      (sum, s) => sum + s.expected,
-      0,
-    );
+    const totalExpected = studentBalances.reduce((sum, s) => sum + s.expected, 0);
     const totalPaid = studentBalances.reduce((sum, s) => sum + s.paid, 0);
     const totalBalance = studentBalances.reduce((sum, s) => sum + s.balance, 0);
     const fullyPaid = studentBalances.filter((s) => s.balance === 0).length;
-    const partialPaid = studentBalances.filter(
-      (s) => s.paid > 0 && s.balance > 0,
-    ).length;
+    const partialPaid = studentBalances.filter((s) => s.paid > 0 && s.balance > 0).length;
     const notPaid = studentBalances.filter((s) => s.paid === 0).length;
-    const momoPayments = payments.filter(
-      (p) => p.payment_method === "mobile_money",
-    );
-    const momoTotal = momoPayments.reduce(
-      (sum, p) => sum + Number(p.amount_paid),
-      0,
-    );
+    const momoPayments = payments.filter((p) => p.payment_method === "mobile_money");
+    const momoTotal = momoPayments.reduce((sum, p) => sum + Number(p.amount_paid), 0);
     const cashTotal = payments
       .filter((p) => p.payment_method === "cash")
       .reduce((sum, p) => sum + Number(p.amount_paid), 0);
@@ -454,9 +406,7 @@ export default function FinanceHubPage() {
 
   const invoices = useMemo(() => {
     return students.map((student) => {
-      const studentFeeItems = feeStructure.filter(
-        (f) => !f.class_id || f.class_id === student.class_id,
-      );
+      const studentFeeItems = feeStructure.filter((f) => !f.class_id || f.class_id === student.class_id);
       const feeItems = studentFeeItems.map((f) => ({
         name: f.name,
         amount: Number(f.amount),
@@ -486,14 +436,8 @@ export default function FinanceHubPage() {
 
   const invoiceStats = useMemo(
     () => ({
-      totalInvoiced: filteredInvoices.reduce(
-        (sum, i) => sum + i.total_amount,
-        0,
-      ),
-      totalCollected: filteredInvoices.reduce(
-        (sum, i) => sum + i.amount_paid,
-        0,
-      ),
+      totalInvoiced: filteredInvoices.reduce((sum, i) => sum + i.total_amount, 0),
+      totalCollected: filteredInvoices.reduce((sum, i) => sum + i.amount_paid, 0),
       totalBalance: filteredInvoices.reduce((sum, i) => sum + i.balance, 0),
       fullyPaid: filteredInvoices.filter((i) => i.balance === 0).length,
       hasBalance: filteredInvoices.filter((i) => i.balance > 0).length,
@@ -514,30 +458,18 @@ export default function FinanceHubPage() {
         weekAgo.setDate(weekAgo.getDate() - 7);
         return paymentDate >= weekAgo;
       } else if (cashbookDateFilter === "month") {
-        return (
-          paymentDate.getMonth() === today.getMonth() &&
-          paymentDate.getFullYear() === today.getFullYear()
-        );
+        return paymentDate.getMonth() === today.getMonth() && paymentDate.getFullYear() === today.getFullYear();
       }
       return true;
     });
   }, [payments, cashbookDateFilter]);
 
   const cashbookSummary = useMemo(() => {
-    const cash = filteredCashbookPayments.filter(
-      (p) => p.payment_method === "cash",
-    );
-    const momo = filteredCashbookPayments.filter(
-      (p) => p.payment_method === "mobile_money",
-    );
-    const bank = filteredCashbookPayments.filter(
-      (p) => p.payment_method === "bank",
-    );
+    const cash = filteredCashbookPayments.filter((p) => p.payment_method === "cash");
+    const momo = filteredCashbookPayments.filter((p) => p.payment_method === "mobile_money");
+    const bank = filteredCashbookPayments.filter((p) => p.payment_method === "bank");
     return {
-      total: filteredCashbookPayments.reduce(
-        (sum, p) => sum + Number(p.amount_paid),
-        0,
-      ),
+      total: filteredCashbookPayments.reduce((sum, p) => sum + Number(p.amount_paid), 0),
       cash: cash.reduce((sum, p) => sum + Number(p.amount_paid), 0),
       momo: momo.reduce((sum, p) => sum + Number(p.amount_paid), 0),
       bank: bank.reduce((sum, p) => sum + Number(p.amount_paid), 0),
@@ -546,15 +478,11 @@ export default function FinanceHubPage() {
   }, [filteredCashbookPayments]);
 
   const activePlanCount = plans.filter((p) => p.status === "active").length;
-  const completedPlanCount = plans.filter(
-    (p) => p.status === "completed",
-  ).length;
+  const completedPlanCount = plans.filter((p) => p.status === "completed").length;
   const totalOutstanding = plans
     .filter((p) => p.status === "active")
     .reduce((sum, p) => {
-      const planInstallments = installments.filter(
-        (i) => i.plan_id === p.id && !i.paid,
-      );
+      const planInstallments = installments.filter((i) => i.plan_id === p.id && !i.paid);
       return sum + planInstallments.reduce((s, i) => s + i.amount, 0);
     }, 0);
 
@@ -581,18 +509,13 @@ export default function FinanceHubPage() {
       return;
     }
     if (parsedAmount > MAX_FINANCE_AMOUNT) {
-      toast.error(
-        "Payment amount seems too large. Please check and try again.",
-      );
+      toast.error("Payment amount seems too large. Please check and try again.");
       return;
     }
     try {
       setSaving(true);
       let reference = newPayment.payment_reference;
-      if (
-        newPayment.payment_method === PAYMENT_METHODS.MOBILE_MONEY &&
-        newPayment.momo_transaction_id
-      ) {
+      if (newPayment.payment_method === PAYMENT_METHODS.MOBILE_MONEY && newPayment.momo_transaction_id) {
         reference = `${newPayment.momo_provider.toUpperCase()}-${newPayment.momo_transaction_id}`;
       }
       const paymentResult = await createPayment({
@@ -628,9 +551,7 @@ export default function FinanceHubPage() {
         });
       }
 
-      const student = studentBalances.find(
-        (s) => s.id === newPayment.student_id,
-      );
+      const student = studentBalances.find((s) => s.id === newPayment.student_id);
       if (student) {
         setSelectedStudent({
           ...student,
@@ -652,16 +573,14 @@ export default function FinanceHubPage() {
         notes: "",
       });
     } catch (err: unknown) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to record payment",
-      );
+      toast.error(err instanceof Error ? err.message : "Failed to record payment");
     } finally {
       setSaving(false);
     }
   };
 
   const handleDeletePayment = async (paymentId: string) => {
-    if (user?.role === 'bursar') {
+    if (user?.role === "bursar") {
       toast.error("Bursars cannot delete payments. Please contact the Headmaster.");
       return;
     }
@@ -686,9 +605,7 @@ export default function FinanceHubPage() {
         },
       );
     } catch (err: unknown) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to delete payment",
-      );
+      toast.error(err instanceof Error ? err.message : "Failed to delete payment");
     } finally {
       setDeleting(false);
       setConfirmDelete(null);
@@ -828,8 +745,7 @@ export default function FinanceHubPage() {
     if (!iframe) {
       iframe = document.createElement("iframe");
       iframe.id = "print-iframe";
-      iframe.style.cssText =
-        "position:absolute;width:0;height:0;border:none;overflow:hidden;";
+      iframe.style.cssText = "position:absolute;width:0;height:0;border:none;overflow:hidden;";
       document.body.appendChild(iframe);
     }
 
@@ -892,8 +808,7 @@ export default function FinanceHubPage() {
       if (!iframe) {
         iframe = document.createElement("iframe");
         iframe.id = "print-iframe";
-        iframe.style.cssText =
-          "position:absolute;width:0;height:0;border:none;overflow:hidden;";
+        iframe.style.cssText = "position:absolute;width:0;height:0;border:none;overflow:hidden;";
         document.body.appendChild(iframe);
       }
 
@@ -926,11 +841,7 @@ export default function FinanceHubPage() {
 
   const handleCreateAdjustment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (
-      !newAdjustment.student_id ||
-      !newAdjustment.amount ||
-      !newAdjustment.description.trim()
-    ) {
+    if (!newAdjustment.student_id || !newAdjustment.amount || !newAdjustment.description.trim()) {
       toast.error("Please complete all adjustment fields");
       return;
     }
@@ -951,16 +862,14 @@ export default function FinanceHubPage() {
         description: "",
       });
     } catch (err: unknown) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to record adjustment",
-      );
+      toast.error(err instanceof Error ? err.message : "Failed to record adjustment");
     } finally {
       setSaving(false);
     }
   };
 
   const handleDeleteAdjustment = async (adjustmentId: string) => {
-    if (user?.role === 'bursar') {
+    if (user?.role === "bursar") {
       toast.error("Bursars cannot delete adjustments. Please contact the Headmaster.");
       return;
     }
@@ -985,9 +894,7 @@ export default function FinanceHubPage() {
         },
       );
     } catch (err: unknown) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to delete adjustment",
-      );
+      toast.error(err instanceof Error ? err.message : "Failed to delete adjustment");
     } finally {
       setDeleting(false);
       setConfirmDelete(null);
@@ -1010,9 +917,7 @@ export default function FinanceHubPage() {
       return;
     }
 
-    const installmentAmount = Math.round(
-      newPlan.total_amount / newPlan.installments,
-    );
+    const installmentAmount = Math.round(newPlan.total_amount / newPlan.installments);
     const planData = {
       school_id: school?.id,
       student_id: newPlan.student_id,
@@ -1023,11 +928,7 @@ export default function FinanceHubPage() {
       academic_year: academicYear,
     };
     try {
-      const { data: plan, error } = await supabase
-        .from("payment_plans")
-        .insert(planData)
-        .select()
-        .single();
+      const { data: plan, error } = await supabase.from("payment_plans").insert(planData).select().single();
       if (error) throw error;
 
       const installmentData = [];
@@ -1042,13 +943,11 @@ export default function FinanceHubPage() {
         });
       }
 
-      const { withTimeout, timeoutFallback } = await import('@/lib/hooks/utils');
+      const { withTimeout, timeoutFallback } = await import("@/lib/hooks/utils");
       const installmentResult = await withTimeout(
-        supabase
-          .from("payment_plan_installments")
-          .insert(installmentData),
+        supabase.from("payment_plan_installments").insert(installmentData),
         15000,
-        timeoutFallback()
+        timeoutFallback(),
       );
       const installmentError = installmentResult?.error;
 
@@ -1073,21 +972,19 @@ export default function FinanceHubPage() {
 
   const markInstallmentPaid = async (installmentId: string) => {
     try {
-      const { withTimeout, timeoutFallback } = await import('@/lib/hooks/utils');
+      const { withTimeout, timeoutFallback } = await import("@/lib/hooks/utils");
       const paymentResult = await withTimeout(
         supabase
           .from("payment_plan_installments")
           .update({ paid: true, paid_date: new Date().toISOString() })
           .eq("id", installmentId),
         15000,
-        timeoutFallback()
+        timeoutFallback(),
       );
       const paymentError = paymentResult?.error;
       if (paymentError) throw paymentError;
 
-      const updated = installments.map((i) =>
-        i.id === installmentId ? { ...i, paid: true } : i,
-      );
+      const updated = installments.map((i) => (i.id === installmentId ? { ...i, paid: true } : i));
       setInstallments(updated);
       if (updated.every((i) => i.paid)) {
         const { error: planError } = await supabase
@@ -1167,8 +1064,7 @@ export default function FinanceHubPage() {
     if (!iframe) {
       iframe = document.createElement("iframe");
       iframe.id = "print-iframe";
-      iframe.style.cssText =
-        "position:absolute;width:0;height:0;border:none;overflow:hidden;";
+      iframe.style.cssText = "position:absolute;width:0;height:0;border:none;overflow:hidden;";
       document.body.appendChild(iframe);
     }
 
@@ -1217,9 +1113,7 @@ export default function FinanceHubPage() {
       p.payment_method,
       p.payment_reference || "",
     ]);
-    const csv = [headers, ...rows]
-      .map((r) => r.map((c) => `"${c}"`).join(","))
-      .join("\n");
+    const csv = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -1264,27 +1158,15 @@ export default function FinanceHubPage() {
           variant="premium"
           actions={
             <div className="flex items-center gap-3 flex-wrap justify-start lg:justify-end">
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => setShowPaymentModal(true)}
-              >
+              <Button variant="primary" size="sm" onClick={() => setShowPaymentModal(true)}>
                 <MaterialIcon icon="payments" />
                 Add Payment
               </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setShowAdjustmentModal(true)}
-              >
+              <Button variant="secondary" size="sm" onClick={() => setShowAdjustmentModal(true)}>
                 <MaterialIcon icon="tune" />
                 Scholarship/Discount
               </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setShowCreatePlan(true)}
-              >
+              <Button variant="secondary" size="sm" onClick={() => setShowCreatePlan(true)}>
                 <MaterialIcon icon="event_note" />
                 Pay in Bits
               </Button>
@@ -1305,11 +1187,7 @@ export default function FinanceHubPage() {
           totalExpected={stats.totalExpected}
           totalPaid={stats.totalPaid}
           totalBalance={stats.totalBalance}
-          realizationRate={
-            stats.totalExpected > 0
-              ? Math.round((stats.totalPaid / stats.totalExpected) * 100)
-              : 0
-          }
+          realizationRate={stats.totalExpected > 0 ? Math.round((stats.totalPaid / stats.totalExpected) * 100) : 0}
           formatValue={(val) => formatCurrency(val).split(" ").pop() || "0"}
         />
 
@@ -1334,23 +1212,14 @@ export default function FinanceHubPage() {
                 Finance pulse
               </div>
               <div className="text-lg font-bold text-[var(--t1)]">
-                Collections, arrears, and payment-plan activity in one cleaner
-                workflow
+                Collections, arrears, and payment-plan activity in one cleaner workflow
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
-              <span className="dashboard-pill bg-emerald-50 text-emerald-700">
-                {payments.length} payments
-              </span>
-              <span className="dashboard-pill bg-blue-50 text-blue-700">
-                {activePlanCount} active plans
-              </span>
-              <span className="dashboard-pill bg-amber-50 text-amber-700">
-                {classes.length} classes
-              </span>
-              <span className="dashboard-pill bg-rose-50 text-rose-700">
-                {stats.notPaid} unpaid
-              </span>
+              <span className="dashboard-pill bg-emerald-50 text-emerald-700">{payments.length} payments</span>
+              <span className="dashboard-pill bg-blue-50 text-blue-700">{activePlanCount} active plans</span>
+              <span className="dashboard-pill bg-amber-50 text-amber-700">{classes.length} classes</span>
+              <span className="dashboard-pill bg-rose-50 text-rose-700">{stats.notPaid} unpaid</span>
             </div>
           </div>
         </div>
@@ -1418,9 +1287,7 @@ export default function FinanceHubPage() {
                         : "all",
                 )
               }
-              activeFilter={
-                statusFilter === "written_off" ? "all" : statusFilter
-              }
+              activeFilter={statusFilter === "written_off" ? "all" : statusFilter}
             />
 
             <div className="dashboard-toolbar mb-6">
@@ -1455,9 +1322,7 @@ export default function FinanceHubPage() {
                   </select>
                   <select
                     value={statusFilter}
-                    onChange={(e) =>
-                      setStatusFilter(e.target.value as typeof statusFilter)
-                    }
+                    onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
                     className="bg-surface-container-lowest border-none rounded-xl py-3 px-4 text-xs font-bold text-primary cursor-pointer min-w-[150px]"
                   >
                     <option value="all">All Statuses</option>
@@ -1486,20 +1351,16 @@ export default function FinanceHubPage() {
               className="mb-6"
             />
 
-            {balanceSubTab === "balances" && (
-              filteredBalances.length === 0 ? (
+            {balanceSubTab === "balances" &&
+              (filteredBalances.length === 0 ? (
                 <EmptyState
                   icon="account_balance"
                   title="No student balances"
                   description="Add students and fee structures to see balances"
                 />
               ) : (
-                <FeeTable
-                  balances={filteredBalances}
-                  onViewReceipt={handleViewReceipt}
-                />
-              )
-            )}
+                <FeeTable balances={filteredBalances} onViewReceipt={handleViewReceipt} />
+              ))}
 
             {balanceSubTab === "payments" && (
               <>
@@ -1512,7 +1373,8 @@ export default function FinanceHubPage() {
                 />
                 <div className="flex justify-between items-center mt-4">
                   <div className="text-sm text-[var(--t3)]">
-                    Showing {offset + 1} to {Math.min(offset + itemsPerPage, paymentsTotalCount)} of {paymentsTotalCount} payments
+                    Showing {offset + 1} to {Math.min(offset + itemsPerPage, paymentsTotalCount)} of{" "}
+                    {paymentsTotalCount} payments
                   </div>
                   <div className="flex gap-2">
                     <Button
@@ -1678,14 +1540,11 @@ export default function FinanceHubPage() {
                 </div>
                 <div>
                   <h3 className="font-bold text-on-surface">Restore Draft?</h3>
-                  <p className="text-sm text-on-surface-variant">
-                    You have an unsaved fee form
-                  </p>
+                  <p className="text-sm text-on-surface-variant">You have an unsaved fee form</p>
                 </div>
               </div>
               <p className="text-sm text-on-surface-variant mb-6">
-                Would you like to restore your previous draft from{" "}
-                {feeDraft.lastSaved?.toLocaleTimeString()}?
+                Would you like to restore your previous draft from {feeDraft.lastSaved?.toLocaleTimeString()}?
               </p>
               <div className="flex gap-3">
                 <button
@@ -1711,9 +1570,7 @@ export default function FinanceHubPage() {
         <ConfirmDialog
           isOpen={confirmDelete?.type === "payment"}
           onClose={() => setConfirmDelete(null)}
-          onConfirm={() =>
-            confirmDelete && executeDeletePayment(confirmDelete.id)
-          }
+          onConfirm={() => confirmDelete && executeDeletePayment(confirmDelete.id)}
           title="Delete Payment"
           message="Are you sure you want to delete this payment? This action can be undone."
           confirmLabel="Delete"
@@ -1735,9 +1592,7 @@ export default function FinanceHubPage() {
         <ConfirmDialog
           isOpen={confirmDelete?.type === "adjustment"}
           onClose={() => setConfirmDelete(null)}
-          onConfirm={() =>
-            confirmDelete && executeDeleteAdjustment(confirmDelete.id)
-          }
+          onConfirm={() => confirmDelete && executeDeleteAdjustment(confirmDelete.id)}
           title="Delete Adjustment"
           message="Are you sure you want to delete this fee adjustment? This action can be undone."
           confirmLabel="Delete"

@@ -1,39 +1,40 @@
 // User roles and permissions system
-import { deepFreeze } from "./deep-freeze"
+import { deepFreeze } from "./deep-freeze";
 
-export type UserRole = 
-  | 'teacher' 
-  | 'dean_of_studies' 
-  | 'bursar' 
-  | 'headmaster' 
-  | 'board' 
-  | 'parent' 
-  | 'admin'
-  | 'school_admin'
-  | 'super_admin'
-  | 'secretary'
-  | 'dorm_master'
+export type UserRole =
+  | "teacher"
+  | "dean_of_studies"
+  | "bursar"
+  | "headmaster"
+  | "board"
+  | "parent"
+  | "admin"
+  | "school_admin"
+  | "super_admin"
+  | "secretary"
+  | "dorm_master";
 
 export interface RolePermissions {
-  students: boolean
-  attendance: boolean
-  grades: boolean
-  fees: boolean
-  messages: boolean
-  reports: boolean
-  staff: boolean
-  settings: boolean
-  discipline: boolean
-  invoicing: boolean
-  assets: boolean
-  analytics: boolean
-  export: boolean
-  boardReport: boolean
-  autoSMS: boolean
-  warnings: boolean
-  visitors: boolean
-  payroll: boolean
-  performance: boolean
+  students: boolean;
+  attendance: boolean;
+  grades: boolean;
+  fees: boolean;
+  fee_status: boolean;
+  messages: boolean;
+  reports: boolean;
+  staff: boolean;
+  settings: boolean;
+  discipline: boolean;
+  invoicing: boolean;
+  assets: boolean;
+  analytics: boolean;
+  export: boolean;
+  boardReport: boolean;
+  autoSMS: boolean;
+  warnings: boolean;
+  visitors: boolean;
+  payroll: boolean;
+  performance: boolean;
 }
 
 export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = deepFreeze({
@@ -42,6 +43,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = deepFreeze({
     attendance: true,
     grades: true,
     fees: false,
+    fee_status: true,
     messages: false,
     reports: true,
     staff: false,
@@ -63,6 +65,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = deepFreeze({
     attendance: true,
     grades: true,
     fees: false,
+    fee_status: true,
     messages: false,
     reports: true,
     staff: false,
@@ -84,6 +87,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = deepFreeze({
     attendance: false,
     grades: false,
     fees: true,
+    fee_status: true,
     messages: true,
     reports: true,
     staff: false,
@@ -105,6 +109,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = deepFreeze({
     attendance: true,
     grades: true,
     fees: true,
+    fee_status: true,
     messages: true,
     reports: true,
     staff: true,
@@ -126,6 +131,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = deepFreeze({
     attendance: false,
     grades: false,
     fees: false,
+    fee_status: false,
     messages: false,
     reports: true,
     staff: false,
@@ -147,6 +153,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = deepFreeze({
     attendance: false,
     grades: false,
     fees: false,
+    fee_status: false,
     messages: false,
     reports: false,
     staff: false,
@@ -168,6 +175,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = deepFreeze({
     attendance: true,
     grades: true,
     fees: true,
+    fee_status: true,
     messages: true,
     reports: true,
     staff: true,
@@ -189,6 +197,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = deepFreeze({
     attendance: true,
     grades: true,
     fees: true,
+    fee_status: true,
     messages: true,
     reports: true,
     staff: true,
@@ -210,6 +219,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = deepFreeze({
     attendance: true,
     grades: true,
     fees: true,
+    fee_status: true,
     messages: true,
     reports: true,
     staff: true,
@@ -231,6 +241,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = deepFreeze({
     attendance: false,
     grades: false,
     fees: false,
+    fee_status: false,
     messages: true,
     reports: false,
     staff: false,
@@ -252,6 +263,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = deepFreeze({
     attendance: true,
     grades: false,
     fees: false,
+    fee_status: false,
     messages: false,
     reports: false,
     staff: false,
@@ -268,62 +280,63 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = deepFreeze({
     payroll: false,
     performance: false,
   },
-})
+});
 
 export const ROLE_LABELS: Record<UserRole, string> = deepFreeze({
-  teacher: 'Teacher',
-  dean_of_studies: 'Dean of Studies',
-  bursar: 'Bursar',
-  headmaster: 'Headteacher',
-  board: 'Board Member',
-  parent: 'Parent',
-  admin: 'Administrator',
-  school_admin: 'School Admin',
-  super_admin: 'Super Admin',
-  secretary: 'Secretary',
-  dorm_master: 'Dorm Master',
-})
+  teacher: "Teacher",
+  dean_of_studies: "Dean of Studies",
+  bursar: "Bursar",
+  headmaster: "Headteacher",
+  board: "Board Member",
+  parent: "Parent",
+  admin: "Administrator",
+  school_admin: "School Admin",
+  super_admin: "Super Admin",
+  secretary: "Secretary",
+  dorm_master: "Dorm Master",
+});
 
 export const ROLE_ORDER: readonly UserRole[] = deepFreeze([
-  'super_admin',
-  'headmaster',
-  'school_admin',
-  'admin',
-  'dean_of_studies',
-  'bursar',
-  'teacher',
-  'secretary',
-  'dorm_master',
-  'board',
-  'parent',
-])
+  "super_admin",
+  "headmaster",
+  "school_admin",
+  "admin",
+  "dean_of_studies",
+  "bursar",
+  "teacher",
+  "secretary",
+  "dorm_master",
+  "board",
+  "parent",
+]);
 
 export const PERMISSION_LABELS: Record<keyof RolePermissions, string> = deepFreeze({
-  students: 'Students',
-  attendance: 'Attendance',
-  grades: 'Grades',
-  fees: 'Fees',
-  messages: 'Messages',
-  reports: 'Reports',
-  staff: 'Staff',
-  settings: 'Settings',
-  discipline: 'Discipline',
-  invoicing: 'Invoicing',
-  assets: 'Assets',
-  analytics: 'Analytics',
-  export: 'Export',
-  boardReport: 'Board Report',
-  autoSMS: 'Auto SMS',
-  warnings: 'Warnings',
-  visitors: 'Visitors',
-  payroll: 'Payroll',
-  performance: 'Performance',
-})
+  students: "Students",
+  attendance: "Attendance",
+  grades: "Grades",
+  fees: "Fees",
+  fee_status: "Fee Status (Silent)",
+  messages: "Messages",
+  reports: "Reports",
+  staff: "Staff",
+  settings: "Settings",
+  discipline: "Discipline",
+  invoicing: "Invoicing",
+  assets: "Assets",
+  analytics: "Analytics",
+  export: "Export",
+  boardReport: "Board Report",
+  autoSMS: "Auto SMS",
+  warnings: "Warnings",
+  visitors: "Visitors",
+  payroll: "Payroll",
+  performance: "Performance",
+});
 
 export function canAccess(role: UserRole, feature: keyof RolePermissions): boolean {
-  return ROLE_PERMISSIONS[role]?.[feature] ?? false
+  return ROLE_PERMISSIONS[role]?.[feature] ?? false;
 }
 
 export function getRoleLabel(role: UserRole): string {
-  return ROLE_LABELS[role] ?? role
+  return ROLE_LABELS[role] ?? role;
 }

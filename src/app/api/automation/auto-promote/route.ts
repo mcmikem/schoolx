@@ -1,24 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
-import {
-  requireCronSecretOrDeny,
-  createServiceRoleClientOrThrow,
-  requireExistingSchoolOrDeny,
-} from "@/lib/api-utils";
+import { requireCronSecretOrDeny, createServiceRoleClientOrThrow, requireExistingSchoolOrDeny } from "@/lib/api-utils";
 
 export async function POST(request: NextRequest) {
   try {
     const cron = requireCronSecretOrDeny(request);
     if (!cron.ok) return cron.response;
 
-
     const { schoolId, academicYear, criteria } = await request.json();
 
     if (!academicYear) {
-      return NextResponse.json(
-        { error: "Missing required parameter: academicYear" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Missing required parameter: academicYear" }, { status: 400 });
     }
 
     const supabase = createServiceRoleClientOrThrow();
@@ -81,9 +73,7 @@ export async function POST(request: NextRequest) {
       };
 
       try {
-        const studentClass = Array.isArray(student.classes)
-          ? student.classes[0]
-          : student.classes;
+        const studentClass = Array.isArray(student.classes) ? student.classes[0] : student.classes;
         if (!studentClass) {
           errors.push({ studentId: student.id, reason: "No class assigned" });
           continue;
@@ -93,11 +83,7 @@ export async function POST(request: NextRequest) {
 
         const grades = student.grades || [];
         const validGrades = grades.filter(
-          (g: any) =>
-            g.ca1 !== null &&
-            g.ca2 !== null &&
-            g.ca3 !== null &&
-            g.exam_score !== null,
+          (g: any) => g.ca1 !== null && g.ca2 !== null && g.ca3 !== null && g.exam_score !== null,
         );
 
         let averageScore = 0;
@@ -105,29 +91,20 @@ export async function POST(request: NextRequest) {
 
         if (validGrades.length > 0) {
           const totalScore = validGrades.reduce(
-            (sum: number, g: any) =>
-              sum +
-              (g.ca1 || 0) +
-              (g.ca2 || 0) +
-              (g.ca3 || 0) +
-              (g.exam_score || 0),
+            (sum: number, g: any) => sum + (g.ca1 || 0) + (g.ca2 || 0) + (g.ca3 || 0) + (g.exam_score || 0),
             0,
           );
           averageScore = totalScore / (validGrades.length * 4);
           failedSubjects = validGrades.filter((g: any) => {
-            const total =
-              (g.ca1 || 0) + (g.ca2 || 0) + (g.ca3 || 0) + (g.exam_score || 0);
+            const total = (g.ca1 || 0) + (g.ca2 || 0) + (g.ca3 || 0) + (g.exam_score || 0);
             return total / 4 < 40;
           }).length;
         }
 
         const attendanceRecords = student.attendance || [];
         const totalDays = attendanceRecords.length;
-        const presentDays = attendanceRecords.filter((r: any) =>
-          ["present", "late"].includes(r.status),
-        ).length;
-        const attendancePercent =
-          totalDays > 0 ? (presentDays / totalDays) * 100 : 0;
+        const presentDays = attendanceRecords.filter((r: any) => ["present", "late"].includes(r.status)).length;
+        const attendancePercent = totalDays > 0 ? (presentDays / totalDays) * 100 : 0;
 
         const isEligible =
           averageScore >= promotionCriteria.minAverageScore &&
@@ -137,13 +114,8 @@ export async function POST(request: NextRequest) {
         if (isEligible) {
           const levelNum = parseInt(studentClass.level.replace(/\D/g, ""));
           let nextLevelPattern = "";
-          if (studentClass.level === "P.7" || studentClass.level.includes("P7"))
-            nextLevelPattern = "S.1";
-          else if (
-            studentClass.level === "S.4" ||
-            studentClass.level.includes("S4")
-          )
-            nextLevelPattern = "S.5";
+          if (studentClass.level === "P.7" || studentClass.level.includes("P7")) nextLevelPattern = "S.1";
+          else if (studentClass.level === "S.4" || studentClass.level.includes("S4")) nextLevelPattern = "S.5";
           else nextLevelPattern = String(levelNum + 1);
 
           const { data: nextClasses } = await supabase
@@ -173,15 +145,12 @@ export async function POST(request: NextRequest) {
               from_class_id: studentClass.id,
               to_class_id: nextClassId,
               academic_year: academicYear,
-              promotion_type: "promoted",
-              promoted_by: "system",
+              promoted_by: null,
               promoted_at: new Date().toISOString(),
               notes: `Auto-promoted: Avg ${averageScore.toFixed(1)}, Att ${attendancePercent.toFixed(1)}%`,
             };
 
-            const { error: insertError } = await supabase
-              .from("student_promotions")
-              .insert(promotionRecord);
+            const { error: insertError } = await supabase.from("student_promotions").insert(promotionRecord);
 
             if (insertError) {
               await supabase
@@ -189,9 +158,7 @@ export async function POST(request: NextRequest) {
                 .update({ class_id: originalClassId, repeating: false })
                 .eq("id", student.id);
               studentOps.studentUpdateSuccess = false;
-              throw new Error(
-                `Promotion record insert failed: ${insertError.message}`,
-              );
+              throw new Error(`Promotion record insert failed: ${insertError.message}`);
             }
             studentOps.promotionInsertSuccess = true;
             studentOps.promotionRecord = promotionRecord;
@@ -213,17 +180,11 @@ export async function POST(request: NextRequest) {
         } else {
           const reasons: string[] = [];
           if (averageScore < promotionCriteria.minAverageScore)
-            reasons.push(
-              `Avg ${averageScore.toFixed(1)} < ${promotionCriteria.minAverageScore}`,
-            );
+            reasons.push(`Avg ${averageScore.toFixed(1)} < ${promotionCriteria.minAverageScore}`);
           if (attendancePercent < promotionCriteria.minAttendancePercent)
-            reasons.push(
-              `Att ${attendancePercent.toFixed(1)}% < ${promotionCriteria.minAttendancePercent}%`,
-            );
+            reasons.push(`Att ${attendancePercent.toFixed(1)}% < ${promotionCriteria.minAttendancePercent}%`);
           if (failedSubjects > promotionCriteria.maxFailedSubjects)
-            reasons.push(
-              `${failedSubjects} failed > ${promotionCriteria.maxFailedSubjects}`,
-            );
+            reasons.push(`${failedSubjects} failed > ${promotionCriteria.maxFailedSubjects}`);
           retained.push({
             studentId: student.id,
             name: `${student.first_name} ${student.last_name}`,
@@ -231,20 +192,14 @@ export async function POST(request: NextRequest) {
           });
         }
       } catch (err) {
-        if (
-          studentOps.studentUpdateSuccess &&
-          !studentOps.promotionInsertSuccess
-        ) {
+        if (studentOps.studentUpdateSuccess && !studentOps.promotionInsertSuccess) {
           try {
             await supabase
               .from("students")
               .update({ class_id: studentOps.originalClassId, repeating: false })
               .eq("id", student.id);
           } catch (rollbackErr) {
-            logger.error(
-              `Rollback failed for student ${student.id}:`,
-              rollbackErr,
-            );
+            logger.error(`Rollback failed for student ${student.id}:`, rollbackErr);
           }
         }
         errors.push({

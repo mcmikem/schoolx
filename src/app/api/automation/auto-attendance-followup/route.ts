@@ -1,14 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  detectConsecutiveAbsenceAlerts,
-  filterAbsenceAlertsForCooldown,
-} from "@/lib/operations";
+import { detectConsecutiveAbsenceAlerts, filterAbsenceAlertsForCooldown } from "@/lib/operations";
 import type { AttendanceAlert } from "@/lib/operations";
-import {
-  requireCronSecretOrDeny,
-  createServiceRoleClientOrThrow,
-  requireExistingSchoolOrDeny,
-} from "@/lib/api-utils";
+import { requireCronSecretOrDeny, createServiceRoleClientOrThrow, requireExistingSchoolOrDeny } from "@/lib/api-utils";
 import { sendAfricasTalkingSMSWithRetry } from "@/lib/africas-talking";
 import { logger } from "@/lib/logger";
 
@@ -16,7 +9,6 @@ export async function POST(request: NextRequest) {
   try {
     const cron = requireCronSecretOrDeny(request);
     if (!cron.ok) return cron.response;
-
 
     const { schoolId, threshold } = await request.json();
     const supabase = createServiceRoleClientOrThrow();
@@ -55,9 +47,7 @@ export async function POST(request: NextRequest) {
     const studentIds = students.map((s: any) => s.id);
 
     // Get attendance records for the last 30 days
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .split("T")[0];
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
 
     const { data: attendance, error: attendanceError } = await supabase
       .from("attendance")
@@ -89,12 +79,9 @@ export async function POST(request: NextRequest) {
     // Check cooldown - filter out students who were already notified recently
     const { data: recentLogs } = await supabase
       .from("automated_message_logs")
-      .select("trigger_id, record_id, status, sent_at, created_at")
+      .select("trigger_id, record_id, status, sent_at")
       .eq("school_id", school.schoolId)
-      .gte(
-        "created_at",
-        new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-      );
+      .gte("sent_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
 
     const alertsToSend = filterAbsenceAlertsForCooldown({
       alerts,
@@ -110,9 +97,7 @@ export async function POST(request: NextRequest) {
     const sentAt = new Date().toISOString();
 
     for (const alert of alerts as AttendanceAlert[]) {
-      const shouldSend = alertsToSend.some(
-        (a) => a.studentId === alert.studentId,
-      );
+      const shouldSend = alertsToSend.some((a) => a.studentId === alert.studentId);
 
       flagged.push({
         studentId: alert.studentId,
@@ -142,14 +127,12 @@ export async function POST(request: NextRequest) {
 
       // Send SMS to parent
       try {
-        const smsResult = await sendAfricasTalkingSMSWithRetry(
-          alert.parentPhone,
-          alert.smsMessage,
-          { formatUgandaNumber: true },
-        );
+        const smsResult = await sendAfricasTalkingSMSWithRetry(alert.parentPhone, alert.smsMessage, {
+          formatUgandaNumber: true,
+        });
 
         if (smsResult.success) {
-          const { withTimeout, timeoutFallback } = await import('@/lib/hooks/utils');
+          const { withTimeout, timeoutFallback } = await import("@/lib/hooks/utils");
           // Log the message
           const attMsgResult = await withTimeout(
             supabase.from("messages").insert({
@@ -160,10 +143,9 @@ export async function POST(request: NextRequest) {
               message: alert.smsMessage,
               status: "sent",
               sent_at: sentAt,
-              type: "attendance_followup",
             } as any),
             15000,
-            timeoutFallback()
+            timeoutFallback(),
           );
           if (attMsgResult?.error) {
             logger.error("Attendance followup message insert error:", attMsgResult.error);
@@ -180,7 +162,7 @@ export async function POST(request: NextRequest) {
               sent_at: sentAt,
             } as any),
             15000,
-            timeoutFallback()
+            timeoutFallback(),
           );
           if (attLogResult?.error) {
             logger.error("Attendance followup log insert error:", attLogResult.error);
@@ -230,4 +212,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

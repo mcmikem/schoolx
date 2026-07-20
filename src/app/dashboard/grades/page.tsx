@@ -3,16 +3,18 @@ import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
-import {
-  useClasses,
-  useSubjects,
-  useStaff,
-} from "@/lib/hooks";
+import { useClasses, useSubjects, useStaff } from "@/lib/hooks";
 import { useOfflineStudents, useOfflineGrades } from "@/lib/offline-hooks";
 import { useToast } from "@/components/Toast";
 import { supabase } from "@/lib/supabase";
 import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
-import { calculateSubjectTotal, isCompetencyScale, COMPETENCY_SCHEME, CompetencyValue, getCompetencyLabel } from "@/lib/grading";
+import {
+  calculateSubjectTotal,
+  isCompetencyScale,
+  COMPETENCY_SCHEME,
+  CompetencyValue,
+  getCompetencyLabel,
+} from "@/lib/grading";
 import MaterialIcon from "@/components/MaterialIcon";
 import { logger } from "@/lib/logger";
 
@@ -28,16 +30,8 @@ import { logAuditEventWithOfflineSupport } from "@/lib/audit";
 import { useOnlineStatus, offlineDB } from "@/lib/offline";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { GradeImportModal } from "@/components/grades/GradeImportModal";
-import {
-  createRecord,
-  updateRecord,
-  upsertRecordReturning,
-} from "@/lib/crud-service";
-import {
-  deriveGradeWorkflowStatus,
-  getNextGradeWorkflowStatusActions,
-  GradeWorkflowStatus,
-} from "@/lib/operations";
+import { createRecord, updateRecord, upsertRecordReturning } from "@/lib/crud-service";
+import { deriveGradeWorkflowStatus, getNextGradeWorkflowStatusActions, GradeWorkflowStatus } from "@/lib/operations";
 
 interface TopicCoverage {
   id: string;
@@ -48,9 +42,7 @@ interface TopicCoverage {
   teacher_id?: string;
 }
 
-const DEFAULT_TOPICS = [
-  "Topic 1", "Topic 2", "Topic 3", "Topic 4", "Topic 5",
-];
+const DEFAULT_TOPICS = ["Topic 1", "Topic 2", "Topic 3", "Topic 4", "Topic 5"];
 
 const ASSESSMENT_TYPES = ["ca1", "ca2", "ca3", "ca4", "project", "exam"] as const;
 const COMPETENCY_ASSESSMENT_TYPES = ["competency"] as const;
@@ -201,16 +193,17 @@ export default function GradesPage() {
 
   const [tab, setTab] = useState<"marks" | "coverage">("marks");
   const tabLabels = { marks: "Enter Marks", coverage: "What we Taught" };
-  
+
   const [teacherSubjects, setTeacherSubjects] = useState<{ subject_id: string; class_id: string }[]>([]);
 
   useEffect(() => {
     if (!user?.id || isDemo) return;
     const fetchTeacherSubjects = async () => {
-      const result = await withTimeout(supabase
-        .from("teacher_subjects")
-        .select("subject_id, class_id")
-        .eq("teacher_id", user.id), 10000, timeoutFallback());
+      const result = await withTimeout(
+        supabase.from("teacher_subjects").select("subject_id, class_id").eq("teacher_id", user.id),
+        10000,
+        timeoutFallback(),
+      );
       const { data, error } = result || { data: [], error: null };
       if (error) {
         logger.error("Error fetching teacher subjects:", error);
@@ -237,11 +230,8 @@ export default function GradesPage() {
   const [competencyMode, setCompetencyMode] = useState(false);
   const [caLocked, setCaLocked] = useState(false);
   const [lockedByName, setLockedByName] = useState("");
-  const [marksBy, setMarksBy] = useState<
-    Record<string, { name: string; type: string }>
-  >({});
-  const [submissionStatus, setSubmissionStatus] =
-    useState<GradeWorkflowStatus>("draft");
+  const [marksBy, setMarksBy] = useState<Record<string, { name: string; type: string }>>({});
+  const [submissionStatus, setSubmissionStatus] = useState<GradeWorkflowStatus>("draft");
   const statusLabels: Record<GradeWorkflowStatus, string> = {
     draft: "Still Writing",
     submitted: "Sent to Boss",
@@ -249,22 +239,12 @@ export default function GradesPage() {
     published: "Ready for Parents",
   };
   // Offline-aware students and grades
-  const {
-    data: classStudents,
-    loading: studentsLoading,
-    error: studentsError,
-  } = useOfflineStudents(school?.id);
+  const { data: classStudents, loading: studentsLoading, error: studentsError } = useOfflineStudents(school?.id);
 
-  const {
-    data: existingGrades,
-    loading: gradesLoading,
-    error: gradesError,
-  } = useOfflineGrades(school?.id);
+  const { data: existingGrades, loading: gradesLoading, error: gradesError } = useOfflineGrades(school?.id);
 
   const [inlineEntryMode, setInlineEntryMode] = useState(true);
-  const [saveStatuses, setSaveStatuses] = useState<Record<string, SaveStatus>>(
-    {},
-  );
+  const [saveStatuses, setSaveStatuses] = useState<Record<string, SaveStatus>>({});
   const [mobileStudentIndex, setMobileStudentIndex] = useState(0);
   const [quickFillModal, setQuickFillModal] = useState<{
     open: boolean;
@@ -272,9 +252,9 @@ export default function GradesPage() {
     value: string;
   }>({ open: false, type: "", value: "" });
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
-  const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>(
-    {},
-  );
+  const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const dirtyCellsRef = useRef<Set<string>>(new Set());
+  const warnedOutliersRef = useRef<Set<string>>(new Set());
   const assessmentLabels: Record<string, string> = {
     ca1: "CA1",
 
@@ -318,26 +298,17 @@ export default function GradesPage() {
     }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      list = list.filter((s) =>
-        `${s.first_name} ${s.last_name}`.toLowerCase().includes(q)
-      );
+      list = list.filter((s) => `${s.first_name} ${s.last_name}`.toLowerCase().includes(q));
     }
     return list;
   }, [filteredStudents, statusFilter, studentStatusMap, searchQuery]);
 
   const gradeOffset = (gradePage - 1) * gradesPerPage;
-  const gradeTotalPages = Math.max(
-    1,
-    Math.ceil(displayStudents.length / gradesPerPage),
-  );
+  const gradeTotalPages = Math.max(1, Math.ceil(displayStudents.length / gradesPerPage));
   const isStudentGraded = useCallback(
     (studentId: string): boolean => {
       const types = competencyMode ? COMPETENCY_ASSESSMENT_TYPES : ASSESSMENT_TYPES;
-      return types.every(
-        (t) =>
-          marks[`${studentId}_${t}`] !== null &&
-          marks[`${studentId}_${t}`] !== undefined,
-      );
+      return types.every((t) => marks[`${studentId}_${t}`] !== null && marks[`${studentId}_${t}`] !== undefined);
     },
     [marks, competencyMode],
   );
@@ -352,18 +323,12 @@ export default function GradesPage() {
   }, [selectedClass, selectedSubject]);
 
   useEffect(() => {
-    if (
-      displayStudents.length > 0 &&
-      gradePage > Math.ceil(displayStudents.length / gradesPerPage)
-    ) {
+    if (displayStudents.length > 0 && gradePage > Math.ceil(displayStudents.length / gradesPerPage)) {
       setGradePage(1);
     }
   }, [displayStudents.length, gradePage, gradesPerPage]);
 
-  const paginatedStudents = displayStudents.slice(
-    gradeOffset,
-    gradeOffset + gradesPerPage,
-  );
+  const paginatedStudents = displayStudents.slice(gradeOffset, gradeOffset + gradesPerPage);
 
   // Initialize marks from existing grades (offline-aware)
   useEffect(() => {
@@ -387,14 +352,16 @@ export default function GradesPage() {
           lockedBy = g.locked_by;
         }
       });
-      
+
       // Check for zero variance (Scenario 7)
       const scores = Object.values(marksMap).filter((v) => v !== null) as number[];
       if (scores.length >= 5) {
         const first = scores[0];
         const allIdentical = scores.every((v) => v === first);
         if (allIdentical) {
-          toast.warning("Alert: All entered grades in this class are identical (Zero variance). This might indicate a lack of actual assessment.");
+          toast.warning(
+            "Alert: All entered grades in this class are identical (Zero variance). This might indicate a lack of actual assessment.",
+          );
         }
       }
 
@@ -484,11 +451,32 @@ export default function GradesPage() {
       setMarks((prev) => ({ ...prev, [`${studentId}_${type}`]: null }));
     } else {
       const maxVal = type === "competency" ? 3 : ASSESSMENT_MAX[type] || 100;
-      const num = Math.min(
-        maxVal,
-        Math.max(0, Number(value)),
-      );
+      const num = Math.min(maxVal, Math.max(0, Number(value)));
       setMarks((prev) => ({ ...prev, [`${studentId}_${type}`]: num }));
+      dirtyCellsRef.current.add(`${studentId}_${type}`);
+
+      if (type !== "competency" && value !== "") {
+        const otherTypes = ASSESSMENT_TYPES.filter((t) => t !== type);
+        let otherSum = 0;
+        let otherCount = 0;
+        for (const t of otherTypes) {
+          const v = marks[`${studentId}_${t}`];
+          if (v !== null && v !== undefined) {
+            otherSum += v;
+            otherCount++;
+          }
+        }
+        if (otherCount >= 2) {
+          const otherAvg = otherSum / otherCount;
+          const outlierKey = `${studentId}_${type}_${Math.round(num / 5) * 5}`;
+          if (Math.abs(num - otherAvg) > 20 && !warnedOutliersRef.current.has(outlierKey)) {
+            warnedOutliersRef.current.add(outlierKey);
+            toast.warning(
+              `${type.toUpperCase()} (${num}) differs significantly from student's other scores (~${Math.round(otherAvg)}). Please verify.`,
+            );
+          }
+        }
+      }
     }
   };
 
@@ -508,9 +496,10 @@ export default function GradesPage() {
   };
 
   const activeAssessmentTypes = useMemo(
-    () => ASSESSMENT_TYPES.filter((type) =>
-      filteredStudents.some((s) => marks[`${s.id}_${type}`] !== null && marks[`${s.id}_${type}`] !== undefined)
-    ),
+    () =>
+      ASSESSMENT_TYPES.filter((type) =>
+        filteredStudents.some((s) => marks[`${s.id}_${type}`] !== null && marks[`${s.id}_${type}`] !== undefined),
+      ),
     [marks, filteredStudents],
   );
 
@@ -522,13 +511,14 @@ export default function GradesPage() {
       }
       setSaveStatuses((prev) => ({ ...prev, [key]: "dirty" }));
       debounceTimers.current[key] = setTimeout(async () => {
+        dirtyCellsRef.current.delete(key);
         const score = marks[key];
         if (score === null || score === undefined) {
           setSaveStatuses((prev) => ({ ...prev, [key]: "idle" }));
           return;
         }
         const isAssigned = teacherSubjects.some(
-          (ts) => ts.subject_id === selectedSubject && ts.class_id === selectedClass
+          (ts) => ts.subject_id === selectedSubject && ts.class_id === selectedClass,
         );
         if (!isAssigned && user?.role === "teacher") {
           toast.error("You are not assigned to teach this subject in this class.");
@@ -587,6 +577,31 @@ export default function GradesPage() {
     };
   }, []);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (dirtyCellsRef.current.size === 0) return;
+      const toSave = Array.from(dirtyCellsRef.current);
+      dirtyCellsRef.current.clear();
+      toSave.forEach((key) => {
+        const [studentId, type] = key.split("_");
+        if (studentId && type) {
+          debouncedAutoSave(studentId, type);
+        }
+      });
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [debouncedAutoSave]);
+
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (dirtyCellsRef.current.size > 0) {
+        e.preventDefault();
+      }
+    };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, []);
+
   const handleInlineBlur = useCallback(
     (studentId: string, type: string) => {
       debouncedAutoSave(studentId, type);
@@ -603,10 +618,7 @@ export default function GradesPage() {
       setMarks((prev) => {
         const next = { ...prev };
         filteredStudents.forEach((s) => {
-          next[`${s.id}_${type}`] = Math.min(
-            ASSESSMENT_MAX[type] || 100,
-            Math.max(0, value),
-          );
+          next[`${s.id}_${type}`] = Math.min(ASSESSMENT_MAX[type] || 100, Math.max(0, value));
         });
         return next;
       });
@@ -627,8 +639,7 @@ export default function GradesPage() {
   const handleCopyFromPreviousTerm = useCallback(async () => {
     if (!selectedClass || !selectedSubject || !user?.id) return;
     const prevTerm = currentTerm > 1 ? currentTerm - 1 : 3;
-    const prevYear =
-      currentTerm === 1 ? String(Number(academicYear) - 1) : academicYear;
+    const prevYear = currentTerm === 1 ? String(Number(academicYear) - 1) : academicYear;
     try {
       setLoading(true);
       const { data: prevGrades, error } = await supabase
@@ -657,14 +668,7 @@ export default function GradesPage() {
     } finally {
       setLoading(false);
     }
-  }, [
-    selectedClass,
-    selectedSubject,
-    user?.id,
-    currentTerm,
-    academicYear,
-    toast,
-  ]);
+  }, [selectedClass, selectedSubject, user?.id, currentTerm, academicYear, toast]);
 
   const handleMobileTouchStart = useCallback((e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
@@ -675,9 +679,7 @@ export default function GradesPage() {
       const diff = touchStartX.current - e.changedTouches[0].clientX;
       if (Math.abs(diff) > 50) {
         if (diff > 0) {
-          setMobileStudentIndex((prev) =>
-            Math.min(prev + 1, filteredStudents.length - 1),
-          );
+          setMobileStudentIndex((prev) => Math.min(prev + 1, filteredStudents.length - 1));
         } else {
           setMobileStudentIndex((prev) => Math.max(prev - 1, 0));
         }
@@ -707,8 +709,7 @@ export default function GradesPage() {
     (studentId: string, type: string): string => {
       const status = getSaveStatusForInput(studentId, type);
       if (status === "dirty") return "ring-2 ring-amber-400 bg-amber-50/30";
-      if (status === "saving")
-        return "ring-2 ring-blue-400 bg-blue-50/30 animate-pulse";
+      if (status === "saving") return "ring-2 ring-blue-400 bg-blue-50/30 animate-pulse";
       if (status === "saved") return "ring-2 ring-green-400 bg-green-50/30";
       return "";
     },
@@ -749,7 +750,7 @@ export default function GradesPage() {
           isDemo,
           schoolId: school?.id,
         };
-        if (assessmentType === 'competency') {
+        if (assessmentType === "competency") {
           gradePayload.competency_level = getCompetencyLabel(score as CompetencyValue);
         }
         await saveGrade(gradePayload);
@@ -814,18 +815,7 @@ export default function GradesPage() {
         ];
       });
     } else {
-      headers = [
-        "Student Name",
-        "Student Number",
-        "CA1",
-        "CA2",
-        "CA3",
-        "CA4",
-        "Project",
-        "Exam",
-        "Total",
-        "Grade",
-      ];
+      headers = ["Student Name", "Student Number", "CA1", "CA2", "CA3", "CA4", "Project", "Exam", "Total", "Grade"];
       rows = filteredStudents.map((student) => {
         const ca1 = getMark(student.id, "ca1");
         const ca2 = getMark(student.id, "ca2");
@@ -849,9 +839,7 @@ export default function GradesPage() {
         ];
       });
     }
-    const csv = [headers, ...rows]
-      .map((r) => r.map((c) => `"${c}"`).join(","))
-      .join("\n");
+    const csv = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -883,22 +871,13 @@ export default function GradesPage() {
   };
 
   const handleAdvanceWorkflow = async (nextStatus: GradeWorkflowStatus) => {
-    if (
-      !selectedClass ||
-      !selectedSubject ||
-      !user?.id ||
-      existingGrades.length === 0
-    ) {
+    if (!selectedClass || !selectedSubject || !user?.id || existingGrades.length === 0) {
       toast.error("Save grades first before changing workflow status");
       return;
     }
 
     const actorLabel =
-      nextStatus === "approved"
-        ? "approve"
-        : nextStatus === "published"
-          ? "make ready for parents"
-          : "send to boss";
+      nextStatus === "approved" ? "approve" : nextStatus === "published" ? "make ready for parents" : "send to boss";
 
     setGradeConfirm({
       open: true,
@@ -906,14 +885,16 @@ export default function GradesPage() {
       onConfirm: async () => {
         try {
           setSaving(true);
-          const { data: { session } } = await supabase.auth.getSession();
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
           const token = session?.access_token;
 
           const response = await fetch("/api/grades/workflow/", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              "Authorization": `Bearer ${token || ""}`,
+              Authorization: `Bearer ${token || ""}`,
             },
             body: JSON.stringify({
               class_id: selectedClass,
@@ -971,12 +952,15 @@ export default function GradesPage() {
         withTimeout(
           supabase
             .from("topic_coverage")
-            .select("id, syllabus_id, class_id, teacher_id, status, syllabus!inner(topic, subject_id, term, academic_year)")
+            .select(
+              "id, syllabus_id, class_id, teacher_id, status, syllabus!inner(topic, subject_id, term, academic_year)",
+            )
             .eq("class_id", selectedClass)
             .eq("syllabus.subject_id", selectedSubject)
             .eq("syllabus.term", currentTerm)
             .eq("syllabus.academic_year", academicYear),
-          15000, timeoutFallback()
+          15000,
+          timeoutFallback(),
         ),
         withTimeout(
           supabase
@@ -987,7 +971,8 @@ export default function GradesPage() {
             .eq("term", currentTerm)
             .eq("academic_year", academicYear)
             .order("topic"),
-          10000, timeoutFallback()
+          10000,
+          timeoutFallback(),
         ),
       ]);
 
@@ -1006,9 +991,7 @@ export default function GradesPage() {
         topic_name: row.syllabus?.topic || "",
       }));
       setCoverage(mapped);
-      setSyllabusTopicNames(
-        (sylData || []).map((s: any) => s.topic).filter(Boolean)
-      );
+      setSyllabusTopicNames((sylData || []).map((s: any) => s.topic).filter(Boolean));
     } catch (err) {
       logger.error("Error fetching coverage:", err);
     } finally {
@@ -1022,10 +1005,7 @@ export default function GradesPage() {
     }
   }, [selectedClass, selectedSubject, fetchCoverage]);
 
-  const updateTopicStatus = async (
-    topicName: string,
-    status: "not_started" | "in_progress" | "completed",
-  ) => {
+  const updateTopicStatus = async (topicName: string, status: "not_started" | "in_progress" | "completed") => {
     try {
       const existing = coverage.find((c) => c.topic_name === topicName);
       if (existing) {
@@ -1036,10 +1016,7 @@ export default function GradesPage() {
               .update({
                 status,
                 teacher_id: user?.id,
-                completed_date:
-                  status === "completed"
-                    ? new Date().toISOString().split("T")[0]
-                    : null,
+                completed_date: status === "completed" ? new Date().toISOString().split("T")[0] : null,
               })
               .eq("id", existing.id),
           { timeoutMs: 10000, timeoutMessage: "Coverage update timed out" },
@@ -1068,10 +1045,7 @@ export default function GradesPage() {
               class_id: selectedClass,
               teacher_id: user?.id,
               status,
-              completed_date:
-                status === "completed"
-                  ? new Date().toISOString().split("T")[0]
-                  : null,
+              completed_date: status === "completed" ? new Date().toISOString().split("T")[0] : null,
             }),
           { timeoutMs: 10000, timeoutMessage: "Coverage insert timed out" },
         );
@@ -1085,16 +1059,12 @@ export default function GradesPage() {
 
   const getTopicStatus = useCallback(
     (topicName: string): string => {
-      return (
-        coverage.find((c) => c.topic_name === topicName)?.status ||
-        "not_started"
-      );
+      return coverage.find((c) => c.topic_name === topicName)?.status || "not_started";
     },
     [coverage],
   );
 
-  const selectedSubjectName =
-    subjects.find((s) => s.id === selectedSubject)?.name || "";
+  const selectedSubjectName = subjects.find((s) => s.id === selectedSubject)?.name || "";
   const selectedClassObj = classes.find((c) => c.id === selectedClass);
   const selectedClassName = selectedClassObj
     ? `${selectedClassObj.name}${selectedClassObj.stream ? ` ${selectedClassObj.stream}` : ""}`
@@ -1106,12 +1076,8 @@ export default function GradesPage() {
 
   const coverageStats = useMemo(() => {
     const total = topics.length;
-    const completed = topics.filter(
-      (t) => getTopicStatus(t) === "completed",
-    ).length;
-    const inProgress = topics.filter(
-      (t) => getTopicStatus(t) === "in_progress",
-    ).length;
+    const completed = topics.filter((t) => getTopicStatus(t) === "completed").length;
+    const inProgress = topics.filter((t) => getTopicStatus(t) === "in_progress").length;
     return {
       total,
       completed,
@@ -1122,10 +1088,7 @@ export default function GradesPage() {
 
   const isSubmitted = submissionStatus !== "draft";
   const isPublished = submissionStatus === "published";
-  const nextWorkflowActions = getNextGradeWorkflowStatusActions(
-    submissionStatus,
-    user?.role,
-  );
+  const nextWorkflowActions = getNextGradeWorkflowStatusActions(submissionStatus, user?.role);
   const statusTone =
     submissionStatus === "published"
       ? "bg-[var(--green-soft)] text-[var(--green)]"
@@ -1196,10 +1159,7 @@ export default function GradesPage() {
         >
           <p className="text-sm text-gray-700 mb-4">{gradeConfirm.message}</p>
           <ModalFooter>
-            <Button
-              variant="ghost"
-              onClick={() => setGradeConfirm((s) => ({ ...s, open: false }))}
-            >
+            <Button variant="ghost" onClick={() => setGradeConfirm((s) => ({ ...s, open: false }))}>
               Cancel
             </Button>
             <Button
@@ -1247,25 +1207,15 @@ export default function GradesPage() {
               <Button
                 variant="secondary"
                 onClick={handleExportGrades}
-                icon={
-                  <MaterialIcon icon="cloud_download" className="text-lg" />
-                }
+                icon={<MaterialIcon icon="cloud_download" className="text-lg" />}
               >
                 Export
               </Button>
               <Button
                 onClick={() => handleSaveGrades()}
-                disabled={
-                  saving || !selectedClass || !selectedSubject || isPublished
-                }
+                disabled={saving || !selectedClass || !selectedSubject || isPublished}
                 loading={saving}
-                icon={
-                  <MaterialIcon
-                    icon="save"
-                    className="text-lg"
-                    style={{ fontVariationSettings: "FILL 1" }}
-                  />
-                }
+                icon={<MaterialIcon icon="save" className="text-lg" style={{ fontVariationSettings: "FILL 1" }} />}
               >
                 Save Grades
               </Button>
@@ -1281,14 +1231,14 @@ export default function GradesPage() {
             { step: 3, label: "Enter marks", done: Object.keys(marks).length > 0 },
           ].map((s, i) => (
             <div key={s.step} className="flex items-center gap-2">
-              <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
-                s.done ? "bg-[#1f8a70] text-white" : "bg-[#e5ecf4] text-[#7f91aa]"
-              }`}>
+              <div
+                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                  s.done ? "bg-[#1f8a70] text-white" : "bg-[#e5ecf4] text-[#7f91aa]"
+                }`}
+              >
                 {s.done ? <span className="material-symbols-outlined text-sm">check</span> : s.step}
               </div>
-              <span className={`text-xs font-semibold ${s.done ? "text-[#1f8a70]" : "text-[#7f91aa]"}`}>
-                {s.label}
-              </span>
+              <span className={`text-xs font-semibold ${s.done ? "text-[#1f8a70]" : "text-[#7f91aa]"}`}>{s.label}</span>
               {i < 2 && <span className="text-[#d7e3f2] hidden sm:inline">&rarr;</span>}
             </div>
           ))}
@@ -1299,10 +1249,7 @@ export default function GradesPage() {
             {
               label: "Selected class",
               value: selectedClass
-                ? `${
-                    classes.find((c) => c.id === selectedClass)?.name ||
-                    selectedClass
-                  }${
+                ? `${classes.find((c) => c.id === selectedClass)?.name || selectedClass}${
                     classes.find((c) => c.id === selectedClass)?.stream
                       ? ` ${classes.find((c) => c.id === selectedClass)?.stream}`
                       : ""
@@ -1322,46 +1269,32 @@ export default function GradesPage() {
         </div>
 
         {/* Marks Entry Info */}
-        {selectedClass &&
-          selectedSubject &&
-          Object.keys(marksBy).length > 0 && (
-            <div className="flex gap-4 flex-wrap">
-              <div
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${statusTone}`}
-              >
-                <MaterialIcon icon="task_alt" className="text-sm" />
-                <span>Work Status: {statusLabels[submissionStatus]}</span>
-              </div>
-              {Object.values(marksBy).some((m) =>
-                ["ca1", "ca2", "ca3"].includes(m.type),
-              ) && (
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-surface-container rounded-full text-xs font-medium">
-                  <MaterialIcon icon="person" className="text-sm" />
-                  <span>
-                    CA entered by:{" "}
-                    {marksBy[
-                      Object.keys(marksBy).find((k) =>
-                        marksBy[k].type.startsWith("ca"),
-                      ) || ""
-                    ]?.name || "Unknown"}
-                  </span>
-                </div>
-              )}
-              {Object.values(marksBy).some((m) => m.type === "exam") && (
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-surface-container rounded-full text-xs font-medium">
-                  <MaterialIcon icon="supervisor_account" className="text-sm" />
-                  <span>
-                    Exam entered by (Supervisor):{" "}
-                    {marksBy[
-                      Object.keys(marksBy).find(
-                        (k) => marksBy[k].type === "exam",
-                      ) || ""
-                    ]?.name || "Unknown"}
-                  </span>
-                </div>
-              )}
+        {selectedClass && selectedSubject && Object.keys(marksBy).length > 0 && (
+          <div className="flex gap-4 flex-wrap">
+            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${statusTone}`}>
+              <MaterialIcon icon="task_alt" className="text-sm" />
+              <span>Work Status: {statusLabels[submissionStatus]}</span>
             </div>
-          )}
+            {Object.values(marksBy).some((m) => ["ca1", "ca2", "ca3"].includes(m.type)) && (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-surface-container rounded-full text-xs font-medium">
+                <MaterialIcon icon="person" className="text-sm" />
+                <span>
+                  CA entered by:{" "}
+                  {marksBy[Object.keys(marksBy).find((k) => marksBy[k].type.startsWith("ca")) || ""]?.name || "Unknown"}
+                </span>
+              </div>
+            )}
+            {Object.values(marksBy).some((m) => m.type === "exam") && (
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-surface-container rounded-full text-xs font-medium">
+                <MaterialIcon icon="supervisor_account" className="text-sm" />
+                <span>
+                  Exam entered by (Supervisor):{" "}
+                  {marksBy[Object.keys(marksBy).find((k) => marksBy[k].type === "exam") || ""]?.name || "Unknown"}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
 
         {caLocked && (
           <div className="flex items-center gap-2 px-4 py-2 bg-[var(--red-soft)] border border-[var(--red)]/20 rounded-xl text-sm font-medium text-[var(--red)]">
@@ -1397,26 +1330,18 @@ export default function GradesPage() {
             </p>
             <div className="flex flex-wrap gap-4">
               <div className="flex-1 min-w-[200px]">
-                <label className="block text-sm font-semibold mb-2 text-primary">
-                  Target Class
-                </label>
+                <label className="block text-sm font-semibold mb-2 text-primary">Target Class</label>
                 {classesLoading ? (
                   <div className="bg-[var(--navy-soft)] border border-[rgba(0,31,63,0.12)] rounded-xl p-4">
-                    <p className="text-[var(--t1)] text-sm font-medium">
-                      Loading classes...
-                    </p>
+                    <p className="text-[var(--t1)] text-sm font-medium">Loading classes...</p>
                     <p className="text-[var(--t3)] text-xs mt-1">
                       The class list is still being fetched for this school.
                     </p>
                   </div>
                 ) : classes.length === 0 ? (
                   <div className="bg-[var(--amber-soft)] border border-[var(--amber)]/20 rounded-xl p-4">
-                    <p className="text-[var(--t1)] text-sm font-medium">
-                      No classes found
-                    </p>
-                    <p className="text-[var(--amber)] text-xs mt-1">
-                      Contact support if this persists.
-                    </p>
+                    <p className="text-[var(--t1)] text-sm font-medium">No classes found</p>
+                    <p className="text-[var(--amber)] text-xs mt-1">Contact support if this persists.</p>
                   </div>
                 ) : (
                   <select
@@ -1435,17 +1360,11 @@ export default function GradesPage() {
                 )}
               </div>
               <div className="flex-1 min-w-[200px]">
-                <label className="block text-sm font-semibold mb-2 text-primary">
-                  Subject Area
-                </label>
+                <label className="block text-sm font-semibold mb-2 text-primary">Subject Area</label>
                 {subjects.length === 0 ? (
                   <div className="bg-[var(--amber-soft)] border border-[var(--amber)]/20 rounded-xl p-4">
-                    <p className="text-[var(--t1)] text-sm font-medium">
-                      No subjects found
-                    </p>
-                    <p className="text-[var(--amber)] text-xs mt-1">
-                      Contact support if this persists.
-                    </p>
+                    <p className="text-[var(--t1)] text-sm font-medium">No subjects found</p>
+                    <p className="text-[var(--amber)] text-xs mt-1">Contact support if this persists.</p>
                   </div>
                 ) : (
                   <select
@@ -1468,14 +1387,10 @@ export default function GradesPage() {
             <div className="absolute top-0 right-0 p-4 opacity-10">
               <MaterialIcon icon="functions" className="text-6xl" />
             </div>
-            <p className="text-xs uppercase tracking-widest font-bold opacity-70">
-              Weightage
-            </p>
+            <p className="text-xs uppercase tracking-widest font-bold opacity-70">Weightage</p>
             <div>
               <div className="flex justify-between items-baseline">
-                <span className="text-2xl font-bold font-headline">
-                  10+10+10+70
-                </span>
+                <span className="text-2xl font-bold font-headline">10+10+10+70</span>
                 <span className="text-xs font-medium">CA1+CA2+CA3 : Exam</span>
               </div>
               <div className="w-full bg-white/20 h-1.5 rounded-full mt-3">
@@ -1486,78 +1401,68 @@ export default function GradesPage() {
         </div>
 
         {/* Completion Tracker */}
-        {tab === "marks" &&
-          selectedClass &&
-          selectedSubject &&
-          filteredStudents.length > 0 && (
-            <div
-              className={`p-5 rounded-2xl border ${
-                completionStats.percentage === 100
-                  ? "bg-[var(--green-soft)] border-[var(--green)]/20"
-                  : completionStats.percentage >= 50
-                    ? "bg-[var(--amber-soft)] border-[var(--amber)]/20"
-                    : "bg-[var(--red-soft)] border-[var(--red)]/20"
-              }`}
-            >
-              <div className="flex items-center justify-between flex-wrap gap-4">
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-sm ${
-                      completionStats.percentage === 100
-                        ? "bg-[var(--green)] text-white"
-                        : completionStats.percentage >= 50
-                          ? "bg-[var(--amber)] text-white"
-                          : "bg-[var(--red)] text-white"
-                    }`}
-                  >
-                    {completionStats.percentage}%
-                  </div>
-                  <div>
-                    <p className="font-bold text-sm">
-                      {completionStats.graded}/{completionStats.total} students
-                      graded
-                    </p>
-                    {isSubmitted && (
-                      <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-bold">
-                        <MaterialIcon icon="lock" className="text-xs" />
-                        Submitted
-                      </span>
-                    )}
-                  </div>
-                </div>
-                {completionStats.notGraded > 0 && (
-                  <p className="text-xs font-medium text-[var(--red)]">
-                    <MaterialIcon
-                      icon="warning"
-                      className="text-xs align-text-bottom mr-1"
-                    />
-                    {completionStats.notGraded} student
-                    {completionStats.notGraded > 1 ? "s" : ""} not graded:{" "}
-                    {completionStats.notGradedNames.join(", ")}
-                  </p>
-                )}
-              </div>
-              <div className="w-full bg-[var(--surface)]/60 h-2 rounded-full mt-3">
+        {tab === "marks" && selectedClass && selectedSubject && filteredStudents.length > 0 && (
+          <div
+            className={`p-5 rounded-2xl border ${
+              completionStats.percentage === 100
+                ? "bg-[var(--green-soft)] border-[var(--green)]/20"
+                : completionStats.percentage >= 50
+                  ? "bg-[var(--amber-soft)] border-[var(--amber)]/20"
+                  : "bg-[var(--red-soft)] border-[var(--red)]/20"
+            }`}
+          >
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-3">
                 <div
-                  className={`h-full rounded-full transition-all ${
+                  className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-sm ${
                     completionStats.percentage === 100
-                      ? "bg-[var(--green)]"
+                      ? "bg-[var(--green)] text-white"
                       : completionStats.percentage >= 50
-                        ? "bg-[var(--amber)]"
-                        : "bg-[var(--red)]"
+                        ? "bg-[var(--amber)] text-white"
+                        : "bg-[var(--red)] text-white"
                   }`}
-                  style={{ width: `${completionStats.percentage}%` }}
-                ></div>
+                >
+                  {completionStats.percentage}%
+                </div>
+                <div>
+                  <p className="font-bold text-sm">
+                    {completionStats.graded}/{completionStats.total} students graded
+                  </p>
+                  {isSubmitted && (
+                    <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-bold">
+                      <MaterialIcon icon="lock" className="text-xs" />
+                      Submitted
+                    </span>
+                  )}
+                </div>
               </div>
+              {completionStats.notGraded > 0 && (
+                <p className="text-xs font-medium text-[var(--red)]">
+                  <MaterialIcon icon="warning" className="text-xs align-text-bottom mr-1" />
+                  {completionStats.notGraded} student
+                  {completionStats.notGraded > 1 ? "s" : ""} not graded: {completionStats.notGradedNames.join(", ")}
+                </p>
+              )}
             </div>
-          )}
+            <div className="w-full bg-[var(--surface)]/60 h-2 rounded-full mt-3">
+              <div
+                className={`h-full rounded-full transition-all ${
+                  completionStats.percentage === 100
+                    ? "bg-[var(--green)]"
+                    : completionStats.percentage >= 50
+                      ? "bg-[var(--amber)]"
+                      : "bg-[var(--red)]"
+                }`}
+                style={{ width: `${completionStats.percentage}%` }}
+              ></div>
+            </div>
+          </div>
+        )}
 
         {/* Workflow Status Filter */}
         {selectedClass && selectedSubject && (
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mr-1">
-              Filter:
-            </span>
+            <span className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mr-1">Filter:</span>
             {(["all", "draft", "submitted", "approved"] as const).map((f) => (
               <button
                 key={f}
@@ -1577,13 +1482,7 @@ export default function GradesPage() {
                     : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
                 }`}
               >
-                {f === "all"
-                  ? "All"
-                  : f === "draft"
-                    ? "Draft"
-                    : f === "submitted"
-                      ? "Submitted"
-                      : "Approved"}
+                {f === "all" ? "All" : f === "draft" ? "Draft" : f === "submitted" ? "Submitted" : "Approved"}
               </button>
             ))}
             <input
@@ -1609,321 +1508,321 @@ export default function GradesPage() {
         />
 
         {/* Inline Entry Controls */}
-        {tab === "marks" &&
-          selectedClass &&
-          selectedSubject &&
-          filteredStudents.length > 0 && (
-            <div className="space-y-4">
-              {/* View Mode Toggle & Quick Actions */}
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex items-center gap-2">
+        {tab === "marks" && selectedClass && selectedSubject && filteredStudents.length > 0 && (
+          <div className="space-y-4">
+            {/* View Mode Toggle & Quick Actions */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setInlineEntryMode(true)}
+                  title="Enter marks in a grid table"
+                  className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+                    inlineEntryMode
+                      ? "bg-primary text-on-primary shadow-sm"
+                      : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <MaterialIcon icon="grid_view" className="text-lg" />
+                    Table View
+                  </span>
+                </button>
+                <button
+                  onClick={() => setInlineEntryMode(false)}
+                  title="Enter marks one student at a time"
+                  className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all md:hidden ${
+                    !inlineEntryMode
+                      ? "bg-primary text-on-primary shadow-sm"
+                      : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <MaterialIcon icon="smartphone" className="text-lg" />
+                    Mobile View
+                  </span>
+                </button>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  onClick={() => setCompetencyMode(!competencyMode)}
+                  title={competencyMode ? "Switch to marks-based grading" : "Switch to competency-based assessment"}
+                  className={`px-3 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5 ${
+                    competencyMode
+                      ? "bg-amber-100 text-amber-800 border border-amber-300"
+                      : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
+                  }`}
+                >
+                  <MaterialIcon icon="psychology" className="text-base" />
+                  Competency
+                </button>
+                <div className="relative group">
                   <button
-                    onClick={() => setInlineEntryMode(true)}
-                    title="Enter marks in a grid table"
-                    className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
-                      inlineEntryMode
-                        ? "bg-primary text-on-primary shadow-sm"
-                        : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
-                    }`}
+                    className="px-3 py-2 rounded-xl text-sm font-medium bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-all flex items-center gap-1.5"
+                    onClick={() =>
+                      setQuickFillModal({
+                        open: true,
+                        type: "ca1",
+                        value: "",
+                      })
+                    }
                   >
-                    <span className="flex items-center gap-2">
-                      <MaterialIcon icon="grid_view" className="text-lg" />
-                      Table View
-                    </span>
+                    <MaterialIcon icon="playlist_add" className="text-base" />
+                    Quick Fill
                   </button>
                   <button
-                    onClick={() => setInlineEntryMode(false)}
-                    title="Enter marks one student at a time"
-                    className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all md:hidden ${
-                      !inlineEntryMode
-                        ? "bg-primary text-on-primary shadow-sm"
-                        : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
-                    }`}
+                    className="px-3 py-2 rounded-xl text-sm font-medium bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-all flex items-center gap-1.5"
+                    onClick={() => setBulkImportOpen(true)}
                   >
-                    <span className="flex items-center gap-2">
-                      <MaterialIcon icon="smartphone" className="text-lg" />
-                      Mobile View
-                    </span>
+                    <MaterialIcon icon="upload" className="text-base" />
+                    Import
                   </button>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    onClick={() => setCompetencyMode(!competencyMode)}
-                    title={competencyMode ? "Switch to marks-based grading" : "Switch to competency-based assessment"}
-                    className={`px-3 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5 ${
-                      competencyMode
-                        ? "bg-amber-100 text-amber-800 border border-amber-300"
-                        : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
-                    }`}
-                  >
-                    <MaterialIcon icon="psychology" className="text-base" />
-                    Competency
-                  </button>
-                  <div className="relative group">
-                    <button
-                      className="px-3 py-2 rounded-xl text-sm font-medium bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-all flex items-center gap-1.5"
-                      onClick={() =>
-                        setQuickFillModal({
-                          open: true,
-                          type: "ca1",
-                          value: "",
-                        })
-                      }
-                    >
-                      <MaterialIcon icon="playlist_add" className="text-base" />
-                      Quick Fill
-                    </button>
-                    <button
-                      className="px-3 py-2 rounded-xl text-sm font-medium bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-all flex items-center gap-1.5"
-                      onClick={() => setBulkImportOpen(true)}
-                    >
-                      <MaterialIcon icon="upload" className="text-base" />
-                      Import
-                    </button>
-                    <div className="absolute right-0 top-full mt-1 w-64 bg-surface-container-lowest rounded-2xl shadow-xl border border-outline-variant/10 p-4 hidden group-hover:block z-30">
-                      <p className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-3">
-                        Set All Students
-                      </p>
-                      {activeAssessmentTypes.map((type) => (
-                        <div
-                          key={type}
-                          className="flex items-center gap-2 mb-2"
-                        >
-                          <span className="text-xs font-semibold text-on-surface-variant w-10">
-                            {type === "ca1" ? "CA1" : type === "ca2" ? "CA2" : type === "ca3" ? "CA3" : type === "ca4" ? "CA4" : type === "project" ? "Proj" : type.toUpperCase()}
-                          </span>
-                          <input
-                            type="number"
-                            min={0}
-                            max={ASSESSMENT_MAX[type]}
-                            placeholder={`Max ${ASSESSMENT_MAX[type]}`}
-                            className="flex-1 bg-surface-container border-none rounded-lg text-sm py-1.5 px-2 focus:ring-2 focus:ring-primary"
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                const val = parseInt(
-                                  (e.target as HTMLInputElement).value,
-                                );
-                                if (!isNaN(val)) handleQuickFill(type, val);
-                              }
-                            }}
-                            onBlur={(e) => {
-                              const val = parseInt(e.target.value);
+                  <div className="absolute right-0 top-full mt-1 w-64 bg-surface-container-lowest rounded-2xl shadow-xl border border-outline-variant/10 p-4 hidden group-hover:block z-30">
+                    <p className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-3">
+                      Set All Students
+                    </p>
+                    {activeAssessmentTypes.map((type) => (
+                      <div key={type} className="flex items-center gap-2 mb-2">
+                        <span className="text-xs font-semibold text-on-surface-variant w-10">
+                          {type === "ca1"
+                            ? "CA1"
+                            : type === "ca2"
+                              ? "CA2"
+                              : type === "ca3"
+                                ? "CA3"
+                                : type === "ca4"
+                                  ? "CA4"
+                                  : type === "project"
+                                    ? "Proj"
+                                    : type.toUpperCase()}
+                        </span>
+                        <input
+                          type="number"
+                          min={0}
+                          max={ASSESSMENT_MAX[type]}
+                          placeholder={`Max ${ASSESSMENT_MAX[type]}`}
+                          className="flex-1 bg-surface-container border-none rounded-lg text-sm py-1.5 px-2 focus:ring-2 focus:ring-primary"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              const val = parseInt((e.target as HTMLInputElement).value);
                               if (!isNaN(val)) handleQuickFill(type, val);
-                            }}
-                          />
-                        </div>
-                      ))}
-                      <div className="border-t border-outline-variant/10 mt-3 pt-3 flex gap-2">
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={handleCopyFromPreviousTerm}
-                          loading={loading}
-                          className="flex-1 text-xs"
-                        >
-                          Copy Prev Term
-                        </Button>
-                        <Button
-                          variant="danger"
-                          size="sm"
-                          onClick={handleClearAll}
-                          className="flex-1 text-xs"
-                        >
-                          Clear All
-                        </Button>
+                            }
+                          }}
+                          onBlur={(e) => {
+                            const val = parseInt(e.target.value);
+                            if (!isNaN(val)) handleQuickFill(type, val);
+                          }}
+                        />
                       </div>
+                    ))}
+                    <div className="border-t border-outline-variant/10 mt-3 pt-3 flex gap-2">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={handleCopyFromPreviousTerm}
+                        loading={loading}
+                        className="flex-1 text-xs"
+                      >
+                        Copy Prev Term
+                      </Button>
+                      <Button variant="danger" size="sm" onClick={handleClearAll} className="flex-1 text-xs">
+                        Clear All
+                      </Button>
                     </div>
                   </div>
                 </div>
               </div>
+            </div>
 
-              {/* Progress Bar */}
-              <div className="bg-surface-container-low rounded-2xl p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-sm ${
-                        completionStats.percentage === 100
-                          ? "bg-[var(--green)] text-white"
-                          : completionStats.percentage >= 50
-                            ? "bg-[var(--amber)] text-white"
-                            : "bg-[var(--red)] text-white"
-                      }`}
-                    >
-                      {completionStats.percentage}%
-                    </div>
-                    <div>
-                      <p className="font-bold text-sm">
-                        {completionStats.graded}/{completionStats.total}{" "}
-                        students graded
-                      </p>
-                      <p className="text-xs text-on-surface-variant">
-                        {completionStats.notGraded > 0
-                          ? `${completionStats.notGraded} student${completionStats.notGraded > 1 ? "s" : ""} remaining`
-                          : "All students graded!"}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <span className="text-xs font-medium text-on-surface-variant">
-                      {
-                        Object.keys(marks).filter((k) => marks[k] !== null)
-                          .length
-                      }{" "}
-                      scores entered
-                    </span>
-                  </div>
-                </div>
-                <div className="w-full bg-[var(--surface)]/60 h-2.5 rounded-full overflow-hidden">
+            {/* Progress Bar */}
+            <div className="bg-surface-container-low rounded-2xl p-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-3">
                   <div
-                    className={`h-full rounded-full transition-all duration-500 ${
+                    className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-sm ${
                       completionStats.percentage === 100
-                        ? "bg-[var(--green)]"
+                        ? "bg-[var(--green)] text-white"
                         : completionStats.percentage >= 50
-                          ? "bg-[var(--amber)]"
-                          : "bg-[var(--red)]"
+                          ? "bg-[var(--amber)] text-white"
+                          : "bg-[var(--red)] text-white"
                     }`}
-                    style={{ width: `${completionStats.percentage}%` }}
-                  />
+                  >
+                    {completionStats.percentage}%
+                  </div>
+                  <div>
+                    <p className="font-bold text-sm">
+                      {completionStats.graded}/{completionStats.total} students graded
+                    </p>
+                    <p className="text-xs text-on-surface-variant">
+                      {completionStats.notGraded > 0
+                        ? `${completionStats.notGraded} student${completionStats.notGraded > 1 ? "s" : ""} remaining`
+                        : "All students graded!"}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="text-xs font-medium text-on-surface-variant">
+                    {Object.keys(marks).filter((k) => marks[k] !== null).length} scores entered
+                  </span>
                 </div>
               </div>
+              <div className="w-full bg-[var(--surface)]/60 h-2.5 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    completionStats.percentage === 100
+                      ? "bg-[var(--green)]"
+                      : completionStats.percentage >= 50
+                        ? "bg-[var(--amber)]"
+                        : "bg-[var(--red)]"
+                  }`}
+                  style={{ width: `${completionStats.percentage}%` }}
+                />
+              </div>
+            </div>
 
-              {/* Desktop: Inline Table View */}
-              {inlineEntryMode && (
-                <div className="bg-surface-container-lowest rounded-2xl overflow-hidden shadow-sm">
-                  <div className="overflow-x-auto table-responsive">
-                    <table className="w-full border-collapse">
-                      <thead>
-                        <tr className="bg-surface-container-low/50 text-left">
-                          <th className="px-8 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                            Student Identity
-                          </th>
-                          {competencyMode ? (
-                            <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
-                              Competency Level
-                            </th>
-                          ) : (
-                            <>
-                              {activeAssessmentTypes.map((type) => (
-                                <th key={type} className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
-                                  {type === "ca1" ? "CA1" : type === "ca2" ? "CA2" : type === "ca3" ? "CA3" : type === "ca4" ? "CA4" : type === "project" ? "Project" : "Exam"} ({ASSESSMENT_MAX[type]})
-                                </th>
-                              ))}
-                            </>
-                          )}
+            {/* Desktop: Inline Table View */}
+            {inlineEntryMode && (
+              <div className="bg-surface-container-lowest rounded-2xl overflow-hidden shadow-sm">
+                <div className="overflow-x-auto table-responsive">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr className="bg-surface-container-low/50 text-left">
+                        <th className="px-8 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                          Student Identity
+                        </th>
+                        {competencyMode ? (
                           <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
-                            {competencyMode ? "Status" : "Total (100)"}
+                            Competency Level
                           </th>
-                          <th className="px-8 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-right">
-                            Grade
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-surface-container">
-                        {studentsLoading ? (
-                          <tr>
-                            <td colSpan={7} className="px-8 py-12">
-                              <TableSkeleton rows={5} />
-                            </td>
-                          </tr>
-                        ) : displayStudents.length === 0 ? (
-                          <tr>
-                            <td colSpan={7} className="px-8 py-12">
-                              <NoData title={statusFilter !== "all" ? `No ${statusFilter} students in this class` : "No students in this class"} />
-                            </td>
-                          </tr>
                         ) : (
-                          paginatedStudents.map((student) => {
-                            const ca1 = getMark(student.id, "ca1");
-                            const ca2 = getMark(student.id, "ca2");
-                            const ca3 = getMark(student.id, "ca3");
-                            const exam = getMark(student.id, "exam");
-                            const total = getStudentTotal(student.id);
-                            const gradeInfo =
-                              total !== null ? getGrade(total) : null;
-                            const graded = isStudentGraded(student.id);
-                            return (
-                              <tr
-                                key={student.id}
-                                className={`hover:bg-surface-bright transition-colors ${
-                                  !graded &&
-                                  completionStats.graded < completionStats.total
-                                    ? "bg-orange-50/20 dark:bg-orange-900/5"
-                                    : ""
-                                }`}
+                          <>
+                            {activeAssessmentTypes.map((type) => (
+                              <th
+                                key={type}
+                                className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center"
                               >
-                                <td className="px-8 py-5">
-                                  <div className="flex items-center gap-4">
-                                    <PersonInitials
-                                      name={`${student.first_name} ${student.last_name}`}
-                                      size={40}
-                                    />
-                                    <div>
-                                      <p className="font-bold text-primary">
-                                        {student.first_name} {student.last_name}
-                                      </p>
-                                      <p className="text-xs text-on-surface-variant">
-                                        {student.student_number || "-"}
-                                      </p>
-                                      {(() => {
-                                        const sStatus = studentStatusMap[student.id] || "draft";
-                                        return (
-                                          <span
-                                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black mt-1 ${
-                                              sStatus === "draft"
-                                                ? "bg-[var(--amber-soft)] text-[var(--amber)]"
-                                                : sStatus === "submitted"
-                                                  ? "bg-blue-50 text-blue-700"
-                                                  : sStatus === "approved"
-                                                    ? "bg-[var(--green-soft)] text-[var(--green)]"
-                                                    : "bg-surface-container text-on-surface-variant"
-                                            }`}
-                                          >
-                                            {sStatus === "draft"
-                                              ? "Draft"
+                                {type === "ca1"
+                                  ? "CA1"
+                                  : type === "ca2"
+                                    ? "CA2"
+                                    : type === "ca3"
+                                      ? "CA3"
+                                      : type === "ca4"
+                                        ? "CA4"
+                                        : type === "project"
+                                          ? "Project"
+                                          : "Exam"}{" "}
+                                ({ASSESSMENT_MAX[type]})
+                              </th>
+                            ))}
+                          </>
+                        )}
+                        <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
+                          {competencyMode ? "Status" : "Total (100)"}
+                        </th>
+                        <th className="px-8 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-right">
+                          Grade
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-surface-container">
+                      {studentsLoading ? (
+                        <tr>
+                          <td colSpan={7} className="px-8 py-12">
+                            <TableSkeleton rows={5} />
+                          </td>
+                        </tr>
+                      ) : displayStudents.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} className="px-8 py-12">
+                            <NoData
+                              title={
+                                statusFilter !== "all"
+                                  ? `No ${statusFilter} students in this class`
+                                  : "No students in this class"
+                              }
+                            />
+                          </td>
+                        </tr>
+                      ) : (
+                        paginatedStudents.map((student) => {
+                          const ca1 = getMark(student.id, "ca1");
+                          const ca2 = getMark(student.id, "ca2");
+                          const ca3 = getMark(student.id, "ca3");
+                          const exam = getMark(student.id, "exam");
+                          const total = getStudentTotal(student.id);
+                          const gradeInfo = total !== null ? getGrade(total) : null;
+                          const graded = isStudentGraded(student.id);
+                          return (
+                            <tr
+                              key={student.id}
+                              className={`hover:bg-surface-bright transition-colors ${
+                                !graded && completionStats.graded < completionStats.total
+                                  ? "bg-orange-50/20 dark:bg-orange-900/5"
+                                  : ""
+                              }`}
+                            >
+                              <td className="px-8 py-5">
+                                <div className="flex items-center gap-4">
+                                  <PersonInitials name={`${student.first_name} ${student.last_name}`} size={40} />
+                                  <div>
+                                    <p className="font-bold text-primary">
+                                      {student.first_name} {student.last_name}
+                                    </p>
+                                    <p className="text-xs text-on-surface-variant">{student.student_number || "-"}</p>
+                                    {(() => {
+                                      const sStatus = studentStatusMap[student.id] || "draft";
+                                      return (
+                                        <span
+                                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black mt-1 ${
+                                            sStatus === "draft"
+                                              ? "bg-[var(--amber-soft)] text-[var(--amber)]"
                                               : sStatus === "submitted"
-                                                ? "Submitted"
+                                                ? "bg-blue-50 text-blue-700"
                                                 : sStatus === "approved"
-                                                  ? "Approved"
-                                                  : "Published"}
-                                          </span>
-                                        );
-                                      })()}
-                                    </div>
-                                    {graded && (
-                                      <MaterialIcon
-                                        icon="check_circle"
-                                        className="text-green-500 text-lg"
-                                      />
+                                                  ? "bg-[var(--green-soft)] text-[var(--green)]"
+                                                  : "bg-surface-container text-on-surface-variant"
+                                          }`}
+                                        >
+                                          {sStatus === "draft"
+                                            ? "Draft"
+                                            : sStatus === "submitted"
+                                              ? "Submitted"
+                                              : sStatus === "approved"
+                                                ? "Approved"
+                                                : "Published"}
+                                        </span>
+                                      );
+                                    })()}
+                                  </div>
+                                  {graded && <MaterialIcon icon="check_circle" className="text-green-500 text-lg" />}
+                                </div>
+                              </td>
+                              {competencyMode ? (
+                                <td className="px-4 py-5">
+                                  <div className="relative">
+                                    <select
+                                      className="w-24 mx-auto block text-center font-bold py-2 px-1 rounded-lg border-none focus:outline-none transition-all bg-surface-container-low"
+                                      value={marks[`${student.id}_competency`] ?? ""}
+                                      onChange={(e) => {
+                                        const val = e.target.value;
+                                        handleMarkChange(student.id, "competency", val ? val : "");
+                                      }}
+                                      disabled={isSubmitted}
+                                    >
+                                      <option value="">—</option>
+                                      {COMPETENCY_SCHEME.values?.map((cv) => (
+                                        <option key={cv.value} value={cv.value}>
+                                          {cv.value} - {cv.label}
+                                        </option>
+                                      ))}
+                                    </select>
+                                    {getSaveStatusForInput(student.id, "competency") === "saved" && (
+                                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white" />
                                     )}
                                   </div>
                                 </td>
-                                  {competencyMode ? (
-                                  <td className="px-4 py-5">
-                                    <div className="relative">
-                                      <select
-                                        className="w-24 mx-auto block text-center font-bold py-2 px-1 rounded-lg border-none focus:outline-none transition-all bg-surface-container-low"
-                                        value={marks[`${student.id}_competency`] ?? ""}
-                                        onChange={(e) => {
-                                          const val = e.target.value;
-                                          handleMarkChange(student.id, "competency", val ? val : "");
-                                        }}
-                                        disabled={isSubmitted}
-                                      >
-                                        <option value="">—</option>
-                                        {COMPETENCY_SCHEME.values?.map((cv) => (
-                                          <option key={cv.value} value={cv.value}>
-                                            {cv.value} - {cv.label}
-                                          </option>
-                                        ))}
-                                      </select>
-                                      {getSaveStatusForInput(student.id, "competency") === "saved" && (
-                                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white" />
-                                      )}
-                                    </div>
-                                  </td>
-                                ) : (
-                                  activeAssessmentTypes.map((type) => (
+                              ) : (
+                                activeAssessmentTypes.map((type) => (
                                   <td key={type} className="px-4 py-5">
                                     <div className="relative">
                                       <input
@@ -1933,308 +1832,310 @@ export default function GradesPage() {
                                         max={ASSESSMENT_MAX[type]}
                                         placeholder="—"
                                         value={
-                                          marks[`${student.id}_${type}`] !==
-                                            null &&
-                                          marks[`${student.id}_${type}`] !==
-                                            undefined
-                                            ? String(
-                                                marks[`${student.id}_${type}`],
-                                              )
+                                          marks[`${student.id}_${type}`] !== null &&
+                                          marks[`${student.id}_${type}`] !== undefined
+                                            ? String(marks[`${student.id}_${type}`])
                                             : ""
                                         }
-                                        onChange={(e) =>
-                                          handleMarkChange(
-                                            student.id,
-                                            type,
-                                            e.target.value,
-                                          )
-                                        }
-                                        onBlur={() =>
-                                          handleInlineBlur(student.id, type)
-                                        }
-                                        disabled={
-                                          isSubmitted ||
-                                          (caLocked && type.startsWith("ca"))
-                                        }
+                                        onChange={(e) => handleMarkChange(student.id, type, e.target.value)}
+                                        onBlur={() => handleInlineBlur(student.id, type)}
+                                        disabled={isSubmitted || (caLocked && type.startsWith("ca"))}
                                         onKeyDown={(e) => {
                                           if (e.key === "Enter") {
                                             e.currentTarget.blur();
                                           }
                                         }}
                                       />
-                                      {getSaveStatusForInput(
-                                        student.id,
-                                        type,
-                                      ) === "saved" && (
+                                      {getSaveStatusForInput(student.id, type) === "saved" && (
                                         <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white" />
                                       )}
                                     </div>
                                   </td>
-                                  )))}
-                                <td className="px-4 py-5 text-center">
-                                  <span
-                                    className={`font-black text-xl ${total !== null ? "text-primary" : "text-on-surface-variant"}`}
-                                  >
-                                    {total !== null ? total : "—"}
-                                  </span>
-                                </td>
-                                <td className="px-8 py-5 text-right">
-                                  <span
-                                    className={`px-4 py-1.5 rounded-full text-xs font-black ${gradeInfo ? "bg-surface-container" : "bg-surface-bright text-on-surface-variant"} ${gradeInfo?.color || ""}`}
-                                  >
-                                    {gradeInfo ? gradeInfo.grade : "-"}
-                                  </span>
-                                </td>
-                              </tr>
-                            );
-                          })
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                  {displayStudents.length > gradesPerPage && (
-                    <div className="flex items-center justify-between px-6 py-3 border-t border-outline-variant/10">
-                      <span className="text-sm text-on-surface-variant">
-                        Page {gradePage} of {gradeTotalPages}
-                      </span>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            setGradePage((p) => Math.max(1, p - 1))
-                          }
-                          disabled={gradePage === 1}
-                        >
-                          <MaterialIcon icon="chevron_left" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() =>
-                            setGradePage((p) =>
-                              Math.min(gradeTotalPages, p + 1),
-                            )
-                          }
-                          disabled={gradePage >= gradeTotalPages}
-                        >
-                          <MaterialIcon icon="chevron_right" />
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Mobile: Card View with Swipe */}
-              {!inlineEntryMode && filteredStudents.length > 0 && (
-                <div className="md:hidden">
-                  <div
-                    ref={mobileCardRef}
-                    onTouchStart={handleMobileTouchStart}
-                    onTouchEnd={handleMobileTouchEnd}
-                    className="bg-surface-container-lowest rounded-2xl shadow-sm p-6 space-y-6"
-                  >
-                    {/* Student Header */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <PersonInitials
-                          name={`${filteredStudents[mobileStudentIndex]?.first_name || ""} ${filteredStudents[mobileStudentIndex]?.last_name || ""}`}
-                          size={48}
-                        />
-                        <div>
-                          <p className="font-bold text-primary text-lg">
-                            {filteredStudents[mobileStudentIndex]?.first_name}{" "}
-                            {filteredStudents[mobileStudentIndex]?.last_name}
-                          </p>
-                          <p className="text-xs text-on-surface-variant">
-                            {filteredStudents[mobileStudentIndex]
-                              ?.student_number || "-"}
-                          </p>
-                          {(() => {
-                            const sid = filteredStudents[mobileStudentIndex]?.id;
-                            if (!sid) return null;
-                            const sStatus = studentStatusMap[sid] || "draft";
+                                ))
+                              )}
+                              <td className="px-4 py-5 text-center">
+                                <span
+                                  className={`font-black text-xl ${total !== null ? "text-primary" : "text-on-surface-variant"}`}
+                                >
+                                  {total !== null ? total : "—"}
+                                </span>
+                              </td>
+                              <td className="px-8 py-5 text-right">
+                                <span
+                                  className={`px-4 py-1.5 rounded-full text-xs font-black ${gradeInfo ? "bg-surface-container" : "bg-surface-bright text-on-surface-variant"} ${gradeInfo?.color || ""}`}
+                                >
+                                  {gradeInfo ? gradeInfo.grade : "-"}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                    {displayStudents.length > 0 && !competencyMode && (
+                      <tfoot className="bg-surface-container-low/40">
+                        <tr>
+                          <td className="px-8 py-4">
+                            <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">
+                              Class Avg
+                            </span>
+                          </td>
+                          {activeAssessmentTypes.map((type) => {
+                            const vals = displayStudents
+                              .map((s) => marks[`${s.id}_${type}`])
+                              .filter((v): v is number => v !== null && v !== undefined);
+                            const avg =
+                              vals.length > 0
+                                ? Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10
+                                : null;
                             return (
-                              <span
-                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black mt-1 ${
-                                  sStatus === "draft"
-                                    ? "bg-[var(--amber-soft)] text-[var(--amber)]"
-                                    : sStatus === "submitted"
-                                      ? "bg-blue-50 text-blue-700"
-                                      : sStatus === "approved"
-                                        ? "bg-[var(--green-soft)] text-[var(--green)]"
-                                        : "bg-surface-container text-on-surface-variant"
-                                }`}
-                              >
-                                {sStatus === "draft"
-                                  ? "Draft"
-                                  : sStatus === "submitted"
-                                    ? "Submitted"
-                                    : sStatus === "approved"
-                                      ? "Approved"
-                                      : "Published"}
-                              </span>
+                              <td key={type} className="px-4 py-4 text-center">
+                                <span
+                                  className={`text-sm font-bold ${avg !== null ? "text-primary" : "text-on-surface-variant/50"}`}
+                                >
+                                  {avg !== null ? avg : "—"}
+                                </span>
+                              </td>
                             );
-                          })()}
+                          })}
+                          <td className="px-4 py-4 text-center">
+                            {(() => {
+                              const totals = displayStudents
+                                .map((s) => getStudentTotal(s.id))
+                                .filter((v): v is number => v !== null);
+                              const classAvg =
+                                totals.length > 0
+                                  ? Math.round((totals.reduce((a, b) => a + b, 0) / totals.length) * 10) / 10
+                                  : null;
+                              return (
+                                <span
+                                  className={`text-sm font-bold ${classAvg !== null ? "text-primary" : "text-on-surface-variant/50"}`}
+                                >
+                                  {classAvg !== null ? classAvg : "—"}
+                                </span>
+                              );
+                            })()}
+                          </td>
+                          <td />
+                        </tr>
+                      </tfoot>
+                    )}
+                  </table>
+                </div>
+                {displayStudents.length > gradesPerPage && (
+                  <div className="flex items-center justify-between px-6 py-3 border-t border-outline-variant/10">
+                    <span className="text-sm text-on-surface-variant">
+                      Page {gradePage} of {gradeTotalPages}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setGradePage((p) => Math.max(1, p - 1))}
+                        disabled={gradePage === 1}
+                      >
+                        <MaterialIcon icon="chevron_left" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setGradePage((p) => Math.min(gradeTotalPages, p + 1))}
+                        disabled={gradePage >= gradeTotalPages}
+                      >
+                        <MaterialIcon icon="chevron_right" />
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Mobile: Card View with Swipe */}
+            {!inlineEntryMode && filteredStudents.length > 0 && (
+              <div className="md:hidden">
+                <div
+                  ref={mobileCardRef}
+                  onTouchStart={handleMobileTouchStart}
+                  onTouchEnd={handleMobileTouchEnd}
+                  className="bg-surface-container-lowest rounded-2xl shadow-sm p-6 space-y-6"
+                >
+                  {/* Student Header */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <PersonInitials
+                        name={`${filteredStudents[mobileStudentIndex]?.first_name || ""} ${filteredStudents[mobileStudentIndex]?.last_name || ""}`}
+                        size={48}
+                      />
+                      <div>
+                        <p className="font-bold text-primary text-lg">
+                          {filteredStudents[mobileStudentIndex]?.first_name}{" "}
+                          {filteredStudents[mobileStudentIndex]?.last_name}
+                        </p>
+                        <p className="text-xs text-on-surface-variant">
+                          {filteredStudents[mobileStudentIndex]?.student_number || "-"}
+                        </p>
+                        {(() => {
+                          const sid = filteredStudents[mobileStudentIndex]?.id;
+                          if (!sid) return null;
+                          const sStatus = studentStatusMap[sid] || "draft";
+                          return (
+                            <span
+                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black mt-1 ${
+                                sStatus === "draft"
+                                  ? "bg-[var(--amber-soft)] text-[var(--amber)]"
+                                  : sStatus === "submitted"
+                                    ? "bg-blue-50 text-blue-700"
+                                    : sStatus === "approved"
+                                      ? "bg-[var(--green-soft)] text-[var(--green)]"
+                                      : "bg-surface-container text-on-surface-variant"
+                              }`}
+                            >
+                              {sStatus === "draft"
+                                ? "Draft"
+                                : sStatus === "submitted"
+                                  ? "Submitted"
+                                  : sStatus === "approved"
+                                    ? "Approved"
+                                    : "Published"}
+                            </span>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                    <span className="text-sm font-medium text-on-surface-variant">
+                      {mobileStudentIndex + 1} / {filteredStudents.length}
+                    </span>
+                  </div>
+
+                  {/* Score Inputs */}
+                  <div className="grid grid-cols-2 gap-4">
+                    {(() => {
+                      const studentId = filteredStudents[mobileStudentIndex]?.id;
+                      if (!studentId) return null;
+                      if (competencyMode) {
+                        const val = getMark(studentId, "competency");
+                        return (
+                          <div className="col-span-2 space-y-2">
+                            <label className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
+                              COMPETENCY LEVEL
+                            </label>
+                            <select
+                              className="w-full text-center text-2xl font-bold py-4 rounded-xl border-none focus:outline-none transition-all bg-surface-container-low"
+                              value={val ?? ""}
+                              onChange={(e) => handleMarkChange(studentId, "competency", e.target.value)}
+                              disabled={isSubmitted}
+                            >
+                              <option value="">—</option>
+                              {COMPETENCY_SCHEME.values?.map((cv) => (
+                                <option key={cv.value} value={cv.value}>
+                                  {cv.value} - {cv.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        );
+                      }
+                      return activeAssessmentTypes.map((type) => {
+                        const val = getMark(studentId, type);
+                        return (
+                          <div key={type} className="space-y-2">
+                            <label className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
+                              {type.toUpperCase()} ({ASSESSMENT_MAX[type]})
+                            </label>
+                            <input
+                              className={`w-full text-center text-2xl font-bold py-4 rounded-xl border-none focus:outline-none transition-all ${getInputBorderClass(studentId, type)}`}
+                              type="number"
+                              min={0}
+                              max={ASSESSMENT_MAX[type]}
+                              placeholder="—"
+                              value={val !== null ? String(val) : ""}
+                              onChange={(e) => handleMarkChange(studentId, type, e.target.value)}
+                              onBlur={() => handleInlineBlur(studentId, type)}
+                              disabled={isSubmitted || (caLocked && type.startsWith("ca"))}
+                              inputMode="numeric"
+                            />
+                          </div>
+                        );
+                      });
+                    })()}
+                  </div>
+
+                  {/* Total & Grade */}
+                  {(() => {
+                    const studentId = filteredStudents[mobileStudentIndex]?.id;
+                    if (!studentId) return null;
+                    const total = getStudentTotal(studentId);
+                    const gradeInfo = total !== null ? getGrade(total) : null;
+                    return (
+                      <div className="flex items-center justify-center gap-6 py-4 bg-surface-container rounded-2xl">
+                        <div className="text-center">
+                          <p className="text-xs text-on-surface-variant uppercase tracking-wider">Total</p>
+                          <p className="text-3xl font-black text-primary">{total !== null ? total : "—"}</p>
+                        </div>
+                        <div className="w-px h-12 bg-outline-variant/20" />
+                        <div className="text-center">
+                          <p className="text-xs text-on-surface-variant uppercase tracking-wider">Grade</p>
+                          <p className={`text-3xl font-black ${gradeInfo?.color || "text-on-surface-variant"}`}>
+                            {gradeInfo ? gradeInfo.grade : "—"}
+                          </p>
                         </div>
                       </div>
-                      <span className="text-sm font-medium text-on-surface-variant">
-                        {mobileStudentIndex + 1} / {filteredStudents.length}
-                      </span>
-                    </div>
+                    );
+                  })()}
 
-                    {/* Score Inputs */}
-                    <div className="grid grid-cols-2 gap-4">
-                      {(() => {
-                        const studentId = filteredStudents[mobileStudentIndex]?.id;
-                        if (!studentId) return null;
-                        if (competencyMode) {
-                          const val = getMark(studentId, "competency");
-                          return (
-                            <div className="col-span-2 space-y-2">
-                              <label className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
-                                COMPETENCY LEVEL
-                              </label>
-                              <select
-                                className="w-full text-center text-2xl font-bold py-4 rounded-xl border-none focus:outline-none transition-all bg-surface-container-low"
-                                value={val ?? ""}
-                                onChange={(e) => handleMarkChange(studentId, "competency", e.target.value)}
-                                disabled={isSubmitted}
-                              >
-                                <option value="">—</option>
-                                {COMPETENCY_SCHEME.values?.map((cv) => (
-                                  <option key={cv.value} value={cv.value}>
-                                    {cv.value} - {cv.label}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                          );
-                        }
-                        return activeAssessmentTypes.map((type) => {
-                          const val = getMark(studentId, type);
-                          return (
-                            <div key={type} className="space-y-2">
-                              <label className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
-                                {type.toUpperCase()} ({ASSESSMENT_MAX[type]})
-                              </label>
-                              <input
-                                className={`w-full text-center text-2xl font-bold py-4 rounded-xl border-none focus:outline-none transition-all ${getInputBorderClass(studentId, type)}`}
-                                type="number"
-                                min={0}
-                                max={ASSESSMENT_MAX[type]}
-                                placeholder="—"
-                                value={val !== null ? String(val) : ""}
-                                onChange={(e) => handleMarkChange(studentId, type, e.target.value)}
-                                onBlur={() => handleInlineBlur(studentId, type)}
-                                disabled={isSubmitted || (caLocked && type.startsWith("ca"))}
-                                inputMode="numeric"
-                              />
-                            </div>
-                          );
-                        });
-                      })()}
-                    </div>
-
-                    {/* Total & Grade */}
-                    {(() => {
-                      const studentId =
-                        filteredStudents[mobileStudentIndex]?.id;
-                      if (!studentId) return null;
-                      const total = getStudentTotal(studentId);
-                      const gradeInfo = total !== null ? getGrade(total) : null;
-                      return (
-                        <div className="flex items-center justify-center gap-6 py-4 bg-surface-container rounded-2xl">
-                          <div className="text-center">
-                            <p className="text-xs text-on-surface-variant uppercase tracking-wider">
-                              Total
-                            </p>
-                            <p className="text-3xl font-black text-primary">
-                              {total !== null ? total : "—"}
-                            </p>
-                          </div>
-                          <div className="w-px h-12 bg-outline-variant/20" />
-                          <div className="text-center">
-                            <p className="text-xs text-on-surface-variant uppercase tracking-wider">
-                              Grade
-                            </p>
-                            <p
-                              className={`text-3xl font-black ${gradeInfo?.color || "text-on-surface-variant"}`}
-                            >
-                              {gradeInfo ? gradeInfo.grade : "—"}
-                            </p>
-                          </div>
-                        </div>
-                      );
-                    })()}
-
-                    {/* Navigation */}
-                    <div className="flex items-center justify-between gap-4">
-                      <Button
-                        variant="secondary"
-                        onClick={() => navigateMobileStudent("prev")}
-                        disabled={mobileStudentIndex === 0}
-                        className="flex-1"
-                        icon={
-                          <MaterialIcon
-                            icon="chevron_left"
-                            className="text-xl"
-                          />
-                        }
-                      >
-                        Previous
-                      </Button>
-                      <Button
-                        variant="primary"
-                        onClick={() => navigateMobileStudent("next")}
-                        disabled={
-                          mobileStudentIndex === filteredStudents.length - 1
-                        }
-                        className="flex-1"
-                      >
-                        Next
-                        <MaterialIcon
-                          icon="chevron_right"
-                          className="text-xl"
-                        />
-                      </Button>
-                    </div>
-                  </div>
-
-                  {/* Student List Quick Nav */}
-                  <div className="mt-4 bg-surface-container-lowest rounded-2xl p-4">
-                    <p className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-3">
-                      All Students
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {filteredStudents.map((student, idx) => {
-                        const graded = isStudentGraded(student.id);
-                        return (
-                          <button
-                            key={student.id}
-                            onClick={() => setMobileStudentIndex(idx)}
-                            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
-                              idx === mobileStudentIndex
-                                ? "bg-primary text-on-primary"
-                                : graded
-                                  ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                                  : "bg-surface-container text-on-surface-variant"
-                            }`}
-                          >
-                            <PersonInitials
-                              name={`${student.first_name} ${student.last_name}`}
-                              size={28}
-                            />
-                          </button>
-                        );
-                      })}
-                    </div>
+                  {/* Navigation */}
+                  <div className="flex items-center justify-between gap-4">
+                    <Button
+                      variant="secondary"
+                      onClick={() => navigateMobileStudent("prev")}
+                      disabled={mobileStudentIndex === 0}
+                      className="flex-1"
+                      icon={<MaterialIcon icon="chevron_left" className="text-xl" />}
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                      variant="primary"
+                      onClick={() => navigateMobileStudent("next")}
+                      disabled={mobileStudentIndex === filteredStudents.length - 1}
+                      className="flex-1"
+                    >
+                      Next
+                      <MaterialIcon icon="chevron_right" className="text-xl" />
+                    </Button>
                   </div>
                 </div>
-              )}
-            </div>
-          )}
+
+                {/* Student List Quick Nav */}
+                <div className="mt-4 bg-surface-container-lowest rounded-2xl p-4">
+                  <p className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-3">
+                    All Students
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {filteredStudents.map((student, idx) => {
+                      const graded = isStudentGraded(student.id);
+                      return (
+                        <button
+                          key={student.id}
+                          onClick={() => setMobileStudentIndex(idx)}
+                          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                            idx === mobileStudentIndex
+                              ? "bg-primary text-on-primary"
+                              : graded
+                                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                : "bg-surface-container text-on-surface-variant"
+                          }`}
+                        >
+                          <PersonInitials name={`${student.first_name} ${student.last_name}`} size={28} />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Topic Coverage */}
         {tab === "coverage" && selectedSubject && (
@@ -2242,23 +2143,15 @@ export default function GradesPage() {
             {/* Stats */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="bg-surface-container-low p-6 rounded-xl text-center">
-                <div className="text-2xl font-bold text-secondary">
-                  {coverageStats.completed}
-                </div>
+                <div className="text-2xl font-bold text-secondary">{coverageStats.completed}</div>
                 <div className="text-sm text-on-surface-variant">Completed</div>
               </div>
               <div className="bg-surface-container-low p-6 rounded-xl text-center">
-                <div className="text-2xl font-bold text-tertiary">
-                  {coverageStats.inProgress}
-                </div>
-                <div className="text-sm text-on-surface-variant">
-                  In Progress
-                </div>
+                <div className="text-2xl font-bold text-tertiary">{coverageStats.inProgress}</div>
+                <div className="text-sm text-on-surface-variant">In Progress</div>
               </div>
               <div className="bg-surface-container-low p-6 rounded-xl text-center">
-                <div className="text-2xl font-bold text-primary">
-                  {coverageStats.percentage}%
-                </div>
+                <div className="text-2xl font-bold text-primary">{coverageStats.percentage}%</div>
                 <div className="text-sm text-on-surface-variant">Coverage</div>
               </div>
             </div>
@@ -2266,32 +2159,23 @@ export default function GradesPage() {
             {/* Topics */}
             <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
               <div className="p-6 border-b border-outline-variant/10">
-                <h3 className="font-headline font-bold text-lg text-primary">
-                  Topic Coverage
-                </h3>
+                <h3 className="font-headline font-bold text-lg text-primary">Topic Coverage</h3>
               </div>
               <div className="divide-y divide-outline-variant/5">
                 {topics.map((topic) => {
                   const status = getTopicStatus(topic);
                   return (
-                    <div
-                      key={topic}
-                      className="flex items-center justify-between p-4 hover:bg-surface-bright"
-                    >
+                    <div key={topic} className="flex items-center justify-between p-4 hover:bg-surface-bright">
                       <span className="font-medium text-primary">{topic}</span>
                       <div className="flex gap-2">
                         <button
-                          onClick={() =>
-                            updateTopicStatus(topic, "not_started")
-                          }
+                          onClick={() => updateTopicStatus(topic, "not_started")}
                           className={`px-3 py-1 rounded-full text-xs font-bold ${status === "not_started" ? "bg-surface-container text-on-surface-variant" : "bg-surface-bright text-on-surface-variant hover:bg-surface-container"}`}
                         >
                           Not Started
                         </button>
                         <button
-                          onClick={() =>
-                            updateTopicStatus(topic, "in_progress")
-                          }
+                          onClick={() => updateTopicStatus(topic, "in_progress")}
                           className={`px-3 py-1 rounded-full text-xs font-bold ${status === "in_progress" ? "bg-tertiary-fixed text-on-tertiary-fixed" : "bg-surface-bright text-on-surface-variant hover:bg-surface-container"}`}
                         >
                           In Progress
@@ -2322,21 +2206,14 @@ export default function GradesPage() {
         {/* Sticky Action Bar */}
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-[var(--surface)]/80 dark:bg-[var(--surface-container-lowest)]/80 backdrop-blur-2xl px-6 py-4 rounded-full shadow-2xl z-40 border border-[var(--border)]/50 hidden md:flex">
           <div className="flex items-center gap-2 text-secondary px-4 border-r border-[var(--border)]">
-            <MaterialIcon
-              className="text-xl"
-              style={{ fontVariationSettings: "FILL 1" }}
-            >
+            <MaterialIcon className="text-xl" style={{ fontVariationSettings: "FILL 1" }}>
               cloud_done
             </MaterialIcon>
-            <span className="text-xs font-bold uppercase tracking-wider">
-              Sync Active
-            </span>
+            <span className="text-xs font-bold uppercase tracking-wider">Sync Active</span>
           </div>
           <button
             onClick={handleSaveDraft}
-            disabled={
-              isSubmitted || saving || !selectedClass || !selectedSubject
-            }
+            disabled={isSubmitted || saving || !selectedClass || !selectedSubject}
             className="flex items-center gap-2 px-4 py-2 hover:bg-[var(--surface-container)] rounded-full transition-colors font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <MaterialIcon>save</MaterialIcon>
@@ -2344,17 +2221,12 @@ export default function GradesPage() {
           </button>
           <button
             onClick={handleSubmitToDean}
-            disabled={
-              isSubmitted || saving || !selectedClass || !selectedSubject
-            }
+            disabled={isSubmitted || saving || !selectedClass || !selectedSubject}
             className="bg-primary text-white px-8 py-2.5 rounded-full font-bold text-sm hover:shadow-lg hover:shadow-primary/30 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {isSubmitted
               ? "Submitted ✓"
-              : staff.some(
-                    (s: any) =>
-                      s.role === "dean_of_studies" || s.role === "dos",
-                  )
+              : staff.some((s: any) => s.role === "dean_of_studies" || s.role === "dos")
                 ? "Submit to Dean"
                 : "Submit to HM"}
           </button>

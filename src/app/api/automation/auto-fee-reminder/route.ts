@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  requireCronSecretOrDeny,
-  createServiceRoleClientOrThrow,
-  requireExistingSchoolOrDeny,
-} from "@/lib/api-utils";
+import { requireCronSecretOrDeny, createServiceRoleClientOrThrow, requireExistingSchoolOrDeny } from "@/lib/api-utils";
 import { requireActiveSubscription } from "@/lib/subscription-guard";
 import { sendAfricasTalkingSMSWithRetry, checkSmsDailyLimit } from "@/lib/africas-talking";
 import { logger } from "@/lib/logger";
@@ -16,7 +12,6 @@ export async function POST(request: NextRequest) {
   try {
     const cron = requireCronSecretOrDeny(request);
     if (!cron.ok) return cron.response;
-
 
     const { schoolId, triggers } = await request.json();
     const supabase = createServiceRoleClientOrThrow();
@@ -84,7 +79,10 @@ export async function POST(request: NextRequest) {
     const { data: feePayments } = await supabase
       .from("fee_payments")
       .select("student_id, amount_paid")
-      .in("student_id", (studentsWithFees || []).map((s: any) => s.id));
+      .in(
+        "student_id",
+        (studentsWithFees || []).map((s: any) => s.id),
+      );
 
     // Build payment totals per student
     const paymentsByStudent = new Map<string, number>();
@@ -95,7 +93,15 @@ export async function POST(request: NextRequest) {
     const now = new Date();
 
     const results = {
-      remindersSent: [] as { studentId: string; name: string; phone: string; balance: number; daysOverdue: number; triggerDays: number; messageId?: string }[],
+      remindersSent: [] as {
+        studentId: string;
+        name: string;
+        phone: string;
+        balance: number;
+        daysOverdue: number;
+        triggerDays: number;
+        messageId?: string;
+      }[],
       skipped: [] as { studentId: string; name: string; reason: string }[],
       errors: [] as { studentId: string; name: string; error?: string; reason?: string }[],
     };
@@ -112,16 +118,15 @@ export async function POST(request: NextRequest) {
         }
 
         // Calculate balance: total fees for student's class minus payments
-        const classFees = (feeStructure || []).filter(
-          (f: any) => !f.class_id || f.class_id === student.class_id,
-        );
+        const classFees = (feeStructure || []).filter((f: any) => !f.class_id || f.class_id === student.class_id);
         const totalExpected = classFees.reduce((s: number, f: any) => s + Number(f.amount || 0), 0);
         const totalPaid = paymentsByStudent.get(student.id) || 0;
         const balance = totalExpected - totalPaid;
-        const earliestDueDate = classFees
-          .filter((f: any) => f.due_date)
-          .map((f: any) => new Date(f.due_date))
-          .sort((a: Date, b: Date) => a.getTime() - b.getTime())[0] || now;
+        const earliestDueDate =
+          classFees
+            .filter((f: any) => f.due_date)
+            .map((f: any) => new Date(f.due_date))
+            .sort((a: Date, b: Date) => a.getTime() - b.getTime())[0] || now;
 
         if (balance <= 0) {
           results.skipped.push({
@@ -134,9 +139,7 @@ export async function POST(request: NextRequest) {
 
         // Calculate days overdue
         const dueDate = earliestDueDate;
-        const daysOverdue = Math.floor(
-          (now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24),
-        );
+        const daysOverdue = Math.floor((now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24));
 
         if (daysOverdue < 0) {
           results.skipped.push({
@@ -154,18 +157,20 @@ export async function POST(request: NextRequest) {
 
         if (applicableTriggers.length === 0) continue;
 
-        // Check if we already sent a reminder at this or higher level
-        const { data: priorReminders } = await supabase
-          .from("messages")
-          .select("created_at")
-          .eq("student_id", student.id)
-          .eq("type", "fee_reminder")
-          .order("created_at", { ascending: false })
-          .limit(1);
+        // Check if we already sent a reminder to this phone number
+        const { withTimeout: wt, timeoutFallback: tf } = await import("@/lib/hooks/utils");
+        const { data: priorReminders } = await wt(
+          supabase
+            .from("messages")
+            .select("created_at")
+            .eq("phone", student.parent_phone)
+            .order("created_at", { ascending: false })
+            .limit(1),
+          15000,
+          tf(),
+        );
 
-        const lastReminderDate = priorReminders?.[0]?.created_at
-          ? new Date(priorReminders[0].created_at)
-          : null;
+        const lastReminderDate = priorReminders?.[0]?.created_at ? new Date(priorReminders[0].created_at) : null;
 
         const highestTrigger = applicableTriggers[0];
         const alreadySentAtThisLevel = lastReminderDate
@@ -192,34 +197,29 @@ export async function POST(request: NextRequest) {
         }
 
         const message = highestTrigger.message
-          .replace(
-            "{student_name}",
-            `${student.first_name} ${student.last_name}`,
-          )
+          .replace("{student_name}", `${student.first_name} ${student.last_name}`)
           .replace("{balance}", balance.toLocaleString())
           .replace("{due_date}", dueDate.toLocaleDateString())
           .replace("{class}", student.classes?.name || "Unknown");
 
-        const smsResult = await sendAfricasTalkingSMSWithRetry(
-          student.parent_phone,
-          message,
-          { formatUgandaNumber: true },
-        );
+        const smsResult = await sendAfricasTalkingSMSWithRetry(student.parent_phone, message, {
+          formatUgandaNumber: true,
+        });
 
         if (smsResult.success) {
-          const { withTimeout, timeoutFallback } = await import('@/lib/hooks/utils');
+          const { withTimeout, timeoutFallback } = await import("@/lib/hooks/utils");
           const feeMsgResult = await withTimeout(
             supabase.from("messages").insert({
               school_id: school.schoolId,
-              recipient: student.parent_phone,
+              phone: student.parent_phone,
+              recipient_type: "individual",
+              recipient_id: student.id,
               message: message,
               status: "sent",
               sent_at: now.toISOString(),
-              type: "fee_reminder",
-              student_id: student.id,
             } as any),
             15000,
-            timeoutFallback()
+            timeoutFallback(),
           );
           if (feeMsgResult?.error) {
             logger.error("Fee reminder message insert error:", feeMsgResult.error);

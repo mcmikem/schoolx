@@ -1,10 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { computeNetSalary, computeNSSF, computePAYE } from "@/lib/automation";
-import {
-  requireCronSecretOrDeny,
-  createServiceRoleClientOrThrow,
-  requireExistingSchoolOrDeny,
-} from "@/lib/api-utils";
+import { computeNetSalary, computeNSSF } from "@/lib/automation";
+import { requireCronSecretOrDeny, createServiceRoleClientOrThrow, requireExistingSchoolOrDeny } from "@/lib/api-utils";
 import { requireActiveSubscription } from "@/lib/subscription-guard";
 import { logger } from "@/lib/logger";
 
@@ -12,7 +8,6 @@ export async function POST(request: NextRequest) {
   try {
     const cron = requireCronSecretOrDeny(request);
     if (!cron.ok) return cron.response;
-
 
     const { schoolId, month, year } = await request.json();
     const supabase = createServiceRoleClientOrThrow();
@@ -53,10 +48,7 @@ export async function POST(request: NextRequest) {
       .eq("status", "active");
 
     if (staffError) {
-      return NextResponse.json(
-        { error: "Failed to fetch staff", details: "Internal server error" },
-        { status: 500 },
-      );
+      return NextResponse.json({ error: "Failed to fetch staff", details: "Internal server error" }, { status: 500 });
     }
 
     const processed: any[] = [];
@@ -91,13 +83,13 @@ export async function POST(request: NextRequest) {
         const otherDeductions = member.deductions || 0;
 
         // Compute salary breakdown
-        const { gross, nssf_employee, paye, other_deductions, net } =
-          computeNetSalary(grossSalary, allowances, otherDeductions);
+        const { gross, nssf_employee, paye, other_deductions, net } = computeNetSalary(
+          grossSalary,
+          allowances,
+          otherDeductions,
+        );
 
         const nssf = computeNSSF(grossSalary);
-        const payeAmount = computePAYE(
-          grossSalary + allowances - nssf_employee,
-        );
 
         // Create payroll record
         const { data: payrollRecord, error: payrollError } = await supabase
@@ -112,9 +104,9 @@ export async function POST(request: NextRequest) {
             nssf_employee,
             nssf_employer: nssf.employer,
             nssf_total: nssf.total,
-            paye: payeAmount,
+            paye: paye,
             other_deductions: other_deductions,
-            total_deductions: nssf_employee + payeAmount + other_deductions,
+            total_deductions: nssf_employee + paye + other_deductions,
             net_salary: net,
             bank_account: member.bank_account,
             bank_name: member.bank_name,
@@ -152,7 +144,7 @@ export async function POST(request: NextRequest) {
             school_id: school.schoolId,
             staff_id: member.id,
             type: "PAYE",
-            amount: payeAmount,
+            amount: paye,
             month: payrollMonth,
             year: payrollYear,
           },
@@ -164,7 +156,7 @@ export async function POST(request: NextRequest) {
 
         totalPayroll += gross;
         totalNSSF += nssf.total;
-        totalPAYE += payeAmount;
+        totalPAYE += paye;
         totalNet += net;
 
         processed.push({
@@ -175,7 +167,7 @@ export async function POST(request: NextRequest) {
           gross,
           nssf_employee,
           nssf_employer: nssf.employer,
-          paye: payeAmount,
+          paye: paye,
           other_deductions,
           net,
           payrollRecordId: payrollRecord.id,

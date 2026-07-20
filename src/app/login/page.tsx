@@ -68,13 +68,15 @@ export default function LoginPage() {
   }, []);
 
   useEffect(() => {
+    return () => {
+      if (submitTimerRef.current) clearTimeout(submitTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!authInitialized || !user) return;
     const destination =
-      user.role === "super_admin"
-        ? "/super-admin"
-        : user.role === "parent"
-          ? "/parent-portal"
-          : "/dashboard";
+      user.role === "super_admin" ? "/super-admin" : user.role === "parent" ? "/parent-portal" : "/dashboard";
     router.replace(destination);
   }, [authInitialized, user, router]);
 
@@ -151,10 +153,7 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     try {
-      const redirectTo =
-        typeof window !== "undefined"
-          ? `${window.location.origin}/auth/callback`
-          : undefined;
+      const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : undefined;
 
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: "google",
@@ -223,7 +222,7 @@ export default function LoginPage() {
 
     // Demo login: intercept known demo phone numbers
     if (DEMO_MODE_ENABLED) {
-      const DEMO_PHONES = ["256700000001","256700000002","256700000003","256700000004","256700000005"];
+      const DEMO_PHONES = ["256700000001", "256700000002", "256700000003", "256700000004", "256700000005"];
       const cleanPhone = normalized.replace(/[^0-9]/g, "");
       if (DEMO_PHONES.includes(cleanPhone)) {
         try {
@@ -235,7 +234,7 @@ export default function LoginPage() {
           const data = await res.json();
           if (res.ok && data.success) {
             saveDemoStorage(data.user, data.school);
-            window.location.href = data.user.role === "parent" ? "/parent-portal" : "/dashboard";
+            router.replace(data.user.role === "parent" ? "/parent-portal" : "/dashboard");
             return;
           }
         } catch {
@@ -268,16 +267,8 @@ export default function LoginPage() {
       setFailedAttempts(0);
       setLockoutUntil(null);
 
-      const deadline = Date.now() + 10000;
-      while (Date.now() < deadline) {
-        if (userRef.current) {
-          return;
-        }
-        await new Promise((resolve) => setTimeout(resolve, 250));
-      }
-
       setLoading(false);
-      toast.error("Login succeeded but session was not established. Please try again.");
+      return;
     } catch (error) {
       if (submitTimerRef.current) clearTimeout(submitTimerRef.current);
       setShowSlowMessage(false);
@@ -309,7 +300,9 @@ export default function LoginPage() {
               <p className="font-medium mb-1">Demo Accounts</p>
               <p className="font-mono">256700000001 / 256700000002</p>
               <p className="font-mono">256700000003 / 256700000004</p>
-               <p className="mt-1 text-amber-600">Password: <span className="font-mono font-bold">skoolmate123</span></p>
+              <p className="mt-1 text-amber-600">
+                Password: <span className="font-mono font-bold">skoolmate123</span>
+              </p>
             </div>
           )}
 
@@ -396,13 +389,7 @@ export default function LoginPage() {
               loading={loading || otpLoading}
               icon={!loading && !otpLoading ? <MaterialIcon icon="login" className="text-lg" /> : undefined}
             >
-              {otpMode
-                ? otpSent
-                  ? "Verify OTP"
-                  : "Send OTP"
-                : loading
-                  ? "Signing in..."
-                  : "Sign In"}
+              {otpMode ? (otpSent ? "Verify OTP" : "Send OTP") : loading ? "Signing in..." : "Sign In"}
             </Button>
 
             <div className="flex flex-col items-center gap-2">

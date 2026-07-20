@@ -12,7 +12,7 @@ ALTER TABLE public.fee_adjustments
 ALTER TABLE public.fee_adjustments
   ADD CONSTRAINT fee_adjustments_adjustment_type_check
   CHECK (adjustment_type IN (
-    'discount', 'scholarship', 'penalty', 'manual_credit', 'write_off', 'bursary'
+    'discount', 'scholarship', 'penalty', 'manual_credit', 'write_off', 'bursary', 'amnesty'
   ));
 
 -- 3. Index for soft-delete filtering

@@ -20,10 +20,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { Modal } from "@/components/ui/Modal";
 import { PageGuidance } from "@/components/PageGuidance";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import {
-  normalizeAttendanceInput,
-  validateAttendanceInput,
-} from "@/lib/validation";
+import { normalizeAttendanceInput, validateAttendanceInput } from "@/lib/validation";
 import type { Student } from "@/types";
 import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import { getAutomationStatus, toggleAutomation } from "@/lib/sms-automation";
@@ -31,10 +28,7 @@ import { getAutomationStatus, toggleAutomation } from "@/lib/sms-automation";
 const STATUS_CYCLE = ["absent", "present", "late", "excused"] as const;
 type AttendanceStatus = (typeof STATUS_CYCLE)[number];
 
-const STATUS_CONFIG: Record<
-  AttendanceStatus,
-  { color: string; bg: string; label: string; icon: string }
-> = {
+const STATUS_CONFIG: Record<AttendanceStatus, { color: string; bg: string; label: string; icon: string }> = {
   absent: {
     color: "bg-error",
     bg: "bg-error-container",
@@ -89,6 +83,7 @@ export default function AttendancePage() {
   const [viewMode, setViewMode] = useState<"desktop" | "mobile">("desktop");
   const [rollCallMode, setRollCallMode] = useState(false);
   const [bulkMode, setBulkMode] = useState(false);
+  const [copyingYesterday, setCopyingYesterday] = useState(false);
   const [bulkDateFrom, setBulkDateFrom] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() - 6);
@@ -109,20 +104,13 @@ export default function AttendancePage() {
     status: string;
   } | null>(null);
   const [showQuickAbsentModal, setShowQuickAbsentModal] = useState(false);
-  const [selectedAbsentIds, setSelectedAbsentIds] = useState<Set<string>>(
-    new Set(),
-  );
-  const [filterStatus, setFilterStatus] = useState<"all" | AttendanceStatus>(
-    "all",
-  );
+  const [selectedAbsentIds, setSelectedAbsentIds] = useState<Set<string>>(new Set());
+  const [filterStatus, setFilterStatus] = useState<"all" | AttendanceStatus>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [attendPage, setAttendPage] = useState(1);
   const attendPerPage = 20;
   const attendOffset = (attendPage - 1) * attendPerPage;
-  const attendTotalPages = Math.max(
-    1,
-    Math.ceil(students.length / attendPerPage),
-  );
+  const attendTotalPages = Math.max(1, Math.ceil(students.length / attendPerPage));
 
   const isClassTeacher = user?.role === "teacher";
   const isAdmin =
@@ -132,28 +120,19 @@ export default function AttendancePage() {
     user?.role === "super_admin" ||
     user?.role === "bursar";
 
-  const filteredClasses =
-    isClassTeacher && !isAdmin
-      ? classes.filter((c) => c.class_teacher_id === user?.id)
-      : classes;
+  const filteredClasses = isClassTeacher && !isAdmin ? classes.filter((c) => c.class_teacher_id === user?.id) : classes;
 
   useEffect(() => {
     setAttendPage(1);
   }, [selectedClass, date]);
 
   useEffect(() => {
-    if (
-      students.length > 0 &&
-      attendPage > Math.ceil(students.length / attendPerPage)
-    ) {
+    if (students.length > 0 && attendPage > Math.ceil(students.length / attendPerPage)) {
       setAttendPage(1);
     }
   }, [students.length, attendPage, attendPerPage]);
 
-  const paginatedStudents = students.slice(
-    attendOffset,
-    attendOffset + attendPerPage,
-  );
+  const paginatedStudents = students.slice(attendOffset, attendOffset + attendPerPage);
 
   const loadOfflineCount = useCallback(async () => {
     try {
@@ -208,19 +187,13 @@ export default function AttendancePage() {
     data: offlineAttendance,
     loading: attendanceLoading,
     error: attendanceError,
-  } = useOfflineAttendance(
-    selectedClass && school?.id ? school.id : undefined,
-    date,
-  );
+  } = useOfflineAttendance(selectedClass && school?.id ? school.id : undefined, date);
 
   useEffect(() => {
     if (!selectedClass || !school?.id) return;
     setLoading(studentsLoading || attendanceLoading);
     setStudents(
-      (offlineStudents || []).filter(
-        (student) =>
-          student.class_id === selectedClass && student.status === "active",
-      ),
+      (offlineStudents || []).filter((student) => student.class_id === selectedClass && student.status === "active"),
     );
     const attendanceMap: Record<string, string> = {};
     (offlineAttendance || []).forEach((record: any) => {
@@ -301,9 +274,7 @@ export default function AttendancePage() {
     }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      list = list.filter((s) =>
-        `${s.first_name} ${s.last_name}`.toLowerCase().includes(q)
-      );
+      list = list.filter((s) => `${s.first_name} ${s.last_name}`.toLowerCase().includes(q));
     }
     return list;
   }, [students, attendance, filterStatus, searchQuery]);
@@ -326,9 +297,7 @@ export default function AttendancePage() {
       return;
     }
 
-    const invalidRecord = records.find(
-      (record) => validateAttendanceInput(record).length > 0,
-    );
+    const invalidRecord = records.find((record) => validateAttendanceInput(record).length > 0);
     if (invalidRecord) {
       const [message] = validateAttendanceInput(invalidRecord);
       toast.error(message);
@@ -342,14 +311,11 @@ export default function AttendancePage() {
         const attResult = await withTimeout(
           supabase.from("attendance").upsert(records as any, { onConflict: "student_id,date" }),
           15000,
-          timeoutFallback()
+          timeoutFallback(),
         );
         const error = attResult?.error;
         if (error) throw error;
-        await offlineDB.cacheFromServer(
-          "attendance",
-          records as unknown as Record<string, unknown>[],
-        );
+        await offlineDB.cacheFromServer("attendance", records as unknown as Record<string, unknown>[]);
         if (school?.id && user?.id) {
           await logAuditEventWithOfflineSupport(
             true,
@@ -377,15 +343,10 @@ export default function AttendancePage() {
     }
   };
 
-  const saveOffline = async (
-    records: Record<string, unknown>[],
-  ) => {
+  const saveOffline = async (records: Record<string, unknown>[]) => {
     try {
       for (const record of records) {
-        await offlineDB.save(
-          "attendance",
-          record as unknown as Record<string, unknown>,
-        );
+        await offlineDB.save("attendance", record as unknown as Record<string, unknown>);
       }
       if (school?.id && user?.id) {
         await logAuditEventWithOfflineSupport(
@@ -442,18 +403,10 @@ export default function AttendancePage() {
     }
   };
 
-  const presentCount = Object.values(attendance).filter(
-    (s) => s === "present",
-  ).length;
-  const absentCount = Object.values(attendance).filter(
-    (s) => s === "absent",
-  ).length;
-  const lateCount = Object.values(attendance).filter(
-    (s) => s === "late",
-  ).length;
-  const excusedCount = Object.values(attendance).filter(
-    (s) => s === "excused",
-  ).length;
+  const presentCount = Object.values(attendance).filter((s) => s === "present").length;
+  const absentCount = Object.values(attendance).filter((s) => s === "absent").length;
+  const lateCount = Object.values(attendance).filter((s) => s === "late").length;
+  const excusedCount = Object.values(attendance).filter((s) => s === "excused").length;
   const hasAttendanceRecords = Object.keys(attendance).length > 0;
   const saveDisabledReason = !selectedClass
     ? "Select a class to enable Save Changes."
@@ -469,14 +422,8 @@ export default function AttendancePage() {
     const headers = ["Student Number", "First Name", "Last Name", "Status"];
     const rows = students.map((student) => {
       const status = attendance[student.id] || "not marked";
-      const statusLabel =
-        STATUS_CONFIG[status as AttendanceStatus]?.label || status;
-      return [
-        student.student_number,
-        student.first_name,
-        student.last_name,
-        statusLabel,
-      ];
+      const statusLabel = STATUS_CONFIG[status as AttendanceStatus]?.label || status;
+      return [student.student_number, student.first_name, student.last_name, statusLabel];
     });
 
     const csvContent = [
@@ -498,33 +445,65 @@ export default function AttendancePage() {
     toast.success("Attendance exported to CSV");
   };
 
+  const handleCopyYesterday = async () => {
+    if (!selectedClass || !school?.id) return;
+    setCopyingYesterday(true);
+    try {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toISOString().split("T")[0];
+
+      const { data } = await withTimeout(
+        supabase.from("attendance").select("student_id, status").eq("class_id", selectedClass).eq("date", yesterdayStr),
+        15000,
+        timeoutFallback(),
+      );
+
+      if (data && data.length > 0) {
+        const copied: Record<string, string> = {};
+        data.forEach((r: any) => {
+          copied[r.student_id] = r.status;
+        });
+        setAttendance((prev) => ({ ...prev, ...copied }));
+        setAllMarked(true);
+        toast.success(`Copied attendance from ${yesterdayStr} (${data.length} records)`);
+      } else {
+        toast.warning(`No attendance records found for ${yesterdayStr}`);
+      }
+    } catch {
+      toast.error("Failed to copy yesterday's attendance");
+    } finally {
+      setCopyingYesterday(false);
+    }
+  };
+
   const [confirmAbsentAlert, setConfirmAbsentAlert] = useState(false);
 
   const sendAbsentAlerts = async () => {
     setConfirmAbsentAlert(false);
     try {
-      const absentees = students.filter(
-        (s) => attendance[s.id] === "absent",
-      );
+      const absentees = students.filter((s) => attendance[s.id] === "absent");
       const { supabase: sb } = await import("@/lib/supabase");
 
       for (const student of absentees) {
         const phone = student.parent_phone;
         if (!phone) continue;
 
-        const msgResult = await withTimeout(sb.from("messages").insert({
-          school_id: school?.id,
-          recipient_phone: phone,
-          message: `SkoolMate Alert: ${student.first_name} was marked ABSENT today (${date}). Please confirm with school if this is unexpected.`,
-          status: "sent",
-          type: "attendance_alert",
-        }), 15000, timeoutFallback());
+        const msgResult = await withTimeout(
+          sb.from("messages").insert({
+            school_id: school?.id,
+            recipient_phone: phone,
+            message: `SkoolMate Alert: ${student.first_name} was marked ABSENT today (${date}). Please confirm with school if this is unexpected.`,
+            status: "sent",
+            type: "attendance_alert",
+          }),
+          15000,
+          timeoutFallback(),
+        );
         const msgError = msgResult?.error;
         if (msgError) throw msgError;
       }
-      toast.success(
-        `Absence alerts queued for ${absentees.length} parents`,
-      );
+      toast.success(`Absence alerts queued for ${absentees.length} parents`);
     } catch (err) {
       toast.error("Failed to send alerts");
     }
@@ -571,20 +550,31 @@ export default function AttendancePage() {
                 >
                   Export
                 </Button>
+                <Button
+                  onClick={handleCopyYesterday}
+                  disabled={!selectedClass || copyingYesterday}
+                  variant="secondary"
+                  size="sm"
+                  loading={copyingYesterday}
+                  icon={<MaterialIcon icon="content_copy" />}
+                >
+                  Copy Yesterday
+                </Button>
               </div>
-              {saveDisabledReason && (
-                <p className="text-xs text-on-surface-variant">
-                  {saveDisabledReason}
-                </p>
-              )}
+              {saveDisabledReason && <p className="text-xs text-on-surface-variant">{saveDisabledReason}</p>}
             </div>
           }
         />
 
         <div className="bg-surface-container-lowest rounded-xl border border-outline-variant p-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${absenteeAlertEnabled ? "bg-error-container" : "bg-surface-container-high"}`}>
-              <MaterialIcon icon={absenteeAlertEnabled ? "notifications_active" : "notifications_off"} className={absenteeAlertEnabled ? "text-error" : "text-on-surface-variant"} />
+            <div
+              className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${absenteeAlertEnabled ? "bg-error-container" : "bg-surface-container-high"}`}
+            >
+              <MaterialIcon
+                icon={absenteeAlertEnabled ? "notifications_active" : "notifications_off"}
+                className={absenteeAlertEnabled ? "text-error" : "text-on-surface-variant"}
+              />
             </div>
             <div className="min-w-0">
               <div className="font-semibold text-on-surface text-sm flex items-center gap-2">
@@ -592,7 +582,9 @@ export default function AttendancePage() {
                 {loadingAutomation ? (
                   <span className="text-xs text-on-surface-variant">Loading...</span>
                 ) : (
-                  <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${absenteeAlertEnabled ? "bg-error-container text-error" : "bg-surface-container-high text-on-surface-variant"}`}>
+                  <span
+                    className={`text-xs font-bold px-2 py-0.5 rounded-full ${absenteeAlertEnabled ? "bg-error-container text-error" : "bg-surface-container-high text-on-surface-variant"}`}
+                  >
                     {absenteeAlertEnabled ? "ON" : "OFF"}
                   </span>
                 )}
@@ -625,7 +617,10 @@ export default function AttendancePage() {
             { label: "Excused", value: excusedCount, tone: "text-[#7c3aed]" },
             { label: "Offline queue", value: offlineCount, tone: "text-primary" },
           ].map((item) => (
-            <div key={item.label} className="bg-surface-container-lowest rounded-xl border border-outline-variant p-3 text-center">
+            <div
+              key={item.label}
+              className="bg-surface-container-lowest rounded-xl border border-outline-variant p-3 text-center"
+            >
               <div className={`text-2xl md:text-3xl font-bold ${item.tone}`}>{item.value}</div>
               <div className="text-xs md:text-sm text-on-surface-variant mt-1">{item.label}</div>
             </div>
@@ -638,29 +633,22 @@ export default function AttendancePage() {
               <label className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2 block">
                 Select Class
                 {isClassTeacher && !isAdmin && (
-                  <span className="ml-2 normal-case font-medium text-primary">
-                    (your classes)
-                  </span>
+                  <span className="ml-2 normal-case font-medium text-primary">(your classes)</span>
                 )}
               </label>
               {classesLoading ? (
                 <div className="bg-[var(--navy-soft)] border border-[rgba(0,31,63,0.12)] rounded-xl p-4">
-                  <p className="text-[var(--t1)] text-sm font-medium">
-                    Loading classes...
-                  </p>
+                  <p className="text-[var(--t1)] text-sm font-medium">Loading classes...</p>
                   <p className="text-[var(--t3)] text-xs mt-1">
                     The class list is still being fetched for this school.
                   </p>
                 </div>
               ) : classes.length === 0 ? (
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-                  <p className="text-amber-800 text-sm font-medium">
-                    No classes found
-                  </p>
+                  <p className="text-amber-800 text-sm font-medium">No classes found</p>
                   <p className="text-amber-600 text-xs mt-1">
-                    Classes are created automatically when you register a
-                    school. If you are seeing this, please contact support or
-                    re-register.
+                    Classes are created automatically when you register a school. If you are seeing this, please contact
+                    support or re-register.
                   </p>
                 </div>
               ) : (
@@ -730,32 +718,28 @@ export default function AttendancePage() {
                 />
               </div>
               <div className="flex-1 flex items-end gap-2 flex-wrap">
-                {(["present", "absent", "late", "excused"] as const).map(
-                  (s) => {
-                    const cfg = STATUS_CONFIG[s];
-                    return (
-                      <button
-                        key={s}
-                        onClick={() => handleBulkMark(s)}
-                        title={`Mark all students as ${cfg.label.toLowerCase()}`}
-                        disabled={
-                          bulkProgress?.running || !selectedClass || !isOnline
-                        }
-                        className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all min-h-[44px] disabled:opacity-40 ${
-                          s === "present"
-                            ? "bg-secondary/10 text-secondary border-2 border-secondary/30 hover:bg-secondary/20"
-                            : s === "absent"
-                              ? "bg-error/10 text-error border-2 border-error/30 hover:bg-error/20"
-                              : s === "late"
-                                ? "bg-tertiary/10 text-tertiary border-2 border-tertiary/30 hover:bg-tertiary/20"
-                                : "bg-[#f3e8ff] text-[#7c3aed] border-2 border-[#7c3aed]/30 hover:bg-[#ede3fe]"
-                        }`}
-                      >
-                        Mark All {cfg.label}
-                      </button>
-                    );
-                  },
-                )}
+                {(["present", "absent", "late", "excused"] as const).map((s) => {
+                  const cfg = STATUS_CONFIG[s];
+                  return (
+                    <button
+                      key={s}
+                      onClick={() => handleBulkMark(s)}
+                      title={`Mark all students as ${cfg.label.toLowerCase()}`}
+                      disabled={bulkProgress?.running || !selectedClass || !isOnline}
+                      className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all min-h-[44px] disabled:opacity-40 ${
+                        s === "present"
+                          ? "bg-secondary/10 text-secondary border-2 border-secondary/30 hover:bg-secondary/20"
+                          : s === "absent"
+                            ? "bg-error/10 text-error border-2 border-error/30 hover:bg-error/20"
+                            : s === "late"
+                              ? "bg-tertiary/10 text-tertiary border-2 border-tertiary/30 hover:bg-tertiary/20"
+                              : "bg-[#f3e8ff] text-[#7c3aed] border-2 border-[#7c3aed]/30 hover:bg-[#ede3fe]"
+                      }`}
+                    >
+                      Mark All {cfg.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -767,9 +751,8 @@ export default function AttendancePage() {
           )}
           {bulkSummary && !bulkProgress && (
             <div className="mt-3 bg-secondary/5 border border-secondary/20 rounded-xl p-3 text-sm text-on-surface">
-              Bulk mark complete: {bulkSummary.students_count} students marked as{" "}
-              {bulkSummary.status} over {bulkSummary.dates_count} day(s) (
-              {bulkSummary.total_records} total records)
+              Bulk mark complete: {bulkSummary.students_count} students marked as {bulkSummary.status} over{" "}
+              {bulkSummary.dates_count} day(s) ({bulkSummary.total_records} total records)
             </div>
           )}
         </div>
@@ -793,11 +776,7 @@ export default function AttendancePage() {
                 Mark All In School
               </Button>
             </div>
-            <EmptyState
-              icon="group"
-              title="No students in this class"
-              description="Add students to this class first"
-            />
+            <EmptyState icon="group" title="No students in this class" description="Add students to this class first" />
           </>
         ) : (
           <>
@@ -806,45 +785,29 @@ export default function AttendancePage() {
                 className="bg-surface-container-lowest rounded-xl border border-outline-variant p-3 text-center"
                 style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
               >
-                <div className="text-2xl md:text-3xl font-bold text-secondary">
-                  {presentCount}
-                </div>
-                <div className="text-xs md:text-sm text-on-surface-variant mt-1">
-                  In School
-                </div>
+                <div className="text-2xl md:text-3xl font-bold text-secondary">{presentCount}</div>
+                <div className="text-xs md:text-sm text-on-surface-variant mt-1">In School</div>
               </div>
               <div
                 className="bg-surface-container-lowest rounded-xl border border-outline-variant p-3 text-center"
                 style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
               >
-                <div className="text-2xl md:text-3xl font-bold text-error">
-                  {absentCount}
-                </div>
-                <div className="text-xs md:text-sm text-on-surface-variant mt-1">
-                  Away
-                </div>
+                <div className="text-2xl md:text-3xl font-bold text-error">{absentCount}</div>
+                <div className="text-xs md:text-sm text-on-surface-variant mt-1">Away</div>
               </div>
               <div
                 className="bg-surface-container-lowest rounded-xl border border-outline-variant p-3 text-center"
                 style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
               >
-                <div className="text-2xl md:text-3xl font-bold text-tertiary">
-                  {lateCount}
-                </div>
-                <div className="text-xs md:text-sm text-on-surface-variant mt-1">
-                  Late
-                </div>
+                <div className="text-2xl md:text-3xl font-bold text-tertiary">{lateCount}</div>
+                <div className="text-xs md:text-sm text-on-surface-variant mt-1">Late</div>
               </div>
               <div
                 className="bg-surface-container-lowest rounded-xl border border-outline-variant p-3 text-center"
                 style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
               >
-                <div className="text-2xl md:text-3xl font-bold text-[#7c3aed]">
-                  {excusedCount}
-                </div>
-                <div className="text-xs md:text-sm text-on-surface-variant mt-1">
-                  Excused
-                </div>
+                <div className="text-2xl md:text-3xl font-bold text-[#7c3aed]">{excusedCount}</div>
+                <div className="text-xs md:text-sm text-on-surface-variant mt-1">Excused</div>
               </div>
             </div>
 
@@ -876,9 +839,7 @@ export default function AttendancePage() {
                 <div className="flex items-center gap-3">
                   <MaterialIcon icon="mic" className="text-xl text-primary" />
                   <div>
-                    <div className="font-semibold text-on-surface">
-                      Call Out Names
-                    </div>
+                    <div className="font-semibold text-on-surface">Call Out Names</div>
                     <div className="text-xs text-on-surface-variant">
                       Everyone starts as In School — tap only those Away
                     </div>
@@ -976,8 +937,7 @@ export default function AttendancePage() {
 
                 <div className="space-y-2">
                   {filteredStudents.map((student) => {
-                    const status = (attendance[student.id] ||
-                      "present") as AttendanceStatus;
+                    const status = (attendance[student.id] || "present") as AttendanceStatus;
                     const config = STATUS_CONFIG[status];
                     const borderColor =
                       status === "present"
@@ -1003,18 +963,13 @@ export default function AttendancePage() {
                       >
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                           <div className="flex-shrink-0">
-                            <PersonInitials
-                              name={`${student.first_name} ${student.last_name}`}
-                              size={40}
-                            />
+                            <PersonInitials name={`${student.first_name} ${student.last_name}`} size={40} />
                           </div>
                           <div className="min-w-0">
                             <div className="font-bold text-on-surface text-base truncate">
                               {student.first_name} {student.last_name}
                             </div>
-                            <div className="text-xs text-on-surface-variant">
-                              {student.student_number}
-                            </div>
+                            <div className="text-xs text-on-surface-variant">{student.student_number}</div>
                           </div>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
@@ -1034,19 +989,14 @@ export default function AttendancePage() {
                                     : "bg-[#7c3aed]"
                             }`}
                           >
-                            <MaterialIcon
-                              icon={config.icon}
-                              className="text-white text-lg"
-                            />
+                            <MaterialIcon icon={config.icon} className="text-white text-lg" />
                           </div>
                         </div>
                       </div>
                     );
                   })}
                   {filteredStudents.length === 0 && (
-                    <div className="text-center py-8 text-on-surface-variant">
-                      No students with this status
-                    </div>
+                    <div className="text-center py-8 text-on-surface-variant">No students with this status</div>
                   )}
                 </div>
 
@@ -1059,8 +1009,7 @@ export default function AttendancePage() {
                     className="w-full"
                     size="lg"
                   >
-                    Save: {presentCount} present, {absentCount} away,{" "}
-                    {lateCount} late, {excusedCount} excused
+                    Save: {presentCount} present, {absentCount} away, {lateCount} late, {excusedCount} excused
                   </Button>
                 </div>
               </>
@@ -1070,11 +1019,7 @@ export default function AttendancePage() {
                   <Button
                     variant="secondary"
                     onClick={handleMarkAllPresent}
-                    icon={
-                      <MaterialIcon
-                        icon={allMarked ? "undo" : "check_circle"}
-                      />
-                    }
+                    icon={<MaterialIcon icon={allMarked ? "undo" : "check_circle"} />}
                   >
                     {allMarked ? "Reset All" : "Mark All In School"}
                   </Button>
@@ -1091,9 +1036,7 @@ export default function AttendancePage() {
                 <TabPanel activeTab={viewMode} tabId="desktop">
                   <div className="space-y-3">
                     {paginatedStudents.map((student) => {
-                      const status = attendance[student.id] as
-                        | AttendanceStatus
-                        | undefined;
+                      const status = attendance[student.id] as AttendanceStatus | undefined;
                       const config = status ? STATUS_CONFIG[status] : null;
                       return (
                         <div
@@ -1102,24 +1045,17 @@ export default function AttendancePage() {
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                              <PersonInitials
-                                name={`${student.first_name} ${student.last_name}`}
-                                size={40}
-                              />
+                              <PersonInitials name={`${student.first_name} ${student.last_name}`} size={40} />
                               <div>
                                 <div className="font-bold text-primary">
                                   {student.first_name} {student.last_name}
-{student.boarding_status &&
-                                  student.boarding_status !==
-                                    "day" && (
-                                  <span className="ml-2 px-1.5 py-0.5 bg-teal-100 text-teal-700 text-[10px] font-bold rounded uppercase">
-                                    {student.boarding_status}
-                                      </span>
-                                    )}
+                                  {student.boarding_status && student.boarding_status !== "day" && (
+                                    <span className="ml-2 px-1.5 py-0.5 bg-teal-100 text-teal-700 text-[10px] font-bold rounded uppercase">
+                                      {student.boarding_status}
+                                    </span>
+                                  )}
                                 </div>
-                                <div className="text-xs text-on-surface-variant">
-                                  {student.student_number}
-                                </div>
+                                <div className="text-xs text-on-surface-variant">{student.student_number}</div>
                               </div>
                             </div>
                             <div className="flex gap-2">
@@ -1129,9 +1065,7 @@ export default function AttendancePage() {
                                 return (
                                   <button
                                     key={s}
-                                    onClick={() =>
-                                      markAttendance(student.id, s)
-                                    }
+                                    onClick={() => markAttendance(student.id, s)}
                                     className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
                                       isActive
                                         ? `${sConfig.bg} border-${s === "absent" ? "error" : s === "present" ? "secondary" : s === "late" ? "tertiary" : "[#7c3aed]"}`
@@ -1157,9 +1091,7 @@ export default function AttendancePage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() =>
-                            setAttendPage((p) => Math.max(1, p - 1))
-                          }
+                          onClick={() => setAttendPage((p) => Math.max(1, p - 1))}
                           disabled={attendPage === 1}
                         >
                           <MaterialIcon icon="chevron_left" />
@@ -1167,11 +1099,7 @@ export default function AttendancePage() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() =>
-                            setAttendPage((p) =>
-                              Math.min(attendTotalPages, p + 1),
-                            )
-                          }
+                          onClick={() => setAttendPage((p) => Math.min(attendTotalPages, p + 1))}
                           disabled={attendPage >= attendTotalPages}
                         >
                           <MaterialIcon icon="chevron_right" />
@@ -1184,9 +1112,7 @@ export default function AttendancePage() {
                 <TabPanel activeTab={viewMode} tabId="mobile">
                   <div className="space-y-2">
                     {paginatedStudents.map((student) => {
-                      const status = attendance[student.id] as
-                        | AttendanceStatus
-                        | undefined;
+                      const status = attendance[student.id] as AttendanceStatus | undefined;
                       const config = status ? STATUS_CONFIG[status] : null;
                       return (
                         <div
@@ -1195,24 +1121,17 @@ export default function AttendancePage() {
                           className="bg-surface-container-lowest rounded-xl border border-outline-variant p-4 flex items-center justify-between active:scale-[0.98] transition-transform cursor-pointer select-none"
                         >
                           <div className="flex items-center gap-3">
-                            <PersonInitials
-                              name={`${student.first_name} ${student.last_name}`}
-                              size={40}
-                            />
+                            <PersonInitials name={`${student.first_name} ${student.last_name}`} size={40} />
                             <div>
                               <div className="font-bold text-primary text-sm">
                                 {student.first_name} {student.last_name}
                               </div>
-                              <div className="text-xs text-on-surface-variant">
-                                {student.student_number}
-                              </div>
+                              <div className="text-xs text-on-surface-variant">{student.student_number}</div>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
                             {config && (
-                              <span className="text-xs font-medium text-on-surface-variant">
-                                {config.label}
-                              </span>
+                              <span className="text-xs font-medium text-on-surface-variant">{config.label}</span>
                             )}
                             <div
                               className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
@@ -1229,10 +1148,7 @@ export default function AttendancePage() {
                             >
                               {status && (
                                 <MaterialIcon
-                                  icon={
-                                    STATUS_CONFIG[status as AttendanceStatus]
-                                      .icon
-                                  }
+                                  icon={STATUS_CONFIG[status as AttendanceStatus].icon}
                                   className="text-white text-lg"
                                 />
                               )}
@@ -1241,9 +1157,7 @@ export default function AttendancePage() {
                         </div>
                       );
                     })}
-                    <p className="text-center text-xs text-on-surface-variant pt-2">
-                      Tap a student to cycle status
-                    </p>
+                    <p className="text-center text-xs text-on-surface-variant pt-2">Tap a student to cycle status</p>
                   </div>
                 </TabPanel>
 
@@ -1278,26 +1192,18 @@ export default function AttendancePage() {
                   <Button
                     variant="secondary"
                     size="sm"
-                    onClick={() =>
-                      setSelectedAbsentIds(new Set(students.map((s) => s.id)))
-                    }
+                    onClick={() => setSelectedAbsentIds(new Set(students.map((s) => s.id)))}
                   >
                     Select All
                   </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setSelectedAbsentIds(new Set())}
-                  >
+                  <Button variant="secondary" size="sm" onClick={() => setSelectedAbsentIds(new Set())}>
                     Clear All
                   </Button>
                   <Button
                     variant="secondary"
                     size="sm"
                     onClick={() => {
-                      const alreadyAbsent = students
-                        .filter((s) => attendance[s.id] === "absent")
-                        .map((s) => s.id);
+                      const alreadyAbsent = students.filter((s) => attendance[s.id] === "absent").map((s) => s.id);
                       setSelectedAbsentIds(new Set(alreadyAbsent));
                     }}
                   >
@@ -1324,25 +1230,16 @@ export default function AttendancePage() {
                     >
                       <div
                         className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                          isSelected
-                            ? "bg-error border-error"
-                            : "border-outline-variant"
+                          isSelected ? "bg-error border-error" : "border-outline-variant"
                         }`}
                       >
-                        {isSelected && (
-                          <MaterialIcon
-                            icon="check"
-                            className="text-white text-sm"
-                          />
-                        )}
+                        {isSelected && <MaterialIcon icon="check" className="text-white text-sm" />}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="font-medium text-on-surface text-sm truncate">
                           {student.first_name} {student.last_name}
                         </div>
-                        <div className="text-xs text-on-surface-variant">
-                          {student.student_number}
-                        </div>
+                        <div className="text-xs text-on-surface-variant">{student.student_number}</div>
                       </div>
                       {currentStatus !== "present" && (
                         <span
@@ -1352,10 +1249,7 @@ export default function AttendancePage() {
                               : "bg-tertiary-container text-on-tertiary-container"
                           }`}
                         >
-                          {
-                            STATUS_CONFIG[currentStatus as AttendanceStatus]
-                              ?.label
-                          }
+                          {STATUS_CONFIG[currentStatus as AttendanceStatus]?.label}
                         </span>
                       )}
                     </button>

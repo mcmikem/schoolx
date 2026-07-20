@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  requireCronSecretOrDeny,
-  createServiceRoleClientOrThrow,
-  requireExistingSchoolOrDeny,
-} from "@/lib/api-utils";
+import { requireCronSecretOrDeny, createServiceRoleClientOrThrow, requireExistingSchoolOrDeny } from "@/lib/api-utils";
 import { sendAfricasTalkingSMSWithRetry } from "@/lib/africas-talking";
 import { logger } from "@/lib/logger";
 
@@ -23,8 +19,7 @@ export async function POST(request: NextRequest) {
     const { data: classes } = await supabase
       .from("classes")
       .select("id, name, teacher_id")
-      .eq("school_id", school.schoolId)
-      .eq("status", "active");
+      .eq("school_id", school.schoolId);
 
     const classList = (classes || []) as {
       id: string;
@@ -32,17 +27,11 @@ export async function POST(request: NextRequest) {
       teacher_id: string | null;
     }[];
 
-    if (classList.length === 0)
-      return NextResponse.json({ success: true, message: "No classes" });
+    if (classList.length === 0) return NextResponse.json({ success: true, message: "No classes" });
 
-    const { data: attendance } = await supabase
-      .from("attendance")
-      .select("class_id")
-      .eq("date", today);
+    const { data: attendance } = await supabase.from("attendance").select("class_id").eq("date", today);
 
-    const markedClassIds = new Set(
-      (attendance || []).map((a: any) => a.class_id),
-    );
+    const markedClassIds = new Set((attendance || []).map((a: any) => a.class_id));
     const unmarkedClasses = classList.filter((c) => !markedClassIds.has(c.id));
 
     const results = { nudgesSent: 0, errors: 0 };
@@ -61,14 +50,10 @@ export async function POST(request: NextRequest) {
         const message = `Friendly Nudge: Attendance for ${cls.name} hasn't been marked yet. Please update the system as soon as possible. - SkoolMate Admin`;
 
         try {
-          const smsRes = await sendAfricasTalkingSMSWithRetry(
-            teacherUser.phone,
-            message,
-            { formatUgandaNumber: true },
-          );
+          const smsRes = await sendAfricasTalkingSMSWithRetry(teacherUser.phone, message, { formatUgandaNumber: true });
           if (smsRes.success) {
             results.nudgesSent++;
-            const { withTimeout, timeoutFallback } = await import('@/lib/hooks/utils');
+            const { withTimeout, timeoutFallback } = await import("@/lib/hooks/utils");
             const hbResult = await withTimeout(
               supabase.from("automated_message_logs").insert({
                 school_id: school.schoolId,
@@ -78,7 +63,7 @@ export async function POST(request: NextRequest) {
                 status: "sent",
               } as any),
               15000,
-              timeoutFallback()
+              timeoutFallback(),
             );
             if (hbResult?.error) {
               logger.error("Heartbeat log insert error:", hbResult.error);
@@ -101,4 +86,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Heartbeat failed" }, { status: 500 });
   }
 }
-

@@ -87,6 +87,7 @@ interface StudentDetailPanelProps {
   createStudent?: (data: any) => Promise<any>;
   updateStudent?: (id: string, data: any) => Promise<any>;
   student?: StudentDetailData | null;
+  minimal?: boolean;
 }
 
 type EditForm = {
@@ -177,35 +178,19 @@ const INITIAL_NEW_STUDENT: NewStudent = {
   nin: "",
 };
 
-function FormSection({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description?: string;
-  children: ReactNode;
-}) {
+function FormSection({ title, description, children }: { title: string; description?: string; children: ReactNode }) {
   return (
     <section className="rounded-2xl border border-[var(--border)] bg-[var(--bg)]/40 p-4 sm:p-5">
       <div className="mb-4">
         <h3 className="text-sm font-semibold text-[var(--t1)]">{title}</h3>
-        {description ? (
-          <p className="mt-1 text-xs leading-5 text-[var(--t3)]">{description}</p>
-        ) : null}
+        {description ? <p className="mt-1 text-xs leading-5 text-[var(--t3)]">{description}</p> : null}
       </div>
       {children}
     </section>
   );
 }
 
-function ResponsiveFieldGrid({
-  children,
-  className = "",
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
+function ResponsiveFieldGrid({ children, className = "" }: { children: ReactNode; className?: string }) {
   return <div className={`grid grid-cols-1 gap-3 sm:grid-cols-2 ${className}`.trim()}>{children}</div>;
 }
 
@@ -220,6 +205,7 @@ export default function StudentDetailPanel({
   createStudent,
   updateStudent,
   student,
+  minimal = false,
 }: StudentDetailPanelProps) {
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -262,8 +248,7 @@ export default function StudentDetailPanel({
     nin: "",
   };
   const [editForm, setEditForm] = useState<EditForm>(initialEditForm);
-  const [internalEditingStudent, setInternalEditingStudent] =
-    useState<StudentDetailData | null>(null);
+  const [internalEditingStudent, setInternalEditingStudent] = useState<StudentDetailData | null>(null);
 
   const resetNewStudentForm = useCallback(() => {
     setNewStudent(INITIAL_NEW_STUDENT);
@@ -364,9 +349,7 @@ export default function StudentDetailPanel({
               setNewStudent((prev) => ({ ...prev, photo_url: result }));
             } else {
               setEditForm((prev) => ({ ...prev, photo_url: result }));
-              setInternalEditingStudent((prev) =>
-                prev ? { ...prev, photo_url: result } : prev,
-              );
+              setInternalEditingStudent((prev) => (prev ? { ...prev, photo_url: result } : prev));
             }
             resolve();
           };
@@ -383,17 +366,14 @@ export default function StudentDetailPanel({
       const { publicUrl } = await uploadStudentPhoto({
         file,
         schoolId,
-        studentId:
-          uploadMode === "edit" ? internalEditingStudent?.id : undefined,
+        studentId: uploadMode === "edit" ? internalEditingStudent?.id : undefined,
       });
 
       if (uploadMode === "new") {
         setNewStudent((prev) => ({ ...prev, photo_url: publicUrl }));
       } else {
         setEditForm((prev) => ({ ...prev, photo_url: publicUrl }));
-        setInternalEditingStudent((prev) =>
-          prev ? { ...prev, photo_url: publicUrl } : prev,
-        );
+        setInternalEditingStudent((prev) => (prev ? { ...prev, photo_url: publicUrl } : prev));
       }
     },
     [internalEditingStudent?.id, isDemo, schoolId],
@@ -464,8 +444,7 @@ export default function StudentDetailPanel({
       toast.success("Student added successfully");
       onClose();
     } catch (err: unknown) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to add student";
+      const errorMessage = err instanceof Error ? err.message : "Failed to add student";
       toast.error(errorMessage);
     } finally {
       setSaving(false);
@@ -507,8 +486,7 @@ export default function StudentDetailPanel({
       toast.success("Student updated successfully");
       onClose();
     } catch (err: unknown) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to update student";
+      const errorMessage = err instanceof Error ? err.message : "Failed to update student";
       toast.error(errorMessage);
     } finally {
       setSaving(false);
@@ -518,20 +496,13 @@ export default function StudentDetailPanel({
   const isEdit = mode === "edit";
   const formData: Record<string, any> = isEdit ? editForm : newStudent;
   const handleFormChange = (updates: Record<string, any>) =>
-    isEdit
-      ? setEditForm((p) => ({ ...p, ...updates }))
-      : handleNewStudentChange(updates);
+    isEdit ? setEditForm((p) => ({ ...p, ...updates })) : handleNewStudentChange(updates);
 
-  const districtOptions = useMemo(
-    () => UGANDA_DISTRICT_DIRECTORY.map((entry) => entry.district),
-    [],
-  );
+  const districtOptions = useMemo(() => UGANDA_DISTRICT_DIRECTORY.map((entry) => entry.district), []);
   const selectedDistrictEntry = useMemo(
     () =>
       UGANDA_DISTRICT_DIRECTORY.find(
-        (entry) =>
-          entry.district.toLowerCase() ===
-          formData.district_origin.trim().toLowerCase(),
+        (entry) => entry.district.toLowerCase() === formData.district_origin.trim().toLowerCase(),
       ),
     [formData.district_origin],
   );
@@ -543,8 +514,7 @@ export default function StudentDetailPanel({
     return selectedDistrictEntry.parishes[subcounty] || [];
   }, [selectedDistrictEntry, formData.sub_county]);
 
-  const selectedClassExists =
-    !formData.class_id || classes.some((c) => c.id === formData.class_id);
+  const selectedClassExists = !formData.class_id || classes.some((c) => c.id === formData.class_id);
 
   const parseOpeningBalance = (value: string) => {
     const parsed = Number(value);
@@ -568,47 +538,26 @@ export default function StudentDetailPanel({
   const ob = isEdit ? editForm.opening_balance : newStudent.opening_balance;
 
   const setFName = (v: string) =>
-    isEdit
-      ? setEditForm((p) => ({ ...p, first_name: v }))
-      : handleNewStudentChange({ first_name: v });
+    isEdit ? setEditForm((p) => ({ ...p, first_name: v })) : handleNewStudentChange({ first_name: v });
   const setLName = (v: string) =>
-    isEdit
-      ? setEditForm((p) => ({ ...p, last_name: v }))
-      : handleNewStudentChange({ last_name: v });
+    isEdit ? setEditForm((p) => ({ ...p, last_name: v })) : handleNewStudentChange({ last_name: v });
   const setGender = (v: "M" | "F") =>
-    isEdit
-      ? setEditForm((p) => ({ ...p, gender: v }))
-      : handleNewStudentChange({ gender: v });
+    isEdit ? setEditForm((p) => ({ ...p, gender: v })) : handleNewStudentChange({ gender: v });
   const setDob = (v: string) =>
-    isEdit
-      ? setEditForm((p) => ({ ...p, date_of_birth: v }))
-      : handleNewStudentChange({ date_of_birth: v });
+    isEdit ? setEditForm((p) => ({ ...p, date_of_birth: v })) : handleNewStudentChange({ date_of_birth: v });
   const setPName = (v: string) =>
-    isEdit
-      ? setEditForm((p) => ({ ...p, parent_name: v }))
-      : handleNewStudentChange({ parent_name: v });
+    isEdit ? setEditForm((p) => ({ ...p, parent_name: v })) : handleNewStudentChange({ parent_name: v });
   const setPPhone = (v: string) =>
-    isEdit
-      ? setEditForm((p) => ({ ...p, parent_phone: v }))
-      : handleNewStudentChange({ parent_phone: v });
+    isEdit ? setEditForm((p) => ({ ...p, parent_phone: v })) : handleNewStudentChange({ parent_phone: v });
   const setPPhone2 = (v: string) =>
-    isEdit
-      ? setEditForm((p) => ({ ...p, parent_phone2: v }))
-      : handleNewStudentChange({ parent_phone2: v });
+    isEdit ? setEditForm((p) => ({ ...p, parent_phone2: v })) : handleNewStudentChange({ parent_phone2: v });
   const setClassId = (v: string) =>
-    isEdit
-      ? setEditForm((p) => ({ ...p, class_id: v }))
-      : handleNewStudentChange({ class_id: v });
+    isEdit ? setEditForm((p) => ({ ...p, class_id: v })) : handleNewStudentChange({ class_id: v });
   const setOb = (v: string) =>
-    isEdit
-      ? setEditForm((p) => ({ ...p, opening_balance: v }))
-      : handleNewStudentChange({ opening_balance: v });
+    isEdit ? setEditForm((p) => ({ ...p, opening_balance: v })) : handleNewStudentChange({ opening_balance: v });
 
   return createPortal(
-    <div
-      className="fixed inset-0 z-[140] bg-black/60 backdrop-blur-sm overflow-y-auto"
-      onClick={onClose}
-    >
+    <div className="fixed inset-0 z-[140] bg-black/60 backdrop-blur-sm overflow-y-auto" onClick={onClose}>
       <div className="min-h-full flex items-start sm:items-center justify-center p-4">
         <div
           ref={addStudentModalRef}
@@ -632,7 +581,9 @@ export default function StudentDetailPanel({
                 {isEdit ? "Edit Student" : "Add New Student"}
               </h2>
               <p id={modalDescriptionId} className="mt-1 text-xs text-[var(--t3)]">
-                Start with the basics. Open extra details only when you need profile, house, or leadership fields.
+                {minimal
+                  ? "Quick registration — only essential fields shown. Switch to full form for all options."
+                  : "Start with the basics. Open extra details only when you need profile, house, or leadership fields."}
               </p>
             </div>
             <button
@@ -646,46 +597,32 @@ export default function StudentDetailPanel({
                 padding: 4,
               }}
             >
-              <MaterialIcon style={{ fontSize: 18, color: "var(--t3)" }}>
-                close
-              </MaterialIcon>
+              <MaterialIcon style={{ fontSize: 18, color: "var(--t3)" }}>close</MaterialIcon>
             </button>
           </div>
-          <form
-            onSubmit={isEdit ? handleUpdateStudent : handleCreateStudent}
-            className="space-y-5 p-4 sm:p-5"
-          >
-            <StudentPhotoField
-              photoUrl={photoUrl}
-              firstName={fName}
-              lastName={lName}
-              gender={gen}
-              uploading={uploadingPhoto}
-              title={isEdit ? "Student Photo" : undefined}
-              size={isEdit ? 80 : undefined}
-              onUpload={async (file) => {
-                try {
-                  setUploadingPhoto(true);
-                  await handleStudentPhotoUpload(
-                    file,
-                    isEdit ? "edit" : "new",
-                  );
-                  toast.success(
-                    isEdit
-                      ? "Student photo updated"
-                      : "Passport photo added",
-                  );
-                } catch (error: unknown) {
-                  toast.error(
-                    error instanceof Error
-                      ? error.message
-                      : "Failed to upload photo",
-                  );
-                } finally {
-                  setUploadingPhoto(false);
-                }
-              }}
-            />
+          <form onSubmit={isEdit ? handleUpdateStudent : handleCreateStudent} className="space-y-5 p-4 sm:p-5">
+            {!minimal && (
+              <StudentPhotoField
+                photoUrl={photoUrl}
+                firstName={fName}
+                lastName={lName}
+                gender={gen}
+                uploading={uploadingPhoto}
+                title={isEdit ? "Student Photo" : undefined}
+                size={isEdit ? 80 : undefined}
+                onUpload={async (file) => {
+                  try {
+                    setUploadingPhoto(true);
+                    await handleStudentPhotoUpload(file, isEdit ? "edit" : "new");
+                    toast.success(isEdit ? "Student photo updated" : "Passport photo added");
+                  } catch (error: unknown) {
+                    toast.error(error instanceof Error ? error.message : "Failed to upload photo");
+                  } finally {
+                    setUploadingPhoto(false);
+                  }
+                }}
+              />
+            )}
             <FormSection
               title="Student basics"
               description="These are the minimum details needed to place the learner in the registry."
@@ -770,31 +707,33 @@ export default function StudentDetailPanel({
                     <option value="F">Female</option>
                   </select>
                 </div>
-                <div>
-                  <label
-                    htmlFor="student-dob"
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: ".5px",
-                      textTransform: "uppercase",
-                      color: "var(--t3)",
-                      marginBottom: 6,
-                      display: "block",
-                    }}
-                  >
-                    Date of Birth
-                  </label>
-                  <input
-                    id="student-dob"
-                    name="date_of_birth"
-                    type="date"
-                    autoComplete="bday"
-                    value={dob}
-                    onChange={(e) => setDob(e.target.value)}
-                    className="input"
-                  />
-                </div>
+                {!minimal && (
+                  <div>
+                    <label
+                      htmlFor="student-dob"
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        letterSpacing: ".5px",
+                        textTransform: "uppercase",
+                        color: "var(--t3)",
+                        marginBottom: 6,
+                        display: "block",
+                      }}
+                    >
+                      Date of Birth
+                    </label>
+                    <input
+                      id="student-dob"
+                      name="date_of_birth"
+                      type="date"
+                      autoComplete="bday"
+                      value={dob}
+                      onChange={(e) => setDob(e.target.value)}
+                      className="input"
+                    />
+                  </div>
+                )}
               </ResponsiveFieldGrid>
               <div className="mb-4">
                 <label
@@ -857,8 +796,99 @@ export default function StudentDetailPanel({
                   </select>
                 )}
               </div>
-              {!isEdit && (
+              {!isEdit && !minimal && (
                 <div className="mb-4">
+                  <label
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: ".5px",
+                      textTransform: "uppercase",
+                      color: "var(--t3)",
+                      marginBottom: 6,
+                      display: "block",
+                    }}
+                  >
+                    Admission / Student Number{" "}
+                    <span
+                      style={{
+                        fontWeight: 400,
+                        fontSize: 10,
+                        color: "var(--t4)",
+                      }}
+                    >
+                      (optional — auto-generated if blank)
+                    </span>
+                  </label>
+                  <input
+                    id="student-number"
+                    name="student_number"
+                    type="text"
+                    value={newStudent.student_number}
+                    onChange={(e) =>
+                      handleNewStudentChange({
+                        student_number: e.target.value,
+                      })
+                    }
+                    className="input"
+                    placeholder="e.g., 2026-001 or leave blank for auto"
+                    maxLength={20}
+                    autoComplete="off"
+                  />
+                </div>
+              )}
+              {!isEdit &&
+                !minimal &&
+                newStudent.class_id &&
+                classes.find((c) => c.id === newStudent.class_id)?.name?.startsWith("P.7") && (
+                  <div>
+                    <label
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        letterSpacing: ".5px",
+                        textTransform: "uppercase",
+                        color: "var(--t3)",
+                        marginBottom: 6,
+                        display: "block",
+                      }}
+                    >
+                      PLE Index Number
+                      <span
+                        style={{
+                          fontWeight: 400,
+                          fontSize: 10,
+                          color: "var(--t4)",
+                          marginLeft: 4,
+                        }}
+                      >
+                        (Uganda UNEB format e.g. U0001/2026)
+                      </span>
+                    </label>
+                    <input
+                      id="student-ple-index"
+                      name="ple_index_number"
+                      type="text"
+                      value={newStudent.ple_index_number}
+                      onChange={(e) =>
+                        handleNewStudentChange({
+                          ple_index_number: e.target.value,
+                        })
+                      }
+                      className="input"
+                      placeholder="U0001/2026"
+                      maxLength={20}
+                      autoComplete="off"
+                    />
+                  </div>
+                )}
+            </FormSection>
+
+            <FormSection
+              title="Parent contact"
+              description="Keep this short and accurate so SMS and fee reminders reach the right person."
+            >
+              <div style={{ marginBottom: 16 }}>
                 <label
                   style={{
                     fontSize: 11,
@@ -870,39 +900,21 @@ export default function StudentDetailPanel({
                     display: "block",
                   }}
                 >
-                  Admission / Student Number{" "}
-                  <span
-                    style={{
-                      fontWeight: 400,
-                      fontSize: 10,
-                      color: "var(--t4)",
-                    }}
-                  >
-                    (optional — auto-generated if blank)
-                  </span>
+                  Parent Name
                 </label>
                 <input
-                  id="student-number"
-                  name="student_number"
+                  id="parent-name"
+                  name="parent_name"
                   type="text"
-                  value={newStudent.student_number}
-                  onChange={(e) =>
-                    handleNewStudentChange({
-                      student_number: e.target.value,
-                    })
-                  }
+                  value={pName}
+                  onChange={(e) => setPName(e.target.value)}
                   className="input"
-                  placeholder="e.g., 2026-001 or leave blank for auto"
-                  maxLength={20}
-                  autoComplete="off"
+                  required
+                  maxLength={200}
+                  autoComplete="name"
                 />
-                </div>
-              )}
-              {!isEdit &&
-              newStudent.class_id &&
-              classes
-                .find((c) => c.id === newStudent.class_id)
-                ?.name?.startsWith("P.7") && (
+              </div>
+              <ResponsiveFieldGrid>
                 <div>
                   <label
                     style={{
@@ -915,128 +927,51 @@ export default function StudentDetailPanel({
                       display: "block",
                     }}
                   >
-                    PLE Index Number
-                    <span
-                      style={{
-                        fontWeight: 400,
-                        fontSize: 10,
-                        color: "var(--t4)",
-                        marginLeft: 4,
-                      }}
-                    >
-                      (Uganda UNEB format e.g. U0001/2026)
-                    </span>
+                    Parent Phone
                   </label>
                   <input
-                    id="student-ple-index"
-                    name="ple_index_number"
-                    type="text"
-                    value={newStudent.ple_index_number}
-                    onChange={(e) =>
-                      handleNewStudentChange({
-                        ple_index_number: e.target.value,
-                      })
-                    }
+                    id="parent-phone"
+                    name="parent_phone"
+                    type="tel"
+                    placeholder="0700000000"
+                    value={pPhone}
+                    onChange={(e) => setPPhone(e.target.value)}
                     className="input"
-                    placeholder="U0001/2026"
-                    maxLength={20}
-                    autoComplete="off"
+                    required
+                    maxLength={15}
+                    autoComplete="tel"
                   />
                 </div>
-              )}
+                <div>
+                  <label
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: ".5px",
+                      textTransform: "uppercase",
+                      color: "var(--t3)",
+                      marginBottom: 6,
+                      display: "block",
+                    }}
+                  >
+                    Alt. Phone
+                  </label>
+                  <input
+                    id="parent-phone2"
+                    name="parent_phone2"
+                    type="tel"
+                    placeholder="0700000000"
+                    value={pPhone2}
+                    onChange={(e) => setPPhone2(e.target.value)}
+                    className="input"
+                    maxLength={15}
+                    autoComplete="tel"
+                  />
+                </div>
+              </ResponsiveFieldGrid>
             </FormSection>
 
-            <FormSection
-              title="Parent contact"
-              description="Keep this short and accurate so SMS and fee reminders reach the right person."
-            >
-            <div style={{ marginBottom: 16 }}>
-              <label
-                style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  letterSpacing: ".5px",
-                  textTransform: "uppercase",
-                  color: "var(--t3)",
-                  marginBottom: 6,
-                  display: "block",
-                }}
-              >
-                Parent Name
-              </label>
-              <input
-                id="parent-name"
-                name="parent_name"
-                type="text"
-                value={pName}
-                onChange={(e) => setPName(e.target.value)}
-                className="input"
-                required
-                maxLength={200}
-                autoComplete="name"
-              />
-            </div>
-            <ResponsiveFieldGrid>
-              <div>
-                <label
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    letterSpacing: ".5px",
-                    textTransform: "uppercase",
-                    color: "var(--t3)",
-                    marginBottom: 6,
-                    display: "block",
-                  }}
-                >
-                  Parent Phone
-                </label>
-                <input
-                  id="parent-phone"
-                  name="parent_phone"
-                  type="tel"
-                  placeholder="0700000000"
-                  value={pPhone}
-                  onChange={(e) => setPPhone(e.target.value)}
-                  className="input"
-                  required
-                  maxLength={15}
-                  autoComplete="tel"
-                />
-              </div>
-              <div>
-                <label
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    letterSpacing: ".5px",
-                    textTransform: "uppercase",
-                    color: "var(--t3)",
-                    marginBottom: 6,
-                    display: "block",
-                  }}
-                >
-                  Alt. Phone
-                </label>
-                <input
-                  id="parent-phone2"
-                  name="parent_phone2"
-                  type="tel"
-                  placeholder="0700000000"
-                  value={pPhone2}
-                  onChange={(e) => setPPhone2(e.target.value)}
-                  className="input"
-                  maxLength={15}
-                  autoComplete="tel"
-                />
-              </div>
-            </ResponsiveFieldGrid>
-            </FormSection>
-
-            <FormSection
-              title="Health and fees"
-              description="Only the fields commonly needed at admission stay here."
-            >
+            <FormSection title="Health and fees" description="Only the fields commonly needed at admission stay here.">
               <ResponsiveFieldGrid className="mb-4">
                 <div>
                   <label
@@ -1088,9 +1023,7 @@ export default function StudentDetailPanel({
                   <input
                     type="text"
                     value={formData.nin || ""}
-                    onChange={(e) =>
-                      handleFormChange({ nin: e.target.value })
-                    }
+                    onChange={(e) => handleFormChange({ nin: e.target.value })}
                     className="input"
                     placeholder="e.g., CFN123456789 or leave blank"
                     maxLength={20}
@@ -1174,82 +1107,14 @@ export default function StudentDetailPanel({
                       Optional profile fields for houses, home origin, boarding, and student leadership.
                     </p>
                   </div>
-                  <span className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--t3)]">
-                    Expand
-                  </span>
+                  <span className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--t3)]">Expand</span>
                 </div>
               </summary>
               <div className="mt-4">
-              <ResponsiveFieldGrid className="mb-3">
-                <div>
-                  <label
-                    htmlFor="boarding-status"
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: ".5px",
-                      textTransform: "uppercase",
-                      color: "var(--t3)",
-                      marginBottom: 6,
-                      display: "block",
-                    }}
-                  >
-                    Boarding Status
-                    <FieldHint tip="Day Scholar = student goes home daily after school. Boarding = student sleeps in the school dormitory every night. Weekly = boarder who goes home on weekends." />
-                  </label>
-                  <select
-                    id="boarding-status"
-                    name="boarding_status"
-                    value={formData.boarding_status}
-                    onChange={(e) =>
-                      handleFormChange({
-                        boarding_status: e.target.value as
-                          | "day"
-                          | "boarding"
-                          | "weekly",
-                      })
-                    }
-                    className="input"
-                  >
-                    <option value="day">Day Scholar</option>
-                    <option value="boarding">Boarding</option>
-                    <option value="weekly">Weekly Boarder</option>
-                  </select>
-                </div>
-                <div>
-                  <label
-                    htmlFor="previous-school"
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: ".5px",
-                      textTransform: "uppercase",
-                      color: "var(--t3)",
-                      marginBottom: 6,
-                      display: "block",
-                    }}
-                  >
-                    Previous School
-                  </label>
-                  <input
-                    id="previous-school"
-                    name="previous_school"
-                    type="text"
-                    value={formData.previous_school}
-                    onChange={(e) =>
-                      handleFormChange({
-                        previous_school: e.target.value,
-                      })
-                    }
-                    className="input"
-                    placeholder="e.g., St. Peter's PS"
-                  />
-                </div>
-              </ResponsiveFieldGrid>
-              {houses.length > 0 && (
                 <ResponsiveFieldGrid className="mb-3">
                   <div>
                     <label
+                      htmlFor="boarding-status"
                       style={{
                         fontSize: 11,
                         fontWeight: 700,
@@ -1260,29 +1125,28 @@ export default function StudentDetailPanel({
                         display: "block",
                       }}
                     >
-                      House
+                      Boarding Status
+                      <FieldHint tip="Day Scholar = student goes home daily after school. Boarding = student sleeps in the school dormitory every night. Weekly = boarder who goes home on weekends." />
                     </label>
                     <select
-                      id="house-id"
-                      name="house_id"
-                      value={formData.house_id}
+                      id="boarding-status"
+                      name="boarding_status"
+                      value={formData.boarding_status}
                       onChange={(e) =>
                         handleFormChange({
-                          house_id: e.target.value,
+                          boarding_status: e.target.value as "day" | "boarding" | "weekly",
                         })
                       }
                       className="input"
                     >
-                      <option value="">No house</option>
-                      {houses.map((h) => (
-                        <option key={h.id} value={h.id}>
-                          {h.name}
-                        </option>
-                      ))}
+                      <option value="day">Day Scholar</option>
+                      <option value="boarding">Boarding</option>
+                      <option value="weekly">Weekly Boarder</option>
                     </select>
                   </div>
                   <div>
                     <label
+                      htmlFor="previous-school"
                       style={{
                         fontSize: 11,
                         fontWeight: 700,
@@ -1293,340 +1157,355 @@ export default function StudentDetailPanel({
                         display: "block",
                       }}
                     >
-                      Games House
+                      Previous School
                     </label>
-                    <select
-                      id="games-house"
-                      name="games_house"
-                      value={formData.games_house}
+                    <input
+                      id="previous-school"
+                      name="previous_school"
+                      type="text"
+                      value={formData.previous_school}
                       onChange={(e) =>
                         handleFormChange({
-                          games_house: e.target.value,
+                          previous_school: e.target.value,
                         })
                       }
                       className="input"
-                    >
-                      <option value="">Same as house</option>
-                      {houses.map((h) => (
-                        <option key={h.id} value={h.id}>
-                          {h.name}
-                        </option>
-                      ))}
-                    </select>
+                      placeholder="e.g., St. Peter's PS"
+                    />
                   </div>
                 </ResponsiveFieldGrid>
-              )}
-              <ResponsiveFieldGrid className="mb-3">
-                <div>
-                  <label
-                    htmlFor="district-origin"
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: ".5px",
-                      textTransform: "uppercase",
-                      color: "var(--t3)",
-                      marginBottom: 6,
-                      display: "block",
-                    }}
-                  >
-                    District of Origin
-                    <FieldHint tip="The student's home district. Used for UNEB registration and government reports. Example: Kampala, Wakiso, Gulu, Mbale." />
-                  </label>
-                  <input
-                    id="district-origin"
-                    name="district_origin"
-                    type="text"
-                    value={formData.district_origin}
-                    list="district-origin-options"
-                    onChange={(e) =>
-                      handleFormChange({
-                        district_origin: e.target.value,
-                        sub_county: "",
-                        parish: "",
-                      })
-                    }
-                    className="input"
-                    placeholder="e.g., Kampala"
-                    maxLength={100}
-                    autoComplete="address-level2"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="sub-county"
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: ".5px",
-                      textTransform: "uppercase",
-                      color: "var(--t3)",
-                      marginBottom: 6,
-                      display: "block",
-                    }}
-                  >
-                    Sub-County
-                  </label>
-                  <input
-                    id="sub-county"
-                    name="sub_county"
-                    type="text"
-                    value={formData.sub_county}
-                    list="sub-county-options"
-                    onChange={(e) =>
-                      handleFormChange({
-                        sub_county: e.target.value,
-                        parish: "",
-                      })
-                    }
-                    className="input"
-                    placeholder={
-                      subcountyOptions.length > 0
-                        ? "Pick or type your sub-county"
-                        : "Type sub-county"
-                    }
-                    maxLength={100}
-                    autoComplete="address-level3"
-                  />
-                </div>
-              </ResponsiveFieldGrid>
-              <ResponsiveFieldGrid className="mb-3">
-                <div>
-                  <label
-                    htmlFor="parish"
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: ".5px",
-                      textTransform: "uppercase",
-                      color: "var(--t3)",
-                      marginBottom: 6,
-                      display: "block",
-                    }}
-                  >
-                    Parish
-                  </label>
-                  <input
-                    id="parish"
-                    name="parish"
-                    type="text"
-                    value={formData.parish}
-                    list="parish-options"
-                    onChange={(e) =>
-                      handleFormChange({
-                        parish: e.target.value,
-                      })
-                    }
-                    className="input"
-                    placeholder={
-                      parishOptions.length > 0
-                        ? "Pick or type your parish"
-                        : "Type parish"
-                    }
-                    maxLength={100}
-                    autoComplete="address-level4"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="village"
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: ".5px",
-                      textTransform: "uppercase",
-                      color: "var(--t3)",
-                      marginBottom: 6,
-                      display: "block",
-                    }}
-                  >
-                    Village
-                  </label>
-                  <input
-                    id="village"
-                    name="village"
-                    type="text"
-                    value={formData.village}
-                    onChange={(e) =>
-                      handleFormChange({
-                        village: e.target.value,
-                      })
-                    }
-                    className="input"
-                    maxLength={100}
-                    autoComplete="address-line2"
-                  />
-                </div>
-              </ResponsiveFieldGrid>
-              <datalist id="district-origin-options">
-                {districtOptions.map((district) => (
-                  <option key={district} value={district} />
-                ))}
-              </datalist>
-              <datalist id="sub-county-options">
-                {subcountyOptions.map((subcounty) => (
-                  <option key={subcounty} value={subcounty} />
-                ))}
-              </datalist>
-              <datalist id="parish-options">
-                {parishOptions.map((parish) => (
-                  <option key={parish} value={parish} />
-                ))}
-              </datalist>
-              <p className="text-[11px] text-[var(--t3)] mb-3">
-                Suggestions come from Uganda district data. You can still
-                type any value manually.
-              </p>
-              <ResponsiveFieldGrid>
-                <div>
-                  <label
-                    htmlFor="leadership-role"
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: ".5px",
-                      textTransform: "uppercase",
-                      color: "var(--t3)",
-                      marginBottom: 6,
-                      display: "block",
-                    }}
-                  >
-                    Leadership Position
-                  </label>
-                  <select
-                    id="leadership-role"
-                    name="leadership_role"
-                    value={
-                      formData.prefect_role ||
-                      formData.student_council_role ||
-                      ""
-                    }
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (
-                        [
-                          "head_boy",
-                          "head_girl",
-                          "sports_prefect",
-                          "dining_prefect",
-                          "library_prefect",
-                          "health_prefect",
-                        ].includes(val)
-                      ) {
-                        handleFormChange({
-                          prefect_role: val,
-                          student_council_role: "",
-                        });
-                      } else if (
-                        [
-                          "president",
-                          "vice_president",
-                          "secretary",
-                          "treasurer",
-                        ].includes(val)
-                      ) {
-                        handleFormChange({
-                          student_council_role: val,
-                          prefect_role: "",
-                        });
-                      } else {
-                        handleFormChange({
-                          prefect_role: "",
-                          student_council_role: "",
-                        });
-                      }
-                    }}
-                    className="input"
-                  >
-                    <option value="">None</option>
-                    <optgroup label="Prefects">
-                      <option value="head_boy">Head Boy</option>
-                      <option value="head_girl">Head Girl</option>
-                      <option value="sports_prefect">
-                        Sports Prefect
-                      </option>
-                      <option value="dining_prefect">
-                        Dining Prefect
-                      </option>
-                      <option value="library_prefect">
-                        Library Prefect
-                      </option>
-                      <option value="health_prefect">
-                        Health Prefect
-                      </option>
-                    </optgroup>
-                    <optgroup label="Student Council">
-                      <option value="president">President</option>
-                      <option value="vice_president">
-                        Vice President
-                      </option>
-                      <option value="secretary">Secretary</option>
-                      <option value="treasurer">Treasurer</option>
-                    </optgroup>
-                  </select>
-                </div>
-                <div>
-                  <label
-                    htmlFor="class-monitor"
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: ".5px",
-                      textTransform: "uppercase",
-                      color: "var(--t3)",
-                      marginBottom: 6,
-                      display: "block",
-                    }}
-                  >
-                    Class Monitor
-                  </label>
-                  <div className="flex items-center gap-2 mt-2">
+                {houses.length > 0 && (
+                  <ResponsiveFieldGrid className="mb-3">
+                    <div>
+                      <label
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          letterSpacing: ".5px",
+                          textTransform: "uppercase",
+                          color: "var(--t3)",
+                          marginBottom: 6,
+                          display: "block",
+                        }}
+                      >
+                        House
+                      </label>
+                      <select
+                        id="house-id"
+                        name="house_id"
+                        value={formData.house_id}
+                        onChange={(e) =>
+                          handleFormChange({
+                            house_id: e.target.value,
+                          })
+                        }
+                        className="input"
+                      >
+                        <option value="">No house</option>
+                        {houses.map((h) => (
+                          <option key={h.id} value={h.id}>
+                            {h.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          letterSpacing: ".5px",
+                          textTransform: "uppercase",
+                          color: "var(--t3)",
+                          marginBottom: 6,
+                          display: "block",
+                        }}
+                      >
+                        Games House
+                      </label>
+                      <select
+                        id="games-house"
+                        name="games_house"
+                        value={formData.games_house}
+                        onChange={(e) =>
+                          handleFormChange({
+                            games_house: e.target.value,
+                          })
+                        }
+                        className="input"
+                      >
+                        <option value="">Same as house</option>
+                        {houses.map((h) => (
+                          <option key={h.id} value={h.id}>
+                            {h.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </ResponsiveFieldGrid>
+                )}
+                <ResponsiveFieldGrid className="mb-3">
+                  <div>
+                    <label
+                      htmlFor="district-origin"
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        letterSpacing: ".5px",
+                        textTransform: "uppercase",
+                        color: "var(--t3)",
+                        marginBottom: 6,
+                        display: "block",
+                      }}
+                    >
+                      District of Origin
+                      <FieldHint tip="The student's home district. Used for UNEB registration and government reports. Example: Kampala, Wakiso, Gulu, Mbale." />
+                    </label>
                     <input
-                      id="class-monitor"
-                      name="is_class_monitor"
-                      type="checkbox"
-                      checked={formData.is_class_monitor}
+                      id="district-origin"
+                      name="district_origin"
+                      type="text"
+                      value={formData.district_origin}
+                      list="district-origin-options"
                       onChange={(e) =>
                         handleFormChange({
-                          is_class_monitor: e.target.checked,
+                          district_origin: e.target.value,
+                          sub_county: "",
+                          parish: "",
                         })
                       }
-                      className="w-5 h-5 rounded"
+                      className="input"
+                      placeholder="e.g., Kampala"
+                      maxLength={100}
+                      autoComplete="address-level2"
                     />
-                    <span className="text-sm">
-                      Yes, this student is a class monitor
-                    </span>
                   </div>
-                </div>
-              </ResponsiveFieldGrid>
+                  <div>
+                    <label
+                      htmlFor="sub-county"
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        letterSpacing: ".5px",
+                        textTransform: "uppercase",
+                        color: "var(--t3)",
+                        marginBottom: 6,
+                        display: "block",
+                      }}
+                    >
+                      Sub-County
+                    </label>
+                    <input
+                      id="sub-county"
+                      name="sub_county"
+                      type="text"
+                      value={formData.sub_county}
+                      list="sub-county-options"
+                      onChange={(e) =>
+                        handleFormChange({
+                          sub_county: e.target.value,
+                          parish: "",
+                        })
+                      }
+                      className="input"
+                      placeholder={subcountyOptions.length > 0 ? "Pick or type your sub-county" : "Type sub-county"}
+                      maxLength={100}
+                      autoComplete="address-level3"
+                    />
+                  </div>
+                </ResponsiveFieldGrid>
+                <ResponsiveFieldGrid className="mb-3">
+                  <div>
+                    <label
+                      htmlFor="parish"
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        letterSpacing: ".5px",
+                        textTransform: "uppercase",
+                        color: "var(--t3)",
+                        marginBottom: 6,
+                        display: "block",
+                      }}
+                    >
+                      Parish
+                    </label>
+                    <input
+                      id="parish"
+                      name="parish"
+                      type="text"
+                      value={formData.parish}
+                      list="parish-options"
+                      onChange={(e) =>
+                        handleFormChange({
+                          parish: e.target.value,
+                        })
+                      }
+                      className="input"
+                      placeholder={parishOptions.length > 0 ? "Pick or type your parish" : "Type parish"}
+                      maxLength={100}
+                      autoComplete="address-level4"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="village"
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        letterSpacing: ".5px",
+                        textTransform: "uppercase",
+                        color: "var(--t3)",
+                        marginBottom: 6,
+                        display: "block",
+                      }}
+                    >
+                      Village
+                    </label>
+                    <input
+                      id="village"
+                      name="village"
+                      type="text"
+                      value={formData.village}
+                      onChange={(e) =>
+                        handleFormChange({
+                          village: e.target.value,
+                        })
+                      }
+                      className="input"
+                      maxLength={100}
+                      autoComplete="address-line2"
+                    />
+                  </div>
+                </ResponsiveFieldGrid>
+                <datalist id="district-origin-options">
+                  {districtOptions.map((district) => (
+                    <option key={district} value={district} />
+                  ))}
+                </datalist>
+                <datalist id="sub-county-options">
+                  {subcountyOptions.map((subcounty) => (
+                    <option key={subcounty} value={subcounty} />
+                  ))}
+                </datalist>
+                <datalist id="parish-options">
+                  {parishOptions.map((parish) => (
+                    <option key={parish} value={parish} />
+                  ))}
+                </datalist>
+                <p className="text-[11px] text-[var(--t3)] mb-3">
+                  Suggestions come from Uganda district data. You can still type any value manually.
+                </p>
+                <ResponsiveFieldGrid>
+                  <div>
+                    <label
+                      htmlFor="leadership-role"
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        letterSpacing: ".5px",
+                        textTransform: "uppercase",
+                        color: "var(--t3)",
+                        marginBottom: 6,
+                        display: "block",
+                      }}
+                    >
+                      Leadership Position
+                    </label>
+                    <select
+                      id="leadership-role"
+                      name="leadership_role"
+                      value={formData.prefect_role || formData.student_council_role || ""}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (
+                          [
+                            "head_boy",
+                            "head_girl",
+                            "sports_prefect",
+                            "dining_prefect",
+                            "library_prefect",
+                            "health_prefect",
+                          ].includes(val)
+                        ) {
+                          handleFormChange({
+                            prefect_role: val,
+                            student_council_role: "",
+                          });
+                        } else if (["president", "vice_president", "secretary", "treasurer"].includes(val)) {
+                          handleFormChange({
+                            student_council_role: val,
+                            prefect_role: "",
+                          });
+                        } else {
+                          handleFormChange({
+                            prefect_role: "",
+                            student_council_role: "",
+                          });
+                        }
+                      }}
+                      className="input"
+                    >
+                      <option value="">None</option>
+                      <optgroup label="Prefects">
+                        <option value="head_boy">Head Boy</option>
+                        <option value="head_girl">Head Girl</option>
+                        <option value="sports_prefect">Sports Prefect</option>
+                        <option value="dining_prefect">Dining Prefect</option>
+                        <option value="library_prefect">Library Prefect</option>
+                        <option value="health_prefect">Health Prefect</option>
+                      </optgroup>
+                      <optgroup label="Student Council">
+                        <option value="president">President</option>
+                        <option value="vice_president">Vice President</option>
+                        <option value="secretary">Secretary</option>
+                        <option value="treasurer">Treasurer</option>
+                      </optgroup>
+                    </select>
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="class-monitor"
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        letterSpacing: ".5px",
+                        textTransform: "uppercase",
+                        color: "var(--t3)",
+                        marginBottom: 6,
+                        display: "block",
+                      }}
+                    >
+                      Class Monitor
+                    </label>
+                    <div className="flex items-center gap-2 mt-2">
+                      <input
+                        id="class-monitor"
+                        name="is_class_monitor"
+                        type="checkbox"
+                        checked={formData.is_class_monitor}
+                        onChange={(e) =>
+                          handleFormChange({
+                            is_class_monitor: e.target.checked,
+                          })
+                        }
+                        className="w-5 h-5 rounded"
+                      />
+                      <span className="text-sm">Yes, this student is a class monitor</span>
+                    </div>
+                  </div>
+                </ResponsiveFieldGrid>
               </div>
             </details>
             <div className="sticky bottom-0 -mx-4 mt-2 border-t border-[var(--border)] bg-[var(--surface)]/95 px-4 py-3 backdrop-blur sm:-mx-5 sm:px-5">
-            <div style={{ display: "flex", gap: 10 }}>
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={onClose}
-                style={{ flex: 1 }}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                variant="primary"
-                disabled={saving}
-                loading={saving}
-                style={{ flex: 1 }}
-              >
-                {saving
-                  ? isEdit
-                    ? "Updating..."
-                    : "Adding..."
-                  : isEdit
-                    ? "Update Student"
-                    : "Add Student"}
-              </Button>
-            </div>
+              <div style={{ display: "flex", gap: 10 }}>
+                <Button type="button" variant="ghost" onClick={onClose} style={{ flex: 1 }}>
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary" disabled={saving} loading={saving} style={{ flex: 1 }}>
+                  {saving ? (isEdit ? "Updating..." : "Adding...") : isEdit ? "Update Student" : "Add Student"}
+                </Button>
+              </div>
             </div>
           </form>
         </div>

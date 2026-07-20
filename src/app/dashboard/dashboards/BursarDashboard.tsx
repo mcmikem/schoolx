@@ -1,17 +1,11 @@
 "use client";
-import Image from "next/image";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
-import {
-  useStudents,
-  useFeePayments,
-  useFeeStructure,
-} from "@/lib/hooks";
+import { useStudents, useFeePayments, useFeeStructure } from "@/lib/hooks";
 import MaterialIcon from "@/components/MaterialIcon";
 import ErrorBoundary from "@/components/ErrorBoundary";
-import SkoolMateLogo from "@/components/SkoolMateLogo";
 import SchoolCalendar from "@/components/dashboard/SchoolCalendar";
 import TaskManager from "@/components/dashboard/TaskManager";
 
@@ -20,13 +14,30 @@ import DashboardInsights from "@/components/dashboard/DashboardInsights";
 import EcosystemPulse from "@/components/dashboard/EcosystemPulse";
 import TopDefaulters from "@/components/dashboard/TopDefaulters";
 import RecentPayments from "@/components/dashboard/RecentPayments";
+import CollapsibleSection from "@/components/ui/CollapsibleSection";
+import SchoolHero from "@/components/dashboard/SchoolHero";
+import { TopLoadingBar, StuckLoadingOverlay } from "@/components/ui/Skeleton";
+import OwlMascot from "@/components/brand/OwlMascot";
 
 function BursarDashboardContent() {
   const { school, user, isDemo } = useAuth();
   const { academicYear, currentTerm } = useAcademic();
-  const { students } = useStudents(school?.id);
-  const { payments } = useFeePayments(school?.id);
-  const { feeStructure } = useFeeStructure(school?.id);
+  const { students, loading: studentsLoading } = useStudents(school?.id);
+  const { payments, loading: paymentsLoading } = useFeePayments(school?.id);
+  const { feeStructure, loading: feeStructureLoading } = useFeeStructure(school?.id);
+  const [loadingTimedOut, setLoadingTimedOut] = useState(false);
+  const dataLoading = studentsLoading || paymentsLoading || feeStructureLoading;
+
+  useEffect(() => {
+    if (!dataLoading) {
+      setLoadingTimedOut(false);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      setLoadingTimedOut(true);
+    }, 3000);
+    return () => window.clearTimeout(timer);
+  }, [dataLoading]);
 
   const formatCurrency = (amount: number) => {
     if (amount >= 1000000) return `${(amount / 1000000).toFixed(1)}M`;
@@ -36,43 +47,36 @@ function BursarDashboardContent() {
 
   const currentDate = new Date();
   const greeting =
-    currentDate.getHours() < 12
-      ? "Good Morning"
-      : currentDate.getHours() < 17
-        ? "Good Afternoon"
-        : "Good Evening";
+    currentDate.getHours() < 12 ? "Good Morning" : currentDate.getHours() < 17 ? "Good Afternoon" : "Good Evening";
 
-  const totalFeesExpected = useMemo(() => students.reduce((total, student) => {
-    const classFees = feeStructure.filter(
-      (f) => !f.class_id || f.class_id === student.class_id,
-    );
-    const studentExpected = classFees.reduce(
-      (sum, f) => sum + Number(f.amount || 0),
-      0,
-    );
-    return total + studentExpected;
-  }, 0), [students, feeStructure]);
+  const totalFeesExpected = useMemo(
+    () =>
+      students.reduce((total, student) => {
+        const classFees = feeStructure.filter((f) => !f.class_id || f.class_id === student.class_id);
+        const studentExpected = classFees.reduce((sum, f) => sum + Number(f.amount || 0), 0);
+        return total + studentExpected;
+      }, 0),
+    [students, feeStructure],
+  );
 
-  const totalFeesCollected = useMemo(() => payments.reduce(
-    (sum, p) => sum + Number(p.amount_paid || 0),
-    0,
-  ), [payments]);
-  const totalArrears = useMemo(() => Math.max(0, totalFeesExpected - totalFeesCollected), [totalFeesExpected, totalFeesCollected]);
-  const collectionRate = useMemo(() =>
-    totalFeesExpected > 0
-      ? Math.round((totalFeesCollected / totalFeesExpected) * 100)
-      : 0, [totalFeesExpected, totalFeesCollected]);
+  const totalFeesCollected = useMemo(
+    () => payments.reduce((sum, p) => sum + Number(p.amount_paid || 0), 0),
+    [payments],
+  );
+  const totalArrears = useMemo(
+    () => Math.max(0, totalFeesExpected - totalFeesCollected),
+    [totalFeesExpected, totalFeesCollected],
+  );
+  const collectionRate = useMemo(
+    () => (totalFeesExpected > 0 ? Math.round((totalFeesCollected / totalFeesExpected) * 100) : 0),
+    [totalFeesExpected, totalFeesCollected],
+  );
 
   const overdueCount = useMemo(() => {
     const studentExpectedMap: Record<string, number> = {};
     for (const student of students) {
-      const classFees = feeStructure.filter(
-        (f) => !f.class_id || f.class_id === student.class_id,
-      );
-      studentExpectedMap[student.id] = classFees.reduce(
-        (sum, f) => sum + Number(f.amount || 0),
-        0,
-      );
+      const classFees = feeStructure.filter((f) => !f.class_id || f.class_id === student.class_id);
+      studentExpectedMap[student.id] = classFees.reduce((sum, f) => sum + Number(f.amount || 0), 0);
     }
     const studentPaidMap: Record<string, number> = {};
     for (const p of payments) {
@@ -99,45 +103,43 @@ function BursarDashboardContent() {
       }));
   }, [payments, students]);
 
-  const thisMonthPayments = useMemo(() => payments.filter((p) => {
-    const d = new Date(p.payment_date);
-    const now = new Date();
-    return (
-      d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear()
-    );
-  }), [payments]);
-  const lastMonthPayments = useMemo(() => payments.filter((p) => {
-    const d = new Date(p.payment_date);
-    const now = new Date();
-    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    return (
-      d.getMonth() === lastMonth.getMonth() &&
-      d.getFullYear() === lastMonth.getFullYear()
-    );
-  }), [payments]);
-  const thisMonthTotal = useMemo(() => thisMonthPayments.reduce(
-    (s, p) => s + Number(p.amount_paid || 0),
-    0,
-  ), [thisMonthPayments]);
-  const lastMonthTotal = useMemo(() => lastMonthPayments.reduce(
-    (s, p) => s + Number(p.amount_paid || 0),
-    0,
-  ), [lastMonthPayments]);
-  const collectionTrend = useMemo(() =>
-    lastMonthTotal > 0
-      ? Math.round(((thisMonthTotal - lastMonthTotal) / lastMonthTotal) * 100)
-      : 0, [thisMonthTotal, lastMonthTotal]);
+  const thisMonthPayments = useMemo(
+    () =>
+      payments.filter((p) => {
+        const d = new Date(p.payment_date);
+        const now = new Date();
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+      }),
+    [payments],
+  );
+  const lastMonthPayments = useMemo(
+    () =>
+      payments.filter((p) => {
+        const d = new Date(p.payment_date);
+        const now = new Date();
+        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        return d.getMonth() === lastMonth.getMonth() && d.getFullYear() === lastMonth.getFullYear();
+      }),
+    [payments],
+  );
+  const thisMonthTotal = useMemo(
+    () => thisMonthPayments.reduce((s, p) => s + Number(p.amount_paid || 0), 0),
+    [thisMonthPayments],
+  );
+  const lastMonthTotal = useMemo(
+    () => lastMonthPayments.reduce((s, p) => s + Number(p.amount_paid || 0), 0),
+    [lastMonthPayments],
+  );
+  const collectionTrend = useMemo(
+    () => (lastMonthTotal > 0 ? Math.round(((thisMonthTotal - lastMonthTotal) / lastMonthTotal) * 100) : 0),
+    [thisMonthTotal, lastMonthTotal],
+  );
 
   const highRiskArrearsCount = useMemo(() => {
     const studentExpectedMap: Record<string, number> = {};
     for (const student of students) {
-      const classFees = feeStructure.filter(
-        (f) => !f.class_id || f.class_id === student.class_id,
-      );
-      studentExpectedMap[student.id] = classFees.reduce(
-        (sum, f) => sum + Number(f.amount || 0),
-        0,
-      );
+      const classFees = feeStructure.filter((f) => !f.class_id || f.class_id === student.class_id);
+      studentExpectedMap[student.id] = classFees.reduce((sum, f) => sum + Number(f.amount || 0), 0);
     }
     const studentPaidMap: Record<string, number> = {};
     for (const p of payments) {
@@ -205,55 +207,53 @@ function BursarDashboardContent() {
     return items;
   }, [totalArrears, overdueCount, highRiskArrearsCount]);
 
-  return (
-    <div className="content overflow-x-hidden">
-      {/* ── Hero: Big Logo + School Branding ── */}
-      <div className="relative mb-6 overflow-hidden rounded-[32px] border border-[#d6e4e8] bg-[linear-gradient(150deg,#eff7f5_0%,#eaf2f6_44%,#f8fbff_100%)] p-5 sm:p-7">
-        <div className="pointer-events-none absolute -left-16 -top-16 h-52 w-52 rounded-full bg-[#b7dfd8]/30 blur-3xl" />
-        <div className="pointer-events-none absolute -right-10 -bottom-10 h-36 w-36 rounded-full bg-[#d8e9fb]/40 blur-3xl" />
-        <div className="pointer-events-none absolute left-1/2 top-0 h-20 w-60 -translate-x-1/2 rounded-full bg-[#c8dce8]/20 blur-2xl" />
-
-        <div className="relative z-10 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            {school?.logo_url ? (
-              <Image src={school.logo_url} alt={school?.name || "School"} width={80} height={80} className="object-contain rounded-xl" unoptimized />
-            ) : (
-              <SkoolMateLogo size="xl" showText variant="default" />
-            )}
-            <div className="flex flex-col">
-              <p className="text-xs font-semibold text-[#17325f]">{greeting}, {user?.full_name?.split(" ")[0]}</p>
-              <p className="text-[11px] text-[#42638d]">{school?.name}</p>
-            </div>
-          </div>
-          <div className="hidden sm:block text-right">
-            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#42638d]">
-              Term {currentTerm} · {academicYear}
-            </p>
+  if ((!school?.id || dataLoading) && !loadingTimedOut) {
+    return (
+      <div className="min-h-screen bg-[var(--bg)] flex flex-col">
+        <TopLoadingBar />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <OwlMascot size={52} premium ring glow animated />
+            <p className="mt-4 text-sm text-[var(--t3)]">Loading your dashboard...</p>
           </div>
         </div>
+        <StuckLoadingOverlay />
+      </div>
+    );
+  }
 
-        <div className="relative z-10 mt-4 flex flex-wrap items-center gap-3 border-t border-[#c8dce8]/40 pt-4">
-          <div className="flex items-center gap-2 text-xs text-[#42638d]">
-            <MaterialIcon icon="today" className="text-base" />
-            <span className="font-semibold">{todayLabel}</span>
-          </div>
+  return (
+    <div className="content overflow-x-hidden">
+      <SchoolHero
+        school={school}
+        greeting={greeting}
+        userName={user?.full_name?.split(" ")[0] || ""}
+        dateLabel={todayLabel}
+        rightSection={
+          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#42638d]">
+            Term {currentTerm} · {academicYear}
+          </p>
+        }
+        bottomCenter={
           <div className="text-xs text-[#42638d]">
             <span className="font-semibold">{students.length} students enrolled</span>
           </div>
-          {collectionRate > 0 && (
-            <div className={`ml-auto flex items-center gap-1.5 rounded-full px-3 py-1 ${
-              collectionRate >= 70 ? "bg-[#1f8a70]/10" : "bg-[#c2472b]/10"
-            }`}>
-              <span className={`h-1.5 w-1.5 rounded-full ${
-                collectionRate >= 70 ? "bg-[#1f8a70]" : "bg-[#c2472b]"
-              }`} />
-              <span className={`text-[11px] font-bold ${
-                collectionRate >= 70 ? "text-[#1f8a70]" : "text-[#c2472b]"
-              }`}>{collectionRate}% collected</span>
+        }
+        bottomRight={
+          collectionRate > 0 ? (
+            <div
+              className={`flex items-center gap-1.5 rounded-full px-3 py-1 ${
+                collectionRate >= 70 ? "bg-[#1f8a70]/10" : "bg-[#c2472b]/10"
+              }`}
+            >
+              <span className={`h-1.5 w-1.5 rounded-full ${collectionRate >= 70 ? "bg-[#1f8a70]" : "bg-[#c2472b]"}`} />
+              <span className={`text-[11px] font-bold ${collectionRate >= 70 ? "text-[#1f8a70]" : "text-[#c2472b]"}`}>
+                {collectionRate}% collected
+              </span>
             </div>
-          )}
-        </div>
-      </div>
+          ) : undefined
+        }
+      />
 
       {/* ── Two-Column Layout ── */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
@@ -271,31 +271,30 @@ function BursarDashboardContent() {
             </div>
             <div className="group rounded-2xl bg-white border border-[#eef2f8] p-4 transition-all hover:shadow-md hover:-translate-y-0.5">
               <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#7f91aa]">Arrears</p>
-              <p className={`mt-1 text-xl font-bold ${totalArrears > 0 ? "text-[#c2472b]" : "text-[#1f8a70]"}`}>UGX {formatCurrency(totalArrears)}</p>
+              <p className={`mt-1 text-xl font-bold ${totalArrears > 0 ? "text-[#c2472b]" : "text-[#1f8a70]"}`}>
+                UGX {formatCurrency(totalArrears)}
+              </p>
             </div>
             <div className="group rounded-2xl bg-white border border-[#eef2f8] p-4 transition-all hover:shadow-md hover:-translate-y-0.5">
               <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#7f91aa]">Rate</p>
-              <p className={`mt-1 text-xl font-bold ${
-                collectionRate >= 70 ? "text-[#1f8a70]" : collectionRate >= 40 ? "text-[#b45309]" : "text-[#c2472b]"
-              }`}>{collectionRate}%</p>
+              <p
+                className={`mt-1 text-xl font-bold ${
+                  collectionRate >= 70 ? "text-[#1f8a70]" : collectionRate >= 40 ? "text-[#b45309]" : "text-[#c2472b]"
+                }`}
+              >
+                {collectionRate}%
+              </p>
             </div>
           </div>
 
-          {/* Task Manager */}
-          <div>
-            <div className="mb-3 flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#17325f]">
-                <MaterialIcon icon="assignment" className="text-sm text-white" />
-              </div>
-              <h2 className="text-sm font-bold text-[#17325f] font-['Sora']">Task Manager</h2>
-              {tasks.length > 0 && (
-                <span className="rounded-full bg-[#c2472b]/10 px-2.5 py-0.5 text-[10px] font-bold text-[#c2472b]">
-                  {tasks.length} pending
-                </span>
-              )}
-            </div>
+          <CollapsibleSection
+            title="Task Manager"
+            badge={tasks.length > 0 ? tasks.length : null}
+            storageKey={`bursar-tasks-${school?.id}`}
+            defaultOpen={tasks.length > 0}
+          >
             <TaskManager tasks={tasks} emptyMessage="All caught up! No pending tasks." />
-          </div>
+          </CollapsibleSection>
 
           {/* Today Actions */}
           <div className="rounded-2xl border border-[#eef2f8] bg-white p-4">
@@ -328,24 +327,31 @@ function BursarDashboardContent() {
               <h2 className="text-sm font-bold text-[#17325f] font-['Sora']">Exceptions First</h2>
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <div className={`rounded-xl border p-3 ${totalArrears > 0 ? "border-[#f5d0c5] bg-[#ffefe8]" : "border-[#d8efe7] bg-[#f3fbf8]"}`}>
+              <div
+                className={`rounded-xl border p-3 ${totalArrears > 0 ? "border-[#f5d0c5] bg-[#ffefe8]" : "border-[#d8efe7] bg-[#f3fbf8]"}`}
+              >
                 <div className="text-xs font-semibold text-[#17325f]">Collection gap</div>
                 <div className={`text-sm font-bold mt-1 ${totalArrears > 0 ? "text-[#c2472b]" : "text-[#1f8a70]"}`}>
                   {totalArrears > 0 ? `UGX ${totalArrears.toLocaleString()}` : "Target met"}
                 </div>
               </div>
-              <div className={`rounded-xl border p-3 ${highRiskArrearsCount > 0 ? "border-[#f5deb3] bg-[#fff8eb]" : "border-[#eef2f8] bg-[#f8fbff]"}`}>
+              <div
+                className={`rounded-xl border p-3 ${highRiskArrearsCount > 0 ? "border-[#f5deb3] bg-[#fff8eb]" : "border-[#eef2f8] bg-[#f8fbff]"}`}
+              >
                 <div className="text-xs font-semibold text-[#17325f]">High-risk arrears</div>
                 <div className="text-sm font-bold mt-1 text-[#17325f]">{highRiskArrearsCount} above UGX 300,000</div>
               </div>
               <div className="rounded-xl border border-[#eef2f8] bg-[#f8fbff] p-3">
                 <div className="text-xs font-semibold text-[#17325f]">Students in arrears</div>
-                <div className="text-sm font-bold mt-1 text-[#17325f]">{overdueCount} of {students.length}</div>
+                <div className="text-sm font-bold mt-1 text-[#17325f]">
+                  {overdueCount} of {students.length}
+                </div>
               </div>
               <div className="rounded-xl border border-[#eef2f8] bg-[#f8fbff] p-3">
                 <div className="text-xs font-semibold text-[#17325f]">Month trend</div>
                 <div className={`text-sm font-bold mt-1 ${collectionTrend >= 0 ? "text-[#1f8a70]" : "text-[#c2472b]"}`}>
-                  {collectionTrend >= 0 ? "+" : ""}{collectionTrend}% vs last month
+                  {collectionTrend >= 0 ? "+" : ""}
+                  {collectionTrend}% vs last month
                 </div>
               </div>
             </div>

@@ -674,7 +674,7 @@ CREATE TABLE IF NOT EXISTS fee_adjustments (
     school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
     student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
     amount NUMERIC(12,2) NOT NULL,
-    adjustment_type TEXT CHECK (adjustment_type IN ('discount', 'scholarship', 'penalty', 'manual_credit')) NOT NULL,
+    adjustment_type TEXT CHECK (adjustment_type IN ('discount', 'scholarship', 'penalty', 'manual_credit', 'write_off', 'bursary', 'amnesty')) NOT NULL,
     notes TEXT,
     recorded_by UUID REFERENCES users(id),
     created_at TIMESTAMPTZ DEFAULT NOW()

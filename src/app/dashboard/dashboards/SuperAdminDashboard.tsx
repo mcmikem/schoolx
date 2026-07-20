@@ -6,6 +6,7 @@ import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import MaterialIcon from "@/components/MaterialIcon";
 import { APP_NAME } from "@/lib/app-name";
+import ErrorBoundary from "@/components/ErrorBoundary";
 
 /* ── Types ──────────────────────────────────────────────── */
 interface PlatformStats {
@@ -59,12 +60,12 @@ const PLAN_LABELS: Record<string, string> = {
 };
 
 const STATUS_BADGE: Record<string, { bg: string; text: string; label: string }> = {
-  active:    { bg: "#ccfbf1", text: "#0d9488", label: "Active" },
-  trial:     { bg: "#e0efff", text: "#003366", label: "Trial" },
-  expired:   { bg: "#fdedec", text: "#e74c3c", label: "Expired" },
+  active: { bg: "#ccfbf1", text: "#0d9488", label: "Active" },
+  trial: { bg: "#e0efff", text: "#003366", label: "Trial" },
+  expired: { bg: "#fdedec", text: "#e74c3c", label: "Expired" },
   suspended: { bg: "#fef3c7", text: "#b45309", label: "Suspended" },
-  past_due:  { bg: "#fef3c7", text: "#b45309", label: "Past Due" },
-  canceled:  { bg: "#f1f5f9", text: "#64748b", label: "Canceled" },
+  past_due: { bg: "#fef3c7", text: "#b45309", label: "Past Due" },
+  canceled: { bg: "#f1f5f9", text: "#64748b", label: "Canceled" },
 };
 
 function formatCurrency(n: number) {
@@ -102,10 +103,7 @@ function BigStatCard({
 }) {
   const Wrapper = href ? Link : "div";
   return (
-    <Wrapper
-      href={href as string}
-      className={`stat-card group ${href ? "cursor-pointer" : ""}`}
-    >
+    <Wrapper href={href as string} className={`stat-card group ${href ? "cursor-pointer" : ""}`}>
       <div className="stat-accent" style={{ background: color }} />
       <div className="stat-inner">
         <div className="stat-meta">
@@ -123,19 +121,12 @@ function BigStatCard({
         <div className="stat-val" style={{ color }}>
           {value}
         </div>
-        {sub && (
-          <div className="text-[12px] font-medium mt-2 text-[var(--t3)]">
-            {sub}
-          </div>
-        )}
+        {sub && <div className="text-[12px] font-medium mt-2 text-[var(--t3)]">{sub}</div>}
       </div>
       {href && (
         <div className="stat-footer">
           <span className="stat-foot-label">View details</span>
-          <MaterialIcon
-            icon="arrow_forward"
-            style={{ fontSize: 14, color: "var(--t3)" }}
-          />
+          <MaterialIcon icon="arrow_forward" style={{ fontSize: 14, color: "var(--t3)" }} />
         </div>
       )}
     </Wrapper>
@@ -192,7 +183,7 @@ function ActionCard({
 }
 
 /* ── Main Component ─────────────────────────────────────── */
-export default function SuperAdminDashboard() {
+function SuperAdminDashboardContent() {
   const { user } = useAuth();
   const [stats, setStats] = useState<PlatformStats>({
     totalSchools: 0,
@@ -207,9 +198,7 @@ export default function SuperAdminDashboard() {
   const [recentSchools, setRecentSchools] = useState<RecentSchool[]>([]);
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [planBreakdown, setPlanBreakdown] = useState<
-    { plan: string; count: number }[]
-  >([]);
+  const [planBreakdown, setPlanBreakdown] = useState<{ plan: string; count: number }[]>([]);
 
   const fetchData = useCallback(async () => {
     try {
@@ -264,13 +253,8 @@ export default function SuperAdminDashboard() {
       const expired = schools.filter((s) =>
         ["expired", "canceled", "suspended"].includes(s.subscription_status),
       ).length;
-      const newMonth = schools.filter(
-        (s) => new Date(s.created_at) >= monthAgo,
-      ).length;
-      const totalStudents = schools.reduce(
-        (sum, s) => sum + (Number(s.student_count) || 0),
-        0,
-      );
+      const newMonth = schools.filter((s) => new Date(s.created_at) >= monthAgo).length;
+      const totalStudents = schools.reduce((sum, s) => sum + (Number(s.student_count) || 0), 0);
 
       // Plan breakdown
       const planMap: Record<string, number> = {};
@@ -278,17 +262,13 @@ export default function SuperAdminDashboard() {
         const p = s.subscription_plan || "starter";
         planMap[p] = (planMap[p] || 0) + 1;
       });
-      setPlanBreakdown(
-        Object.entries(planMap).map(([plan, count]) => ({ plan, count })),
-      );
+      setPlanBreakdown(Object.entries(planMap).map(([plan, count]) => ({ plan, count })));
 
       // Alerts: expiring trials & expired subscriptions
       const alertItems: AlertItem[] = [];
       schools.forEach((s) => {
         if (s.subscription_status === "trial" && s.trial_ends_at) {
-          const daysLeft = Math.ceil(
-            (new Date(s.trial_ends_at).getTime() - Date.now()) / 86_400_000,
-          );
+          const daysLeft = Math.ceil((new Date(s.trial_ends_at).getTime() - Date.now()) / 86_400_000);
           if (daysLeft <= 5 && daysLeft >= 0) {
             alertItems.push({
               id: s.id,
@@ -346,11 +326,7 @@ export default function SuperAdminDashboard() {
   }, [fetchData]);
 
   const greeting =
-    new Date().getHours() < 12
-      ? "Good Morning"
-      : new Date().getHours() < 17
-        ? "Good Afternoon"
-        : "Good Evening";
+    new Date().getHours() < 12 ? "Good Morning" : new Date().getHours() < 17 ? "Good Afternoon" : "Good Evening";
 
   const firstName = user?.full_name?.trim().split(" ")[0] || "Admin";
 
@@ -427,13 +403,8 @@ export default function SuperAdminDashboard() {
       {alerts.length > 0 && (
         <div className="mb-6">
           <div className="flex items-center gap-2 mb-3">
-            <MaterialIcon
-              icon="warning"
-              style={{ fontSize: 16, color: "var(--amber)" }}
-            />
-            <span className="text-[13px] font-bold text-[var(--t1)]">
-              Needs Attention
-            </span>
+            <MaterialIcon icon="warning" style={{ fontSize: 16, color: "var(--amber)" }} />
+            <span className="text-[13px] font-bold text-[var(--t1)]">Needs Attention</span>
             <span className="ml-1 px-2 py-0.5 rounded-full bg-[var(--amber-soft)] text-[var(--amber)] text-[11px] font-bold">
               {alerts.length}
             </span>
@@ -450,23 +421,13 @@ export default function SuperAdminDashboard() {
                   style={{ background: `${a.color}18`, color: a.color }}
                 >
                   <MaterialIcon
-                    icon={
-                      a.type === "expiring"
-                        ? "error"
-                        : a.type === "trial"
-                          ? "schedule"
-                          : "block"
-                    }
+                    icon={a.type === "expiring" ? "error" : a.type === "trial" ? "schedule" : "block"}
                     style={{ fontSize: 16 }}
                   />
                 </div>
                 <div className="min-w-0">
-                  <div className="text-[13px] font-semibold text-[var(--t1)] truncate">
-                    {a.label}
-                  </div>
-                  <div className="text-[11px] text-[var(--t3)] truncate">
-                    {a.sub}
-                  </div>
+                  <div className="text-[13px] font-semibold text-[var(--t1)] truncate">{a.label}</div>
+                  <div className="text-[11px] text-[var(--t3)] truncate">{a.sub}</div>
                 </div>
               </Link>
             ))}
@@ -480,12 +441,8 @@ export default function SuperAdminDashboard() {
         <div className="xl:col-span-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
             <div>
-              <div className="font-['Sora'] text-[14px] font-bold text-[var(--t1)]">
-                Recent Schools
-              </div>
-              <div className="text-[11px] text-[var(--t3)] mt-0.5">
-                Latest registrations on the platform
-              </div>
+              <div className="font-['Sora'] text-[14px] font-bold text-[var(--t1)]">Recent Schools</div>
+              <div className="text-[11px] text-[var(--t3)] mt-0.5">Latest registrations on the platform</div>
             </div>
             <Link
               href="/dashboard/schools"
@@ -560,9 +517,7 @@ export default function SuperAdminDashboard() {
                           {PLAN_LABELS[s.subscription_plan] || s.subscription_plan}
                         </span>
                       </div>
-                      <div className="text-[11px] text-[var(--t4)] flex-shrink-0 ml-1">
-                        {timeSince(s.created_at)}
-                      </div>
+                      <div className="text-[11px] text-[var(--t4)] flex-shrink-0 ml-1">{timeSince(s.created_at)}</div>
                     </Link>
                   );
                 })}
@@ -573,9 +528,7 @@ export default function SuperAdminDashboard() {
         <div className="flex flex-col gap-4">
           {/* Subscription mix */}
           <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
-            <div className="font-['Sora'] text-[13px] font-bold text-[var(--t1)] mb-4">
-              Subscription Mix
-            </div>
+            <div className="font-['Sora'] text-[13px] font-bold text-[var(--t1)] mb-4">Subscription Mix</div>
             {planBreakdown.length === 0 && !loading ? (
               <p className="text-[12px] text-[var(--t3)]">No data yet</p>
             ) : (
@@ -583,15 +536,10 @@ export default function SuperAdminDashboard() {
                 {planBreakdown.map(({ plan, count }) => (
                   <div key={plan}>
                     <div className="flex items-center justify-between mb-1">
-                      <span
-                        className="text-[12px] font-semibold"
-                        style={{ color: PLAN_COLORS[plan] || "#64748b" }}
-                      >
+                      <span className="text-[12px] font-semibold" style={{ color: PLAN_COLORS[plan] || "#64748b" }}>
                         {PLAN_LABELS[plan] || plan}
                       </span>
-                      <span className="text-[12px] font-bold text-[var(--t1)]">
-                        {count}
-                      </span>
+                      <span className="text-[12px] font-bold text-[var(--t1)]">{count}</span>
                     </div>
                     <div className="h-2 rounded-full bg-[var(--bg)] overflow-hidden">
                       <div
@@ -610,9 +558,7 @@ export default function SuperAdminDashboard() {
 
           {/* Status summary */}
           <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
-            <div className="font-['Sora'] text-[13px] font-bold text-[var(--t1)] mb-4">
-              School Status
-            </div>
+            <div className="font-['Sora'] text-[13px] font-bold text-[var(--t1)] mb-4">School Status</div>
             <div className="space-y-2.5">
               {[
                 {
@@ -642,20 +588,11 @@ export default function SuperAdminDashboard() {
                   className="flex items-center gap-3 rounded-xl px-3 py-2.5"
                   style={{ background: item.bg }}
                 >
-                  <MaterialIcon
-                    icon={item.icon}
-                    style={{ fontSize: 16, color: item.color, flexShrink: 0 }}
-                  />
-                  <span
-                    className="text-[12px] font-semibold flex-1"
-                    style={{ color: item.color }}
-                  >
+                  <MaterialIcon icon={item.icon} style={{ fontSize: 16, color: item.color, flexShrink: 0 }} />
+                  <span className="text-[12px] font-semibold flex-1" style={{ color: item.color }}>
                     {item.label}
                   </span>
-                  <span
-                    className="text-[15px] font-extrabold font-['Sora']"
-                    style={{ color: item.color }}
-                  >
+                  <span className="text-[15px] font-extrabold font-['Sora']" style={{ color: item.color }}>
                     {loading ? "…" : item.value}
                   </span>
                 </div>
@@ -667,9 +604,7 @@ export default function SuperAdminDashboard() {
 
       {/* ── Quick Actions ──────────────────────────────────── */}
       <div className="mb-6">
-        <div className="text-[13px] font-bold text-[var(--t1)] mb-3">
-          Quick Actions
-        </div>
+        <div className="text-[13px] font-bold text-[var(--t1)] mb-3">Quick Actions</div>
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
           <ActionCard
             label="Manage Schools"
@@ -733,10 +668,17 @@ export default function SuperAdminDashboard() {
       {/* ── Footer note ──────────────────────────────────────── */}
       <div className="flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-[12px] text-[var(--t3)]">
         <MaterialIcon icon="info" style={{ fontSize: 16, color: "var(--green)" }} />
-        Logged in as{" "}
-        <strong className="text-[var(--t1)]">{user?.full_name}</strong> ·
-        Super Admin · Full platform access
+        Logged in as <strong className="text-[var(--t1)]">{user?.full_name}</strong> · Super Admin · Full platform
+        access
       </div>
     </div>
+  );
+}
+
+export default function SuperAdminDashboard() {
+  return (
+    <ErrorBoundary>
+      <SuperAdminDashboardContent />
+    </ErrorBoundary>
   );
 }

@@ -1,20 +1,17 @@
 "use client";
-import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
-import {
-  useStudents,
-  useClasses,
-  useSubjects,
-  useDashboardStats,
-} from "@/lib/hooks";
-import { useMemo } from "react";
+import { useStudents, useClasses, useSubjects, useDashboardStats } from "@/lib/hooks";
+import { useState, useEffect, useMemo } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 import ErrorBoundary from "@/components/ErrorBoundary";
-import SkoolMateLogo from "@/components/SkoolMateLogo";
 import SchoolCalendar from "@/components/dashboard/SchoolCalendar";
 import TaskManager from "@/components/dashboard/TaskManager";
+import CollapsibleSection from "@/components/ui/CollapsibleSection";
+import SchoolHero from "@/components/dashboard/SchoolHero";
+import { TopLoadingBar, StuckLoadingOverlay } from "@/components/ui/Skeleton";
+import OwlMascot from "@/components/brand/OwlMascot";
 
 function DeanDashboardContent() {
   const { school, user } = useAuth();
@@ -23,19 +20,24 @@ function DeanDashboardContent() {
   const { classes } = useClasses(school?.id);
   const { subjects } = useSubjects(school?.id);
   const { stats, loading: statsLoading } = useDashboardStats(school?.id);
+  const [loadingTimedOut, setLoadingTimedOut] = useState(false);
+
+  useEffect(() => {
+    if (!statsLoading) {
+      setLoadingTimedOut(false);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      setLoadingTimedOut(true);
+    }, 3000);
+    return () => window.clearTimeout(timer);
+  }, [statsLoading]);
 
   const currentDate = new Date();
   const greeting =
-    currentDate.getHours() < 12
-      ? "Good Morning"
-      : currentDate.getHours() < 17
-        ? "Good Afternoon"
-        : "Good Evening";
+    currentDate.getHours() < 12 ? "Good Morning" : currentDate.getHours() < 17 ? "Good Afternoon" : "Good Evening";
 
-  const attendanceRate =
-    stats?.totalStudents > 0
-      ? Math.round((stats.presentToday / stats.totalStudents) * 100)
-      : 0;
+  const attendanceRate = stats?.totalStudents > 0 ? Math.round((stats.presentToday / stats.totalStudents) * 100) : 0;
 
   const getStudentCountForClass = (classId: string) => {
     return students.filter((s) => s.class_id === classId).length;
@@ -71,64 +73,50 @@ function DeanDashboardContent() {
     { href: "/dashboard/uneb", label: "UNEB", icon: "workspace_premium", color: "text-[#b45309]" },
   ];
 
-  if (statsLoading) {
+  if ((!school?.id || statsLoading) && !loadingTimedOut) {
     return (
-      <div className="content">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-[var(--surface)] rounded w-1/3" />
-          <div className="grid grid-cols-3 gap-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-24 bg-[var(--surface)] rounded-xl" />
-            ))}
+      <div className="min-h-screen bg-[var(--bg)] flex flex-col">
+        <TopLoadingBar />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <OwlMascot size={52} premium ring glow animated />
+            <p className="mt-4 text-sm text-[var(--t3)]">Loading your dashboard...</p>
           </div>
         </div>
+        <StuckLoadingOverlay />
       </div>
     );
   }
 
   return (
     <div className="content overflow-x-hidden">
-      {/* ── Hero: Big Logo + School Branding ── */}
-      <div className="relative mb-6 overflow-hidden rounded-[32px] border border-[#d6e4e8] bg-[linear-gradient(150deg,#eff7f5_0%,#eaf2f6_44%,#f8fbff_100%)] p-5 sm:p-7">
-        <div className="pointer-events-none absolute -left-16 -top-16 h-52 w-52 rounded-full bg-[#b7dfd8]/30 blur-3xl" />
-        <div className="pointer-events-none absolute -right-10 -bottom-10 h-36 w-36 rounded-full bg-[#d8e9fb]/40 blur-3xl" />
-        <div className="pointer-events-none absolute left-1/2 top-0 h-20 w-60 -translate-x-1/2 rounded-full bg-[#c8dce8]/20 blur-2xl" />
-
-        <div className="relative z-10 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            {school?.logo_url ? (
-              <Image src={school.logo_url} alt={school?.name || "School"} width={80} height={80} className="object-contain rounded-xl" unoptimized />
-            ) : (
-              <SkoolMateLogo size="xl" showText variant="default" />
-            )}
-            <div className="flex flex-col">
-              <p className="text-xs font-semibold text-[#17325f]">{greeting}, {user?.full_name?.split(" ")[0]}</p>
-              <p className="text-[11px] text-[#42638d]">Dean of Academics · {school?.name}</p>
-            </div>
-          </div>
-          <div className="hidden sm:block text-right">
-            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#42638d]">
-              Term {currentTerm} · {academicYear}
-            </p>
-          </div>
-        </div>
-
-        <div className="relative z-10 mt-4 flex flex-wrap items-center gap-3 border-t border-[#c8dce8]/40 pt-4">
-          <div className="flex items-center gap-2 text-xs text-[#42638d]">
-            <MaterialIcon icon="today" className="text-base" />
-            <span className="font-semibold">{todayLabel}</span>
-          </div>
+      <SchoolHero
+        school={school}
+        greeting={greeting}
+        userName={user?.full_name?.split(" ")[0] || ""}
+        dateLabel={todayLabel}
+        subtitle={`Dean of Academics · ${school?.name}`}
+        rightSection={
+          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#42638d]">
+            Term {currentTerm} · {academicYear}
+          </p>
+        }
+        bottomCenter={
           <div className="text-xs text-[#42638d]">
-            <span className="font-semibold">{stats.totalStudents} students · {classes.length} classes</span>
+            <span className="font-semibold">
+              {stats.totalStudents} students · {classes.length} classes
+            </span>
           </div>
-          {stats?.presentToday > 0 && (
-            <div className="ml-auto flex items-center gap-1.5 rounded-full bg-[#1f8a70]/10 px-3 py-1">
+        }
+        bottomRight={
+          stats?.presentToday > 0 ? (
+            <div className="flex items-center gap-1.5 rounded-full bg-[#1f8a70]/10 px-3 py-1">
               <span className="h-1.5 w-1.5 rounded-full bg-[#1f8a70]" />
               <span className="text-[11px] font-bold text-[#1f8a70]">{attendanceRate}% attendance today</span>
             </div>
-          )}
-        </div>
-      </div>
+          ) : undefined
+        }
+      />
 
       {/* ── Two-Column Layout ── */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
@@ -149,12 +137,16 @@ function DeanDashboardContent() {
 
             <div className="group rounded-2xl bg-white border border-[#eef2f8] p-4 transition-all hover:shadow-md hover:-translate-y-0.5">
               <div className="flex items-center gap-2">
-                <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${stats?.presentToday > 0 && attendanceRate >= 80 ? "bg-[#e5f6ef] text-[#1f8a70]" : "bg-[#ffefe8] text-[#c2472b]"}`}>
+                <div
+                  className={`flex h-8 w-8 items-center justify-center rounded-lg ${stats?.presentToday > 0 && attendanceRate >= 80 ? "bg-[#e5f6ef] text-[#1f8a70]" : "bg-[#ffefe8] text-[#c2472b]"}`}
+                >
                   <MaterialIcon icon="how_to_reg" className="text-base" />
                 </div>
                 <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#7f91aa]">Attendance</p>
               </div>
-              <p className={`mt-2 text-2xl font-bold font-['Sora'] ${stats?.presentToday > 0 ? (attendanceRate >= 80 ? "text-[#1f8a70]" : "text-[#b45309]") : "text-[#7f91aa]"}`}>
+              <p
+                className={`mt-2 text-2xl font-bold font-['Sora'] ${stats?.presentToday > 0 ? (attendanceRate >= 80 ? "text-[#1f8a70]" : "text-[#b45309]") : "text-[#7f91aa]"}`}
+              >
                 {stats?.presentToday > 0 ? `${attendanceRate}%` : "--"}
               </p>
               <p className="mt-0.5 text-xs text-[#7f91aa]">{stats?.presentToday || 0} present</p>
@@ -172,21 +164,14 @@ function DeanDashboardContent() {
             </div>
           </div>
 
-          {/* Task Manager */}
-          <div>
-            <div className="mb-3 flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#17325f]">
-                <MaterialIcon icon="assignment" className="text-sm text-white" />
-              </div>
-              <h2 className="text-sm font-bold text-[#17325f] font-['Sora']">Task Manager</h2>
-              {tasks.length > 0 && (
-                <span className="rounded-full bg-[#c2472b]/10 px-2.5 py-0.5 text-[10px] font-bold text-[#c2472b]">
-                  {tasks.length} pending
-                </span>
-              )}
-            </div>
+          <CollapsibleSection
+            title="Task Manager"
+            badge={tasks.length > 0 ? tasks.length : null}
+            storageKey={`dean-tasks-${school?.id}`}
+            defaultOpen={tasks.length > 0}
+          >
             <TaskManager tasks={tasks} emptyMessage="No pending tasks — everything is up to date" />
-          </div>
+          </CollapsibleSection>
 
           {/* Quick Links */}
           <div className="rounded-2xl border border-[#eef2f8] bg-white p-4">
@@ -194,7 +179,7 @@ function DeanDashboardContent() {
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#17325f]/10">
                 <MaterialIcon icon="apps" className="text-sm text-[#17325f]" />
               </div>
-              <h2 className="text-sm font-bold text-[#17325f] font-['Sora']">Quick Links</h2>
+              <h2 className="text-sm font-bold text-[#17325f] font-['Sora']">Quick Actions</h2>
             </div>
             <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
               {quickLinks.map((link) => (
@@ -216,7 +201,9 @@ function DeanDashboardContent() {
               <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#17325f]/10">
                 <MaterialIcon icon="school" className="text-sm text-[#17325f]" />
               </div>
-              <h2 className="text-sm font-bold text-[#17325f] font-['Sora']">Classes — {academicYear} Term {currentTerm}</h2>
+              <h2 className="text-sm font-bold text-[#17325f] font-['Sora']">
+                Classes — {academicYear} Term {currentTerm}
+              </h2>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {classes.map((cls: any) => {

@@ -9,20 +9,11 @@ import {
   withSecurity,
 } from "@/lib/api-utils";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import {
-  detectConsecutiveAbsenceAlerts,
-  filterAbsenceAlertsForCooldown,
-} from "@/lib/operations";
+import { detectConsecutiveAbsenceAlerts, filterAbsenceAlertsForCooldown } from "@/lib/operations";
+import { sendAfricasTalkingSMSWithRetry, checkSmsDailyLimit } from "@/lib/africas-talking";
 import { logger } from "@/lib/logger";
 
-const AUTOMATION_ALLOWED_ROLES = [
-  "super_admin",
-  "school_admin",
-  "admin",
-  "headmaster",
-  "bursar",
-  "secretary",
-];
+const AUTOMATION_ALLOWED_ROLES = ["super_admin", "school_admin", "admin", "headmaster", "bursar", "secretary"];
 
 async function handlePost(request: NextRequest) {
   try {
@@ -75,10 +66,7 @@ async function handlePost(request: NextRequest) {
     }
 
     if (trigger.event_type !== "student_absent") {
-      return apiError(
-        "Only student absence automation is supported by this runner for now",
-        400,
-      );
+      return apiError("Only student absence automation is supported by this runner for now", 400);
     }
 
     const { data: students } = await supabase
@@ -87,9 +75,7 @@ async function handlePost(request: NextRequest) {
       .eq("school_id", scope.schoolId)
       .eq("status", "active");
 
-    const studentIds = (students || []).map(
-      (student: { id: string }) => student.id,
-    );
+    const studentIds = (students || []).map((student: { id: string }) => student.id);
     const { data: attendance } =
       studentIds.length === 0
         ? { data: [] }
@@ -97,12 +83,7 @@ async function handlePost(request: NextRequest) {
             .from("attendance")
             .select("student_id, date, status")
             .in("student_id", studentIds)
-            .gte(
-              "date",
-              new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-                .toISOString()
-                .split("T")[0],
-            )
+            .gte("date", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0])
             .order("date", { ascending: false });
 
     const alerts = detectConsecutiveAbsenceAlerts({
@@ -119,10 +100,7 @@ async function handlePost(request: NextRequest) {
       .select("trigger_id, record_id, status, sent_at, created_at")
       .eq("school_id", scope.schoolId)
       .eq("trigger_id", trigger.id)
-      .gte(
-        "created_at",
-        new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(),
-      );
+      .gte("created_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
 
     const alertsToSend = filterAbsenceAlertsForCooldown({
       alerts,
@@ -135,6 +113,25 @@ async function handlePost(request: NextRequest) {
     let createdMessages = 0;
 
     for (const alert of alertsToSend) {
+      // Actually send the SMS via Africa's Talking
+      if (alert.shouldSendSms && alert.parentPhone) {
+        try {
+          const withinLimit = await checkSmsDailyLimit(scope.schoolId, 1);
+          if (withinLimit) {
+            const smsResult = await sendAfricasTalkingSMSWithRetry(alert.parentPhone, alert.smsMessage, {
+              formatUgandaNumber: true,
+            });
+            if (!smsResult.success) {
+              logger.warn(`[sms/run] SMS send failed for ${alert.studentId}: ${smsResult.error}`);
+            }
+          } else {
+            logger.warn(`[sms/run] Daily SMS limit reached for school ${scope.schoolId}`);
+          }
+        } catch (smsErr) {
+          logger.error(`[sms/run] SMS send error for ${alert.studentId}:`, smsErr);
+        }
+      }
+
       const { error: messageError } = await supabase.from("messages").insert({
         school_id: scope.schoolId,
         recipient_type: "individual",
@@ -164,10 +161,7 @@ async function handlePost(request: NextRequest) {
       }
     }
 
-    await supabase
-      .from("sms_triggers")
-      .update({ last_run_at: sentAt })
-      .eq("id", trigger.id);
+    await supabase.from("sms_triggers").update({ last_run_at: sentAt }).eq("id", trigger.id);
 
     await supabase.from("audit_log").insert({
       school_id: scope.schoolId,

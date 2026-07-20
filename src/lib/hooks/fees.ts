@@ -5,13 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import type { FeePayment, FeeStructure, FeeAdjustment, CreatePaymentInput } from "@/types";
 import { getQuerySchoolId, withTimeout, timeoutFallback } from "./utils";
 import { getCachedData, setCachedData, invalidateCache } from "./queryCache";
-import {
-  DEMO_FEE_PAYMENTS,
-  DEMO_FEE_STRUCTURE,
-  DEMO_EXPENSES,
-  DEMO_BUDGETS,
-  DemoExpense,
-} from "@/lib/demo-data";
+import { DEMO_FEE_PAYMENTS, DEMO_FEE_STRUCTURE, DEMO_EXPENSES, DEMO_BUDGETS, DemoExpense } from "@/lib/demo-data";
 import { isDemoSchool } from "@/lib/demo-utils";
 import { offlineDB, useOnlineStatus } from "@/lib/offline";
 import { logAuditEventWithOfflineSupport } from "@/lib/audit";
@@ -23,27 +17,18 @@ import {
   validatePaymentInput,
 } from "@/lib/validation";
 
-
 let feePaymentsDeletedAtSupported: boolean | null = null;
 
 function isMissingFeePaymentsColumnError(error: unknown, columnName: string) {
   if (!error || typeof error !== "object") return false;
 
-  const code =
-    "code" in error ? String((error as { code?: unknown }).code || "") : "";
-  const message =
-    "message" in error
-      ? String((error as { message?: unknown }).message || "")
-      : "";
+  const code = "code" in error ? String((error as { code?: unknown }).code || "") : "";
+  const message = "message" in error ? String((error as { message?: unknown }).message || "") : "";
 
   return code === "42703" && message.includes(`fee_payments.${columnName}`);
 }
 
-async function fetchFeePaymentsWithFallback(options: {
-  schoolId: string;
-  page: number;
-  limit: number;
-}) {
+async function fetchFeePaymentsWithFallback(options: { schoolId: string; page: number; limit: number }) {
   const selectWithClass = `
     id, student_id, fee_id, amount_paid, payment_method, payment_reference,
     paid_by, notes, payment_date, created_at,
@@ -68,10 +53,7 @@ async function fetchFeePaymentsWithFallback(options: {
       .select(fields, { count: "exact" })
       .eq("students.school_id", options.schoolId)
       .order("payment_date", { ascending: false })
-      .range(
-        (options.page - 1) * options.limit,
-        options.page * options.limit - 1,
-      );
+      .range((options.page - 1) * options.limit, options.page * options.limit - 1);
 
     if (includeDeletedAtFilter) {
       query = query.is("deleted_at", null);
@@ -94,11 +76,7 @@ async function fetchFeePaymentsWithFallback(options: {
   throw lastError;
 }
 
-export function useFeePayments(
-  schoolId?: string,
-  page: number = 1,
-  limit: number = 50,
-) {
+export function useFeePayments(schoolId?: string, page: number = 1, limit: number = 50) {
   const [payments, setPayments] = useState<FeePayment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -140,7 +118,10 @@ export function useFeePayments(
     }
 
     const querySchoolId = getQuerySchoolId(schoolId, isDemo);
-    if (!querySchoolId) { setLoading(false); return; }
+    if (!querySchoolId) {
+      setLoading(false);
+      return;
+    }
     try {
       setLoading(true);
       if (!isOnline) {
@@ -164,10 +145,7 @@ export function useFeePayments(
       setPayments(result);
       setTotalCount(data.count || 0);
       setCachedData(cacheKey, result);
-      await offlineDB.cacheFromServer(
-        "fee_payments",
-        (data as unknown as Record<string, unknown>[]) || [],
-      );
+      await offlineDB.cacheFromServer("fee_payments", (data as unknown as Record<string, unknown>[]) || []);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
@@ -217,9 +195,7 @@ export function useFeePayments(
         .single();
 
       if (feeError || !feeStructure) {
-        throw new Error(
-          "Invalid or missing fee structure. Please create the fee first.",
-        );
+        throw new Error("Invalid or missing fee structure. Please create the fee first.");
       }
     }
 
@@ -229,10 +205,7 @@ export function useFeePayments(
       recorded_by: user?.id,
     };
     if (!isOnline) {
-      const offlineSaved = await offlineDB.save(
-        "fee_payments",
-        payload as unknown as Record<string, unknown>,
-      );
+      const offlineSaved = await offlineDB.save("fee_payments", payload as unknown as Record<string, unknown>);
       const offlinePayment = {
         ...payload,
         id: String(offlineSaved.id || `offline-payment-${Date.now()}`),
@@ -273,9 +246,7 @@ export function useFeePayments(
       );
       if (insertError) throw insertError;
       setPayments((prev) => [data as unknown as FeePayment, ...prev]);
-      await offlineDB.cacheFromServer("fee_payments", [
-        data as unknown as Record<string, unknown>,
-      ]);
+      await offlineDB.cacheFromServer("fee_payments", [data as unknown as Record<string, unknown>]);
       invalidateCache(cacheKey);
       if (school?.id && user?.id) {
         await logAuditEventWithOfflineSupport(
@@ -308,11 +279,11 @@ export function useFeePayments(
         deleted_at: new Date().toISOString(),
         deleted_by: user?.id || null,
       };
-const { error: deleteError } = await withTimeout(
-          supabase.from("fee_payments").update(payload).eq("id", id),
-          15000,
-          timeoutFallback(),
-        );
+      const { error: deleteError } = await withTimeout(
+        supabase.from("fee_payments").update(payload).eq("id", id),
+        15000,
+        timeoutFallback(),
+      );
       if (deleteError) throw deleteError;
       setPayments((prev) => prev.filter((p) => p.id !== id));
       invalidateCache(cacheKey);
@@ -429,10 +400,7 @@ export function useFeeStructure(schoolId?: string) {
       const result = (data as unknown as FeeStructure[]) || [];
       setFeeStructure(result);
       setCachedData(cacheKey, result);
-      await offlineDB.cacheFromServer(
-        "fee_structure",
-        (data as unknown as Record<string, unknown>[]) || [],
-      );
+      await offlineDB.cacheFromServer("fee_structure", (data as unknown as Record<string, unknown>[]) || []);
     } catch (err) {
       logger.error("Error fetching fee structure:", err);
     } finally {
@@ -456,16 +424,13 @@ export function useFeeStructure(schoolId?: string) {
 
     const existingDuplicate = feeStructure.find(
       (existing) =>
-        existing.name.trim().toLowerCase() ===
-          String(normalizedFee.name).trim().toLowerCase() &&
+        existing.name.trim().toLowerCase() === String(normalizedFee.name).trim().toLowerCase() &&
         (existing.class_id || null) === (normalizedFee.class_id || null) &&
         Number(existing.term) === normalizedFee.term &&
         existing.academic_year === normalizedFee.academic_year,
     );
     if (existingDuplicate) {
-      throw new Error(
-        "A fee structure with the same name, class, term, and academic year already exists",
-      );
+      throw new Error("A fee structure with the same name, class, term, and academic year already exists");
     }
 
     if (isDemo || isDemoSchool(schoolId)) {
@@ -477,28 +442,25 @@ export function useFeeStructure(schoolId?: string) {
         due_date: normalizedFee.due_date || null,
         created_at: new Date().toISOString(),
       };
-      setFeeStructure((prev) => [
-        ...prev,
-        newFeeData as unknown as FeeStructure,
-      ]);
+      setFeeStructure((prev) => [...prev, newFeeData as unknown as FeeStructure]);
       return newFeeData;
     }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo);
     try {
-const { data, error } = await withTimeout(
-         supabase
-           .from("fee_structure")
-           .insert({
-             school_id: querySchoolId,
-             ...normalizedFee,
-             class_id: normalizedFee.class_id || null,
-             due_date: normalizedFee.due_date || null,
-           })
-           .select()
-           .single(),
-         15000,
-          timeoutFallback(),
-       );
+      const { data, error } = await withTimeout(
+        supabase
+          .from("fee_structure")
+          .insert({
+            school_id: querySchoolId,
+            ...normalizedFee,
+            class_id: normalizedFee.class_id || null,
+            due_date: normalizedFee.due_date || null,
+          })
+          .select()
+          .single(),
+        15000,
+        timeoutFallback(),
+      );
       if (error) throw error;
       setFeeStructure((prev) => [...prev, data]);
       invalidateCache(cacheKey);
@@ -616,10 +578,7 @@ export function useFeeAdjustments(schoolId?: string) {
       const result = data || [];
       setAdjustments(result);
       setCachedData(cacheKey, result);
-      await offlineDB.cacheFromServer(
-        "fee_adjustments",
-        (data || []) as Record<string, unknown>[],
-      );
+      await offlineDB.cacheFromServer("fee_adjustments", (data || []) as Record<string, unknown>[]);
     } catch (err) {
       logger.error("Error fetching adjustments:", err);
     } finally {
@@ -629,22 +588,17 @@ export function useFeeAdjustments(schoolId?: string) {
 
   const createAdjustment = async (adj: {
     student_id: string;
-    adjustment_type:
-      | "scholarship"
-      | "discount"
-      | "penalty"
-      | "manual_credit"
-      | "write_off"
-      | "bursary";
+    adjustment_type: "scholarship" | "discount" | "penalty" | "manual_credit" | "write_off" | "bursary" | "amnesty";
     amount: number;
     description?: string;
   }) => {
     if (isDemo || isDemoSchool(schoolId)) {
-      const mappedType = adj.adjustment_type === "write_off"
-        ? "manual_credit"
-        : adj.adjustment_type === "bursary"
-          ? "discount"
-          : adj.adjustment_type;
+      const mappedType =
+        adj.adjustment_type === "write_off" || adj.adjustment_type === "amnesty"
+          ? "manual_credit"
+          : adj.adjustment_type === "bursary"
+            ? "discount"
+            : adj.adjustment_type;
       const newAdj = {
         student_id: adj.student_id,
         adjustment_type: mappedType,
@@ -660,11 +614,12 @@ export function useFeeAdjustments(schoolId?: string) {
       return newAdj;
     }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo);
-    const mappedType = adj.adjustment_type === "write_off"
-      ? "manual_credit"
-      : adj.adjustment_type === "bursary"
-        ? "discount"
-        : adj.adjustment_type;
+    const mappedType =
+      adj.adjustment_type === "write_off" || adj.adjustment_type === "amnesty"
+        ? "manual_credit"
+        : adj.adjustment_type === "bursary"
+          ? "discount"
+          : adj.adjustment_type;
     const payload = {
       student_id: adj.student_id,
       adjustment_type: mappedType,
@@ -675,10 +630,7 @@ export function useFeeAdjustments(schoolId?: string) {
     };
 
     if (!isOnline) {
-      const offlineSaved = await offlineDB.save(
-        "fee_adjustments",
-        payload as unknown as Record<string, unknown>,
-      );
+      const offlineSaved = await offlineDB.save("fee_adjustments", payload as unknown as Record<string, unknown>);
       const offlineAdjustment = {
         ...payload,
         id: String(offlineSaved.id || `offline-adjustment-${Date.now()}`),
@@ -702,11 +654,11 @@ export function useFeeAdjustments(schoolId?: string) {
       return offlineAdjustment;
     }
     try {
-const { data, error } = await withTimeout(
-          supabase.from("fee_adjustments").insert(payload).select().single(),
-          15000,
-           timeoutFallback(),
-        );
+      const { data, error } = await withTimeout(
+        supabase.from("fee_adjustments").insert(payload).select().single(),
+        15000,
+        timeoutFallback(),
+      );
       if (error) throw error;
       setAdjustments((prev) => [data, ...prev]);
       invalidateCache(cacheKey);
@@ -741,19 +693,19 @@ const { data, error } = await withTimeout(
         deleted_at: new Date().toISOString(),
         deleted_by: user?.id || null,
       };
-const { error: deleteError } = await withTimeout(
-          supabase.from("fee_adjustments").update(payload).eq("id", id),
-          15000,
-          timeoutFallback(),
-        );
-        if (deleteError) {
-          // deleted_at may not exist yet — fall back to hard delete
-          if (deleteError.code === "42703" && deleteError.message?.includes("deleted_at")) {
-            const { error: hardDeleteError } = await withTimeout(
-              supabase.from("fee_adjustments").delete().eq("id", id),
-              15000,
-              timeoutFallback(),
-            );
+      const { error: deleteError } = await withTimeout(
+        supabase.from("fee_adjustments").update(payload).eq("id", id),
+        15000,
+        timeoutFallback(),
+      );
+      if (deleteError) {
+        // deleted_at may not exist yet — fall back to hard delete
+        if (deleteError.code === "42703" && deleteError.message?.includes("deleted_at")) {
+          const { error: hardDeleteError } = await withTimeout(
+            supabase.from("fee_adjustments").delete().eq("id", id),
+            15000,
+            timeoutFallback(),
+          );
           if (hardDeleteError) throw hardDeleteError;
         } else {
           throw deleteError;
@@ -821,11 +773,15 @@ export function useBudget(schoolId?: string) {
     }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo);
     try {
-const { data, error } = await withTimeout(
-          supabase.from("budgets").insert({ ...budget, school_id: querySchoolId }).select().single(),
-          15000,
-           timeoutFallback(),
-        );
+      const { data, error } = await withTimeout(
+        supabase
+          .from("budgets")
+          .insert({ ...budget, school_id: querySchoolId })
+          .select()
+          .single(),
+        15000,
+        timeoutFallback(),
+      );
       if (error) throw error;
       setBudgets((prev) => [data, ...prev]);
       return data;
@@ -848,11 +804,15 @@ const { data, error } = await withTimeout(
     }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo);
     try {
-const { data, error } = await withTimeout(
-          supabase.from("expenses").insert({ ...expense, school_id: querySchoolId }).select().single(),
-          15000,
-           timeoutFallback(),
-        );
+      const { data, error } = await withTimeout(
+        supabase
+          .from("expenses")
+          .insert({ ...expense, school_id: querySchoolId })
+          .select()
+          .single(),
+        15000,
+        timeoutFallback(),
+      );
       if (error) throw error;
       setExpenses((prev) => [data, ...prev]);
       return data;
@@ -863,17 +823,15 @@ const { data, error } = await withTimeout(
 
   const updateExpenseStatus = async (id: string, status: string) => {
     if (isDemo || isDemoSchool(schoolId)) {
-      setExpenses((prev) =>
-        prev.map((e) => (e.id === id ? { ...e, status } : e)),
-      );
+      setExpenses((prev) => prev.map((e) => (e.id === id ? { ...e, status } : e)));
       return { id, status };
     }
     try {
-const { data, error } = await withTimeout(
-          supabase.from("expenses").update({ status }).eq("id", id).select().single(),
-          15000,
-           timeoutFallback(),
-        );
+      const { data, error } = await withTimeout(
+        supabase.from("expenses").update({ status }).eq("id", id).select().single(),
+        15000,
+        timeoutFallback(),
+      );
       if (error) throw error;
       setExpenses((prev) => prev.map((e) => (e.id === id ? data : e)));
       return data;
@@ -900,16 +858,12 @@ const { data, error } = await withTimeout(
         const [budgetsRes, expensesRes] = await Promise.all([
           supabase
             .from("budgets")
-            .select(
-              "id, school_id, name, amount, term, academic_year, created_at",
-            )
+            .select("id, school_id, name, amount, term, academic_year, created_at")
             .eq("school_id", querySchoolId)
             .order("created_at", { ascending: false }),
           supabase
             .from("expenses")
-            .select(
-              "id, school_id, budget_id, amount, description, expense_date, status, created_at",
-            )
+            .select("id, school_id, budget_id, amount, description, expense_date, status, created_at")
             .eq("school_id", querySchoolId)
             .order("expense_date", { ascending: false }),
         ]);

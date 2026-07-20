@@ -6,16 +6,8 @@ import {
   computeUACEResult,
   generateAutoComment,
 } from "@/lib/automation";
-import {
-  buildRolloverPreview,
-  isTerminalClass,
-  getNextClassName,
-} from "@/lib/operations";
-import {
-  requireCronSecretOrDeny,
-  createServiceRoleClientOrThrow,
-  requireExistingSchoolOrDeny,
-} from "@/lib/api-utils";
+import { buildRolloverPreview, isTerminalClass, getNextClassName } from "@/lib/operations";
+import { requireCronSecretOrDeny, createServiceRoleClientOrThrow, requireExistingSchoolOrDeny } from "@/lib/api-utils";
 import { sendAfricasTalkingSMSWithRetry } from "@/lib/africas-talking";
 import { logger } from "@/lib/logger";
 
@@ -23,7 +15,6 @@ export async function POST(request: NextRequest) {
   try {
     const cron = requireCronSecretOrDeny(request);
     if (!cron.ok) return cron.response;
-
 
     const { schoolId, currentTerm, academicYear } = await request.json();
     const supabase = createServiceRoleClientOrThrow();
@@ -135,9 +126,7 @@ export async function POST(request: NextRequest) {
 
       for (const student of students as any[]) {
         try {
-          const studentClass = Array.isArray(student.classes)
-            ? student.classes[0]
-            : student.classes;
+          const studentClass = Array.isArray(student.classes) ? student.classes[0] : student.classes;
 
           if (!studentClass) continue;
 
@@ -170,8 +159,12 @@ export async function POST(request: NextRequest) {
                 if (!subjectGroups[sid]) {
                   subjectGroups[sid] = {
                     subject_id: sid,
-                    ca1: 0, ca2: 0, ca3: 0, ca4: 0,
-                    project: 0, exam_score: 0,
+                    ca1: 0,
+                    ca2: 0,
+                    ca3: 0,
+                    ca4: 0,
+                    project: 0,
+                    exam_score: 0,
                     subjects: rg.subjects || { name: "Unknown" },
                   };
                 }
@@ -243,14 +236,9 @@ export async function POST(request: NextRequest) {
             division = pleResult.division;
             best4 = pleResult.best4;
           } else if (level.startsWith("S") && level.includes("4")) {
-            division = computeUCEDivision(
-              subjectResults.map((r: any) => r.grade),
-            );
+            division = computeUCEDivision(subjectResults.map((r: any) => r.grade));
           } else if (level.startsWith("S") && level.includes("6")) {
-            const uaceResult = computeUACEResult(
-              subjectScores.slice(0, 3),
-              subjectScores.slice(3),
-            );
+            const uaceResult = computeUACEResult(subjectScores.slice(0, 3), subjectScores.slice(3));
             division = uaceResult.division;
             aggregate = uaceResult.points;
           }
@@ -368,9 +356,7 @@ export async function POST(request: NextRequest) {
 
       const { data: grades } = await supabase
         .from("student_grades")
-        .select(
-          "id, student_id, subject_id, ca1, ca2, ca3, ca4, project, exam_score, final_score",
-        )
+        .select("id, student_id, subject_id, ca1, ca2, ca3, ca4, project, exam_score, final_score")
         .eq("academic_year", year)
         .eq("term", term);
 
@@ -424,9 +410,7 @@ export async function POST(request: NextRequest) {
     try {
       const { data: students } = await supabase
         .from("students")
-        .select(
-          "id, first_name, last_name, parent_email, parent_phone, class_id, classes (name)",
-        )
+        .select("id, first_name, last_name, parent_email, parent_phone, class_id, classes (name)")
         .eq("school_id", school.schoolId)
         .eq("status", "active");
 
@@ -443,13 +427,7 @@ export async function POST(request: NextRequest) {
         // Email notice
         if (student.parent_email) {
           try {
-            await sendTermEndNoticeEmail(
-              student.parent_email,
-              studentName,
-              className,
-              year,
-              term,
-            );
+            await sendTermEndNoticeEmail(student.parent_email, studentName, className, year, term);
             noticesSent++;
           } catch (e) {
             logger.warn(`Term end email failed for student ${student.id}:`, e);
@@ -525,23 +503,21 @@ export async function POST(request: NextRequest) {
       });
 
       // Update academic year/term settings using the key-value school_settings schema
-      const { error: settingsError } = await supabase
-        .from("school_settings")
-        .upsert(
-          [
-            {
-              school_id: school.schoolId,
-              key: "current_term",
-              value: String(nextTerm),
-            },
-            {
-              school_id: school.schoolId,
-              key: "academic_year",
-              value: nextYear,
-            },
-          ],
-          { onConflict: "school_id,key" },
-        );
+      const { error: settingsError } = await supabase.from("school_settings").upsert(
+        [
+          {
+            school_id: school.schoolId,
+            key: "current_term",
+            value: String(nextTerm),
+          },
+          {
+            school_id: school.schoolId,
+            key: "academic_year",
+            value: nextYear,
+          },
+        ],
+        { onConflict: "school_id,key" },
+      );
 
       if (settingsError) {
         throw new Error("Failed to update school settings");
@@ -557,11 +533,34 @@ export async function POST(request: NextRequest) {
         .limit(1);
 
       if (!existingTerm || existingTerm.length === 0) {
+        // Derive term name and code from the previous term's dates
+        const { data: prevTerm } = await supabase
+          .from("academic_terms")
+          .select("start_date, end_date")
+          .eq("school_id", school.schoolId)
+          .eq("academic_year", year)
+          .eq("term", term)
+          .limit(1)
+          .maybeSingle();
+
+        const termDuration =
+          prevTerm?.start_date && prevTerm?.end_date
+            ? new Date(prevTerm.end_date).getTime() - new Date(prevTerm.start_date).getTime()
+            : 90 * 24 * 60 * 60 * 1000;
+
+        const termStartDate = new Date();
+        const termEndDate = new Date(termStartDate.getTime() + termDuration);
+        const fmt = (d: Date) => d.toISOString().split("T")[0];
+
         const { error: termInsertError } = await supabase.from("academic_terms").insert({
           school_id: school.schoolId,
+          name: `Term ${nextTerm}`,
+          code: `T${nextTerm}-${nextYear}`,
+          term_number: nextTerm,
+          start_date: fmt(termStartDate),
+          end_date: fmt(termEndDate),
           academic_year: nextYear,
-          term: nextTerm,
-          status: "upcoming",
+          is_active: true,
           created_at: new Date().toISOString(),
         });
 
@@ -633,10 +632,7 @@ async function sendReportCardEmail(
   }
 
   const subjectTable = subjects
-    .map(
-      (s: any) =>
-        `<tr><td>${s.subjectName}</td><td>${s.finalScore}</td><td>${s.grade}</td></tr>`,
-    )
+    .map((s: any) => `<tr><td>${s.subjectName}</td><td>${s.finalScore}</td><td>${s.grade}</td></tr>`)
     .join("");
 
   const html = `
@@ -717,4 +713,3 @@ async function sendTermEndNoticeEmail(
 
   return { success: true };
 }
-

@@ -1,91 +1,94 @@
-'use client'
-import { useState, useEffect, useCallback, useRef } from 'react'
-import { supabase } from '@/lib/supabase'
-import { withTimeout } from './utils'
-import type { PostgrestSingleResponse } from '@supabase/supabase-js'
+"use client";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { supabase } from "@/lib/supabase";
+import { withTimeout } from "./utils";
+import type { PostgrestSingleResponse } from "@supabase/supabase-js";
 
 export function useSupabaseQuery<T>(
   table: string,
   options?: {
-    select?: string
-    filters?: Record<string, string | number | boolean | null>
-    orderBy?: { column: string; ascending?: boolean }
-    limit?: number
-  }
+    select?: string;
+    filters?: Record<string, string | number | boolean | null>;
+    orderBy?: { column: string; ascending?: boolean };
+    limit?: number;
+  },
 ) {
-  const [data, setData] = useState<T[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const select = options?.select || '*'
-  const filters = options?.filters
-  const orderBy = options?.orderBy
-  const limit = options?.limit
+  const [data, setData] = useState<T[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const select = options?.select || "*";
+  const filters = options?.filters;
+  const orderBy = options?.orderBy;
+  const limit = options?.limit;
 
-  const filtersRef = useRef(filters)
-  const prevFiltersRef = useRef<string>('')
+  const filtersRef = useRef(filters);
+  const prevFiltersRef = useRef<string>("");
 
   useEffect(() => {
-    const currentFiltersStr = JSON.stringify(filters ?? {})
+    const currentFiltersStr = JSON.stringify(filters ?? {});
     if (currentFiltersStr !== prevFiltersRef.current) {
-      filtersRef.current = filters
-      prevFiltersRef.current = currentFiltersStr
+      filtersRef.current = filters;
+      prevFiltersRef.current = currentFiltersStr;
     }
-  }, [filters])
+  }, [filters]);
 
   const fetchData = useCallback(async () => {
-    if (!supabase) return
-    
-    try {
-      setLoading(true)
-      setError(null)
+    if (!supabase) return;
 
-      let query = supabase.from(table).select(select)
+    try {
+      setLoading(true);
+      setError(null);
+
+      let query = supabase.from(table).select(select);
 
       if (filtersRef.current) {
         Object.entries(filtersRef.current).forEach(([key, value]) => {
-          if (value !== undefined && value !== null && value !== '') {
-            query = query.eq(key, value)
+          if (value !== undefined && value !== null && value !== "") {
+            query = query.eq(key, value);
           }
-        })
+        });
       }
 
       if (orderBy) {
         query = query.order(orderBy.column, {
           ascending: orderBy.ascending ?? false,
-        })
+        });
       }
 
       if (limit) {
-        query = query.limit(limit)
+        query = query.limit(limit);
       }
 
-      const { data: result, error: fetchError } = await query
+      const { data: result, error: fetchError } = await withTimeout(query, 15000, {
+        data: null,
+        error: { message: "Query timed out", code: "TIMEOUT", details: "", hint: "", name: "TimeoutError" },
+      } as unknown as PostgrestSingleResponse<never>);
 
-      if (fetchError) throw fetchError
-      setData((result as T[]) || [])
+      if (fetchError) throw fetchError;
+      setData((result as T[]) || []);
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error'
-      setError(errorMessage)
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
+      setError(errorMessage);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [table, select, orderBy, limit])
+  }, [table, select, orderBy, limit]);
 
   useEffect(() => {
-    fetchData()
-  }, [fetchData])
+    fetchData();
+  }, [fetchData]);
 
-  return { data, loading, error, refetch: fetchData }
+  return { data, loading, error, refetch: fetchData };
 }
 
 export function useSupabaseMutation<T>(table: string) {
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const insert = async (data: Record<string, unknown>) => {
     try {
-      setLoading(true)
-      setError(null)
+      setLoading(true);
+      setError(null);
       const { data: result, error: insertError } = await withTimeout(
         supabase!
           .from(table)
@@ -93,66 +96,67 @@ export function useSupabaseMutation<T>(table: string) {
           .select()
           .single(),
         15000,
-        { data: null, error: { message: 'Insert timed out', code: 'TIMEOUT', details: '', hint: '', name: 'TimeoutError' } } as unknown as PostgrestSingleResponse<never>,
-      )
+        {
+          data: null,
+          error: { message: "Insert timed out", code: "TIMEOUT", details: "", hint: "", name: "TimeoutError" },
+        } as unknown as PostgrestSingleResponse<never>,
+      );
 
-      if (insertError) throw insertError
-      return result as T
+      if (insertError) throw insertError;
+      return result as T;
     } catch (err: any) {
-      setError(err.message)
-      return null
+      setError(err.message);
+      return null;
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const update = async (id: string, data: Record<string, unknown>) => {
     try {
-      setLoading(true)
-      setError(null)
+      setLoading(true);
+      setError(null);
       const { data: result, error: updateError } = await withTimeout(
         supabase!
           .from(table)
           .update(data as never)
-          .eq('id', id)
+          .eq("id", id)
           .select()
           .single(),
         15000,
-        { data: null, error: { message: 'Update timed out', code: 'TIMEOUT', details: '', hint: '', name: 'TimeoutError' } } as unknown as PostgrestSingleResponse<never>,
-      )
+        {
+          data: null,
+          error: { message: "Update timed out", code: "TIMEOUT", details: "", hint: "", name: "TimeoutError" },
+        } as unknown as PostgrestSingleResponse<never>,
+      );
 
-      if (updateError) throw updateError
-      return result as T
+      if (updateError) throw updateError;
+      return result as T;
     } catch (err: any) {
-      setError(err.message)
-      return null
+      setError(err.message);
+      return null;
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const remove = async (id: string) => {
     try {
-      setLoading(true)
-      setError(null)
-      const { error: deleteError } = await withTimeout(
-        supabase
-          .from(table)
-          .delete()
-          .eq('id', id),
-        15000,
-        { error: { message: 'Delete timed out', code: 'TIMEOUT', details: '', hint: '', name: 'TimeoutError' } } as unknown as PostgrestSingleResponse<never>,
-      )
+      setLoading(true);
+      setError(null);
+      const { error: deleteError } = await withTimeout(supabase.from(table).delete().eq("id", id), 15000, {
+        error: { message: "Delete timed out", code: "TIMEOUT", details: "", hint: "", name: "TimeoutError" },
+      } as unknown as PostgrestSingleResponse<never>);
 
-      if (deleteError) throw deleteError
-      return true
+      if (deleteError) throw deleteError;
+      return true;
     } catch (err: any) {
-      setError(err.message)
-      return false
+      setError(err.message);
+      return false;
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  return { insert, update, remove, loading, error }
+  return { insert, update, remove, loading, error };
 }

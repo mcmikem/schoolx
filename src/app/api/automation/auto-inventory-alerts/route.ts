@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  requireCronSecretOrDeny,
-  createServiceRoleClientOrThrow,
-  requireExistingSchoolOrDeny,
-} from "@/lib/api-utils";
+import { requireCronSecretOrDeny, createServiceRoleClientOrThrow, requireExistingSchoolOrDeny } from "@/lib/api-utils";
 import { requireActiveSubscription } from "@/lib/subscription-guard";
 import { sendAfricasTalkingSMSWithRetry, checkSmsDailyLimit } from "@/lib/africas-talking";
 import { logger } from "@/lib/logger";
@@ -12,7 +8,6 @@ export async function POST(request: NextRequest) {
   try {
     const cron = requireCronSecretOrDeny(request);
     if (!cron.ok) return cron.response;
-
 
     const { schoolId } = await request.json();
     const supabase = createServiceRoleClientOrThrow();
@@ -26,21 +21,17 @@ export async function POST(request: NextRequest) {
     });
     if (!subCheck.ok) return subCheck.response;
 
-    // Get all inventory items (assets) with stock below reorder threshold
+    // Get all inventory items (assets) — reorder_level is stored in inventory_alerts
     const { data: items, error: itemsError } = await supabase
       .from("assets")
       .select(
         `
         id,
         name,
-        type,
-        current_stock,
-        reorder_level,
-        unit_cost,
         category,
-        supplier_name,
-        supplier_contact,
-        last_restocked_at
+        quantity,
+        unit_price,
+        supplier
       `,
       )
       .eq("school_id", school.schoolId);
@@ -60,44 +51,46 @@ export async function POST(request: NextRequest) {
     const errors: any[] = [];
 
     for (const item of items as any[]) {
-      const currentStock = item.current_stock || 0;
-      const reorderLevel = item.reorder_level || 0;
+      const currentStock = item.quantity || 0;
+
+      // Check if this asset has a reorder threshold set in inventory_alerts
+      const { data: alertThreshold } = await supabase
+        .from("inventory_alerts")
+        .select("reorder_level, deficit")
+        .eq("asset_id", item.id)
+        .eq("school_id", school.schoolId)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      const reorderLevel = Number(alertThreshold?.reorder_level || 0);
 
       if (reorderLevel > 0 && currentStock <= reorderLevel) {
         const deficit = reorderLevel - currentStock;
-        const estimatedCost = item.unit_cost ? deficit * item.unit_cost : null;
+        const estimatedCost = item.unit_price ? deficit * item.unit_price : null;
 
         itemsNeedingReorder.push({
           itemId: item.id,
           name: item.name,
-          category: item.category || item.type,
+          category: item.category,
           currentStock,
           reorderLevel,
           deficit,
-          unitCost: item.unit_cost,
+          unitCost: item.unit_price,
           estimatedCost,
-          supplier: item.supplier_name,
-          supplierContact: item.supplier_contact,
-          lastRestocked: item.last_restocked_at,
+          supplier: item.supplier,
         });
 
-        // Send email alert if configured and contact looks like an email
-        if (item.supplier_contact && item.supplier_contact.includes("@")) {
+        // Send email alert if configured and supplier looks like an email
+        if (item.supplier && item.supplier.includes("@")) {
           try {
-            await sendInventoryAlertEmail(
-              item.supplier_contact,
-              item.name,
-              currentStock,
-              reorderLevel,
-              deficit,
-              estimatedCost,
-            );
+            await sendInventoryAlertEmail(item.supplier, item.name, currentStock, reorderLevel, deficit, estimatedCost);
 
             alertsSent.push({
               itemId: item.id,
               name: item.name,
               channel: "email",
-              recipient: item.supplier_contact,
+              recipient: item.supplier,
             });
           } catch (emailErr) {
             errors.push({
@@ -108,12 +101,8 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Send SMS alert if phone is available
-        const phone =
-          item.supplier_contact?.includes("+") ||
-          item.supplier_contact?.match(/^\d{10,}$/)
-            ? item.supplier_contact
-            : null;
+        // Send SMS alert if supplier has a phone number
+        const phone = item.supplier?.includes("+") || item.supplier?.match(/^\d{10,}$/) ? item.supplier : null;
 
         if (phone) {
           try {
@@ -243,4 +232,3 @@ async function sendInventoryAlertEmail(
   const data = await response.json();
   return { success: true, messageId: data.id };
 }
-

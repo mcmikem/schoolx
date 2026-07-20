@@ -16,14 +16,17 @@ export async function POST(request: NextRequest) {
       { auth: { persistSession: false } },
     );
 
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const {
+      data: { user },
+      error: authError,
+    } = await supabaseAdmin.auth.getUser(token);
     if (authError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { data: profile } = await supabaseAdmin
       .from("users")
-      .select("role")
+      .select("role, school_id")
       .eq("auth_id", user.id)
       .single();
 
@@ -32,6 +35,12 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
+
+    // Enforce school-scope: non-super_admins can only trigger term-end for their own school
+    if (profile.role !== "super_admin" && profile.school_id && body.schoolId !== profile.school_id) {
+      return NextResponse.json({ error: "Forbidden: school scope mismatch" }, { status: 403 });
+    }
+
     const cronSecret = process.env.CRON_SECRET;
     if (!cronSecret) {
       return NextResponse.json({ error: "Server configuration error" }, { status: 500 });

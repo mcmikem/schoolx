@@ -48,16 +48,10 @@ export default function PaymentModal({
     if (!newPayment.amount_paid || Number(newPayment.amount_paid) <= 0) {
       errs.amount_paid = "Amount must be greater than 0";
     }
-    if (
-      selectedStudent &&
-      Number(newPayment.amount_paid) > selectedStudent.balance
-    ) {
+    if (selectedStudent && Number(newPayment.amount_paid) > selectedStudent.balance) {
       errs.amount_paid = `Amount exceeds student balance of ${formatCurrency(selectedStudent.balance)}`;
     }
-    if (
-      newPayment.payment_method === "mobile_money" &&
-      !newPayment.momo_transaction_id
-    ) {
+    if (newPayment.payment_method === "mobile_money" && !newPayment.momo_transaction_id) {
       errs.momo_transaction_id = "Transaction ID is required for mobile money";
     }
     return errs;
@@ -69,22 +63,22 @@ export default function PaymentModal({
     : errors.momo_transaction_id || errors.amount_paid || errors.student_id
       ? errors.momo_transaction_id || errors.amount_paid || errors.student_id || ""
       : "";
-  const nextDisabledReason = students.length === 0
-    ? "Add students first before recording payments."
-    : !newPayment.student_id
-      ? "Select a student to continue."
-      : !newPayment.amount_paid || Number(newPayment.amount_paid) <= 0
-        ? "Enter a payment amount greater than 0."
-        : errors.amount_paid
-          ? errors.amount_paid
-          : "";
+  const nextDisabledReason =
+    students.length === 0
+      ? "Add students first before recording payments."
+      : !newPayment.student_id
+        ? "Select a student to continue."
+        : !newPayment.amount_paid || Number(newPayment.amount_paid) <= 0
+          ? "Enter a payment amount greater than 0."
+          : errors.amount_paid
+            ? errors.amount_paid
+            : "";
 
   const handleBlur = (field: string) => {
     setTouched((prev) => ({ ...prev, [field]: true }));
   };
 
-  const fieldError = (field: string) =>
-    touched[field] && errors[field] ? errors[field] : null;
+  const fieldError = (field: string) => (touched[field] && errors[field] ? errors[field] : null);
 
   const errorBorder = (field: string) =>
     fieldError(field)
@@ -121,13 +115,8 @@ export default function PaymentModal({
       >
         <div className="p-6 border-b border-outline-variant/10">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-headline font-bold text-xl text-primary">
-              Record Payment
-            </h2>
-            <button
-              onClick={handleClose}
-              className="p-1 hover:bg-surface-container rounded-lg transition-colors"
-            >
+            <h2 className="font-headline font-bold text-xl text-primary">Record Payment</h2>
+            <button onClick={handleClose} className="p-1 hover:bg-surface-container rounded-lg transition-colors">
               <MaterialIcon icon="close" className="text-onSurface-variant" />
             </button>
           </div>
@@ -147,19 +136,22 @@ export default function PaymentModal({
             </div>
           </div>
           <div className="flex justify-between mt-1">
-            <span className="text-[11px] text-onSurface-variant">
-              Student & Amount
-            </span>
-            <span className="text-[11px] text-onSurface-variant">
-              Payment Details
-            </span>
+            <span className="text-[11px] text-onSurface-variant">Student & Amount</span>
+            <span className="text-[11px] text-onSurface-variant">Payment Details</span>
           </div>
         </div>
-        <form onSubmit={onSubmit} className="p-6 space-y-5 overflow-y-auto max-h-[calc(100vh-10rem)] sm:max-h-[calc(100vh-11rem)]" noValidate>
+        <form
+          onSubmit={onSubmit}
+          className="p-6 space-y-5 overflow-y-auto max-h-[calc(100vh-10rem)] sm:max-h-[calc(100vh-11rem)]"
+          noValidate
+        >
           {step === 1 && (
             <>
               <div>
-                <label htmlFor="payment-student" className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">
+                <label
+                  htmlFor="payment-student"
+                  className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2"
+                >
                   Student
                 </label>
                 {students.length === 0 ? (
@@ -171,9 +163,7 @@ export default function PaymentModal({
                     <select
                       id="payment-student"
                       value={newPayment.student_id}
-                      onChange={(e) =>
-                        onPaymentChange({ student_id: e.target.value })
-                      }
+                      onChange={(e) => onPaymentChange({ student_id: e.target.value })}
                       onBlur={() => handleBlur("student_id")}
                       className={`w-full rounded-xl py-3 px-4 text-sm transition-colors ${errorBorder("student_id")}`}
                       required
@@ -195,7 +185,10 @@ export default function PaymentModal({
                 )}
               </div>
               <div>
-                <label htmlFor="payment-amount" className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">
+                <label
+                  htmlFor="payment-amount"
+                  className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2"
+                >
                   Amount (UGX)
                 </label>
                 <input
@@ -203,9 +196,7 @@ export default function PaymentModal({
                   type="number"
                   min="1"
                   value={newPayment.amount_paid}
-                  onChange={(e) =>
-                    onPaymentChange({ amount_paid: e.target.value })
-                  }
+                  onChange={(e) => onPaymentChange({ amount_paid: e.target.value })}
                   onBlur={() => handleBlur("amount_paid")}
                   className={`w-full rounded-xl py-3 px-4 text-sm transition-colors ${errorBorder("amount_paid")}`}
                   required
@@ -223,13 +214,7 @@ export default function PaymentModal({
                   !fieldError("amount_paid") && (
                     <p className="text-xs text-[var(--green)] mt-1">
                       Balance after payment:{" "}
-                      {formatCurrency(
-                        Math.max(
-                          0,
-                          selectedStudent.balance -
-                            Number(newPayment.amount_paid),
-                        ),
-                      )}
+                      {formatCurrency(Math.max(0, selectedStudent.balance - Number(newPayment.amount_paid)))}
                     </p>
                   )}
               </div>
@@ -251,9 +236,7 @@ export default function PaymentModal({
                 </button>
               </div>
               {(students.length === 0 || !step1Valid) && nextDisabledReason && (
-                <p className="text-xs text-on-surface-variant text-right">
-                  {nextDisabledReason}
-                </p>
+                <p className="text-xs text-on-surface-variant text-right">{nextDisabledReason}</p>
               )}
             </>
           )}
@@ -266,15 +249,14 @@ export default function PaymentModal({
                 </label>
                 <select
                   value={newPayment.payment_method}
-                  onChange={(e) =>
-                    onPaymentChange({ payment_method: e.target.value })
-                  }
+                  onChange={(e) => onPaymentChange({ payment_method: e.target.value })}
                   className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm"
                 >
                   <option value="cash">Cash</option>
                   <option value="mobile_money">Mobile Money</option>
                   <option value="bank">Bank Transfer</option>
                   <option value="installment">Installment</option>
+                  <option value="in_kind">In Kind (Goods/Services)</option>
                 </select>
               </div>
               <div>
@@ -284,13 +266,27 @@ export default function PaymentModal({
                 <input
                   type="text"
                   value={newPayment.payment_reference}
-                  onChange={(e) =>
-                    onPaymentChange({ payment_reference: e.target.value })
-                  }
+                  onChange={(e) => onPaymentChange({ payment_reference: e.target.value })}
                   className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm"
                   placeholder="e.g. Receipt number"
                 />
               </div>
+              {newPayment.payment_method === "in_kind" && (
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">
+                    Description of Goods/Services
+                  </label>
+                  <textarea
+                    value={newPayment.notes}
+                    onChange={(e) => onPaymentChange({ notes: e.target.value })}
+                    className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm min-h-20 resize-y"
+                    placeholder="e.g. 3 bags of maize flour, school uniform supplies"
+                  />
+                  <p className="text-xs text-on-surface-variant mt-1">
+                    Amount (UGX) represents the fair value of the goods or services provided.
+                  </p>
+                </div>
+              )}
               {newPayment.payment_method === "mobile_money" && (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -317,9 +313,7 @@ export default function PaymentModal({
                     <input
                       type="text"
                       value={newPayment.momo_transaction_id}
-                      onChange={(e) =>
-                        onPaymentChange({ momo_transaction_id: e.target.value })
-                      }
+                      onChange={(e) => onPaymentChange({ momo_transaction_id: e.target.value })}
                       onBlur={() => handleBlur("momo_transaction_id")}
                       className={`w-full rounded-xl py-3 px-4 text-sm transition-colors ${errorBorder("momo_transaction_id")}`}
                       placeholder="MoMo transaction ID"
@@ -341,9 +335,7 @@ export default function PaymentModal({
                   <input
                     type="text"
                     value={newPayment.paid_by}
-                    onChange={(e) =>
-                      onPaymentChange({ paid_by: e.target.value })
-                    }
+                    onChange={(e) => onPaymentChange({ paid_by: e.target.value })}
                     className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm"
                     placeholder="Name of payer"
                   />
@@ -378,9 +370,7 @@ export default function PaymentModal({
                 </button>
               </div>
               {submitDisabledReason && (
-                <p className="text-xs text-on-surface-variant text-right">
-                  {submitDisabledReason}
-                </p>
+                <p className="text-xs text-on-surface-variant text-right">{submitDisabledReason}</p>
               )}
             </>
           )}

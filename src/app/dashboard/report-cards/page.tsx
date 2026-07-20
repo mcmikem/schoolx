@@ -4,13 +4,7 @@ import { useState, useMemo, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
 import Image from "next/image";
-import {
-  useClasses,
-  useStudents,
-  useSubjects,
-  useFeePayments,
-  useFeeStructure,
-} from "@/lib/hooks";
+import { useClasses, useStudents, useSubjects, useFeePayments, useFeeStructure } from "@/lib/hooks";
 import { useToast } from "@/components/Toast";
 import { DEMO_GRADES, DEMO_SUBJECTS } from "@/lib/demo-data";
 import { logger } from "@/lib/logger";
@@ -24,7 +18,13 @@ import { EmptyState } from "@/components/EmptyState";
 import { APP_NAME } from "@/lib/app-name";
 import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import { calculateSubjectTotal } from "@/lib/grading";
-import { calculateFormativeScore, calculateSummativeScore, getCBCGrade, escapeHtml, generateCBCReportHTML } from "@/lib/cbc-report";
+import {
+  calculateFormativeScore,
+  calculateSummativeScore,
+  getCBCGrade,
+  escapeHtml,
+  generateCBCReportHTML,
+} from "@/lib/cbc-report";
 
 interface StudentReport {
   studentId: string;
@@ -66,11 +66,16 @@ function getGradeLabel(score: number): { grade: string; color: string } {
 
 function getCompetencyLabel(level: string | undefined): { label: string; emoji: string; color: string } {
   switch (level) {
-    case "mastered": return { label: "Mastered", emoji: "⭐⭐⭐", color: "text-green-600" };
-    case "demonstrates": return { label: "Demonstrates", emoji: "⭐⭐", color: "text-blue-600" };
-    case "developing": return { label: "Developing", emoji: "⭐", color: "text-yellow-600" };
-    case "extended": return { label: "Extended", emoji: "🏆", color: "text-purple-600" };
-    default: return { label: "Not Started", emoji: "—", color: "text-gray-400" };
+    case "mastered":
+      return { label: "Mastered", emoji: "⭐⭐⭐", color: "text-green-600" };
+    case "demonstrates":
+      return { label: "Demonstrates", emoji: "⭐⭐", color: "text-blue-600" };
+    case "developing":
+      return { label: "Developing", emoji: "⭐", color: "text-yellow-600" };
+    case "extended":
+      return { label: "Extended", emoji: "🏆", color: "text-purple-600" };
+    default:
+      return { label: "Not Started", emoji: "—", color: "text-gray-400" };
   }
 }
 
@@ -84,8 +89,7 @@ function getDivision(total: number, maxTotal: number): string {
 }
 
 function getAutoComment(position: number): string {
-  if (position >= 1 && position <= 5)
-    return "Excellent performance. Keep it up!";
+  if (position >= 1 && position <= 5) return "Excellent performance. Keep it up!";
   if (position >= 6 && position <= 15) return "Good work. Strive for better.";
   return "Needs more effort. Work harder.";
 }
@@ -105,9 +109,7 @@ export default function ReportCardsPage() {
   const [generated, setGenerated] = useState(false);
   const [hideWithFees, setHideWithFees] = useState(false);
   const [reports, setReports] = useState<StudentReport[]>([]);
-  const [comments, setComments] = useState<
-    Record<string, { classTeacher: string; hm: string }>
-  >({});
+  const [comments, setComments] = useState<Record<string, { classTeacher: string; hm: string }>>({});
   const [sendingSms, setSendingSms] = useState(false);
   const [hasMissingMarks, setHasMissingMarks] = useState(false);
   const [generatingAll, setGeneratingAll] = useState(false);
@@ -117,7 +119,7 @@ export default function ReportCardsPage() {
     currentClass: string;
     studentsProcessed: number;
     errors: number;
-  }>({ current: 0, total: 0, currentClass: '', studentsProcessed: 0, errors: 0 });
+  }>({ current: 0, total: 0, currentClass: "", studentsProcessed: 0, errors: 0 });
   const [searchQuery, setSearchQuery] = useState("");
 
   const filteredStudents = useMemo(() => {
@@ -131,20 +133,22 @@ export default function ReportCardsPage() {
   }, [classStudents, selectedClass, searchQuery]);
 
   const selectedClassObj = classes.find((c) => c.id === selectedClass);
-  const selectedClassName = selectedClassObj ? `${selectedClassObj.name}${selectedClassObj.stream ? ` ${selectedClassObj.stream}` : ''}` : "";
+  const selectedClassName = selectedClassObj
+    ? `${selectedClassObj.name}${selectedClassObj.stream ? ` ${selectedClassObj.stream}` : ""}`
+    : "";
 
   const totalFeePerStudent = useMemo(() => {
     return feeStructure.reduce((sum, f) => sum + Number(f.amount || 0), 0);
   }, [feeStructure]);
 
-  const getStudentFeeBalance = useCallback((studentId: string): number => {
-    const studentPayments = payments.filter((p) => p.student_id === studentId);
-    const paid = studentPayments.reduce(
-      (sum, p) => sum + Number(p.amount_paid || 0),
-      0,
-    );
-    return Math.max(0, totalFeePerStudent - paid);
-  }, [payments, totalFeePerStudent]);
+  const getStudentFeeBalance = useCallback(
+    (studentId: string): number => {
+      const studentPayments = payments.filter((p) => p.student_id === studentId);
+      const paid = studentPayments.reduce((sum, p) => sum + Number(p.amount_paid || 0), 0);
+      return Math.max(0, totalFeePerStudent - paid);
+    },
+    [payments, totalFeePerStudent],
+  );
 
   const displayedReports = useMemo(() => {
     if (!hideWithFees) return reports;
@@ -153,15 +157,15 @@ export default function ReportCardsPage() {
 
   const stats = useMemo(() => {
     if (reports.length === 0) return { avgTotal: 0, div1: 0, withFees: 0 };
-    
+
     const avg = reports.reduce((sum, r) => sum + r.average, 0) / reports.length;
-    const div1 = reports.filter(r => r.division === "Division 1").length;
-    const withFees = reports.filter(r => getStudentFeeBalance(r.studentId) > 0).length;
-    
+    const div1 = reports.filter((r) => r.division === "Division 1").length;
+    const withFees = reports.filter((r) => getStudentFeeBalance(r.studentId) > 0).length;
+
     return {
       avgTotal: Math.round(avg * 10) / 10,
       div1,
-      withFees
+      withFees,
     };
   }, [reports, getStudentFeeBalance]);
 
@@ -177,37 +181,41 @@ export default function ReportCardsPage() {
     let competencyData: any[] = [];
 
     if (isDemo) {
-      gradesData = DEMO_GRADES.filter(
-        (grade) => grade.class_id === classId,
-      ).map((grade) => ({
+      gradesData = DEMO_GRADES.filter((grade) => grade.class_id === classId).map((grade) => ({
         ...grade,
-        subjects:
-          DEMO_SUBJECTS.find((subject) => subject.id === grade.subject_id) ||
-          null,
+        subjects: DEMO_SUBJECTS.find((subject) => subject.id === grade.subject_id) || null,
       }));
     } else {
       const { supabase: sb } = await import("@/lib/supabase");
 
-      const gradesResult = await withTimeout(sb
-        .from("grades")
-        .select("*, subjects(id, name)")
-        .eq("class_id", classId)
-        .eq("term", currentTerm)
-        .eq("academic_year", academicYear)
-        .in("assessment_type", ["numerical", "both", null]), 15000, timeoutFallback());
+      const gradesResult = await withTimeout(
+        sb
+          .from("grades")
+          .select("*, subjects(id, name)")
+          .eq("class_id", classId)
+          .eq("term", currentTerm)
+          .eq("academic_year", academicYear)
+          .in("assessment_type", ["numerical", "both", null]),
+        15000,
+        timeoutFallback(),
+      );
 
       if (gradesResult.error) throw gradesResult.error;
       gradesData = gradesResult.data || [];
 
       if (reportFormat !== "numerical") {
-        const compResult = await withTimeout(sb
-          .from("grades")
-          .select("student_id, subject_id, competency_level, competency_notes, subjects(id, name)")
-          .eq("class_id", classId)
-          .eq("term", currentTerm)
-          .eq("academic_year", academicYear)
-          .in("assessment_type", ["competency", "both", null]), 15000, timeoutFallback());
-        
+        const compResult = await withTimeout(
+          sb
+            .from("grades")
+            .select("student_id, subject_id, competency_level, competency_notes, subjects(id, name)")
+            .eq("class_id", classId)
+            .eq("term", currentTerm)
+            .eq("academic_year", academicYear)
+            .in("assessment_type", ["competency", "both", null]),
+          15000,
+          timeoutFallback(),
+        );
+
         if (!compResult.error) {
           competencyData = compResult.data || [];
         }
@@ -228,9 +236,7 @@ export default function ReportCardsPage() {
           name: subjName,
         };
       }
-      studentSubjectScores[g.student_id][g.subject_id].total += Number(
-        g.score || 0,
-      );
+      studentSubjectScores[g.student_id][g.subject_id].total += Number(g.score || 0);
     }
 
     for (const c of competencyData) {
@@ -247,9 +253,7 @@ export default function ReportCardsPage() {
 
     const subjectList =
       Object.values(studentSubjectScores).length > 0
-        ? Object.values(Object.values(studentSubjectScores)[0]).map(
-            (s) => s.name,
-          )
+        ? Object.values(Object.values(studentSubjectScores)[0]).map((s) => s.name)
         : subjects.map((s: any) => s.name);
     const numSubjects = subjectList.length || 1;
 
@@ -288,15 +292,9 @@ export default function ReportCardsPage() {
         );
       });
 
-      const totalMarks = allSubjectDetails.reduce(
-        (sum, s) => sum + s.score,
-        0,
-      );
+      const totalMarks = allSubjectDetails.reduce((sum, s) => sum + s.score, 0);
       const maxMarks = numSubjects * 100;
-      const average =
-        numSubjects > 0
-          ? Math.round((totalMarks / numSubjects) * 10) / 10
-          : 0;
+      const average = numSubjects > 0 ? Math.round((totalMarks / numSubjects) * 10) / 10 : 0;
 
       return {
         studentId: student.id,
@@ -319,15 +317,17 @@ export default function ReportCardsPage() {
 
     reportList.sort((a, b) => b.totalMarks - a.totalMarks);
     reportList.forEach((r, i) => {
-      r.position = i + 1;
+      if (i > 0 && r.totalMarks === reportList[i - 1].totalMarks) {
+        r.position = reportList[i - 1].position;
+      } else {
+        r.position = i + 1;
+      }
       r.division = getDivision(r.totalMarks, r.maxMarks);
       r.classTeacherComment = getAutoComment(r.position);
       r.hmComment = getAutoComment(r.position);
     });
 
-    const missing = reportList.some((r) =>
-      r.subjects.some((s: any) => s.isMissing),
-    );
+    const missing = reportList.some((r) => r.subjects.some((s: any) => s.isMissing));
 
     return { reports: reportList, missingMarks: missing };
   }
@@ -342,9 +342,39 @@ export default function ReportCardsPage() {
     const { supabase: sb } = await import("@/lib/supabase");
 
     const [u1Result, u2Result, eotResult] = await Promise.all([
-      withTimeout(sb.from("grades").select("*, subjects(id, name)").eq("class_id", classId).eq("term", currentTerm).eq("academic_year", academicYear).eq("assessment_type", "u1"), 15000, timeoutFallback()),
-      withTimeout(sb.from("grades").select("*, subjects(id, name)").eq("class_id", classId).eq("term", currentTerm).eq("academic_year", academicYear).eq("assessment_type", "u2"), 15000, timeoutFallback()),
-      withTimeout(sb.from("grades").select("*, subjects(id, name)").eq("class_id", classId).eq("term", currentTerm).eq("academic_year", academicYear).eq("assessment_type", "eot"), 15000, timeoutFallback()),
+      withTimeout(
+        sb
+          .from("grades")
+          .select("*, subjects(id, name)")
+          .eq("class_id", classId)
+          .eq("term", currentTerm)
+          .eq("academic_year", academicYear)
+          .eq("assessment_type", "u1"),
+        15000,
+        timeoutFallback(),
+      ),
+      withTimeout(
+        sb
+          .from("grades")
+          .select("*, subjects(id, name)")
+          .eq("class_id", classId)
+          .eq("term", currentTerm)
+          .eq("academic_year", academicYear)
+          .eq("assessment_type", "u2"),
+        15000,
+        timeoutFallback(),
+      ),
+      withTimeout(
+        sb
+          .from("grades")
+          .select("*, subjects(id, name)")
+          .eq("class_id", classId)
+          .eq("term", currentTerm)
+          .eq("academic_year", academicYear)
+          .eq("assessment_type", "eot"),
+        15000,
+        timeoutFallback(),
+      ),
     ]);
 
     const u1Grades = u1Result.data || [];
@@ -363,12 +393,16 @@ export default function ReportCardsPage() {
         const u2ForSubj = studentU2.filter((g: any) => g.subjects?.name === subjName);
         const eotForSubj = studentEot.filter((g: any) => g.subjects?.name === subjName);
 
-        const u1Avg = u1ForSubj.length > 0
-          ? u1ForSubj.reduce((s: number, g: any) => s + Number(g.identifier_score || g.score || 0), 0) / u1ForSubj.length
-          : 0;
-        const u2Avg = u2ForSubj.length > 0
-          ? u2ForSubj.reduce((s: number, g: any) => s + Number(g.identifier_score || g.score || 0), 0) / u2ForSubj.length
-          : 0;
+        const u1Avg =
+          u1ForSubj.length > 0
+            ? u1ForSubj.reduce((s: number, g: any) => s + Number(g.identifier_score || g.score || 0), 0) /
+              u1ForSubj.length
+            : 0;
+        const u2Avg =
+          u2ForSubj.length > 0
+            ? u2ForSubj.reduce((s: number, g: any) => s + Number(g.identifier_score || g.score || 0), 0) /
+              u2ForSubj.length
+            : 0;
         const avgIdentifier = (u1Avg + u2Avg) / 2;
         const formativeScore = calculateFormativeScore(avgIdentifier);
         const eotScore = eotForSubj.length > 0 ? Number(eotForSubj[0].score || 0) : 0;
@@ -390,7 +424,14 @@ export default function ReportCardsPage() {
           name: subjName,
           score: totalMark,
           grade,
-          gradeColor: grade === "A+" || grade === "A" ? "text-green-600" : grade === "B" || grade === "C" ? "text-blue-600" : grade === "D" || grade === "E" ? "text-amber-600" : "text-red-500",
+          gradeColor:
+            grade === "A+" || grade === "A"
+              ? "text-green-600"
+              : grade === "B" || grade === "C"
+                ? "text-blue-600"
+                : grade === "D" || grade === "E"
+                  ? "text-amber-600"
+                  : "text-red-500",
           isMissing: u1ForSubj.length === 0 && u2ForSubj.length === 0 && eotForSubj.length === 0,
           teacherName: u1ForSubj[0]?.teacher_remark ? "Subject Teacher" : "Subject Teacher",
           teacherRemark: u1ForSubj[0]?.teacher_remark || "",
@@ -430,7 +471,11 @@ export default function ReportCardsPage() {
 
     reportList.sort((a, b) => b.totalMarks - a.totalMarks);
     reportList.forEach((r, i) => {
-      r.position = i + 1;
+      if (i > 0 && r.totalMarks === reportList[i - 1].totalMarks) {
+        r.position = reportList[i - 1].position;
+      } else {
+        r.position = i + 1;
+      }
       r.classTeacherComment = getAutoComment(r.position);
       r.hmComment = getAutoComment(r.position);
     });
@@ -461,10 +506,7 @@ export default function ReportCardsPage() {
         return;
       }
 
-      const initialComments: Record<
-        string,
-        { classTeacher: string; hm: string }
-      > = {};
+      const initialComments: Record<string, { classTeacher: string; hm: string }> = {};
       for (const r of reportList) {
         initialComments[r.studentId] = {
           classTeacher: r.classTeacherComment,
@@ -479,8 +521,7 @@ export default function ReportCardsPage() {
 
       // Save each report card to the report_cards table
       const { supabase: sb } = await import("@/lib/supabase");
-      const best4 = (scores: number[]) =>
-        [...scores].sort((a, b) => b - a).slice(0, 4);
+      const best4 = (scores: number[]) => [...scores].sort((a, b) => b - a).slice(0, 4);
 
       for (const rpt of reportList) {
         const subjectsJson = rpt.subjects.map((s) => ({
@@ -495,13 +536,17 @@ export default function ReportCardsPage() {
         const rptBest4 = best4(rpt.subjects.map((s) => s.score));
         const rptAggregate = rptBest4.reduce((a, b) => a + b, 0);
 
-        const existingResult = await withTimeout(sb
-          .from("report_cards")
-          .select("id")
-          .eq("student_id", rpt.studentId)
-          .eq("academic_year", academicYear)
-          .eq("term", currentTerm)
-          .limit(1), 10000, timeoutFallback());
+        const existingResult = await withTimeout(
+          sb
+            .from("report_cards")
+            .select("id")
+            .eq("student_id", rpt.studentId)
+            .eq("academic_year", academicYear)
+            .eq("term", currentTerm)
+            .limit(1),
+          10000,
+          timeoutFallback(),
+        );
         const existingCard = existingResult.data;
 
         const cardPayload = {
@@ -542,7 +587,7 @@ export default function ReportCardsPage() {
     setGenerationProgress({
       current: 0,
       total: classes.length,
-      currentClass: '',
+      currentClass: "",
       studentsProcessed: 0,
       errors: 0,
     });
@@ -553,37 +598,33 @@ export default function ReportCardsPage() {
 
     for (let i = 0; i < classes.length; i++) {
       const c = classes[i];
-      const className = `${c.name}${c.stream ? ` ${c.stream}` : ''}`;
+      const className = `${c.name}${c.stream ? ` ${c.stream}` : ""}`;
 
-      setGenerationProgress(prev => ({
+      setGenerationProgress((prev) => ({
         ...prev,
         current: i + 1,
         currentClass: className,
       }));
 
-      const studentsForClass = classStudents.filter(s => s.class_id === c.id);
+      const studentsForClass = classStudents.filter((s) => s.class_id === c.id);
 
       if (studentsForClass.length === 0) {
         continue;
       }
 
       try {
-        const { reports: classReports } = await generateReportsForClass(
-          c.id,
-          className,
-          studentsForClass,
-        );
+        const { reports: classReports } = await generateReportsForClass(c.id, className, studentsForClass);
 
         allReports.push(...classReports);
         totalStudents += classReports.length;
-        setGenerationProgress(prev => ({
+        setGenerationProgress((prev) => ({
           ...prev,
           studentsProcessed: totalStudents,
         }));
       } catch (err) {
         logger.error(`Error generating reports for class ${className}:`, err);
         totalErrors++;
-        setGenerationProgress(prev => ({
+        setGenerationProgress((prev) => ({
           ...prev,
           errors: totalErrors,
         }));
@@ -601,9 +642,7 @@ export default function ReportCardsPage() {
         };
       }
 
-      const hasMissing = allReports.some(r =>
-        r.subjects.some((s: any) => s.isMissing),
-      );
+      const hasMissing = allReports.some((r) => r.subjects.some((s: any) => s.isMissing));
 
       setHasMissingMarks(hasMissing);
       setReports(allReports);
@@ -615,11 +654,7 @@ export default function ReportCardsPage() {
     }
   };
 
-  const handleCommentChange = (
-    studentId: string,
-    field: "classTeacher" | "hm",
-    value: string,
-  ) => {
+  const handleCommentChange = (studentId: string, field: "classTeacher" | "hm", value: string) => {
     setComments((prev) => ({
       ...prev,
       [studentId]: { ...prev[studentId], [field]: value },
@@ -658,13 +693,18 @@ export default function ReportCardsPage() {
 
     const subjectRows = report.subjects
       .map((s) => {
-        const compCell = reportFormat !== "numerical" && s.competencyLevel
-          ? `<td style="padding:6px 10px;border:1px solid #ddd;text-align:center">${s.competencyLevel === "mastered" ? "⭐⭐⭐" : s.competencyLevel === "demonstrates" ? "⭐⭐" : s.competencyLevel === "developing" ? "⭐" : "—"}</td>`
-          : "";
+        const compCell =
+          reportFormat !== "numerical" && s.competencyLevel
+            ? `<td style="padding:6px 10px;border:1px solid #ddd;text-align:center">${s.competencyLevel === "mastered" ? "⭐⭐⭐" : s.competencyLevel === "demonstrates" ? "⭐⭐" : s.competencyLevel === "developing" ? "⭐" : "—"}</td>`
+            : "";
         return `<tr>
         <td style="padding:6px 10px;border:1px solid #ddd">${escapeHtml(s.name)}</td>
-        ${reportFormat !== "competency" ? `<td style="padding:6px 10px;border:1px solid #ddd;text-align:center">${s.score}</td>
-        <td style="padding:6px 10px;border:1px solid #ddd;text-align:center;font-weight:bold">${escapeHtml(s.grade)}</td>` : ""}
+        ${
+          reportFormat !== "competency"
+            ? `<td style="padding:6px 10px;border:1px solid #ddd;text-align:center">${s.score}</td>
+        <td style="padding:6px 10px;border:1px solid #ddd;text-align:center;font-weight:bold">${escapeHtml(s.grade)}</td>`
+            : ""
+        }
         ${compCell}
       </tr>`;
       })
@@ -722,7 +762,7 @@ export default function ReportCardsPage() {
       </div>
       <table>
         <thead>
-          <tr><th>Subject</th>${reportFormat !== "competency" ? "<th style=\"text-align:center\">Score</th><th style=\"text-align:center\">Grade</th>" : ""}${reportFormat !== "numerical" ? "<th style=\"text-align:center\">Competency</th>" : ""}</tr>
+          <tr><th>Subject</th>${reportFormat !== "competency" ? '<th style="text-align:center">Score</th><th style="text-align:center">Grade</th>' : ""}${reportFormat !== "numerical" ? '<th style="text-align:center">Competency</th>' : ""}</tr>
         </thead>
         <tbody>${subjectRows}</tbody>
       </table>
@@ -748,10 +788,10 @@ export default function ReportCardsPage() {
 
     printWindow.document.open();
     printWindow.document.title = `Report Card - ${escapeHtml(report.name)}`;
-    document.querySelectorAll('link[rel="stylesheet"], style').forEach(el => {
+    document.querySelectorAll('link[rel="stylesheet"], style').forEach((el) => {
       printWindow.document.head.appendChild(el.cloneNode(true));
     });
-    printWindow.document.head.insertAdjacentHTML('beforeend', `<style>${printCardStyles}</style>`);
+    printWindow.document.head.insertAdjacentHTML("beforeend", `<style>${printCardStyles}</style>`);
     printWindow.document.body.innerHTML = printCardBody;
     printWindow.document.close();
     printWindow.focus();
@@ -794,7 +834,9 @@ export default function ReportCardsPage() {
         teacherName: (s as any).teacherName || "Subject Teacher",
         teacherRemark: (s as any).teacherRemark || "",
         teacherInitials: (s as any).teacherInitials || "",
-        learningOutcomes: (s as any).learningOutcomes || [{ description: "General competency", u1Score: (s as any).u1Average || 0, u2Score: (s as any).u2Average || 0 }],
+        learningOutcomes: (s as any).learningOutcomes || [
+          { description: "General competency", u1Score: (s as any).u1Average || 0, u2Score: (s as any).u2Average || 0 },
+        ],
         u1Average: (s as any).u1Average || 0,
         u2Average: (s as any).u2Average || 0,
         averageIdentifier: (s as any).averageIdentifier || 0,
@@ -814,9 +856,27 @@ export default function ReportCardsPage() {
       },
       gradingScheme: "See below",
       identifierRanges: [
-        { level: 3, label: "Outstanding", descriptor: "Most or all LO's achieved for overall achievement", min: 2.50, max: 3.00 },
-        { level: 2, label: "Moderate", descriptor: "Many LO's achieved, enough for overall achievement", min: 1.50, max: 2.49 },
-        { level: 1, label: "Basic", descriptor: "Few LO's achieved, but not sufficient for overall achievement", min: 0.90, max: 1.49 },
+        {
+          level: 3,
+          label: "Outstanding",
+          descriptor: "Most or all LO's achieved for overall achievement",
+          min: 2.5,
+          max: 3.0,
+        },
+        {
+          level: 2,
+          label: "Moderate",
+          descriptor: "Many LO's achieved, enough for overall achievement",
+          min: 1.5,
+          max: 2.49,
+        },
+        {
+          level: 1,
+          label: "Basic",
+          descriptor: "Few LO's achieved, but not sufficient for overall achievement",
+          min: 0.9,
+          max: 1.49,
+        },
       ],
       classTeacher: { name: classTeacherName, comment: studentComment.classTeacher },
       headTeacher: { name: (school as any)?.principal_name || "Headteacher", comment: studentComment.hm },
@@ -842,7 +902,7 @@ export default function ReportCardsPage() {
       toast.info("Print individual reports using the print button per student");
       return;
     }
-    
+
     const schoolName = school?.name || "School Name";
     const schoolColor = school?.primary_color || "#002045";
     const logoUrl = school?.logo_url || "";
@@ -863,7 +923,7 @@ export default function ReportCardsPage() {
         classTeacher: "",
         hm: "",
       };
-      
+
       const subjectRows = report.subjects
         .map(
           (s) =>
@@ -886,7 +946,7 @@ export default function ReportCardsPage() {
         : "";
 
       allHtml += `
-        <div class="report-page ${index > 0 ? 'page-break' : ''}">
+        <div class="report-page ${index > 0 ? "page-break" : ""}">
           <div class="header">
             ${logoUrl ? `<img src="${escapeHtml(logoUrl)}" class="logo" alt="${escapeHtml(schoolName)}">` : ""}
             <div class="school-name text-nowrap">${escapeHtml(schoolName)}</div>
@@ -962,10 +1022,10 @@ export default function ReportCardsPage() {
 
     printWindow.document.open();
     printWindow.document.title = `Mass Report Printing - ${selectedClassName}`;
-    document.querySelectorAll('link[rel="stylesheet"], style').forEach(el => {
+    document.querySelectorAll('link[rel="stylesheet"], style').forEach((el) => {
       printWindow.document.head.appendChild(el.cloneNode(true));
     });
-    printWindow.document.head.insertAdjacentHTML('beforeend', `<style>${massPrintStyles}</style>`);
+    printWindow.document.head.insertAdjacentHTML("beforeend", `<style>${massPrintStyles}</style>`);
     printWindow.document.body.innerHTML = allHtml;
     printWindow.document.close();
     printWindow.focus();
@@ -973,7 +1033,7 @@ export default function ReportCardsPage() {
   };
 
   const handleSendSms = async (report: StudentReport) => {
-    const student = classStudents.find(s => s.id === report.studentId);
+    const student = classStudents.find((s) => s.id === report.studentId);
     if (!student || !student.parent_phone) {
       toast.error(`Phone number missing for ${report.name}`);
       return;
@@ -983,14 +1043,18 @@ export default function ReportCardsPage() {
     try {
       const { supabase: sb } = await import("@/lib/supabase");
       const message = `SkoolMate Alert: ${report.name} (Term ${currentTerm} Results). Avg: ${report.average}%, Pos: ${report.position}, Div: ${report.division}. Balance: UGX ${report.feeBalance.toLocaleString()}.`;
-      
-      const msgResult = await withTimeout(sb.from("messages").insert({
-        school_id: school?.id,
-        recipient_phone: student.parent_phone,
-        message,
-        status: "sent",
-        type: "report_card"
-      }), 15000, timeoutFallback());
+
+      const msgResult = await withTimeout(
+        sb.from("messages").insert({
+          school_id: school?.id,
+          recipient_phone: student.parent_phone,
+          message,
+          status: "sent",
+          type: "report_card",
+        }),
+        15000,
+        timeoutFallback(),
+      );
       const error = msgResult?.error;
       if (error) throw error;
       toast.success(`Result summary sent to ${student.parent_phone}`);
@@ -1005,7 +1069,11 @@ export default function ReportCardsPage() {
   const actions = (
     <div className="flex gap-2">
       {generated && reports.length > 0 && (
-        <Button variant="ghost" onClick={handlePrintAll} className="border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100">
+        <Button
+          variant="ghost"
+          onClick={handlePrintAll}
+          className="border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100"
+        >
           <MaterialIcon icon="print_connect" style={{ fontSize: "18px" }} />
           Print All Class ({displayedReports.length})
         </Button>
@@ -1030,416 +1098,361 @@ export default function ReportCardsPage() {
 
   return (
     <PageErrorBoundary>
-    <div className="p-4 sm:p-6 lg:p-8">
-      <PageHeader
-        title="Report Cards"
-        subtitle="Generate and manage student report cards"
-        actions={actions}
-      />
+      <div className="p-4 sm:p-6 lg:p-8">
+        <PageHeader title="Report Cards" subtitle="Generate and manage student report cards" actions={actions} />
 
-      {generatingAll && (
-        <Card className="mb-5">
-          <CardBody>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <MaterialIcon icon="progress_activity" className="animate-spin text-emerald-600" />
-                  <span className="font-semibold text-[var(--on-surface)]">Generating All Classes...</span>
-                </div>
-                <span className="text-sm text-[var(--t3)]">
-                  {generationProgress.current} of {generationProgress.total}
-                </span>
-              </div>
-
-              <div className="w-full bg-gray-200 rounded-full h-3">
-                <div
-                  className="bg-emerald-500 h-3 rounded-full transition-all duration-300"
-                  style={{
-                    width: `${generationProgress.total > 0 ? (generationProgress.current / generationProgress.total) * 100 : 0}%`,
-                  }}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
-                <div>
-                  <span className="text-[var(--t3)]">Current Class:</span>{' '}
-                  <span className="font-semibold">{generationProgress.currentClass || 'Starting...'}</span>
-                </div>
-                <div>
-                  <span className="text-[var(--t3)]">Students Processed:</span>{' '}
-                  <span className="font-semibold">{generationProgress.studentsProcessed}</span>
-                </div>
-                <div>
-                  <span className="text-[var(--t3)]">Errors:</span>{' '}
-                  <span className={`font-semibold ${generationProgress.errors > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                    {generationProgress.errors}
+        {generatingAll && (
+          <Card className="mb-5">
+            <CardBody>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <MaterialIcon icon="progress_activity" className="animate-spin text-emerald-600" />
+                    <span className="font-semibold text-[var(--on-surface)]">Generating All Classes...</span>
+                  </div>
+                  <span className="text-sm text-[var(--t3)]">
+                    {generationProgress.current} of {generationProgress.total}
                   </span>
                 </div>
-              </div>
-            </div>
-          </CardBody>
-        </Card>
-      )}
 
-      <Card className="mb-5">
-        <CardBody>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label
-                htmlFor="report-cards-class"
-                className="block text-sm font-medium mb-2 text-[var(--on-surface)]"
-              >
-                Select Class
-              </label>
-              {classes.length === 0 ? (
-                <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm text-amber-800">
-                  No classes available
+                <div className="w-full bg-gray-200 rounded-full h-3">
+                  <div
+                    className="bg-emerald-500 h-3 rounded-full transition-all duration-300"
+                    style={{
+                      width: `${generationProgress.total > 0 ? (generationProgress.current / generationProgress.total) * 100 : 0}%`,
+                    }}
+                  />
                 </div>
-              ) : (
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+                  <div>
+                    <span className="text-[var(--t3)]">Current Class:</span>{" "}
+                    <span className="font-semibold">{generationProgress.currentClass || "Starting..."}</span>
+                  </div>
+                  <div>
+                    <span className="text-[var(--t3)]">Students Processed:</span>{" "}
+                    <span className="font-semibold">{generationProgress.studentsProcessed}</span>
+                  </div>
+                  <div>
+                    <span className="text-[var(--t3)]">Errors:</span>{" "}
+                    <span
+                      className={`font-semibold ${generationProgress.errors > 0 ? "text-red-600" : "text-green-600"}`}
+                    >
+                      {generationProgress.errors}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </CardBody>
+          </Card>
+        )}
+
+        <Card className="mb-5">
+          <CardBody>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label htmlFor="report-cards-class" className="block text-sm font-medium mb-2 text-[var(--on-surface)]">
+                  Select Class
+                </label>
+                {classes.length === 0 ? (
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm text-amber-800">
+                    No classes available
+                  </div>
+                ) : (
+                  <select
+                    id="report-cards-class"
+                    value={selectedClass}
+                    onChange={(e) => {
+                      setSelectedClass(e.target.value);
+                      setGenerated(false);
+                      setReports([]);
+                    }}
+                    className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
+                  >
+                    <option value="">Select Class</option>
+                    {classes.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                        {c.stream ? ` ${c.stream}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2 text-[var(--on-surface)]">Term</label>
+                <div className="px-4 py-3 rounded-xl bg-[var(--surface-container)] text-[var(--primary)] font-semibold">
+                  Term {currentTerm}, {academicYear}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2 text-[var(--on-surface)]">Students</label>
+                <div className="px-4 py-3 rounded-xl bg-[var(--surface-container)] text-[var(--primary)] font-semibold">
+                  {filteredStudents.length} students
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2 text-[var(--on-surface)]">Report Format</label>
                 <select
-                  id="report-cards-class"
-                  value={selectedClass}
-                  onChange={(e) => {
-                    setSelectedClass(e.target.value);
-                    setGenerated(false);
-                    setReports([]);
-                  }}
+                  value={reportFormat}
+                  onChange={(e) => setReportFormat(e.target.value as "numerical" | "competency" | "both" | "cbc")}
                   className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
                 >
-                  <option value="">Select Class</option>
-                  {classes.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}{c.stream ? ` ${c.stream}` : ''}
-                    </option>
-                  ))}
+                  <option value="numerical">Numerical (Marks)</option>
+                  <option value="competency">CBC Competency</option>
+                  <option value="both">Combined (Marks + Competency)</option>
+                  <option value="cbc">CBC/NCDC Report (A4)</option>
                 </select>
-              )}
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2 text-[var(--on-surface)]">
-                Term
-              </label>
-              <div className="px-4 py-3 rounded-xl bg-[var(--surface-container)] text-[var(--primary)] font-semibold">
-                Term {currentTerm}, {academicYear}
               </div>
             </div>
+          </CardBody>
+        </Card>
+
+        {generated && hasMissingMarks && (
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-5 flex items-center gap-3">
+            <MaterialIcon icon="warning" className="text-amber-600" style={{ color: "#d97706" }} />
             <div>
-              <label className="block text-sm font-medium mb-2 text-[var(--on-surface)]">
-                Students
-              </label>
-              <div className="px-4 py-3 rounded-xl bg-[var(--surface-container)] text-[var(--primary)] font-semibold">
-                {filteredStudents.length} students
+              <div className="font-semibold text-amber-800">Incomplete Data Detected</div>
+              <div className="text-sm text-amber-700">
+                Some students have missing marks for certain subjects. These are marked as "M.M". Printing these report
+                cards may be misleading.
               </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2 text-[var(--on-surface)]">
-                Report Format
-              </label>
-              <select
-                value={reportFormat}
-                onChange={(e) => setReportFormat(e.target.value as "numerical" | "competency" | "both" | "cbc")}
-                className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
-              >
-                <option value="numerical">Numerical (Marks)</option>
-                <option value="competency">CBC Competency</option>
-                <option value="both">Combined (Marks + Competency)</option>
-                <option value="cbc">CBC/NCDC Report (A4)</option>
-              </select>
             </div>
           </div>
-        </CardBody>
-      </Card>
+        )}
 
-      {generated && hasMissingMarks && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-5 flex items-center gap-3">
-          <MaterialIcon icon="warning" className="text-amber-600" style={{ color: '#d97706' }} />
-          <div>
-            <div className="font-semibold text-amber-800">Incomplete Data Detected</div>
-            <div className="text-sm text-amber-700">Some students have missing marks for certain subjects. These are marked as "M.M". Printing these report cards may be misleading.</div>
+        {generated && (
+          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-5">
+            <Card>
+              <CardBody className="text-center">
+                <div className="text-xs font-semibold text-[var(--t3)] mb-1">Class Average</div>
+                <div className="text-2xl font-bold text-[var(--primary)]">{stats.avgTotal}%</div>
+              </CardBody>
+            </Card>
+            <Card>
+              <CardBody className="text-center">
+                <div className="text-xs font-semibold text-[var(--t3)] mb-1">Division 1</div>
+                <div className="text-2xl font-bold text-green-600">{stats.div1} students</div>
+              </CardBody>
+            </Card>
+            <Card>
+              <CardBody className="text-center">
+                <div className="text-xs font-semibold text-[var(--t3)] mb-1">Fee Defaulters</div>
+                <div className="text-2xl font-bold text-red-600">{stats.withFees} students</div>
+              </CardBody>
+            </Card>
+            <Card>
+              <CardBody className="text-center">
+                <div className="text-xs font-semibold text-[var(--t3)] mb-1">Total Students</div>
+                <div className="text-2xl font-bold text-[var(--on-surface)]">{reports.length}</div>
+              </CardBody>
+            </Card>
           </div>
-        </div>
-      )}
+        )}
 
-      {generated && (
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-5">
-          <Card>
-            <CardBody className="text-center">
-              <div className="text-xs font-semibold text-[var(--t3)] mb-1">
-                Class Average
-              </div>
-              <div className="text-2xl font-bold text-[var(--primary)]">
-                {stats.avgTotal}%
-              </div>
-            </CardBody>
-          </Card>
-          <Card>
-            <CardBody className="text-center">
-              <div className="text-xs font-semibold text-[var(--t3)] mb-1">
-                Division 1
-              </div>
-              <div className="text-2xl font-bold text-green-600">
-                {stats.div1} students
-              </div>
-            </CardBody>
-          </Card>
-          <Card>
-            <CardBody className="text-center">
-              <div className="text-xs font-semibold text-[var(--t3)] mb-1">
-                Fee Defaulters
-              </div>
-              <div className="text-2xl font-bold text-red-600">
-                {stats.withFees} students
-              </div>
-            </CardBody>
-          </Card>
-          <Card>
-            <CardBody className="text-center">
-              <div className="text-xs font-semibold text-[var(--t3)] mb-1">
-                Total Students
-              </div>
-              <div className="text-2xl font-bold text-[var(--on-surface)]">
-                {reports.length}
-              </div>
-            </CardBody>
-          </Card>
-        </div>
-      )}
+        {generated && (
+          <div className="flex items-center gap-3 mb-5">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={hideWithFees}
+                onChange={(e) => setHideWithFees(e.target.checked)}
+                className="w-4 h-4"
+              />
+              <span className="text-sm font-semibold text-[var(--on-surface)]">
+                Hide students with outstanding fees
+              </span>
+            </label>
+          </div>
+        )}
 
-      {generated && (
-        <div className="flex items-center gap-3 mb-5">
-          <label className="flex items-center gap-2 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={hideWithFees}
-              onChange={(e) => setHideWithFees(e.target.checked)}
-              className="w-4 h-4"
-            />
-            <span className="text-sm font-semibold text-[var(--on-surface)]">
-              Hide students with outstanding fees
-            </span>
-          </label>
-        </div>
-      )}
-
-      {generated && displayedReports.length > 0 && (
-        <Card>
-          <CardBody>
-            <input
-              type="text"
-              placeholder="Search by student name..."
-              className="w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm mb-4"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="bg-[var(--surface-container)] text-left">
-                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-semibold text-[var(--t1)]">
-                      Student
-                    </th>
-                    <th className="px-4 py-4 text-xs uppercase tracking-widest font-semibold text-[var(--t1)] text-center">
-                      Total
-                    </th>
-                    <th className="px-4 py-4 text-xs uppercase tracking-widest font-semibold text-[var(--t1)] text-center">
-                      Average
-                    </th>
-                    <th className="px-4 py-4 text-xs uppercase tracking-widest font-semibold text-[var(--t1)] text-center">
-                      Position
-                    </th>
-                    <th className="px-4 py-4 text-xs uppercase tracking-widest font-semibold text-[var(--t1)] text-center">
-                      Division
-                    </th>
-                    <th className="px-4 py-4 text-xs uppercase tracking-widest font-semibold text-[var(--t1)]">
-                      Fees
-                    </th>
-                    <th className="px-4 py-4 text-xs uppercase tracking-widest font-semibold text-[var(--t1)]">
-                      Comments
-                    </th>
-                    <th className="px-6 py-4 text-xs uppercase tracking-widest font-semibold text-[var(--t1)] text-right">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[var(--border)]">
-                  {displayedReports.map((report) => {
-                    const studentComment = comments[report.studentId] || {
-                      classTeacher: "",
-                      hm: "",
-                    };
-                    return (
-                      <tr
-                        key={report.studentId}
-                        className="hover:bg-[var(--surface-container)] transition-colors"
-                      >
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full">
-                              {report.photoUrl ? (
-                                <Image
-                                  src={report.photoUrl}
-                                  alt={report.name}
-                                  width={36}
-                                  height={36}
-                                  unoptimized
-                                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+        {generated && displayedReports.length > 0 && (
+          <Card>
+            <CardBody>
+              <input
+                type="text"
+                placeholder="Search by student name..."
+                className="w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm mb-4"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr className="bg-[var(--surface-container)] text-left">
+                      <th className="px-6 py-4 text-xs uppercase tracking-widest font-semibold text-[var(--t1)]">
+                        Student
+                      </th>
+                      <th className="px-4 py-4 text-xs uppercase tracking-widest font-semibold text-[var(--t1)] text-center">
+                        Total
+                      </th>
+                      <th className="px-4 py-4 text-xs uppercase tracking-widest font-semibold text-[var(--t1)] text-center">
+                        Average
+                      </th>
+                      <th className="px-4 py-4 text-xs uppercase tracking-widest font-semibold text-[var(--t1)] text-center">
+                        Position
+                      </th>
+                      <th className="px-4 py-4 text-xs uppercase tracking-widest font-semibold text-[var(--t1)] text-center">
+                        Division
+                      </th>
+                      <th className="px-4 py-4 text-xs uppercase tracking-widest font-semibold text-[var(--t1)]">
+                        Fees
+                      </th>
+                      <th className="px-4 py-4 text-xs uppercase tracking-widest font-semibold text-[var(--t1)]">
+                        Comments
+                      </th>
+                      <th className="px-6 py-4 text-xs uppercase tracking-widest font-semibold text-[var(--t1)] text-right">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--border)]">
+                    {displayedReports.map((report) => {
+                      const studentComment = comments[report.studentId] || {
+                        classTeacher: "",
+                        hm: "",
+                      };
+                      return (
+                        <tr key={report.studentId} className="hover:bg-[var(--surface-container)] transition-colors">
+                          <td className="px-6 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full">
+                                {report.photoUrl ? (
+                                  <Image
+                                    src={report.photoUrl}
+                                    alt={report.name}
+                                    width={36}
+                                    height={36}
+                                    unoptimized
+                                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                  />
+                                ) : (
+                                  <PersonInitials name={report.name} size={36} />
+                                )}
+                              </div>
+                              <div>
+                                <div className="font-semibold text-sm text-[var(--primary)]">{report.name}</div>
+                                <div className="text-xs text-[var(--t3)] font-mono">{report.studentNumber}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 py-4 text-center">
+                            <span className="font-bold text-lg text-[var(--primary)]">{report.totalMarks}</span>
+                            <span className="text-xs text-[var(--t3)]">/{report.maxMarks}</span>
+                          </td>
+                          <td className="px-4 py-4 text-center font-semibold">{report.average}%</td>
+                          <td className="px-4 py-4 text-center">
+                            <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[var(--primary)] text-white font-bold text-sm">
+                              {report.position}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4 text-center">
+                            <span
+                              className={`px-3 py-1 rounded-full text-xs font-semibold ${report.division === "Division 1" ? "bg-green-100 text-green-700" : report.division === "Division 2" ? "bg-blue-100 text-blue-700" : report.division === "Division 3" ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-700"}`}
+                            >
+                              {report.division}
+                            </span>
+                          </td>
+                          <td className="px-4 py-4">
+                            {report.feeBalance > 0 ? (
+                              <span className="text-xs font-semibold text-red-600 bg-red-50 px-2 py-1 rounded-full">
+                                {report.feeBalance.toLocaleString()} UGX
+                              </span>
+                            ) : (
+                              <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-full">
+                                Clear
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-4 py-4">
+                            <div className="space-y-1.5 max-w-[260px]">
+                              <div>
+                                <label className="text-[10px] font-semibold uppercase text-[var(--t3)]">
+                                  Class Teacher
+                                </label>
+                                <input
+                                  type="text"
+                                  value={studentComment.classTeacher}
+                                  onChange={(e) =>
+                                    handleCommentChange(report.studentId, "classTeacher", e.target.value)
+                                  }
+                                  className="w-full rounded-[14px] border border-[#dce4ee] bg-white px-3 py-2 text-sm shadow-sm outline-none transition focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/12"
+                                  placeholder="Class teacher comment..."
                                 />
-                              ) : (
-                                <PersonInitials name={report.name} size={36} />
-                              )}
-                            </div>
-                            <div>
-                              <div className="font-semibold text-sm text-[var(--primary)]">
-                                {report.name}
                               </div>
-                              <div className="text-xs text-[var(--t3)] font-mono">
-                                {report.studentNumber}
+                              <div>
+                                <label className="text-[10px] font-semibold uppercase text-[var(--t3)]">
+                                  Headteacher
+                                </label>
+                                <input
+                                  type="text"
+                                  value={studentComment.hm}
+                                  onChange={(e) => handleCommentChange(report.studentId, "hm", e.target.value)}
+                                  className="w-full rounded-[14px] border border-[#dce4ee] bg-white px-3 py-2 text-sm shadow-sm outline-none transition focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/12"
+                                  placeholder="HM comment..."
+                                />
                               </div>
+                              <button
+                                onClick={() => handleSuggestComment(report.studentId, report.position)}
+                                className="text-[10px] font-semibold text-[var(--primary)] hover:underline"
+                              >
+                                Auto-suggest
+                              </button>
                             </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-4 text-center">
-                          <span className="font-bold text-lg text-[var(--primary)]">
-                            {report.totalMarks}
-                          </span>
-                          <span className="text-xs text-[var(--t3)]">
-                            /{report.maxMarks}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4 text-center font-semibold">
-                          {report.average}%
-                        </td>
-                        <td className="px-4 py-4 text-center">
-                          <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[var(--primary)] text-white font-bold text-sm">
-                            {report.position}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4 text-center">
-                          <span
-                            className={`px-3 py-1 rounded-full text-xs font-semibold ${report.division === "Division 1" ? "bg-green-100 text-green-700" : report.division === "Division 2" ? "bg-blue-100 text-blue-700" : report.division === "Division 3" ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-700"}`}
-                          >
-                            {report.division}
-                          </span>
-                        </td>
-                        <td className="px-4 py-4">
-                          {report.feeBalance > 0 ? (
-                            <span className="text-xs font-semibold text-red-600 bg-red-50 px-2 py-1 rounded-full">
-                              {report.feeBalance.toLocaleString()} UGX
-                            </span>
-                          ) : (
-                            <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-full">
-                              Clear
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-4 py-4">
-                          <div className="space-y-1.5 max-w-[260px]">
-                            <div>
-                              <label className="text-[10px] font-semibold uppercase text-[var(--t3)]">
-                                Class Teacher
-                              </label>
-                              <input
-                                type="text"
-                                value={studentComment.classTeacher}
-                                onChange={(e) =>
-                                  handleCommentChange(
-                                    report.studentId,
-                                    "classTeacher",
-                                    e.target.value,
-                                  )
-                                }
-                                className="w-full rounded-[14px] border border-[#dce4ee] bg-white px-3 py-2 text-sm shadow-sm outline-none transition focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/12"
-                                placeholder="Class teacher comment..."
-                              />
+                          </td>
+                          <td className="px-6 py-4">
+                            <div className="flex gap-1.5 justify-end">
+                              <button
+                                onClick={() => handlePrintReport(report)}
+                                title="Print Report Card"
+                                className="p-2 rounded-lg hover:bg-[var(--surface-container)] text-[var(--t3)]"
+                              >
+                                <MaterialIcon className="text-xl">print</MaterialIcon>
+                              </button>
+                              <button
+                                onClick={() => handleSendSms(report)}
+                                disabled={sendingSms}
+                                title="Send SMS"
+                                className="p-2 rounded-lg hover:bg-[var(--surface-container)] text-[var(--t3)] disabled:opacity-40"
+                              >
+                                <MaterialIcon className="text-xl">sms</MaterialIcon>
+                              </button>
                             </div>
-                            <div>
-                              <label className="text-[10px] font-semibold uppercase text-[var(--t3)]">
-                                Headteacher
-                              </label>
-                              <input
-                                type="text"
-                                value={studentComment.hm}
-                                onChange={(e) =>
-                                  handleCommentChange(
-                                    report.studentId,
-                                    "hm",
-                                    e.target.value,
-                                  )
-                                }
-                                className="w-full rounded-[14px] border border-[#dce4ee] bg-white px-3 py-2 text-sm shadow-sm outline-none transition focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/12"
-                                placeholder="HM comment..."
-                              />
-                            </div>
-                            <button
-                              onClick={() =>
-                                handleSuggestComment(
-                                  report.studentId,
-                                  report.position,
-                                )
-                              }
-                              className="text-[10px] font-semibold text-[var(--primary)] hover:underline"
-                            >
-                              Auto-suggest
-                            </button>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div className="flex gap-1.5 justify-end">
-                            <button
-                              onClick={() => handlePrintReport(report)}
-                              title="Print Report Card"
-                              className="p-2 rounded-lg hover:bg-[var(--surface-container)] text-[var(--t3)]"
-                            >
-                              <MaterialIcon className="text-xl">
-                                print
-                              </MaterialIcon>
-                            </button>
-                            <button
-                              onClick={() => handleSendSms(report)}
-                              disabled={sendingSms}
-                              title="Send SMS"
-                              className="p-2 rounded-lg hover:bg-[var(--surface-container)] text-[var(--t3)] disabled:opacity-40"
-                            >
-                              <MaterialIcon className="text-xl">
-                                sms
-                              </MaterialIcon>
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </CardBody>
-        </Card>
-      )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </CardBody>
+          </Card>
+        )}
 
-      {!generated && (
-        <Card>
-          <CardBody>
-            <EmptyState
-              icon="summarize"
-              title="Generate Cards"
-              description="Select a class and click Generate to create report cards with positions, divisions, and comments."
-            />
-          </CardBody>
-        </Card>
-      )}
+        {!generated && (
+          <Card>
+            <CardBody>
+              <EmptyState
+                icon="summarize"
+                title="Generate Cards"
+                description="Select a class and click Generate to create report cards with positions, divisions, and comments."
+              />
+            </CardBody>
+          </Card>
+        )}
 
-      {generated && displayedReports.length === 0 && reports.length > 0 && (
-        <Card>
-          <CardBody>
-            <EmptyState
-              icon="filter_alt_off"
-              title="All Hidden"
-              description="All students have outstanding fees. Uncheck the filter to view."
-            />
-          </CardBody>
-        </Card>
-      )}
-    </div>
+        {generated && displayedReports.length === 0 && reports.length > 0 && (
+          <Card>
+            <CardBody>
+              <EmptyState
+                icon="filter_alt_off"
+                title="All Hidden"
+                description="All students have outstanding fees. Uncheck the filter to view."
+              />
+            </CardBody>
+          </Card>
+        )}
+      </div>
     </PageErrorBoundary>
   );
 }

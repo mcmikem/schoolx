@@ -10,10 +10,7 @@ import {
   assertUserRoleOrDeny,
   createServiceRoleClientOrThrow,
 } from "@/lib/api-utils";
-import {
-  requireActiveSubscription,
-  requireModuleEntitlement,
-} from "@/lib/subscription-guard";
+import { requireActiveSubscription, requireModuleEntitlement } from "@/lib/subscription-guard";
 
 // Reports are available to school operations and academic leadership roles only;
 // parent/student-facing roles are intentionally excluded from aggregate report access.
@@ -104,11 +101,7 @@ export async function GET(request: NextRequest) {
     });
     if (!moduleCheck.ok) return moduleCheck.response;
 
-    const academicYear = await resolveAcademicYear(
-      supabase,
-      scope.schoolId,
-      requestedAcademicYear,
-    );
+    const academicYear = await resolveAcademicYear(supabase, scope.schoolId, requestedAcademicYear);
 
     if (studentId) {
       const { data: student, error: studentError } = await supabase
@@ -137,7 +130,7 @@ export async function GET(request: NextRequest) {
 
     const { data: students, error: studentsError } = await supabase
       .from("students")
-      .select("id, full_name, classes (id, name, level)")
+      .select("id, first_name, last_name, classes (id, name, level)")
       .eq("school_id", scope.schoolId)
       .limit(limit);
 
@@ -164,10 +157,7 @@ export async function POST(request: NextRequest) {
 
     const { studentId, schoolId, term, academicYear } = await request.json();
 
-    const validationError = validateRequiredFields({ studentId, schoolId }, [
-      "studentId",
-      "schoolId",
-    ]);
+    const validationError = validateRequiredFields({ studentId, schoolId }, ["studentId", "schoolId"]);
     if (validationError) {
       return apiError(validationError, 400);
     }
@@ -193,11 +183,7 @@ export async function POST(request: NextRequest) {
     });
     if (!moduleCheck.ok) return moduleCheck.response;
 
-    const resolvedAcademicYear = await resolveAcademicYear(
-      supabase,
-      scope.schoolId,
-      academicYear,
-    );
+    const resolvedAcademicYear = await resolveAcademicYear(supabase, scope.schoolId, academicYear);
 
     // Fetch student with class info
     const { data: student, error: studentError } = await supabase
@@ -210,7 +196,6 @@ export async function POST(request: NextRequest) {
       return apiError("Student not found", 404);
     }
 
-
     // Enforce strict role/relationship checks
     if (student.school_id !== scope.schoolId) {
       return apiError("Student does not belong to the requested school", 403);
@@ -219,15 +204,9 @@ export async function POST(request: NextRequest) {
     const userRole = auth.context.user.role;
     const userId = auth.context.user.id;
     if (
-      ![
-        "super_admin",
-        "school_admin",
-        "admin",
-        "headmaster",
-        "dean_of_studies",
-        "teacher",
-        "secretary",
-      ].includes(userRole)
+      !["super_admin", "school_admin", "admin", "headmaster", "dean_of_studies", "teacher", "secretary"].includes(
+        userRole,
+      )
     ) {
       // If parent, must be parent of this student
       if (!(userRole === "parent" && student.parent_id === userId)) {
@@ -236,11 +215,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch school info
-    const { data: school } = await supabase
-      .from("schools")
-      .select("*")
-      .eq("id", scope.schoolId)
-      .single();
+    const { data: school } = await supabase.from("schools").select("*").eq("id", scope.schoolId).single();
 
     // Fetch grades for this term
     const { data: grades } = await supabase
@@ -251,25 +226,13 @@ export async function POST(request: NextRequest) {
       .eq("academic_year", resolvedAcademicYear);
 
     // Fetch attendance summary
-    const { data: attendanceRecords } = await supabase
-      .from("attendance")
-      .select("status")
-      .eq("student_id", studentId);
+    const { data: attendanceRecords } = await supabase.from("attendance").select("status").eq("student_id", studentId);
 
     const attendanceSummary = {
       total: attendanceRecords?.length || 0,
-      present:
-        attendanceRecords?.filter(
-          (a: { status: string }) => a.status === "present",
-        ).length || 0,
-      absent:
-        attendanceRecords?.filter(
-          (a: { status: string }) => a.status === "absent",
-        ).length || 0,
-      late:
-        attendanceRecords?.filter(
-          (a: { status: string }) => a.status === "late",
-        ).length || 0,
+      present: attendanceRecords?.filter((a: { status: string }) => a.status === "present").length || 0,
+      absent: attendanceRecords?.filter((a: { status: string }) => a.status === "absent").length || 0,
+      late: attendanceRecords?.filter((a: { status: string }) => a.status === "late").length || 0,
     };
 
     // Organize grades by subject
@@ -293,13 +256,7 @@ export async function POST(request: NextRequest) {
 
     // Calculate averages and grades
     const reportData = Object.values(subjectGrades).map((subject: any) => {
-      const totalCA =
-        (subject.ca1 +
-          subject.ca2 +
-          subject.ca3 +
-          subject.ca4 +
-          subject.project) /
-        5;
+      const totalCA = (subject.ca1 + subject.ca2 + subject.ca3 + subject.ca4 + subject.project) / 5;
       const finalScore = totalCA * 0.8 + subject.exam * 0.2;
       const grade = getUNEBGrade(finalScore);
       return {
@@ -312,10 +269,7 @@ export async function POST(request: NextRequest) {
 
     // Calculate overall average
     const overallAvg =
-      reportData.length > 0
-        ? reportData.reduce((sum, s) => sum + s.finalScore, 0) /
-          reportData.length
-        : 0;
+      reportData.length > 0 ? reportData.reduce((sum, s) => sum + s.finalScore, 0) / reportData.length : 0;
 
     const division = getUNEBDivision(overallAvg);
 
