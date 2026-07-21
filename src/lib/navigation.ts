@@ -826,12 +826,12 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> = dee
           icon: "dashboard",
         },
         {
-          href: "/dashboard/marketer/schools",
+          href: "/dashboard",
           label: "All Schools",
           icon: "school",
         },
         {
-          href: "/dashboard/marketer/onboarding",
+          href: "/dashboard",
           label: "Onboarding Tracker",
           icon: "rocket_launch",
         },

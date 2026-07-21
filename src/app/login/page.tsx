@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useToast } from "@/components/Toast";
 import { Button, Input } from "@/components/ui";
@@ -35,6 +35,7 @@ const SLOW_CONNECTION_MS = 8000;
 export default function LoginPage() {
   const toast = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { signIn, user, authInitialized } = useAuth();
 
   const [identifier, setIdentifier] = useState("");
@@ -66,6 +67,29 @@ export default function LoginPage() {
     const saved = localStorage.getItem("remember_session");
     setRememberSession(saved !== "false");
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const error = searchParams?.get("error");
+    const registered = searchParams?.get("registered");
+    const phoneParam = searchParams?.get("phone");
+
+    if (error === "access_denied") {
+      toast.warning("Sign in cancelled. Please try again.");
+    } else if (error === "server_error") {
+      toast.error("Authentication server error. Please try again.");
+    } else if (error) {
+      toast.error(`Authentication failed: ${error}`);
+    }
+
+    if (registered === "1") {
+      toast.success("Account created! Please check your email or phone to verify.");
+    }
+
+    if (phoneParam) {
+      setIdentifier(phoneParam);
+    }
+  }, [searchParams, toast]);
 
   useEffect(() => {
     return () => {

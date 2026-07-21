@@ -329,6 +329,7 @@ export default function FinanceHubPage() {
         class_name: student.classes?.name
           ? `${student.classes.name}${student.classes.stream ? ` ${student.classes.stream}` : ""}`
           : "",
+        class_id: student.class_id ?? "",
         expected: feePosition.totalExpected,
         paid: feePosition.totalPaid,
         balance: feePosition.balance,
@@ -369,7 +370,7 @@ export default function FinanceHubPage() {
         const matchesSearch =
           s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
           s.student_number.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesClass = selectedClass === "all" || s.class_name === selectedClass;
+        const matchesClass = selectedClass === "all" || s.class_id === selectedClass;
         const matchesStatus = statusFilter === "all" || s.status === statusFilter;
         return matchesSearch && matchesClass && matchesStatus;
       })
@@ -528,27 +529,36 @@ export default function FinanceHubPage() {
       });
 
       if (!isDemo && school?.id && paymentResult?.id) {
-        const { data: lastReceipt } = await supabase
-          .from("receipts")
-          .select("receipt_number")
-          .eq("school_id", school.id)
-          .order("created_at", { ascending: false })
-          .limit(1)
-          .maybeSingle();
+        const { withTimeout, timeoutFallback } = await import("@/lib/hooks/utils");
+        const { data: lastReceipt } = await withTimeout(
+          supabase
+            .from("receipts")
+            .select("receipt_number")
+            .eq("school_id", school.id)
+            .order("created_at", { ascending: false })
+            .limit(1)
+            .maybeSingle(),
+          10000,
+          timeoutFallback(),
+        );
 
         const lastNum = lastReceipt?.receipt_number
           ? parseInt(lastReceipt.receipt_number.replace("RCP-", ""), 10) || 0
           : 0;
         const receiptNumber = `RCP-${String(lastNum + 1).padStart(6, "0")}`;
 
-        await supabase.from("receipts").insert({
-          school_id: school.id,
-          student_id: newPayment.student_id,
-          payment_id: paymentResult.id,
-          receipt_number: receiptNumber,
-          amount: parsedAmount,
-          issued_at: new Date().toISOString(),
-        });
+        await withTimeout(
+          supabase.from("receipts").insert({
+            school_id: school.id,
+            student_id: newPayment.student_id,
+            payment_id: paymentResult.id,
+            receipt_number: receiptNumber,
+            amount: parsedAmount,
+            issued_at: new Date().toISOString(),
+          }),
+          10000,
+          timeoutFallback(),
+        );
       }
 
       const student = studentBalances.find((s) => s.id === newPayment.student_id);
@@ -1314,7 +1324,7 @@ export default function FinanceHubPage() {
                   >
                     <option value="all">All Classes</option>
                     {classes.map((c) => (
-                      <option key={c.id} value={c.name}>
+                      <option key={c.id} value={c.id}>
                         {c.name}
                         {c.stream ? ` ${c.stream}` : ""}
                       </option>
@@ -1520,6 +1530,7 @@ export default function FinanceHubPage() {
             name: s.name,
             student_number: s.student_number,
             class_name: s.class_name,
+            class_id: s.class_id,
             balance: s.balance,
             expected: s.expected ?? 0,
             paid: s.paid ?? 0,

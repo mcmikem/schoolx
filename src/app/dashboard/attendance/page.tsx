@@ -191,6 +191,7 @@ export default function AttendancePage() {
 
   useEffect(() => {
     if (!selectedClass || !school?.id) return;
+    setAllMarked(false);
     setLoading(studentsLoading || attendanceLoading);
     setStudents(
       (offlineStudents || []).filter((student) => student.class_id === selectedClass && student.status === "active"),
@@ -1283,14 +1284,14 @@ export default function AttendancePage() {
         <ConfirmDialog
           isOpen={confirmMarkAll}
           onClose={() => setConfirmMarkAll(false)}
-          onConfirm={() => {
+          onConfirm={async () => {
             markAll("present");
-            toast.success("All marked present");
             setConfirmMarkAll(false);
+            await saveAttendance();
           }}
           title="Mark All Present"
-          message={`Mark all ${students.length} students as present?`}
-          confirmLabel="Mark All Present"
+          message={`Mark all ${students.length} students as present and save?`}
+          confirmLabel="Mark All Present & Save"
           variant="info"
         />
         <ConfirmDialog

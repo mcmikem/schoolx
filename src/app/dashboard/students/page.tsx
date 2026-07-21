@@ -106,51 +106,41 @@ export default function StudentHubPage() {
   const router = useRouter();
   const pathname = usePathname();
 
-  const { preferences: tablePrefs, updatePreferences: updateTablePrefs } =
-    useTablePreferences("students-registry");
+  const { preferences: tablePrefs, updatePreferences: updateTablePrefs } = useTablePreferences("students-registry");
 
   const [currentPage, setCurrentPage] = useState(1);
   const [isConstrainedNetwork, setIsConstrainedNetwork] = useState(false);
-  const [attendanceStatusMap, setAttendanceStatusMap] = useState<
-    Record<string, AttendanceStatusMeta>
-  >({});
+  const [attendanceStatusMap, setAttendanceStatusMap] = useState<Record<string, AttendanceStatusMeta>>({});
   const preferredPageSize = tablePrefs.pageSize || (isConstrainedNetwork ? 20 : 50);
   const itemsPerPage = preferredPageSize;
   const registryFetchLimit = isConstrainedNetwork ? 500 : 5000;
 
-  const {
-    students,
-    loading,
-    createStudent,
-    updateStudent,
-    deleteStudent,
-    totalCount,
-  } = useStudents(school?.id, { limit: registryFetchLimit, offset: 0 });
+  const { students, loading, createStudent, updateStudent, deleteStudent, totalCount } = useStudents(school?.id, {
+    limit: registryFetchLimit,
+    offset: 0,
+  });
   const { classes } = useClasses(school?.id);
 
   const [activeTab, setActiveTab] = useState<StudentWorkspaceTab>("registry");
 
-  const handleTabChange = useCallback((tab: StudentWorkspaceTab) => {
-    setActiveTab(tab);
-    const params = new URLSearchParams(searchParams?.toString() || "");
-    if (tab === "registry") {
-      params.delete("tab");
-    } else {
-      params.set("tab", tab);
-    }
-    const query = params.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname);
-  }, [pathname, router, searchParams]);
+  const handleTabChange = useCallback(
+    (tab: StudentWorkspaceTab) => {
+      setActiveTab(tab);
+      const params = new URLSearchParams(searchParams?.toString() || "");
+      if (tab === "registry") {
+        params.delete("tab");
+      } else {
+        params.set("tab", tab);
+      }
+      const query = params.toString();
+      router.replace(query ? `${pathname}?${query}` : pathname);
+    },
+    [pathname, router, searchParams],
+  );
 
-  const transfers = useStudentTransfers(
-    school?.id, students, isDemo, createStudent, updateStudent, toast, school,
-  );
-  const dropouts = useStudentDropouts(
-    school?.id, students, isDemo, updateStudent, toast, user,
-  );
-  const promotion = useStudentPromotion(
-    school?.id, students, isDemo, updateStudent, toast, academicYear, user,
-  );
+  const transfers = useStudentTransfers(school?.id, students, isDemo, createStudent, updateStudent, toast, school);
+  const dropouts = useStudentDropouts(school?.id, students, isDemo, updateStudent, toast, user);
+  const promotion = useStudentPromotion(school?.id, students, isDemo, updateStudent, toast, academicYear, user);
   const fetchTransferHistory = transfers.fetchTransferHistory;
   const fetchAtRiskStudents = dropouts.fetchAtRiskStudents;
   const fetchPromotionClasses = promotion.fetchPromotionClasses;
@@ -163,9 +153,7 @@ export default function StudentHubPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showBulkImportModal, setShowBulkImportModal] = useState(false);
-  const [editingStudent, setEditingStudent] = useState<EditingStudent | null>(
-    null,
-  );
+  const [editingStudent, setEditingStudent] = useState<EditingStudent | null>(null);
   const [filterGender, setFilterGender] = useState<"all" | "M" | "F">("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterPosition, setFilterPosition] = useState<string>("all");
@@ -234,11 +222,7 @@ export default function StudentHubPage() {
     if (activeTab !== "promotion") return;
     void fetchPromotionClasses();
     void fetchPromotionHistory();
-  }, [
-    activeTab,
-    fetchPromotionClasses,
-    fetchPromotionHistory,
-  ]);
+  }, [activeTab, fetchPromotionClasses, fetchPromotionHistory]);
 
   useEffect(() => {
     if (activeTab !== "promotion" || !promotionFromClass) return;
@@ -252,10 +236,11 @@ export default function StudentHubPage() {
     }
 
     const loadHouses = async () => {
-      const result: { data: { id: string; name: string; color: string }[] | null; error: unknown } = await withTimeout(supabase
-        .from("houses")
-        .select("id, name, color")
-        .eq("school_id", school.id), 10000, { data: null, error: null } as any);
+      const result: { data: { id: string; name: string; color: string }[] | null; error: unknown } = await withTimeout(
+        supabase.from("houses").select("id, name, color").eq("school_id", school.id),
+        10000,
+        { data: null, error: null } as any,
+      );
 
       if (result.error) {
         return;
@@ -326,27 +311,29 @@ export default function StudentHubPage() {
         return;
       }
 
-      const result: { data: { student_id: string; status: string; remarks: string | null }[] | null; error: unknown } = await withTimeout(supabase
-        .from("attendance")
-        .select("student_id, status, remarks")
-        .eq("school_id", school.id)
-        .eq("date", today), 10000, { data: null, error: null } as any);
+      const result: { data: { student_id: string; status: string; remarks: string | null }[] | null; error: unknown } =
+        await withTimeout(
+          supabase
+            .from("attendance")
+            .select("student_id, status, remarks")
+            .eq("school_id", school.id)
+            .eq("date", today),
+          10000,
+          { data: null, error: null } as any,
+        );
 
       if (result.error) {
         setAttendanceStatusMap({});
         return;
       }
 
-      const nextMap = (result.data || []).reduce<Record<string, AttendanceStatusMeta>>(
-        (acc, record) => {
-          const meta = deriveAttendanceMeta(record.status, record.remarks);
-          if (meta) {
-            acc[record.student_id] = meta;
-          }
-          return acc;
-        },
-        {},
-      );
+      const nextMap = (result.data || []).reduce<Record<string, AttendanceStatusMeta>>((acc, record) => {
+        const meta = deriveAttendanceMeta(record.status, record.remarks);
+        if (meta) {
+          acc[record.student_id] = meta;
+        }
+        return acc;
+      }, {});
 
       setAttendanceStatusMap(nextMap);
     };
@@ -386,67 +373,40 @@ export default function StudentHubPage() {
       const name = `${s.first_name} ${s.last_name}`.toLowerCase();
       const matchesSearch =
         !normalizedSearch ||
-        normalizedSearch.split(" ").every((word) =>
-          name.includes(word) ||
-          s.parent_name?.toLowerCase().includes(word) ||
-          s.student_number?.toLowerCase().includes(word)
-        );
-      const matchesClass =
-        selectedClass === "all" || s.class_id === selectedClass;
-      const matchesGender =
-        filterGender === "all" || s.gender === filterGender;
-      const matchesStatus =
-        filterStatus === "all" || s.status === filterStatus;
+        normalizedSearch
+          .split(" ")
+          .every(
+            (word) =>
+              name.includes(word) ||
+              s.parent_name?.toLowerCase().includes(word) ||
+              s.student_number?.toLowerCase().includes(word),
+          );
+      const matchesClass = selectedClass === "all" || s.class_id === selectedClass;
+      const matchesGender = filterGender === "all" || s.gender === filterGender;
+      const matchesStatus = filterStatus === "all" || s.status === filterStatus;
       const matchesPosition =
         filterPosition === "all" ||
         (filterPosition === "monitor" && s.is_class_monitor) ||
-        (filterPosition === "prefect" &&
-          (s.prefect_role || s.student_council_role));
-      const matchesDefaulters =
-        !filterDefaulters || Number(s.opening_balance || 0) > 0;
-      return (
-        matchesSearch &&
-        matchesClass &&
-        matchesGender &&
-        matchesStatus &&
-        matchesPosition &&
-        matchesDefaulters
-      );
+        (filterPosition === "prefect" && (s.prefect_role || s.student_council_role));
+      const matchesDefaulters = !filterDefaulters || Number(s.opening_balance || 0) > 0;
+      return matchesSearch && matchesClass && matchesGender && matchesStatus && matchesPosition && matchesDefaulters;
     });
     result.sort((a, b) => {
       if (sortBy === "name") {
-        return `${a.first_name} ${a.last_name}`.localeCompare(
-          `${b.first_name} ${b.last_name}`,
-        );
+        return `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`);
       }
       if (sortBy === "number") {
-        return (a.student_number || "").localeCompare(
-          b.student_number || "",
-        );
+        return (a.student_number || "").localeCompare(b.student_number || "");
       }
-      return (a.classes?.name || "").localeCompare(
-        b.classes?.name || "",
-      );
+      return (a.classes?.name || "").localeCompare(b.classes?.name || "");
     });
     return result;
-  }, [
-    students,
-    searchTerm,
-    selectedClass,
-    filterGender,
-    filterStatus,
-    filterPosition,
-    filterDefaulters,
-    sortBy,
-  ]);
+  }, [students, searchTerm, selectedClass, filterGender, filterStatus, filterPosition, filterDefaulters, sortBy]);
 
   const pageSize = itemsPerPage;
   const paginatedStudents =
-    pageSize === -1
-      ? filtered
-      : filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-  const totalPages =
-    pageSize === -1 ? 1 : Math.max(1, Math.ceil(filtered.length / pageSize));
+    pageSize === -1 ? filtered : filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const totalPages = pageSize === -1 ? 1 : Math.max(1, Math.ceil(filtered.length / pageSize));
 
   useEffect(() => {
     setCurrentPage(1);
@@ -467,14 +427,7 @@ export default function StudentHubPage() {
       toast.error("No students to export");
       return;
     }
-    const headers = [
-      "Name",
-      "Student Number",
-      "Gender",
-      "Parent Name",
-      "Parent Phone",
-      "Class",
-    ];
+    const headers = ["Name", "Student Number", "Gender", "Parent Name", "Parent Phone", "Class", "Opening Balance"];
     const rows = students.map((s) => [
       `${s.first_name} ${s.last_name}`,
       s.student_number || "",
@@ -484,9 +437,7 @@ export default function StudentHubPage() {
       s.classes?.name || "",
       s.opening_balance || "0",
     ]);
-    const csv = [headers, ...rows]
-      .map((r) => r.map((c) => `"${c}"`).join(","))
-      .join("\n");
+    const csv = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -501,9 +452,7 @@ export default function StudentHubPage() {
   const girlsCount = students.filter((s) => s.gender === "F").length;
 
   const generatePLEIndexNumbers = async () => {
-    const p7Students = students.filter(
-      (s) => s.classes?.name?.startsWith("P.7") && !s.ple_index_number,
-    );
+    const p7Students = students.filter((s) => s.classes?.name?.startsWith("P.7") && !s.ple_index_number);
     if (p7Students.length === 0) {
       toast.error("No P.7 students without index numbers");
       return;
@@ -512,13 +461,9 @@ export default function StudentHubPage() {
       const year = new Date().getFullYear();
       const schoolCode = school?.school_code || "SCHL";
       let startNum = 1;
-      const existingNumbers = students.filter((s) =>
-        s.ple_index_number?.startsWith(schoolCode + year),
-      );
+      const existingNumbers = students.filter((s) => s.ple_index_number?.startsWith(schoolCode + year));
       if (existingNumbers.length > 0) {
-        const nums = existingNumbers.map((s) =>
-          parseInt(s.ple_index_number?.slice(-4) || "0"),
-        );
+        const nums = existingNumbers.map((s) => parseInt(s.ple_index_number?.slice(-4) || "0"));
         startNum = Math.max(...nums) + 1;
       }
       for (const student of p7Students) {
@@ -577,10 +522,7 @@ export default function StudentHubPage() {
           classesCount={classes.length}
           currentTerm={currentTerm}
           academicYear={academicYear}
-          transferredCount={
-            (transfers.transferredInCount || 0) +
-            (transfers.transferredOutCount || 0)
-          }
+          transferredCount={(transfers.transferredInCount || 0) + (transfers.transferredOutCount || 0)}
           atRiskCount={dropouts.atRiskCount}
           likelyDropoutCount={dropouts.likelyDropoutCount}
           activeTab={activeTab}
@@ -630,18 +572,14 @@ export default function StudentHubPage() {
             totalPages={totalPages}
             attendanceStatusMap={attendanceStatusMap}
             onPreviousPage={() => setCurrentPage((p) => Math.max(1, p - 1))}
-            onNextPage={() =>
-              setCurrentPage((p) => Math.min(totalPages, p + 1))
-            }
+            onNextPage={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
             onAddStudent={() => setShowAddModal(true)}
             onSmsParent={(student) => setSmsTarget(student as SmsTarget)}
             onEditStudent={(student) => {
               setEditingStudent(student as EditingStudent);
               setShowEditModal(true);
             }}
-            onDeleteStudent={(id) =>
-              setDeleteConfirm({ open: true, studentId: id })
-            }
+            onDeleteStudent={(id) => setDeleteConfirm({ open: true, studentId: id })}
           />
 
           <StudentDetailPanel
@@ -670,13 +608,7 @@ export default function StudentHubPage() {
             student={editingStudent}
           />
 
-          {smsTarget && (
-            <SendSMSModal
-              student={smsTarget}
-              isOpen={!!smsTarget}
-              onClose={() => setSmsTarget(null)}
-            />
-          )}
+          {smsTarget && <SendSMSModal student={smsTarget} isOpen={!!smsTarget} onClose={() => setSmsTarget(null)} />}
         </TabPanel>
 
         <TabPanel activeTab={activeTab} tabId="transfers">
@@ -718,12 +650,8 @@ export default function StudentHubPage() {
             lowBandwidthMode={isConstrainedNetwork}
             atRiskCount={dropouts.atRiskCount}
             likelyDropoutCount={dropouts.likelyDropoutCount}
-            activeStudentsCount={
-              students.filter((s) => s.status === "active").length
-            }
-            droppedStudentsCount={
-              students.filter((s) => s.status === "dropped").length
-            }
+            activeStudentsCount={students.filter((s) => s.status === "active").length}
+            droppedStudentsCount={students.filter((s) => s.status === "dropped").length}
             dropoutClassFilter={dropouts.dropoutClassFilter}
             setDropoutClassFilter={dropouts.setDropoutClassFilter}
             classes={classes}
@@ -791,9 +719,7 @@ export default function StudentHubPage() {
         {deleteConfirm.open && (
           <div
             className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto"
-            onClick={() =>
-              setDeleteConfirm({ open: false, studentId: null })
-            }
+            onClick={() => setDeleteConfirm({ open: false, studentId: null })}
           >
             <div
               className="bg-[var(--surface)] rounded-2xl w-full max-w-md p-6 max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto"
@@ -819,25 +745,18 @@ export default function StudentHubPage() {
                   Remove Student?
                 </h3>
                 <p style={{ color: "var(--t3)", fontSize: 14 }}>
-                  This action cannot be undone. All records for this student
-                  will be permanently deleted.
+                  This action cannot be undone. All records for this student will be permanently deleted.
                 </p>
               </div>
               <div className="flex gap-3">
                 <Button
                   variant="ghost"
-                  onClick={() =>
-                    setDeleteConfirm({ open: false, studentId: null })
-                  }
+                  onClick={() => setDeleteConfirm({ open: false, studentId: null })}
                   className="flex-1"
                 >
                   Cancel
                 </Button>
-                <Button
-                  onClick={handleDeleteStudent}
-                  className="flex-1"
-                  style={{ background: "var(--error)" }}
-                >
+                <Button onClick={handleDeleteStudent} className="flex-1" style={{ background: "var(--error)" }}>
                   Remove
                 </Button>
               </div>
