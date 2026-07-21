@@ -276,7 +276,10 @@ export async function proxy(request: NextRequest) {
   // protected app shells hydrate on the client.
   if (
     process.env.NODE_ENV !== "production" &&
-    (pathname.startsWith("/dashboard") || pathname.startsWith("/super-admin") || pathname.startsWith("/parent-portal"))
+    (pathname.startsWith("/dashboard") ||
+      pathname.startsWith("/super-admin") ||
+      pathname.startsWith("/parent-portal") ||
+      pathname.startsWith("/student-portal"))
   ) {
     const response = NextResponse.next({ request });
     applySecurityHeaders(response);

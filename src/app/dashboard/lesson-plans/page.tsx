@@ -1,165 +1,170 @@
-'use client'
+"use client";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState, useEffect, useCallback } from 'react'
-import { useAuth } from '@/lib/auth-context'
-import { useClasses, useSubjects } from '@/lib/hooks'
-import { useAcademic } from '@/lib/academic-context'
-import { supabase } from '@/lib/supabase'
-import MaterialIcon from '@/components/MaterialIcon'
-import { useToast } from '@/components/Toast'
-import { PageHeader } from '@/components/ui/PageHeader'
-import { Card } from '@/components/ui/Card'
-import { Button } from '@/components/ui/index'
-import {
-  buildAcademicYear,
-  buildLessonProcedure,
-  splitLessonProcedure,
-} from '@/lib/academics-utils'
-import { getErrorMessage } from '@/lib/validation'
-import { logger } from '@/lib/logger'
-import { ConfirmDialog } from '@/components/ConfirmDialog'
+import { useState, useEffect, useCallback } from "react";
+import { useAuth } from "@/lib/auth-context";
+import { useClasses, useSubjects } from "@/lib/hooks";
+import { useAcademic } from "@/lib/academic-context";
+import { supabase } from "@/lib/supabase";
+import MaterialIcon from "@/components/MaterialIcon";
+import { useToast } from "@/components/Toast";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/index";
+import { buildAcademicYear, buildLessonProcedure, splitLessonProcedure } from "@/lib/academics-utils";
+import { getErrorMessage } from "@/lib/validation";
+import { logger } from "@/lib/logger";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 
 interface LessonPlan {
-  id: string
-  title: string
-  class_id: string
-  subject_id: string
-  week: number
-  lesson: number
-  duration: number
-  topic: string
-  subtopic: string
-  objectives: string
-  description: string
-  resources: string
-  homework: string
-  notes: string
-  lesson_date?: string
-  status: 'draft' | 'completed' | 'cancelled'
-  created_at: string
-  subjects?: { name: string }
-  classes?: { name: string }
-  users?: { full_name: string }
+  id: string;
+  title: string;
+  class_id: string;
+  subject_id: string;
+  week: number;
+  lesson: number;
+  duration: number;
+  topic: string;
+  subtopic: string;
+  objectives: string;
+  description: string;
+  resources: string;
+  homework: string;
+  notes: string;
+  lesson_date?: string;
+  status: "draft" | "completed" | "cancelled";
+  created_at: string;
+  subjects?: { name: string };
+  classes?: { name: string };
+  users?: { full_name: string };
 }
 
-function getStatusBadgeClass(status: LessonPlan['status'] | string) {
+function getStatusBadgeClass(status: LessonPlan["status"] | string) {
   switch (status) {
-    case 'completed':
-      return 'bg-green-100 text-green-700'
-    case 'cancelled':
-      return 'bg-red-100 text-red-700'
+    case "completed":
+      return "bg-green-100 text-green-700";
+    case "cancelled":
+      return "bg-red-100 text-red-700";
     default:
-      return 'bg-amber-100 text-amber-700'
+      return "bg-amber-100 text-amber-700";
   }
 }
 
-function formatStatusLabel(status: LessonPlan['status'] | string) {
-  return status.replace(/_/g, ' ')
+function formatStatusLabel(status: LessonPlan["status"] | string) {
+  return status.replace(/_/g, " ");
 }
 
 export default function LessonPlansPage() {
-  const { school, user } = useAuth()
-  const toast = useToast()
-  const { academicYear, currentTerm } = useAcademic()
-  const { classes } = useClasses(school?.id)
-  const { subjects } = useSubjects(school?.id, false)
-  
-  const [plans, setPlans] = useState<LessonPlan[]>([])
-  const [loading, setLoading] = useState(true)
-  const [showForm, setShowForm] = useState(false)
-  const [saving, setSaving] = useState(false)
-  const [selectedPlan, setSelectedPlan] = useState<LessonPlan | null>(null)
-  
+  const { school, user } = useAuth();
+  const toast = useToast();
+  const { academicYear, currentTerm } = useAcademic();
+  const { classes } = useClasses(school?.id);
+  const { subjects } = useSubjects(school?.id, false);
+
+  const [plans, setPlans] = useState<LessonPlan[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [selectedPlan, setSelectedPlan] = useState<LessonPlan | null>(null);
+
   const [form, setForm] = useState({
-    class_id: '',
-    subject_id: '',
-    week: '1',
-    lesson: '1',
-    duration: '40',
-    title: '',
-    topic: '',
-    subtopic: '',
-    objectives: '',
-    introduction: '',
-    presentation: '',
-    consolidation: '',
-    evaluation: '',
-    resources: '',
-    homework: '',
-    notes: '',
-    lesson_date: ''
-  })
+    class_id: "",
+    subject_id: "",
+    week: "1",
+    lesson: "1",
+    duration: "40",
+    title: "",
+    topic: "",
+    subtopic: "",
+    objectives: "",
+    introduction: "",
+    presentation: "",
+    consolidation: "",
+    evaluation: "",
+    resources: "",
+    homework: "",
+    notes: "",
+    lesson_date: "",
+  });
 
   const fetchPlans = useCallback(async () => {
-    if (!school?.id) return
-    setLoading(true)
+    if (!school?.id) return;
+    setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('lesson_plans')
-        .select('*, subjects(name), classes(name)')
-        .eq('school_id', school.id)
-        .order('created_at', { ascending: false })
-        .limit(20)
-
-      if (error) throw error
+      const { withTimeout: wt2, timeoutFallback: tf2 } = await import("@/lib/hooks/utils");
+      const { data, error } = await wt2(
+        supabase
+          .from("lesson_plans")
+          .select("*, subjects(name), classes(name)")
+          .eq("school_id", school.id)
+          .order("created_at", { ascending: false })
+          .limit(20)
+          .then((r) => {
+            if (r.error) throw r.error;
+            return r;
+          }),
+        10000,
+        { data: [], error: null } as any,
+      );
 
       const mapped = (data || []).map((row: any) => ({
         id: row.id,
-        title: row.lesson_title || row.title || 'Untitled lesson',
+        title: row.lesson_title || row.title || "Untitled lesson",
         class_id: row.class_id,
         subject_id: row.subject_id,
         week: row.week_number || 1,
         lesson: row.lesson_number || 1,
         duration: row.duration || 40,
-        topic: row.topic || '',
-        subtopic: row.subtopics || '',
-        objectives: row.objectives || '',
-        description: row.procedure || '',
-        resources: row.materials_needed || '',
-        homework: row.homework || '',
-        notes: row.assessment || '',
-        lesson_date: row.lesson_date || '',
-        status: row.status || 'draft',
+        topic: row.topic || "",
+        subtopic: row.subtopics || "",
+        objectives: row.objectives || "",
+        description: row.procedure || "",
+        resources: row.materials_needed || "",
+        homework: row.homework || "",
+        notes: row.assessment || "",
+        lesson_date: row.lesson_date || "",
+        status: row.status || "draft",
         created_at: row.created_at,
         subjects: row.subjects,
         classes: row.classes,
-      }))
+      }));
 
-      setPlans(mapped)
+      setPlans(mapped);
     } catch (err) {
-      logger.error('Failed to fetch lesson plans:', err)
+      logger.error("Failed to fetch lesson plans:", err);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }, [school?.id])
+  }, [school?.id]);
 
   useEffect(() => {
-    fetchPlans()
-  }, [fetchPlans])
+    fetchPlans();
+  }, [fetchPlans]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!school?.id || !user?.id) return
+    e.preventDefault();
+    if (!school?.id || !user?.id) return;
     if (!form.title.trim() || !form.topic.trim()) {
-      toast.error('Lesson title and topic are required')
-      return
+      toast.error("Lesson title and topic are required");
+      return;
     }
     if (!form.class_id || !form.subject_id) {
-      toast.error('Class and subject are required')
-      return
+      toast.error("Class and subject are required");
+      return;
     }
     if ((parseInt(form.duration) || 0) <= 0) {
-      toast.error('Duration must be greater than zero')
-      return
+      toast.error("Duration must be greater than zero");
+      return;
     }
-    
-    setSaving(true)
+
+    setSaving(true);
     try {
       const payload = {
         school_id: school.id,
         class_id: form.class_id,
         subject_id: form.subject_id,
         lesson_title: form.title.trim(),
+        week_number: parseInt(form.week) || 1,
+        lesson_number: parseInt(form.lesson) || 1,
         topic: form.topic.trim(),
         subtopics: form.subtopic.trim(),
         objectives: form.objectives.trim(),
@@ -175,49 +180,58 @@ export default function LessonPlansPage() {
         duration: parseInt(form.duration),
         teacher_id: user.id,
         lesson_date: form.lesson_date || null,
-        status: selectedPlan?.status || 'draft',
+        status: selectedPlan?.status || "draft",
         academic_year: buildAcademicYear(academicYear),
         term: currentTerm || 1,
-      }
-      
-      const { withTimeout, timeoutFallback } = await import('@/lib/hooks/utils');
-      const query = selectedPlan
-        ? supabase.from('lesson_plans').update(payload).eq('id', selectedPlan.id)
-        : supabase.from('lesson_plans').insert(payload)
+      };
 
-      const planResult = await withTimeout(
-        query,
-        15000,
-        timeoutFallback()
-      );
+      const { withTimeout, timeoutFallback } = await import("@/lib/hooks/utils");
+      const query = selectedPlan
+        ? supabase.from("lesson_plans").update(payload).eq("id", selectedPlan.id)
+        : supabase.from("lesson_plans").insert(payload);
+
+      const planResult = await withTimeout(query, 15000, timeoutFallback());
       const error = planResult?.error;
-      if (error) throw error
-      
-      toast.success(selectedPlan ? 'Lesson plan updated!' : 'Lesson plan saved!')
-      setShowForm(false)
-      setSelectedPlan(null)
-      resetForm()
-      fetchPlans()
+      if (error) throw error;
+
+      toast.success(selectedPlan ? "Lesson plan updated!" : "Lesson plan saved!");
+      setShowForm(false);
+      setSelectedPlan(null);
+      resetForm();
+      fetchPlans();
     } catch (err) {
-      logger.error('Failed to save lesson plan:', err)
-      toast.error(getErrorMessage(err, 'Failed to save lesson plan'))
+      logger.error("Failed to save lesson plan:", err);
+      toast.error(getErrorMessage(err, "Failed to save lesson plan"));
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
-  }
+  };
 
   const resetForm = () => {
     setForm({
-      class_id: '', subject_id: '', week: '1', lesson: '1', duration: '40',
-      title: '', topic: '', subtopic: '', objectives: '',
-      introduction: '', presentation: '', consolidation: '', evaluation: '',
-      resources: '', homework: '', notes: '', lesson_date: ''
-    })
-  }
+      class_id: "",
+      subject_id: "",
+      week: "1",
+      lesson: "1",
+      duration: "40",
+      title: "",
+      topic: "",
+      subtopic: "",
+      objectives: "",
+      introduction: "",
+      presentation: "",
+      consolidation: "",
+      evaluation: "",
+      resources: "",
+      homework: "",
+      notes: "",
+      lesson_date: "",
+    });
+  };
 
   const openEdit = (plan: LessonPlan) => {
-    const sections = splitLessonProcedure(plan.description)
-    setSelectedPlan(plan)
+    const sections = splitLessonProcedure(plan.description);
+    setSelectedPlan(plan);
     setForm({
       class_id: plan.class_id,
       subject_id: plan.subject_id,
@@ -225,342 +239,367 @@ export default function LessonPlansPage() {
       lesson: String(plan.lesson),
       duration: String(plan.duration),
       title: plan.title,
-      topic: plan.topic || '',
-      subtopic: plan.subtopic || '',
-      objectives: plan.objectives || '',
+      topic: plan.topic || "",
+      subtopic: plan.subtopic || "",
+      objectives: plan.objectives || "",
       introduction: sections.introduction,
       presentation: sections.presentation,
       consolidation: sections.consolidation,
       evaluation: sections.evaluation,
-      resources: plan.resources || '',
-      homework: plan.homework || '',
-      notes: plan.notes || '',
-      lesson_date: plan.lesson_date || ''
-    })
-    setShowForm(true)
-  }
+      resources: plan.resources || "",
+      homework: plan.homework || "",
+      notes: plan.notes || "",
+      lesson_date: plan.lesson_date || "",
+    });
+    setShowForm(true);
+  };
 
   const [confirmDeletePlan, setConfirmDeletePlan] = useState(false);
 
   const handleDeletePlan = async () => {
-    if (!selectedPlan) return
-    setConfirmDeletePlan(true)
-  }
+    if (!selectedPlan) return;
+    setConfirmDeletePlan(true);
+  };
 
   const executeDeletePlan = async () => {
-    if (!selectedPlan) return
-    setConfirmDeletePlan(false)
+    if (!selectedPlan) return;
+    setConfirmDeletePlan(false);
     try {
-      const { withTimeout, timeoutFallback } = await import('@/lib/hooks/utils');
+      const { withTimeout, timeoutFallback } = await import("@/lib/hooks/utils");
       const delPlanResult = await withTimeout(
-        supabase.from('lesson_plans').delete().eq('id', selectedPlan.id),
+        supabase.from("lesson_plans").delete().eq("id", selectedPlan.id),
         15000,
-        timeoutFallback()
+        timeoutFallback(),
       );
       const error = delPlanResult?.error;
-      if (error) throw error
-      toast.success('Lesson plan deleted')
-      setShowForm(false)
-      setSelectedPlan(null)
-      resetForm()
-      fetchPlans()
+      if (error) throw error;
+      toast.success("Lesson plan deleted");
+      setShowForm(false);
+      setSelectedPlan(null);
+      resetForm();
+      fetchPlans();
     } catch (err) {
-      logger.error('Failed to delete lesson plan:', err)
-      toast.error('Failed to delete lesson plan')
+      logger.error("Failed to delete lesson plan:", err);
+      toast.error("Failed to delete lesson plan");
     }
-  }
+  };
 
   return (
     <PageErrorBoundary>
-    <div className="p-4 sm:p-6 lg:p-8">
-      <PageHeader
-        title="Lesson Plans"
-        subtitle="Detailed lesson plans for effective teaching"
-        actions={
-          <Button onClick={() => { resetForm(); setSelectedPlan(null); setShowForm(true) }}>
-            <MaterialIcon icon="add" className="text-base" />
-            New Lesson Plan
-          </Button>
-        }
-      />
-
-      {loading ? (
-        <div className="text-center py-12">
-          <div className="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin mx-auto"></div>
-        </div>
-      ) : plans.length === 0 ? (
-        <Card className="p-12 text-center">
-          <MaterialIcon className="text-5xl text-[var(--t3)] opacity-50 mx-auto">assignment</MaterialIcon>
-          <p className="mt-2 text-[var(--t3)]">No lesson plans yet</p>
-          <Button className="mt-4" onClick={() => setShowForm(true)}>
-            Create First Lesson Plan
-          </Button>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {plans.map(plan => (
-            <Card 
-              key={plan.id} 
-              className="p-4 hover:shadow-md cursor-pointer"
-              onClick={() => openEdit(plan)}
+      <div className="p-4 sm:p-6 lg:p-8">
+        <PageHeader
+          title="Lesson Plans"
+          subtitle="Detailed lesson plans for effective teaching"
+          actions={
+            <Button
+              onClick={() => {
+                resetForm();
+                setSelectedPlan(null);
+                setShowForm(true);
+              }}
             >
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <h3 className="font-semibold text-[var(--t1)]">{plan.title}</h3>
-                  <p className="text-sm text-[var(--t3)]">{plan.subjects?.name} - {plan.classes?.name}</p>
-                </div>
-                <span className={`px-2 py-1 rounded-lg text-xs font-medium ${getStatusBadgeClass(plan.status)}`}>
-                  {formatStatusLabel(plan.status)}
-                </span>
-              </div>
-              <div className="flex items-center gap-4 text-xs text-[var(--t3)] mb-2">
-                <span>Week {plan.week}, Lesson {plan.lesson}</span>
-                <span>{plan.duration} min</span>
-              </div>
-              {plan.topic && (
-                <p className="text-sm text-[var(--t3)] line-clamp-2">{plan.topic}</p>
-              )}
-            </Card>
-          ))}
-        </div>
-      )}
+              <MaterialIcon icon="add" className="text-base" />
+              New Lesson Plan
+            </Button>
+          }
+        />
 
-      {showForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-50 p-4 overflow-y-auto">
-          <div className="bg-[var(--surface)] rounded-2xl w-full max-w-3xl my-8">
-            <div className="p-6 border-b border-[var(--border)] sticky top-0 bg-[var(--surface)] z-10">
-              <div className="flex items-center justify-between">
-                <h2 className="text-xl font-bold text-[var(--t1)]">
-                  {selectedPlan ? 'Edit Lesson Plan' : 'New Lesson Plan'}
-                </h2>
-                <button onClick={() => { setShowForm(false); setSelectedPlan(null) }} className="p-2 hover:bg-[var(--surface-container)] rounded-lg">
-                  <MaterialIcon>close</MaterialIcon>
-                </button>
-              </div>
-            </div>
-            
-            <form onSubmit={handleSubmit} className="p-6 space-y-6">
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-[var(--t3)] mb-1">Class *</label>
-                  <select
-                    value={form.class_id}
-                    onChange={(e) => setForm({ ...form, class_id: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
-                    required
-                  >
-                    <option value="">Select</option>
-                    {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin mx-auto"></div>
+          </div>
+        ) : plans.length === 0 ? (
+          <Card className="p-12 text-center">
+            <MaterialIcon className="text-5xl text-[var(--t3)] opacity-50 mx-auto">assignment</MaterialIcon>
+            <p className="mt-2 text-[var(--t3)]">No lesson plans yet</p>
+            <Button className="mt-4" onClick={() => setShowForm(true)}>
+              Create First Lesson Plan
+            </Button>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {plans.map((plan) => (
+              <Card key={plan.id} className="p-4 hover:shadow-md cursor-pointer" onClick={() => openEdit(plan)}>
+                <div className="flex items-start justify-between mb-3">
+                  <div>
+                    <h3 className="font-semibold text-[var(--t1)]">{plan.title}</h3>
+                    <p className="text-sm text-[var(--t3)]">
+                      {plan.subjects?.name} - {plan.classes?.name}
+                    </p>
+                  </div>
+                  <span className={`px-2 py-1 rounded-lg text-xs font-medium ${getStatusBadgeClass(plan.status)}`}>
+                    {formatStatusLabel(plan.status)}
+                  </span>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-[var(--t3)] mb-1">Subject *</label>
-                  <select
-                    value={form.subject_id}
-                    onChange={(e) => setForm({ ...form, subject_id: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
-                    required
-                  >
-                    <option value="">Select</option>
-                    {subjects.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                  </select>
+                <div className="flex items-center gap-4 text-xs text-[var(--t3)] mb-2">
+                  <span>
+                    Week {plan.week}, Lesson {plan.lesson}
+                  </span>
+                  <span>{plan.duration} min</span>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-[var(--t3)] mb-1">Week</label>
-                  <select
-                    value={form.week}
-                    onChange={(e) => setForm({ ...form, week: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
+                {plan.topic && <p className="text-sm text-[var(--t3)] line-clamp-2">{plan.topic}</p>}
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {showForm && (
+          <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-50 p-4 overflow-y-auto">
+            <div className="bg-[var(--surface)] rounded-2xl w-full max-w-3xl my-8">
+              <div className="p-6 border-b border-[var(--border)] sticky top-0 bg-[var(--surface)] z-10">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xl font-bold text-[var(--t1)]">
+                    {selectedPlan ? "Edit Lesson Plan" : "New Lesson Plan"}
+                  </h2>
+                  <button
+                    onClick={() => {
+                      setShowForm(false);
+                      setSelectedPlan(null);
+                    }}
+                    className="p-2 hover:bg-[var(--surface-container)] rounded-lg"
                   >
-                    {[...Array(12)].map((_, i) => <option key={i} value={i+1}>Week {i+1}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-[var(--t3)] mb-1">Lesson #</label>
-                  <select
-                    value={form.lesson}
-                    onChange={(e) => setForm({ ...form, lesson: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
-                  >
-                    {[...Array(8)].map((_, i) => <option key={i} value={i+1}>{i+1}</option>)}
-                  </select>
+                    <MaterialIcon>close</MaterialIcon>
+                  </button>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <form onSubmit={handleSubmit} className="p-6 space-y-6">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-[var(--t3)] mb-1">Class *</label>
+                    <select
+                      value={form.class_id}
+                      onChange={(e) => setForm({ ...form, class_id: e.target.value })}
+                      className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
+                      required
+                    >
+                      <option value="">Select</option>
+                      {classes.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-[var(--t3)] mb-1">Subject *</label>
+                    <select
+                      value={form.subject_id}
+                      onChange={(e) => setForm({ ...form, subject_id: e.target.value })}
+                      className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
+                      required
+                    >
+                      <option value="">Select</option>
+                      {subjects.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-[var(--t3)] mb-1">Week</label>
+                    <select
+                      value={form.week}
+                      onChange={(e) => setForm({ ...form, week: e.target.value })}
+                      className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
+                    >
+                      {[...Array(12)].map((_, i) => (
+                        <option key={i} value={i + 1}>
+                          Week {i + 1}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-[var(--t3)] mb-1">Lesson #</label>
+                    <select
+                      value={form.lesson}
+                      onChange={(e) => setForm({ ...form, lesson: e.target.value })}
+                      className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
+                    >
+                      {[...Array(8)].map((_, i) => (
+                        <option key={i} value={i + 1}>
+                          {i + 1}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-[var(--t3)] mb-1">Lesson Title *</label>
+                    <input
+                      type="text"
+                      value={form.title}
+                      onChange={(e) => setForm({ ...form, title: e.target.value })}
+                      className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
+                      placeholder="e.g., Introduction to Fractions"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-[var(--t3)] mb-1">Duration (min)</label>
+                    <select
+                      value={form.duration}
+                      onChange={(e) => setForm({ ...form, duration: e.target.value })}
+                      className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
+                    >
+                      <option value="30">30 min</option>
+                      <option value="40">40 min</option>
+                      <option value="45">45 min</option>
+                      <option value="60">60 min</option>
+                    </select>
+                  </div>
+                </div>
+
                 <div>
-                  <label className="block text-xs font-medium text-[var(--t3)] mb-1">Lesson Title *</label>
+                  <label className="block text-xs font-medium text-[var(--t3)] mb-1">Lesson Date</label>
                   <input
-                    type="text"
-                    value={form.title}
-                    onChange={(e) => setForm({ ...form, title: e.target.value })}
+                    type="date"
+                    value={form.lesson_date}
+                    onChange={(e) => setForm({ ...form, lesson_date: e.target.value })}
                     className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
-                    placeholder="e.g., Introduction to Fractions"
-                    required
                   />
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-[var(--t3)] mb-1">Duration (min)</label>
-                  <select
-                    value={form.duration}
-                    onChange={(e) => setForm({ ...form, duration: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
-                  >
-                    <option value="30">30 min</option>
-                    <option value="40">40 min</option>
-                    <option value="45">45 min</option>
-                    <option value="60">60 min</option>
-                  </select>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-[var(--t3)] mb-1">Topic</label>
+                    <input
+                      type="text"
+                      value={form.topic}
+                      onChange={(e) => setForm({ ...form, topic: e.target.value })}
+                      className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
+                      placeholder="Main topic"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-[var(--t3)] mb-1">Subtopic</label>
+                    <input
+                      type="text"
+                      value={form.subtopic}
+                      onChange={(e) => setForm({ ...form, subtopic: e.target.value })}
+                      className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
+                      placeholder="Specific subtopic"
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <div>
-                <label className="block text-xs font-medium text-[var(--t3)] mb-1">Lesson Date</label>
-                <input
-                  type="date"
-                  value={form.lesson_date}
-                  onChange={(e) => setForm({ ...form, lesson_date: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-medium text-[var(--t3)] mb-1">Topic</label>
-                  <input
-                    type="text"
-                    value={form.topic}
-                    onChange={(e) => setForm({ ...form, topic: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
-                    placeholder="Main topic"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-[var(--t3)] mb-1">Subtopic</label>
-                  <input
-                    type="text"
-                    value={form.subtopic}
-                    onChange={(e) => setForm({ ...form, subtopic: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
-                    placeholder="Specific subtopic"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-[var(--t3)] mb-1">Learning Objectives</label>
-                <textarea
-                  value={form.objectives}
-                  onChange={(e) => setForm({ ...form, objectives: e.target.value })}
-                  className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
-                  placeholder="By end of lesson, students will be able to..."
-                  rows={2}
-                />
-              </div>
-
-              <div className="space-y-4">
-                <h3 className="text-sm font-bold text-[var(--t1)]">Lesson Structure</h3>
-                
-                <div>
-                  <label className="block text-xs font-medium text-[var(--t3)] mb-1">Introduction (5 min)</label>
+                  <label className="block text-xs font-medium text-[var(--t3)] mb-1">Learning Objectives</label>
                   <textarea
-                    value={form.introduction}
-                    onChange={(e) => setForm({ ...form, introduction: e.target.value })}
+                    value={form.objectives}
+                    onChange={(e) => setForm({ ...form, objectives: e.target.value })}
                     className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
-                    placeholder="How you'll start the lesson, hook, prior knowledge..."
+                    placeholder="By end of lesson, students will be able to..."
                     rows={2}
                   />
                 </div>
-                
-                <div>
-                  <label className="block text-xs font-medium text-[var(--t3)] mb-1">Presentation (15 min)</label>
-                  <textarea
-                    value={form.presentation}
-                    onChange={(e) => setForm({ ...form, presentation: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
-                    placeholder="New content delivery, demonstration, examples..."
-                    rows={2}
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-xs font-medium text-[var(--t3)] mb-1">Consolidation (15 min)</label>
-                  <textarea
-                    value={form.consolidation}
-                    onChange={(e) => setForm({ ...form, consolidation: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
-                    placeholder="Group work, practice activities, guided practice..."
-                    rows={2}
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-xs font-medium text-[var(--t3)] mb-1">Evaluation (5 min)</label>
-                  <textarea
-                    value={form.evaluation}
-                    onChange={(e) => setForm({ ...form, evaluation: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
-                    placeholder="Exit ticket, quick quiz, Q&A..."
-                    rows={2}
-                  />
-                </div>
-              </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-[var(--t3)] mb-1">Resources</label>
-                  <textarea
-                    value={form.resources}
-                    onChange={(e) => setForm({ ...form, resources: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
-                    placeholder="Charts, flashcards, digital..."
-                    rows={2}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-[var(--t3)] mb-1">Homework</label>
-                  <textarea
-                    value={form.homework}
-                    onChange={(e) => setForm({ ...form, homework: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
-                    placeholder="Assignment for next lesson..."
-                    rows={2}
-                  />
-                </div>
-              </div>
+                <div className="space-y-4">
+                  <h3 className="text-sm font-bold text-[var(--t1)]">Lesson Structure</h3>
 
-              <div className="flex gap-3 pt-4">
-                {selectedPlan && (
+                  <div>
+                    <label className="block text-xs font-medium text-[var(--t3)] mb-1">Introduction (5 min)</label>
+                    <textarea
+                      value={form.introduction}
+                      onChange={(e) => setForm({ ...form, introduction: e.target.value })}
+                      className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
+                      placeholder="How you'll start the lesson, hook, prior knowledge..."
+                      rows={2}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-[var(--t3)] mb-1">Presentation (15 min)</label>
+                    <textarea
+                      value={form.presentation}
+                      onChange={(e) => setForm({ ...form, presentation: e.target.value })}
+                      className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
+                      placeholder="New content delivery, demonstration, examples..."
+                      rows={2}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-[var(--t3)] mb-1">Consolidation (15 min)</label>
+                    <textarea
+                      value={form.consolidation}
+                      onChange={(e) => setForm({ ...form, consolidation: e.target.value })}
+                      className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
+                      placeholder="Group work, practice activities, guided practice..."
+                      rows={2}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-[var(--t3)] mb-1">Evaluation (5 min)</label>
+                    <textarea
+                      value={form.evaluation}
+                      onChange={(e) => setForm({ ...form, evaluation: e.target.value })}
+                      className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
+                      placeholder="Exit ticket, quick quiz, Q&A..."
+                      rows={2}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-medium text-[var(--t3)] mb-1">Resources</label>
+                    <textarea
+                      value={form.resources}
+                      onChange={(e) => setForm({ ...form, resources: e.target.value })}
+                      className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
+                      placeholder="Charts, flashcards, digital..."
+                      rows={2}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-[var(--t3)] mb-1">Homework</label>
+                    <textarea
+                      value={form.homework}
+                      onChange={(e) => setForm({ ...form, homework: e.target.value })}
+                      className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
+                      placeholder="Assignment for next lesson..."
+                      rows={2}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  {selectedPlan && (
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      className="flex-1 !border-red-200 !text-red-700"
+                      onClick={handleDeletePlan}
+                    >
+                      Delete
+                    </Button>
+                  )}
                   <Button
                     type="button"
                     variant="secondary"
-                    className="flex-1 !border-red-200 !text-red-700"
-                    onClick={handleDeletePlan}
+                    className="flex-1"
+                    onClick={() => {
+                      setShowForm(false);
+                      setSelectedPlan(null);
+                    }}
                   >
-                    Delete
+                    Cancel
                   </Button>
-                )}
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="flex-1"
-                  onClick={() => { setShowForm(false); setSelectedPlan(null) }}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  className="flex-1"
-                  disabled={saving}
-                >
-                  {saving ? 'Saving...' : selectedPlan ? 'Update Lesson Plan' : 'Save Lesson Plan'}
-                </Button>
-              </div>
-            </form>
+                  <Button type="submit" className="flex-1" disabled={saving}>
+                    {saving ? "Saving..." : selectedPlan ? "Update Lesson Plan" : "Save Lesson Plan"}
+                  </Button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
       <ConfirmDialog
         isOpen={confirmDeletePlan}
         onClose={() => setConfirmDeletePlan(false)}
@@ -571,5 +610,5 @@ export default function LessonPlansPage() {
         variant="danger"
       />
     </PageErrorBoundary>
-  )
+  );
 }

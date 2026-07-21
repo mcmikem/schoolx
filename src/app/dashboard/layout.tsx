@@ -13,10 +13,7 @@ import MobileBottomNav from "@/components/dashboard/MobileBottomNav";
 import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
 import PostOnboardingSetup from "@/components/onboarding/PostOnboardingSetup";
 import GoLiveGate from "@/components/GoLiveGate";
-import {
-  useAccessControl,
-  getPageTitle,
-} from "@/components/dashboard/AccessControlGuard";
+import { useAccessControl, getPageTitle } from "@/components/dashboard/AccessControlGuard";
 import { usePathname, useRouter } from "next/navigation";
 import { SidebarProvider, useSidebar } from "@/contexts/SidebarContext";
 import { MinimalLoadingScreen, TopLoadingBar, StuckLoadingOverlay } from "@/components/ui/Skeleton";
@@ -34,8 +31,7 @@ import { supabase } from "@/lib/supabase";
 function hasCompletedSetupProgress(value: unknown): boolean {
   if (!value) return false;
   try {
-    const parsed =
-      typeof value === "string" ? JSON.parse(value) : value;
+    const parsed = typeof value === "string" ? JSON.parse(value) : value;
     const completed =
       typeof parsed === "object" && parsed !== null && "completed" in parsed
         ? (parsed as { completed?: unknown }).completed
@@ -75,10 +71,7 @@ const SECTION_LABELS: Record<string, { label: string; icon: string }> = {
   idcards: { label: "ID Cards", icon: "badge" },
 };
 
-function buildBreadcrumbs(
-  pathname: string,
-  pageTitle: string,
-): { label: string; href?: string; icon?: string }[] {
+function buildBreadcrumbs(pathname: string, pageTitle: string): { label: string; href?: string; icon?: string }[] {
   const items: { label: string; href?: string; icon?: string }[] = [
     { label: "Dashboard", href: "/dashboard", icon: "dashboard" },
   ];
@@ -100,17 +93,10 @@ function buildBreadcrumbs(
   return items;
 }
 
-function SessionTimeoutWarning({
-  remainingTime,
-  onExtend,
-}: {
-  remainingTime: number;
-  onExtend: () => void;
-}) {
+function SessionTimeoutWarning({ remainingTime, onExtend }: { remainingTime: number; onExtend: () => void }) {
   const minutes = Math.floor(remainingTime / 60000);
   const seconds = Math.floor((remainingTime % 60000) / 1000);
-  const timeStr =
-    minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+  const timeStr = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
   return (
     <div
       role="alertdialog"
@@ -124,13 +110,9 @@ function SessionTimeoutWarning({
             <MaterialIcon icon="timer" className="text-yellow-600 text-2xl" />
           </div>
         </div>
-        <h2 className="text-lg font-semibold text-[var(--t1)] mb-1">
-          Session Expiring Soon
-        </h2>
+        <h2 className="text-lg font-semibold text-[var(--t1)] mb-1">Session Expiring Soon</h2>
         <p className="text-sm text-[var(--t2)] mb-4">
-          You will be signed out in{" "}
-          <span className="font-bold text-[var(--error)]">{timeStr}</span> due
-          to inactivity.
+          You will be signed out in <span className="font-bold text-[var(--error)]">{timeStr}</span> due to inactivity.
         </p>
         <button
           onClick={onExtend}
@@ -200,6 +182,12 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       return;
     }
 
+    if (user.role === "student") {
+      hasRedirectedRef.current = true;
+      router.replace("/student-portal");
+      return;
+    }
+
     if (user.role === "super_admin") {
       hasRedirectedRef.current = true;
       router.replace("/super-admin");
@@ -211,9 +199,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const segments = pathname.split("/").filter(Boolean);
     const lastSegment = segments[segments.length - 1] || "Dashboard";
-    const title = lastSegment
-      .replace(/-/g, " ")
-      .replace(/\b\w/g, (c) => c.toUpperCase());
+    const title = lastSegment.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
     document.title = `${title} — SkoolMate OS`;
   }, [pathname]);
 
@@ -238,9 +224,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
   const pageTitle = getPageTitle(pathname || "/dashboard");
   const breadcrumbItems = buildBreadcrumbs(pathname || "/dashboard", pageTitle);
-  const currentPath =
-    pathname ||
-    (typeof window !== "undefined" ? window.location.pathname : "");
+  const currentPath = pathname || (typeof window !== "undefined" ? window.location.pathname : "");
 
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showPostSetup, setShowPostSetup] = useState(false);
@@ -259,8 +243,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   const isDashboardHome = currentPath === "/dashboard" || currentPath === "/dashboard/";
 
   const schoolData = (school as unknown as Record<string, unknown>) || null;
-  const hasOperationalStudentData =
-    Number(schoolData?.student_count || 0) > 0;
+  const hasOperationalStudentData = Number(schoolData?.student_count || 0) > 0;
   const onboardingCompleted = Boolean(
     schoolData?.onboarding_completed ||
       schoolData?.onboarding_complete ||
@@ -295,22 +278,12 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const onboardingSessionKey =
-      typeof window !== "undefined" && school?.id && user?.id
-        ? `onboarding_shown_${school.id}|${user.id}`
-        : null;
+      typeof window !== "undefined" && school?.id && user?.id ? `onboarding_shown_${school.id}|${user.id}` : null;
 
-    if (
-      school &&
-      !onboardingCompleted &&
-      user?.role === "school_admin" &&
-      !isBillingPath &&
-      isDashboardHome
-    ) {
+    if (school && !onboardingCompleted && user?.role === "school_admin" && !isBillingPath && isDashboardHome) {
       // Avoid reopening onboarding on every refresh/navigation in a session.
       const alreadyShown =
-        typeof window !== "undefined" && onboardingSessionKey
-          ? sessionStorage.getItem(onboardingSessionKey)
-          : null;
+        typeof window !== "undefined" && onboardingSessionKey ? sessionStorage.getItem(onboardingSessionKey) : null;
 
       if (!alreadyShown && onboardingSessionKey) {
         sessionStorage.setItem(onboardingSessionKey, "1");
@@ -319,26 +292,15 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         setShowOnboarding(false);
       }
       setShowPostSetup(false);
-    } else if (
-      school &&
-      onboardingCompleted &&
-      user?.role === "school_admin" &&
-      isDashboardHome
-    ) {
+    } else if (school && onboardingCompleted && user?.role === "school_admin" && isDashboardHome) {
       setShowOnboarding(false);
       if (typeof window !== "undefined" && onboardingSessionKey) {
         sessionStorage.removeItem(onboardingSessionKey);
       }
 
       // Only auto-open the post-setup panel once per browser session.
-      const sessionKey = user?.id
-        ? `post_setup_shown_${school.id}|${user.id}`
-        : null;
-      if (
-        typeof window !== "undefined" &&
-        sessionKey &&
-        !sessionStorage.getItem(sessionKey)
-      ) {
+      const sessionKey = user?.id ? `post_setup_shown_${school.id}|${user.id}` : null;
+      if (typeof window !== "undefined" && sessionKey && !sessionStorage.getItem(sessionKey)) {
         sessionStorage.setItem(sessionKey, "1");
         setShowPostSetup(true);
       }
@@ -348,15 +310,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     }
 
     // Show go-live gate once per session for school_admins who completed onboarding
-    if (
-      school &&
-      onboardingCompleted &&
-      user?.role === "school_admin" &&
-      isDashboardHome
-    ) {
-      const goLiveKey = user?.id
-        ? `golive_shown_${school.id}|${user.id}`
-        : null;
+    if (school && onboardingCompleted && user?.role === "school_admin" && isDashboardHome) {
+      const goLiveKey = user?.id ? `golive_shown_${school.id}|${user.id}` : null;
       if (
         typeof window !== "undefined" &&
         goLiveKey &&
@@ -374,7 +329,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     }
   }, [currentPath, isDashboardHome, onboardingCompleted, user?.role, user?.id, school, isBillingPath]);
 
-// Show minimal loading bar while auth is initializing.
+  // Show minimal loading bar while auth is initializing.
   if (!authInitialized) {
     return <MinimalLoadingScreen message="Verifying your session..." />;
   }
@@ -393,12 +348,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     <ErrorBoundary>
       {showInlineLoading && <TopLoadingBar />}
       {showStuckLoading && <StuckLoadingOverlay />}
-      {showWarning && (
-        <SessionTimeoutWarning
-          remainingTime={remainingTime}
-          onExtend={extendSession}
-        />
-      )}
+      {showWarning && <SessionTimeoutWarning remainingTime={remainingTime} onExtend={extendSession} />}
       <OfflineIndicator />
       {isTrialExpired && <ExpiredNotice />}
 
@@ -415,9 +365,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         />
       )}
 
-      {showPostSetup && !showOnboarding && (
-        <PostOnboardingSetup onComplete={() => setShowPostSetup(false)} />
-      )}
+      {showPostSetup && !showOnboarding && <PostOnboardingSetup onComplete={() => setShowPostSetup(false)} />}
 
       {showGoLive && !showOnboarding && !showPostSetup && (
         <GoLiveGate
@@ -446,15 +394,19 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
           )}
           <TrialBanner />
           <PageErrorBoundary>
-            <Suspense fallback={<div className="flex justify-center p-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-900" /></div>}>
+            <Suspense
+              fallback={
+                <div className="flex justify-center p-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-900" />
+                </div>
+              }
+            >
               {children}
             </Suspense>
           </PageErrorBoundary>
           <footer className="mt-auto px-4 py-3 border-t border-[var(--border)] bg-[var(--surface)] text-center">
             <p className="text-[11px] text-[var(--t4)]">
-              Developed by{" "}
-              <span className="font-semibold text-[var(--t3)]">IMAC Enterprises</span>
-              {" "}·{" "}Powered by{" "}
+              Developed by <span className="font-semibold text-[var(--t3)]">IMAC Enterprises</span> · Powered by{" "}
               <span className="font-semibold text-[var(--t3)]">Omuto Foundation</span>
             </p>
           </footer>
@@ -484,11 +436,7 @@ function SidebarOverlay() {
   );
 }
 
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <SidebarProvider>
       <DashboardContent>{children}</DashboardContent>

@@ -158,9 +158,14 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> = dee
           icon: "calendar_today",
         },
         {
+          href: "/dashboard/subjects",
+          label: "Subjects",
+          icon: "menu_book",
+        },
+        {
           href: "/dashboard/courses",
           label: "Courses",
-          icon: "menu_book",
+          icon: "school",
         },
         { href: "/dashboard/bulk-sms", label: "SMS Centre", icon: "sms" },
       ],
@@ -331,6 +336,11 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> = dee
       label: "Academics",
       defaultOpen: false,
       items: [
+        {
+          href: "/dashboard/subjects",
+          label: "Subjects",
+          icon: "menu_book",
+        },
         {
           href: "/dashboard/attendance",
           label: "Attendance",

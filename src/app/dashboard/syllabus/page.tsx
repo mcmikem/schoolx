@@ -60,15 +60,23 @@ export default function SyllabusPage() {
 
   const getNDCCTopics = async (): Promise<NSDCTopic[]> => {
     const className = classes.find((c) => c.id === selectedClass)?.name || "";
-    const subjectName =
-      subjects.find((s) => s.id === selectedSubject)?.name || "";
+    const subjectName = subjects.find((s) => s.id === selectedSubject)?.name || "";
     const { stage, level } = resolveCurriculumStage(className);
 
     const {
-      P1_ALL_SUBJECTS, P2_ALL_SUBJECTS, P3_ALL_SUBJECTS,
-      P4_ALL_SUBJECTS, P5_ALL_SUBJECTS, P6_ALL_SUBJECTS, P7_ALL_SUBJECTS,
-      S1_ALL_SUBJECTS, S2_ALL_SUBJECTS, S3_ALL_SUBJECTS,
-      S4_ALL_SUBJECTS, S5_ALL_SUBJECTS, S6_ALL_SUBJECTS,
+      P1_ALL_SUBJECTS,
+      P2_ALL_SUBJECTS,
+      P3_ALL_SUBJECTS,
+      P4_ALL_SUBJECTS,
+      P5_ALL_SUBJECTS,
+      P6_ALL_SUBJECTS,
+      P7_ALL_SUBJECTS,
+      S1_ALL_SUBJECTS,
+      S2_ALL_SUBJECTS,
+      S3_ALL_SUBJECTS,
+      S4_ALL_SUBJECTS,
+      S5_ALL_SUBJECTS,
+      S6_ALL_SUBJECTS,
     } = await import("@/lib/ndc-syllabus");
 
     const primaryMap: Record<number, NSDCTopic[]> = {
@@ -91,15 +99,9 @@ export default function SyllabusPage() {
     };
 
     const source =
-      stage === "primary"
-        ? primaryMap[level] || []
-        : stage === "secondary"
-          ? secondaryMap[level] || []
-          : [];
+      stage === "primary" ? primaryMap[level] || [] : stage === "secondary" ? secondaryMap[level] || [] : [];
 
-    return source.filter((topic) =>
-      subjectNamesMatch(topic.subject, subjectName),
-    );
+    return source.filter((topic) => subjectNamesMatch(topic.subject, subjectName));
   };
 
   const handleAutoPopulate = async () => {
@@ -108,33 +110,36 @@ export default function SyllabusPage() {
     try {
       const targetYear = buildAcademicYear(academicYear);
       const termNumber = Number(selectedTerm);
-      const ncdcTopics = (await getNDCCTopics()).filter(
-        (topic) => topic.term === termNumber,
-      );
+      const ncdcTopics = (await getNDCCTopics()).filter((topic) => topic.term === termNumber);
 
       if (ncdcTopics.length === 0) {
         toast.error("No NCDC topics found for this class, subject, and term");
         return;
       }
 
-      const { data: existingRows, error: existingError } = await supabase
-        .from("syllabus")
-        .select("topic")
-        .eq("school_id", school.id)
-        .eq("class_id", selectedClass)
-        .eq("subject_id", selectedSubject)
-        .eq("term", termNumber)
-        .eq("academic_year", targetYear);
-
-      if (existingError) throw existingError;
+      const { withTimeout: wt2, timeoutFallback: tf2 } = await import("@/lib/hooks/utils");
+      const { data: existingRows, error: existingError } = await wt2(
+        supabase
+          .from("syllabus")
+          .select("topic")
+          .eq("school_id", school.id)
+          .eq("class_id", selectedClass)
+          .eq("subject_id", selectedSubject)
+          .eq("term", termNumber)
+          .eq("academic_year", targetYear)
+          .then((r) => {
+            if (r.error) throw r.error;
+            return r;
+          }),
+        8000,
+        { data: [], error: null } as any,
+      );
 
       const existingTopics = new Set(
-        (existingRows || []).map((row) => row.topic.trim().toLowerCase()),
+        ((existingRows as any[]) || []).map((row: { topic: string }) => row.topic.trim().toLowerCase()),
       );
       const toInsert = ncdcTopics
-        .filter(
-          (topic) => !existingTopics.has(topic.topic.trim().toLowerCase()),
-        )
+        .filter((topic) => !existingTopics.has(topic.topic.trim().toLowerCase()))
         .map((topic) => ({
           school_id: school.id,
           class_id: selectedClass,
@@ -155,12 +160,8 @@ export default function SyllabusPage() {
         return;
       }
 
-      const { withTimeout, timeoutFallback } = await import('@/lib/hooks/utils');
-      const sylResult = await withTimeout(
-        supabase.from("syllabus").insert(toInsert),
-        15000,
-        timeoutFallback()
-      );
+      const { withTimeout, timeoutFallback } = await import("@/lib/hooks/utils");
+      const sylResult = await withTimeout(supabase.from("syllabus").insert(toInsert), 15000, timeoutFallback());
       const error = sylResult?.error;
       if (error) throw error;
       toast.success(`Added ${toInsert.length} NCDC topics`);
@@ -185,19 +186,26 @@ export default function SyllabusPage() {
     try {
       const targetYear = buildAcademicYear(academicYear);
       const termNumber = Number(selectedTerm);
-      const { data: syllabus, error } = await supabase
-        .from("syllabus")
-        .select("*, topic_coverage(status, completed_date, notes)")
-        .eq("school_id", school.id)
-        .eq("class_id", selectedClass)
-        .eq("subject_id", selectedSubject)
-        .eq("term", termNumber)
-        .eq("academic_year", targetYear)
-        .order("created_at");
+      const { withTimeout: wt, timeoutFallback: tf } = await import("@/lib/hooks/utils");
+      const { data: syllabus, error } = await wt(
+        supabase
+          .from("syllabus")
+          .select("*, topic_coverage(status, completed_date, notes)")
+          .eq("school_id", school.id)
+          .eq("class_id", selectedClass)
+          .eq("subject_id", selectedSubject)
+          .eq("term", termNumber)
+          .eq("academic_year", targetYear)
+          .order("created_at")
+          .then((r) => {
+            if (r.error) throw r.error;
+            return r;
+          }),
+        10000,
+        { data: [], error: null } as any,
+      );
 
-      if (error) throw error;
-
-      const processed = (syllabus || []).map((row) => ({
+      const processed = ((syllabus as any[]) || []).map((row: any) => ({
         ...row,
         subtopics: parseStoredSubtopics(row.subtopics),
         status: row.topic_coverage?.[0]?.status || "not_started",
@@ -212,14 +220,7 @@ export default function SyllabusPage() {
     } finally {
       setLoading(false);
     }
-  }, [
-    school?.id,
-    selectedClass,
-    selectedSubject,
-    selectedTerm,
-    academicYear,
-    toast,
-  ]);
+  }, [school?.id, selectedClass, selectedSubject, selectedTerm, academicYear, toast]);
 
   useEffect(() => {
     if (selectedClass && selectedSubject) {
@@ -233,37 +234,46 @@ export default function SyllabusPage() {
 
     setSaving(true);
     try {
-      const { data: syllabus, error } = await supabase
-        .from("syllabus")
-        .insert({
-          school_id: school.id,
-          class_id: selectedClass,
-          subject_id: selectedSubject,
-          topic: newTopic.topic,
-          subtopics: newTopic.subtopics
-            ? JSON.stringify(
-                newTopic.subtopics.split("\n").filter((t) => t.trim()),
-              )
-            : null,
-          objectives: newTopic.objectives || null,
-          weeks_covered: newTopic.weeks_covered || null,
-          resources: newTopic.resources || null,
-          term: Number(selectedTerm),
-          academic_year: buildAcademicYear(academicYear),
-          created_by: user.id,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
+      const { withTimeout: wt, timeoutFallback: tf } = await import("@/lib/hooks/utils");
+      const { data: syllabus, error } = await wt(
+        supabase
+          .from("syllabus")
+          .insert({
+            school_id: school.id,
+            class_id: selectedClass,
+            subject_id: selectedSubject,
+            topic: newTopic.topic,
+            subtopics: newTopic.subtopics
+              ? JSON.stringify(newTopic.subtopics.split("\n").filter((t) => t.trim()))
+              : null,
+            objectives: newTopic.objectives || null,
+            weeks_covered: newTopic.weeks_covered || null,
+            resources: newTopic.resources || null,
+            term: Number(selectedTerm),
+            academic_year: buildAcademicYear(academicYear),
+            created_by: user.id,
+          })
+          .select()
+          .single()
+          .then((r) => {
+            if (r.error) throw r.error;
+            return r;
+          }),
+        10000,
+        tf(),
+      );
 
       // Create initial topic coverage
-      await supabase.from("topic_coverage").insert({
-        syllabus_id: syllabus.id,
-        class_id: selectedClass,
-        teacher_id: user.id,
-        status: "not_started",
-      });
+      await wt(
+        supabase.from("topic_coverage").insert({
+          syllabus_id: syllabus.id,
+          class_id: selectedClass,
+          teacher_id: user.id,
+          status: "not_started",
+        }),
+        8000,
+        tf(),
+      );
 
       toast.success("Topic added to syllabus");
       setShowAddModal(false);
@@ -283,46 +293,55 @@ export default function SyllabusPage() {
     }
   };
 
-  const updateStatus = async (
-    topicId: string,
-    status: "not_started" | "in_progress" | "completed",
-  ) => {
+  const updateStatus = async (topicId: string, status: "not_started" | "in_progress" | "completed") => {
     setSaving(true);
     try {
+      const { withTimeout: wt, timeoutFallback: tf } = await import("@/lib/hooks/utils");
       const updateData: any = {
         status,
-        completed_date:
-          status === "completed"
-            ? new Date().toISOString().split("T")[0]
-            : null,
+        completed_date: status === "completed" ? new Date().toISOString().split("T")[0] : null,
       };
 
-      const { data: existingCoverage, error: coverageError } = await supabase
-        .from("topic_coverage")
-        .select("id")
-        .eq("syllabus_id", topicId)
-        .limit(1)
-        .maybeSingle();
+      const { data: existingCoverage, error: coverageError } = await wt(
+        supabase
+          .from("topic_coverage")
+          .select("id")
+          .eq("syllabus_id", topicId)
+          .limit(1)
+          .maybeSingle()
+          .then((r) => {
+            if (r.error) throw r.error;
+            return r;
+          }),
+        8000,
+        { data: null, error: null } as any,
+      );
 
       if (coverageError) throw coverageError;
 
       if (existingCoverage?.id) {
-        const { error } = await supabase
-          .from("topic_coverage")
-          .update({
-            ...updateData,
-            teacher_id: user?.id || null,
-          })
-          .eq("id", existingCoverage.id);
-        if (error) throw error;
+        await wt(
+          supabase
+            .from("topic_coverage")
+            .update({
+              ...updateData,
+              teacher_id: user?.id || null,
+            })
+            .eq("id", existingCoverage.id),
+          8000,
+          tf(),
+        );
       } else {
-        const { error } = await supabase.from("topic_coverage").insert({
-          syllabus_id: topicId,
-          class_id: selectedClass,
-          teacher_id: user?.id || null,
-          ...updateData,
-        });
-        if (error) throw error;
+        await wt(
+          supabase.from("topic_coverage").insert({
+            syllabus_id: topicId,
+            class_id: selectedClass,
+            teacher_id: user?.id || null,
+            ...updateData,
+          }),
+          8000,
+          tf(),
+        );
       }
 
       fetchSyllabus();
@@ -357,9 +376,12 @@ export default function SyllabusPage() {
         </div>
         <h2 className="text-xl font-bold text-[var(--t1)] mb-2">Upgrade to Access Syllabus</h2>
         <p className="text-[var(--t3)] text-center max-w-md mb-6">
-          NCDC Syllabus Tracking is available on the Growth plan and above. Upgrade to track NCDC curriculum coverage across your classes.
+          NCDC Syllabus Tracking is available on the Growth plan and above. Upgrade to track NCDC curriculum coverage
+          across your classes.
         </p>
-        <a href="/dashboard/settings?tab=subscription" className="btn-primary">View Plans</a>
+        <a href="/dashboard/settings?tab=subscription" className="btn-primary">
+          View Plans
+        </a>
       </div>
     );
   }
@@ -369,17 +391,10 @@ export default function SyllabusPage() {
       <div className="p-4 sm:p-6 lg:p-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-[#002045]">
-              Syllabus & Topics
-            </h1>
-            <p className="text-[#5c6670] mt-1">
-              Track curriculum coverage per subject
-            </p>
+            <h1 className="text-2xl font-bold text-[#002045]">Syllabus & Topics</h1>
+            <p className="text-[#5c6670] mt-1">Track curriculum coverage per subject</p>
           </div>
-          <Button
-            onClick={() => setShowAddModal(true)}
-            disabled={!selectedClass || !selectedSubject}
-          >
+          <Button onClick={() => setShowAddModal(true)} disabled={!selectedClass || !selectedSubject}>
             <MaterialIcon icon="add" style={{ fontSize: "16px" }} />
             Add Topic
           </Button>
@@ -445,27 +460,19 @@ export default function SyllabusPage() {
         {selectedClass && selectedSubject && topics.length > 0 && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             <div className="bg-[#f8fbff] rounded-xl p-4 border border-[#e5e9f0]">
-              <div className="text-2xl font-bold text-[#17325F]">
-                {stats.total}
-              </div>
+              <div className="text-2xl font-bold text-[#17325F]">{stats.total}</div>
               <div className="text-xs text-[#5c6670]">Total Topics</div>
             </div>
             <div className="bg-[#f0fdf4] rounded-xl p-4 border border-[#dcfce7]">
-              <div className="text-2xl font-bold text-[#166534]">
-                {stats.completed}
-              </div>
+              <div className="text-2xl font-bold text-[#166534]">{stats.completed}</div>
               <div className="text-xs text-[#5c6670]">Completed</div>
             </div>
             <div className="bg-[#fffbeb] rounded-xl p-4 border border-[#fef3c7]">
-              <div className="text-2xl font-bold text-[#92400e]">
-                {stats.inProgress}
-              </div>
+              <div className="text-2xl font-bold text-[#92400e]">{stats.inProgress}</div>
               <div className="text-xs text-[#5c6670]">In Progress</div>
             </div>
             <div className="bg-[#f0f9ff] rounded-xl p-4 border border-[#cffafe]">
-              <div className="text-2xl font-bold text-[#0e7490]">
-                {stats.percentage}%
-              </div>
+              <div className="text-2xl font-bold text-[#0e7490]">{stats.percentage}%</div>
               <div className="text-xs text-[#5c6670]">Coverage</div>
             </div>
           </div>
@@ -478,21 +485,14 @@ export default function SyllabusPage() {
           </div>
         ) : !selectedClass || !selectedSubject ? (
           <div className="text-center py-12 text-[#5c6670]">
-            <MaterialIcon style={{ fontSize: 48, opacity: 0.5 }}>
-              menu_book
-            </MaterialIcon>
+            <MaterialIcon style={{ fontSize: 48, opacity: 0.5 }}>menu_book</MaterialIcon>
             <p className="mt-2">Select a class and subject to view syllabus</p>
           </div>
         ) : topics.length === 0 ? (
           <div className="text-center py-12 text-[#5c6670]">
-            <MaterialIcon style={{ fontSize: 48, opacity: 0.5 }}>
-              menu_book
-            </MaterialIcon>
+            <MaterialIcon style={{ fontSize: 48, opacity: 0.5 }}>menu_book</MaterialIcon>
             <p className="mt-2">No topics added yet</p>
-            <Button
-              onClick={() => setShowAddModal(true)}
-              className="mt-4"
-            >
+            <Button onClick={() => setShowAddModal(true)} className="mt-4">
               Add First Topic
             </Button>
           </div>
@@ -513,21 +513,12 @@ export default function SyllabusPage() {
                 .filter(
                   (t) =>
                     !searchQuery ||
-                    t.topic
-                      ?.toLowerCase()
-                      .includes(searchQuery.toLowerCase()) ||
-                    t.subtopics?.some((s) =>
-                      s.toLowerCase().includes(searchQuery.toLowerCase()),
-                    ) ||
-                    t.objectives
-                      ?.toLowerCase()
-                      .includes(searchQuery.toLowerCase()),
+                    t.topic?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                    t.subtopics?.some((s) => s.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                    t.objectives?.toLowerCase().includes(searchQuery.toLowerCase()),
                 )
                 .map((topic) => (
-                  <div
-                    key={topic.id}
-                    className="bg-white rounded-xl border border-gray-200 p-4"
-                  >
+                  <div key={topic.id} className="bg-white rounded-xl border border-gray-200 p-4">
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
@@ -546,27 +537,16 @@ export default function SyllabusPage() {
                                 ? "◐ In Progress"
                                 : "○ Not Started"}
                           </span>
-                          {topic.weeks_covered && (
-                            <span className="text-xs text-[#5c6670]">
-                              {topic.weeks_covered}
-                            </span>
-                          )}
+                          {topic.weeks_covered && <span className="text-xs text-[#5c6670]">{topic.weeks_covered}</span>}
                         </div>
-                        <h3 className="font-semibold text-[#17325F]">
-                          {topic.topic}
-                        </h3>
+                        <h3 className="font-semibold text-[#17325F]">{topic.topic}</h3>
                         {topic.objectives && (
-                          <p className="text-sm text-[#5c6670] mt-1">
-                            Objectives: {topic.objectives}
-                          </p>
+                          <p className="text-sm text-[#5c6670] mt-1">Objectives: {topic.objectives}</p>
                         )}
                         {topic.subtopics && topic.subtopics.length > 0 && (
                           <div className="mt-2 flex flex-wrap gap-1">
                             {topic.subtopics.map((sub: string, i: number) => (
-                              <span
-                                key={i}
-                                className="px-2 py-0.5 bg-gray-50 rounded text-xs text-[#5c6670]"
-                              >
+                              <span key={i} className="px-2 py-0.5 bg-gray-50 rounded text-xs text-[#5c6670]">
                                 {sub}
                               </span>
                             ))}
@@ -575,28 +555,28 @@ export default function SyllabusPage() {
                         {topic.competency_focus && (
                           <div className="mt-2 flex items-center gap-2 text-xs">
                             <span className="font-medium text-[var(--t2)]">Competency:</span>
-                            <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">{topic.competency_focus}</span>
+                            <span className="px-2 py-0.5 rounded-full bg-blue-50 text-blue-700">
+                              {topic.competency_focus}
+                            </span>
                           </div>
                         )}
-                        {topic.cross_cutting_theme && Array.isArray(topic.cross_cutting_theme) && topic.cross_cutting_theme.length > 0 && (
-                          <div className="mt-1 flex items-center gap-2 text-xs">
-                            <span className="font-medium text-[var(--t2)]">Cross-cutting:</span>
-                            {topic.cross_cutting_theme.map((theme: string) => (
-                              <span key={theme} className="px-2 py-0.5 rounded-full bg-green-50 text-green-700">{theme}</span>
-                            ))}
-                          </div>
-                        )}
+                        {topic.cross_cutting_theme &&
+                          Array.isArray(topic.cross_cutting_theme) &&
+                          topic.cross_cutting_theme.length > 0 && (
+                            <div className="mt-1 flex items-center gap-2 text-xs">
+                              <span className="font-medium text-[var(--t2)]">Cross-cutting:</span>
+                              {topic.cross_cutting_theme.map((theme: string) => (
+                                <span key={theme} className="px-2 py-0.5 rounded-full bg-green-50 text-green-700">
+                                  {theme}
+                                </span>
+                              ))}
+                            </div>
+                          )}
                       </div>
                       <select
                         value={topic.status}
                         onChange={(e) =>
-                          updateStatus(
-                            topic.id,
-                            e.target.value as
-                              | "not_started"
-                              | "in_progress"
-                              | "completed",
-                          )
+                          updateStatus(topic.id, e.target.value as "not_started" | "in_progress" | "completed")
                         }
                         className="text-sm border rounded-lg px-2 py-1"
                       >
@@ -627,21 +607,15 @@ export default function SyllabusPage() {
           <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
             <div className="bg-white rounded-2xl w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
               <div className="p-6 border-b border-gray-200">
-                <h2 className="text-xl font-bold text-[#17325F]">
-                  Add Syllabus Topic
-                </h2>
+                <h2 className="text-xl font-bold text-[#17325F]">Add Syllabus Topic</h2>
               </div>
               <form onSubmit={handleAddTopic} className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-[#17325F] mb-1">
-                    Topic Name *
-                  </label>
+                  <label className="block text-sm font-medium text-[#17325F] mb-1">Topic Name *</label>
                   <input
                     type="text"
                     value={newTopic.topic}
-                    onChange={(e) =>
-                      setNewTopic({ ...newTopic, topic: e.target.value })
-                    }
+                    onChange={(e) => setNewTopic({ ...newTopic, topic: e.target.value })}
                     className="w-full px-4 py-2.5 rounded-xl border border-gray-200"
                     placeholder="e.g., Introduction to Fractions"
                     required
@@ -649,9 +623,7 @@ export default function SyllabusPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-[#17325F] mb-1">
-                      Weeks
-                    </label>
+                    <label className="block text-sm font-medium text-[#17325F] mb-1">Weeks</label>
                     <input
                       type="text"
                       value={newTopic.weeks_covered}
@@ -666,43 +638,31 @@ export default function SyllabusPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-[#17325F] mb-1">
-                      Resources
-                    </label>
+                    <label className="block text-sm font-medium text-[#17325F] mb-1">Resources</label>
                     <input
                       type="text"
                       value={newTopic.resources}
-                      onChange={(e) =>
-                        setNewTopic({ ...newTopic, resources: e.target.value })
-                      }
+                      onChange={(e) => setNewTopic({ ...newTopic, resources: e.target.value })}
                       className="w-full px-4 py-2.5 rounded-xl border border-gray-200"
                       placeholder="e.g., Charts, Workbook"
                     />
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-[#17325F] mb-1">
-                    Learning Objectives
-                  </label>
+                  <label className="block text-sm font-medium text-[#17325F] mb-1">Learning Objectives</label>
                   <textarea
                     value={newTopic.objectives}
-                    onChange={(e) =>
-                      setNewTopic({ ...newTopic, objectives: e.target.value })
-                    }
+                    onChange={(e) => setNewTopic({ ...newTopic, objectives: e.target.value })}
                     className="w-full px-4 py-2.5 rounded-xl border border-gray-200"
                     placeholder="What students will learn..."
                     rows={2}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-[#17325F] mb-1">
-                    Subtopics (one per line)
-                  </label>
+                  <label className="block text-sm font-medium text-[#17325F] mb-1">Subtopics (one per line)</label>
                   <textarea
                     value={newTopic.subtopics}
-                    onChange={(e) =>
-                      setNewTopic({ ...newTopic, subtopics: e.target.value })
-                    }
+                    onChange={(e) => setNewTopic({ ...newTopic, subtopics: e.target.value })}
                     className="w-full px-4 py-2.5 rounded-xl border border-gray-200"
                     placeholder="Parts of a fraction&#10;Equivalent fractions&#10;Adding fractions"
                     rows={4}

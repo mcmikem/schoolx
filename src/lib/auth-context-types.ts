@@ -34,6 +34,7 @@ export const DEMO_ALLOWED_ROLES: string[] = [
   "dorm_master",
   "parent",
   "marketer",
+  "student",
 ];
 
 export function sanitizeDemoRole(raw: unknown): User["role"] {

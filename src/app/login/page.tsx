@@ -76,7 +76,13 @@ export default function LoginPage() {
   useEffect(() => {
     if (!authInitialized || !user) return;
     const destination =
-      user.role === "super_admin" ? "/super-admin" : user.role === "parent" ? "/parent-portal" : "/dashboard";
+      user.role === "super_admin"
+        ? "/super-admin"
+        : user.role === "parent"
+          ? "/parent-portal"
+          : user.role === "student"
+            ? "/student-portal"
+            : "/dashboard";
     router.replace(destination);
   }, [authInitialized, user, router]);
 

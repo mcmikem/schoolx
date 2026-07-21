@@ -6,9 +6,7 @@ import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { logger } from "@/lib/logger";
 import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
-import type {
-  AutoPlannerConfig,
-} from "@/lib/syllabus-planner-utils";
+import type { AutoPlannerConfig } from "@/lib/syllabus-planner-utils";
 
 export interface SyllabusTopicWithCoverage {
   id: string;
@@ -64,7 +62,7 @@ export function useSyllabusTracker(
   classId: string | undefined,
   subjectId: string | undefined,
   termNumber: number | string = 1,
-  academicYear: string = new Date().getFullYear().toString()
+  academicYear: string = new Date().getFullYear().toString(),
 ) {
   const [syllabi, setSyllabi] = useState<SyllabusTopicWithCoverage[]>([]);
   const [loading, setLoading] = useState(false);
@@ -87,13 +85,42 @@ export function useSyllabusTracker(
           .eq("term", termNumber)
           .eq("academic_year", academicYear),
         5000,
-        timeoutFallback()
+        timeoutFallback(),
       );
 
       if (err) throw err;
 
+      // Fetch timeline data
+      const { data: timelineData } = await withTimeout(
+        supabase
+          .from("syllabus_timeline")
+          .select("*")
+          .eq("school_id", schoolId)
+          .eq("class_id", classId)
+          .eq("subject_id", subjectId)
+          .eq("term", termNumber)
+          .eq("academic_year", academicYear)
+          .order("week_number", { ascending: true }),
+        5000,
+        timeoutFallback(),
+      );
+
+      const timelineMap = new Map<string, typeof timelineData>();
+      if (timelineData) {
+        for (const entry of timelineData as any[]) {
+          const existing = timelineMap.get(entry.syllabus_id) || [];
+          existing.push(entry);
+          timelineMap.set(entry.syllabus_id, existing);
+        }
+      }
+
       const mapped = (data || []).map((row: any) => {
         const cov = row.topic_coverage?.[0] || {};
+        const timeline = timelineMap.get(row.id) || [];
+        const weeksTotal = timeline.length;
+        const weeksCompleted = timeline.filter((t: any) => t.status === "completed").length;
+        const overallPercentage = weeksTotal > 0 ? Math.round((weeksCompleted / weeksTotal) * 100) : 0;
+
         return {
           id: row.id,
           topic: row.topic,
@@ -111,6 +138,22 @@ export function useSyllabusTracker(
           teacher_notes: cov.teacher_notes || null,
           challenges: cov.challenges || null,
           week_number: cov.week_number || null,
+          progress: {
+            overall_percentage: overallPercentage,
+            weeks_completed: weeksCompleted,
+            weeks_total: weeksTotal,
+            on_track: overallPercentage >= 50,
+          },
+          timeline: timeline.map((t: any) => ({
+            id: t.id,
+            week_number: t.week_number,
+            status: t.status,
+            completion_percentage: t.completion_percentage || 0,
+            planned_start_date: t.planned_start_date,
+            planned_end_date: t.planned_end_date,
+            lessons_planned: t.lessons_planned || 0,
+            lessons_completed: t.lessons_completed || 0,
+          })),
         };
       });
 
@@ -140,7 +183,7 @@ export function useSyllabusTimeline(
   classId: string | undefined,
   subjectId: string | undefined,
   termNumber: number | string = 1,
-  academicYear: string = new Date().getFullYear().toString()
+  academicYear: string = new Date().getFullYear().toString(),
 ) {
   const [coverage, setCoverage] = useState<SyllabusTopicWithCoverage[]>([]);
   const [loading, setLoading] = useState(false);
@@ -161,7 +204,7 @@ export function useSyllabusTimeline(
           .eq("academic_year", academicYear)
           .order("topic", { ascending: true }),
         5000,
-        timeoutFallback()
+        timeoutFallback(),
       );
 
       if (err) throw err;
@@ -200,7 +243,7 @@ export function useSyllabusTimeline(
     async (
       syllabusId: string,
       status: "not_started" | "in_progress" | "completed",
-      completion_percentage: number = 0
+      completion_percentage: number = 0,
     ) => {
       try {
         const existing = coverage.find((c) => c.id === syllabusId);
@@ -212,27 +255,20 @@ export function useSyllabusTimeline(
               .update({
                 status,
                 completion_percentage,
-                completed_date:
-                  status === "completed"
-                    ? new Date().toISOString().split("T")[0]
-                    : null,
+                completed_date: status === "completed" ? new Date().toISOString().split("T")[0] : null,
                 updated_at: new Date().toISOString(),
               })
               .eq("syllabus_id", syllabusId)
               .select()
               .single(),
             5000,
-            timeoutFallback()
+            timeoutFallback(),
           );
 
           if (err) throw err;
 
           setCoverage((prev) =>
-            prev.map((item) =>
-              item.id === syllabusId
-                ? { ...item, status, completion_percentage }
-                : item
-            )
+            prev.map((item) => (item.id === syllabusId ? { ...item, status, completion_percentage } : item)),
           );
 
           return data;
@@ -245,15 +281,12 @@ export function useSyllabusTimeline(
                 class_id: classId,
                 status,
                 completion_percentage,
-                completed_date:
-                  status === "completed"
-                    ? new Date().toISOString().split("T")[0]
-                    : null,
+                completed_date: status === "completed" ? new Date().toISOString().split("T")[0] : null,
               })
               .select()
               .single(),
             5000,
-            timeoutFallback()
+            timeoutFallback(),
           );
 
           if (err) throw err;
@@ -264,7 +297,7 @@ export function useSyllabusTimeline(
         throw err;
       }
     },
-    [coverage, classId]
+    [coverage, classId],
   );
 
   useEffect(() => {
@@ -286,7 +319,7 @@ export function useTopicPerformance(
   _classId: string | undefined,
   _subjectId: string | undefined,
   _termNumber: number | string = 1,
-  _academicYear: string = new Date().getFullYear().toString()
+  _academicYear: string = new Date().getFullYear().toString(),
 ) {
   return {
     performance: [] as TopicPerformance[],
@@ -322,13 +355,9 @@ export function useAutoPlannerConfig(schoolId: string | undefined) {
 
     try {
       const { data, error: err } = await withTimeout(
-        supabase
-          .from("auto_planner_config")
-          .select("*")
-          .eq("school_id", schoolId)
-          .maybeSingle(),
+        supabase.from("auto_planner_config").select("*").eq("school_id", schoolId).maybeSingle(),
         5000,
-        timeoutFallback()
+        timeoutFallback(),
       );
 
       if (err && (err as { code?: string }).code !== "PGRST116") throw err; // PGRST116 = no rows
@@ -359,12 +388,12 @@ export function useAutoPlannerConfig(schoolId: string | undefined) {
                 ...config,
                 ...updates,
               },
-              { onConflict: "school_id" }
+              { onConflict: "school_id" },
             )
             .select()
             .single(),
           5000,
-          timeoutFallback()
+          timeoutFallback(),
         );
 
         if (err) throw err;
@@ -376,7 +405,7 @@ export function useAutoPlannerConfig(schoolId: string | undefined) {
         throw err;
       }
     },
-    [schoolId, config]
+    [schoolId, config],
   );
 
   useEffect(() => {
@@ -432,7 +461,7 @@ export function useLessonPlanGeneration(schoolId: string | undefined) {
             .select()
             .single(),
           5000,
-          timeoutFallback()
+          timeoutFallback(),
         );
 
         if (genError) throw genError;
@@ -451,7 +480,7 @@ export function useLessonPlanGeneration(schoolId: string | undefined) {
         setGenerating(false);
       }
     },
-    [schoolId]
+    [schoolId],
   );
 
   return {
@@ -461,5 +490,3 @@ export function useLessonPlanGeneration(schoolId: string | undefined) {
     generateLessonPlans,
   };
 }
-
-

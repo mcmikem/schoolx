@@ -34,20 +34,18 @@ export default function SyllabusTrackerPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   // Data hooks
-  const { syllabi, loading: syllabusLoading, refetch: refetchSyllabi } = useSyllabusTracker(
-    school?.id,
-    selectedClass,
-    selectedSubject,
-    parseInt(selectedTerm),
-    academicYear
-  );
+  const {
+    syllabi,
+    loading: syllabusLoading,
+    refetch: refetchSyllabi,
+  } = useSyllabusTracker(school?.id, selectedClass, selectedSubject, parseInt(selectedTerm), academicYear);
 
   const { performance, loading: performanceLoading } = useTopicPerformance(
     school?.id,
     selectedClass,
     selectedSubject,
     parseInt(selectedTerm),
-    academicYear
+    academicYear,
   );
 
   const { config, updateConfig } = useAutoPlannerConfig(school?.id);
@@ -64,6 +62,7 @@ export default function SyllabusTrackerPage() {
         syllabusIds: syllabi.map((s) => s.id),
         classId: selectedClass,
         subjectId: selectedSubject,
+        teacherId: user?.id,
         termNumber: parseInt(selectedTerm),
         academicYear,
         useAI: config.enable_ai_generation || false,
@@ -74,7 +73,17 @@ export default function SyllabusTrackerPage() {
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to generate lesson plans");
     }
-  }, [selectedClass, selectedSubject, syllabi, selectedTerm, academicYear, config, generateLessonPlans, refetchSyllabi, toast]);
+  }, [
+    selectedClass,
+    selectedSubject,
+    syllabi,
+    selectedTerm,
+    academicYear,
+    config,
+    generateLessonPlans,
+    refetchSyllabi,
+    toast,
+  ]);
 
   const isLoading = syllabusLoading || performanceLoading;
 
@@ -108,14 +117,8 @@ export default function SyllabusTrackerPage() {
           <div className="flex flex-wrap gap-3 items-center">
             {/* Class Filter */}
             <div className="flex-1 min-w-[200px]">
-              <label className="block text-xs font-semibold text-[var(--t3)] mb-1.5">
-                Class
-              </label>
-              <select
-                value={selectedClass}
-                onChange={(e) => setSelectedClass(e.target.value)}
-                className="input w-full"
-              >
+              <label className="block text-xs font-semibold text-[var(--t3)] mb-1.5">Class</label>
+              <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="input w-full">
                 <option value="">All Classes</option>
                 {classes.map((cls) => (
                   <option key={cls.id} value={cls.id}>
@@ -127,9 +130,7 @@ export default function SyllabusTrackerPage() {
 
             {/* Subject Filter */}
             <div className="flex-1 min-w-[200px]">
-              <label className="block text-xs font-semibold text-[var(--t3)] mb-1.5">
-                Subject
-              </label>
+              <label className="block text-xs font-semibold text-[var(--t3)] mb-1.5">Subject</label>
               <select
                 value={selectedSubject}
                 onChange={(e) => setSelectedSubject(e.target.value)}
@@ -146,14 +147,8 @@ export default function SyllabusTrackerPage() {
 
             {/* Term Filter */}
             <div className="flex-1 min-w-[150px]">
-              <label className="block text-xs font-semibold text-[var(--t3)] mb-1.5">
-                Term
-              </label>
-              <select
-                value={selectedTerm}
-                onChange={(e) => setSelectedTerm(e.target.value)}
-                className="input w-full"
-              >
+              <label className="block text-xs font-semibold text-[var(--t3)] mb-1.5">Term</label>
+              <select value={selectedTerm} onChange={(e) => setSelectedTerm(e.target.value)} className="input w-full">
                 <option value="1">Term 1</option>
                 <option value="2">Term 2</option>
                 <option value="3">Term 3</option>
@@ -165,9 +160,7 @@ export default function SyllabusTrackerPage() {
               <button
                 onClick={() => setViewMode("grid")}
                 className={`p-2 rounded transition-colors ${
-                  viewMode === "grid"
-                    ? "bg-[var(--primary)] text-white"
-                    : "text-[var(--t3)] hover:text-[var(--t2)]"
+                  viewMode === "grid" ? "bg-[var(--primary)] text-white" : "text-[var(--t3)] hover:text-[var(--t2)]"
                 }`}
                 title="Grid view"
               >
@@ -176,9 +169,7 @@ export default function SyllabusTrackerPage() {
               <button
                 onClick={() => setViewMode("list")}
                 className={`p-2 rounded transition-colors ${
-                  viewMode === "list"
-                    ? "bg-[var(--primary)] text-white"
-                    : "text-[var(--t3)] hover:text-[var(--t2)]"
+                  viewMode === "list" ? "bg-[var(--primary)] text-white" : "text-[var(--t3)] hover:text-[var(--t2)]"
                 }`}
                 title="List view"
               >
@@ -226,23 +217,13 @@ export default function SyllabusTrackerPage() {
             <div className="space-y-4">
               {syllabi.length === 0 ? (
                 <Card className="p-8 text-center">
-                  <MaterialIcon className="text-4xl text-[var(--t3)] mb-3">
-                    schedule
-                  </MaterialIcon>
-                  <p className="text-[var(--t2)] font-medium mb-2">
-                    No syllabus data available
-                  </p>
-                  <p className="text-[var(--t3)] text-sm">
-                    Select a class and subject to view syllabus timeline
-                  </p>
+                  <MaterialIcon className="text-4xl text-[var(--t3)] mb-3">schedule</MaterialIcon>
+                  <p className="text-[var(--t2)] font-medium mb-2">No syllabus data available</p>
+                  <p className="text-[var(--t3)] text-sm">Select a class and subject to view syllabus timeline</p>
                 </Card>
               ) : (
                 syllabi.map((syllabus) => (
-                  <SyllabusTimelineView
-                    key={syllabus.id}
-                    syllabus={syllabus}
-                    viewMode={viewMode}
-                  />
+                  <SyllabusTimelineView key={syllabus.id} syllabus={syllabus} viewMode={viewMode} />
                 ))
               )}
             </div>
@@ -252,20 +233,12 @@ export default function SyllabusTrackerPage() {
             <div className={viewMode === "grid" ? "grid grid-cols-1 md:grid-cols-2 gap-4" : "space-y-4"}>
               {performance.length === 0 ? (
                 <Card className="p-8 text-center col-span-full">
-                  <MaterialIcon className="text-4xl text-[var(--t3)] mb-3">
-                    trending_up
-                  </MaterialIcon>
-                  <p className="text-[var(--t2)] font-medium mb-2">
-                    No performance data yet
-                  </p>
-                  <p className="text-[var(--t3)] text-sm">
-                    Performance analytics will appear after assessments
-                  </p>
+                  <MaterialIcon className="text-4xl text-[var(--t3)] mb-3">trending_up</MaterialIcon>
+                  <p className="text-[var(--t2)] font-medium mb-2">No performance data yet</p>
+                  <p className="text-[var(--t3)] text-sm">Performance analytics will appear after assessments</p>
                 </Card>
               ) : (
-                performance.map((perf) => (
-                  <TopicPerformanceCard key={perf.id} performance={perf} />
-                ))
+                performance.map((perf) => <TopicPerformanceCard key={perf.id} performance={perf} />)
               )}
             </div>
           )}
