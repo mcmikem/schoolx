@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'skoolmate-v10';
+const CACHE_VERSION = 'skoolmate-v11';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
@@ -14,12 +14,6 @@ const PAGES_TO_CACHE = [
 
 function isNavigationRequest(request) {
   return request.mode === 'navigate' || (request.destination === 'document');
-}
-
-function isStaticAsset(url) {
-  return (
-    url.pathname.match(/\.(js|css|woff2?|ttf|eot)$/i)
-  );
 }
 
 self.addEventListener('install', (event) => {
@@ -68,16 +62,12 @@ self.addEventListener('fetch', (event) => {
   }
 
   // Never cache Next.js/Turbopack runtime chunks from SW to avoid stale module graphs.
+  // Cache /_next/ chunks cache-first (content-hashed filenames are immutable)
   if (url.hostname === location.hostname && url.pathname.startsWith('/_next/')) {
-    event.respondWith(fetch(request, { cache: 'no-store' }));
-    return;
-  }
-
-  if (isStaticAsset(url)) {
     event.respondWith(
       caches.match(request).then((cached) => {
         if (cached) return cached;
-        return fetch(request).then((response) => {
+        return fetch(request, { cache: 'no-store' }).then((response) => {
           if (response.ok) {
             const clone = response.clone();
             caches.open(STATIC_CACHE).then((cache) => cache.put(request, clone));
@@ -146,7 +136,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Static assets (JS, CSS, fonts) - network first to avoid stale app versions
+  // Other static assets (non-_next/ JS, CSS, fonts) - network first
   if (
     request.destination === 'script' ||
     request.destination === 'style' ||

@@ -65,7 +65,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
+        {process.env.NEXT_PUBLIC_SUPABASE_URL && (
+          <>
+            <link rel="dns-prefetch" href={process.env.NEXT_PUBLIC_SUPABASE_URL} />
+            <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL} />
+          </>
+        )}
+        <link
+          rel="preload"
+          as="style"
+          href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=Sora:wght@300;400;500;600;700;800&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
+        />
         <link
           href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=Sora:wght@300;400;500;600;700;800&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
           rel="stylesheet"
