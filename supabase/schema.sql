@@ -384,7 +384,7 @@ CREATE TABLE IF NOT EXISTS fee_payments (
     fee_id UUID REFERENCES fee_structure(id) ON DELETE SET NULL,
     student_fee_term_id UUID REFERENCES student_fee_terms(id) ON DELETE SET NULL,
     amount_paid NUMERIC(12,2) NOT NULL,
-    payment_method TEXT CHECK (payment_method IN ('cash', 'mobile_money', 'bank', 'installment')) NOT NULL,
+    payment_method TEXT CHECK (payment_method IN ('cash', 'mobile_money', 'bank', 'installment', 'in_kind')) NOT NULL,
     payment_reference TEXT,
     paid_by TEXT,
     notes TEXT,

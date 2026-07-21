@@ -230,7 +230,7 @@ CREATE TABLE IF NOT EXISTS fee_payments (
     student_id UUID REFERENCES students(id) ON DELETE CASCADE,
     fee_id UUID REFERENCES fee_structure(id) ON DELETE CASCADE,
     amount_paid NUMERIC(12,2) NOT NULL,
-    payment_method TEXT CHECK (payment_method IN ('cash', 'mobile_money', 'bank', 'installment')) NOT NULL,
+    payment_method TEXT CHECK (payment_method IN ('cash', 'mobile_money', 'bank', 'installment', 'in_kind')) NOT NULL,
     payment_reference TEXT,
     paid_by TEXT, -- Name of person who paid
     notes TEXT,

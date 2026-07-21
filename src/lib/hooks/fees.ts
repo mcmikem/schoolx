@@ -147,7 +147,13 @@ export function useFeePayments(schoolId?: string, page: number = 1, limit: numbe
       setCachedData(cacheKey, result);
       await offlineDB.cacheFromServer("fee_payments", (data as unknown as Record<string, unknown>[]) || []);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Unknown error");
+      const message =
+        err instanceof Error
+          ? err.message
+          : err && typeof err === "object" && "message" in err
+            ? String((err as { message: unknown }).message)
+            : "Unknown error fetching payments";
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -264,7 +270,13 @@ export function useFeePayments(schoolId?: string, page: number = 1, limit: numbe
       }
       return data as unknown as FeePayment;
     } catch (err: unknown) {
-      throw new Error(err instanceof Error ? err.message : "Unknown error");
+      const message =
+        err instanceof Error
+          ? err.message
+          : err && typeof err === "object" && "message" in err
+            ? String((err as { message: unknown }).message)
+            : "Database error recording payment";
+      throw new Error(message);
     }
   };
 
@@ -302,7 +314,13 @@ export function useFeePayments(schoolId?: string, page: number = 1, limit: numbe
         );
       }
     } catch (err: unknown) {
-      throw new Error(err instanceof Error ? err.message : "Unknown error");
+      const message =
+        err instanceof Error
+          ? err.message
+          : err && typeof err === "object" && "message" in err
+            ? String((err as { message: unknown }).message)
+            : "Database error deleting payment";
+      throw new Error(message);
     }
   };
 
