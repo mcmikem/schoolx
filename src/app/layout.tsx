@@ -16,8 +16,8 @@ export const metadata: Metadata = {
     "The all-in-one school management system built for Ugandan schools. Track attendance, grades, fees, and send parent SMS — all from one dashboard. Start your free 30-day trial today.",
   manifest: "/manifest.json",
   icons: {
-    icon: "/SkoolMate logos/SchoolMate icon.svg",
-    apple: "/SkoolMate logos/SchoolMate icon.svg",
+    icon: "/icons/icon-512x512.png",
+    apple: "/icons/apple-touch-icon.png",
   },
   appleWebApp: {
     capable: true,
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     siteName: APP_NAME,
     images: [
       {
-        url: "/SkoolMate logos/SchoolMate icon.svg",
+        url: "/icons/icon-512x512.png",
         width: 512,
         height: 512,
         alt: APP_NAME,
@@ -45,7 +45,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: `${APP_NAME} | Your Digital School Partner`,
     description: "Run your entire school from one dashboard. Attendance, grades, fees, and parent SMS.",
-    images: ["/SkoolMate logos/SchoolMate icon.svg"],
+    images: ["/icons/icon-512x512.png"],
   },
 };
 
@@ -73,8 +73,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content={APP_NAME} />
-        <link rel="apple-touch-icon" href="/SkoolMate logos/SchoolMate icon.svg" />
-        <link rel="icon" href="/SkoolMate logos/SchoolMate icon.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+        <link rel="icon" href="/icons/icon-512x512.png" type="image/png" />
       </head>
       <body
         className="antialiased min-h-screen"

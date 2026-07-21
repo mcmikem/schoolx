@@ -5,19 +5,11 @@ const PAGE_CACHE = `${CACHE_VERSION}-pages`;
 const OFFLINE_FALLBACK = '/offline.html';
 
 const PAGES_TO_CACHE = [
-  '/',
   '/login/',
   '/register/',
   '/forgot-password/',
   '/manifest.json',
   '/offline.html',
-  '/sw.js',
-];
-
-const STATIC_ASSETS = [
-  '/_next/static/chunks/main-',
-  '/_next/static/chunks/webpack-',
-  '/_next/static/css/',
 ];
 
 function isNavigationRequest(request) {
@@ -206,7 +198,7 @@ async function processSyncQueue() {
     const registration = await self.registration;
     const notification = await registration.showNotification('Syncing data...', {
       body: 'Your offline changes will be synced now.',
-      icon: '/SkoolMate logos/SchoolMate icon.svg',
+      icon: '/icons/icon-512x512.png',
       tag: 'sync-status',
     });
 
@@ -239,8 +231,8 @@ self.addEventListener('push', (event) => {
   const data = event.data.json();
   const options = {
     body: data.body || 'You have a new notification',
-    icon: '/SkoolMate logos/SchoolMate icon.svg',
-    badge: '/SkoolMate logos/SchoolMate icon.svg',
+    icon: '/icons/icon-512x512.png',
+    badge: '/icons/icon-512x512.png',
     vibrate: [100, 50, 100],
     data: data.url || '/',
     actions: data.actions || [],

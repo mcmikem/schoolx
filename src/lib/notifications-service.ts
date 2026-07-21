@@ -36,9 +36,7 @@ export function getNotificationPermission(): NotificationPermission | null {
 }
 
 // Subscribe to push notifications
-export async function subscribeToPush(
-  userId: string,
-): Promise<PushSubscription | null> {
+export async function subscribeToPush(userId: string): Promise<PushSubscription | null> {
   if (!isPushSupported()) return null;
 
   try {
@@ -86,10 +84,7 @@ export async function unsubscribeFromPush(userId: string): Promise<boolean> {
 }
 
 // Save subscription to database
-async function savePushSubscription(
-  userId: string,
-  subscription: PushSubscription,
-) {
+async function savePushSubscription(userId: string, subscription: PushSubscription) {
   const subscriptionData = {
     user_id: userId,
     endpoint: subscription.endpoint,
@@ -99,9 +94,7 @@ async function savePushSubscription(
     },
   };
 
-  await supabase
-    .from("push_subscriptions")
-    .upsert(subscriptionData, { onConflict: "user_id" });
+  await supabase.from("push_subscriptions").upsert(subscriptionData, { onConflict: "user_id" });
 }
 
 // Remove subscription from database
@@ -115,9 +108,7 @@ function urlBase64ToUint8Array(base64String: string): ArrayBuffer | null {
 
   try {
     const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-    const base64 = (base64String + padding)
-      .replace(/-/g, "+")
-      .replace(/_/g, "/");
+    const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
 
     const rawData = window.atob(base64);
     const outputArray = new Uint8Array(rawData.length);
@@ -133,14 +124,11 @@ function urlBase64ToUint8Array(base64String: string): ArrayBuffer | null {
 }
 
 // Show local notification (for testing)
-export function showLocalNotification(
-  title: string,
-  options?: NotificationOptions,
-) {
+export function showLocalNotification(title: string, options?: NotificationOptions) {
   if (Notification.permission === "granted") {
     new Notification(title, {
-      icon: "/SkoolMate logos/SchoolMate icon.svg",
-      badge: "/SkoolMate logos/SchoolMate icon.svg",
+      icon: "/icons/icon-512x512.png",
+      badge: "/icons/icon-512x512.png",
       ...options,
     });
   }
@@ -163,18 +151,11 @@ export interface NotificationPayload {
 }
 
 // Create notification payload based on type
-export function createNotificationPayload(
-  type: NotificationType,
-  data: Record<string, unknown>,
-): NotificationPayload {
-  const payloads: Record<
-    NotificationType,
-    { title: string; body: (data: Record<string, unknown>) => string }
-  > = {
+export function createNotificationPayload(type: NotificationType, data: Record<string, unknown>): NotificationPayload {
+  const payloads: Record<NotificationType, { title: string; body: (data: Record<string, unknown>) => string }> = {
     fee_reminder: {
       title: "Fee Payment Reminder",
-      body: (d) =>
-        `Balance: UGX ${d.balance?.toLocaleString()}. Due: ${d.due_date}`,
+      body: (d) => `Balance: UGX ${d.balance?.toLocaleString()}. Due: ${d.due_date}`,
     },
     attendance_alert: {
       title: "Attendance Alert",
@@ -211,6 +192,6 @@ export function createNotificationPayload(
 export function sendTestNotification() {
   showLocalNotification(`${APP_NAME} Notifications`, {
     body: "Push notifications are working!",
-    icon: "/SkoolMate logos/SchoolMate icon.svg",
+    icon: "/icons/icon-512x512.png",
   });
 }

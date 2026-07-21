@@ -11,20 +11,28 @@
   "categories": ["education", "productivity"],
   "icons": [
     {
-      "src": "/SkoolMate%20logos/SchoolMate%20icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "any maskable"
     },
     {
       "src": "/icons/icon-192x192.svg",
       "sizes": "192x192",
-      "type": "image/svg+xml"
+      "type": "image/svg+xml",
+      "purpose": "any"
     },
     {
       "src": "/icons/icon-512x512.svg",
       "sizes": "512x512",
-      "type": "image/svg+xml"
+      "type": "image/svg+xml",
+      "purpose": "any"
     }
   ],
   "shortcuts": [
@@ -32,31 +40,31 @@
       "name": "Dashboard",
       "short_name": "Dashboard",
       "url": "/dashboard/",
-      "icons": [{ "src": "/SkoolMate%20logos/SchoolMate%20icon.svg", "sizes": "any" }]
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
     },
     {
       "name": "Attendance",
       "short_name": "Attendance",
       "url": "/dashboard/attendance/",
-      "icons": [{ "src": "/SkoolMate%20logos/SchoolMate%20icon.svg", "sizes": "any" }]
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
     },
     {
       "name": "Students",
       "short_name": "Students",
       "url": "/dashboard/students/",
-      "icons": [{ "src": "/SkoolMate%20logos/SchoolMate%20icon.svg", "sizes": "any" }]
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
     },
     {
       "name": "Fees",
       "short_name": "Fees",
       "url": "/dashboard/fees/",
-      "icons": [{ "src": "/SkoolMate%20logos/SchoolMate%20icon.svg", "sizes": "any" }]
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
     },
     {
       "name": "Messages",
       "short_name": "Messages",
       "url": "/dashboard/messages/",
-      "icons": [{ "src": "/SkoolMate%20logos/SchoolMate%20icon.svg", "sizes": "any" }]
+      "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
     }
   ],
   "screenshots": [],
