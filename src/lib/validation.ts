@@ -25,7 +25,7 @@ export const smsRequestSchema = z
     message: z.string().min(1).max(1000, "Message must be 1-1000 characters"),
     schoolId: z.string().uuid("Invalid school ID"),
     studentId: z.string().uuid().optional(),
-    type: z.enum(["individual", "class", "all"]),
+    type: z.enum(["individual", "class", "all", "bulk", "staff"]),
   })
   .refine(
     (data) => {
@@ -40,7 +40,7 @@ export const smsRequestSchema = z
 export const feePaymentSchema = z.object({
   studentId: z.string().uuid(),
   amount: z.number().positive("Amount must be positive"),
-  paymentMethod: z.enum(["cash", "mobile_money", "bank", "installment"]),
+  paymentMethod: z.enum(["cash", "mobile_money", "bank", "installment", "in_kind"]),
   paymentReference: z.string().optional(),
   notes: z.string().max(500).optional(),
   schoolId: z.string().uuid(),
@@ -76,6 +76,8 @@ export const userSchema = z.object({
     "dorm_master",
     "board",
     "parent",
+    "student",
+    "marketer",
   ]),
   schoolId: z.string().uuid().optional().nullable(),
 });

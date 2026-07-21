@@ -12,14 +12,7 @@ import {
 import { logger } from "@/lib/logger";
 import { requireModuleEntitlement } from "@/lib/subscription-guard";
 
-const FEE_MGMT_ROLES = [
-  "super_admin",
-  "school_admin",
-  "admin",
-  "headmaster",
-  "secretary",
-  "bursar",
-];
+const FEE_MGMT_ROLES = ["super_admin", "school_admin", "admin", "headmaster", "secretary", "bursar"];
 
 export async function GET(request: NextRequest) {
   try {
@@ -114,11 +107,7 @@ export async function POST(request: NextRequest) {
     });
     if (!roleCheck.ok) return roleCheck.response;
 
-    const missing = validateRequiredFields(paymentData, [
-      "student_id",
-      "amount_paid",
-      "payment_method",
-    ]);
+    const missing = validateRequiredFields(paymentData, ["student_id", "amount_paid", "payment_method"]);
     if (missing) {
       return apiError(missing, 400);
     }
@@ -132,7 +121,7 @@ export async function POST(request: NextRequest) {
       return apiError("Payment amount seems too large", 400);
     }
 
-    const validMethods = ["cash", "mobile_money", "bank", "installment"];
+    const validMethods = ["cash", "mobile_money", "bank", "installment", "in_kind"];
     if (!validMethods.includes(paymentData.payment_method)) {
       return apiError("Invalid payment method", 400);
     }
@@ -170,9 +159,7 @@ export async function POST(request: NextRequest) {
       return apiError("Failed to create fee payment", 500);
     }
 
-    logger.info(
-      `Created fee payment ${data.id} (UGX ${parsedAmount}) in school ${schoolId}`,
-    );
+    logger.info(`Created fee payment ${data.id} (UGX ${parsedAmount}) in school ${schoolId}`);
 
     return apiSuccess({ id: data.id }, "Payment recorded successfully", 201);
   } catch (error) {

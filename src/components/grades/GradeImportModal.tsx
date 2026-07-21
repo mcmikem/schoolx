@@ -71,7 +71,7 @@ export function GradeImportModal({
     fixedAssessmentType: "exam",
   });
 
-  const ASSESSMENT_TYPES = ["ca1", "ca2", "ca3", "ca4", "project", "exam"];
+  const ASSESSMENT_TYPES = ["ca1", "ca2", "ca3", "ca4", "project", "exam", "competency", "u1", "u2", "eot"];
 
   const reset = useCallback(() => {
     setParsedRows([]);
@@ -172,10 +172,13 @@ export function GradeImportModal({
       setHeaders(hdrs);
 
       const lc = hdrs.map((h) => h.toLowerCase());
-      const guessStudent = lc.find((h) => h.includes("student") || h.includes("name") || h.includes("adm") || h.includes("number")) || "";
+      const guessStudent =
+        lc.find((h) => h.includes("student") || h.includes("name") || h.includes("adm") || h.includes("number")) || "";
       const guessSubject = lc.find((h) => h.includes("subject") || h.includes("course")) || "";
-      const guessScore = lc.find((h) => h.includes("score") || h.includes("mark") || h.includes("grade") || h.includes("result")) || "";
-      const guessAssessment = lc.find((h) => h.includes("assessment") || h.includes("type") || h.includes("test") || h.includes("ca")) || "";
+      const guessScore =
+        lc.find((h) => h.includes("score") || h.includes("mark") || h.includes("grade") || h.includes("result")) || "";
+      const guessAssessment =
+        lc.find((h) => h.includes("assessment") || h.includes("type") || h.includes("test") || h.includes("ca")) || "";
 
       setMapping({
         studentColumn: guessStudent ? hdrs[lc.indexOf(guessStudent)] : "",
@@ -198,9 +201,7 @@ export function GradeImportModal({
     const trimmed = value.trim().toLowerCase();
     const byNumber = students.find((s) => s.student_number.toLowerCase() === trimmed);
     if (byNumber) return byNumber;
-    const byFullName = students.find(
-      (s) => `${s.first_name} ${s.last_name}`.toLowerCase() === trimmed,
-    );
+    const byFullName = students.find((s) => `${s.first_name} ${s.last_name}`.toLowerCase() === trimmed);
     if (byFullName) return byFullName;
     const byFirstName = students.find((s) => s.first_name.toLowerCase() === trimmed);
     if (byFirstName) return byFirstName;
@@ -282,7 +283,9 @@ export function GradeImportModal({
 
       const assessmentType = assessmentVal.toLowerCase();
       if (!ASSESSMENT_TYPES.includes(assessmentType)) {
-        captureError(`Row ${i + 1}: invalid assessment type "${assessmentVal}". Must be one of: ${ASSESSMENT_TYPES.join(", ")}`);
+        captureError(
+          `Row ${i + 1}: invalid assessment type "${assessmentVal}". Must be one of: ${ASSESSMENT_TYPES.join(", ")}`,
+        );
         failed++;
         setImportProgress({ completed: i + 1, total, success, failed });
         continue;
@@ -361,14 +364,10 @@ export function GradeImportModal({
         {status === "idle" && (
           <div className="bg-surface-container-low rounded-xl p-5">
             <p className="text-sm font-medium mb-3">Upload an Excel (.xlsx) or CSV file with grade data</p>
-            <input
-              type="file"
-              accept=".csv,.xlsx"
-              className="w-full text-sm"
-              onChange={handleFileUpload}
-            />
+            <input type="file" accept=".csv,.xlsx" className="w-full text-sm" onChange={handleFileUpload} />
             <p className="text-xs text-[var(--t3)] mt-2">
-              Expected columns: student identifier (name or admission number), subject, score, assessment type (optional)
+              Expected columns: student identifier (name or admission number), subject, score, assessment type
+              (optional)
             </p>
           </div>
         )}
@@ -406,7 +405,9 @@ export function GradeImportModal({
                   >
                     <option value="">-- Select column --</option>
                     {headers.map((h) => (
-                      <option key={h} value={h}>{h}</option>
+                      <option key={h} value={h}>
+                        {h}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -419,7 +420,9 @@ export function GradeImportModal({
                   >
                     <option value="">-- Select column --</option>
                     {headers.map((h) => (
-                      <option key={h} value={h}>{h}</option>
+                      <option key={h} value={h}>
+                        {h}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -432,7 +435,9 @@ export function GradeImportModal({
                   >
                     <option value="">-- Select column --</option>
                     {headers.map((h) => (
-                      <option key={h} value={h}>{h}</option>
+                      <option key={h} value={h}>
+                        {h}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -445,7 +450,9 @@ export function GradeImportModal({
                   >
                     <option value="">-- Use fixed type below --</option>
                     {headers.map((h) => (
-                      <option key={h} value={h}>{h}</option>
+                      <option key={h} value={h}>
+                        {h}
+                      </option>
                     ))}
                   </select>
                 </div>
@@ -458,7 +465,9 @@ export function GradeImportModal({
                       onChange={(e) => updateMapping("fixedAssessmentType", e.target.value)}
                     >
                       {ASSESSMENT_TYPES.map((t) => (
-                        <option key={t} value={t}>{t.toUpperCase()}</option>
+                        <option key={t} value={t}>
+                          {t.toUpperCase()}
+                        </option>
                       ))}
                     </select>
                   </div>
@@ -475,7 +484,9 @@ export function GradeImportModal({
                   <thead>
                     <tr className="border-b border-outline-variant">
                       {headers.map((h) => (
-                        <th key={h} className="text-left py-2 px-2 font-medium text-[var(--t2)] whitespace-nowrap">{h}</th>
+                        <th key={h} className="text-left py-2 px-2 font-medium text-[var(--t2)] whitespace-nowrap">
+                          {h}
+                        </th>
                       ))}
                     </tr>
                   </thead>
@@ -483,16 +494,15 @@ export function GradeImportModal({
                     {previewRows.map((row, i) => (
                       <tr key={i} className="border-b border-outline-variant/50">
                         {headers.map((h) => (
-                          <td key={h} className="py-2 px-2 text-on-surface truncate max-w-[160px]">{row[h] || ""}</td>
+                          <td key={h} className="py-2 px-2 text-on-surface truncate max-w-[160px]">
+                            {row[h] || ""}
+                          </td>
                         ))}
                       </tr>
                     ))}
                     {parsedRows.length > 5 && (
                       <tr>
-                        <td
-                          colSpan={headers.length}
-                          className="py-2 px-2 text-center text-[var(--t3)] italic"
-                        >
+                        <td colSpan={headers.length} className="py-2 px-2 text-center text-[var(--t3)] italic">
                           ... and {parsedRows.length - 5} more row{parsedRows.length - 5 !== 1 ? "s" : ""}
                         </td>
                       </tr>
@@ -518,9 +528,7 @@ export function GradeImportModal({
                 </div>
                 <div className="flex gap-4 mt-2 text-xs text-[var(--t2)]">
                   <span className="text-success">✓ {importProgress.success}</span>
-                  {importProgress.failed > 0 && (
-                    <span className="text-error">✗ {importProgress.failed}</span>
-                  )}
+                  {importProgress.failed > 0 && <span className="text-error">✗ {importProgress.failed}</span>}
                 </div>
               </div>
             )}
@@ -544,7 +552,9 @@ export function GradeImportModal({
               <div className="max-h-32 overflow-y-auto text-left bg-surface-container-high rounded-lg p-3">
                 <p className="text-xs font-medium text-error mb-1">Errors:</p>
                 {importSummary.errors.map((err, i) => (
-                  <p key={i} className="text-xs text-error py-0.5">{err}</p>
+                  <p key={i} className="text-xs text-error py-0.5">
+                    {err}
+                  </p>
                 ))}
               </div>
             )}

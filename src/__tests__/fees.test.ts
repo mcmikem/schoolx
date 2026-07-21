@@ -68,9 +68,7 @@ describe("calculateStudentFeePosition", () => {
     const result = calculateStudentFeePosition({
       feeTotal: 500000,
       payments: [{ amount_paid: 500000 }],
-      adjustments: [
-        { adjustment_type: "penalty", amount: 20000 },
-      ],
+      adjustments: [{ adjustment_type: "penalty", amount: 20000 }],
     });
 
     expect(result.totalPenalties).toBe(20000);
@@ -84,9 +82,7 @@ describe("calculateStudentFeePosition", () => {
       feeTotal: 300000,
       openingBalance: 0,
       payments: [{ amount_paid: 100000 }],
-      adjustments: [
-        { adjustment_type: "write_off", amount: 200000 },
-      ],
+      adjustments: [{ adjustment_type: "write_off", amount: 200000 }],
     });
 
     expect(result.totalCredits).toBe(200000);
@@ -131,11 +127,7 @@ describe("calculateStudentFeePosition", () => {
   it("handles multiple payments summing correctly", () => {
     const result = calculateStudentFeePosition({
       feeTotal: 1000000,
-      payments: [
-        { amount_paid: 300000 },
-        { amount_paid: 200000 },
-        { amount_paid: 500000 },
-      ],
+      payments: [{ amount_paid: 300000 }, { amount_paid: 200000 }, { amount_paid: 500000 }],
     });
 
     expect(result.totalPaid).toBe(1000000);
@@ -157,9 +149,7 @@ describe("calculateStudentFeePosition", () => {
     const result = calculateStudentFeePosition({
       feeTotal: 100000,
       payments: [],
-      adjustments: [
-        { adjustment_type: "bursary", amount: 200000 },
-      ],
+      adjustments: [{ adjustment_type: "bursary", amount: 200000 }],
     });
 
     expect(result.totalExpected).toBe(0);
@@ -221,9 +211,7 @@ describe("Invoice generation", () => {
       { name: "Tuition", amount: 300000 },
       { name: "Development", amount: 100000 },
     ];
-    const payments = [
-      { student_id: "stu-1", amount_paid: 200000 },
-    ];
+    const payments = [{ student_id: "stu-1", amount_paid: 200000 }];
 
     const invoice = generateInvoice({
       studentId: "stu-1",
@@ -244,12 +232,8 @@ describe("Invoice generation", () => {
   });
 
   it("generates invoice with zero balance when fully paid", () => {
-    const feeItems = [
-      { name: "Tuition", amount: 300000 },
-    ];
-    const payments = [
-      { student_id: "stu-1", amount_paid: 300000 },
-    ];
+    const feeItems = [{ name: "Tuition", amount: 300000 }];
+    const payments = [{ student_id: "stu-1", amount_paid: 300000 }];
 
     const invoice = generateInvoice({
       studentId: "stu-1",
@@ -425,7 +409,7 @@ interface AdjustmentInput {
 
 function validateAdjustment(adj: AdjustmentInput): string[] {
   const errors: string[] = [];
-  const validTypes = ["discount", "scholarship", "penalty", "manual_credit", "write_off", "bursary"];
+  const validTypes = ["discount", "scholarship", "penalty", "manual_credit", "write_off", "bursary", "amnesty"];
 
   if (!adj.student_id) errors.push("Student is required");
   if (!adj.amount || adj.amount <= 0) errors.push("Amount must be positive");
@@ -446,7 +430,7 @@ interface PaymentInput {
 
 function validatePayment(payment: PaymentInput): string[] {
   const errors: string[] = [];
-  const validMethods = ["cash", "mobile_money", "bank", "installment"];
+  const validMethods = ["cash", "mobile_money", "bank", "installment", "in_kind"];
 
   if (!payment.student_id) errors.push("Student is required");
   if (!payment.amount_paid || payment.amount_paid <= 0) errors.push("Amount must be positive");
@@ -486,9 +470,7 @@ interface GeneratedInvoice {
 
 function generateInvoice(input: InvoiceInput): GeneratedInvoice {
   const totalAmount = input.feeItems.reduce((sum, f) => sum + f.amount, 0);
-  const studentPayments = input.payments.filter(
-    (p) => p.student_id === input.studentId,
-  );
+  const studentPayments = input.payments.filter((p) => p.student_id === input.studentId);
   const amountPaid = studentPayments.reduce((sum, p) => sum + p.amount_paid, 0);
   const balance = Math.max(0, totalAmount - amountPaid);
   const status = balance === 0 ? "paid" : "issued";

@@ -44,7 +44,7 @@ interface TopicCoverage {
 
 const DEFAULT_TOPICS = ["Topic 1", "Topic 2", "Topic 3", "Topic 4", "Topic 5"];
 
-const ASSESSMENT_TYPES = ["ca1", "ca2", "ca3", "ca4", "project", "exam"] as const;
+const ASSESSMENT_TYPES = ["ca1", "ca2", "ca3", "ca4", "project", "exam", "competency", "u1", "u2", "eot"] as const;
 const COMPETENCY_ASSESSMENT_TYPES = ["competency"] as const;
 const ASSESSMENT_MAX: Record<string, number> = {
   ca1: 10,

@@ -2,13 +2,19 @@
 
 // User roles
 export const ROLES = {
-  HEADMASTER: "headmaster",
-  DEAN_OF_STUDIES: "dean_of_studies",
-  SCHOOL_ADMIN: "school_admin",
-  TEACHER: "teacher",
   SUPER_ADMIN: "super_admin",
+  SCHOOL_ADMIN: "school_admin",
+  ADMIN: "admin",
+  HEADMASTER: "headmaster",
+  BOARD: "board",
+  DEAN_OF_STUDIES: "dean_of_studies",
   BURSAR: "bursar",
+  TEACHER: "teacher",
+  SECRETARY: "secretary",
+  DORM_MASTER: "dorm_master",
+  STUDENT: "student",
   PARENT: "parent",
+  MARKETER: "marketer",
 } as const;
 
 export type UserRole = (typeof ROLES)[keyof typeof ROLES];
@@ -16,10 +22,9 @@ export type UserRole = (typeof ROLES)[keyof typeof ROLES];
 // Student statuses
 export const STUDENT_STATUS = {
   ACTIVE: "active",
-  INACTIVE: "inactive",
   TRANSFERRED: "transferred",
-  GRADUATED: "graduated",
-  DROPPED_OUT: "dropped_out",
+  DROPPED: "dropped",
+  COMPLETED: "completed",
 } as const;
 
 export type StudentStatus = (typeof STUDENT_STATUS)[keyof typeof STUDENT_STATUS];
@@ -41,6 +46,7 @@ export const EVENT_TYPES = {
   HOLIDAY: "holiday",
   EVENT: "event",
   ACADEMIC: "academic",
+  SUBSTITUTION: "substitution",
 } as const;
 
 export type EventType = (typeof EVENT_TYPES)[keyof typeof EVENT_TYPES];
@@ -72,6 +78,10 @@ export const ASSESSMENT_TYPES = {
   CA4: "ca4",
   PROJECT: "project",
   EXAM: "exam",
+  COMPETENCY: "competency",
+  U1: "u1",
+  U2: "u2",
+  EOT: "eot",
 } as const;
 
 export type AssessmentType = (typeof ASSESSMENT_TYPES)[keyof typeof ASSESSMENT_TYPES];
