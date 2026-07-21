@@ -2624,7 +2624,10 @@ interface EarningsSummary {
 function MarketersTab() {
   const [marketers, setMarketers] = useState<MarketerRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [emailConfigured, setEmailConfigured] = useState(false);
+  const [contactMethod, setContactMethod] = useState<"email" | "phone">("email");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [fullName, setFullName] = useState("");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
@@ -2667,25 +2670,47 @@ function MarketersTab() {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    fetch("/api/marketers/config/")
+      .then((r) => r.json())
+      .then((b) => {
+        const configured = b.data?.emailConfigured === true;
+        setEmailConfigured(configured);
+        if (!configured) setContactMethod("phone");
+      })
+      .catch(() => setContactMethod("phone"));
+  }, []);
+
   const createMarketer = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setSuccess("");
-    if (!email.trim()) {
-      setError("Email is required");
-      return;
+    const payload: Record<string, string | undefined> = { full_name: fullName.trim() || undefined };
+    if (contactMethod === "email") {
+      if (!email.trim()) {
+        setError("Email is required");
+        return;
+      }
+      payload.email = email.trim().toLowerCase();
+    } else {
+      if (!phone.trim()) {
+        setError("Phone number is required");
+        return;
+      }
+      payload.phone = phone.trim();
     }
     setCreating(true);
     try {
       const res = await fetch("/api/marketers/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), full_name: fullName.trim() || undefined }),
+        body: JSON.stringify(payload),
       });
       const body = await res.json();
       if (body.success) {
-        toast.success(`Marketer created. Default password: ${DEFAULT_MARKETER_PASSWORD}`);
+        toast.success(body.message || "Marketer created");
         setEmail("");
+        setPhone("");
         setFullName("");
         fetchMarketers();
       } else {
@@ -2764,18 +2789,64 @@ function MarketersTab() {
 
       <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
         <h3 className="font-['Sora'] text-[13px] font-bold text-[var(--t1)] mb-3">Add Marketer</h3>
-        <form onSubmit={createMarketer} className="flex items-end gap-3">
-          <div className="flex-1">
-            <label className="block text-[11px] font-semibold text-[var(--t3)] mb-1">Email *</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="marketer@example.com"
-              required
-              className="w-full px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-[13px] text-[var(--t1)] placeholder:text-[var(--t4)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30"
-            />
+        {emailConfigured && (
+          <div className="flex items-center gap-2 mb-3">
+            <button
+              type="button"
+              onClick={() => {
+                setContactMethod("email");
+                setPhone("");
+              }}
+              className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors ${
+                contactMethod === "email"
+                  ? "bg-[var(--primary)] text-white"
+                  : "bg-[var(--bg)] text-[var(--t3)] border border-[var(--border)]"
+              }`}
+            >
+              Via Email
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setContactMethod("phone");
+                setEmail("");
+              }}
+              className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors ${
+                contactMethod === "phone"
+                  ? "bg-[var(--primary)] text-white"
+                  : "bg-[var(--bg)] text-[var(--t3)] border border-[var(--border)]"
+              }`}
+            >
+              Via Phone
+            </button>
           </div>
+        )}
+        <form onSubmit={createMarketer} className="flex items-end gap-3">
+          {contactMethod === "email" ? (
+            <div className="flex-1">
+              <label className="block text-[11px] font-semibold text-[var(--t3)] mb-1">Email *</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="marketer@example.com"
+                required={contactMethod === "email"}
+                className="w-full px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-[13px] text-[var(--t1)] placeholder:text-[var(--t4)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30"
+              />
+            </div>
+          ) : (
+            <div className="flex-1">
+              <label className="block text-[11px] font-semibold text-[var(--t3)] mb-1">Phone *</label>
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="0542414745"
+                required={contactMethod === "phone"}
+                className="w-full px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-[13px] text-[var(--t1)] placeholder:text-[var(--t4)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30"
+              />
+            </div>
+          )}
           <div className="flex-1">
             <label className="block text-[11px] font-semibold text-[var(--t3)] mb-1">Full Name</label>
             <input
@@ -2796,9 +2867,19 @@ function MarketersTab() {
         </form>
         {error && <p className="mt-2 text-[11px] text-red-600">{error}</p>}
         {success && <p className="mt-2 text-[11px] text-green-600">{success}</p>}
-        <p className="mt-2 text-[11px] text-[var(--t4)]">
-          Default password: <code className="font-bold text-[var(--t2)]">{DEFAULT_MARKETER_PASSWORD}</code>
-        </p>
+        {contactMethod === "phone" && (
+          <p className="mt-2 text-[11px] text-[var(--t4)]">
+            Default password: <code className="font-bold text-[var(--t2)]">{DEFAULT_MARKETER_PASSWORD}</code>
+          </p>
+        )}
+        {contactMethod === "email" && emailConfigured && (
+          <p className="mt-2 text-[11px] text-[var(--t4)]">Login link will be sent to the marketer's email.</p>
+        )}
+        {!emailConfigured && (
+          <p className="mt-2 text-[11px] text-amber-600">
+            Email not configured. Only phone-based onboarding is available.
+          </p>
+        )}
       </div>
 
       <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden">

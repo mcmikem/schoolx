@@ -15,10 +15,7 @@ function verifyMoneyUnifySignature(body: string, signature: string): boolean {
   try {
     const authId = process.env.MONEY_UNIFY_AUTH_ID || "";
     if (!authId || !signature) return false;
-    const expected = crypto
-      .createHmac("sha256", authId)
-      .update(body)
-      .digest("hex");
+    const expected = crypto.createHmac("sha256", authId).update(body).digest("hex");
     return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
   } catch {
     return false;
@@ -64,12 +61,10 @@ export async function POST(request: NextRequest) {
     logger.debug(`Mobile money webhook received for referenceId: ${referenceId}`);
 
     // Idempotency check
-    const { shouldProcess } = await checkAndRecordIdempotency(
+    const { shouldProcess } = await checkAndRecordIdempotency(referenceId, providerName, "mobile_money_callback", {
       referenceId,
-      providerName,
-      "mobile_money_callback",
-      { referenceId, provider: providerName },
-    );
+      provider: providerName,
+    });
     if (!shouldProcess) {
       return NextResponse.json({ received: true, skipped: "duplicate" });
     }
@@ -88,12 +83,18 @@ export async function POST(request: NextRequest) {
     let verifiedStatus: "SUCCESSFUL" | "PENDING" | "FAILED" = "PENDING";
     let verifiedAmount = 0;
 
-    if (pendingPayment.provider === "airtel") {
+    const hasMoneyUnify = !!process.env.MONEY_UNIFY_AUTH_ID;
+
+    if (hasMoneyUnify) {
+      // MoneyUnify handles both MTN and Airtel
       const mu = new MoneyUnifyClient();
       const result = await mu.verifyPayment(referenceId);
-      verifiedStatus =
-        result.status === "completed" ? "SUCCESSFUL" :
-        result.status === "failed" ? "FAILED" : "PENDING";
+      verifiedStatus = result.status === "completed" ? "SUCCESSFUL" : result.status === "failed" ? "FAILED" : "PENDING";
+      verifiedAmount = result.amount ?? 0;
+    } else if (pendingPayment.provider === "airtel") {
+      const mu = new MoneyUnifyClient();
+      const result = await mu.verifyPayment(referenceId);
+      verifiedStatus = result.status === "completed" ? "SUCCESSFUL" : result.status === "failed" ? "FAILED" : "PENDING";
       verifiedAmount = result.amount ?? 0;
     } else {
       const mtn = new MtnMomoClient();
@@ -108,10 +109,7 @@ export async function POST(request: NextRequest) {
 
       if (!pendingPayment) {
         logger.error(`Pending payment not found for txRef: ${txRef}`);
-        return NextResponse.json(
-          { error: "Payment not found" },
-          { status: 404 },
-        );
+        return NextResponse.json({ error: "Payment not found" }, { status: 404 });
       }
 
       if (pendingPayment.status === "completed") {
@@ -165,9 +163,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ received: true });
   } catch (error) {
     logger.error("Mobile money webhook error:", error);
-    return NextResponse.json(
-      { error: "Webhook processing failed" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Webhook processing failed" }, { status: 500 });
   }
 }

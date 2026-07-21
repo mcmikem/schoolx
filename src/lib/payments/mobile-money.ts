@@ -16,9 +16,7 @@ export class MoneyUnifyClient {
 
   private assertConfigured(): void {
     if (!this.authId) {
-      throw new Error(
-        "MoneyUnify is not configured. Set MONEY_UNIFY_AUTH_ID in your environment variables.",
-      );
+      throw new Error("MoneyUnify is not configured. Set MONEY_UNIFY_AUTH_ID in your environment variables.");
     }
   }
 
@@ -270,8 +268,8 @@ export class MtnMomoClient {
 
 /**
  * Initiate a mobile money payment.
- * - MTN → Direct MTN MoMo API (USSD push)
- * - Airtel → MoneyUnify API (covers MTN/Airtel/Zamtel, auto-detected by phone)
+ * - Uses MoneyUnify if configured (handles MTN/Airtel/Zamtel auto-detected by phone)
+ * - Falls back to direct MTN MoMo API for MTN when MoneyUnify is not configured
  * Returns `link` — a status-page URL to direct the user to while waiting.
  */
 export async function createMobileMoneyPaymentLink(request: {
@@ -285,7 +283,20 @@ export async function createMobileMoneyPaymentLink(request: {
   returnUrl: string;
 }): Promise<{ link: string; txRef: string }> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://omuto.org";
+  const hasMoneyUnify = !!process.env.MONEY_UNIFY_AUTH_ID;
 
+  if (hasMoneyUnify) {
+    // MoneyUnify handles both MTN and Airtel (auto-detects from phone number)
+    const client = new MoneyUnifyClient();
+    const txRef = await client.requestPayment({
+      phone: request.phone,
+      amount: request.amount,
+    });
+    const statusUrl = `${baseUrl}/dashboard/settings?tab=subscription&pending=true&provider=${request.provider}&plan=${encodeURIComponent(request.plan)}&reference=${txRef}`;
+    return { link: statusUrl, txRef };
+  }
+
+  // Fallback: direct MTN MoMo API (only for MTN, requires separate MoMo keys)
   if (request.provider === "mtn") {
     const client = new MtnMomoClient();
     const txRef = await client.requestToPay({
@@ -299,14 +310,7 @@ export async function createMobileMoneyPaymentLink(request: {
     return { link: statusUrl, txRef };
   }
 
-  // Airtel (and any other future provider) → MoneyUnify
-  const client = new MoneyUnifyClient();
-  const txRef = await client.requestPayment({
-    phone: request.phone,
-    amount: request.amount,
-  });
-  const statusUrl = `${baseUrl}/dashboard/settings?tab=subscription&pending=true&provider=airtel&plan=${encodeURIComponent(request.plan)}&reference=${txRef}`;
-  return { link: statusUrl, txRef };
+  throw new Error("No mobile money provider configured. Set MONEY_UNIFY_AUTH_ID or MTN MoMo environment variables.");
 }
 
 export async function verifyMobileMoneyPayment(

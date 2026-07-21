@@ -45,24 +45,23 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(`${origin}/login?error=google_auth_failed`);
   }
 
+  let profile: { id: string } | null = null;
   try {
     const admin = createSupabaseAdminClient();
-    const { data: profile } = await admin
-      .from("users")
-      .select("id")
-      .eq("auth_id", user.id)
-      .maybeSingle();
+    const { data, error: profileError } = await admin.from("users").select("id").eq("auth_id", user.id).maybeSingle();
 
-    if (!profile) {
-      const registerUrl = new URL("/register", origin);
-      registerUrl.searchParams.set("oauth", "1");
-      if (user.email) registerUrl.searchParams.set("email", user.email);
-      return NextResponse.redirect(registerUrl);
+    if (profileError) {
+      logger.error("OAuth callback profile lookup query failed:", profileError);
+      return NextResponse.redirect(`${origin}/login?error=oauth_profile_lookup_failed`);
     }
+
+    profile = data;
   } catch (callbackError) {
-    logger.error("OAuth callback profile lookup failed:", callbackError);
-    // Profile lookup failed — redirect to register so the user can complete setup
-    // rather than landing on a broken dashboard with no profile data.
+    logger.error("OAuth callback profile lookup threw:", callbackError);
+    return NextResponse.redirect(`${origin}/login?error=oauth_profile_lookup_failed`);
+  }
+
+  if (!profile) {
     const registerUrl = new URL("/register", origin);
     registerUrl.searchParams.set("oauth", "1");
     if (user.email) registerUrl.searchParams.set("email", user.email);

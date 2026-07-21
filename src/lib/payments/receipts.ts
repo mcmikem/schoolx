@@ -83,9 +83,7 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Buffer> {
     },
   });
 
-  const finalY =
-    (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable
-      .finalY + 15;
+  const finalY = (doc as jsPDF & { lastAutoTable: { finalY: number } }).lastAutoTable.finalY + 15;
 
   doc.setFontSize(10);
   doc.setFont("helvetica", "italic");
@@ -96,12 +94,9 @@ export async function generateReceiptPDF(data: ReceiptData): Promise<Buffer> {
 
   doc.setFontSize(8);
   doc.setFont("helvetica", "normal");
-  doc.text(
-    "This is an electronically generated receipt. No signature required.",
-    105,
-    finalY + 20,
-    { align: "center" },
-  );
+  doc.text("This is an electronically generated receipt. No signature required.", 105, finalY + 20, {
+    align: "center",
+  });
 
   const pdfBuffer = Buffer.from(doc.output("arraybuffer"));
   return pdfBuffer;
@@ -138,7 +133,7 @@ export async function sendEmailReceipt(
         <div class="container">
           <div class="header">
             <h1>Payment Receipt</h1>
-            <p>{APP_NAME}</p>
+            <p>${APP_NAME}</p>
           </div>
           <div class="content">
             <p>Dear ${receiptData.schoolName},</p>
@@ -174,7 +169,7 @@ export async function sendEmailReceipt(
             <p>Your subscription is now active and you can access all features of your plan.</p>
           </div>
           <div class="footer">
-            <p>{APP_NAME}</p>
+            <p>${APP_NAME}</p>
             <p>www.omuto.org | os@omuto.org</p>
             <p>This is an electronically generated receipt.</p>
           </div>
@@ -224,11 +219,7 @@ export async function sendSMSReceipt(
     }
 
     const supabase = await createSupabaseServerClient();
-    const { data: school } = await supabase
-      .from("schools")
-      .select("phone")
-      .eq("id", schoolId)
-      .single();
+    const { data: school } = await supabase.from("schools").select("phone").eq("id", schoolId).single();
 
     if (!school?.phone) {
       return { success: false, message: "School phone number not found" };

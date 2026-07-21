@@ -97,6 +97,7 @@ const alwaysPublicPaths = [
   "/api/health",
   "/api/payment/webhook",
   "/api/payment/paypal/webhook",
+  "/api/payment/webhook/mobile-money",
   "/api/sms",
   "/api/schoolpay",
   "/_next",
