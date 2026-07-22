@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useToast } from "@/components/Toast";
-import { Html5Qrcode } from "html5-qrcode";
+import type { Html5Qrcode } from "html5-qrcode";
 import MaterialIcon from "@/components/MaterialIcon";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui";
@@ -27,9 +27,7 @@ const MEAL_LABELS: Record<string, string> = {
 
 export default function MealScanPage() {
   const toast = useToast();
-  const scannerIdRef = useRef(
-    typeof crypto !== "undefined" ? crypto.randomUUID() : `meal-${Date.now()}`,
-  );
+  const scannerIdRef = useRef(typeof crypto !== "undefined" ? crypto.randomUUID() : `meal-${Date.now()}`);
   const [rules, setRules] = useState<MealRule[]>([]);
   const [savingRules, setSavingRules] = useState(false);
   const [selectedMeal, setSelectedMeal] = useState<"breakfast" | "lunch" | "supper">("lunch");
@@ -44,11 +42,7 @@ export default function MealScanPage() {
   const selectedRule = rules.find((rule) => rule.meal_type === selectedMeal);
 
   const updateRule = (mealType: MealRule["meal_type"], patch: Partial<MealRule>) => {
-    setRules((prev) => prev.map((rule) => (
-      rule.meal_type === mealType
-        ? { ...rule, ...patch }
-        : rule
-    )));
+    setRules((prev) => prev.map((rule) => (rule.meal_type === mealType ? { ...rule, ...patch } : rule)));
   };
 
   const loadRules = useCallback(async () => {
@@ -57,9 +51,7 @@ export default function MealScanPage() {
       const response = await fetch("/api/meals/settings/");
       const result = await parseApiResponse(response);
       if (!response.ok || !result.success) {
-        throw new Error(
-          typeof result.error === "string" ? result.error : "Failed to load meal settings",
-        );
+        throw new Error(typeof result.error === "string" ? result.error : "Failed to load meal settings");
       }
       const data = (result.data as Record<string, unknown> | undefined) || {};
       setRules(Array.isArray(data.rules) ? (data.rules as MealRule[]) : []);
@@ -102,11 +94,7 @@ export default function MealScanPage() {
       });
       const result = await parseApiResponse(response);
       if (!response.ok || !result.success) {
-        throw new Error(
-          typeof result.error === "string"
-            ? result.error
-            : "Failed to serve meal",
-        );
+        throw new Error(typeof result.error === "string" ? result.error : "Failed to serve meal");
       }
 
       const data = (result.data as Record<string, unknown> | undefined) || {};
@@ -114,20 +102,18 @@ export default function MealScanPage() {
       const firstName = typeof student.first_name === "string" ? student.first_name : "";
       const lastName = typeof student.last_name === "string" ? student.last_name : "";
       const fullName = `${firstName} ${lastName}`.trim();
-      setRecentServes((prev) => [
-        {
-          name: fullName || "Student",
-          meal: MEAL_LABELS[selectedMeal],
-          time: new Date().toLocaleTimeString(),
-        },
-        ...prev,
-      ].slice(0, 10));
-
-      toast.success(
-        typeof result.message === "string"
-          ? result.message
-          : `${fullName} served`,
+      setRecentServes((prev) =>
+        [
+          {
+            name: fullName || "Student",
+            meal: MEAL_LABELS[selectedMeal],
+            time: new Date().toLocaleTimeString(),
+          },
+          ...prev,
+        ].slice(0, 10),
       );
+
+      toast.success(typeof result.message === "string" ? result.message : `${fullName} served`);
       setScanValue("");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to serve meal");
@@ -140,7 +126,8 @@ export default function MealScanPage() {
     setShowScanner(true);
     setScannerError(null);
     try {
-      const scanner = new Html5Qrcode("meal-scan-reader");
+      const { Html5Qrcode: Html5QrcodeClass } = await import("html5-qrcode");
+      const scanner = new Html5QrcodeClass("meal-scan-reader");
       scannerRef.current = scanner;
       await scanner.start(
         { facingMode: "environment" },
@@ -188,20 +175,12 @@ export default function MealScanPage() {
       });
       const result = await parseApiResponse(response);
       if (!response.ok || !result.success) {
-        throw new Error(
-          typeof result.error === "string"
-            ? result.error
-            : "Failed to save meal rules",
-        );
+        throw new Error(typeof result.error === "string" ? result.error : "Failed to save meal rules");
       }
 
       const data = (result.data as Record<string, unknown> | undefined) || {};
       setRules((data.rules as MealRule[] | undefined) || rules);
-      toast.success(
-        typeof result.message === "string"
-          ? result.message
-          : "Meal rules updated",
-      );
+      toast.success(typeof result.message === "string" ? result.message : "Meal rules updated");
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to save rules");
     } finally {
@@ -236,7 +215,9 @@ export default function MealScanPage() {
                 >
                   <p className="text-sm font-bold text-slate-800">{MEAL_LABELS[meal]}</p>
                   <p className="text-xs text-slate-500 mt-1">
-                    {rule?.is_enabled ? `Enabled (${rule.eligibility === "boarding_only" ? "Boarding only" : "All students"})` : "Disabled"}
+                    {rule?.is_enabled
+                      ? `Enabled (${rule.eligibility === "boarding_only" ? "Boarding only" : "All students"})`
+                      : "Disabled"}
                   </p>
                 </button>
               );
@@ -271,7 +252,9 @@ export default function MealScanPage() {
                 <label className="block text-xs font-semibold text-slate-500">Eligibility</label>
                 <select
                   value={rule.eligibility}
-                  onChange={(e) => updateRule(rule.meal_type, { eligibility: e.target.value as "all" | "boarding_only" })}
+                  onChange={(e) =>
+                    updateRule(rule.meal_type, { eligibility: e.target.value as "all" | "boarding_only" })
+                  }
                   className="input"
                 >
                   <option value="all">All students</option>
@@ -358,7 +341,10 @@ export default function MealScanPage() {
             ) : (
               <div className="space-y-3">
                 {recentServes.map((entry, index) => (
-                  <div key={`${entry.name}-${entry.time}-${index}`} className="flex items-center justify-between rounded-lg border border-slate-100 px-3 py-2">
+                  <div
+                    key={`${entry.name}-${entry.time}-${index}`}
+                    className="flex items-center justify-between rounded-lg border border-slate-100 px-3 py-2"
+                  >
                     <div>
                       <p className="text-sm font-semibold text-slate-800">{entry.name}</p>
                       <p className="text-xs text-slate-500">{entry.meal}</p>

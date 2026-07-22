@@ -1,4 +1,5 @@
 "use client";
+import dynamic from "next/dynamic";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
@@ -21,9 +22,9 @@ import { useSessionTimeout } from "@/lib/useSessionTimeout";
 import { useSchoolColors } from "@/lib/useSchoolColors";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import MaterialIcon from "@/components/MaterialIcon";
-import OwlAssistant from "@/components/OwlAssistant";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
-import CommandPalette from "@/components/CommandPalette";
+const OwlAssistant = dynamic(() => import("@/components/OwlAssistant"), { ssr: false });
+const CommandPalette = dynamic(() => import("@/components/CommandPalette"), { ssr: false });
 import RoleBasedWalkthrough from "@/components/RoleBasedWalkthrough";
 import OnboardingTour from "@/components/OnboardingTour";
 import { supabase } from "@/lib/supabase";

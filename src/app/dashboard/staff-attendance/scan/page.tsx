@@ -6,16 +6,14 @@ import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
 import { Button } from "@/components/ui";
 import { Card } from "@/components/ui/Card";
-import { Html5Qrcode } from "html5-qrcode";
+import type { Html5Qrcode } from "html5-qrcode";
 import { parseApiResponse } from "@/lib/api-response";
 
 type AttendanceAction = "check_in" | "check_out";
 
 export default function StaffAttendanceScanPage() {
   const toast = useToast();
-  const scannerIdRef = useRef(
-    typeof crypto !== "undefined" ? crypto.randomUUID() : `staff-${Date.now()}`,
-  );
+  const scannerIdRef = useRef(typeof crypto !== "undefined" ? crypto.randomUUID() : `staff-${Date.now()}`);
   const [action, setAction] = useState<AttendanceAction>("check_in");
   const [scanValue, setScanValue] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -54,11 +52,7 @@ export default function StaffAttendanceScanPage() {
 
       const result = await parseApiResponse(response);
       if (!response.ok || !result.success) {
-        throw new Error(
-          typeof result.error === "string"
-            ? result.error
-            : "Failed to record attendance",
-        );
+        throw new Error(typeof result.error === "string" ? result.error : "Failed to record attendance");
       }
 
       const data = (result.data as Record<string, unknown> | undefined) || {};
@@ -66,21 +60,19 @@ export default function StaffAttendanceScanPage() {
       const name = typeof staff.full_name === "string" ? staff.full_name : "Staff";
       const label = action === "check_in" ? "Check In" : "Check Out";
 
-      setRecent((prev) => [
-        {
-          name,
-          action: label,
-          time: new Date().toLocaleTimeString(),
-        },
-        ...prev,
-      ].slice(0, 10));
+      setRecent((prev) =>
+        [
+          {
+            name,
+            action: label,
+            time: new Date().toLocaleTimeString(),
+          },
+          ...prev,
+        ].slice(0, 10),
+      );
 
       setScanValue("");
-      toast.success(
-        typeof result.message === "string"
-          ? result.message
-          : `${name} ${label.toLowerCase()} complete`,
-      );
+      toast.success(typeof result.message === "string" ? result.message : `${name} ${label.toLowerCase()} complete`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Failed to record attendance");
     } finally {
@@ -93,7 +85,8 @@ export default function StaffAttendanceScanPage() {
     setScannerError(null);
 
     try {
-      const scanner = new Html5Qrcode("staff-scan-reader");
+      const { Html5Qrcode: Html5QrcodeClass } = await import("html5-qrcode");
+      const scanner = new Html5QrcodeClass("staff-scan-reader");
       scannerRef.current = scanner;
       await scanner.start(
         { facingMode: "environment" },
@@ -132,8 +125,12 @@ export default function StaffAttendanceScanPage() {
 
         <Card className="p-5 space-y-4">
           <div className="flex flex-wrap gap-2">
-            <Button variant={action === "check_in" ? "primary" : "secondary"} onClick={() => setAction("check_in")}>Check In</Button>
-            <Button variant={action === "check_out" ? "primary" : "secondary"} onClick={() => setAction("check_out")}>Check Out</Button>
+            <Button variant={action === "check_in" ? "primary" : "secondary"} onClick={() => setAction("check_in")}>
+              Check In
+            </Button>
+            <Button variant={action === "check_out" ? "primary" : "secondary"} onClick={() => setAction("check_out")}>
+              Check Out
+            </Button>
           </div>
 
           <button
@@ -142,7 +139,9 @@ export default function StaffAttendanceScanPage() {
             className="w-full border-2 border-dashed border-slate-200 rounded-2xl p-8 text-center hover:bg-slate-50 disabled:opacity-50"
           >
             <MaterialIcon icon="qr_code_scanner" className="text-4xl text-slate-400 mb-2" />
-            <p className="font-bold text-slate-800">Scan staff ID card to {action === "check_in" ? "check in" : "check out"}</p>
+            <p className="font-bold text-slate-800">
+              Scan staff ID card to {action === "check_in" ? "check in" : "check out"}
+            </p>
           </button>
 
           <div className="flex gap-2">
@@ -153,7 +152,9 @@ export default function StaffAttendanceScanPage() {
               placeholder="Or paste scanned payload"
               className="input flex-1"
             />
-            <Button onClick={() => submitScan(scanValue)} disabled={submitting}>Submit</Button>
+            <Button onClick={() => submitScan(scanValue)} disabled={submitting}>
+              Submit
+            </Button>
           </div>
         </Card>
 
@@ -164,7 +165,10 @@ export default function StaffAttendanceScanPage() {
           ) : (
             <div className="space-y-3">
               {recent.map((entry, index) => (
-                <div key={`${entry.name}-${entry.time}-${index}`} className="flex items-center justify-between rounded-lg border border-slate-100 px-3 py-2">
+                <div
+                  key={`${entry.name}-${entry.time}-${index}`}
+                  className="flex items-center justify-between rounded-lg border border-slate-100 px-3 py-2"
+                >
                   <div>
                     <p className="text-sm font-semibold text-slate-800">{entry.name}</p>
                     <p className="text-xs text-slate-500">{entry.action}</p>
