@@ -14,7 +14,8 @@
 //   - authFetchAborted ref must be reset on mount (StrictMode compat)
 //   - signOut() MUST force-clear auth cookies even on API failure (prevents auto re-login)
 //   - Visibility handler MUST delay 3s and check getSession() before getUser()
-//   - Safety timers reduced from 10-12s to 8s (faster UX on slow networks)
+//   - Safety timers reduced to 6s (profile fetch) / 8s (sign-in) for mobile/poor networks
+//   - getConnectionTimeout() further reduces to 60% on 3G/2G connections
 //
 // To modify: Run full test suite (lint + typecheck + regression + e2e)
 // ============================================================================
@@ -78,6 +79,18 @@ function isAuthSessionMissingError(error: unknown): boolean {
   return msg.includes("session") && (msg.includes("missing") || msg.includes("not found"));
 }
 
+// Connection quality detection — reduces timeouts dynamically on slow networks.
+// Uses the Network Information API where available (Chrome, Edge, Samsung Internet).
+const SLOW_CONNECTION_EFFECTIVE_TYPES = new Set(["slow-2g", "2g", "3g"]);
+function getConnectionTimeout(base: number): number {
+  if (typeof navigator === "undefined" || !("connection" in navigator)) return base;
+  const conn = (navigator as any).connection as { effectiveType?: string; downlink?: number; rtt?: number } | undefined;
+  if (!conn) return base;
+  if (conn.effectiveType && SLOW_CONNECTION_EFFECTIVE_TYPES.has(conn.effectiveType)) return Math.round(base * 0.6);
+  if (conn.downlink !== undefined && conn.downlink < 1) return Math.round(base * 0.6);
+  return base;
+}
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -120,17 +133,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         // getSession() can return a stale access_token if it hasn't refreshed yet.
         // Prefer refreshSession() so we always send a current token to /api/auth/me/.
-        // Both calls have 10s timeouts to prevent infinite loading when Supabase hangs.
+        // Both calls have 6s timeouts to prevent infinite loading when Supabase hangs.
+        // Reduced dynamically on slow connections (3G/2G) via getConnectionTimeout().
         let session = (
           (await Promise.race([
             supabase.auth.getSession(),
-            new Promise<never>((_, reject) => setTimeout(() => reject(new Error("getSession timed out")), 10000)),
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error("getSession timed out")), getConnectionTimeout(6000)),
+            ),
           ])) as Awaited<ReturnType<typeof supabase.auth.getSession>>
         ).data.session;
-        if (session && session.expires_at && session.expires_at * 1000 < Date.now() + 10000) {
+        if (session && session.expires_at && session.expires_at * 1000 < Date.now() + 6000) {
           const { data: refreshed } = (await Promise.race([
             supabase.auth.refreshSession(),
-            new Promise<never>((_, reject) => setTimeout(() => reject(new Error("refreshSession timed out")), 10000)),
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error("refreshSession timed out")), getConnectionTimeout(6000)),
+            ),
           ])) as Awaited<ReturnType<typeof supabase.auth.refreshSession>>;
           if (refreshed.session) session = refreshed.session;
         }
@@ -145,7 +163,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         const res = await fetch("/api/auth/me/", {
           headers: { authorization: `Bearer ${token}` },
-          signal: AbortSignal.timeout(10000),
+          signal: AbortSignal.timeout(getConnectionTimeout(6000)),
         });
         if (!res.ok) {
           // Retry once on transient server errors (502, 503, 504)
@@ -302,7 +320,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             data: { session },
           } = (await Promise.race([
             supabase!.auth.getSession(),
-            new Promise<never>((_, reject) => setTimeout(() => reject(new Error("getSession timed out")), 10000)),
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error("getSession timed out")), getConnectionTimeout(6000)),
+            ),
           ])) as Awaited<ReturnType<typeof supabase.auth.getSession>>;
           if (!session) {
             setUser(null);
@@ -338,7 +358,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             const result = (await Promise.race([
               withSupabaseLockRetry(async () => await supabase!.auth.getUser()),
               new Promise<never>((_, reject) =>
-                setTimeout(() => reject(new Error("getUser timed out in checkUser")), 10000),
+                setTimeout(() => reject(new Error("getUser timed out in checkUser")), getConnectionTimeout(6000)),
               ),
             ])) as { data: { user: User | null } };
             authUser = result.data.user;
@@ -657,12 +677,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       signInLock.current = true;
       // Safety: if a request hangs forever (poor internet), auto-release the
-      // lock after 25s so the user can retry without refreshing the page.
+      // lock after 15s so the user can retry without refreshing the page.
       signInLockTimer.current = setTimeout(() => {
         logger.warn("[Auth] signInLock auto-released after timeout");
         signInLock.current = false;
         signInLockTimer.current = null;
-      }, 45000);
+      }, 15000);
 
       const attempts = buildAuthLoginAttempts(phone);
       let lastError: unknown = null;
@@ -688,7 +708,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     password,
                   }),
             ),
-            new Promise<never>((_, reject) => setTimeout(() => reject(new Error("Login attempt timed out")), 15000)),
+            new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error("Login attempt timed out")), getConnectionTimeout(8000)),
+            ),
           ]);
 
           if (error) {

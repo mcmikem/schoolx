@@ -30,7 +30,7 @@ import { saveDemoStorage } from "@/lib/auth-demo";
 
 const LOCKOUT_MS = 5 * 60 * 1000;
 const MAX_FAILED_ATTEMPTS = 5;
-const SLOW_CONNECTION_MS = 8000;
+const SLOW_CONNECTION_MS = 5000;
 
 export default function LoginPage() {
   const toast = useToast();

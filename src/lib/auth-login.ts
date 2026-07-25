@@ -43,7 +43,7 @@ export function buildAuthEmailFromPhone(phone: string): string {
  *    are wrong — stop immediately. No point trying other formats.
  * 3. If it fails with a transient error (network, lock) or "user not found",
  *    try fallback formats.
- * 4. Max 3 attempts total, with smart ordering.
+ * 4. Max 2-3 attempts total, with smart ordering.
  */
 export function buildAuthLoginAttempts(input: string): AuthLoginAttempt[] {
   const attempts: AuthLoginAttempt[] = [];
@@ -78,10 +78,7 @@ export function buildAuthLoginAttempts(input: string): AuthLoginAttempt[] {
     addAttempt(attempts, seen, "email", `${rawWithCountry}@omuto.org`);
   }
 
-  // Tertiary: legacy @omuto.sms domain (for old accounts created before migration)
-  addAttempt(attempts, seen, "email", `${normalized}@omuto.sms`);
-
-  // Quaternary: phone format fallback (rare, only for very old accounts)
+  // Tertiary: phone format fallback (rare, only for very old accounts)
   addAttempt(attempts, seen, "phone", `+${normalized}`);
 
   return attempts;
