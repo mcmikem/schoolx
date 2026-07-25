@@ -4,11 +4,11 @@ import { normalizeAuthPhone } from "@/lib/validation";
 import { buildAuthEmailFromPhone } from "@/lib/auth-login";
 import { logger } from "@/lib/logger";
 import { sendParentPortalCredentials, isWhatsAppConfigured } from "@/lib/whatsapp";
-import { requireUserWithSchool, assertSchoolScopeOrDeny } from "@/lib/api-utils";
+import { requireUserWithSchool, assertSchoolScopeOrDeny, apiError } from "@/lib/api-utils";
 import { randomBytes } from "crypto";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+const supabaseUrl: string = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+const supabaseServiceKey: string | undefined = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 function generateTemporaryPassword(): string {
   const randomPart = randomBytes(10).toString("base64url");
@@ -20,7 +20,14 @@ export async function POST(request: NextRequest) {
   const auth = await requireUserWithSchool(request);
   if (!auth.ok) return auth.response;
 
-  const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+  if (!supabaseServiceKey) {
+    return apiError(
+      "Server configuration error: SUPABASE_SERVICE_ROLE_KEY is missing. Add it to your .env.local file (get it from Supabase Dashboard → Settings → API → service_role key).",
+      500,
+    );
+  }
+
+  const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey!, {
     auth: { persistSession: false },
   });
 

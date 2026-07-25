@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import {
   apiSuccess,
   apiError,
@@ -32,6 +32,8 @@ interface AddUserRequest {
 
 export async function GET(request: NextRequest) {
   try {
+    const config = checkServiceConfig();
+    if (!config.ok) return config.response;
     const auth = await requireUserWithSchool(request);
     if (!auth.ok) return auth.response;
 
@@ -73,8 +75,23 @@ export async function GET(request: NextRequest) {
   }
 }
 
+function checkServiceConfig(): { ok: true } | { ok: false; response: NextResponse } {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return {
+      ok: false,
+      response: apiError(
+        "Server configuration error: SUPABASE_SERVICE_ROLE_KEY is missing. Add it to your .env.local file (get it from Supabase Dashboard → Settings → API → service_role key).",
+        500,
+      ),
+    };
+  }
+  return { ok: true };
+}
+
 export async function POST(request: NextRequest) {
   try {
+    const config = checkServiceConfig();
+    if (!config.ok) return config.response;
     const auth = await requireUserWithSchool(request);
     if (!auth.ok) return auth.response;
 
