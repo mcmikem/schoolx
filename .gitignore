@@ -71,6 +71,9 @@ test-results/
 .windsurf/
 .zencoder/
 
+# Supabase CLI temp files
+supabase/.temp/
+
 # Secrets
 secrets/
 
