@@ -419,14 +419,32 @@ export default function LoginPage() {
               Keep me signed in on this device
             </label>
 
+            {!authInitialized && (
+              <div className="mb-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600 text-center">
+                Checking your session...
+              </div>
+            )}
             <Button
               type="submit"
               variant="primary"
               className="w-full"
-              loading={loading || otpLoading}
-              icon={!loading && !otpLoading ? <MaterialIcon icon="login" className="text-lg" /> : undefined}
+              loading={loading || otpLoading || !authInitialized}
+              disabled={!authInitialized}
+              icon={
+                !loading && !otpLoading && authInitialized ? (
+                  <MaterialIcon icon="login" className="text-lg" />
+                ) : undefined
+              }
             >
-              {otpMode ? (otpSent ? "Verify OTP" : "Send OTP") : loading ? "Signing in..." : "Sign In"}
+              {!authInitialized
+                ? "Initializing..."
+                : otpMode
+                  ? otpSent
+                    ? "Verify OTP"
+                    : "Send OTP"
+                  : loading
+                    ? "Signing in..."
+                    : "Sign In"}
             </Button>
 
             <div className="flex flex-col items-center gap-2">
