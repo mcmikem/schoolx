@@ -67,6 +67,7 @@ export interface AuthContextType {
 }
 
 export function isSubscriptionActiveCheck(school: School | null): boolean {
+  if (school?.is_tester) return true;
   if (school?.subscription_status === "trial" && school?.trial_ends_at) {
     return new Date(school.trial_ends_at) > new Date();
   }
@@ -79,6 +80,7 @@ export function getSubscriptionPlan(school: School | null): PlanType | null {
 
 export function computeTrialExpired(school: School | null): boolean {
   if (!school) return false;
+  if (school.is_tester) return false;
   if (school.subscription_status === "trial" && school.trial_ends_at) {
     return new Date(school.trial_ends_at) < new Date();
   }

@@ -2,14 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { toLegacyModuleKey } from "./modules/catalog";
 
-type SubscriptionStatus =
-  | "active"
-  | "trial"
-  | "past_due"
-  | "expired"
-  | "canceled"
-  | "suspended"
-  | "unpaid";
+type SubscriptionStatus = "active" | "trial" | "past_due" | "expired" | "canceled" | "suspended" | "unpaid";
 
 type PlanTier = "starter" | "growth" | "enterprise" | "lifetime";
 type BillingMode = "full_suite" | "modular";
@@ -25,10 +18,7 @@ export async function requireActiveSubscription(params: {
   supabase: any;
   schoolId: string;
   requiredPlan?: PlanTier;
-}): Promise<
-  | { ok: true; school: any; warning?: string }
-  | { ok: false; response: NextResponse }
-> {
+}): Promise<{ ok: true; school: any; warning?: string } | { ok: false; response: NextResponse }> {
   const { supabase, schoolId, requiredPlan } = params;
 
   const { data: school, error } = await supabase
@@ -40,15 +30,17 @@ export async function requireActiveSubscription(params: {
   if (error || !school) {
     return {
       ok: false,
-      response: NextResponse.json(
-        { success: false, error: "School not found" },
-        { status: 404 },
-      ),
+      response: NextResponse.json({ success: false, error: "School not found" }, { status: 404 }),
     };
   }
 
   const status = school.subscription_status as SubscriptionStatus;
   const plan = school.subscription_plan as PlanTier;
+
+  // Tester schools bypass all subscription checks
+  if (school.is_tester) {
+    return { ok: true, school };
+  }
 
   if (status === "active" || status === "trial") {
     if (requiredPlan) {
@@ -106,15 +98,11 @@ export async function requireActiveSubscription(params: {
     unpaid: "Your subscription payment is unpaid. Please settle your balance.",
   };
 
-  const message =
-    deniedMessages[status] || "Your subscription is not active.";
+  const message = deniedMessages[status] || "Your subscription is not active.";
 
   return {
     ok: false,
-    response: NextResponse.json(
-      { success: false, error: message, subscriptionStatus: status },
-      { status: 403 },
-    ),
+    response: NextResponse.json({ success: false, error: message, subscriptionStatus: status }, { status: 403 }),
   };
 }
 
@@ -122,10 +110,7 @@ export async function requireModuleEntitlement(params: {
   supabase: any;
   schoolId: string;
   moduleKey: string;
-}): Promise<
-  | { ok: true; school: any }
-  | { ok: false; response: NextResponse }
-> {
+}): Promise<{ ok: true; school: any } | { ok: false; response: NextResponse }> {
   const { supabase, schoolId, moduleKey } = params;
 
   const { data: school, error: schoolError } = await supabase
@@ -142,10 +127,7 @@ export async function requireModuleEntitlement(params: {
   if (schoolError || !school) {
     return {
       ok: false,
-      response: NextResponse.json(
-        { success: false, error: "School not found" },
-        { status: 404 },
-      ),
+      response: NextResponse.json({ success: false, error: "School not found" }, { status: 404 }),
     };
   }
 
@@ -172,10 +154,7 @@ export async function requireModuleEntitlement(params: {
   if (entitlementError) {
     return {
       ok: false,
-      response: NextResponse.json(
-        { success: false, error: "Failed to verify module entitlement" },
-        { status: 500 },
-      ),
+      response: NextResponse.json({ success: false, error: "Failed to verify module entitlement" }, { status: 500 }),
     };
   }
 
@@ -203,9 +182,6 @@ export function getPlanTierLevel(plan: PlanTier): number {
   return PLAN_TIER_LEVELS[plan] ?? 0;
 }
 
-export function meetsPlanRequirement(
-  currentPlan: PlanTier,
-  requiredPlan: PlanTier,
-): boolean {
+export function meetsPlanRequirement(currentPlan: PlanTier, requiredPlan: PlanTier): boolean {
   return getPlanTierLevel(currentPlan) >= getPlanTierLevel(requiredPlan);
 }

@@ -38,6 +38,7 @@ export interface School {
   location_type?: "urban" | "peri_urban" | "rural";
   signature_headteacher_url?: string;
   signature_class_teacher_url?: string;
+  is_tester?: boolean;
   created_at: string;
 }
 

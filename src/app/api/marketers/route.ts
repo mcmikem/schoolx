@@ -1,4 +1,4 @@
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import {
   createServiceRoleClientOrThrow,
   apiSuccess,
@@ -18,6 +18,13 @@ async function requireSuperAdmin(request: NextRequest) {
   const auth = await requireAuthenticatedUser(request);
   if (!auth.ok) return auth;
 
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return {
+      ok: false as const,
+      response: apiError("Server configuration error: SUPABASE_SERVICE_ROLE_KEY is missing. Add it to .env.local", 500),
+    };
+  }
+
   const supabase = createServiceRoleClientOrThrow();
   const { data: profile } = await supabase
     .from("users")
@@ -32,8 +39,23 @@ async function requireSuperAdmin(request: NextRequest) {
   return { ok: true as const };
 }
 
+function checkServiceConfig(): { ok: true } | { ok: false; response: NextResponse } {
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return {
+      ok: false,
+      response: apiError(
+        "Server configuration error: SUPABASE_SERVICE_ROLE_KEY is missing. Add it to your .env.local file (get it from Supabase Dashboard → Settings → API → service_role key).",
+        500,
+      ),
+    };
+  }
+  return { ok: true };
+}
+
 export async function GET(request: NextRequest) {
   try {
+    const config = checkServiceConfig();
+    if (!config.ok) return config.response;
     const auth = await requireSuperAdmin(request);
     if (!auth.ok) return auth.response;
 
@@ -105,6 +127,8 @@ async function sendLoginLinkEmail(
 
 export async function POST(request: NextRequest) {
   try {
+    const config = checkServiceConfig();
+    if (!config.ok) return config.response;
     const auth = await requireSuperAdmin(request);
     if (!auth.ok) return auth.response;
 
@@ -185,11 +209,8 @@ export async function POST(request: NextRequest) {
       full_name: name,
       role: "marketer",
       is_active: true,
+      phone: phoneRaw ? normalizeAuthPhone(phoneRaw) : authEmail,
     };
-
-    if (phoneRaw) {
-      profilePayload.phone = normalizeAuthPhone(phoneRaw);
-    }
 
     const { error: profileError } = await supabase.from("users").insert(profilePayload);
 

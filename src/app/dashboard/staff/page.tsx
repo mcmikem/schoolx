@@ -104,10 +104,7 @@ export default function StaffHubPage() {
   const toast = useToast();
   const { stats } = useDashboardStats(school?.id);
   const [activeMainTab, setActiveMainTab] = useState("directory");
-  const attendanceRate =
-    stats?.totalStudents > 0
-      ? Math.round((stats.presentToday / stats.totalStudents) * 100)
-      : 0;
+  const attendanceRate = stats?.totalStudents > 0 ? Math.round((stats.presentToday / stats.totalStudents) * 100) : 0;
 
   const mainTabs = [
     { id: "directory", label: "Directory", icon: "groups" },
@@ -147,19 +144,9 @@ export default function StaffHubPage() {
           </div>
         </div>
 
-        <SmartAdvisor
-          stats={stats || {}}
-          collectionRate={0}
-          attendanceRate={attendanceRate}
-          role="dean"
-        />
+        <SmartAdvisor stats={stats || {}} collectionRate={0} attendanceRate={attendanceRate} role="dean" />
 
-        <Tabs
-          tabs={mainTabs}
-          activeTab={activeMainTab}
-          onChange={setActiveMainTab}
-          className="mb-6"
-        />
+        <Tabs tabs={mainTabs} activeTab={activeMainTab} onChange={setActiveMainTab} className="mb-6" />
 
         <TabPanel activeTab={activeMainTab} tabId="directory">
           <DirectoryTab school={school} isDemo={isDemo} toast={toast} />
@@ -194,8 +181,7 @@ function DirectoryTab({
   const [classes, setClasses] = useState<ClassOption[]>([]);
   const [subjects, setSubjects] = useState<SubjectOption[]>([]);
   const [newAvatarFile, setNewAvatarFile] = useState<File | null>(null);
-  const [idCardPreviewStaff, setIdCardPreviewStaff] =
-    useState<StaffMember | null>(null);
+  const [idCardPreviewStaff, setIdCardPreviewStaff] = useState<StaffMember | null>(null);
   const [editForm, setEditForm] = useState({
     full_name: "",
     phone: "",
@@ -291,16 +277,8 @@ function DirectoryTab({
 
       try {
         const [classesRes, subjectsRes] = await Promise.all([
-          supabase
-            .from("classes")
-            .select("id, name")
-            .eq("school_id", school.id)
-            .order("name"),
-          supabase
-            .from("subjects")
-            .select("id, name")
-            .eq("school_id", school.id)
-            .order("name"),
+          supabase.from("classes").select("id, name").eq("school_id", school.id).order("name"),
+          supabase.from("subjects").select("id, name").eq("school_id", school.id).order("name"),
         ]);
 
         if (classesRes.data) {
@@ -336,12 +314,10 @@ function DirectoryTab({
       const compressed = await compressStudentPhoto(file);
       const filePath = `${school.id}/staff/${staffId}.jpg`;
 
-      let uploadResult = await supabase.storage
-        .from("student-photos")
-        .upload(filePath, compressed, {
-          upsert: true,
-          contentType: "image/jpeg",
-        });
+      let uploadResult = await supabase.storage.from("student-photos").upload(filePath, compressed, {
+        upsert: true,
+        contentType: "image/jpeg",
+      });
 
       if (uploadResult.error && uploadResult.error.message.includes("bucket")) {
         await supabase.storage.createBucket("student-photos", {
@@ -350,12 +326,10 @@ function DirectoryTab({
           allowedMimeTypes: ["image/jpeg", "image/png", "image/webp", "image/gif"],
         });
 
-        uploadResult = await supabase.storage
-          .from("student-photos")
-          .upload(filePath, compressed, {
-            upsert: true,
-            contentType: "image/jpeg",
-          });
+        uploadResult = await supabase.storage.from("student-photos").upload(filePath, compressed, {
+          upsert: true,
+          contentType: "image/jpeg",
+        });
       }
 
       if (uploadResult.error) {
@@ -381,9 +355,7 @@ function DirectoryTab({
         school_id: DEMO_SCHOOL_ID,
         full_name: newStaff.full_name,
         phone: newStaff.phone.replace(/[^0-9]/g, ""),
-        email:
-          newStaff.email ||
-          `${newStaff.full_name.toLowerCase().replace(/\s/g, ".")}@stmarys.edu.ug`,
+        email: newStaff.email || `${newStaff.full_name.toLowerCase().replace(/\s/g, ".")}@stmarys.edu.ug`,
         role: newStaff.role,
         subject: newStaff.subject || "General",
         gender: "M",
@@ -450,6 +422,7 @@ function DirectoryTab({
           phone: normalizedPhone,
           password: newStaff.password,
           role: newStaff.role,
+          email: newStaff.email || null,
         }),
       });
 
@@ -468,36 +441,15 @@ function DirectoryTab({
         avatarUrl = await uploadStaffAvatar(newAvatarFile, createdUserId);
       }
 
-      const selectedSubjectNames = subjects
-        .filter((subject) => newStaff.subject_ids.includes(subject.id))
-        .map((subject) => subject.name);
-
-      const subjectSummary =
-        selectedSubjectNames.length > 0
-          ? selectedSubjectNames.join(", ")
-          : newStaff.subject || "General";
-
-      let { error: userUpdateError } = await supabase
-        .from("users")
-        .update({
-          email: newStaff.email || null,
-          avatar_url: avatarUrl || null,
-          subject: subjectSummary,
-        })
-        .eq("id", createdUserId);
-
-      if ((userUpdateError as { code?: string } | null)?.code === "42703") {
-        const retry = await supabase
+      if (avatarUrl) {
+        const { error: avatarError } = await supabase
           .from("users")
-          .update({
-            email: newStaff.email || null,
-            avatar_url: avatarUrl || null,
-          })
+          .update({ avatar_url: avatarUrl })
           .eq("id", createdUserId);
-        userUpdateError = retry.error;
+        if (avatarError && (avatarError as { code?: string }).code !== "42501") {
+          logger.warn("Failed to save avatar URL (non-fatal):", avatarError);
+        }
       }
-
-      if (userUpdateError) throw userUpdateError;
 
       if (newStaff.role === "teacher") {
         const { error: classAssignError } = await supabase
@@ -515,9 +467,7 @@ function DirectoryTab({
         }));
 
         if (teacherSubjectsPayload.length > 0) {
-          const { error: subjectAssignError } = await supabase
-            .from("teacher_subjects")
-            .insert(teacherSubjectsPayload);
+          const { error: subjectAssignError } = await supabase.from("teacher_subjects").insert(teacherSubjectsPayload);
 
           if (subjectAssignError) throw subjectAssignError;
         }
@@ -539,8 +489,7 @@ function DirectoryTab({
         subject_ids: [],
       });
     } catch (err: unknown) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to add staff";
+      const errorMessage = err instanceof Error ? err.message : "Failed to add staff";
       toast.error(errorMessage);
     } finally {
       setSaving(false);
@@ -549,20 +498,12 @@ function DirectoryTab({
 
   const toggleStatus = async (id: string, currentStatus: boolean) => {
     try {
-      const { error } = await supabase
-        .from("users")
-        .update({ is_active: !currentStatus })
-        .eq("id", id);
+      const { error } = await supabase.from("users").update({ is_active: !currentStatus }).eq("id", id);
       if (error) throw error;
-      setStaff(
-        staff.map((s) =>
-          s.id === id ? { ...s, is_active: !currentStatus } : s,
-        ),
-      );
+      setStaff(staff.map((s) => (s.id === id ? { ...s, is_active: !currentStatus } : s)));
       toast.success(currentStatus ? "Staff deactivated" : "Staff activated");
     } catch (err: unknown) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to update";
+      const errorMessage = err instanceof Error ? err.message : "Failed to update";
       toast.error(errorMessage);
     }
   };
@@ -583,11 +524,7 @@ function DirectoryTab({
             .eq("school_id", school.id)
             .eq("class_teacher_id", member.id)
             .maybeSingle(),
-          supabase
-            .from("teacher_subjects")
-            .select("subject_id")
-            .eq("school_id", school.id)
-            .eq("teacher_id", member.id),
+          supabase.from("teacher_subjects").select("subject_id").eq("school_id", school.id).eq("teacher_id", member.id),
         ]);
 
         classTeacherFor = classRes.data?.id || "";
@@ -644,17 +581,11 @@ function DirectoryTab({
             : editForm.subject || null,
       };
 
-      let { error } = await supabase
-        .from("users")
-        .update(updatePayload)
-        .eq("id", editingStaff.id);
+      let { error } = await supabase.from("users").update(updatePayload).eq("id", editingStaff.id);
 
       if ((error as { code?: string } | null)?.code === "42703") {
         const { subject: _ignored, ...fallbackPayload } = updatePayload;
-        const retry = await supabase
-          .from("users")
-          .update(fallbackPayload)
-          .eq("id", editingStaff.id);
+        const retry = await supabase.from("users").update(fallbackPayload).eq("id", editingStaff.id);
         error = retry.error;
       }
 
@@ -695,9 +626,7 @@ function DirectoryTab({
               subject_id: subjectId,
             }));
 
-            const { error: assignSubjectsError } = await supabase
-              .from("teacher_subjects")
-              .insert(payload);
+            const { error: assignSubjectsError } = await supabase.from("teacher_subjects").insert(payload);
             if (assignSubjectsError) throw assignSubjectsError;
           }
         }
@@ -712,9 +641,7 @@ function DirectoryTab({
                 subject:
                   editForm.subject_ids.length > 0
                     ? subjects
-                        .filter((subject) =>
-                          editForm.subject_ids.includes(subject.id),
-                        )
+                        .filter((subject) => editForm.subject_ids.includes(subject.id))
                         .map((subject) => subject.name)
                         .join(", ")
                     : editForm.subject,
@@ -726,8 +653,7 @@ function DirectoryTab({
       setShowEditModal(false);
       setEditingStaff(null);
     } catch (err: unknown) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to update staff";
+      const errorMessage = err instanceof Error ? err.message : "Failed to update staff";
       toast.error(errorMessage);
     } finally {
       setSaving(false);
@@ -743,8 +669,7 @@ function DirectoryTab({
         setTotalCount((prev) => Math.max(0, prev - 1));
         toast.success("Staff member deleted");
       } catch (err: unknown) {
-        const errorMessage =
-          err instanceof Error ? err.message : "Failed to delete staff";
+        const errorMessage = err instanceof Error ? err.message : "Failed to delete staff";
         toast.error(errorMessage);
       }
     });
@@ -1064,11 +989,7 @@ function DirectoryTab({
   };
 
   const printStaffIDCard = (member: StaffMember) => {
-    const printWindow = window.open(
-      "",
-      "_blank",
-      "width=420,height=320,noopener,noreferrer",
-    );
+    const printWindow = window.open("", "_blank", "width=420,height=320,noopener,noreferrer");
 
     if (!printWindow) {
       toast.error("Unable to open print window. Please allow pop-ups and try again.");
@@ -1081,11 +1002,11 @@ function DirectoryTab({
     const bodyContent = bodyMatch ? bodyMatch[1].trim() : fullHtml;
 
     printWindow.document.open();
-    printWindow.document.title = 'Staff ID Card';
-    document.querySelectorAll('link[rel="stylesheet"], style').forEach(el => {
+    printWindow.document.title = "Staff ID Card";
+    document.querySelectorAll('link[rel="stylesheet"], style').forEach((el) => {
       printWindow.document.head.appendChild(el.cloneNode(true));
     });
-    printWindow.document.head.insertAdjacentHTML('beforeend', headStyles.join(''));
+    printWindow.document.head.insertAdjacentHTML("beforeend", headStyles.join(""));
     printWindow.document.body.innerHTML = bodyContent;
     printWindow.document.close();
 
@@ -1107,9 +1028,7 @@ function DirectoryTab({
     };
     const style = roles[role] || roles.teacher;
     return (
-      <span
-        className={`px-2 py-1 rounded-lg text-xs font-medium ${style.bg} ${style.text}`}
-      >
+      <span className={`px-2 py-1 rounded-lg text-xs font-medium ${style.bg} ${style.text}`}>
         {role === "dos"
           ? "Director of Studies"
           : role === "school_admin"
@@ -1119,16 +1038,18 @@ function DirectoryTab({
     );
   };
 
-  const filteredStaff = (activeTab === "all"
-    ? staff
-    : activeTab === "active"
-      ? staff.filter((s) => s.is_active)
-      : staff.filter((s) => !s.is_active)
-  ).filter((s) =>
-    !staffSearch ||
-    (s.full_name?.toLowerCase() ?? "").includes(staffSearch.toLowerCase()) ||
-    (s.role?.toLowerCase() ?? "").includes(staffSearch.toLowerCase()) ||
-    (s.email?.toLowerCase() ?? "").includes(staffSearch.toLowerCase())
+  const filteredStaff = (
+    activeTab === "all"
+      ? staff
+      : activeTab === "active"
+        ? staff.filter((s) => s.is_active)
+        : staff.filter((s) => !s.is_active)
+  ).filter(
+    (s) =>
+      !staffSearch ||
+      (s.full_name?.toLowerCase() ?? "").includes(staffSearch.toLowerCase()) ||
+      (s.role?.toLowerCase() ?? "").includes(staffSearch.toLowerCase()) ||
+      (s.email?.toLowerCase() ?? "").includes(staffSearch.toLowerCase()),
   );
 
   const staffCardPrimary = school?.primary_color || "#1e40af";
@@ -1180,15 +1101,11 @@ function DirectoryTab({
                       className="rounded-full object-cover"
                     />
                   ) : (
-                    <span className="text-gray-700 font-semibold">
-                      {member.full_name?.charAt(0) || "U"}
-                    </span>
+                    <span className="text-gray-700 font-semibold">{member.full_name?.charAt(0) || "U"}</span>
                   )}
                 </div>
                 <div>
-                  <div className="font-medium text-gray-900">
-                    {member.full_name}
-                  </div>
+                  <div className="font-medium text-gray-900">{member.full_name}</div>
                   <div className="flex items-center gap-2 mt-1">
                     {getRoleBadge(member.role)}
                     <span
@@ -1199,26 +1116,16 @@ function DirectoryTab({
                   </div>
                   <div className="text-xs text-gray-500 mt-1">
                     {member.phone}
-                    {member.subject && (
-                      <span className="ml-2">• {member.subject}</span>
-                    )}
+                    {member.subject && <span className="ml-2">• {member.subject}</span>}
                   </div>
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => openEditModal(member)}
-                >
+                <Button variant="ghost" size="sm" onClick={() => openEditModal(member)}>
                   <MaterialIcon icon="edit" className="text-sm" />
                   Edit
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setIdCardPreviewStaff(member)}
-                >
+                <Button variant="ghost" size="sm" onClick={() => setIdCardPreviewStaff(member)}>
                   <MaterialIcon icon="badge" className="text-sm" />
                   ID Card
                 </Button>
@@ -1240,11 +1147,7 @@ function DirectoryTab({
                 >
                   {member.is_active ? "Deactivate" : "Activate"}
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleDeleteStaff(member.id)}
-                >
+                <Button variant="ghost" size="sm" onClick={() => handleDeleteStaff(member.id)}>
                   <MaterialIcon icon="delete" className="text-sm" />
                 </Button>
               </div>
@@ -1259,15 +1162,12 @@ function DirectoryTab({
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-xl font-semibold text-[var(--on-surface)]">
-            Staff Directory
-          </h2>
+          <h2 className="text-xl font-semibold text-[var(--on-surface)]">Staff Directory</h2>
           <p className="text-sm text-[var(--t3)]">{totalCount} staff members</p>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-sm text-[var(--t3)]">
-            Page {currentPage} of{" "}
-            {Math.max(1, Math.ceil(totalCount / itemsPerPage))}
+            Page {currentPage} of {Math.max(1, Math.ceil(totalCount / itemsPerPage))}
           </span>
           <Button
             variant="ghost"
@@ -1280,11 +1180,7 @@ function DirectoryTab({
           <Button
             variant="ghost"
             size="sm"
-            onClick={() =>
-              setCurrentPage((p) =>
-                Math.min(Math.ceil(totalCount / itemsPerPage), p + 1),
-              )
-            }
+            onClick={() => setCurrentPage((p) => Math.min(Math.ceil(totalCount / itemsPerPage), p + 1))}
             disabled={currentPage >= Math.ceil(totalCount / itemsPerPage)}
           >
             <MaterialIcon icon="chevron_right" />
@@ -1341,12 +1237,7 @@ function DirectoryTab({
         </div>
       </div>
 
-      <Tabs
-        tabs={tabs}
-        activeTab={activeTab}
-        onChange={setActiveTab}
-        className="mb-6"
-      />
+      <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} className="mb-6" />
 
       <TabPanel activeTab={activeTab} tabId="all">
         {renderContent()}
@@ -1369,22 +1260,18 @@ function DirectoryTab({
           >
             <div className="p-6 border-b border-[#e8eaed]">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-[#191c1d]">
-                  Add Staff Member
-                </h2>
-                <button
-                  onClick={() => setShowAddModal(false)}
-                  className="p-2 text-[#5c6670] hover:text-[#191c1d]"
-                >
+                <h2 className="text-lg font-semibold text-[#191c1d]">Add Staff Member</h2>
+                <button onClick={() => setShowAddModal(false)} className="p-2 text-[#5c6670] hover:text-[#191c1d]">
                   <MaterialIcon icon="close" className="text-xl" />
                 </button>
               </div>
             </div>
-            <form onSubmit={handleAddStaff} className="p-6 space-y-4 overflow-y-auto max-h-[calc(100vh-10rem)] sm:max-h-[calc(100vh-11rem)]">
+            <form
+              onSubmit={handleAddStaff}
+              className="p-6 space-y-4 overflow-y-auto max-h-[calc(100vh-10rem)] sm:max-h-[calc(100vh-11rem)]"
+            >
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">
-                  Profile Photo
-                </label>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Profile Photo</label>
                 <div className="flex items-center gap-3">
                   <div className="w-14 h-14 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center">
                     {newStaff.avatar_url ? (
@@ -1407,24 +1294,16 @@ function DirectoryTab({
                       if (!file) return;
                       try {
                         validateStudentPhoto(file);
-                        const preview = await new Promise<string>(
-                          (resolve, reject) => {
-                            const reader = new FileReader();
-                            reader.onload = () =>
-                              resolve(String(reader.result || ""));
-                            reader.onerror = () =>
-                              reject(new Error("Failed to read image"));
-                            reader.readAsDataURL(file);
-                          },
-                        );
+                        const preview = await new Promise<string>((resolve, reject) => {
+                          const reader = new FileReader();
+                          reader.onload = () => resolve(String(reader.result || ""));
+                          reader.onerror = () => reject(new Error("Failed to read image"));
+                          reader.readAsDataURL(file);
+                        });
                         setNewAvatarFile(file);
                         setNewStaff((prev) => ({ ...prev, avatar_url: preview }));
                       } catch (err) {
-                        toast.error(
-                          err instanceof Error
-                            ? err.message
-                            : "Failed to process image",
-                        );
+                        toast.error(err instanceof Error ? err.message : "Failed to process image");
                       }
                     }}
                     className="input"
@@ -1433,15 +1312,11 @@ function DirectoryTab({
               </div>
 
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">
-                  Full Name
-                </label>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Full Name</label>
                 <input
                   type="text"
                   value={newStaff.full_name}
-                  onChange={(e) =>
-                    setNewStaff({ ...newStaff, full_name: e.target.value })
-                  }
+                  onChange={(e) => setNewStaff({ ...newStaff, full_name: e.target.value })}
                   className="input"
                   required
                   maxLength={200}
@@ -1449,16 +1324,12 @@ function DirectoryTab({
               </div>
 
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">
-                  Phone Number
-                </label>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Phone Number</label>
                 <input
                   type="tel"
                   placeholder="0700000000"
                   value={newStaff.phone}
-                  onChange={(e) =>
-                    setNewStaff({ ...newStaff, phone: e.target.value })
-                  }
+                  onChange={(e) => setNewStaff({ ...newStaff, phone: e.target.value })}
                   className="input"
                   required
                   maxLength={15}
@@ -1466,35 +1337,25 @@ function DirectoryTab({
               </div>
 
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">
-                  Role
-                </label>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Role</label>
                 <select
                   value={newStaff.role}
-                  onChange={(e) =>
-                    setNewStaff({ ...newStaff, role: e.target.value })
-                  }
+                  onChange={(e) => setNewStaff({ ...newStaff, role: e.target.value })}
                   className="input"
                 >
                   <option value="teacher">Teacher</option>
-                  <option value="dean_of_studies">
-                    Director of Studies (DOS)
-                  </option>
+                  <option value="dean_of_studies">Director of Studies (DOS)</option>
                   <option value="bursar">Bursar</option>
                   <option value="secretary">Secretary</option>
                   <option value="dorm_master">Dorm Master/Mistress</option>
                 </select>
-                <p className="text-xs text-[#5c6670] mt-1">
-                  {ROLE_DESCRIPTIONS[newStaff.role]?.desc}
-                </p>
+                <p className="text-xs text-[#5c6670] mt-1">{ROLE_DESCRIPTIONS[newStaff.role]?.desc}</p>
               </div>
 
               {newStaff.role === "teacher" && (
                 <>
                   <div>
-                    <label className="text-sm font-medium text-[#191c1d] mb-2 block">
-                      Class Teacher For
-                    </label>
+                    <label className="text-sm font-medium text-[#191c1d] mb-2 block">Class Teacher For</label>
                     <select
                       value={newStaff.class_teacher_for}
                       onChange={(e) =>
@@ -1516,15 +1377,10 @@ function DirectoryTab({
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium text-[#191c1d] mb-2 block">
-                      Subjects Taught
-                    </label>
+                    <label className="text-sm font-medium text-[#191c1d] mb-2 block">Subjects Taught</label>
                     <div className="grid grid-cols-2 gap-2 rounded-xl border border-[#e8eaed] p-3 max-h-36 overflow-y-auto">
                       {subjects.map((subject) => (
-                        <label
-                          key={subject.id}
-                          className="flex items-center gap-2 text-sm text-[#191c1d]"
-                        >
+                        <label key={subject.id} className="flex items-center gap-2 text-sm text-[#191c1d]">
                           <input
                             type="checkbox"
                             checked={newStaff.subject_ids.includes(subject.id)}
@@ -1533,9 +1389,7 @@ function DirectoryTab({
                                 ...prev,
                                 subject_ids: e.target.checked
                                   ? [...prev.subject_ids, subject.id]
-                                  : prev.subject_ids.filter(
-                                      (id) => id !== subject.id,
-                                    ),
+                                  : prev.subject_ids.filter((id) => id !== subject.id),
                               }));
                             }}
                           />
@@ -1548,32 +1402,24 @@ function DirectoryTab({
               )}
 
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">
-                  Email (optional)
-                </label>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Email (optional)</label>
                 <input
                   type="email"
                   placeholder="teacher@school.edu.ug"
                   value={newStaff.email}
-                  onChange={(e) =>
-                    setNewStaff({ ...newStaff, email: e.target.value })
-                  }
+                  onChange={(e) => setNewStaff({ ...newStaff, email: e.target.value })}
                   className="input"
                   maxLength={254}
                 />
               </div>
 
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">
-                  Password
-                </label>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Password</label>
                 <input
                   type="password"
                   placeholder="Min 6 characters"
                   value={newStaff.password}
-                  onChange={(e) =>
-                    setNewStaff({ ...newStaff, password: e.target.value })
-                  }
+                  onChange={(e) => setNewStaff({ ...newStaff, password: e.target.value })}
                   className="input"
                   required
                   minLength={6}
@@ -1581,21 +1427,10 @@ function DirectoryTab({
               </div>
 
               <div className="flex gap-3 pt-4">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => setShowAddModal(false)}
-                  className="flex-1"
-                >
+                <Button type="button" variant="secondary" onClick={() => setShowAddModal(false)} className="flex-1">
                   Cancel
                 </Button>
-                <Button
-                  type="submit"
-                  variant="primary"
-                  disabled={saving}
-                  loading={saving}
-                  className="flex-1"
-                >
+                <Button type="submit" variant="primary" disabled={saving} loading={saving} className="flex-1">
                   {saving ? "Adding..." : "Add Staff"}
                 </Button>
               </div>
@@ -1615,26 +1450,20 @@ function DirectoryTab({
           >
             <div className="p-6 border-b border-[#e8eaed]">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-[#191c1d]">
-                  Edit Staff Member
-                </h2>
-                <button
-                  onClick={() => setShowEditModal(false)}
-                  className="p-2 text-[#5c6670] hover:text-[#191c1d]"
-                >
+                <h2 className="text-lg font-semibold text-[#191c1d]">Edit Staff Member</h2>
+                <button onClick={() => setShowEditModal(false)} className="p-2 text-[#5c6670] hover:text-[#191c1d]">
                   <MaterialIcon icon="close" className="text-xl" />
                 </button>
               </div>
             </div>
-            <form onSubmit={handleUpdateStaff} className="p-6 space-y-4 overflow-y-auto max-h-[calc(100vh-10rem)] sm:max-h-[calc(100vh-11rem)]">
-              {loadingAssignments ? (
-                <div className="text-sm text-[#5c6670]">Loading teacher assignments...</div>
-              ) : null}
+            <form
+              onSubmit={handleUpdateStaff}
+              className="p-6 space-y-4 overflow-y-auto max-h-[calc(100vh-10rem)] sm:max-h-[calc(100vh-11rem)]"
+            >
+              {loadingAssignments ? <div className="text-sm text-[#5c6670]">Loading teacher assignments...</div> : null}
 
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">
-                  Profile Photo
-                </label>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Profile Photo</label>
                 <div className="flex items-center gap-3">
                   <div className="w-14 h-14 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center">
                     {editForm.avatar_url ? (
@@ -1656,20 +1485,13 @@ function DirectoryTab({
                       const file = e.target.files?.[0];
                       if (!file || !editingStaff) return;
                       try {
-                        const uploadedUrl = await uploadStaffAvatar(
-                          file,
-                          editingStaff.id,
-                        );
+                        const uploadedUrl = await uploadStaffAvatar(file, editingStaff.id);
                         setEditForm((prev) => ({
                           ...prev,
                           avatar_url: uploadedUrl,
                         }));
                       } catch (err) {
-                        toast.error(
-                          err instanceof Error
-                            ? err.message
-                            : "Failed to upload image",
-                        );
+                        toast.error(err instanceof Error ? err.message : "Failed to upload image");
                       }
                     }}
                     className="input"
@@ -1678,15 +1500,11 @@ function DirectoryTab({
               </div>
 
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">
-                  Full Name
-                </label>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Full Name</label>
                 <input
                   type="text"
                   value={editForm.full_name}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, full_name: e.target.value })
-                  }
+                  onChange={(e) => setEditForm({ ...editForm, full_name: e.target.value })}
                   className="input"
                   required
                   maxLength={200}
@@ -1694,16 +1512,12 @@ function DirectoryTab({
               </div>
 
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">
-                  Phone Number
-                </label>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Phone Number</label>
                 <input
                   type="tel"
                   placeholder="0700000000"
                   value={editForm.phone}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, phone: e.target.value })
-                  }
+                  onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
                   className="input"
                   required
                   maxLength={15}
@@ -1711,14 +1525,10 @@ function DirectoryTab({
               </div>
 
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">
-                  Role
-                </label>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Role</label>
                 <select
                   value={editForm.role}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, role: e.target.value })
-                  }
+                  onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
                   className="input"
                 >
                   <option value="teacher">Teacher</option>
@@ -1734,9 +1544,7 @@ function DirectoryTab({
               {editForm.role === "teacher" && (
                 <>
                   <div>
-                    <label className="text-sm font-medium text-[#191c1d] mb-2 block">
-                      Class Teacher For
-                    </label>
+                    <label className="text-sm font-medium text-[#191c1d] mb-2 block">Class Teacher For</label>
                     <select
                       value={editForm.class_teacher_for}
                       onChange={(e) =>
@@ -1757,15 +1565,10 @@ function DirectoryTab({
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium text-[#191c1d] mb-2 block">
-                      Subjects Taught
-                    </label>
+                    <label className="text-sm font-medium text-[#191c1d] mb-2 block">Subjects Taught</label>
                     <div className="grid grid-cols-2 gap-2 rounded-xl border border-[#e8eaed] p-3 max-h-36 overflow-y-auto">
                       {subjects.map((subject) => (
-                        <label
-                          key={subject.id}
-                          className="flex items-center gap-2 text-sm text-[#191c1d]"
-                        >
+                        <label key={subject.id} className="flex items-center gap-2 text-sm text-[#191c1d]">
                           <input
                             type="checkbox"
                             checked={editForm.subject_ids.includes(subject.id)}
@@ -1774,9 +1577,7 @@ function DirectoryTab({
                                 ...prev,
                                 subject_ids: e.target.checked
                                   ? [...prev.subject_ids, subject.id]
-                                  : prev.subject_ids.filter(
-                                      (id) => id !== subject.id,
-                                    ),
+                                  : prev.subject_ids.filter((id) => id !== subject.id),
                               }));
                             }}
                           />
@@ -1789,21 +1590,10 @@ function DirectoryTab({
               )}
 
               <div className="flex gap-3 pt-4">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  onClick={() => setShowEditModal(false)}
-                  className="flex-1"
-                >
+                <Button type="button" variant="secondary" onClick={() => setShowEditModal(false)} className="flex-1">
                   Cancel
                 </Button>
-                <Button
-                  type="submit"
-                  variant="primary"
-                  disabled={saving}
-                  loading={saving}
-                  className="flex-1"
-                >
+                <Button type="submit" variant="primary" disabled={saving} loading={saving} className="flex-1">
                   {saving ? "Updating..." : "Update Staff"}
                 </Button>
               </div>
@@ -1823,13 +1613,8 @@ function DirectoryTab({
           >
             <div className="p-6 border-b border-[#e8eaed]">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-[#191c1d]">
-                  Staff ID Card Preview
-                </h2>
-                <button
-                  onClick={() => setIdCardPreviewStaff(null)}
-                  className="p-2 text-[#5c6670] hover:text-[#191c1d]"
-                >
+                <h2 className="text-lg font-semibold text-[#191c1d]">Staff ID Card Preview</h2>
+                <button onClick={() => setIdCardPreviewStaff(null)} className="p-2 text-[#5c6670] hover:text-[#191c1d]">
                   <MaterialIcon icon="close" className="text-xl" />
                 </button>
               </div>
@@ -1903,9 +1688,7 @@ function DirectoryTab({
                       STAFF
                     </span>
                   </div>
-                  <div className="text-[16px] font-extrabold text-[#0f172a] mb-1.5">
-                    {idCardPreviewStaff.full_name}
-                  </div>
+                  <div className="text-[16px] font-extrabold text-[#0f172a] mb-1.5">{idCardPreviewStaff.full_name}</div>
                   <div
                     className="inline-flex w-fit text-[10px] uppercase tracking-[0.03em] font-bold rounded-full px-2 py-1 border mb-2"
                     style={{
@@ -1940,9 +1723,7 @@ function DirectoryTab({
                           includeMargin={false}
                         />
                       </div>
-                      <span className="text-[8px] text-[#475569] font-bold tracking-[0.03em] uppercase">
-                        Verify
-                      </span>
+                      <span className="text-[8px] text-[#475569] font-bold tracking-[0.03em] uppercase">Verify</span>
                     </div>
                   </div>
                 </div>
@@ -2044,12 +1825,8 @@ function ReviewsTab({
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-xl font-semibold text-[var(--on-surface)]">
-            Staff Performance
-          </h2>
-          <p className="text-sm text-[var(--t3)]">
-            Conduct and manage staff performance reviews
-          </p>
+          <h2 className="text-xl font-semibold text-[var(--on-surface)]">Staff Performance</h2>
+          <p className="text-sm text-[var(--t3)]">Conduct and manage staff performance reviews</p>
         </div>
         <Button
           onClick={() => setShowReviewModal(true)}
@@ -2089,9 +1866,7 @@ function ReviewsTab({
                       <p className="font-semibold text-[var(--on-surface)]">
                         {review.staff?.full_name || "Demo Staff"}
                       </p>
-                      <p className="text-xs text-[var(--t3)]">
-                        {review.review_date}
-                      </p>
+                      <p className="text-xs text-[var(--t3)]">{review.review_date}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-1 text-[var(--amber)]">
@@ -2110,17 +1885,13 @@ function ReviewsTab({
                     <p className="text-xs font-semibold text-[var(--primary)] uppercase tracking-wider mb-1">
                       Strengths
                     </p>
-                    <p className="text-sm text-[var(--t2)] line-clamp-2">
-                      {review.strengths}
-                    </p>
+                    <p className="text-sm text-[var(--t2)] line-clamp-2">{review.strengths}</p>
                   </div>
                   <div>
                     <p className="text-xs font-semibold text-[var(--navy)] uppercase tracking-wider mb-1">
                       Upcoming Goals
                     </p>
-                    <p className="text-sm text-[var(--t2)] line-clamp-2">
-                      {review.goals}
-                    </p>
+                    <p className="text-sm text-[var(--t2)] line-clamp-2">{review.goals}</p>
                   </div>
                 </div>
 
@@ -2143,9 +1914,7 @@ function ReviewsTab({
           >
             <div className="p-6 border-b border-[var(--border)]">
               <div className="flex items-center justify-between">
-                <h2 className="text-xl font-semibold text-[var(--on-surface)]">
-                  New Performance Review
-                </h2>
+                <h2 className="text-xl font-semibold text-[var(--on-surface)]">New Performance Review</h2>
                 <button
                   onClick={() => setShowReviewModal(false)}
                   className="p-2 text-[var(--t3)] hover:text-[var(--on-surface)]"
@@ -2158,9 +1927,7 @@ function ReviewsTab({
             <form onSubmit={handleReviewSubmit} className="p-6 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-[var(--on-surface)]">
-                    Select Staff Member
-                  </label>
+                  <label className="text-sm font-medium text-[var(--on-surface)]">Select Staff Member</label>
                   <select
                     required
                     value={selectedStaffId}
@@ -2182,43 +1949,29 @@ function ReviewsTab({
                   )}
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-[var(--on-surface)]">
-                    Overall Rating (1-5)
-                  </label>
+                  <label className="text-sm font-medium text-[var(--on-surface)]">Overall Rating (1-5)</label>
                   <div className="flex items-center gap-2 h-[48px]">
                     {[1, 2, 3, 4, 5].map((num) => (
                       <button
                         key={num}
                         type="button"
                         onClick={() => {
-                          const input = document.getElementById(
-                            "rating-input",
-                          ) as HTMLInputElement;
+                          const input = document.getElementById("rating-input") as HTMLInputElement;
                           if (input) input.value = num.toString();
                         }}
                         className="p-1 hover:scale-110 transition-transform"
                       >
-                        <MaterialIcon
-                          icon="star"
-                          className="text-2xl text-[var(--amber)]"
-                        />
+                        <MaterialIcon icon="star" className="text-2xl text-[var(--amber)]" />
                       </button>
                     ))}
-                    <input
-                      type="hidden"
-                      name="rating"
-                      id="rating-input"
-                      defaultValue="5"
-                    />
+                    <input type="hidden" name="rating" id="rating-input" defaultValue="5" />
                   </div>
                 </div>
               </div>
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-[var(--on-surface)]">
-                    Key Strengths
-                  </label>
+                  <label className="text-sm font-medium text-[var(--on-surface)]">Key Strengths</label>
                   <textarea
                     name="strengths"
                     required
@@ -2228,9 +1981,7 @@ function ReviewsTab({
                   ></textarea>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-[var(--on-surface)]">
-                    Areas for Improvement
-                  </label>
+                  <label className="text-sm font-medium text-[var(--on-surface)]">Areas for Improvement</label>
                   <textarea
                     name="areas_for_improvement"
                     rows={2}
@@ -2239,9 +1990,7 @@ function ReviewsTab({
                   ></textarea>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-[var(--on-surface)]">
-                    Development Goals
-                  </label>
+                  <label className="text-sm font-medium text-[var(--on-surface)]">Development Goals</label>
                   <textarea
                     name="goals"
                     rows={2}
@@ -2262,7 +2011,6 @@ function ReviewsTab({
           </div>
         </div>
       )}
-
     </div>
   );
 }
@@ -2280,14 +2028,9 @@ function LeaveTab({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showModal, setShowModal] = useState(false);
-  const [filter, setFilter] = useState<
-    | "all"
-    | "needs_approval"
-    | "pending"
-    | "dos_approved"
-    | "approved"
-    | "rejected"
-  >("all");
+  const [filter, setFilter] = useState<"all" | "needs_approval" | "pending" | "dos_approved" | "approved" | "rejected">(
+    "all",
+  );
   const [form, setForm] = useState({
     leave_type: "sick",
     start_date: "",
@@ -2312,11 +2055,7 @@ function LeaveTab({
 
       if (error) {
         // Table doesn't exist or RLS blocks — show empty gracefully
-        if (
-          error.code === "42P01" ||
-          error.code === "42501" ||
-          error.code === "PGRST116"
-        ) {
+        if (error.code === "42P01" || error.code === "42501" || error.code === "PGRST116") {
           setRequests([]);
           return;
         }
@@ -2324,10 +2063,7 @@ function LeaveTab({
       }
       setRequests(data || []);
     } catch (err) {
-      logger.error(
-        "Error fetching leave requests:",
-        err instanceof Error ? err.message : "unknown",
-      );
+      logger.error("Error fetching leave requests:", err instanceof Error ? err.message : "unknown");
       setRequests([]);
     } finally {
       setLoading(false);
@@ -2344,11 +2080,12 @@ function LeaveTab({
     return Math.max(1, Math.ceil(diff / (1000 * 60 * 60 * 24)) + 1);
   };
 
-  const leaveValidationError = !form.start_date || !form.end_date || !form.reason.trim()
-    ? "Add start date, end date, and reason to submit."
-    : new Date(form.end_date) < new Date(form.start_date)
-      ? "End date must be on or after start date."
-      : "";
+  const leaveValidationError =
+    !form.start_date || !form.end_date || !form.reason.trim()
+      ? "Add start date, end date, and reason to submit."
+      : new Date(form.end_date) < new Date(form.start_date)
+        ? "End date must be on or after start date."
+        : "";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -2398,37 +2135,30 @@ function LeaveTab({
   };
 
   const getStatusBadge = (status: string) => {
-    const styles: Record<string, { bg: string; text: string; label: string }> =
-      {
-        pending: {
-          bg: "bg-[var(--amber-soft)]",
-          text: "text-[var(--amber)]",
-          label: "Pending",
-        },
-        dos_approved: {
-          bg: "bg-[var(--navy-soft)]",
-          text: "text-[var(--navy)]",
-          label: "DOS Approved",
-        },
-        approved: {
-          bg: "bg-[var(--green-soft)]",
-          text: "text-[var(--green)]",
-          label: "HM Approved",
-        },
-        rejected: {
-          bg: "bg-[var(--red-soft)]",
-          text: "text-[var(--red)]",
-          label: "Rejected",
-        },
-      };
+    const styles: Record<string, { bg: string; text: string; label: string }> = {
+      pending: {
+        bg: "bg-[var(--amber-soft)]",
+        text: "text-[var(--amber)]",
+        label: "Pending",
+      },
+      dos_approved: {
+        bg: "bg-[var(--navy-soft)]",
+        text: "text-[var(--navy)]",
+        label: "DOS Approved",
+      },
+      approved: {
+        bg: "bg-[var(--green-soft)]",
+        text: "text-[var(--green)]",
+        label: "HM Approved",
+      },
+      rejected: {
+        bg: "bg-[var(--red-soft)]",
+        text: "text-[var(--red)]",
+        label: "Rejected",
+      },
+    };
     const s = styles[status] || styles.pending;
-    return (
-      <span
-        className={`px-2 py-1 rounded-lg text-xs font-medium ${s.bg} ${s.text}`}
-      >
-        {s.label}
-      </span>
-    );
+    return <span className={`px-2 py-1 rounded-lg text-xs font-medium ${s.bg} ${s.text}`}>{s.label}</span>;
   };
 
   const getLeaveTypeLabel = (type: string) => {
@@ -2436,15 +2166,11 @@ function LeaveTab({
   };
 
   const pendingCount = requests.filter((r) => r.status === "pending").length;
-  const dosApprovedCount = requests.filter(
-    (r) => r.status === "dos_approved",
-  ).length;
+  const dosApprovedCount = requests.filter((r) => r.status === "dos_approved").length;
   const approvedCount = requests.filter((r) => r.status === "approved").length;
   const rejectedCount = requests.filter((r) => r.status === "rejected").length;
   const needsApprovalCount = isHM
-    ? requests.filter(
-        (r) => r.status === "pending" || r.status === "dos_approved",
-      ).length
+    ? requests.filter((r) => r.status === "pending" || r.status === "dos_approved").length
     : isDOS
       ? pendingCount
       : 0;
@@ -2480,16 +2206,11 @@ function LeaveTab({
       ? requests
       : filter === "needs_approval"
         ? requests.filter((r) =>
-            isHM
-              ? r.status === "pending" || r.status === "dos_approved"
-              : r.status === "pending",
+            isHM ? r.status === "pending" || r.status === "dos_approved" : r.status === "pending",
           )
         : requests.filter((r) => r.status === filter);
 
-  const handleApproval = async (
-    requestId: string,
-    action: "approved" | "rejected",
-  ) => {
+  const handleApproval = async (requestId: string, action: "approved" | "rejected") => {
     if (!user?.id || !school?.id) return;
     setProcessing(requestId);
     try {
@@ -2541,8 +2262,7 @@ function LeaveTab({
 
   const canApprove = (req: LeaveRequest) => {
     if (req.status === "approved" || req.status === "rejected") return false;
-    if (isHM && (req.status === "pending" || req.status === "dos_approved"))
-      return true;
+    if (isHM && (req.status === "pending" || req.status === "dos_approved")) return true;
     if (isDOS && req.status === "pending") return true;
     return false;
   };
@@ -2555,9 +2275,7 @@ function LeaveTab({
             {isHM || isDOS ? "Leave Management" : "My Leave Requests"}
           </h2>
           <p className="text-sm text-[var(--t3)]">
-            {isHM || isDOS
-              ? "Manage staff leave requests and approvals"
-              : "Submit and track your leave applications"}
+            {isHM || isDOS ? "Manage staff leave requests and approvals" : "Submit and track your leave applications"}
           </p>
         </div>
         <Button onClick={() => setShowModal(true)}>
@@ -2566,15 +2284,8 @@ function LeaveTab({
         </Button>
       </div>
 
-      <Tabs
-        tabs={tabs}
-        activeTab={filter}
-        onChange={(id) => setFilter(id as typeof filter)}
-        className="mb-6"
-      />
-      <p className="-mt-3 mb-6 text-sm text-[var(--t3)]">
-        {leaveFilterHints[filter]}
-      </p>
+      <Tabs tabs={tabs} activeTab={filter} onChange={(id) => setFilter(id as typeof filter)} className="mb-6" />
+      <p className="-mt-3 mb-6 text-sm text-[var(--t3)]">{leaveFilterHints[filter]}</p>
 
       {loading ? (
         <Card>
@@ -2604,34 +2315,22 @@ function LeaveTab({
                 <div className="flex items-start justify-between">
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-[var(--on-surface)]">
-                        {getLeaveTypeLabel(req.leave_type)}
-                      </span>
+                      <span className="font-medium text-[var(--on-surface)]">{getLeaveTypeLabel(req.leave_type)}</span>
                       {getStatusBadge(req.status)}
                     </div>
                     <div className="text-sm text-[var(--t3)] mt-1">
-                      {new Date(req.start_date).toLocaleDateString()} –{" "}
-                      {new Date(req.end_date).toLocaleDateString()} (
+                      {new Date(req.start_date).toLocaleDateString()} – {new Date(req.end_date).toLocaleDateString()} (
                       {req.days_count} day{req.days_count !== 1 ? "s" : ""})
                     </div>
-                    {req.reason && (
-                      <div className="text-sm text-[var(--t3)] mt-1">
-                        {req.reason}
-                      </div>
-                    )}
+                    {req.reason && <div className="text-sm text-[var(--t3)] mt-1">{req.reason}</div>}
                     {req.substitute_suggestion && (
                       <div className="text-sm text-[var(--t3)] mt-1">
-                        <MaterialIcon
-                          icon="person"
-                          className="text-xs align-middle"
-                        />{" "}
-                        Suggested substitute: {req.substitute_suggestion}
+                        <MaterialIcon icon="person" className="text-xs align-middle" /> Suggested substitute:{" "}
+                        {req.substitute_suggestion}
                       </div>
                     )}
                   </div>
-                  <span className="text-xs text-[var(--t3)]">
-                    {new Date(req.created_at).toLocaleDateString()}
-                  </span>
+                  <span className="text-xs text-[var(--t3)]">{new Date(req.created_at).toLocaleDateString()}</span>
                 </div>
                 {req.status === "pending" && req.days_count > 3 && (
                   <div className="mt-2 text-xs text-[var(--t3)] bg-[var(--surface-container)] rounded-lg p-2">
@@ -2688,28 +2387,21 @@ function LeaveTab({
           >
             <div className="p-6 border-b border-[var(--border)]">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-[var(--on-surface)]">
-                  Request Leave
-                </h2>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowModal(false)}
-                >
+                <h2 className="text-lg font-semibold text-[var(--on-surface)]">Request Leave</h2>
+                <Button variant="ghost" size="sm" onClick={() => setShowModal(false)}>
                   <MaterialIcon icon="close" className="text-xl" />
                 </Button>
               </div>
             </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto max-h-[calc(100vh-10rem)] sm:max-h-[calc(100vh-11rem)]">
+            <form
+              onSubmit={handleSubmit}
+              className="p-6 space-y-4 overflow-y-auto max-h-[calc(100vh-10rem)] sm:max-h-[calc(100vh-11rem)]"
+            >
               <div>
-                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">
-                  Leave Type
-                </label>
+                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Leave Type</label>
                 <select
                   value={form.leave_type}
-                  onChange={(e) =>
-                    setForm({ ...form, leave_type: e.target.value })
-                  }
+                  onChange={(e) => setForm({ ...form, leave_type: e.target.value })}
                   className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
                   required
                 >
@@ -2723,29 +2415,21 @@ function LeaveTab({
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">
-                    Start Date
-                  </label>
+                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Start Date</label>
                   <input
                     type="date"
                     value={form.start_date}
-                    onChange={(e) =>
-                      setForm({ ...form, start_date: e.target.value })
-                    }
+                    onChange={(e) => setForm({ ...form, start_date: e.target.value })}
                     className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
                     required
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">
-                    End Date
-                  </label>
+                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">End Date</label>
                   <input
                     type="date"
                     value={form.end_date}
-                    onChange={(e) =>
-                      setForm({ ...form, end_date: e.target.value })
-                    }
+                    onChange={(e) => setForm({ ...form, end_date: e.target.value })}
                     className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
                     required
                   />
@@ -2763,9 +2447,7 @@ function LeaveTab({
               )}
 
               <div>
-                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">
-                  Reason
-                </label>
+                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Reason</label>
                 <textarea
                   value={form.reason}
                   onChange={(e) => setForm({ ...form, reason: e.target.value })}
@@ -2794,12 +2476,7 @@ function LeaveTab({
               </div>
 
               <div className="flex gap-3 pt-4">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="flex-1"
-                  onClick={() => setShowModal(false)}
-                >
+                <Button type="button" variant="secondary" className="flex-1" onClick={() => setShowModal(false)}>
                   Cancel
                 </Button>
                 <Button
@@ -2812,9 +2489,7 @@ function LeaveTab({
                   {saving ? "Submitting..." : "Submit Request"}
                 </Button>
               </div>
-              {leaveValidationError && (
-                <p className="text-sm text-[var(--t3)]">{leaveValidationError}</p>
-              )}
+              {leaveValidationError && <p className="text-sm text-[var(--t3)]">{leaveValidationError}</p>}
             </form>
           </div>
         </div>

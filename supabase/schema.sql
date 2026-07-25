@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS schools (
     report_footer TEXT,
     id_card_style TEXT DEFAULT 'standard',
     onboarded_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    is_tester BOOLEAN DEFAULT false,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

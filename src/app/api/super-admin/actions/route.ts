@@ -20,17 +20,41 @@ async function guardSuperAdmin(request: NextRequest) {
 // ─── Allowed fields ───────────────────────────────────────────────────────────
 
 const SCHOOL_EDITABLE_FIELDS = new Set([
-  "name", "district", "phone", "email", "primary_color", "school_type", "ownership",
-  "subscription_plan", "subscription_status", "feature_stage", "trial_ends_at",
+  "name",
+  "district",
+  "phone",
+  "email",
+  "primary_color",
+  "school_type",
+  "ownership",
+  "subscription_plan",
+  "subscription_status",
+  "feature_stage",
+  "trial_ends_at",
+  "is_tester",
   // Report & ID card customization
-  "address", "motto", "principal_name", "report_header", "report_footer", "id_card_style",
+  "address",
+  "motto",
+  "principal_name",
+  "report_header",
+  "report_footer",
+  "id_card_style",
 ]);
 
 const USER_EDITABLE_FIELDS = new Set(["is_active", "role"]);
 
 const VALID_ROLES = [
-  "super_admin", "school_admin", "admin", "headmaster", "dean_of_studies",
-  "bursar", "teacher", "secretary", "dorm_master", "student", "parent",
+  "super_admin",
+  "school_admin",
+  "admin",
+  "headmaster",
+  "dean_of_studies",
+  "bursar",
+  "teacher",
+  "secretary",
+  "dorm_master",
+  "student",
+  "parent",
 ];
 
 // ─── POST handler (all mutations) ─────────────────────────────────────────────
@@ -82,8 +106,19 @@ export async function POST(request: NextRequest) {
 
   // ── create_school ──────────────────────────────────────────────────────────
   if (action === "create_school") {
-    const { name, school_code, district, school_type, ownership, phone, email,
-            primary_color, subscription_plan, feature_stage, trial_days } = body;
+    const {
+      name,
+      school_code,
+      district,
+      school_type,
+      ownership,
+      phone,
+      email,
+      primary_color,
+      subscription_plan,
+      feature_stage,
+      trial_days,
+    } = body;
 
     if (!name?.trim() || !school_code?.trim() || !district?.trim()) {
       return NextResponse.json(
@@ -185,10 +220,7 @@ export async function POST(request: NextRequest) {
 
     // Prevent deleting super_admin accounts
     if (userRow.role === "super_admin") {
-      return NextResponse.json(
-        { success: false, error: "Cannot delete a super admin account" },
-        { status: 403 },
-      );
+      return NextResponse.json({ success: false, error: "Cannot delete a super admin account" }, { status: 403 });
     }
 
     // Delete from auth (cascades to users table via ON DELETE CASCADE)
@@ -217,17 +249,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Missing user id" }, { status: 400 });
     }
     if (!new_password || typeof new_password !== "string" || new_password.length < 8) {
-      return NextResponse.json(
-        { success: false, error: "Password must be at least 8 characters" },
-        { status: 400 },
-      );
+      return NextResponse.json({ success: false, error: "Password must be at least 8 characters" }, { status: 400 });
     }
 
-    const { data: userRow } = await admin
-      .from("users")
-      .select("auth_id, role")
-      .eq("id", id)
-      .maybeSingle();
+    const { data: userRow } = await admin.from("users").select("auth_id, role").eq("id", id).maybeSingle();
 
     if (!userRow?.auth_id) {
       return NextResponse.json({ success: false, error: "User auth record not found" }, { status: 404 });
@@ -251,11 +276,7 @@ export async function POST(request: NextRequest) {
     }
 
     // First verify school exists
-    const { data: school, error: fetchErr } = await admin
-      .from("schools")
-      .select("id, name")
-      .eq("id", id)
-      .maybeSingle();
+    const { data: school, error: fetchErr } = await admin.from("schools").select("id, name").eq("id", id).maybeSingle();
 
     if (fetchErr || !school) {
       return NextResponse.json({ success: false, error: "School not found" }, { status: 404 });
@@ -272,6 +293,3 @@ export async function POST(request: NextRequest) {
 
   return NextResponse.json({ success: false, error: `Unknown action: ${action}` }, { status: 400 });
 }
-
-
-

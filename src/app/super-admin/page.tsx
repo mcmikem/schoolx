@@ -33,6 +33,7 @@ interface School {
   student_count?: number;
   trial_ends_at?: string;
   feature_stage?: FeatureStage;
+  is_tester?: boolean;
   created_at: string;
   // Customization fields
   address?: string;
@@ -369,6 +370,7 @@ function SchoolDetailSheet({
   const [status, setStatus] = useState(school.subscription_status);
   const [stage, setStage] = useState<FeatureStage>(school.feature_stage || "full");
   const [trialDays, setTrialDays] = useState(14);
+  const [isTester, setIsTester] = useState(school.is_tester ?? false);
   const [saving, setSaving] = useState(false);
   const [showSuspendConfirm, setShowSuspendConfirm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -406,6 +408,7 @@ function SchoolDetailSheet({
           subscription_plan: plan,
           subscription_status: status,
           feature_stage: stage,
+          is_tester: isTester,
           address: address.trim() || null,
           motto: motto.trim() || null,
           principal_name: principalName.trim() || null,
@@ -424,6 +427,7 @@ function SchoolDetailSheet({
         subscription_plan: plan,
         subscription_status: status,
         feature_stage: stage,
+        is_tester: isTester,
         address: address.trim() || undefined,
         motto: motto.trim() || undefined,
         principal_name: principalName.trim() || undefined,
@@ -764,6 +768,17 @@ function SchoolDetailSheet({
                         {FEATURE_STAGE_LABELS[fs]}
                       </button>
                     ))}
+                  </div>
+                </div>
+                <div className="rounded-xl bg-[#f0fdf4] border border-[#bbf7d0] p-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <div>
+                      <div className="text-[12px] font-bold text-[#15803d]">Tester School Account</div>
+                      <p className="text-[10px] text-[#4ade80] mt-0.5">
+                        Bypasses subscription checks. Testers get in-app bug report tools.
+                      </p>
+                    </div>
+                    <Toggle value={isTester} onChange={setIsTester} />
                   </div>
                 </div>
                 <div className="rounded-xl bg-[#fffbeb] border border-[#fef3c7] p-4">
@@ -1461,6 +1476,7 @@ export default function SuperAdminPage() {
   const [schoolSearch, setSchoolSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [planFilter, setPlanFilter] = useState("all");
+  const [testerFilter, setTesterFilter] = useState<"all" | "tester" | "normal">("all");
   const [userSearch, setUserSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
@@ -1571,7 +1587,8 @@ export default function SuperAdminPage() {
       (s.school_code || "").toLowerCase().includes(q);
     const matchStatus = statusFilter === "all" || s.subscription_status === statusFilter;
     const matchPlan = planFilter === "all" || s.subscription_plan === planFilter;
-    return matchSearch && matchStatus && matchPlan;
+    const matchTester = testerFilter === "all" || (testerFilter === "tester" ? s.is_tester : !s.is_tester);
+    return matchSearch && matchStatus && matchPlan && matchTester;
   });
 
   const filteredUsers = users.filter((u) => {
@@ -1885,8 +1902,15 @@ export default function SuperAdminPage() {
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <div className="text-[12px] font-semibold text-[var(--t1)] truncate group-hover:text-[var(--navy)]">
-                                {s.name}
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[12px] font-semibold text-[var(--t1)] truncate group-hover:text-[var(--navy)]">
+                                  {s.name}
+                                </span>
+                                {s.is_tester && (
+                                  <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-[#f0fdf4] text-[#15803d] border border-[#bbf7d0]">
+                                    TESTER
+                                  </span>
+                                )}
                               </div>
                               <div className="text-[10px] text-[var(--t3)]">
                                 {s.district} \u00b7 {s.school_type}
@@ -2090,6 +2114,15 @@ export default function SuperAdminPage() {
                   <option value="lifetime">Lifetime</option>
                   <option value="free_trial">Free Trial</option>
                 </select>
+                <select
+                  value={testerFilter}
+                  onChange={(e) => setTesterFilter(e.target.value as "all" | "tester" | "normal")}
+                  className="rounded-xl bg-[var(--surface)] border border-[var(--border)] px-3 py-2.5 text-[12px] text-[var(--t2)] outline-none focus:border-[var(--primary)]"
+                >
+                  <option value="all">All Accounts</option>
+                  <option value="tester">Testers Only</option>
+                  <option value="normal">Normal Only</option>
+                </select>
                 <div className="text-[12px] text-[var(--t3)] flex items-center px-2">
                   {filteredSchools.length} of {schools.length}
                 </div>
@@ -2141,6 +2174,11 @@ export default function SuperAdminPage() {
                                     {s.school_code} \u00b7 {s.school_type}
                                   </div>
                                 </div>
+                                {s.is_tester && (
+                                  <span className="ml-1.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-[#f0fdf4] text-[#15803d] border border-[#bbf7d0]">
+                                    TESTER
+                                  </span>
+                                )}
                               </div>
                             </td>
                             <td className="px-4 py-3 text-[12px] text-[var(--t2)]">{s.district}</td>
@@ -2865,8 +2903,17 @@ function MarketersTab() {
             {creating ? "Creating\u2026" : "Create Marketer"}
           </button>
         </form>
-        {error && <p className="mt-2 text-[11px] text-red-600">{error}</p>}
-        {success && <p className="mt-2 text-[11px] text-green-600">{success}</p>}
+        {error && (
+          <div className="mt-3 p-3 rounded-xl bg-red-50 border border-red-200 flex items-start gap-2">
+            <span className="text-red-500 shrink-0 mt-0.5">!</span>
+            <p className="text-[13px] text-red-700 font-medium">{error}</p>
+          </div>
+        )}
+        {success && (
+          <div className="mt-3 p-3 rounded-xl bg-green-50 border border-green-200">
+            <p className="text-[13px] text-green-700 font-medium">{success}</p>
+          </div>
+        )}
         {contactMethod === "phone" && (
           <p className="mt-2 text-[11px] text-[var(--t4)]">
             Default password: <code className="font-bold text-[var(--t2)]">{DEFAULT_MARKETER_PASSWORD}</code>

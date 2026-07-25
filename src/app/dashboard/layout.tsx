@@ -25,6 +25,7 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 const OwlAssistant = dynamic(() => import("@/components/OwlAssistant"), { ssr: false });
 const CommandPalette = dynamic(() => import("@/components/CommandPalette"), { ssr: false });
+const BugReportButton = dynamic(() => import("@/components/BugReportButton"), { ssr: false });
 import RoleBasedWalkthrough from "@/components/RoleBasedWalkthrough";
 import OnboardingTour from "@/components/OnboardingTour";
 import { supabase } from "@/lib/supabase";
@@ -419,6 +420,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       {/* OnboardingTour disabled — overlay blocked entire dashboard. Enable from help menu when ready. */}
       {/* {onboardingCompleted && <OnboardingTour />} */}
       <OwlAssistant />
+      <BugReportButton />
       <PWAInstallPrompt />
       <CommandPalette />
     </ErrorBoundary>

@@ -8,10 +8,7 @@ import {
   assertSchoolScopeOrDeny,
   createServiceRoleClientOrThrow,
 } from "@/lib/api-utils";
-import {
-  createManagedUserAccount,
-  createSupabaseAdminClient,
-} from "@/lib/server/user-provisioning";
+import { createManagedUserAccount, createSupabaseAdminClient } from "@/lib/server/user-provisioning";
 
 const VALID_ROLES = [
   "school_admin",
@@ -30,6 +27,7 @@ interface AddUserRequest {
   phone: string;
   password: string;
   role: string;
+  email?: string;
 }
 
 export async function GET(request: NextRequest) {
@@ -81,7 +79,7 @@ export async function POST(request: NextRequest) {
     if (!auth.ok) return auth.response;
 
     const body: AddUserRequest = await request.json();
-    const { schoolId, fullName, phone, password, role } = body;
+    const { schoolId, fullName, phone, password, role, email } = body;
 
     if (!["school_admin", "super_admin"].includes(auth.context.user.role)) {
       return apiError("Forbidden", 403);
@@ -102,10 +100,13 @@ export async function POST(request: NextRequest) {
 
     if (!scope.ok) return scope.response;
 
-    const validationError = validateRequiredFields(
-      body as unknown as Record<string, unknown>,
-      ["schoolId", "fullName", "phone", "password", "role"],
-    );
+    const validationError = validateRequiredFields(body as unknown as Record<string, unknown>, [
+      "schoolId",
+      "fullName",
+      "phone",
+      "password",
+      "role",
+    ]);
     if (validationError) {
       return apiError(validationError, 400);
     }
@@ -122,6 +123,7 @@ export async function POST(request: NextRequest) {
       password,
       role,
       schoolId,
+      email: email || null,
     });
 
     return apiSuccess({ userId: account.userId }, "User added successfully");

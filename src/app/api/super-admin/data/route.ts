@@ -5,8 +5,7 @@ import { logger } from "@/lib/logger";
 
 const DEMO_COOKIE = "skoolmate_demo_v1";
 const DEMO_MODE_ENABLED =
-  process.env.NODE_ENV === "development" &&
-  process.env.NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES === "true";
+  process.env.NODE_ENV === "development" && process.env.NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES === "true";
 
 function isSupabaseUnavailableError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error ?? "");
@@ -55,6 +54,7 @@ export async function GET(request: NextRequest) {
           subscription_status: "active",
           trial_ends_at: null,
           feature_stage: "full",
+          is_tester: false,
           created_at: new Date().toISOString(),
           address: "Demo Road",
           motto: "Learning for Life",
@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
       admin
         .from("schools")
         .select(
-          "id, name, school_code, district, school_type, ownership, phone, email, logo_url, primary_color, subscription_plan, subscription_status, trial_ends_at, feature_stage, created_at, address, motto, principal_name, report_header, report_footer, id_card_style",
+          "id, name, school_code, district, school_type, ownership, phone, email, logo_url, primary_color, subscription_plan, subscription_status, trial_ends_at, feature_stage, is_tester, created_at, address, motto, principal_name, report_header, report_footer, id_card_style",
         )
         .order("created_at", { ascending: false }),
       admin
@@ -117,11 +117,7 @@ export async function GET(request: NextRequest) {
         .order("created_at", { ascending: false })
         .limit(500),
       // Count active enrolled students per school from the students table (source of truth)
-      admin
-        .from("students")
-        .select("school_id")
-        .eq("status", "active")
-        .not("school_id", "is", null),
+      admin.from("students").select("school_id").eq("status", "active").not("school_id", "is", null),
     ]);
 
     if (schoolsRes.error) {
@@ -129,15 +125,12 @@ export async function GET(request: NextRequest) {
       const fallbackRes = await admin
         .from("schools")
         .select(
-          "id, name, district, school_type, ownership, phone, email, logo_url, primary_color, subscription_plan, subscription_status, trial_ends_at, created_at",
+          "id, name, district, school_type, ownership, phone, email, logo_url, primary_color, subscription_plan, subscription_status, trial_ends_at, is_tester, created_at",
         )
         .order("created_at", { ascending: false });
 
       if (fallbackRes.error) {
-        return NextResponse.json(
-          { success: false, error: "Internal server error" },
-          { status: 500 },
-        );
+        return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
       }
       return NextResponse.json({
         success: true,
@@ -165,9 +158,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (err: any) {
     logger.error("[super-admin/data] error:", err);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 },
-    );
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }
