@@ -217,7 +217,8 @@ export async function POST(request: NextRequest) {
     if (profileError) {
       await supabase.auth.admin.deleteUser(authData.user.id);
       logger.error("Failed to create marketer profile:", profileError);
-      return apiError("Failed to create marketer profile", 500);
+      const detail = (profileError as { message?: string }).message || "Unknown database error";
+      return apiError(`Failed to create marketer profile: ${detail}`, 500);
     }
 
     // ── Email flow: send magic link ─────────────────────────────────────────
