@@ -144,7 +144,10 @@ export default function DashboardRouter() {
   const [loadingTimedOut, setLoadingTimedOut] = useState(false);
 
   const requiresSetup =
-    !!user && user.role !== "super_admin" && (!school || !school.name || school.name === "My School");
+    !!user &&
+    user.role !== "super_admin" &&
+    user.role !== "marketer" &&
+    (!school || !school.name || school.name === "My School");
 
   useEffect(() => {
     if (!authInitialized || !requiresSetup) return;
