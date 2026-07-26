@@ -265,6 +265,7 @@ export default function MarketerDashboard() {
   const { user } = useAuth();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState("");
   const [activeTab, setActiveTab] = useState<TabId>("overview");
   const [search, setSearch] = useState("");
 
@@ -273,13 +274,16 @@ export default function MarketerDashboard() {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
+    setFetchError("");
     try {
       const res = await fetch("/api/marketers/data/");
       const body = await res.json();
-      if (!res.ok || !body.success) throw new Error(body.error || "Failed to fetch");
+      if (!res.ok || !body.success) throw new Error(body.error || `HTTP ${res.status}`);
       setData(body.data);
     } catch (err) {
-      logger.error("[MarketerDashboard] Failed to load:", err);
+      const msg = err instanceof Error ? err.message : "Failed to load data";
+      logger.error("[MarketerDashboard] Failed to load:", msg);
+      setFetchError(msg);
     } finally {
       setLoading(false);
     }
@@ -353,6 +357,25 @@ export default function MarketerDashboard() {
 
       {/* Tab Bar */}
       <TabBar tabs={TABS} active={activeTab} onChange={setActiveTab} />
+
+      {/* Error banner */}
+      {fetchError && (
+        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 flex items-start gap-3">
+          <span className="material-symbols-outlined text-red-500 flex-shrink-0" style={{ fontSize: 20 }}>
+            error
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="text-[13px] font-semibold text-red-800">Failed to load data</p>
+            <p className="text-[12px] text-red-600 mt-0.5">{fetchError}</p>
+          </div>
+          <button
+            onClick={fetchData}
+            className="px-3 py-1 rounded-lg bg-red-100 text-red-700 text-[11px] font-bold hover:bg-red-200 transition-colors flex-shrink-0"
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       {/* Tab Content */}
       {loading ? (
