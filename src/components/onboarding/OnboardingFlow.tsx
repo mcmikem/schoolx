@@ -1041,6 +1041,13 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
       <div className="relative flex w-full h-full min-h-0 md:h-auto md:max-h-[80vh] md:min-h-0 flex-col md:flex-row md:overflow-hidden md:rounded-[36px] md:shadow-[0_38px_90px_rgba(15,23,42,0.16)] md:ring-1 md:ring-black/5">
         {/* Left Side: Progress & Info - Desktop only */}
         <div className="relative hidden md:flex md:w-1/3 md:min-h-[600px] flex-col overflow-hidden bg-[linear-gradient(160deg,#0b1c39_0%,#17325f_54%,#1a4b79_100%)] p-10 text-white">
+          <button
+            onClick={onDismiss ?? onComplete}
+            className="absolute top-4 right-4 z-20 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+            aria-label="Close onboarding"
+          >
+            <MaterialIcon icon="close" className="text-white/70" />
+          </button>
           <div className="absolute top-0 right-0 w-full h-full opacity-30 pointer-events-none">
             <div className="absolute top-[10%] right-[-20%] w-[150%] h-[50%] bg-teal-400 blur-[80px] rounded-full mix-blend-overlay"></div>
           </div>
@@ -1905,15 +1912,17 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
           </div>
 
           {/* Bottom Navigation - Mobile */}
-          {step > 1 && step < TOTAL_STEPS && (
+          {step < TOTAL_STEPS && (
             <div
               className="md:hidden sticky bottom-0 bg-white border-t border-slate-100 px-4 py-3"
               style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom, 0.75rem))" }}
             >
               <div className="flex gap-3">
-                <Button variant="secondary" onClick={() => handleBack(step - 1)} className="flex-1">
-                  Back
-                </Button>
+                {step > 1 && (
+                  <Button variant="secondary" onClick={() => handleBack(step - 1)} className="flex-1">
+                    Back
+                  </Button>
+                )}
                 <Button variant="primary" loading={saving} onClick={handleGenericNext} className="flex-1">
                   {step === TOTAL_STEPS - 1 ? "Review & Launch" : "Next"}
                 </Button>
@@ -1921,12 +1930,14 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
             </div>
           )}
 
-          {/* Desktop bottom nav for steps 2-4 */}
-          {step > 1 && step < TOTAL_STEPS && (
+          {/* Desktop bottom nav for steps 2-10 */}
+          {step < TOTAL_STEPS && (
             <div className="hidden md:flex gap-3 px-8 pb-8 pt-4">
-              <Button variant="secondary" onClick={() => handleBack(step - 1)}>
-                Back
-              </Button>
+              {step > 1 && (
+                <Button variant="secondary" onClick={() => handleBack(step - 1)}>
+                  Back
+                </Button>
+              )}
               <Button variant="primary" loading={saving} onClick={handleGenericNext}>
                 {step === TOTAL_STEPS - 1 ? "Review & Launch" : "Next Step"}
               </Button>

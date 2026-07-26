@@ -52,6 +52,7 @@ export default function LoginPage() {
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [lockoutUntil, setLockoutUntil] = useState<number | null>(null);
   const [showSlowMessage, setShowSlowMessage] = useState(false);
+  const [waitingForProfile, setWaitingForProfile] = useState(false);
 
   const userRef = useRef(user);
   const submitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -109,6 +110,33 @@ export default function LoginPage() {
             : "/dashboard";
     router.replace(destination);
   }, [authInitialized, user, router]);
+
+  // Detect when auth succeeds (signInWithPassword works) but profile fetch
+  // fails silently. This happens when there's a session conflict (e.g.
+  // already logged in on another browser) or the /api/auth/me/ endpoint
+  // errors. The user ends up stranded on the login page with no feedback.
+  useEffect(() => {
+    if (!waitingForProfile) return;
+    if (!authInitialized) return;
+    if (!user) {
+      toast.error(
+        "Signed in but failed to load your account. This can happen if you have an active session on another device. Please sign out from other devices or contact support.",
+      );
+      setWaitingForProfile(false);
+    }
+  }, [authInitialized, user, waitingForProfile, toast]);
+
+  // Safety timeout: if the profile never loads, show a fallback error.
+  useEffect(() => {
+    if (!waitingForProfile) return;
+    const timer = setTimeout(() => {
+      if (waitingForProfile) {
+        toast.error("Account is taking too long to load. Please refresh the page and try again.");
+        setWaitingForProfile(false);
+      }
+    }, 12000);
+    return () => clearTimeout(timer);
+  }, [waitingForProfile, toast]);
 
   const validateIdentifier = (value: string): boolean => {
     const trimmed = value.trim();
@@ -303,8 +331,10 @@ export default function LoginPage() {
 
       setFailedAttempts(0);
       setLockoutUntil(null);
-
-      setLoading(false);
+      // Keep loading state active while we wait for the profile fetch
+      // in onAuthStateChange — if it fails silently, the new useEffect
+      // above will catch it and show an error to the user.
+      setWaitingForProfile(true);
       return;
     } catch (error) {
       if (submitTimerRef.current) clearTimeout(submitTimerRef.current);

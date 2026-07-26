@@ -331,6 +331,27 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     }
   }, [currentPath, isDashboardHome, onboardingCompleted, user?.role, user?.id, school, isBillingPath]);
 
+  // Marketers bypass the school-oriented dashboard layout entirely.
+  // They see their own dashboard without the school sidebar, TopBar,
+  // breadcrumbs, or other school-specific chrome — similar to super_admin.
+  if (user?.role === "marketer" && !isDemo) {
+    return (
+      <ErrorBoundary>
+        <PageErrorBoundary>
+          <Suspense
+            fallback={
+              <div className="flex justify-center p-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-900" />
+              </div>
+            }
+          >
+            {children}
+          </Suspense>
+        </PageErrorBoundary>
+      </ErrorBoundary>
+    );
+  }
+
   // Show minimal loading bar while auth is initializing.
   if (!authInitialized) {
     return <MinimalLoadingScreen message="Verifying your session..." />;
