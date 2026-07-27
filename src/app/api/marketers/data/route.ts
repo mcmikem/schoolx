@@ -44,7 +44,7 @@ export async function GET(request: NextRequest) {
       supabase
         .from("schools")
         .select(
-          "id, name, school_code, district, school_type, subscription_plan, subscription_status, student_count, created_at, trial_ends_at",
+          "id, name, school_code, district, school_type, subscription_plan, subscription_status, student_count, created_at, trial_ends_at, phone, email, onboarding_completed, onboarding_complete",
         )
         .order("created_at", { ascending: false })
         .limit(200),

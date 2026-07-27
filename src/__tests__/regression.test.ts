@@ -31,18 +31,12 @@ describe("Production Hardening Regression Tests", () => {
     });
 
     it("should have parent role in DEMO_ALLOWED_ROLES", () => {
-      const proxy = require("fs").readFileSync(
-        require("path").join(process.cwd(), "src/proxy.ts"),
-        "utf8",
-      );
+      const proxy = require("fs").readFileSync(require("path").join(process.cwd(), "src/proxy.ts"), "utf8");
       expect(proxy).toContain('"parent"');
     });
 
     it("should have CSRF token as non-httpOnly", () => {
-      const proxy = require("fs").readFileSync(
-        require("path").join(process.cwd(), "src/proxy.ts"),
-        "utf8",
-      );
+      const proxy = require("fs").readFileSync(require("path").join(process.cwd(), "src/proxy.ts"), "utf8");
       expect(proxy).toContain("httpOnly: false");
     });
   });
@@ -50,10 +44,7 @@ describe("Production Hardening Regression Tests", () => {
   describe("Automation Fixes", () => {
     it("should use sendAfricasTalkingSMSWithRetry in fee reminders", () => {
       const feeReminder = require("fs").readFileSync(
-        require("path").join(
-          process.cwd(),
-          "src/app/api/automation/auto-fee-reminder/route.ts",
-        ),
+        require("path").join(process.cwd(), "src/app/api/automation/auto-fee-reminder/route.ts"),
         "utf8",
       );
       expect(feeReminder).toContain("sendAfricasTalkingSMSWithRetry");
@@ -61,10 +52,7 @@ describe("Production Hardening Regression Tests", () => {
 
     it("should use sendAfricasTalkingSMSWithRetry in attendance followup", () => {
       const attendanceFollowup = require("fs").readFileSync(
-        require("path").join(
-          process.cwd(),
-          "src/app/api/automation/auto-attendance-followup/route.ts",
-        ),
+        require("path").join(process.cwd(), "src/app/api/automation/auto-attendance-followup/route.ts"),
         "utf8",
       );
       expect(attendanceFollowup).toContain("sendAfricasTalkingSMSWithRetry");
@@ -72,10 +60,7 @@ describe("Production Hardening Regression Tests", () => {
 
     it("should use sendAfricasTalkingSMSWithRetry in installment reminders", () => {
       const installmentReminder = require("fs").readFileSync(
-        require("path").join(
-          process.cwd(),
-          "src/app/api/automation/auto-installment-reminder/route.ts",
-        ),
+        require("path").join(process.cwd(), "src/app/api/automation/auto-installment-reminder/route.ts"),
         "utf8",
       );
       expect(installmentReminder).toContain("sendAfricasTalkingSMSWithRetry");
@@ -83,10 +68,7 @@ describe("Production Hardening Regression Tests", () => {
 
     it("should use sendAfricasTalkingSMSWithRetry in attendance heartbeat", () => {
       const heartbeat = require("fs").readFileSync(
-        require("path").join(
-          process.cwd(),
-          "src/app/api/automation/attendance-heartbeat/route.ts",
-        ),
+        require("path").join(process.cwd(), "src/app/api/automation/attendance-heartbeat/route.ts"),
         "utf8",
       );
       expect(heartbeat).toContain("sendAfricasTalkingSMSWithRetry");
@@ -94,10 +76,7 @@ describe("Production Hardening Regression Tests", () => {
 
     it("should use sendAfricasTalkingSMSWithRetry in inventory alerts", () => {
       const inventoryAlerts = require("fs").readFileSync(
-        require("path").join(
-          process.cwd(),
-          "src/app/api/automation/auto-inventory-alerts/route.ts",
-        ),
+        require("path").join(process.cwd(), "src/app/api/automation/auto-inventory-alerts/route.ts"),
         "utf8",
       );
       expect(inventoryAlerts).toContain("sendAfricasTalkingSMSWithRetry");
@@ -105,10 +84,7 @@ describe("Production Hardening Regression Tests", () => {
 
     it("should use sendAfricasTalkingSMSWithRetry in term-end", () => {
       const termEnd = require("fs").readFileSync(
-        require("path").join(
-          process.cwd(),
-          "src/app/api/automation/term-end/route.ts",
-        ),
+        require("path").join(process.cwd(), "src/app/api/automation/term-end/route.ts"),
         "utf8",
       );
       expect(termEnd).toContain("sendAfricasTalkingSMSWithRetry");
@@ -116,10 +92,7 @@ describe("Production Hardening Regression Tests", () => {
 
     it("should have idempotency check in term-end report cards", () => {
       const termEnd = require("fs").readFileSync(
-        require("path").join(
-          process.cwd(),
-          "src/app/api/automation/term-end/route.ts",
-        ),
+        require("path").join(process.cwd(), "src/app/api/automation/term-end/route.ts"),
         "utf8",
       );
       expect(termEnd).toContain("existingCard");
@@ -127,10 +100,7 @@ describe("Production Hardening Regression Tests", () => {
 
     it("should track failed seeding in onboarding", () => {
       const onboarding = require("fs").readFileSync(
-        require("path").join(
-          process.cwd(),
-          "src/components/onboarding/OnboardingFlow.tsx",
-        ),
+        require("path").join(process.cwd(), "src/components/onboarding/OnboardingFlow.tsx"),
         "utf8",
       );
       expect(onboarding).toContain("failedSeeding");
@@ -138,10 +108,7 @@ describe("Production Hardening Regression Tests", () => {
 
     it("should have error logging in term-end catch blocks", () => {
       const termEnd = require("fs").readFileSync(
-        require("path").join(
-          process.cwd(),
-          "src/app/api/automation/term-end/route.ts",
-        ),
+        require("path").join(process.cwd(), "src/app/api/automation/term-end/route.ts"),
         "utf8",
       );
       expect(termEnd).toContain("logger.warn");
@@ -152,10 +119,7 @@ describe("Production Hardening Regression Tests", () => {
   describe("Webhook Fixes", () => {
     it("should not return 500 in Stripe webhook handlers", () => {
       const stripeWebhook = require("fs").readFileSync(
-        require("path").join(
-          process.cwd(),
-          "src/app/api/payment/webhook/route.ts",
-        ),
+        require("path").join(process.cwd(), "src/app/api/payment/webhook/route.ts"),
         "utf8",
       );
       expect(stripeWebhook).not.toContain(
@@ -165,10 +129,7 @@ describe("Production Hardening Regression Tests", () => {
 
     it("should have charge.refunded handler in Stripe webhook", () => {
       const stripeWebhook = require("fs").readFileSync(
-        require("path").join(
-          process.cwd(),
-          "src/app/api/payment/webhook/route.ts",
-        ),
+        require("path").join(process.cwd(), "src/app/api/payment/webhook/route.ts"),
         "utf8",
       );
       expect(stripeWebhook).toContain("charge.refunded");
@@ -176,10 +137,7 @@ describe("Production Hardening Regression Tests", () => {
 
     it("should have MoneyUnify HMAC signature verification in mobile money webhook", () => {
       const mobileMoney = require("fs").readFileSync(
-        require("path").join(
-          process.cwd(),
-          "src/app/api/payment/webhook/mobile-money/route.ts",
-        ),
+        require("path").join(process.cwd(), "src/app/api/payment/webhook/mobile-money/route.ts"),
         "utf8",
       );
       expect(mobileMoney).toContain("verifyMoneyUnifySignature");
@@ -202,9 +160,7 @@ describe("Production Hardening Regression Tests", () => {
         require("path").join(process.cwd(), "src/app/api/sync/route.ts"),
         "utf8",
       );
-      expect(syncRoute).not.toContain(
-        "supabaseServiceKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY",
-      );
+      expect(syncRoute).not.toContain("supabaseServiceKey || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY");
     });
 
     it("should have SMS delivery DB update uncommented", () => {
@@ -212,7 +168,7 @@ describe("Production Hardening Regression Tests", () => {
         require("path").join(process.cwd(), "src/app/api/sms/route.ts"),
         "utf8",
       );
-      expect(smsRoute).toContain(".from(\"messages\")");
+      expect(smsRoute).toContain('.from("messages")');
       expect(smsRoute).toContain(".update({ status })");
       expect(smsRoute).toContain(".update({ delivery_status");
     });
@@ -228,10 +184,7 @@ describe("Production Hardening Regression Tests", () => {
 
     it("should iterate over schools in cron job", () => {
       const cronRoute = require("fs").readFileSync(
-        require("path").join(
-          process.cwd(),
-          "src/app/api/cron/sms-reminders/route.ts",
-        ),
+        require("path").join(process.cwd(), "src/app/api/cron/sms-reminders/route.ts"),
         "utf8",
       );
       expect(cronRoute).toContain("schools");
@@ -282,38 +235,194 @@ describe("Production Hardening Regression Tests", () => {
     it("should not have duplicate fees-lookup route", () => {
       const fs = require("fs");
       const path = require("path");
-      const feesLookupPath = path.join(
-        process.cwd(),
-        "src/app/dashboard/fees-lookup/page.tsx",
-      );
+      const feesLookupPath = path.join(process.cwd(), "src/app/dashboard/fees-lookup/page.tsx");
       expect(fs.existsSync(feesLookupPath)).toBe(false);
     });
 
     it("should have PWA install prompt component", () => {
       const fs = require("fs");
       const path = require("path");
-      const pwaPromptPath = path.join(
-        process.cwd(),
-        "src/components/PWAInstallPrompt.tsx",
-      );
+      const pwaPromptPath = path.join(process.cwd(), "src/components/PWAInstallPrompt.tsx");
       expect(fs.existsSync(pwaPromptPath)).toBe(true);
+    });
+  });
+
+  describe("Marketer Features", () => {
+    it("should have commission amounts (70k/80k/4k) in register route", () => {
+      const registerRoute = require("fs").readFileSync(
+        require("path").join(process.cwd(), "src/app/api/marketers/register/route.ts"),
+        "utf8",
+      );
+      expect(registerRoute).toContain("70000");
+      expect(registerRoute).toContain("80000");
+      expect(registerRoute).toContain("4000");
+    });
+
+    it("should have digitization fee validation (10000-50000) in register route", () => {
+      const registerRoute = require("fs").readFileSync(
+        require("path").join(process.cwd(), "src/app/api/marketers/register/route.ts"),
+        "utf8",
+      );
+      expect(registerRoute).toContain("10000");
+      expect(registerRoute).toContain("50000");
+    });
+
+    it("should return adminPhone and adminEmail in registration response", () => {
+      const registerRoute = require("fs").readFileSync(
+        require("path").join(process.cwd(), "src/app/api/marketers/register/route.ts"),
+        "utf8",
+      );
+      expect(registerRoute).toContain("adminPhone");
+      expect(registerRoute).toContain("adminEmail");
+    });
+
+    it("should validate required fields in marketer registration", () => {
+      const registerRoute = require("fs").readFileSync(
+        require("path").join(process.cwd(), "src/app/api/marketers/register/route.ts"),
+        "utf8",
+      );
+      expect(registerRoute).toContain("All required fields must be filled");
+      expect(registerRoute).toContain("School name must be at least 3 characters");
+      expect(registerRoute).toContain("Password must be at least 8 characters");
+      expect(registerRoute).toContain("Invalid phone number format");
+    });
+
+    it("should have Sign Out button in MarketerDashboard", () => {
+      const dashboard = require("fs").readFileSync(
+        require("path").join(process.cwd(), "src/app/dashboard/dashboards/MarketerDashboard.tsx"),
+        "utf8",
+      );
+      expect(dashboard).toContain("Sign Out");
+    });
+
+    it("should query onboarding_completed in marketer data route", () => {
+      const dataRoute = require("fs").readFileSync(
+        require("path").join(process.cwd(), "src/app/api/marketers/data/route.ts"),
+        "utf8",
+      );
+      expect(dataRoute).toContain("onboarding_completed");
+    });
+
+    it("should have COMMISSION_RATES map in MarketerDashboard", () => {
+      const dashboard = require("fs").readFileSync(
+        require("path").join(process.cwd(), "src/app/dashboard/dashboards/MarketerDashboard.tsx"),
+        "utf8",
+      );
+      expect(dashboard).toContain("COMMISSION_RATES");
+      expect(dashboard).toContain("70000");
+      expect(dashboard).toContain("80000");
+    });
+  });
+
+  describe("Super Admin Features", () => {
+    it("should check super_admin role in audit route", () => {
+      const auditRoute = require("fs").readFileSync(
+        require("path").join(process.cwd(), "src/app/api/audit/route.ts"),
+        "utf8",
+      );
+      expect(auditRoute).toContain('role !== "super_admin"');
+    });
+
+    it("should have marketer analytics summary cards in super admin page", () => {
+      const superAdminPage = require("fs").readFileSync(
+        require("path").join(process.cwd(), "src/app/super-admin/page.tsx"),
+        "utf8",
+      );
+      expect(superAdminPage).toContain("totalEarnings");
+      expect(superAdminPage).toContain("totalPending");
+      expect(superAdminPage).toContain("avgPerMarketer");
+      expect(superAdminPage).toContain("marketers.length");
+    });
+  });
+
+  describe("Cron – Trial Expiry", () => {
+    it("should use requireCronSecretOrDeny guard in expire-trials", () => {
+      const cronRoute = require("fs").readFileSync(
+        require("path").join(process.cwd(), "src/app/api/cron/expire-trials/route.ts"),
+        "utf8",
+      );
+      expect(cronRoute).toContain("requireCronSecretOrDeny");
+    });
+
+    it("should filter by subscription_status = trial and trial_ends_at < now", () => {
+      const cronRoute = require("fs").readFileSync(
+        require("path").join(process.cwd(), "src/app/api/cron/expire-trials/route.ts"),
+        "utf8",
+      );
+      expect(cronRoute).toContain('"trial"');
+      expect(cronRoute).toContain("trial_ends_at");
+    });
+
+    it("should set subscription_status to expired on update", () => {
+      const cronRoute = require("fs").readFileSync(
+        require("path").join(process.cwd(), "src/app/api/cron/expire-trials/route.ts"),
+        "utf8",
+      );
+      expect(cronRoute).toContain('"expired"');
+    });
+  });
+
+  describe("Admin Login Link (Magic Link)", () => {
+    it("should have send-admin-login-link API endpoint", () => {
+      const route = require("fs").readFileSync(
+        require("path").join(process.cwd(), "src/app/api/marketers/send-admin-login-link/route.ts"),
+        "utf8",
+      );
+      expect(route).toContain("generateLink");
+      expect(route).toContain("magiclink");
+      expect(route).toContain("resend.com/emails");
+    });
+
+    it("should require marketer role in send-admin-login-link", () => {
+      const route = require("fs").readFileSync(
+        require("path").join(process.cwd(), "src/app/api/marketers/send-admin-login-link/route.ts"),
+        "utf8",
+      );
+      expect(route).toContain('"marketer"');
+      expect(route).toContain("requireAuthenticatedUser");
+    });
+
+    it("should have Send Login Link button in MarketerDashboard", () => {
+      const dashboard = require("fs").readFileSync(
+        require("path").join(process.cwd(), "src/app/dashboard/dashboards/MarketerDashboard.tsx"),
+        "utf8",
+      );
+      expect(dashboard).toContain("sendLoginLink");
+      expect(dashboard).toContain("Send Login Link");
+      expect(dashboard).toContain("/api/marketers/send-admin-login-link/");
+    });
+  });
+
+  describe("Subscription Upgrade", () => {
+    it("should validate plan ordering in upgrade route", () => {
+      const upgradeRoute = require("fs").readFileSync(
+        require("path").join(process.cwd(), "src/app/api/subscription/upgrade/route.ts"),
+        "utf8",
+      );
+      expect(upgradeRoute).toContain("free_trial");
+      expect(upgradeRoute).toContain("starter");
+      expect(upgradeRoute).toContain("growth");
+      expect(upgradeRoute).toContain("enterprise");
+      expect(upgradeRoute).toContain("newIdx <= currentIdx");
+    });
+
+    it("should allow super_admin to bypass upgrade-only constraint", () => {
+      const upgradeRoute = require("fs").readFileSync(
+        require("path").join(process.cwd(), "src/app/api/subscription/upgrade/route.ts"),
+        "utf8",
+      );
+      expect(upgradeRoute).toContain('super_admin"');
     });
   });
 
   describe("Cron Configuration", () => {
     it("should have auto-promote cron in vercel.json", () => {
-      const vercel = require("fs").readFileSync(
-        require("path").join(process.cwd(), "vercel.json"),
-        "utf8",
-      );
+      const vercel = require("fs").readFileSync(require("path").join(process.cwd(), "vercel.json"), "utf8");
       expect(vercel).toContain("auto-promote");
     });
 
     it("should have auto-payroll cron in vercel.json", () => {
-      const vercel = require("fs").readFileSync(
-        require("path").join(process.cwd(), "vercel.json"),
-        "utf8",
-      );
+      const vercel = require("fs").readFileSync(require("path").join(process.cwd(), "vercel.json"), "utf8");
       expect(vercel).toContain("auto-payroll");
     });
   });
@@ -335,11 +444,7 @@ describe("Production Hardening Regression Tests", () => {
           } else if (entry.name.endsWith(".ts") || entry.name.endsWith(".tsx")) {
             if (entry.name.includes(".test.")) continue;
             const content = fs.readFileSync(fullPath, "utf8");
-            if (
-              content.includes("console.") &&
-              !fullPath.includes("logger.ts") &&
-              !fullPath.includes("layout.tsx")
-            ) {
+            if (content.includes("console.") && !fullPath.includes("logger.ts") && !fullPath.includes("layout.tsx")) {
               results.push(fullPath);
             }
           }
@@ -356,10 +461,7 @@ describe("Production Hardening Regression Tests", () => {
     it("should NOT have fetchUserDataInProgress guard that blocks concurrent calls", () => {
       const fs = require("fs");
       const path = require("path");
-      const authContext = fs.readFileSync(
-        path.join(process.cwd(), "src/lib/auth-context.tsx"),
-        "utf8",
-      );
+      const authContext = fs.readFileSync(path.join(process.cwd(), "src/lib/auth-context.tsx"), "utf8");
       // The inProgress guard caused login to fail because signIn() and
       // onAuthStateChange both call fetchUserData() concurrently. The
       // second call saw inProgress=true and returned null immediately.
@@ -370,10 +472,7 @@ describe("Production Hardening Regression Tests", () => {
     it("should NOT early-return from fetchUserData on in-progress check", () => {
       const fs = require("fs");
       const path = require("path");
-      const authContext = fs.readFileSync(
-        path.join(process.cwd(), "src/lib/auth-context.tsx"),
-        "utf8",
-      );
+      const authContext = fs.readFileSync(path.join(process.cwd(), "src/lib/auth-context.tsx"), "utf8");
       // Ensure no "if (.*inProgress.*) return null" pattern exists
       expect(authContext).not.toMatch(/if\s*\([^)]*inProgress[^)]*\)\s*return\s+null/);
     });
@@ -383,10 +482,7 @@ describe("Production Hardening Regression Tests", () => {
     it("should NOT call fetchUserData inside signIn() to avoid race conditions", () => {
       const fs = require("fs");
       const path = require("path");
-      const authContext = fs.readFileSync(
-        path.join(process.cwd(), "src/lib/auth-context.tsx"),
-        "utf8",
-      );
+      const authContext = fs.readFileSync(path.join(process.cwd(), "src/lib/auth-context.tsx"), "utf8");
       // signIn() should not call fetchUserData — onAuthStateChange is the
       // single source of truth for populating user after auth.
       const signInMatch = authContext.match(/async function signIn[\s\S]*?^  }/m);
@@ -398,10 +494,7 @@ describe("Production Hardening Regression Tests", () => {
     it("should NOT have signInInProgress ref that blocks onAuthStateChange", () => {
       const fs = require("fs");
       const path = require("path");
-      const authContext = fs.readFileSync(
-        path.join(process.cwd(), "src/lib/auth-context.tsx"),
-        "utf8",
-      );
+      const authContext = fs.readFileSync(path.join(process.cwd(), "src/lib/auth-context.tsx"), "utf8");
       expect(authContext).not.toContain("signInInProgress");
       expect(authContext).not.toContain("signInInProgress.current");
     });
@@ -409,10 +502,7 @@ describe("Production Hardening Regression Tests", () => {
     it("should show specific error messages for rate limit and network errors in login page", () => {
       const fs = require("fs");
       const path = require("path");
-      const loginPage = fs.readFileSync(
-        path.join(process.cwd(), "src/app/login/page.tsx"),
-        "utf8",
-      );
+      const loginPage = fs.readFileSync(path.join(process.cwd(), "src/app/login/page.tsx"), "utf8");
       expect(loginPage).toContain("rate limit");
       expect(loginPage).toContain("Connection error");
       expect(loginPage).toContain("email not confirmed");
@@ -421,17 +511,11 @@ describe("Production Hardening Regression Tests", () => {
     it("should try multiple email formats including raw phone format for legacy accounts", () => {
       const fs = require("fs");
       const path = require("path");
-      const authLogin = fs.readFileSync(
-        path.join(process.cwd(), "src/lib/auth-login.ts"),
-        "utf8",
-      );
+      const authLogin = fs.readFileSync(path.join(process.cwd(), "src/lib/auth-login.ts"), "utf8");
       // Should have logic to try raw phone format (e.g., 0777777777) alongside normalized (256777777777)
       expect(authLogin).toContain("rawWithCountry");
       // Should NOT fast-fail on generic 'invalid credentials' - must try all formats
-      const authContext = fs.readFileSync(
-        path.join(process.cwd(), "src/lib/auth-context.tsx"),
-        "utf8",
-      );
+      const authContext = fs.readFileSync(path.join(process.cwd(), "src/lib/auth-context.tsx"), "utf8");
       // When receiving 'invalid credentials' (not explicit 'wrong password'), should try next format
       expect(authContext).toContain("isUserNotFound");
     });
@@ -441,10 +525,7 @@ describe("Production Hardening Regression Tests", () => {
     it("should generate magic link token in verify-otp API", () => {
       const fs = require("fs");
       const path = require("path");
-      const verifyOtp = fs.readFileSync(
-        path.join(process.cwd(), "src/app/api/auth/verify-otp/route.ts"),
-        "utf8",
-      );
+      const verifyOtp = fs.readFileSync(path.join(process.cwd(), "src/app/api/auth/verify-otp/route.ts"), "utf8");
       expect(verifyOtp).toContain('type: "magiclink"');
       expect(verifyOtp).toContain("generateLink");
       expect(verifyOtp).toContain("token");
@@ -453,10 +534,7 @@ describe("Production Hardening Regression Tests", () => {
     it("should verify magic link token in login page OTP handler", () => {
       const fs = require("fs");
       const path = require("path");
-      const loginPage = fs.readFileSync(
-        path.join(process.cwd(), "src/app/login/page.tsx"),
-        "utf8",
-      );
+      const loginPage = fs.readFileSync(path.join(process.cwd(), "src/app/login/page.tsx"), "utf8");
       expect(loginPage).toContain("verifyOtp");
       expect(loginPage).toContain("token: data.token");
       expect(loginPage).toContain('type: "magiclink"');
@@ -466,10 +544,7 @@ describe("Production Hardening Regression Tests", () => {
     it("should have OTP toggle in login page (optional, not forced)", () => {
       const fs = require("fs");
       const path = require("path");
-      const loginPage = fs.readFileSync(
-        path.join(process.cwd(), "src/app/login/page.tsx"),
-        "utf8",
-      );
+      const loginPage = fs.readFileSync(path.join(process.cwd(), "src/app/login/page.tsx"), "utf8");
       expect(loginPage).toContain("otpMode");
       expect(loginPage).toContain("Login with password");
       expect(loginPage).toContain("Login with OTP instead");
@@ -480,10 +555,7 @@ describe("Production Hardening Regression Tests", () => {
     it("should wrap fees page in ParentPortalShell", () => {
       const fs = require("fs");
       const path = require("path");
-      const feesPage = fs.readFileSync(
-        path.join(process.cwd(), "src/app/parent-portal/fees/page.tsx"),
-        "utf8",
-      );
+      const feesPage = fs.readFileSync(path.join(process.cwd(), "src/app/parent-portal/fees/page.tsx"), "utf8");
       expect(feesPage).toContain("ParentPortalShell");
       expect(feesPage).not.toContain("useParentPortalGuard");
     });
@@ -491,10 +563,7 @@ describe("Production Hardening Regression Tests", () => {
     it("should wrap messages page in ParentPortalShell", () => {
       const fs = require("fs");
       const path = require("path");
-      const messagesPage = fs.readFileSync(
-        path.join(process.cwd(), "src/app/parent-portal/messages/page.tsx"),
-        "utf8",
-      );
+      const messagesPage = fs.readFileSync(path.join(process.cwd(), "src/app/parent-portal/messages/page.tsx"), "utf8");
       expect(messagesPage).toContain("ParentPortalShell");
       expect(messagesPage).not.toContain("useParentPortalGuard");
     });
@@ -502,10 +571,7 @@ describe("Production Hardening Regression Tests", () => {
     it("should wrap notices page in ParentPortalShell", () => {
       const fs = require("fs");
       const path = require("path");
-      const noticesPage = fs.readFileSync(
-        path.join(process.cwd(), "src/app/parent-portal/notices/page.tsx"),
-        "utf8",
-      );
+      const noticesPage = fs.readFileSync(path.join(process.cwd(), "src/app/parent-portal/notices/page.tsx"), "utf8");
       expect(noticesPage).toContain("ParentPortalShell");
       expect(noticesPage).not.toContain("useParentPortalGuard");
     });
@@ -611,20 +677,14 @@ describe("Syllabus Schema", () => {
   it("should have syllabus table in schema.sql", () => {
     const fs = require("fs");
     const path = require("path");
-    const schema = fs.readFileSync(
-      path.join(process.cwd(), "supabase/schema.sql"),
-      "utf8",
-    );
+    const schema = fs.readFileSync(path.join(process.cwd(), "supabase/schema.sql"), "utf8");
     expect(schema).toContain("CREATE TABLE IF NOT EXISTS syllabus (");
   });
 
   it("should have topic_coverage table in schema.sql", () => {
     const fs = require("fs");
     const path = require("path");
-    const schema = fs.readFileSync(
-      path.join(process.cwd(), "supabase/schema.sql"),
-      "utf8",
-    );
+    const schema = fs.readFileSync(path.join(process.cwd(), "supabase/schema.sql"), "utf8");
     expect(schema).toContain("CREATE TABLE IF NOT EXISTS topic_coverage (");
   });
 });

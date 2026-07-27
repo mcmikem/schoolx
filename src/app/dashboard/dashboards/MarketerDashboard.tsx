@@ -1,6 +1,7 @@
 "use client";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { logger } from "@/lib/logger";
 import { APP_NAME } from "@/lib/app-name";
@@ -18,6 +19,10 @@ interface SchoolRow {
   student_count: number;
   created_at: string;
   trial_ends_at?: string;
+  phone?: string;
+  email?: string;
+  onboarding_completed?: boolean;
+  onboarding_complete?: boolean;
 }
 
 interface EarningsRow {
@@ -267,8 +272,30 @@ export default function MarketerDashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState("");
-  const [activeTab, setActiveTab] = useState<TabId>("overview");
+  const searchParams = useSearchParams();
+  const tabParam = searchParams?.get("tab");
+  const [activeTab, setActiveTab] = useState<TabId>((tabParam as TabId) || "overview");
   const [search, setSearch] = useState("");
+  const [leadConversion, setLeadConversion] = useState<{
+    schoolName: string;
+    adminName: string;
+    adminPhone: string;
+    district: string;
+  } | null>(null);
+
+  const [editSchool, setEditSchool] = useState<SchoolRow | null>(null);
+
+  // Sync URL tab param to active tab
+  useEffect(() => {
+    if (tabParam && TABS.some((t) => t.id === tabParam)) {
+      setActiveTab(tabParam as TabId);
+    }
+  }, [tabParam]);
+
+  const handleSchoolUpdated = () => {
+    setEditSchool(null);
+    fetchData();
+  };
 
   const hr = new Date().getHours();
   const greeting = hr < 12 ? "Good morning" : hr < 17 ? "Good afternoon" : "Good evening";
@@ -390,10 +417,25 @@ export default function MarketerDashboard() {
               search={search}
               setSearch={setSearch}
               filteredCount={filteredSchools.length}
+              onEditSchool={(s) => setEditSchool(s)}
             />
           )}
-          {activeTab === "register" && <RegisterTab />}
-          {activeTab === "leads" && <LeadsTab />}
+          {activeTab === "register" && (
+            <RegisterTab leadConversion={leadConversion} onConversionUsed={() => setLeadConversion(null)} />
+          )}
+          {activeTab === "leads" && (
+            <LeadsTab
+              onConvertToSchool={(lead) => {
+                setLeadConversion({
+                  schoolName: lead.school_name,
+                  adminName: lead.contact_name || "",
+                  adminPhone: lead.contact_phone || "",
+                  district: lead.district || "",
+                });
+                setActiveTab("register");
+              }}
+            />
+          )}
           {activeTab === "outreach" && <OutreachTab />}
           {activeTab === "resources" && <ResourcesTab />}
           {activeTab === "referrals" && <ReferralsTab />}
@@ -402,6 +444,10 @@ export default function MarketerDashboard() {
           )}
           {activeTab === "settings" && <SettingsTab />}
         </>
+      )}
+
+      {editSchool && (
+        <EditSchoolModal school={editSchool} onClose={() => setEditSchool(null)} onSaved={handleSchoolUpdated} />
       )}
     </div>
   );
@@ -415,6 +461,7 @@ function OverviewTab({
   search,
   setSearch,
   filteredCount,
+  onEditSchool,
 }: {
   pipelineStats: {
     total: number;
@@ -428,6 +475,7 @@ function OverviewTab({
   search: string;
   setSearch: (v: string) => void;
   filteredCount: number;
+  onEditSchool?: (school: SchoolRow) => void;
 }) {
   return (
     <>
@@ -473,8 +521,11 @@ function OverviewTab({
                 <th className="text-left px-4 py-2.5 font-semibold text-[var(--t3)]">District</th>
                 <th className="text-left px-4 py-2.5 font-semibold text-[var(--t3)]">Plan</th>
                 <th className="text-left px-4 py-2.5 font-semibold text-[var(--t3)]">Status</th>
+                <th className="text-left px-4 py-2.5 font-semibold text-[var(--t3)]">Onboarding</th>
+                <th className="text-left px-4 py-2.5 font-semibold text-[var(--t3)]">Trial Ends</th>
                 <th className="text-left px-4 py-2.5 font-semibold text-[var(--t3)]">Students</th>
                 <th className="text-left px-4 py-2.5 font-semibold text-[var(--t3)]">Created</th>
+                <th className="text-left px-4 py-2.5 font-semibold text-[var(--t3)]">Contact</th>
               </tr>
             </thead>
             <tbody>
@@ -485,25 +536,90 @@ function OverviewTab({
                   </td>
                 </tr>
               ) : (
-                schools.map((s) => (
-                  <tr key={s.id} className="border-b border-[var(--border)] hover:bg-[var(--bg)] transition-colors">
-                    <td className="px-4 py-2.5">
-                      <div className="font-semibold text-[var(--t1)]">{s.name}</div>
-                      <div className="text-[10px] text-[var(--t4)]">{s.school_code}</div>
-                    </td>
-                    <td className="px-4 py-2.5 text-[var(--t2)]">{s.district || "—"}</td>
-                    <td className="px-4 py-2.5">
-                      <span className="text-[11px] font-semibold capitalize text-[var(--t2)]">
-                        {s.subscription_plan?.replace(/_/g, " ") || "—"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <StatusBadge status={s.subscription_status} />
-                    </td>
-                    <td className="px-4 py-2.5 text-[var(--t2)]">{s.student_count ?? 0}</td>
-                    <td className="px-4 py-2.5 text-[var(--t3)]">{formatDate(s.created_at)}</td>
-                  </tr>
-                ))
+                schools.map((s) => {
+                  const onboarded = s.onboarding_completed || s.onboarding_complete || s.student_count > 0;
+                  const daysLeft = s.trial_ends_at
+                    ? Math.ceil((new Date(s.trial_ends_at).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+                    : null;
+                  return (
+                    <tr key={s.id} className="border-b border-[var(--border)] hover:bg-[var(--bg)] transition-colors">
+                      <td className="px-4 py-2.5">
+                        <div className="font-semibold text-[var(--t1)]">{s.name}</div>
+                        <div className="text-[10px] text-[var(--t4)]">{s.school_code}</div>
+                      </td>
+                      <td className="px-4 py-2.5 text-[var(--t2)]">{s.district || "—"}</td>
+                      <td className="px-4 py-2.5">
+                        <span className="text-[11px] font-semibold capitalize text-[var(--t2)]">
+                          {s.subscription_plan?.replace(/_/g, " ") || "—"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <StatusBadge status={s.subscription_status} />
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <span
+                          className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            onboarded ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
+                          }`}
+                        >
+                          <span className="material-symbols-outlined" style={{ fontSize: 12 }}>
+                            {onboarded ? "check_circle" : "pending"}
+                          </span>
+                          {onboarded ? "Complete" : "Pending"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2.5 text-[11px] text-[var(--t3)]">
+                        {daysLeft !== null ? (
+                          <span className={daysLeft <= 7 ? "text-red-500 font-semibold" : ""}>
+                            {daysLeft > 0 ? `${daysLeft}d` : "Expired"}
+                          </span>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5 text-[var(--t2)]">{s.student_count ?? 0}</td>
+                      <td className="px-4 py-2.5 text-[var(--t3)]">{formatDate(s.created_at)}</td>
+                      <td className="px-4 py-2.5">
+                        <div className="flex items-center gap-1">
+                          {s.phone && (
+                            <a
+                              href={`tel:${s.phone}`}
+                              className="text-[var(--t4)] hover:text-[var(--primary)] transition-colors p-1"
+                              title={`Call ${s.phone}`}
+                            >
+                              <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
+                                phone
+                              </span>
+                            </a>
+                          )}
+                          {s.email && (
+                            <a
+                              href={`mailto:${s.email}`}
+                              className="text-[var(--t4)] hover:text-[var(--primary)] transition-colors p-1"
+                              title={`Email ${s.email}`}
+                            >
+                              <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
+                                mail
+                              </span>
+                            </a>
+                          )}
+                          {!s.phone && !s.email && <span className="text-[var(--t4)] text-[10px]">—</span>}
+                          {onEditSchool && (
+                            <button
+                              onClick={() => onEditSchool(s)}
+                              className="text-[var(--t4)] hover:text-[var(--primary)] transition-colors p-1"
+                              title="Edit school contact"
+                            >
+                              <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
+                                edit
+                              </span>
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -515,30 +631,97 @@ function OverviewTab({
 
 // ─── Register Tab ─────────────────────────────────────────────────────────────
 
-function RegisterTab() {
+function RegisterTab({
+  leadConversion,
+  onConversionUsed,
+}: {
+  leadConversion?: { schoolName: string; adminName: string; adminPhone: string; district: string } | null;
+  onConversionUsed?: () => void;
+}) {
   const { user } = useAuth();
   const [form, setForm] = useState({
-    schoolName: "",
-    district: "",
+    schoolName: leadConversion?.schoolName || "",
+    district: leadConversion?.district || "",
     subcounty: "",
     parish: "",
     village: "",
     schoolType: "primary" as "primary" | "secondary" | "combined",
     ownership: "private" as "private" | "government" | "government_aided",
     selectedPackage: "starter",
-    adminName: "",
-    adminPhone: "",
+    adminName: leadConversion?.adminName || "",
+    adminPhone: leadConversion?.adminPhone || "",
     password: "",
     phone: "",
     email: "",
+    digitizeData: false,
+    digitizationFee: "",
+    digitizationFeeNotes: "",
   });
-  const [submitting, setSubmitting] = useState(false);
-  const [result, setResult] = useState<{ success: boolean; message: string; schoolCode?: string } | null>(null);
 
-  const handleChange = (field: string, value: string) => setForm((f) => ({ ...f, [field]: value }));
+  useEffect(() => {
+    if (leadConversion) {
+      setForm((f) => ({
+        ...f,
+        schoolName: leadConversion.schoolName,
+        adminName: leadConversion.adminName,
+        adminPhone: leadConversion.adminPhone,
+        district: leadConversion.district,
+      }));
+      onConversionUsed?.();
+    }
+  }, [leadConversion, onConversionUsed]);
+  const [submitting, setSubmitting] = useState(false);
+  const [result, setResult] = useState<{
+    success: boolean;
+    message: string;
+    schoolCode?: string;
+    commission?: number;
+    adminPhone?: string;
+    adminEmail?: string;
+  } | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [sendingLink, setSendingLink] = useState(false);
+  const [linkResult, setLinkResult] = useState<{ ok: boolean; message: string } | null>(null);
+
+  const COMMISSION_RATES: Record<string, { label: string; amount: number }> = {
+    starter: { label: "Starter (UGX 2,000/student/term)", amount: 70000 },
+    growth: { label: "Growth (UGX 3,500/student/term)", amount: 80000 },
+    enterprise: { label: "Enterprise (UGX 5,500/student/term)", amount: 80000 },
+    free_trial: { label: "Free Trial", amount: 4000 },
+  };
+
+  const handleChange = (field: string, value: string) => {
+    setFieldErrors((prev) => ({ ...prev, [field]: "" }));
+    setForm((f) => ({ ...f, [field]: value }));
+  };
+
+  const validate = (): boolean => {
+    const errors: Record<string, string> = {};
+    if (!form.schoolName.trim()) errors.schoolName = "Required";
+    if (!form.district.trim()) errors.district = "Required";
+    if (!form.subcounty.trim()) errors.subcounty = "Required";
+    if (!form.adminName.trim()) errors.adminName = "Required";
+    if (!form.adminPhone.trim()) errors.adminPhone = "Required";
+    if (!form.password) {
+      errors.password = "Required";
+    } else if (form.password.length < 8) {
+      errors.password = "Min 8 characters";
+    } else if (!/[A-Z]/.test(form.password) || !/[0-9]/.test(form.password)) {
+      errors.password = "Must have uppercase + digit";
+    }
+    if (form.digitizeData) {
+      const fee = Number(form.digitizationFee);
+      if (!fee || fee < 10000 || fee > 50000) {
+        errors.digitizationFee = "Must be 10,000–50,000 UGX";
+      }
+    }
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validate()) return;
     setSubmitting(true);
     setResult(null);
     try {
@@ -549,7 +732,15 @@ function RegisterTab() {
       });
       const body = await res.json();
       if (res.ok && body.success) {
-        setResult({ success: true, message: "School registered successfully!", schoolCode: body.data?.schoolCode });
+        const commission = body.data?.commission || COMMISSION_RATES[form.selectedPackage]?.amount || 0;
+        setResult({
+          success: true,
+          message: `School registered successfully!`,
+          schoolCode: body.data?.schoolCode,
+          commission,
+          adminPhone: body.data?.adminPhone,
+          adminEmail: body.data?.adminEmail,
+        });
         setForm({
           schoolName: "",
           district: "",
@@ -564,6 +755,9 @@ function RegisterTab() {
           password: "",
           phone: "",
           email: "",
+          digitizeData: false,
+          digitizationFee: "",
+          digitizationFeeNotes: "",
         });
       } else {
         setResult({ success: false, message: body.error || "Registration failed" });
@@ -572,6 +766,33 @@ function RegisterTab() {
       setResult({ success: false, message: "Network error. Please try again." });
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const sendLoginLink = async () => {
+    if (!result?.adminEmail || !result?.success) return;
+    setSendingLink(true);
+    setLinkResult(null);
+    try {
+      const res = await fetch("/api/marketers/send-admin-login-link/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: result.adminEmail,
+          name: form.adminName || "School Admin",
+          schoolName: form.schoolName || "",
+        }),
+      });
+      const body = await res.json();
+      if (res.ok && body.success) {
+        setLinkResult({ ok: true, message: `Login link sent to ${result.adminEmail}` });
+      } else {
+        setLinkResult({ ok: false, message: body.error || "Failed to send link" });
+      }
+    } catch {
+      setLinkResult({ ok: false, message: "Network error. Please try again." });
+    } finally {
+      setSendingLink(false);
     }
   };
 
@@ -586,8 +807,47 @@ function RegisterTab() {
         <div
           className={`mb-4 px-4 py-3 rounded-xl text-[12px] font-medium ${result.success ? "bg-green-50 text-green-700 border border-green-200" : "bg-red-50 text-red-700 border border-red-200"}`}
         >
-          {result.message}
+          <div>{result.message}</div>
           {result.schoolCode && <div className="mt-1 font-bold">School Code: {result.schoolCode}</div>}
+          {result.commission !== undefined && result.commission > 0 && (
+            <div className="mt-1 text-emerald-600 font-bold">
+              Commission earned: UGX {result.commission.toLocaleString()}
+            </div>
+          )}
+          {result.success && result.adminPhone && (
+            <div className="mt-3 pt-3 border-t border-green-200">
+              <div className="text-[11px] font-semibold mb-1">Admin Login Credentials</div>
+              <div className="text-[11px]">
+                Phone: <span className="font-mono font-bold">{result.adminPhone}</span>
+              </div>
+              <div className="text-[11px]">
+                Password: <span className="font-mono font-bold">{form.password}</span>
+              </div>
+              <p className="text-[10px] mt-1 text-green-600">
+                Share these credentials with the school admin. They can sign in at /login
+              </p>
+            </div>
+          )}
+          {result.success && result.adminEmail && (
+            <div className="mt-3 pt-3 border-t border-green-200">
+              <div className="text-[11px] font-semibold mb-1">Send Login Link via Email</div>
+              <p className="text-[10px] text-[var(--t3)] mb-2">
+                A magic link will be sent to {result.adminEmail} so the admin can sign in without a password.
+              </p>
+              <button
+                onClick={sendLoginLink}
+                disabled={sendingLink}
+                className="px-4 py-2 rounded-xl text-[12px] font-semibold text-white bg-[var(--primary)] hover:opacity-90 disabled:opacity-50 transition-all"
+              >
+                {sendingLink ? "Sending..." : "Send Login Link"}
+              </button>
+              {linkResult && (
+                <p className={`mt-2 text-[10px] font-medium ${linkResult.ok ? "text-green-600" : "text-red-500"}`}>
+                  {linkResult.message}
+                </p>
+              )}
+            </div>
+          )}
         </div>
       )}
 
@@ -600,27 +860,33 @@ function RegisterTab() {
               <input
                 value={form.schoolName}
                 onChange={(e) => handleChange("schoolName", e.target.value)}
-                required
-                className="w-full px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-[13px] text-[var(--t1)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30"
+                className={`w-full px-3 py-2 rounded-xl border ${fieldErrors.schoolName ? "border-red-400" : "border-[var(--border)]"} bg-[var(--bg)] text-[13px] text-[var(--t1)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30`}
               />
+              {fieldErrors.schoolName && (
+                <p className="mt-1 text-[10px] font-medium text-red-500">{fieldErrors.schoolName}</p>
+              )}
             </div>
             <div>
               <label className="block text-[11px] font-semibold text-[var(--t3)] mb-1">District *</label>
               <input
                 value={form.district}
                 onChange={(e) => handleChange("district", e.target.value)}
-                required
-                className="w-full px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-[13px] text-[var(--t1)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30"
+                className={`w-full px-3 py-2 rounded-xl border ${fieldErrors.district ? "border-red-400" : "border-[var(--border)]"} bg-[var(--bg)] text-[13px] text-[var(--t1)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30`}
               />
+              {fieldErrors.district && (
+                <p className="mt-1 text-[10px] font-medium text-red-500">{fieldErrors.district}</p>
+              )}
             </div>
             <div>
               <label className="block text-[11px] font-semibold text-[var(--t3)] mb-1">Subcounty *</label>
               <input
                 value={form.subcounty}
                 onChange={(e) => handleChange("subcounty", e.target.value)}
-                required
-                className="w-full px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-[13px] text-[var(--t1)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30"
+                className={`w-full px-3 py-2 rounded-xl border ${fieldErrors.subcounty ? "border-red-400" : "border-[var(--border)]"} bg-[var(--bg)] text-[13px] text-[var(--t1)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30`}
               />
+              {fieldErrors.subcounty && (
+                <p className="mt-1 text-[10px] font-medium text-red-500">{fieldErrors.subcounty}</p>
+              )}
             </div>
             <div>
               <label className="block text-[11px] font-semibold text-[var(--t3)] mb-1">Parish</label>
@@ -674,6 +940,9 @@ function RegisterTab() {
                 <option value="enterprise">Enterprise (UGX 5,500/student/term)</option>
                 <option value="free_trial">Free Trial</option>
               </select>
+              <p className="mt-1.5 text-[11px] font-semibold text-emerald-600">
+                Your commission: UGX {COMMISSION_RATES[form.selectedPackage]?.amount?.toLocaleString() || 0}
+              </p>
             </div>
           </div>
         </div>
@@ -707,6 +976,56 @@ function RegisterTab() {
         <hr className="border-[var(--border)]" />
 
         <div>
+          <h3 className="text-[13px] font-bold text-[var(--t1)] mb-3">Digitization Service (Optional)</h3>
+          <p className="text-[11px] text-[var(--t3)] mb-3">
+            Offer to digitize the school&apos;s student data for an additional fee (UGX 10,000 – 50,000).
+          </p>
+          <div className="flex items-center gap-2 mb-3">
+            <input
+              type="checkbox"
+              id="digitizeData"
+              checked={form.digitizeData}
+              onChange={(e) => setForm((f) => ({ ...f, digitizeData: e.target.checked }))}
+              className="w-4 h-4 rounded border-[var(--border)] accent-[var(--primary)]"
+            />
+            <label htmlFor="digitizeData" className="text-[12px] font-medium text-[var(--t2)] cursor-pointer">
+              Offer digitization service
+            </label>
+          </div>
+          {form.digitizeData && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-semibold text-[var(--t3)] mb-1">Fee (UGX) *</label>
+                <input
+                  type="number"
+                  min={10000}
+                  max={50000}
+                  step={1000}
+                  value={form.digitizationFee}
+                  onChange={(e) => handleChange("digitizationFee", e.target.value)}
+                  placeholder="30000"
+                  className={`w-full px-3 py-2 rounded-xl border ${fieldErrors.digitizationFee ? "border-red-400" : "border-[var(--border)]"} bg-[var(--bg)] text-[13px] text-[var(--t1)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30`}
+                />
+                {fieldErrors.digitizationFee && (
+                  <p className="mt-1 text-[10px] font-medium text-red-500">{fieldErrors.digitizationFee}</p>
+                )}
+              </div>
+              <div>
+                <label className="block text-[11px] font-semibold text-[var(--t3)] mb-1">Notes</label>
+                <input
+                  value={form.digitizationFeeNotes}
+                  onChange={(e) => handleChange("digitizationFeeNotes", e.target.value)}
+                  placeholder="e.g., Digitize 200 student records"
+                  className="w-full px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-[13px] text-[var(--t1)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        <hr className="border-[var(--border)]" />
+
+        <div>
           <h3 className="text-[13px] font-bold text-[var(--t1)] mb-3">Admin Account</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
@@ -714,19 +1033,23 @@ function RegisterTab() {
               <input
                 value={form.adminName}
                 onChange={(e) => handleChange("adminName", e.target.value)}
-                required
-                className="w-full px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-[13px] text-[var(--t1)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30"
+                className={`w-full px-3 py-2 rounded-xl border ${fieldErrors.adminName ? "border-red-400" : "border-[var(--border)]"} bg-[var(--bg)] text-[13px] text-[var(--t1)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30`}
               />
+              {fieldErrors.adminName && (
+                <p className="mt-1 text-[10px] font-medium text-red-500">{fieldErrors.adminName}</p>
+              )}
             </div>
             <div>
               <label className="block text-[11px] font-semibold text-[var(--t3)] mb-1">Admin Phone *</label>
               <input
                 value={form.adminPhone}
                 onChange={(e) => handleChange("adminPhone", e.target.value)}
-                required
                 placeholder="0700000000"
-                className="w-full px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-[13px] text-[var(--t1)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30"
+                className={`w-full px-3 py-2 rounded-xl border ${fieldErrors.adminPhone ? "border-red-400" : "border-[var(--border)]"} bg-[var(--bg)] text-[13px] text-[var(--t1)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30`}
               />
+              {fieldErrors.adminPhone && (
+                <p className="mt-1 text-[10px] font-medium text-red-500">{fieldErrors.adminPhone}</p>
+              )}
             </div>
             <div className="sm:col-span-2">
               <label className="block text-[11px] font-semibold text-[var(--t3)] mb-1">
@@ -736,9 +1059,11 @@ function RegisterTab() {
                 type="password"
                 value={form.password}
                 onChange={(e) => handleChange("password", e.target.value)}
-                required
-                className="w-full px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-[13px] text-[var(--t1)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30"
+                className={`w-full px-3 py-2 rounded-xl border ${fieldErrors.password ? "border-red-400" : "border-[var(--border)]"} bg-[var(--bg)] text-[13px] text-[var(--t1)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30`}
               />
+              {fieldErrors.password && (
+                <p className="mt-1 text-[10px] font-medium text-red-500">{fieldErrors.password}</p>
+              )}
             </div>
           </div>
         </div>
@@ -757,11 +1082,14 @@ function RegisterTab() {
 
 // ─── Leads Tab ────────────────────────────────────────────────────────────────
 
-function LeadsTab() {
+function LeadsTab({ onConvertToSchool }: { onConvertToSchool?: (lead: LeadRow) => void }) {
   const [leads, setLeads] = useState<LeadRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importMsg, setImportMsg] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [leadForm, setLeadForm] = useState({
     school_name: "",
     contact_name: "",
@@ -859,13 +1187,52 @@ function LeadsTab() {
       <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden">
         <div className="px-4 py-3 border-b border-[var(--border)] flex items-center justify-between gap-3">
           <h2 className="font-['Sora'] text-[13px] font-bold text-[var(--t1)]">Leads</h2>
-          <button
-            onClick={() => setShowForm(!showForm)}
-            className="px-3 py-1.5 rounded-xl bg-[var(--primary)] text-white text-[11px] font-bold hover:opacity-90 transition-opacity"
-          >
-            {showForm ? "Cancel" : "+ New Lead"}
-          </button>
+          <div className="flex items-center gap-2">
+            <input
+              type="file"
+              accept=".csv"
+              ref={fileInputRef}
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (!file) return;
+                setImporting(true);
+                setImportMsg("");
+                try {
+                  const fd = new FormData();
+                  fd.append("file", file);
+                  const res = await fetch("/api/marketers/leads/import/", { method: "POST", body: fd });
+                  const body = await res.json();
+                  setImportMsg(body.success ? body.message : body.error || "Import failed");
+                  if (body.success) fetchLeads();
+                } catch {
+                  setImportMsg("Network error");
+                } finally {
+                  setImporting(false);
+                  if (e.target) e.target.value = "";
+                }
+              }}
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={importing}
+              className="px-3 py-1.5 rounded-xl border border-[var(--border)] text-[var(--t2)] text-[11px] font-bold hover:bg-[var(--bg)] transition-colors disabled:opacity-50"
+            >
+              {importing ? "Importing..." : "Import CSV"}
+            </button>
+            <button
+              onClick={() => setShowForm(!showForm)}
+              className="px-3 py-1.5 rounded-xl bg-[var(--primary)] text-white text-[11px] font-bold hover:opacity-90 transition-opacity"
+            >
+              {showForm ? "Cancel" : "+ New Lead"}
+            </button>
+          </div>
         </div>
+        {importMsg && (
+          <div className="px-4 py-2 text-[11px] font-medium text-emerald-700 bg-emerald-50 border-b border-emerald-200">
+            {importMsg}
+          </div>
+        )}
 
         {showForm && (
           <form onSubmit={createLead} className="p-4 border-b border-[var(--border)] bg-[var(--bg)] space-y-3">
@@ -971,7 +1338,18 @@ function LeadsTab() {
                         </select>
                       </td>
                       <td className="px-4 py-2.5 text-[var(--t3)]">{formatDate(l.created_at)}</td>
-                      <td className="px-4 py-2.5">
+                      <td className="px-4 py-2.5 flex items-center gap-1">
+                        {onConvertToSchool && (
+                          <button
+                            onClick={() => onConvertToSchool(l)}
+                            title="Convert to school registration"
+                            className="text-emerald-600 hover:text-emerald-700 transition-colors p-1"
+                          >
+                            <span className="material-symbols-outlined" style={{ fontSize: 16 }}>
+                              add_business
+                            </span>
+                          </button>
+                        )}
                         <button
                           onClick={() => deleteLead(l.id)}
                           className="text-[var(--t4)] hover:text-red-500 transition-colors p-1"
@@ -1418,7 +1796,8 @@ function EarningsTab({
 // ─── Settings Tab ─────────────────────────────────────────────────────────────
 
 function SettingsTab() {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
+  const router = useRouter();
   const [name, setName] = useState(user?.full_name || "");
   const [phone, setPhone] = useState(user?.phone || "");
   const [saving, setSaving] = useState(false);
@@ -1500,6 +1879,117 @@ function SettingsTab() {
             {saving ? "Saving..." : "Save Changes"}
           </button>
         </form>
+      </div>
+
+      <div className="rounded-2xl border border-red-200 bg-red-50/50 p-6">
+        <h2 className="font-['Sora'] text-[15px] font-bold text-[var(--t1)] mb-1">Sign Out</h2>
+        <p className="text-[12px] text-[var(--t3)] mb-4">End your current session.</p>
+        <button
+          onClick={async () => {
+            await signOut();
+            router.replace("/login");
+          }}
+          className="w-full py-2.5 px-4 rounded-xl bg-red-600 text-white font-bold text-[13px] hover:bg-red-700 transition-colors"
+        >
+          Sign Out
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Edit School Modal ─────────────────────────────────────────────────────────
+
+function EditSchoolModal({
+  school,
+  onClose,
+  onSaved,
+}: {
+  school: SchoolRow;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [phone, setPhone] = useState(school.phone || "");
+  const [email, setEmail] = useState(school.email || "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSave = async () => {
+    setSaving(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/marketers/schools/${school.id}/`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone, email }),
+      });
+      const body = await res.json();
+      if (body.success) {
+        onSaved();
+      } else {
+        setError(body.error || "Failed to update");
+      }
+    } catch {
+      setError("Network error");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-['Sora'] text-[15px] font-bold text-[var(--t1)]">Edit School Contact</h3>
+          <button onClick={onClose} className="text-[var(--t4)] hover:text-[var(--t1)] p-1">
+            <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+              close
+            </span>
+          </button>
+        </div>
+        <div className="mb-3 text-[12px] text-[var(--t3)]">
+          {school.name} · {school.school_code}
+        </div>
+        {error && (
+          <div className="mb-3 px-3 py-2 rounded-xl bg-red-50 text-[12px] text-red-700 border border-red-200">
+            {error}
+          </div>
+        )}
+        <div className="space-y-3">
+          <div>
+            <label className="block text-[11px] font-semibold text-[var(--t3)] mb-1">Phone</label>
+            <input
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="0700000000"
+              className="w-full px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-[13px] text-[var(--t1)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30"
+            />
+          </div>
+          <div>
+            <label className="block text-[11px] font-semibold text-[var(--t3)] mb-1">Email</label>
+            <input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="school@example.com"
+              className="w-full px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-[13px] text-[var(--t1)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30"
+            />
+          </div>
+          <div className="flex gap-2 pt-2">
+            <button
+              onClick={onClose}
+              className="flex-1 py-2 rounded-xl border border-[var(--border)] text-[13px] font-bold text-[var(--t2)] hover:bg-[var(--bg)] transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="flex-1 py-2 rounded-xl bg-[var(--primary)] text-white text-[13px] font-bold hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              {saving ? "Saving..." : "Save"}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

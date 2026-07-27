@@ -212,17 +212,15 @@ export async function POST(request: NextRequest) {
       const currentYear = new Date().getFullYear().toString();
       const defaultSubjects = getDefaultSubjects(schoolType);
       if (defaultSubjects.length > 0) {
-        await supabaseAdmin
-          .from("subjects")
-          .insert(
-            defaultSubjects.map((s) => ({
-              school_id: schoolData.id,
-              name: s.name,
-              code: s.code,
-              level: s.level,
-              is_compulsory: s.is_compulsory,
-            })),
-          );
+        await supabaseAdmin.from("subjects").insert(
+          defaultSubjects.map((s) => ({
+            school_id: schoolData.id,
+            name: s.name,
+            code: s.code,
+            level: s.level,
+            is_compulsory: s.is_compulsory,
+          })),
+        );
       }
 
       const defaultClasses = buildDefaultClasses(schoolData.id, schoolType as SchoolSetupType, currentYear);
@@ -251,7 +249,50 @@ export async function POST(request: NextRequest) {
       return apiError("Registration could not be completed. Please try again.", 500);
     }
 
-    return apiSuccess({ schoolId: schoolData.id, schoolCode }, "School registered successfully", 201);
+    // ── Auto-create commission earnings ──────────────────────────────────────
+    const isPaid = subscriptionPlan !== "free_trial";
+    const isPremium = subscriptionPlan === "growth" || subscriptionPlan === "enterprise";
+    const commissionAmount = isPaid ? (isPremium ? 80000 : 70000) : 4000;
+
+    try {
+      await supabaseAdmin.from("marketer_earnings").insert({
+        marketer_id: profile.id,
+        school_id: schoolData.id,
+        earning_type: "onboarding_bonus",
+        amount: commissionAmount,
+        currency: "UGX",
+        status: "pending",
+        notes: `Auto-created: ${isPaid ? `${subscriptionPlan} plan (${isPremium ? "premium" : "standard"})` : "free trial"} registration`,
+      });
+
+      // Optional digitization fee
+      const digitizationFee = Number(body.digitizationFee) || 0;
+      if (digitizationFee >= 10000 && digitizationFee <= 50000) {
+        await supabaseAdmin.from("marketer_earnings").insert({
+          marketer_id: profile.id,
+          school_id: schoolData.id,
+          earning_type: "digitization_fee",
+          amount: digitizationFee,
+          currency: "UGX",
+          status: "pending",
+          notes: body.digitizationFeeNotes || "Student data digitization service",
+        });
+      }
+    } catch (earningsError) {
+      logger.error("[Marketer Register] Failed to auto-create earnings, non-fatal:", earningsError);
+    }
+
+    return apiSuccess(
+      {
+        schoolId: schoolData.id,
+        schoolCode,
+        commission: commissionAmount,
+        adminPhone: normalizedPhone,
+        adminEmail: emailForAuth,
+      },
+      "School registered successfully. The admin can sign in with the phone number and password you set.",
+      201,
+    );
   } catch (error) {
     logger.error("[Marketer Register] Error:", error);
     await rollbackAll();

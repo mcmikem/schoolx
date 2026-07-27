@@ -438,8 +438,8 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
       <MobileBottomNav />
       <RoleBasedWalkthrough />
-      {/* OnboardingTour disabled — overlay blocked entire dashboard. Enable from help menu when ready. */}
-      {/* {onboardingCompleted && <OnboardingTour />} */}
+      {/* Onboarding tour — overlay is now click-through, no longer blocks the dashboard */}
+      {onboardingCompleted && !isDemo && <OnboardingTour />}
       <OwlAssistant />
       <BugReportButton />
       <PWAInstallPrompt />

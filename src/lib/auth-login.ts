@@ -78,7 +78,12 @@ export function buildAuthLoginAttempts(input: string): AuthLoginAttempt[] {
     addAttempt(attempts, seen, "email", `${rawWithCountry}@omuto.org`);
   }
 
-  // Tertiary: phone format fallback (rare, only for very old accounts)
+  // Tertiary: legacy @omuto.sms domain (for old accounts created before
+  // the @omuto.org migration — 13 accounts confirmed in auth.users).
+  // Do NOT remove unless these accounts have been migrated.
+  addAttempt(attempts, seen, "email", `${normalized}@omuto.sms`);
+
+  // Quaternary: phone format fallback (rare, only for very old accounts)
   addAttempt(attempts, seen, "phone", `+${normalized}`);
 
   return attempts;

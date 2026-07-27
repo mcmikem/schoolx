@@ -2723,7 +2723,7 @@ CREATE TABLE IF NOT EXISTS marketer_earnings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     marketer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     school_id UUID REFERENCES schools(id) ON DELETE SET NULL,
-    earning_type TEXT NOT NULL CHECK (earning_type IN ('onboarding_bonus', 'subscription_commission', 'performance_bonus', 'adjustment')),
+    earning_type TEXT NOT NULL CHECK (earning_type IN ('onboarding_bonus', 'subscription_commission', 'performance_bonus', 'adjustment', 'digitization_fee')),
     amount NUMERIC(12,2) NOT NULL,
     currency TEXT DEFAULT 'UGX',
     status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'cancelled', 'paid')),

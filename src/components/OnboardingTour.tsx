@@ -19,8 +19,7 @@ const TOUR_STEPS: TourStep[] = [
   {
     id: "dashboard-overview",
     title: "Welcome to Your Dashboard",
-    description:
-      "This is your main workspace where you can manage all aspects of your school.",
+    description: "This is your main workspace where you can manage all aspects of your school.",
     target: '[data-testid="dashboard-header"]',
     position: "bottom",
     icon: "dashboard",
@@ -28,8 +27,7 @@ const TOUR_STEPS: TourStep[] = [
   {
     id: "attendance-center",
     title: "Attendance Center",
-    description:
-      "Mark daily attendance, view reports, and send absence alerts to parents.",
+    description: "Mark daily attendance, view reports, and send absence alerts to parents.",
     target: '[data-testid="attendance-nav-item"]',
     position: "bottom",
     icon: "event",
@@ -37,8 +35,7 @@ const TOUR_STEPS: TourStep[] = [
   {
     id: "grade-management",
     title: "Grade Management",
-    description:
-      "Enter assessments, calculate grades, and generate report cards with UNEB support.",
+    description: "Enter assessments, calculate grades, and generate report cards with UNEB support.",
     target: '[data-testid="grades-nav-item"]',
     position: "bottom",
     icon: "grade",
@@ -46,8 +43,7 @@ const TOUR_STEPS: TourStep[] = [
   {
     id: "fee-tracking",
     title: "Fee Management",
-    description:
-      "Track payments, manage invoices, and set up payment plans for students.",
+    description: "Track payments, manage invoices, and set up payment plans for students.",
     target: '[data-testid="fees-nav-item"]',
     position: "bottom",
     icon: "payments",
@@ -55,8 +51,7 @@ const TOUR_STEPS: TourStep[] = [
   {
     id: "parent-communication",
     title: "Parent Communication",
-    description:
-      "Send SMS alerts, bulk messages, and use the parent portal for engagement.",
+    description: "Send SMS alerts, bulk messages, and use the parent portal for engagement.",
     target: '[data-testid="messages-nav-item"]',
     position: "bottom",
     icon: "sms",
@@ -74,9 +69,7 @@ export default function OnboardingTour() {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      const seen = localStorage.getItem(
-        `omuto_tour_seen_${user?.id || "demo"}`,
-      );
+      const seen = localStorage.getItem(`omuto_tour_seen_${user?.id || "demo"}`);
       setHasSeenTour(seen === "true");
 
       if ((!seen || isDemo) && user?.id && school) {
@@ -101,9 +94,7 @@ export default function OnboardingTour() {
         localStorage.setItem(`omuto_tour_seen_${user?.id || "demo"}`, "true");
       }
       setIsActive(false);
-      toast.success(
-        "Tour completed! You can always restart it from the help menu.",
-      );
+      toast.success("Tour completed! You can always restart it from the help menu.");
     }
   }, [currentStep, isActive, user?.id, toast]);
 
@@ -156,44 +147,59 @@ export default function OnboardingTour() {
     return null;
   }
 
+  const targetRect = targetElement?.getBoundingClientRect();
+
   return (
     <>
-      <div className="fixed inset-0 bg-black/50 z-50" />
-      <div className="fixed z-50 pointer-events-none">
-        {targetElement && (
-          <div
-            className="absolute pointer-events-none z-40 border-2 border-blue-500 bg-blue-50/50 rounded-xl animate-pulse"
-            style={{
-              top: position.top,
-              left: position.left,
-              width: targetElement.getBoundingClientRect().width,
-              height: targetElement.getBoundingClientRect().height,
-              transform: "translate(-50%, -50%)",
-            }}
-          />
-        )}
-
+      {/* Non-blocking overlay — click-through so dashboard stays interactive */}
+      <div className="fixed inset-0 bg-black/20 z-50 pointer-events-none" />
+      {/* Target element highlight */}
+      {targetRect && (
         <div
-          className="absolute z-50 max-w-xs bg-white rounded-xl border border-blue-500 shadow-xl p-6 space-y-4"
-          style={{ top: position.top + 20, left: position.left }}
+          className="fixed z-50 border-2 border-blue-500 bg-blue-100/30 rounded-xl pointer-events-none"
+          style={{
+            top: targetRect.top - 4,
+            left: targetRect.left - 4,
+            width: targetRect.width + 8,
+            height: targetRect.height + 8,
+          }}
+        />
+      )}
+      {/* Tour card */}
+      <div
+        className="fixed z-50 max-w-xs bg-white rounded-xl border border-blue-500 shadow-xl p-6 space-y-4"
+        style={{ top: position.top, left: position.left, maxHeight: "90vh", overflowY: "auto" }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={handleSkip}
+          className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 p-1"
+          aria-label="Close tour"
         >
-          <div className="flex items-start gap-3">
-            <div className="flex-shrink-0">
-              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                <MaterialIcon icon={step.icon} className="text-blue-600" />
-              </div>
+          <MaterialIcon icon="close" />
+        </button>
+        <div className="flex items-start gap-3">
+          <div className="flex-shrink-0">
+            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+              <MaterialIcon icon={step.icon} className="text-blue-600" />
             </div>
-            <div className="flex-1">
-              <h3 className="font-semibold text-blue-800">{step.title}</h3>
-              <p className="text-blue-700">{step.description}</p>
-              <div className="flex justify-end gap-2 mt-4">
+          </div>
+          <div className="flex-1">
+            <h3 className="font-semibold text-blue-800">{step.title}</h3>
+            <p className="text-blue-700 text-[13px] mt-1">{step.description}</p>
+            <div className="flex items-center justify-between gap-2 mt-4">
+              <div className="flex gap-1">
+                {TOUR_STEPS.map((_, index) => (
+                  <div
+                    key={index}
+                    className={`w-2 h-2 rounded-full ${index <= currentStep ? "bg-blue-500" : "bg-blue-200"}`}
+                  />
+                ))}
+              </div>
+              <div className="flex gap-1.5">
                 {currentStep > 0 && (
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={handlePrevious}
-                  >
-                    Previous
+                  <Button variant="secondary" size="sm" onClick={handlePrevious}>
+                    Back
                   </Button>
                 )}
                 {currentStep < TOUR_STEPS.length - 1 ? (
@@ -201,24 +207,12 @@ export default function OnboardingTour() {
                     {currentStep === TOUR_STEPS.length - 2 ? "Finish" : "Next"}
                   </Button>
                 ) : (
-                  <Button variant="primary" size="sm" onClick={handleNext}>
+                  <Button variant="primary" size="sm" onClick={handleSkip}>
                     Got it
                   </Button>
                 )}
-                <Button variant="ghost" size="sm" onClick={handleSkip}>
-                  Skip
-                </Button>
               </div>
             </div>
-          </div>
-
-          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-1">
-            {TOUR_STEPS.map((_, index) => (
-              <div
-                key={index}
-                className={`w-2 h-2 rounded-full ${index <= currentStep ? "bg-blue-500" : "bg-blue-200"}`}
-              />
-            ))}
           </div>
         </div>
       </div>
