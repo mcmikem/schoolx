@@ -319,6 +319,14 @@ export async function requireAuthenticatedUser(
   const csrfCheck = requireSameOriginWriteOrDeny(request);
   if (!csrfCheck.ok) return csrfCheck;
 
+  // Use x-user-id header set by middleware if available — avoids a second
+  // getUser() call that may fail if the middleware refreshed cookies that
+  // haven't propagated to the API route yet.
+  const middlewareUserId = request.headers.get("x-user-id");
+  if (middlewareUserId) {
+    return { ok: true, context: { authUserId: middlewareUserId } };
+  }
+
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.auth.getUser();
 

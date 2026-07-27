@@ -117,6 +117,7 @@ const alwaysPublicPaths = [
   "/favicon.ico",
   "/resources/brochure",
   "/api/contact",
+  "/api/marketers",
 ];
 
 const SETUP_PATHS = ["/setup", "/setup-admin"];
@@ -366,7 +367,8 @@ export async function proxy(request: NextRequest) {
       hasAuthSessionCookie(request) &&
       (pathname.startsWith("/dashboard") ||
         pathname.startsWith("/super-admin") ||
-        pathname.startsWith("/parent-portal"))
+        pathname.startsWith("/parent-portal") ||
+        pathname.startsWith("/api/marketers"))
     ) {
       supabaseResponse.headers.set("x-auth-status", "cookie-present-user-unverified");
       return supabaseResponse;
