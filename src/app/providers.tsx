@@ -1,113 +1,165 @@
-'use client'
-import { ReactNode, useEffect } from 'react'
-import { AuthProvider, useAuth } from '@/lib/auth-context'
-import { AcademicProvider } from '@/lib/academic-context'
-import { ThemeProvider } from '@/lib/theme-context'
-import { NotificationsProvider } from '@/lib/notifications'
-import ErrorBoundary from '@/components/ErrorBoundary'
-import { ToastProvider } from '@/components/Toast'
-import { StuckLoadingOverlay } from '@/components/ui/Skeleton'
-import { logger } from '@/lib/logger'
-import { setupErrorLogging } from '@/lib/error-logger'
-import BrandProvider from '@/components/BrandProvider'
-import { ReactQueryProvider } from './providers/ReactQueryProvider'
+"use client";
+import { ReactNode, useEffect } from "react";
+import { AuthProvider, useAuth } from "@/lib/auth-context";
+import { AcademicProvider } from "@/lib/academic-context";
+import { ThemeProvider } from "@/lib/theme-context";
+import { NotificationsProvider } from "@/lib/notifications";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import { ToastProvider } from "@/components/Toast";
+import { StuckLoadingOverlay } from "@/components/ui/Skeleton";
+import { logger } from "@/lib/logger";
+import { setupErrorLogging } from "@/lib/error-logger";
+import BrandProvider from "@/components/BrandProvider";
+import { ReactQueryProvider } from "./providers/ReactQueryProvider";
 
 function FaviconUpdater() {
-  const { school } = useAuth()
+  const { school } = useAuth();
 
   useEffect(() => {
-    if (typeof document === "undefined") return
-    if (!school?.logo_url) return
+    if (typeof document === "undefined") return;
+    if (!school?.logo_url) return;
 
-    const iconUrl = school.logo_url
+    const iconUrl = school.logo_url;
 
     const setOrUpdate = (selector: string, attr: string, value: string) => {
-      let el = document.querySelector<HTMLLinkElement | HTMLMetaElement>(selector)
+      let el = document.querySelector<HTMLLinkElement | HTMLMetaElement>(selector);
       if (!el) {
-        el = document.createElement(attr === "href" ? "link" : "meta")
-        if (attr === "href") (el as HTMLLinkElement).rel = selector.includes("apple") ? "apple-touch-icon" : "icon"
-        if (attr === "content") (el as HTMLMetaElement).name = selector.match(/name="([^"]+)"/)?.[1] || ""
-        document.head.appendChild(el)
+        el = document.createElement(attr === "href" ? "link" : "meta");
+        if (attr === "href") (el as HTMLLinkElement).rel = selector.includes("apple") ? "apple-touch-icon" : "icon";
+        if (attr === "content") (el as HTMLMetaElement).name = selector.match(/name="([^"]+)"/)?.[1] || "";
+        document.head.appendChild(el);
       }
-      if (attr in el) (el as any)[attr] = value
-    }
+      if (attr in el) (el as any)[attr] = value;
+    };
 
-    setOrUpdate('link[rel="icon"]', "href", iconUrl)
-    setOrUpdate('link[rel="apple-touch-icon"]', "href", iconUrl)
+    setOrUpdate('link[rel="icon"]', "href", iconUrl);
+    setOrUpdate('link[rel="apple-touch-icon"]', "href", iconUrl);
 
     if (school.primary_color) {
-      const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')
-      if (meta) meta.content = school.primary_color
+      const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
+      if (meta) meta.content = school.primary_color;
     }
 
-    const ogImage = document.querySelector<HTMLMetaElement>('meta[property="og:image"]')
-    if (ogImage) ogImage.content = iconUrl
-    const twitterImage = document.querySelector<HTMLMetaElement>('meta[name="twitter:image"]')
-    if (twitterImage) twitterImage.content = iconUrl
-  }, [school?.logo_url, school?.primary_color])
+    const ogImage = document.querySelector<HTMLMetaElement>('meta[property="og:image"]');
+    if (ogImage) ogImage.content = iconUrl;
+    const twitterImage = document.querySelector<HTMLMetaElement>('meta[name="twitter:image"]');
+    if (twitterImage) twitterImage.content = iconUrl;
+  }, [school?.logo_url, school?.primary_color]);
 
-  return null
+  return null;
 }
 
 function ServiceWorkerRegistration({ children }: { children: ReactNode }) {
   useEffect(() => {
-    setupErrorLogging()
-    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-      const authRoutePattern = /^\/(login|register|forgot-password)(\/|$)/
-      const shouldForceAuthRouteUpdate = authRoutePattern.test(window.location.pathname)
-      let hasReloadedForUpdate = false
+    setupErrorLogging();
+    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      const authRoutePattern = /^\/(login|register|forgot-password)(\/|$)/;
+      const shouldForceAuthRouteUpdate = authRoutePattern.test(window.location.pathname);
+      let hasReloadedForUpdate = false;
 
       const reloadForActivatedUpdate = () => {
-        if (!shouldForceAuthRouteUpdate || hasReloadedForUpdate) return
-        hasReloadedForUpdate = true
-        window.location.reload()
-      }
+        if (!shouldForceAuthRouteUpdate || hasReloadedForUpdate) return;
+        hasReloadedForUpdate = true;
+        window.location.reload();
+      };
 
-      navigator.serviceWorker.addEventListener('controllerchange', reloadForActivatedUpdate)
+      navigator.serviceWorker.addEventListener("controllerchange", reloadForActivatedUpdate);
 
-      navigator.serviceWorker.register('/sw.js')
+      navigator.serviceWorker
+        .register("/sw.js")
         .then(async (registration) => {
-          logger.log('Service Worker registered:', registration.scope)
-          await registration.update().catch((err) => logger.warn("[SW] Update failed", err))
+          logger.log("Service Worker registered:", registration.scope);
+          await registration.update().catch((err) => logger.warn("[SW] Update failed", err));
 
           if (registration.waiting && shouldForceAuthRouteUpdate) {
-            registration.waiting.postMessage({ type: 'SKIP_WAITING' })
+            registration.waiting.postMessage({ type: "SKIP_WAITING" });
           }
 
           // Check for updates and activate immediately
-          registration.addEventListener('updatefound', () => {
-            const newWorker = registration.installing
+          registration.addEventListener("updatefound", () => {
+            const newWorker = registration.installing;
             if (newWorker) {
-              newWorker.addEventListener('statechange', () => {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              newWorker.addEventListener("statechange", () => {
+                if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
                   if (shouldForceAuthRouteUpdate) {
-                    newWorker.postMessage({ type: 'SKIP_WAITING' })
-                    return
+                    newWorker.postMessage({ type: "SKIP_WAITING" });
+                    return;
                   }
 
                   // Notify the UI that an update is available — let the user
                   // decide when to reload rather than forcing it mid-session,
                   // which can steal Supabase auth Web Locks.
-                  window.dispatchEvent(new CustomEvent('sw-update-available', { detail: { registration } }))
+                  window.dispatchEvent(new CustomEvent("sw-update-available", { detail: { registration } }));
                 }
-              })
+              });
             }
-          })
+          });
         })
         .catch((error) => {
-          logger.error('Service Worker registration failed:', error)
-        })
+          logger.error("Service Worker registration failed:", error);
+        });
 
       return () => {
-        navigator.serviceWorker.removeEventListener('controllerchange', reloadForActivatedUpdate)
-      }
+        navigator.serviceWorker.removeEventListener("controllerchange", reloadForActivatedUpdate);
+      };
     }
-  }, [])
-  return <>{children}</>
+  }, []);
+  return <>{children}</>;
+}
+
+function MobileKeyboardHandler() {
+  useEffect(() => {
+    const isMobile = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+    if (!isMobile) return;
+
+    let activeEl: Element | null = null;
+    let rafId: number | null = null;
+
+    const onFocusIn = (e: FocusEvent) => {
+      const target = e.target as HTMLElement;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT")) {
+        activeEl = target;
+        if (rafId) cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(() => {
+          target.scrollIntoView({ block: "center", behavior: "smooth" });
+          rafId = null;
+        });
+      }
+    };
+
+    const onFocusOut = () => {
+      activeEl = null;
+    };
+
+    const onVisualViewportChange = () => {
+      if (activeEl && window.visualViewport) {
+        const keyboardHeight = window.innerHeight - window.visualViewport.height;
+        if (keyboardHeight > 100) {
+          activeEl.scrollIntoView({ block: "center", behavior: "smooth" });
+        }
+      }
+    };
+
+    document.addEventListener("focusin", onFocusIn);
+    document.addEventListener("focusout", onFocusOut);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener("resize", onVisualViewportChange);
+    }
+
+    return () => {
+      document.removeEventListener("focusin", onFocusIn);
+      document.removeEventListener("focusout", onFocusOut);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener("resize", onVisualViewportChange);
+      }
+      if (rafId) cancelAnimationFrame(rafId);
+    };
+  }, []);
+  return null;
 }
 
 function LoadingChecker({ children }: { children: ReactNode }) {
-  const { authInitialized } = useAuth()
+  const { authInitialized } = useAuth();
 
   if (!authInitialized) {
     return (
@@ -115,10 +167,10 @@ function LoadingChecker({ children }: { children: ReactNode }) {
         {children}
         <StuckLoadingOverlay delay={12000} />
       </>
-    )
+    );
   }
 
-  return <>{children}</>
+  return <>{children}</>;
 }
 
 export default function Providers({ children }: { children: ReactNode }) {
@@ -130,12 +182,11 @@ export default function Providers({ children }: { children: ReactNode }) {
             <ServiceWorkerRegistration>
               <AuthProvider>
                 <LoadingChecker>
+                  <MobileKeyboardHandler />
                   <FaviconUpdater />
                   <AcademicProvider>
                     <BrandProvider>
-                      <NotificationsProvider>
-                        {children}
-                      </NotificationsProvider>
+                      <NotificationsProvider>{children}</NotificationsProvider>
                     </BrandProvider>
                   </AcademicProvider>
                 </LoadingChecker>
@@ -145,5 +196,5 @@ export default function Providers({ children }: { children: ReactNode }) {
         </ToastProvider>
       </ReactQueryProvider>
     </ErrorBoundary>
-  )
+  );
 }

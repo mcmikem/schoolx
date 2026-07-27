@@ -7,9 +7,7 @@ import { Button, Input } from "@/components/ui";
 import { normalizeAuthPhone } from "@/lib/validation";
 
 function MaterialIcon({ icon, className }: { icon: string; className?: string }) {
-  return (
-    <span className={`material-symbols-outlined ${className || ""}`}>{icon}</span>
-  );
+  return <span className={`material-symbols-outlined ${className || ""}`}>{icon}</span>;
 }
 
 export default function ForgotPasswordPage() {
@@ -61,12 +59,8 @@ export default function ForgotPasswordPage() {
             <div className="inline-flex items-center justify-center w-20 h-20 rounded-[24px] bg-white shadow-xl mb-6 ring-1 ring-slate-100">
               <SkoolMateLogo size="md" />
             </div>
-            <h2 className="text-3xl font-extrabold text-[var(--t1)] tracking-tight">
-              Reset your password
-            </h2>
-            <p className="mt-2 text-[var(--t3)] font-medium">
-              We&apos;ll send reset instructions via WhatsApp or SMS
-            </p>
+            <h2 className="text-3xl font-extrabold text-[var(--t1)] tracking-tight">Reset your password</h2>
+            <p className="mt-2 text-[var(--t3)] font-medium">We&apos;ll send reset instructions via WhatsApp or SMS</p>
           </div>
 
           <div className="card-premium p-8 md:p-10 shadow-[0_32px_64px_rgba(15,23,42,0.1)]">
@@ -77,13 +71,11 @@ export default function ForgotPasswordPage() {
                 </div>
                 <h3 className="text-lg font-bold text-[var(--t1)]">Check your phone</h3>
                 <p className="mt-2 text-sm text-[var(--t2)] leading-6">
-                  If that number is registered, you&apos;ll receive a password reset message shortly. If you don&apos;t receive it within a few minutes, contact your school admin for assistance.
+                  If that number is registered, you&apos;ll receive a password reset message shortly. If you don&apos;t
+                  receive it within a few minutes, contact your school admin for assistance.
                 </p>
                 <div className="mt-6">
-                  <Link
-                    href="/login"
-                    className="btn btn-primary w-full justify-center"
-                  >
+                  <Link href="/login" className="btn btn-primary w-full justify-center">
                     Back to sign in
                   </Link>
                 </div>
@@ -94,6 +86,7 @@ export default function ForgotPasswordPage() {
                   label="Phone number (your login ID)"
                   id="phone"
                   type="tel"
+                  inputMode="tel"
                   placeholder="0700000000"
                   value={phone}
                   onChange={(e) => {
@@ -106,7 +99,8 @@ export default function ForgotPasswordPage() {
                 />
 
                 <p className="text-xs text-[var(--t3)] leading-5">
-                  Enter the phone number you used to register. We&apos;ll send a temporary password reset link via SMS or WhatsApp.
+                  Enter the phone number you used to register. We&apos;ll send a temporary password reset link via SMS
+                  or WhatsApp.
                 </p>
 
                 <Button

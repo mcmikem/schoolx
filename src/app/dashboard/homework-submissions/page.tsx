@@ -1,238 +1,270 @@
-'use client'
+"use client";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState } from 'react'
-import { useAuth } from '@/lib/auth-context'
-import { useAcademic } from '@/lib/academic-context'
-import { supabase } from '@/lib/supabase'
-import { useOfflineHomework, useOfflineHomeworkSubmissions, useOfflineClasses, useOfflineClassStudentsFull } from '@/lib/offline-hooks';
-import { useToast } from '@/components/Toast'
-import MaterialIcon from '@/components/MaterialIcon'
-import { PageHeader } from '@/components/ui/PageHeader'
-import { Card } from '@/components/ui/Card'
-import { Button } from '@/components/ui/index'
+import { useState } from "react";
+import { useAuth } from "@/lib/auth-context";
+import { useAcademic } from "@/lib/academic-context";
+import { supabase } from "@/lib/supabase";
+import {
+  useOfflineHomework,
+  useOfflineHomeworkSubmissions,
+  useOfflineClasses,
+  useOfflineClassStudentsFull,
+} from "@/lib/offline-hooks";
+import { useToast } from "@/components/Toast";
+import MaterialIcon from "@/components/MaterialIcon";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Card } from "@/components/ui/Card";
+import { Button } from "@/components/ui/index";
 
 interface HomeworkSubmission {
-  id: string
-  homework_id: string
-  student_id: string
-  submitted_at?: string
-  marks?: number
-  marks_obtained?: number
-  feedback?: string
-  status: 'pending' | 'submitted' | 'graded'
-  students?: { first_name: string; last_name: string; classes: { name: string }[] }
+  id: string;
+  homework_id: string;
+  student_id: string;
+  submitted_at?: string;
+  marks?: number;
+  marks_obtained?: number;
+  feedback?: string;
+  status: "pending" | "submitted" | "graded";
+  students?: { first_name: string; last_name: string; classes: { name: string }[] };
 }
 
 export default function HomeworkSubmissionsPage() {
-  const { school } = useAuth()
-  const { academicYear, currentTerm } = useAcademic()
-  const toast = useToast()
-  
-  const [selectedHomework, setSelectedHomework] = useState<any>(null)
-  const [classFilter, setClassFilter] = useState('')
+  const { school } = useAuth();
+  const { academicYear, currentTerm } = useAcademic();
+  const toast = useToast();
+
+  const [selectedHomework, setSelectedHomework] = useState<any>(null);
+  const [classFilter, setClassFilter] = useState("");
 
   // Offline-aware hooks
-  const {
-    data: classes = [],
-    loading: loadingClasses,
-  } = useOfflineClasses(school?.id)
+  const { data: classes = [], loading: loadingClasses } = useOfflineClasses(school?.id);
 
   const {
     data: homeworks = [],
     loading: loadingHomeworks,
     refetch: refetchHomeworks,
-  } = useOfflineHomework(school?.id, academicYear, currentTerm ? String(currentTerm) : undefined, classFilter)
+  } = useOfflineHomework(school?.id, academicYear, currentTerm ? String(currentTerm) : undefined, classFilter);
 
   const {
     data: submissionsData = [],
     loading: loadingSubmissions,
     refetch: refetchSubmissions,
-  } = useOfflineHomeworkSubmissions(selectedHomework?.id, school?.id, selectedHomework?.class_id)
+  } = useOfflineHomeworkSubmissions(selectedHomework?.id, school?.id, selectedHomework?.class_id);
 
-  const {
-    data: allStudents = [],
-    loading: loadingStudents,
-  } = useOfflineClassStudentsFull(school?.id, selectedHomework?.class_id)
+  const { data: allStudents = [], loading: loadingStudents } = useOfflineClassStudentsFull(
+    school?.id,
+    selectedHomework?.class_id,
+  );
 
   // Compose full submissions list
-  const submittedIds = new Set(submissionsData?.map(s => s.student_id) || [])
-  const submissions = (allStudents || []).map(student => ({
-    id: submittedIds.has(student.id) ? submissionsData?.find(s => s.student_id === student.id)?.id : null,
+  const submittedIds = new Set(submissionsData?.map((s) => s.student_id) || []);
+  const submissions = (allStudents || []).map((student) => ({
+    id: submittedIds.has(student.id) ? submissionsData?.find((s) => s.student_id === student.id)?.id : null,
     student_id: student.id,
     homework_id: selectedHomework?.id,
-    status: submittedIds.has(student.id) ? 'submitted' : 'pending',
-    submitted_at: submissionsData?.find(s => s.student_id === student.id)?.submitted_at,
-    marks: submissionsData?.find(s => s.student_id === student.id)?.marks ?? submissionsData?.find(s => s.student_id === student.id)?.marks_obtained,
-    students: student
-  }))
+    status: submittedIds.has(student.id) ? "submitted" : "pending",
+    submitted_at: submissionsData?.find((s) => s.student_id === student.id)?.submitted_at,
+    marks:
+      submissionsData?.find((s) => s.student_id === student.id)?.marks ??
+      submissionsData?.find((s) => s.student_id === student.id)?.marks_obtained,
+    students: student,
+  }));
 
   const markSubmission = async (submission: any, marks: number, feedback: string) => {
-    const { withTimeout, timeoutFallback } = await import('@/lib/hooks/utils');
+    const { withTimeout, timeoutFallback } = await import("@/lib/hooks/utils");
     if (!submission.id) {
       const hwResult = await withTimeout(
-        supabase.from('homework_submissions').insert({
+        supabase.from("homework_submissions").insert({
           school_id: school?.id,
           homework_id: selectedHomework.id,
           student_id: submission.student_id,
           submitted_at: new Date().toISOString(),
           marks_obtained: marks,
           feedback,
-          status: 'graded'
+          status: "graded",
         }),
         15000,
-        timeoutFallback()
+        timeoutFallback(),
       );
       const error = hwResult?.error;
       if (error) throw error;
     } else {
       const hwResult = await withTimeout(
-        supabase.from('homework_submissions').update({ marks_obtained: marks, feedback, status: 'graded' }).eq('id', submission.id),
+        supabase
+          .from("homework_submissions")
+          .update({ marks_obtained: marks, feedback, status: "graded" })
+          .eq("id", submission.id),
         15000,
-        timeoutFallback()
+        timeoutFallback(),
       );
       const error = hwResult?.error;
       if (error) throw error;
     }
-    toast.success('Submission graded')
-    refetchSubmissions()
-  }
+    toast.success("Submission graded");
+    refetchSubmissions();
+  };
 
-  const pendingCount = submissions.filter(s => s.status === 'pending').length
-  const submittedCount = submissions.filter(s => s.status === 'submitted').length
-  const gradedCount = submissions.filter(s => s.status === 'graded').length
+  const pendingCount = submissions.filter((s) => s.status === "pending").length;
+  const submittedCount = submissions.filter((s) => s.status === "submitted").length;
+  const gradedCount = submissions.filter((s) => s.status === "graded").length;
 
   return (
     <PageErrorBoundary>
-    <div className="p-4 sm:p-6 lg:p-8">
-      <PageHeader
-        title="Homework & Submissions"
-        subtitle="Track homework and student submissions"
-      />
+      <div className="p-4 sm:p-6 lg:p-8">
+        <PageHeader title="Homework & Submissions" subtitle="Track homework and student submissions" />
 
-      <Card className="p-4 mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Filter by Class</label>
-            {classes.length === 0 ? (
-              <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm text-amber-800">No classes available</div>
-            ) : (
-              <select value={classFilter} onChange={(e) => setClassFilter(e.target.value)} className="w-full px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm">
-                <option value="">All Classes</option>
-                {classes.map(c => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-            )}
-          </div>
-          <div className="md:col-span-2">
-            <label className="block text-sm font-medium mb-1">&nbsp;</label>
-            <Button onClick={refetchHomeworks}>
-              Filter
-            </Button>
-          </div>
-        </div>
-      </Card>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1">
-          <Card>
-            <div className="p-4 border-b border-[var(--border)]">
-              <h3 className="font-semibold text-[var(--t1)]">Homework List</h3>
-            </div>
-            <div className="max-h-[500px] overflow-y-auto">
-              {homeworks.length === 0 && !loadingHomeworks ? (
-                <div className="p-4 text-center text-[var(--t3)]">No homework found</div>
+        <Card className="p-4 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Filter by Class</label>
+              {classes.length === 0 ? (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm text-amber-800">
+                  No classes available
+                </div>
               ) : (
-                homeworks.map(hw => (
-                  <div 
-                    key={hw.id}
-                    onClick={() => setSelectedHomework(hw)}
-                    className={`p-4 border-b border-[var(--border)] cursor-pointer transition-colors ${
-                      selectedHomework?.id === hw.id ? 'bg-[var(--primary)]/10' : 'hover:bg-[var(--surface-container)]'
-                    }`}
-                  >
-                    <div className="font-semibold text-sm text-[var(--t1)]">{hw.subjects?.name}</div>
-                    <div className="text-xs text-[var(--t3)]">{hw.classes?.name} - Due {new Date(hw.due_date).toLocaleDateString()}</div>
-                    <div className="text-xs mt-1 text-[var(--primary)]">{hw.marks} marks</div>
-                  </div>
-                ))
+                <select
+                  value={classFilter}
+                  onChange={(e) => setClassFilter(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm"
+                >
+                  <option value="">All Classes</option>
+                  {classes.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
               )}
             </div>
-          </Card>
-        </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium mb-1">&nbsp;</label>
+              <Button onClick={refetchHomeworks}>Filter</Button>
+            </div>
+          </div>
+        </Card>
 
-        <div className="lg:col-span-2">
-          {selectedHomework ? (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-1">
             <Card>
-              <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
-                <div>
-                  <h3 className="font-semibold text-[var(--t1)]">{selectedHomework.subjects?.name} - Submissions</h3>
-                  <p className="text-sm text-[var(--t3)]">{selectedHomework.classes?.name}</p>
-                </div>
-                <div className="flex gap-4 text-sm">
-                  <span className="text-red-600">{pendingCount} Pending</span>
-                  <span className="text-blue-600">{submittedCount} Submitted</span>
-                  <span className="text-green-600">{gradedCount} Graded</span>
-                </div>
+              <div className="p-4 border-b border-[var(--border)]">
+                <h3 className="font-semibold text-[var(--t1)]">Homework List</h3>
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="bg-[var(--surface-container)]">
-                      <th className="p-4 text-left text-sm font-semibold text-[var(--t1)]">Student</th>
-                      <th className="p-4 text-left text-sm font-semibold text-[var(--t1)]">Status</th>
-                      <th className="p-4 text-left text-sm font-semibold text-[var(--t1)]">Submitted</th>
-                      <th className="p-4 text-left text-sm font-semibold text-[var(--t1)]">Marks</th>
-                      <th className="p-4 text-left text-sm font-semibold text-[var(--t1)]">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {submissions.map(sub => (
-                      <tr key={sub.student_id} className="border-b border-[var(--border)]">
-                        <td className="p-4 text-[var(--t1)]">{sub.students?.first_name} {sub.students?.last_name}</td>
-                        <td className="p-4">
-                          <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                            sub.status === 'graded' ? 'bg-green-100 text-green-800' :
-                            sub.status === 'submitted' ? 'bg-blue-100 text-blue-800' :
-                            'bg-red-100 text-red-800'
-                          }`}>
-                            {sub.status}
-                          </span>
-                        </td>
-                        <td className="p-4 text-sm text-[var(--t3)]">{sub.submitted_at ? new Date(sub.submitted_at).toLocaleDateString() : '-'}</td>
-                        <td className="p-4 text-sm">
-                          {sub.marks != null ? `${sub.marks}/${selectedHomework.marks || selectedHomework.total_marks || 0}` : '-'}
-                        </td>
-                        <td className="p-4">
-                          <GradingModal 
-                            submission={sub} 
-                            maxMarks={selectedHomework.marks || selectedHomework.total_marks || 0}
-                            onSave={(marks, feedback) => markSubmission(sub, marks, feedback)}
-                          />
-                        </td>
+              <div className="max-h-[500px] overflow-y-auto">
+                {homeworks.length === 0 && !loadingHomeworks ? (
+                  <div className="p-4 text-center text-[var(--t3)]">No homework found</div>
+                ) : (
+                  homeworks.map((hw) => (
+                    <div
+                      key={hw.id}
+                      onClick={() => setSelectedHomework(hw)}
+                      className={`p-4 border-b border-[var(--border)] cursor-pointer transition-colors ${
+                        selectedHomework?.id === hw.id
+                          ? "bg-[var(--primary)]/10"
+                          : "hover:bg-[var(--surface-container)]"
+                      }`}
+                    >
+                      <div className="font-semibold text-sm text-[var(--t1)]">{hw.subjects?.name}</div>
+                      <div className="text-xs text-[var(--t3)]">
+                        {hw.classes?.name} - Due {new Date(hw.due_date).toLocaleDateString()}
+                      </div>
+                      <div className="text-xs mt-1 text-[var(--primary)]">{hw.marks} marks</div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </Card>
+          </div>
+
+          <div className="lg:col-span-2">
+            {selectedHomework ? (
+              <Card>
+                <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
+                  <div>
+                    <h3 className="font-semibold text-[var(--t1)]">{selectedHomework.subjects?.name} - Submissions</h3>
+                    <p className="text-sm text-[var(--t3)]">{selectedHomework.classes?.name}</p>
+                  </div>
+                  <div className="flex gap-4 text-sm">
+                    <span className="text-red-600">{pendingCount} Pending</span>
+                    <span className="text-blue-600">{submittedCount} Submitted</span>
+                    <span className="text-green-600">{gradedCount} Graded</span>
+                  </div>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="bg-[var(--surface-container)]">
+                        <th className="p-4 text-left text-sm font-semibold text-[var(--t1)]">Student</th>
+                        <th className="p-4 text-left text-sm font-semibold text-[var(--t1)]">Status</th>
+                        <th className="p-4 text-left text-sm font-semibold text-[var(--t1)]">Submitted</th>
+                        <th className="p-4 text-left text-sm font-semibold text-[var(--t1)]">Marks</th>
+                        <th className="p-4 text-left text-sm font-semibold text-[var(--t1)]">Action</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
-          ) : (
-            <Card className="p-12 text-center">
-              <MaterialIcon className="text-5xl text-[var(--t3)] opacity-50 mx-auto">assignment</MaterialIcon>
-              <p className="mt-2 text-[var(--t3)]">Select homework to view submissions</p>
-            </Card>
-          )}
+                    </thead>
+                    <tbody>
+                      {submissions.map((sub) => (
+                        <tr key={sub.student_id} className="border-b border-[var(--border)]">
+                          <td className="p-4 text-[var(--t1)]">
+                            {sub.students?.first_name} {sub.students?.last_name}
+                          </td>
+                          <td className="p-4">
+                            <span
+                              className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                                sub.status === "graded"
+                                  ? "bg-green-100 text-green-800"
+                                  : sub.status === "submitted"
+                                    ? "bg-blue-100 text-blue-800"
+                                    : "bg-red-100 text-red-800"
+                              }`}
+                            >
+                              {sub.status}
+                            </span>
+                          </td>
+                          <td className="p-4 text-sm text-[var(--t3)]">
+                            {sub.submitted_at ? new Date(sub.submitted_at).toLocaleDateString() : "-"}
+                          </td>
+                          <td className="p-4 text-sm">
+                            {sub.marks != null
+                              ? `${sub.marks}/${selectedHomework.marks || selectedHomework.total_marks || 0}`
+                              : "-"}
+                          </td>
+                          <td className="p-4">
+                            <GradingModal
+                              submission={sub}
+                              maxMarks={selectedHomework.marks || selectedHomework.total_marks || 0}
+                              onSave={(marks, feedback) => markSubmission(sub, marks, feedback)}
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+            ) : (
+              <Card className="p-12 text-center">
+                <MaterialIcon className="text-5xl text-[var(--t3)] opacity-50 mx-auto">assignment</MaterialIcon>
+                <p className="mt-2 text-[var(--t3)]">Select homework to view submissions</p>
+              </Card>
+            )}
+          </div>
         </div>
       </div>
-    </div>
     </PageErrorBoundary>
-  )
+  );
 }
 
-function GradingModal({ submission, maxMarks, onSave }: { submission: any; maxMarks: number; onSave: (marks: number, feedback: string) => void }) {
-  const [open, setOpen] = useState(false)
-  const [marks, setMarks] = useState(submission.marks || 0)
-  const [feedback, setFeedback] = useState(submission.feedback || '')
+function GradingModal({
+  submission,
+  maxMarks,
+  onSave,
+}: {
+  submission: any;
+  maxMarks: number;
+  onSave: (marks: number, feedback: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [marks, setMarks] = useState(submission.marks || 0);
+  const [feedback, setFeedback] = useState(submission.feedback || "");
 
   return (
     <>
@@ -249,9 +281,10 @@ function GradingModal({ submission, maxMarks, onSave }: { submission: any; maxMa
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Marks (out of {maxMarks})</label>
-                <input 
-                  type="number" 
-                  min="0" 
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min="0"
                   max={maxMarks}
                   value={marks}
                   onChange={(e) => setMarks(Number(e.target.value))}
@@ -260,7 +293,7 @@ function GradingModal({ submission, maxMarks, onSave }: { submission: any; maxMa
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Feedback</label>
-                <textarea 
+                <textarea
                   value={feedback}
                   onChange={(e) => setFeedback(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
@@ -270,8 +303,16 @@ function GradingModal({ submission, maxMarks, onSave }: { submission: any; maxMa
               </div>
             </div>
             <div className="flex gap-3 mt-6">
-              <Button variant="secondary" className="flex-1" onClick={() => setOpen(false)}>Cancel</Button>
-              <Button className="flex-1" onClick={() => { onSave(marks, feedback); setOpen(false) }}>
+              <Button variant="secondary" className="flex-1" onClick={() => setOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={() => {
+                  onSave(marks, feedback);
+                  setOpen(false);
+                }}
+              >
                 Save
               </Button>
             </div>
@@ -279,5 +320,5 @@ function GradingModal({ submission, maxMarks, onSave }: { submission: any; maxMa
         </div>
       )}
     </>
-  )
+  );
 }

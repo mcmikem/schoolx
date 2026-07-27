@@ -1597,6 +1597,7 @@ export default function GradesPage() {
                         </span>
                         <input
                           type="number"
+                          inputMode="numeric"
                           min={0}
                           max={ASSESSMENT_MAX[type]}
                           placeholder={`Max ${ASSESSMENT_MAX[type]}`}
@@ -1828,6 +1829,7 @@ export default function GradesPage() {
                                       <input
                                         className={`w-16 mx-auto block text-center font-bold py-2 px-1 rounded-lg border-none focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed ${getInputBorderClass(student.id, type)}`}
                                         type="number"
+                                        inputMode="numeric"
                                         min={0}
                                         max={ASSESSMENT_MAX[type]}
                                         placeholder="—"
@@ -2045,6 +2047,7 @@ export default function GradesPage() {
                             <input
                               className={`w-full text-center text-2xl font-bold py-4 rounded-xl border-none focus:outline-none transition-all ${getInputBorderClass(studentId, type)}`}
                               type="number"
+                              inputMode="numeric"
                               min={0}
                               max={ASSESSMENT_MAX[type]}
                               placeholder="—"
@@ -2052,7 +2055,6 @@ export default function GradesPage() {
                               onChange={(e) => handleMarkChange(studentId, type, e.target.value)}
                               onBlur={() => handleInlineBlur(studentId, type)}
                               disabled={isSubmitted || (caLocked && type.startsWith("ca"))}
-                              inputMode="numeric"
                             />
                           </div>
                         );

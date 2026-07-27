@@ -4,7 +4,7 @@ import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
-import { useOfflineData } from '@/lib/offline-hooks';
+import { useOfflineData } from "@/lib/offline-hooks";
 import { withTimeout } from "@/lib/hooks/utils";
 import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
@@ -36,19 +36,19 @@ export default function TransportPage() {
     error: routesError,
     refetch: refetchRoutes,
   } = useOfflineData(
-    'transport_routes',
+    "transport_routes",
     async () => {
       if (!school?.id) return [];
       const { data, error } = await supabase
-        .from('transport_routes')
-        .select('*, transport_students(id)')
-        .eq('school_id', school.id)
-        .order('route_name');
+        .from("transport_routes")
+        .select("*, transport_students(id)")
+        .eq("school_id", school.id)
+        .order("route_name");
       if (error) throw error;
       return (data || []).map((r: any) => ({ ...r, _student_count: r.transport_students?.length || 0 }));
     },
-    'transport_routes',
-    school?.id ? { school_id: school.id } : undefined
+    "transport_routes",
+    school?.id ? { school_id: school.id } : undefined,
   );
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -86,16 +86,19 @@ export default function TransportPage() {
       const monthlyFee = parsedMonthlyFee;
 
       const error = await withTimeout(
-        supabase.from("transport_routes").insert({
-          school_id: school.id,
-          route_name: form.route_name.trim(),
-          vehicle_number: form.vehicle_number.trim() || null,
-          driver_name: form.driver_name.trim() || null,
-          driver_phone: form.driver_phone.trim() || null,
-          monthly_fee: monthlyFee,
-        }).then((response) => response.error),
+        supabase
+          .from("transport_routes")
+          .insert({
+            school_id: school.id,
+            route_name: form.route_name.trim(),
+            vehicle_number: form.vehicle_number.trim() || null,
+            driver_name: form.driver_name.trim() || null,
+            driver_phone: form.driver_phone.trim() || null,
+            monthly_fee: monthlyFee,
+          })
+          .then((response) => response.error),
         8000,
-        new Error("Route save timed out")
+        new Error("Route save timed out"),
       );
       if (error) throw error;
 
@@ -112,16 +115,22 @@ export default function TransportPage() {
 
   const deleteRoute = async (id: string, studentCount: number) => {
     if (studentCount > 0) {
-      toast.error(`Cannot delete route with ${studentCount} enrolled student${studentCount > 1 ? 's' : ''}. Remove students first.`);
+      toast.error(
+        `Cannot delete route with ${studentCount} enrolled student${studentCount > 1 ? "s" : ""}. Remove students first.`,
+      );
       return;
     }
     setPendingAction(() => async () => {
       setDeletingId(id);
       try {
         const error = await withTimeout(
-          supabase.from("transport_routes").delete().eq("id", id).then((response) => response.error),
+          supabase
+            .from("transport_routes")
+            .delete()
+            .eq("id", id)
+            .then((response) => response.error),
           8000,
-          new Error("Route delete timed out")
+          new Error("Route delete timed out"),
         );
         if (error) throw error;
         refetchRoutes();
@@ -154,10 +163,18 @@ export default function TransportPage() {
           {[
             { label: "Routes", value: routes.length, icon: "route", color: "var(--navy)" },
             { label: "Students Enrolled", value: totalStudents, icon: "school", color: "var(--green)" },
-            { label: "Vehicles", value: routes.filter((r) => r.vehicle_number).length, icon: "directions_bus", color: "var(--amber)" },
+            {
+              label: "Vehicles",
+              value: routes.filter((r) => r.vehicle_number).length,
+              icon: "directions_bus",
+              color: "var(--amber)",
+            },
           ].map((s) => (
             <div key={s.label} className="card !p-4 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: `color-mix(in srgb, ${s.color} 12%, transparent)`, color: s.color }}>
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                style={{ background: `color-mix(in srgb, ${s.color} 12%, transparent)`, color: s.color }}
+              >
                 <MaterialIcon icon={s.icon} style={{ fontSize: 20 }} />
               </div>
               <div>
@@ -189,7 +206,9 @@ export default function TransportPage() {
                 <thead>
                   <tr className="border-b border-[var(--border)]">
                     {["Route", "Vehicle", "Driver", "Students", "Monthly Fee", ""].map((h) => (
-                      <th key={h} className="px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-[var(--t3)]">{h}</th>
+                      <th key={h} className="px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-[var(--t3)]">
+                        {h}
+                      </th>
                     ))}
                   </tr>
                 </thead>
@@ -213,7 +232,10 @@ export default function TransportPage() {
                           className="p-1.5 hover:bg-red-50 rounded-lg text-[var(--t3)] hover:text-red-500 disabled:opacity-50 transition-colors"
                           title="Delete route"
                         >
-                          <MaterialIcon icon={deletingId === r.id ? "hourglass_empty" : "delete"} style={{ fontSize: 16 }} />
+                          <MaterialIcon
+                            icon={deletingId === r.id ? "hourglass_empty" : "delete"}
+                            style={{ fontSize: 16 }}
+                          />
                         </button>
                       </td>
                     </tr>
@@ -236,34 +258,65 @@ export default function TransportPage() {
                 </div>
                 <div>
                   <label className="text-xs font-medium text-[var(--t2)] block mb-1">Route Name *</label>
-                  <input value={form.route_name} onChange={(e) => setForm({ ...form, route_name: e.target.value })} placeholder="e.g. Kampala – Entebbe Road" className="w-full px-3 py-2.5 bg-[var(--bg)] border border-[var(--border)] rounded-xl text-sm outline-none focus:ring-2 focus:ring-[var(--primary)]/20" />
+                  <input
+                    value={form.route_name}
+                    onChange={(e) => setForm({ ...form, route_name: e.target.value })}
+                    placeholder="e.g. Kampala – Entebbe Road"
+                    className="w-full px-3 py-2.5 bg-[var(--bg)] border border-[var(--border)] rounded-xl text-sm outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
+                  />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-medium text-[var(--t2)] block mb-1">Vehicle Number</label>
-                    <input value={form.vehicle_number} onChange={(e) => setForm({ ...form, vehicle_number: e.target.value })} placeholder="e.g. UAB 123X" className="w-full px-3 py-2.5 bg-[var(--bg)] border border-[var(--border)] rounded-xl text-sm outline-none uppercase" />
+                    <input
+                      value={form.vehicle_number}
+                      onChange={(e) => setForm({ ...form, vehicle_number: e.target.value })}
+                      placeholder="e.g. UAB 123X"
+                      className="w-full px-3 py-2.5 bg-[var(--bg)] border border-[var(--border)] rounded-xl text-sm outline-none uppercase"
+                    />
                   </div>
                   <div>
                     <label className="text-xs font-medium text-[var(--t2)] block mb-1">Monthly Fee (UGX)</label>
-                    <input type="number" min="0" value={form.monthly_fee} onChange={(e) => setForm({ ...form, monthly_fee: e.target.value })} placeholder="e.g. 150000" className="w-full px-3 py-2.5 bg-[var(--bg)] border border-[var(--border)] rounded-xl text-sm outline-none" />
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      min="0"
+                      value={form.monthly_fee}
+                      onChange={(e) => setForm({ ...form, monthly_fee: e.target.value })}
+                      placeholder="e.g. 150000"
+                      className="w-full px-3 py-2.5 bg-[var(--bg)] border border-[var(--border)] rounded-xl text-sm outline-none"
+                    />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs font-medium text-[var(--t2)] block mb-1">Driver Name</label>
-                    <input value={form.driver_name} onChange={(e) => setForm({ ...form, driver_name: e.target.value })} placeholder="Full name" className="w-full px-3 py-2.5 bg-[var(--bg)] border border-[var(--border)] rounded-xl text-sm outline-none" />
+                    <input
+                      value={form.driver_name}
+                      onChange={(e) => setForm({ ...form, driver_name: e.target.value })}
+                      placeholder="Full name"
+                      className="w-full px-3 py-2.5 bg-[var(--bg)] border border-[var(--border)] rounded-xl text-sm outline-none"
+                    />
                   </div>
                   <div>
                     <label className="text-xs font-medium text-[var(--t2)] block mb-1">Driver Phone</label>
-                    <input value={form.driver_phone} onChange={(e) => setForm({ ...form, driver_phone: e.target.value })} placeholder="07XXXXXXXX" className="w-full px-3 py-2.5 bg-[var(--bg)] border border-[var(--border)] rounded-xl text-sm outline-none" />
+                    <input
+                      value={form.driver_phone}
+                      onChange={(e) => setForm({ ...form, driver_phone: e.target.value })}
+                      placeholder="07XXXXXXXX"
+                      className="w-full px-3 py-2.5 bg-[var(--bg)] border border-[var(--border)] rounded-xl text-sm outline-none"
+                    />
                   </div>
                 </div>
-                <Button onClick={saveRoute} disabled={saving || Boolean(routeValidationError)} loading={saving} className="w-full">
+                <Button
+                  onClick={saveRoute}
+                  disabled={saving || Boolean(routeValidationError)}
+                  loading={saving}
+                  className="w-full"
+                >
                   {saving ? "Saving…" : "Save Route"}
                 </Button>
-                {routeValidationError && (
-                  <p className="text-sm text-[var(--t3)]">{routeValidationError}</p>
-                )}
+                {routeValidationError && <p className="text-sm text-[var(--t3)]">{routeValidationError}</p>}
               </div>
             </div>
           </div>

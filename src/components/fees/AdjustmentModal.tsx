@@ -100,6 +100,7 @@ export default function AdjustmentModal({
               </label>
               <input
                 type="number"
+                inputMode="numeric"
                 min="1"
                 value={newAdjustment.amount}
                 onChange={(e) => onAdjustmentChange({ amount: e.target.value })}

@@ -651,6 +651,7 @@ function SchoolDetailSheet({
                           onChange={(e) => setPhone(e.target.value)}
                           placeholder="+256 700 000 000"
                           type="tel"
+                          inputMode="tel"
                         />
                       </div>
                       <div>
@@ -1192,6 +1193,7 @@ function RegisterSchoolForm({ onDone }: { onDone: () => void }) {
           </label>
           <input
             type="number"
+            inputMode="numeric"
             min={1}
             max={365}
             value={form.trial_days}
@@ -2612,6 +2614,7 @@ export default function SuperAdminPage() {
                   </label>
                   <input
                     type="number"
+                    inputMode="numeric"
                     min={1}
                     max={365}
                     value={settings.trial_days}
@@ -2877,6 +2880,7 @@ function MarketersTab() {
               <label className="block text-[11px] font-semibold text-[var(--t3)] mb-1">Phone *</label>
               <input
                 type="tel"
+                inputMode="tel"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="0542414745"
@@ -3021,6 +3025,7 @@ function MarketersTab() {
               </select>
               <input
                 type="number"
+                inputMode="numeric"
                 value={earningForm.amount}
                 onChange={(e) => setEarningForm((f) => ({ ...f, amount: e.target.value }))}
                 placeholder="Amount"

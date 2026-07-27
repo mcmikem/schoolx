@@ -194,6 +194,7 @@ export default function PaymentModal({
                 <input
                   id="payment-amount"
                   type="number"
+                  inputMode="numeric"
                   min="1"
                   value={newPayment.amount_paid}
                   onChange={(e) => onPaymentChange({ amount_paid: e.target.value })}

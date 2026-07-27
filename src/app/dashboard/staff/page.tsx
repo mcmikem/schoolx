@@ -1327,6 +1327,7 @@ function DirectoryTab({
                 <label className="text-sm font-medium text-[#191c1d] mb-2 block">Phone Number</label>
                 <input
                   type="tel"
+                  inputMode="tel"
                   placeholder="0700000000"
                   value={newStaff.phone}
                   onChange={(e) => setNewStaff({ ...newStaff, phone: e.target.value })}
@@ -1515,6 +1516,7 @@ function DirectoryTab({
                 <label className="text-sm font-medium text-[#191c1d] mb-2 block">Phone Number</label>
                 <input
                   type="tel"
+                  inputMode="tel"
                   placeholder="0700000000"
                   value={editForm.phone}
                   onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}

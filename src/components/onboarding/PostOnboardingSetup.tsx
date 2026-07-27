@@ -838,6 +838,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
                                       </select>
                                       <input
                                         type="number"
+                                        inputMode="numeric"
                                         min={1}
                                         placeholder="Cap"
                                         value={dorm.capacity}

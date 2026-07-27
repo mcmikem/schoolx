@@ -286,6 +286,7 @@ export default function MealScanPage() {
                   <label className="block text-xs font-semibold text-slate-500 mb-1">Max servings/day</label>
                   <input
                     type="number"
+                    inputMode="numeric"
                     min={1}
                     max={3}
                     value={rule.max_servings_per_day}

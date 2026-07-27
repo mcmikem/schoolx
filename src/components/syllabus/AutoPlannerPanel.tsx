@@ -19,9 +19,7 @@ export default function AutoPlannerPanel({
   isGenerating,
 }: AutoPlannerPanelProps) {
   const [saving, setSaving] = useState(false);
-  const [expandedSection, setExpandedSection] = useState<string | null>(
-    "generation"
-  );
+  const [expandedSection, setExpandedSection] = useState<string | null>("generation");
 
   const handleToggle = async (key: keyof AutoPlannerConfig, value: any) => {
     setSaving(true);
@@ -41,17 +39,12 @@ export default function AutoPlannerPanel({
       {/* Header Info */}
       <Card className="bg-blue-50 border border-blue-200 p-4">
         <div className="flex gap-3">
-          <MaterialIcon className="text-blue-600 text-2xl flex-shrink-0">
-            auto_awesome
-          </MaterialIcon>
+          <MaterialIcon className="text-blue-600 text-2xl flex-shrink-0">auto_awesome</MaterialIcon>
           <div>
-            <h3 className="font-semibold text-blue-900 mb-1">
-              Auto Lesson Planner
-            </h3>
+            <h3 className="font-semibold text-blue-900 mb-1">Auto Lesson Planner</h3>
             <p className="text-sm text-blue-800">
-              Configure how lesson plans are automatically generated from your
-              syllabus. Choose between rules-based templates or AI-enhanced
-              generation.
+              Configure how lesson plans are automatically generated from your syllabus. Choose between rules-based
+              templates or AI-enhanced generation.
             </p>
           </div>
         </div>
@@ -61,28 +54,16 @@ export default function AutoPlannerPanel({
       <Card>
         <div
           className="p-4 cursor-pointer hover:bg-[var(--bg)]/50 transition-colors"
-          onClick={() =>
-            setExpandedSection(
-              expandedSection === "generation" ? null : "generation"
-            )
-          }
+          onClick={() => setExpandedSection(expandedSection === "generation" ? null : "generation")}
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <MaterialIcon
-                className={`text-[var(--primary)] ${
-                  expandedSection === "generation" ? "" : ""
-                }`}
-              >
+              <MaterialIcon className={`text-[var(--primary)] ${expandedSection === "generation" ? "" : ""}`}>
                 lightbulb
               </MaterialIcon>
-              <h3 className="font-semibold text-[var(--t1)]">
-                AI-Powered Generation
-              </h3>
+              <h3 className="font-semibold text-[var(--t1)]">AI-Powered Generation</h3>
             </div>
-            <MaterialIcon>
-              {expandedSection === "generation" ? "expand_less" : "expand_more"}
-            </MaterialIcon>
+            <MaterialIcon>{expandedSection === "generation" ? "expand_less" : "expand_more"}</MaterialIcon>
           </div>
         </div>
 
@@ -93,20 +74,15 @@ export default function AutoPlannerPanel({
               {/* Enable AI */}
               <div className="flex items-center justify-between">
                 <div>
-                  <label className="font-medium text-[var(--t1)] block mb-1">
-                    Enable AI Generation
-                  </label>
+                  <label className="font-medium text-[var(--t1)] block mb-1">Enable AI Generation</label>
                   <p className="text-xs text-[var(--t3)]">
-                    Use AI to generate detailed lesson plans with objectives,
-                    procedures, and assessment
+                    Use AI to generate detailed lesson plans with objectives, procedures, and assessment
                   </p>
                 </div>
                 <input
                   type="checkbox"
                   checked={config.enable_ai_generation || false}
-                  onChange={(e) =>
-                    handleToggle("enable_ai_generation", e.target.checked)
-                  }
+                  onChange={(e) => handleToggle("enable_ai_generation", e.target.checked)}
                   disabled={saving}
                   className="w-5 h-5 rounded cursor-pointer"
                 />
@@ -116,29 +92,19 @@ export default function AutoPlannerPanel({
                 <>
                   {/* AI Provider */}
                   <div>
-                    <label className="font-medium text-[var(--t1)] block mb-2">
-                      AI Provider
-                    </label>
+                    <label className="font-medium text-[var(--t1)] block mb-2">AI Provider</label>
                     <select
                       value={config.ai_provider || "rules_based"}
-                      onChange={(e) =>
-                        handleToggle(
-                          "ai_provider",
-                          e.target.value as AutoPlannerConfig["ai_provider"]
-                        )
-                      }
+                      onChange={(e) => handleToggle("ai_provider", e.target.value as AutoPlannerConfig["ai_provider"])}
                       disabled={saving}
                       className="input w-full"
                     >
-                      <option value="rules_based">
-                        Rules-Based (No API needed)
-                      </option>
+                      <option value="rules_based">Rules-Based (No API needed)</option>
                       <option value="openai">OpenAI GPT-4</option>
                       <option value="claude">Anthropic Claude</option>
                     </select>
                     <p className="text-xs text-[var(--t3)] mt-1">
-                      Rules-based uses templates. OpenAI/Claude need API keys
-                      configured in settings.
+                      Rules-based uses templates. OpenAI/Claude need API keys configured in settings.
                     </p>
                   </div>
 
@@ -153,15 +119,11 @@ export default function AutoPlannerPanel({
                       max="1"
                       step="0.1"
                       value={config.ai_temperature || 0.7}
-                      onChange={(e) =>
-                        handleToggle("ai_temperature", parseFloat(e.target.value))
-                      }
+                      onChange={(e) => handleToggle("ai_temperature", parseFloat(e.target.value))}
                       disabled={saving}
                       className="w-full"
                     />
-                    <p className="text-xs text-[var(--t3)] mt-1">
-                      Lower = more focused, Higher = more creative
-                    </p>
+                    <p className="text-xs text-[var(--t3)] mt-1">Lower = more focused, Higher = more creative</p>
                   </div>
                 </>
               )}
@@ -174,24 +136,14 @@ export default function AutoPlannerPanel({
       <Card>
         <div
           className="p-4 cursor-pointer hover:bg-[var(--bg)]/50 transition-colors"
-          onClick={() =>
-            setExpandedSection(
-              expandedSection === "scheduling" ? null : "scheduling"
-            )
-          }
+          onClick={() => setExpandedSection(expandedSection === "scheduling" ? null : "scheduling")}
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <MaterialIcon className="text-[var(--primary)]">
-                calendar_month
-              </MaterialIcon>
-              <h3 className="font-semibold text-[var(--t1)]">
-                Smart Scheduling
-              </h3>
+              <MaterialIcon className="text-[var(--primary)]">calendar_month</MaterialIcon>
+              <h3 className="font-semibold text-[var(--t1)]">Smart Scheduling</h3>
             </div>
-            <MaterialIcon>
-              {expandedSection === "scheduling" ? "expand_less" : "expand_more"}
-            </MaterialIcon>
+            <MaterialIcon>{expandedSection === "scheduling" ? "expand_less" : "expand_more"}</MaterialIcon>
           </div>
         </div>
 
@@ -202,23 +154,15 @@ export default function AutoPlannerPanel({
               {/* Enable Scheduling */}
               <div className="flex items-center justify-between">
                 <div>
-                  <label className="font-medium text-[var(--t1)] block mb-1">
-                    Enable Smart Scheduling
-                  </label>
+                  <label className="font-medium text-[var(--t1)] block mb-1">Enable Smart Scheduling</label>
                   <p className="text-xs text-[var(--t3)]">
-                    Automatically distribute topics across weeks accounting for
-                    term dates
+                    Automatically distribute topics across weeks accounting for term dates
                   </p>
                 </div>
                 <input
                   type="checkbox"
                   checked={config.enable_smart_scheduling || false}
-                  onChange={(e) =>
-                    handleToggle(
-                      "enable_smart_scheduling",
-                      e.target.checked
-                    )
-                  }
+                  onChange={(e) => handleToggle("enable_smart_scheduling", e.target.checked)}
                   disabled={saving}
                   className="w-5 h-5 rounded cursor-pointer"
                 />
@@ -228,20 +172,14 @@ export default function AutoPlannerPanel({
                 <>
                   {/* Lessons Per Week */}
                   <div>
-                    <label className="font-medium text-[var(--t1)] block mb-2">
-                      Target Lessons Per Week
-                    </label>
+                    <label className="font-medium text-[var(--t1)] block mb-2">Target Lessons Per Week</label>
                     <input
                       type="number"
+                      inputMode="numeric"
                       min="1"
                       max="7"
                       value={config.lessons_per_week_target || 2}
-                      onChange={(e) =>
-                        handleToggle(
-                          "lessons_per_week_target",
-                          parseInt(e.target.value)
-                        )
-                      }
+                      onChange={(e) => handleToggle("lessons_per_week_target", parseInt(e.target.value))}
                       disabled={saving}
                       className="input w-full"
                     />
@@ -249,15 +187,11 @@ export default function AutoPlannerPanel({
 
                   {/* Account for Holidays */}
                   <div className="flex items-center justify-between">
-                    <label className="font-medium text-[var(--t1)]">
-                      Account for Holidays
-                    </label>
+                    <label className="font-medium text-[var(--t1)]">Account for Holidays</label>
                     <input
                       type="checkbox"
                       checked={config.account_for_holidays || false}
-                      onChange={(e) =>
-                        handleToggle("account_for_holidays", e.target.checked)
-                      }
+                      onChange={(e) => handleToggle("account_for_holidays", e.target.checked)}
                       disabled={saving}
                       className="w-5 h-5 rounded cursor-pointer"
                     />
@@ -265,15 +199,11 @@ export default function AutoPlannerPanel({
 
                   {/* Account for Exams */}
                   <div className="flex items-center justify-between">
-                    <label className="font-medium text-[var(--t1)]">
-                      Account for Exam Dates
-                    </label>
+                    <label className="font-medium text-[var(--t1)]">Account for Exam Dates</label>
                     <input
                       type="checkbox"
                       checked={config.account_for_exams || false}
-                      onChange={(e) =>
-                        handleToggle("account_for_exams", e.target.checked)
-                      }
+                      onChange={(e) => handleToggle("account_for_exams", e.target.checked)}
                       disabled={saving}
                       className="w-5 h-5 rounded cursor-pointer"
                     />
@@ -289,24 +219,14 @@ export default function AutoPlannerPanel({
       <Card>
         <div
           className="p-4 cursor-pointer hover:bg-[var(--bg)]/50 transition-colors"
-          onClick={() =>
-            setExpandedSection(
-              expandedSection === "structure" ? null : "structure"
-            )
-          }
+          onClick={() => setExpandedSection(expandedSection === "structure" ? null : "structure")}
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <MaterialIcon className="text-[var(--primary)]">
-                format_list_bulleted
-              </MaterialIcon>
-              <h3 className="font-semibold text-[var(--t1)]">
-                Lesson Structure
-              </h3>
+              <MaterialIcon className="text-[var(--primary)]">format_list_bulleted</MaterialIcon>
+              <h3 className="font-semibold text-[var(--t1)]">Lesson Structure</h3>
             </div>
-            <MaterialIcon>
-              {expandedSection === "structure" ? "expand_less" : "expand_more"}
-            </MaterialIcon>
+            <MaterialIcon>{expandedSection === "structure" ? "expand_less" : "expand_more"}</MaterialIcon>
           </div>
         </div>
 
@@ -316,21 +236,15 @@ export default function AutoPlannerPanel({
             <div className="p-4 space-y-4">
               {/* Default Duration */}
               <div>
-                <label className="font-medium text-[var(--t1)] block mb-2">
-                  Default Lesson Duration
-                </label>
+                <label className="font-medium text-[var(--t1)] block mb-2">Default Lesson Duration</label>
                 <div className="flex items-center gap-2">
                   <input
                     type="number"
+                    inputMode="numeric"
                     min="20"
                     max="120"
                     value={config.default_lesson_duration || 40}
-                    onChange={(e) =>
-                      handleToggle(
-                        "default_lesson_duration",
-                        parseInt(e.target.value)
-                      )
-                    }
+                    onChange={(e) => handleToggle("default_lesson_duration", parseInt(e.target.value))}
                     disabled={saving}
                     className="input w-24"
                   />
@@ -340,15 +254,11 @@ export default function AutoPlannerPanel({
 
               {/* Include Homework */}
               <div className="flex items-center justify-between">
-                <label className="font-medium text-[var(--t1)]">
-                  Include Homework Assignments
-                </label>
+                <label className="font-medium text-[var(--t1)]">Include Homework Assignments</label>
                 <input
                   type="checkbox"
                   checked={config.include_homework || false}
-                  onChange={(e) =>
-                    handleToggle("include_homework", e.target.checked)
-                  }
+                  onChange={(e) => handleToggle("include_homework", e.target.checked)}
                   disabled={saving}
                   className="w-5 h-5 rounded cursor-pointer"
                 />
@@ -356,15 +266,11 @@ export default function AutoPlannerPanel({
 
               {/* Include Assessment */}
               <div className="flex items-center justify-between">
-                <label className="font-medium text-[var(--t1)]">
-                  Include Assessment Tasks
-                </label>
+                <label className="font-medium text-[var(--t1)]">Include Assessment Tasks</label>
                 <input
                   type="checkbox"
                   checked={config.include_assessment || false}
-                  onChange={(e) =>
-                    handleToggle("include_assessment", e.target.checked)
-                  }
+                  onChange={(e) => handleToggle("include_assessment", e.target.checked)}
                   disabled={saving}
                   className="w-5 h-5 rounded cursor-pointer"
                 />
@@ -376,11 +282,7 @@ export default function AutoPlannerPanel({
 
       {/* Action Buttons */}
       <div className="flex gap-3 pt-4">
-        <Button
-          onClick={handleGenerateClick}
-          disabled={isGenerating || saving}
-          className="flex-1 gap-2"
-        >
+        <Button onClick={handleGenerateClick} disabled={isGenerating || saving} className="flex-1 gap-2">
           <MaterialIcon>auto_awesome</MaterialIcon>
           {isGenerating ? "Generating Plans..." : "Generate Lesson Plans Now"}
         </Button>

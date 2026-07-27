@@ -68,16 +68,12 @@ const CONDITION_BADGES: Record<Asset["condition"], string> = {
 const ALL_CATEGORIES = Object.keys(CATEGORY_LABELS) as AssetCategory[];
 
 function asAssetCategory(value: unknown): AssetCategory {
-  return ALL_CATEGORIES.includes(value as AssetCategory)
-    ? (value as AssetCategory)
-    : "other";
+  return ALL_CATEGORIES.includes(value as AssetCategory) ? (value as AssetCategory) : "other";
 }
 
 function asAssetCondition(value: unknown): Asset["condition"] {
   const condition = value as Asset["condition"];
-  return ["new", "good", "fair", "poor", "damaged"].includes(condition)
-    ? condition
-    : "good";
+  return ["new", "good", "fair", "poor", "damaged"].includes(condition) ? condition : "good";
 }
 
 export default function InventoryPage() {
@@ -104,15 +100,9 @@ export default function InventoryPage() {
 
   const allAssets = useMemo(() => assets || [], [assets]);
 
-  const fixedAssets = useMemo(
-    () => allAssets.filter((asset) => !asset.is_consumable),
-    [allAssets],
-  );
+  const fixedAssets = useMemo(() => allAssets.filter((asset) => !asset.is_consumable), [allAssets]);
 
-  const consumables = useMemo(
-    () => allAssets.filter((asset) => asset.is_consumable),
-    [allAssets],
-  );
+  const consumables = useMemo(() => allAssets.filter((asset) => asset.is_consumable), [allAssets]);
 
   const filteredAssets = useMemo(() => {
     const search = assetSearch.trim().toLowerCase();
@@ -121,24 +111,23 @@ export default function InventoryPage() {
       if (!search) return true;
       return (
         asset.name.toLowerCase().includes(search) ||
-        String(asset.location || "").toLowerCase().includes(search) ||
-        String(asset.supplier || "").toLowerCase().includes(search)
+        String(asset.location || "")
+          .toLowerCase()
+          .includes(search) ||
+        String(asset.supplier || "")
+          .toLowerCase()
+          .includes(search)
       );
     });
   }, [allAssets, assetSearch, categoryFilter]);
 
   const lowStockConsumables = useMemo(
-    () =>
-      consumables.filter(
-        (asset) =>
-          Number(asset.current_stock || 0) <= Number(asset.min_stock_level || 0),
-      ),
+    () => consumables.filter((asset) => Number(asset.current_stock || 0) <= Number(asset.min_stock_level || 0)),
     [consumables],
   );
 
   const needsMaintenance = useMemo(
-    () =>
-      fixedAssets.filter((asset) => asset.condition === "poor" || asset.condition === "damaged"),
+    () => fixedAssets.filter((asset) => asset.condition === "poor" || asset.condition === "damaged"),
     [fixedAssets],
   );
 
@@ -295,7 +284,9 @@ export default function InventoryPage() {
             <CardBody>
               <p className="text-xs uppercase tracking-widest text-[var(--t3)]">Registered Assets</p>
               <p className="text-2xl font-bold text-[var(--t1)] mt-1">{allAssets.length}</p>
-              <p className="text-xs text-[var(--t3)] mt-1">{fixedAssets.length} fixed, {consumables.length} consumables</p>
+              <p className="text-xs text-[var(--t3)] mt-1">
+                {fixedAssets.length} fixed, {consumables.length} consumables
+              </p>
             </CardBody>
           </Card>
           <Card>
@@ -399,7 +390,9 @@ export default function InventoryPage() {
                             <td className="py-3 px-4 text-sm text-[var(--t2)]">{CATEGORY_LABELS[category]}</td>
                             <td className="py-3 px-4 text-sm text-[var(--t2)]">{asset.location || "Not set"}</td>
                             <td className="py-3 px-4">
-                              <span className={`text-xs px-2 py-1 rounded-full font-semibold ${CONDITION_BADGES[condition]}`}>
+                              <span
+                                className={`text-xs px-2 py-1 rounded-full font-semibold ${CONDITION_BADGES[condition]}`}
+                              >
                                 {condition}
                               </span>
                             </td>
@@ -449,7 +442,9 @@ export default function InventoryPage() {
                               <p className="text-xs text-[var(--t3)]">{CATEGORY_LABELS[category]}</p>
                             </td>
                             <td className="py-3 px-4">
-                              <span className={`px-2 py-1 rounded-lg text-xs font-semibold ${lowStock ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"}`}>
+                              <span
+                                className={`px-2 py-1 rounded-lg text-xs font-semibold ${lowStock ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"}`}
+                              >
                                 {stock}
                               </span>
                             </td>
@@ -490,13 +485,23 @@ export default function InventoryPage() {
             ) : (
               <div className="space-y-3 p-4">
                 {transactions.slice(0, 30).map((tx) => (
-                  <div key={tx.id} className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-container)] p-3">
-                    <div className={`p-2 rounded-lg ${tx.transaction_type === "in" || tx.transaction_type === "return" ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}>
-                      <MaterialIcon icon={tx.transaction_type === "in" || tx.transaction_type === "return" ? "south" : "north"} className="text-base" />
+                  <div
+                    key={tx.id}
+                    className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-container)] p-3"
+                  >
+                    <div
+                      className={`p-2 rounded-lg ${tx.transaction_type === "in" || tx.transaction_type === "return" ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}
+                    >
+                      <MaterialIcon
+                        icon={tx.transaction_type === "in" || tx.transaction_type === "return" ? "south" : "north"}
+                        className="text-base"
+                      />
                     </div>
                     <div className="flex-1">
                       <p className="text-sm font-semibold text-[var(--t1)]">{tx.asset?.name || "Asset"}</p>
-                      <p className="text-xs text-[var(--t3)] uppercase tracking-wider">{tx.transaction_type} · {tx.quantity} units</p>
+                      <p className="text-xs text-[var(--t3)] uppercase tracking-wider">
+                        {tx.transaction_type} · {tx.quantity} units
+                      </p>
                     </div>
                     <p className="text-xs text-[var(--t3)]">{new Date(tx.transaction_date).toLocaleDateString()}</p>
                   </div>
@@ -513,7 +518,9 @@ export default function InventoryPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <h2 className="text-xl font-semibold text-[var(--t1)]">Register School Asset</h2>
-                    <p className="text-xs text-[var(--t3)] uppercase tracking-wider">For property and resource management</p>
+                    <p className="text-xs text-[var(--t3)] uppercase tracking-wider">
+                      For property and resource management
+                    </p>
                   </div>
                   <button onClick={() => setShowAssetModal(false)} className="text-[var(--t3)] hover:text-[var(--t1)]">
                     <MaterialIcon icon="close" />
@@ -592,6 +599,7 @@ export default function InventoryPage() {
                       <label className="text-sm font-medium text-[var(--t1)]">Opening Units</label>
                       <input
                         type="number"
+                        inputMode="numeric"
                         min="0"
                         value={assetForm.current_stock}
                         onChange={(event) => setAssetForm((prev) => ({ ...prev, current_stock: event.target.value }))}
@@ -603,6 +611,7 @@ export default function InventoryPage() {
                       <label className="text-sm font-medium text-[var(--t1)]">Unit Price (UGX)</label>
                       <input
                         type="number"
+                        inputMode="numeric"
                         min="0"
                         value={assetForm.unit_price}
                         onChange={(event) => setAssetForm((prev) => ({ ...prev, unit_price: event.target.value }))}
@@ -645,6 +654,7 @@ export default function InventoryPage() {
                           <label className="text-sm font-medium text-[var(--t1)]">Minimum Stock Level</label>
                           <input
                             type="number"
+                            inputMode="numeric"
                             min="0"
                             value={assetForm.min_stock_level}
                             onChange={(event) =>
@@ -688,7 +698,10 @@ export default function InventoryPage() {
                     </h2>
                     <p className="text-xs text-[var(--t3)] uppercase tracking-wider">{selectedAsset.name}</p>
                   </div>
-                  <button onClick={() => setShowTransactionModal(false)} className="text-[var(--t3)] hover:text-[var(--t1)]">
+                  <button
+                    onClick={() => setShowTransactionModal(false)}
+                    className="text-[var(--t3)] hover:text-[var(--t1)]"
+                  >
                     <MaterialIcon icon="close" />
                   </button>
                 </div>
@@ -700,6 +713,7 @@ export default function InventoryPage() {
                     <input
                       name="quantity"
                       type="number"
+                      inputMode="numeric"
                       min="1"
                       required
                       className="mt-1 w-full rounded-xl border border-[var(--border)] px-4 py-3 bg-[var(--surface)]"

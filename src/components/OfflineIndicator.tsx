@@ -7,11 +7,6 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { logger } from "@/lib/logger";
 import { APP_NAME } from "@/lib/app-name";
 
-interface BeforeInstallPromptEvent extends Event {
-  prompt(): Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-}
-
 export const OfflineIndicator = memo(function OfflineIndicator() {
   const router = useRouter();
   const [isOnline, setIsOnline] = useState(true);
@@ -19,8 +14,7 @@ export const OfflineIndicator = memo(function OfflineIndicator() {
   const [syncing, setSyncing] = useState(false);
   const [showIndicator, setShowIndicator] = useState(false);
   const [swUpdateReady, setSwUpdateReady] = useState(false);
-  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-  const [showInstall, setShowInstall] = useState(false);
+  // Install prompt handled by PWAInstallPrompt component
 
   const syncData = useCallback(async () => {
     if (!navigator.onLine) return;
@@ -69,24 +63,16 @@ export const OfflineIndicator = memo(function OfflineIndicator() {
       await syncData();
       setTimeout(() => {
         setShowIndicator(false);
-        setShowInstall(false);
       }, 3000);
     };
 
     const handleOffline = () => {
       setIsOnline(false);
       setShowIndicator(true);
-      setShowInstall(false);
     };
 
     const handleSwUpdate = () => {
       setSwUpdateReady(true);
-    };
-
-    const handleBeforeInstall = (e: Event) => {
-      e.preventDefault();
-      setInstallPrompt(e as BeforeInstallPromptEvent);
-      setShowInstall(true);
     };
 
     const checkPending = async () => {
@@ -116,7 +102,6 @@ export const OfflineIndicator = memo(function OfflineIndicator() {
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
     window.addEventListener("sw-update-available", handleSwUpdate);
-    window.addEventListener("beforeinstallprompt", handleBeforeInstall);
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.addEventListener("message", handleSwMessage);
     }
@@ -128,23 +113,12 @@ export const OfflineIndicator = memo(function OfflineIndicator() {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
       window.removeEventListener("sw-update-available", handleSwUpdate);
-      window.removeEventListener("beforeinstallprompt", handleBeforeInstall);
       if ("serviceWorker" in navigator) {
         navigator.serviceWorker.removeEventListener("message", handleSwMessage);
       }
       clearInterval(interval);
     };
   }, [syncData]);
-
-  const handleInstall = async () => {
-    if (!installPrompt) return;
-    await installPrompt.prompt();
-    const { outcome } = await installPrompt.userChoice;
-    if (outcome === "accepted") {
-      setShowInstall(false);
-    }
-    setInstallPrompt(null);
-  };
 
   const handleUpdate = () => {
     if ("serviceWorker" in navigator) {
@@ -157,10 +131,12 @@ export const OfflineIndicator = memo(function OfflineIndicator() {
     }
   };
 
-  if (!showIndicator && isOnline && pendingSync === 0 && !swUpdateReady && !showInstall) return null;
+  if (!showIndicator && isOnline && pendingSync === 0 && !swUpdateReady) return null;
 
   return (
     <div
+      role="status"
+      aria-live="polite"
       style={{
         position: "fixed",
         bottom: 20,
@@ -205,56 +181,6 @@ export const OfflineIndicator = memo(function OfflineIndicator() {
             }}
           >
             Update
-          </button>
-        </div>
-      )}
-
-      {showInstall && (
-        <div
-          style={{
-            padding: "10px 20px",
-            borderRadius: 12,
-            fontSize: 13,
-            fontWeight: 600,
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
-            background: "var(--navy)",
-            color: "#fff",
-          }}
-        >
-          <MaterialIcon icon="install_desktop" style={{ fontSize: 18 }} />
-          Install {APP_NAME} app
-          <button
-            onClick={handleInstall}
-            style={{
-              background: "#fff",
-              color: "var(--navy)",
-              border: "none",
-              padding: "6px 14px",
-              borderRadius: 6,
-              fontSize: 12,
-              fontWeight: 700,
-              cursor: "pointer",
-              marginLeft: 4,
-            }}
-          >
-            Install
-          </button>
-          <button
-            onClick={() => setShowInstall(false)}
-            style={{
-              background: "transparent",
-              color: "#fff",
-              border: "1px solid rgba(255,255,255,0.3)",
-              padding: "5px 10px",
-              borderRadius: 6,
-              fontSize: 12,
-              cursor: "pointer",
-            }}
-          >
-            Later
           </button>
         </div>
       )}

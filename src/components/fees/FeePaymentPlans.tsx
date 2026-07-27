@@ -47,12 +47,7 @@ interface FeePaymentPlansProps {
     installments: number;
     start_date: string;
   };
-  setNewPlan: (plan: {
-    student_id: string;
-    total_amount: number;
-    installments: number;
-    start_date: string;
-  }) => void;
+  setNewPlan: (plan: { student_id: string; total_amount: number; installments: number; start_date: string }) => void;
   planStudents: PlanStudent[];
   createPlan: () => Promise<void>;
   selectedPlan: PaymentPlan | null;
@@ -81,57 +76,43 @@ export default function FeePaymentPlans({
   plansLoading,
 }: FeePaymentPlansProps) {
   const canCreatePlan =
-    planStudents.length > 0 &&
-    !!newPlan.student_id &&
-    newPlan.total_amount > 0 &&
-    !!newPlan.start_date;
-  const createPlanDisabledReason = planStudents.length === 0
-    ? "Add students first before creating payment plans."
-    : !newPlan.student_id
-      ? "Select a student to continue."
-      : newPlan.total_amount <= 0
-        ? "Enter a total amount greater than 0."
-        : !newPlan.start_date
-          ? "Choose a start date for the plan."
-          : "";
+    planStudents.length > 0 && !!newPlan.student_id && newPlan.total_amount > 0 && !!newPlan.start_date;
+  const createPlanDisabledReason =
+    planStudents.length === 0
+      ? "Add students first before creating payment plans."
+      : !newPlan.student_id
+        ? "Select a student to continue."
+        : newPlan.total_amount <= 0
+          ? "Enter a total amount greater than 0."
+          : !newPlan.start_date
+            ? "Choose a start date for the plan."
+            : "";
 
   return (
     <>
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
         <Card>
           <CardBody className="text-center">
-            <div className="text-2xl font-bold text-[var(--t1)]">
-              {plans.length}
-            </div>
-            <div className="text-sm text-[var(--t3)] mt-1">
-              Total Plans
-            </div>
+            <div className="text-2xl font-bold text-[var(--t1)]">{plans.length}</div>
+            <div className="text-sm text-[var(--t3)] mt-1">Total Plans</div>
           </CardBody>
         </Card>
         <Card>
           <CardBody className="text-center">
-            <div className="text-2xl font-bold text-[var(--primary)]">
-              {activePlanCount}
-            </div>
+            <div className="text-2xl font-bold text-[var(--primary)]">{activePlanCount}</div>
             <div className="text-sm text-[var(--t3)] mt-1">Active</div>
           </CardBody>
         </Card>
         <Card>
           <CardBody className="text-center">
-            <div className="text-2xl font-bold text-[var(--green)]">
-              {completedPlanCount}
-            </div>
+            <div className="text-2xl font-bold text-[var(--green)]">{completedPlanCount}</div>
             <div className="text-sm text-[var(--t3)] mt-1">Completed</div>
           </CardBody>
         </Card>
         <Card>
           <CardBody className="text-center">
-            <div className="text-2xl font-bold text-[var(--amber)]">
-              {formatCurrency(totalOutstanding)}
-            </div>
-            <div className="text-sm text-[var(--t3)] mt-1">
-              Outstanding
-            </div>
+            <div className="text-2xl font-bold text-[var(--amber)]">{formatCurrency(totalOutstanding)}</div>
+            <div className="text-sm text-[var(--t3)] mt-1">Outstanding</div>
           </CardBody>
         </Card>
       </div>
@@ -139,18 +120,10 @@ export default function FeePaymentPlans({
       <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
         <div className="px-6 py-4 border-b border-outline-variant/10 flex items-center justify-between">
           <div>
-            <h3 className="font-semibold text-on-surface">
-              Payment Plans
-            </h3>
-            <p className="text-sm text-on-surface-variant">
-              Installment plans for parents
-            </p>
+            <h3 className="font-semibold text-on-surface">Payment Plans</h3>
+            <p className="text-sm text-on-surface-variant">Installment plans for parents</p>
           </div>
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={() => setShowCreatePlan(true)}
-          >
+          <Button variant="primary" size="sm" onClick={() => setShowCreatePlan(true)}>
             <MaterialIcon icon="add" />
             Create Plan
           </Button>
@@ -162,12 +135,8 @@ export default function FeePaymentPlans({
                 <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
                   Student
                 </th>
-                <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                  Class
-                </th>
-                <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                  Total
-                </th>
+                <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Class</th>
+                <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Total</th>
                 <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
                   Installments
                 </th>
@@ -186,15 +155,9 @@ export default function FeePaymentPlans({
                   <td className="px-6 py-4 font-medium">
                     {plan.students?.first_name} {plan.students?.last_name}
                   </td>
-                  <td className="px-6 py-4 text-sm text-on-surface-variant">
-                    {plan.students?.classes?.name}
-                  </td>
-                  <td className="px-6 py-4 font-bold text-secondary">
-                    {formatCurrency(Number(plan.total_amount))}
-                  </td>
-                  <td className="px-6 py-4 text-sm">
-                    {plan.installments}
-                  </td>
+                  <td className="px-6 py-4 text-sm text-on-surface-variant">{plan.students?.classes?.name}</td>
+                  <td className="px-6 py-4 font-bold text-secondary">{formatCurrency(Number(plan.total_amount))}</td>
+                  <td className="px-6 py-4 text-sm">{plan.installments}</td>
                   <td className="px-6 py-4 text-sm text-on-surface-variant">
                     {new Date(plan.start_date).toLocaleDateString()}
                   </td>
@@ -212,11 +175,7 @@ export default function FeePaymentPlans({
                     </span>
                   </td>
                   <td className="px-6 py-4">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setSelectedPlan(plan)}
-                    >
+                    <Button size="sm" variant="ghost" onClick={() => setSelectedPlan(plan)}>
                       View
                     </Button>
                   </td>
@@ -224,10 +183,7 @@ export default function FeePaymentPlans({
               ))}
               {plans.length === 0 && !plansLoading && (
                 <tr>
-                  <td
-                    colSpan={7}
-                    className="text-center py-8 text-on-surface-variant"
-                  >
+                  <td colSpan={7} className="text-center py-8 text-on-surface-variant">
                     No payment plans
                   </td>
                 </tr>
@@ -240,14 +196,10 @@ export default function FeePaymentPlans({
       {showCreatePlan && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
           <div className="bg-surface-container-lowest rounded-2xl p-6 w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto shadow-xl my-auto">
-            <h2 className="text-xl font-bold text-on-surface mb-4">
-              Create Payment Plan
-            </h2>
+            <h2 className="text-xl font-bold text-on-surface mb-4">Create Payment Plan</h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-on-surface mb-1">
-                  Student
-                </label>
+                <label className="block text-sm font-medium text-on-surface mb-1">Student</label>
                 {planStudents.length === 0 ? (
                   <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm text-amber-800">
                     No students available
@@ -273,11 +225,10 @@ export default function FeePaymentPlans({
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-on-surface mb-1">
-                  Total Amount (UGX)
-                </label>
+                <label className="block text-sm font-medium text-on-surface mb-1">Total Amount (UGX)</label>
                 <input
                   type="number"
+                  inputMode="numeric"
                   value={newPlan.total_amount}
                   onChange={(e) =>
                     setNewPlan({
@@ -290,9 +241,7 @@ export default function FeePaymentPlans({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-on-surface mb-1">
-                  Number of Installments
-                </label>
+                <label className="block text-sm font-medium text-on-surface mb-1">Number of Installments</label>
                 <select
                   value={newPlan.installments}
                   onChange={(e) =>
@@ -310,9 +259,7 @@ export default function FeePaymentPlans({
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-on-surface mb-1">
-                  Start Date
-                </label>
+                <label className="block text-sm font-medium text-on-surface mb-1">Start Date</label>
                 <input
                   type="date"
                   value={newPlan.start_date}
@@ -324,13 +271,7 @@ export default function FeePaymentPlans({
                 <div className="p-3 bg-primary/10 rounded-lg">
                   <div className="text-sm text-primary">
                     Each installment:{" "}
-                    <strong>
-                      {formatCurrency(
-                        Math.round(
-                          newPlan.total_amount / newPlan.installments,
-                        ),
-                      )}
-                    </strong>
+                    <strong>{formatCurrency(Math.round(newPlan.total_amount / newPlan.installments))}</strong>
                   </div>
                 </div>
               )}
@@ -360,12 +301,9 @@ export default function FeePaymentPlans({
       {selectedPlan && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
           <div className="bg-surface-container-lowest rounded-2xl p-6 w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto shadow-xl my-auto">
-            <h2 className="text-xl font-bold text-on-surface mb-2">
-              Payment Details
-            </h2>
+            <h2 className="text-xl font-bold text-on-surface mb-2">Payment Details</h2>
             <p className="text-sm text-on-surface-variant mb-4">
-              {selectedPlan.students?.first_name}{" "}
-              {selectedPlan.students?.last_name} -{" "}
+              {selectedPlan.students?.first_name} {selectedPlan.students?.last_name} -{" "}
               {selectedPlan.students?.classes?.name}
             </p>
             <div className="space-y-3">
@@ -375,17 +313,13 @@ export default function FeePaymentPlans({
                   className="flex items-center justify-between p-3 border border-outline-variant/20 rounded-lg"
                 >
                   <div>
-                    <div className="font-medium text-on-surface">
-                      Installment {idx + 1}
-                    </div>
+                    <div className="font-medium text-on-surface">Installment {idx + 1}</div>
                     <div className="text-sm text-on-surface-variant">
                       Due: {new Date(inst.due_date).toLocaleDateString()}
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="font-bold text-on-surface">
-                      {formatCurrency(inst.amount)}
-                    </div>
+                    <div className="font-bold text-on-surface">{formatCurrency(inst.amount)}</div>
                     {inst.paid ? (
                       <span className="text-sm text-green-600">Paid</span>
                     ) : (

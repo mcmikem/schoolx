@@ -1579,6 +1579,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                           />
                           <input
                             type="number"
+                            inputMode="numeric"
                             value={fee.amount}
                             onChange={(e) => {
                               const newFees = [...fees];
@@ -1693,6 +1694,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                       <label className="text-sm font-semibold text-slate-700 mb-2 block">Passing Mark (%)</label>
                       <input
                         type="number"
+                        inputMode="numeric"
                         value={gradingPrefs.passing_mark}
                         onChange={(e) =>
                           setGradingPrefs({ ...gradingPrefs, passing_mark: parseInt(e.target.value) || 0 })
@@ -1712,6 +1714,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                           <span className="text-sm font-bold w-8 text-center">{g.label}</span>
                           <input
                             type="number"
+                            inputMode="numeric"
                             value={g.min}
                             onChange={(e) => {
                               const newGrades = [...gradingPrefs.grades];
@@ -1724,6 +1727,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                           <span className="text-xs text-slate-400">to</span>
                           <input
                             type="number"
+                            inputMode="numeric"
                             value={g.max}
                             onChange={(e) => {
                               const newGrades = [...gradingPrefs.grades];

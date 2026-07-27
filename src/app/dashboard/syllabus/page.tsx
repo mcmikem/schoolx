@@ -379,9 +379,9 @@ export default function SyllabusPage() {
           NCDC Syllabus Tracking is available on the Growth plan and above. Upgrade to track NCDC curriculum coverage
           across your classes.
         </p>
-        <a href="/dashboard/settings?tab=subscription" className="btn-primary">
+        <Link href="/dashboard/settings?tab=subscription" className="btn-primary">
           View Plans
-        </a>
+        </Link>
       </div>
     );
   }

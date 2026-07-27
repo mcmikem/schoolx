@@ -765,6 +765,7 @@ function RegisterPageContent() {
                         <ValidatedInput
                           label="School Phone (Optional)"
                           type="tel"
+                          inputMode="tel"
                           placeholder="0700000000"
                           value={form.phone}
                           onChange={(e) => updateForm("phone", e.target.value)}
@@ -883,6 +884,7 @@ function RegisterPageContent() {
                   <ValidatedInput
                     label="Your Phone Number (Login ID)"
                     type="tel"
+                    inputMode="tel"
                     placeholder="e.g. 0700000000"
                     value={form.adminPhone}
                     onChange={(e) => updateForm("adminPhone", e.target.value)}

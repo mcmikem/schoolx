@@ -129,30 +129,20 @@ export default function StudentWalletsPage() {
       const student = resolveStudent(wallet.students);
       if (!student) return false;
       return (
-        `${student.first_name} ${student.last_name}`
-          .toLowerCase()
-          .includes(query) ||
+        `${student.first_name} ${student.last_name}`.toLowerCase().includes(query) ||
         student.student_number.toLowerCase().includes(query)
       );
     });
   }, [wallets, search]);
 
-  const totalBalance = wallets.reduce(
-    (sum, wallet) => sum + Number(wallet.balance || 0),
-    0,
-  );
-  const lowBalanceCount = wallets.filter(
-    (wallet) => Number(wallet.balance || 0) < 2000,
-  ).length;
+  const totalBalance = wallets.reduce((sum, wallet) => sum + Number(wallet.balance || 0), 0);
+  const lowBalanceCount = wallets.filter((wallet) => Number(wallet.balance || 0) < 2000).length;
   const startOfMonth = new Date();
   startOfMonth.setDate(1);
   startOfMonth.setHours(0, 0, 0, 0);
   const monthTopups = transactions.reduce((sum, transaction) => {
-    const isTopup =
-      transaction.transaction_type === "topup" || transaction.type === "topup";
-    const createdAt = transaction.created_at
-      ? new Date(transaction.created_at)
-      : null;
+    const isTopup = transaction.transaction_type === "topup" || transaction.type === "topup";
+    const createdAt = transaction.created_at ? new Date(transaction.created_at) : null;
     if (!isTopup || !createdAt || createdAt < startOfMonth) return sum;
     return sum + Number(transaction.amount || 0);
   }, 0);
@@ -162,9 +152,7 @@ export default function StudentWalletsPage() {
       <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-8">
         <div className="flex justify-between items-end">
           <div>
-            <h1 className="text-3xl font-black text-slate-800 tracking-tight">
-              Student Wallets
-            </h1>
+            <h1 className="text-3xl font-black text-slate-800 tracking-tight">Student Wallets</h1>
             <p className="text-slate-500 font-medium tracking-tight">
               Manage digital pocket money and recent wallet activity
             </p>
@@ -178,22 +166,15 @@ export default function StudentWalletsPage() {
                 onChange={(event) => setSearch(event.target.value)}
                 className="pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-xs outline-none focus:ring-2 focus:ring-primary-100 w-full min-w-[200px]"
               />
-              <MaterialIcon
-                icon="search"
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-              />
+              <MaterialIcon icon="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             </div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="p-6 rounded-[32px] bg-primary-800 text-white shadow-xl shadow-primary-800/20 flex flex-col justify-between min-h-[160px]">
-            <p className="text-[10px] font-black uppercase tracking-widest opacity-60">
-              Total Circulating Balance
-            </p>
-            <h2 className="text-3xl font-black">
-              UGX {totalBalance.toLocaleString()}
-            </h2>
+            <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Total Circulating Balance</p>
+            <h2 className="text-3xl font-black">UGX {totalBalance.toLocaleString()}</h2>
             <div className="flex items-center gap-2 text-[10px] font-bold bg-white/10 w-fit px-3 py-1 rounded-full">
               <MaterialIcon icon="trending_up" style={{ fontSize: 14 }} />
               Active across {wallets.length} students
@@ -205,12 +186,8 @@ export default function StudentWalletsPage() {
               <MaterialIcon icon="receipt_long" style={{ fontSize: 28 }} />
             </div>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                Total Top-ups (MTD)
-              </p>
-              <p className="text-2xl font-black text-slate-800">
-                UGX {monthTopups.toLocaleString()}
-              </p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Total Top-ups (MTD)</p>
+              <p className="text-2xl font-black text-slate-800">UGX {monthTopups.toLocaleString()}</p>
             </div>
           </div>
 
@@ -219,12 +196,8 @@ export default function StudentWalletsPage() {
               <MaterialIcon icon="credit_card_off" style={{ fontSize: 28 }} />
             </div>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                Low Balance Warnings
-              </p>
-              <p className="text-2xl font-black text-slate-800">
-                {lowBalanceCount} Students
-              </p>
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Low Balance Warnings</p>
+              <p className="text-2xl font-black text-slate-800">{lowBalanceCount} Students</p>
             </div>
           </div>
         </div>
@@ -234,15 +207,9 @@ export default function StudentWalletsPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50/50">
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                    Student
-                  </th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                    Reg No
-                  </th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                    Balance
-                  </th>
+                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Student</th>
+                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Reg No</th>
+                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Balance</th>
                   <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
                     Daily Limit
                   </th>
@@ -260,10 +227,7 @@ export default function StudentWalletsPage() {
                   if (!student) return null;
 
                   return (
-                    <tr
-                      key={wallet.id}
-                      className="hover:bg-slate-50/50 transition-colors group"
-                    >
+                    <tr key={wallet.id} className="hover:bg-slate-50/50 transition-colors group">
                       <td className="px-6 py-4">
                         <p className="text-sm font-bold text-slate-800">
                           {student.first_name} {student.last_name}
@@ -277,9 +241,7 @@ export default function StudentWalletsPage() {
                       <td className="px-6 py-4">
                         <p
                           className={`text-sm font-black ${
-                            wallet.balance < 2000
-                              ? "text-red-500"
-                              : "text-primary-800"
+                            wallet.balance < 2000 ? "text-red-500" : "text-primary-800"
                           }`}
                         >
                           UGX {Number(wallet.balance || 0).toLocaleString()}
@@ -294,9 +256,7 @@ export default function StudentWalletsPage() {
                       </td>
                       <td className="px-6 py-4">
                         <p className="text-xs text-slate-400 font-medium">
-                          {wallet.updated_at
-                            ? format(new Date(wallet.updated_at), "MMM dd, HH:mm")
-                            : "N/A"}
+                          {wallet.updated_at ? format(new Date(wallet.updated_at), "MMM dd, HH:mm") : "N/A"}
                         </p>
                       </td>
                       <td className="px-6 py-4 text-right">
@@ -332,14 +292,11 @@ export default function StudentWalletsPage() {
                 </div>
 
                 <div className="mb-8">
-                  <h3 className="text-2xl font-black text-slate-800 mb-1">
-                    Wallet Top-up
-                  </h3>
+                  <h3 className="text-2xl font-black text-slate-800 mb-1">Wallet Top-up</h3>
                   <p className="text-sm text-slate-500 font-medium">
                     Adding funds for{" "}
                     <span className="text-slate-800 font-bold">
-                      {resolveStudent(showTopup.students)?.first_name}{" "}
-                      {resolveStudent(showTopup.students)?.last_name}
+                      {resolveStudent(showTopup.students)?.first_name} {resolveStudent(showTopup.students)?.last_name}
                     </span>
                   </p>
                 </div>
@@ -351,6 +308,7 @@ export default function StudentWalletsPage() {
                     </label>
                     <input
                       type="number"
+                      inputMode="numeric"
                       value={topupAmount}
                       onChange={(event) => setTopupAmount(event.target.value)}
                       placeholder="e.g. 50000"
@@ -371,14 +329,10 @@ export default function StudentWalletsPage() {
                   </div>
 
                   <div className="p-4 bg-blue-50 rounded-2xl flex items-start gap-3">
-                    <MaterialIcon
-                      icon="info"
-                      className="text-blue-500 shrink-0"
-                      style={{ fontSize: 18 }}
-                    />
+                    <MaterialIcon icon="info" className="text-blue-500 shrink-0" style={{ fontSize: 18 }} />
                     <p className="text-[11px] text-blue-700 leading-relaxed font-medium">
-                      This balance will be available immediately for canteen and
-                      store purchases using the student&apos;s ID card.
+                      This balance will be available immediately for canteen and store purchases using the
+                      student&apos;s ID card.
                     </p>
                   </div>
 

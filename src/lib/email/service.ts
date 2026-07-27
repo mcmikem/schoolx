@@ -51,7 +51,7 @@ export async function sendWelcomeEmail(to: string, name: string, schoolName: str
           <li>Check fee balances and make payments</li>
           <li>Receive school notifications</li>
         </ul>
-        <p>Login at: <a href="https://skoolmate.os/parent-portal">Parent Portal</a></p>
+        <p>Login at: <a href="${process.env.NEXT_PUBLIC_APP_URL || "https://omuto.org"}/parent-portal">Parent Portal</a></p>
         <p>If you have any questions, contact the school directly.</p>
         <hr>
         <p style="color: #666; font-size: 12px;">Sent by ${APP_NAME} - School Management System</p>
@@ -84,7 +84,13 @@ export async function sendPasswordResetEmail(to: string, resetToken: string, sch
   });
 }
 
-export async function sendReceiptEmail(to: string, studentName: string, amount: number, schoolName: string, receiptNumber: string) {
+export async function sendReceiptEmail(
+  to: string,
+  studentName: string,
+  amount: number,
+  schoolName: string,
+  receiptNumber: string,
+) {
   const formatted = new Intl.NumberFormat("en-UG", { style: "currency", currency: "UGX" }).format(amount);
   return sendEmail({
     to,

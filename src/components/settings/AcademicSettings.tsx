@@ -76,12 +76,10 @@ interface ExamWeight {
 }
 
 export default function AcademicSettings() {
-  const { academicYear, currentTerm, setAcademicYear, setCurrentTerm } =
-    useAcademic();
+  const { academicYear, currentTerm, setAcademicYear, setCurrentTerm } = useAcademic();
   const { school } = useAuth();
   const toast = useToast();
-  const [examWeights, setExamWeights] =
-    useState<ExamWeight[]>(DEFAULT_EXAM_WEIGHTS);
+  const [examWeights, setExamWeights] = useState<ExamWeight[]>(DEFAULT_EXAM_WEIGHTS);
   const [loadingWeights, setLoadingWeights] = useState(false);
   const [savingWeights, setSavingWeights] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -93,11 +91,7 @@ export default function AcademicSettings() {
 
     try {
       setLoadingWeights(true);
-      const saved = await loadSchoolSetting<ExamWeight[]>(
-        school.id,
-        "exam_weights",
-        DEFAULT_EXAM_WEIGHTS,
-      );
+      const saved = await loadSchoolSetting<ExamWeight[]>(school.id, "exam_weights", DEFAULT_EXAM_WEIGHTS);
 
       if (Array.isArray(saved) && saved.length > 0) {
         const merged = DEFAULT_EXAM_WEIGHTS.map((defaultExam) => {
@@ -142,14 +136,8 @@ export default function AcademicSettings() {
     }
   }
 
-  function updateExamWeight(
-    id: string,
-    field: keyof ExamWeight,
-    value: number | boolean,
-  ) {
-    setExamWeights((prev) =>
-      prev.map((e) => (e.id === id ? { ...e, [field]: value } : e)),
-    );
+  function updateExamWeight(id: string, field: keyof ExamWeight, value: number | boolean) {
+    setExamWeights((prev) => prev.map((e) => (e.id === id ? { ...e, [field]: value } : e)));
   }
 
   const activeWeights = examWeights.filter((e) => e.isActive);
@@ -163,19 +151,13 @@ export default function AcademicSettings() {
           Academic Configuration
         </h2>
         <p className="text-sm text-on-surface-variant mb-6">
-          Set the active academic year and term for the entire school. This
-          controls all dashboards, fee reports, and grade books.
+          Set the active academic year and term for the entire school. This controls all dashboards, fee reports, and
+          grade books.
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div>
-            <label className="text-sm font-medium text-[#191c1d] mb-2 block">
-              Active Academic Year
-            </label>
-            <select
-              value={academicYear}
-              onChange={(e) => setAcademicYear(e.target.value)}
-              className="input w-full"
-            >
+            <label className="text-sm font-medium text-[#191c1d] mb-2 block">Active Academic Year</label>
+            <select value={academicYear} onChange={(e) => setAcademicYear(e.target.value)} className="input w-full">
               {Array.from({ length: 5 }).map((_, i) => {
                 const year = new Date().getFullYear() - 2 + i;
                 return (
@@ -187,14 +169,10 @@ export default function AcademicSettings() {
             </select>
           </div>
           <div>
-            <label className="text-sm font-medium text-[#191c1d] mb-2 block">
-              Current Term
-            </label>
+            <label className="text-sm font-medium text-[#191c1d] mb-2 block">Current Term</label>
             <select
               value={currentTerm}
-              onChange={(e) =>
-                setCurrentTerm(Number(e.target.value) as 1 | 2 | 3)
-              }
+              onChange={(e) => setCurrentTerm(Number(e.target.value) as 1 | 2 | 3)}
               className="input w-full"
             >
               <option value={1}>Term 1</option>
@@ -211,10 +189,7 @@ export default function AcademicSettings() {
             <MaterialIcon icon="calculate" className="text-primary" />
             Exam Weighting
           </h2>
-          <button
-            onClick={() => setShowSettings(!showSettings)}
-            className="text-sm text-primary hover:underline"
-          >
+          <button onClick={() => setShowSettings(!showSettings)} className="text-sm text-primary hover:underline">
             {showSettings ? "Hide" : "Configure"}
           </button>
         </div>
@@ -222,8 +197,7 @@ export default function AcademicSettings() {
         {!showSettings ? (
           <div>
             <p className="text-sm text-on-surface-variant mb-4">
-              Configure which exams to use and their weights. Total must equal
-              100%.
+              Configure which exams to use and their weights. Total must equal 100%.
             </p>
             <div className="bg-[#f8fafc] rounded-lg p-4">
               <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 mb-3 text-xs font-medium text-[#5c6670] uppercase">
@@ -247,9 +221,7 @@ export default function AcademicSettings() {
                 ))}
               <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 py-2 mt-2 border-t border-[#e8eaed] font-medium">
                 <span className="col-span-2">Total</span>
-                <span
-                  className={`text-center ${totalWeight !== 100 ? "text-red-600" : "text-green-600"}`}
-                >
+                <span className={`text-center ${totalWeight !== 100 ? "text-red-600" : "text-green-600"}`}>
                   {totalWeight}%
                 </span>
               </div>
@@ -259,32 +231,20 @@ export default function AcademicSettings() {
           <div>
             <div className="space-y-3 max-h-[400px] overflow-y-auto">
               {examWeights.map((exam) => (
-                <div
-                  key={exam.id}
-                  className="flex items-center gap-3 p-3 bg-[#f8fafc] rounded-lg"
-                >
+                <div key={exam.id} className="flex items-center gap-3 p-3 bg-[#f8fafc] rounded-lg">
                   <input
                     type="checkbox"
                     checked={exam.isActive}
-                    onChange={(e) =>
-                      updateExamWeight(exam.id, "isActive", e.target.checked)
-                    }
+                    onChange={(e) => updateExamWeight(exam.id, "isActive", e.target.checked)}
                     className="w-4 h-4 rounded border-[#cbd5e1] text-primary"
                   />
                   <span className="flex-1 text-sm">{exam.name}</span>
-                  <span className="text-xs text-[#94a3b8] w-8">
-                    {exam.shortName}
-                  </span>
+                  <span className="text-xs text-[#94a3b8] w-8">{exam.shortName}</span>
                   <input
                     type="number"
+                    inputMode="numeric"
                     value={exam.weight}
-                    onChange={(e) =>
-                      updateExamWeight(
-                        exam.id,
-                        "weight",
-                        Number(e.target.value),
-                      )
-                    }
+                    onChange={(e) => updateExamWeight(exam.id, "weight", Number(e.target.value))}
                     disabled={!exam.isActive}
                     className="w-16 px-2 py-1 text-sm border border-[#cbd5e1] rounded disabled:opacity-50"
                     min={0}
@@ -297,15 +257,11 @@ export default function AcademicSettings() {
             <div className="flex items-center justify-between mt-4 pt-4 border-t border-[#e8eaed]">
               <span className="text-sm">
                 Total:
-                <span
-                  className={`font-medium ml-2 ${totalWeight !== 100 ? "text-red-600" : "text-green-600"}`}
-                >
+                <span className={`font-medium ml-2 ${totalWeight !== 100 ? "text-red-600" : "text-green-600"}`}>
                   {totalWeight}%
                 </span>
               </span>
-              {totalWeight !== 100 && (
-                <span className="text-xs text-red-600">Must equal 100%</span>
-              )}
+              {totalWeight !== 100 && <span className="text-xs text-red-600">Must equal 100%</span>}
             </div>
             <button
               onClick={saveExamWeights}

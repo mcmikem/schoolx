@@ -142,9 +142,9 @@ const RESOURCES = [
   },
   {
     title: "Brochure",
-    desc: "Download the marketing brochure (PDF)",
+    desc: "Marketing brochure — view or print as PDF",
     icon: "description",
-    href: "/resources/brochure.pdf",
+    href: "/resources/brochure",
   },
   { title: "FAQ", desc: "Frequently asked questions from schools", icon: "help", href: "/faq" },
   {

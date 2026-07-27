@@ -55,9 +55,7 @@ export default function MessageComposer({
         <Tabs
           tabs={messageTypeTabs}
           activeTab={messageType}
-          onChange={(id) =>
-            onMessageTypeChange(id as "individual" | "class" | "all")
-          }
+          onChange={(id) => onMessageTypeChange(id as "individual" | "class" | "all")}
         />
         <div className="flex flex-wrap gap-2">
           {[
@@ -82,15 +80,13 @@ export default function MessageComposer({
         </div>
         {messageType === "individual" && (
           <div>
-            <label
-              htmlFor="message-phone"
-              className="text-sm font-medium text-[var(--on-surface)] mb-2 block"
-            >
+            <label htmlFor="message-phone" className="text-sm font-medium text-[var(--on-surface)] mb-2 block">
               Phone Number
             </label>
             <input
               id="message-phone"
               type="tel"
+              inputMode="tel"
               placeholder="0700000000"
               value={phone}
               onChange={(e) => onPhoneChange(e.target.value)}
@@ -100,10 +96,7 @@ export default function MessageComposer({
         )}
         {messageType === "class" && (
           <div>
-            <label
-              htmlFor="message-class"
-              className="text-sm font-medium text-[var(--on-surface)] mb-2 block"
-            >
+            <label htmlFor="message-class" className="text-sm font-medium text-[var(--on-surface)] mb-2 block">
               Select Class
             </label>
             {classes.length === 0 ? (
@@ -128,10 +121,7 @@ export default function MessageComposer({
           </div>
         )}
         <div>
-          <label
-            htmlFor="message-body"
-            className="text-sm font-medium text-[var(--on-surface)] mb-2 block"
-          >
+          <label htmlFor="message-body" className="text-sm font-medium text-[var(--on-surface)] mb-2 block">
             Message
           </label>
           <textarea
@@ -142,17 +132,17 @@ export default function MessageComposer({
             className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] placeholder-[var(--t4)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] transition-colors min-h-[120px] resize-none"
             maxLength={160}
           />
-          <p className="text-xs text-[var(--t3)] mt-2">
-            {message.length}/160 characters
-          </p>
+          <p className="text-xs text-[var(--t3)] mt-2">{message.length}/160 characters</p>
         </div>
-        <Button
-          onClick={onSend}
-          disabled={sending || !message.trim()}
-          loading={sending}
-        >
+        <Button onClick={onSend} disabled={sending || !message.trim()} loading={sending}>
           <MaterialIcon icon="send" className="text-lg" />
-          {sending ? "Sending..." : deliveryChannel === "whatsapp" ? "Send WhatsApp" : deliveryChannel === "auto" ? "Send Auto" : "Send SMS"}
+          {sending
+            ? "Sending..."
+            : deliveryChannel === "whatsapp"
+              ? "Send WhatsApp"
+              : deliveryChannel === "auto"
+                ? "Send Auto"
+                : "Send SMS"}
         </Button>
       </CardBody>
     </Card>

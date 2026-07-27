@@ -85,6 +85,15 @@ const alwaysPublicPaths = [
   "/register",
   "/demo-login",
   "/privacy",
+  "/features",
+  "/pricing",
+  "/about",
+  "/contact",
+  "/terms",
+  "/blog",
+  "/demo",
+  "/faq",
+  "/case-studies",
   "/auth/callback",
   "/forgot-password",
   "/reset-password",
@@ -106,6 +115,8 @@ const alwaysPublicPaths = [
   "/manifest.json",
   "/offline.html",
   "/favicon.ico",
+  "/resources/brochure",
+  "/api/contact",
 ];
 
 const SETUP_PATHS = ["/setup", "/setup-admin"];
@@ -137,8 +148,8 @@ function applySecurityHeaders(response: NextResponse) {
   const isProduction = process.env.NODE_ENV === "production";
   const imgSrc = isProduction ? "img-src 'self' data: blob: https:" : "img-src 'self' data: blob: https: http:";
   const scriptSrc = isProduction
-    ? "script-src 'self' 'unsafe-inline' https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ blob:"
-    : "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ blob:";
+    ? "script-src 'self' 'unsafe-inline' https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.googletagmanager.com blob:"
+    : "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.google.com/recaptcha/ https://www.gstatic.com/recaptcha/ https://www.googletagmanager.com blob:";
 
   // Build connect-src dynamically to include local Supabase in development
   const connectSrcParts = [

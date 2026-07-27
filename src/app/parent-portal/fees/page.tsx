@@ -30,10 +30,7 @@ import {
   getDemoWalletTransactions,
 } from "@/lib/parent-portal-demo";
 
-const WALLET_BADGE_STYLES: Record<
-  ParentPortalWalletTransaction["type"],
-  string
-> = {
+const WALLET_BADGE_STYLES: Record<ParentPortalWalletTransaction["type"], string> = {
   topup: "bg-emerald-50 text-emerald-700 border-emerald-200",
   spend: "bg-amber-50 text-amber-700 border-amber-200",
   refund: "bg-blue-50 text-blue-700 border-blue-200",
@@ -46,17 +43,11 @@ export default function ParentFeesPage() {
   const { user, isDemo } = useAuth();
   const toast = useToast();
   const [children, setChildren] = useState<ParentPortalChild[]>([]);
-  const [selectedChild, setSelectedChild] = useState<ParentPortalChild | null>(
-    null,
-  );
-  const [feeStructure, setFeeStructure] = useState<
-    ParentPortalFeeStructureItem[]
-  >([]);
+  const [selectedChild, setSelectedChild] = useState<ParentPortalChild | null>(null);
+  const [feeStructure, setFeeStructure] = useState<ParentPortalFeeStructureItem[]>([]);
   const [payments, setPayments] = useState<ParentPortalPayment[]>([]);
   const [walletBalance, setWalletBalance] = useState(0);
-  const [walletTransactions, setWalletTransactions] = useState<
-    ParentPortalWalletTransaction[]
-  >([]);
+  const [walletTransactions, setWalletTransactions] = useState<ParentPortalWalletTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [showTopup, setShowTopup] = useState(false);
   const [topupAmount, setTopupAmount] = useState("");
@@ -71,9 +62,7 @@ export default function ParentFeesPage() {
     if (!parentId) return;
     const { data } = await supabase
       .from("parent_students")
-      .select(
-        "student:students(id, first_name, last_name, school_id, class_id, class:classes(name))",
-      )
+      .select("student:students(id, first_name, last_name, school_id, class_id, class:classes(name))")
       .eq("parent_id", parentId);
     setChildren(mapParentStudentLinks(data || []));
   }, [user?.id, isDemo]);
@@ -98,26 +87,21 @@ export default function ParentFeesPage() {
       }
 
       try {
-        const [modernFeeTermsRes, modernPaymentsRes, walletRes] =
-          await Promise.all([
-            supabase
-              .from("student_fee_terms")
-              .select("id, final_amount, academic_year, fee_terms(name)")
-              .eq("student_id", scopedChild.id)
-              .order("created_at", { ascending: false }),
-            supabase
-              .from("fee_payments")
-              .select(
-                "id, amount, payment_date, payment_method, transaction_reference, student_fee_terms!inner(student_id, fee_terms(name))",
-              )
-              .eq("student_fee_terms.student_id", scopedChild.id)
-              .order("payment_date", { ascending: false }),
-            supabase
-              .from("student_wallets")
-              .select("id, balance")
-              .eq("student_id", scopedChild.id)
-              .maybeSingle(),
-          ]);
+        const [modernFeeTermsRes, modernPaymentsRes, walletRes] = await Promise.all([
+          supabase
+            .from("student_fee_terms")
+            .select("id, final_amount, academic_year, fee_terms(name)")
+            .eq("student_id", scopedChild.id)
+            .order("created_at", { ascending: false }),
+          supabase
+            .from("fee_payments")
+            .select(
+              "id, amount, payment_date, payment_method, transaction_reference, student_fee_terms!inner(student_id, fee_terms(name))",
+            )
+            .eq("student_fee_terms.student_id", scopedChild.id)
+            .order("payment_date", { ascending: false }),
+          supabase.from("student_wallets").select("id, balance").eq("student_id", scopedChild.id).maybeSingle(),
+        ]);
 
         const [legacyFeeTermsRes, legacyPaymentsRes] = await Promise.all([
           supabase
@@ -128,21 +112,16 @@ export default function ParentFeesPage() {
             .or(`class_id.is.null,class_id.eq.${scopedChild.class_id}`),
           supabase
             .from("fee_payments")
-            .select(
-              "id, amount_paid, payment_date, payment_method, payment_reference, fee_structure:fee_id(name)",
-            )
+            .select("id, amount_paid, payment_date, payment_method, payment_reference, fee_structure:fee_id(name)")
             .eq("student_id", scopedChild.id)
             .is("deleted_at", null)
             .order("payment_date", { ascending: false }),
         ]);
 
         const feeRows = pickPreferredSchemaRows({
-          modernRows: normalizeFeeTermItems(
-            (modernFeeTermsRes.data || []) as never[],
-          ),
+          modernRows: normalizeFeeTermItems((modernFeeTermsRes.data || []) as never[]),
           modernError: modernFeeTermsRes.error,
-          legacyRows:
-            (legacyFeeTermsRes.data || []) as ParentPortalFeeStructureItem[],
+          legacyRows: (legacyFeeTermsRes.data || []) as ParentPortalFeeStructureItem[],
           legacyError: legacyFeeTermsRes.error,
         });
 
@@ -159,17 +138,13 @@ export default function ParentFeesPage() {
         if (walletId) {
           const modernWalletTxRes = await supabase
             .from("wallet_transactions")
-            .select(
-              "id, amount, transaction_type, reference_id, description, created_at",
-            )
+            .select("id, amount, transaction_type, reference_id, description, created_at")
             .eq("wallet_id", walletId)
             .order("created_at", { ascending: false })
             .limit(8);
 
           if (!modernWalletTxRes.error) {
-            walletTxData = normalizeWalletTransactions(
-              modernWalletTxRes.data || [],
-            );
+            walletTxData = normalizeWalletTransactions(modernWalletTxRes.data || []);
           } else {
             const legacyWalletTxRes = await supabase
               .from("wallet_transactions")
@@ -179,9 +154,7 @@ export default function ParentFeesPage() {
               .limit(8);
 
             if (!legacyWalletTxRes.error) {
-              walletTxData = normalizeWalletTransactions(
-                legacyWalletTxRes.data || [],
-              );
+              walletTxData = normalizeWalletTransactions(legacyWalletTxRes.data || []);
             }
           }
         }
@@ -207,13 +180,9 @@ export default function ParentFeesPage() {
     }
   }, [selectedChild, fetchFees]);
 
-  const stats = useMemo(
-    () => calculateFeeStats(feeStructure, payments),
-    [feeStructure, payments],
-  );
+  const stats = useMemo(() => calculateFeeStats(feeStructure, payments), [feeStructure, payments]);
 
-  const paidPct =
-    stats.totalFee > 0 ? Math.round((stats.totalPaid / stats.totalFee) * 100) : 0;
+  const paidPct = stats.totalFee > 0 ? Math.round((stats.totalPaid / stats.totalFee) * 100) : 0;
 
   const handleTopup = async () => {
     if (!selectedChild) return;
@@ -344,9 +313,7 @@ export default function ParentFeesPage() {
           <CardBody className="space-y-4 bg-[linear-gradient(180deg,#ffffff_0%,#f7faff_100%)]">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className="text-sm font-semibold text-[var(--on-surface)]">
-                  Payment Progress
-                </p>
+                <p className="text-sm font-semibold text-[var(--on-surface)]">Payment Progress</p>
                 <p className="text-xs text-[var(--on-surface-variant)]">
                   {selectedChild
                     ? `${selectedChild.first_name}'s fee and canteen snapshot`
@@ -354,11 +321,7 @@ export default function ParentFeesPage() {
                 </p>
               </div>
               <div className="flex gap-3">
-                <Button
-                  onClick={() => setShowTopup(true)}
-                  disabled={!selectedChild}
-                  variant="secondary"
-                >
+                <Button onClick={() => setShowTopup(true)} disabled={!selectedChild} variant="secondary">
                   <MaterialIcon icon="add_card" /> Wallet Top-up
                 </Button>
               </div>
@@ -374,11 +337,7 @@ export default function ParentFeesPage() {
             <div className="h-3 w-full bg-[var(--surface-container-highest)] rounded-full overflow-hidden">
               <div
                 className={`h-full rounded-full transition-all ${
-                  paidPct >= 100
-                    ? "bg-emerald-500"
-                    : paidPct >= 50
-                      ? "bg-amber-500"
-                      : "bg-red-500"
+                  paidPct >= 100 ? "bg-emerald-500" : paidPct >= 50 ? "bg-amber-500" : "bg-red-500"
                 }`}
                 style={{ width: `${paidPct}%` }}
               />
@@ -389,22 +348,15 @@ export default function ParentFeesPage() {
         <div className="grid xl:grid-cols-3 gap-6">
           <Card>
             <CardBody>
-              <h2 className="font-semibold text-[var(--on-surface)] mb-4">
-                Fee Structure
-              </h2>
+              <h2 className="font-semibold text-[var(--on-surface)] mb-4">Fee Structure</h2>
               {loading ? (
                 <div className="space-y-2">
                   {Array.from({ length: 3 }).map((_, index) => (
-                    <div
-                      key={index}
-                      className="h-10 bg-[var(--surface-container)] rounded-xl animate-pulse"
-                    />
+                    <div key={index} className="h-10 bg-[var(--surface-container)] rounded-xl animate-pulse" />
                   ))}
                 </div>
               ) : feeStructure.length === 0 ? (
-                <p className="text-sm text-[var(--on-surface-variant)] text-center py-4">
-                  No fee structure set
-                </p>
+                <p className="text-sm text-[var(--on-surface-variant)] text-center py-4">No fee structure set</p>
               ) : (
                 <div className="space-y-2">
                   {feeStructure.map((fee) => (
@@ -413,14 +365,8 @@ export default function ParentFeesPage() {
                       className="flex justify-between items-center p-3 bg-[var(--surface-container-low)] rounded-[18px] border border-[var(--border)]"
                     >
                       <div>
-                        <p className="font-bold text-sm text-[var(--on-surface)]">
-                          {fee.name}
-                        </p>
-                        {fee.term && (
-                          <p className="text-[10px] text-[var(--on-surface-variant)]">
-                            {fee.term}
-                          </p>
-                        )}
+                        <p className="font-bold text-sm text-[var(--on-surface)]">{fee.name}</p>
+                        {fee.term && <p className="text-[10px] text-[var(--on-surface-variant)]">{fee.term}</p>}
                       </div>
                       <p className="font-black text-sm text-[var(--on-surface)]">
                         UGX {Number(fee.amount).toLocaleString()}
@@ -434,22 +380,15 @@ export default function ParentFeesPage() {
 
           <Card>
             <CardBody>
-              <h2 className="font-semibold text-[var(--on-surface)] mb-4">
-                Payment History
-              </h2>
+              <h2 className="font-semibold text-[var(--on-surface)] mb-4">Payment History</h2>
               {loading ? (
                 <div className="space-y-2">
                   {Array.from({ length: 3 }).map((_, index) => (
-                    <div
-                      key={index}
-                      className="h-10 bg-[var(--surface-container)] rounded-xl animate-pulse"
-                    />
+                    <div key={index} className="h-10 bg-[var(--surface-container)] rounded-xl animate-pulse" />
                   ))}
                 </div>
               ) : payments.length === 0 ? (
-                <p className="text-sm text-[var(--on-surface-variant)] text-center py-4">
-                  No payments recorded yet
-                </p>
+                <p className="text-sm text-[var(--on-surface-variant)] text-center py-4">No payments recorded yet</p>
               ) : (
                 <div className="space-y-2 max-h-80 overflow-y-auto">
                   {payments.map((payment) => (
@@ -463,20 +402,16 @@ export default function ParentFeesPage() {
                             UGX {Number(payment.amount_paid).toLocaleString()}
                           </p>
                           <p className="text-[10px] text-[var(--on-surface-variant)]">
-                            {payment.fee_structure?.name || "Payment"} ·{" "}
-                            {payment.payment_method || "Recorded"}
+                            {payment.fee_structure?.name || "Payment"} · {payment.payment_method || "Recorded"}
                           </p>
                         </div>
                         <div className="text-right">
                           <p className="text-[10px] text-[var(--on-surface-variant)]">
-                            {new Date(payment.payment_date).toLocaleDateString(
-                              "en-GB",
-                              {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                              },
-                            )}
+                            {new Date(payment.payment_date).toLocaleDateString("en-GB", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            })}
                           </p>
                           {payment.payment_reference && (
                             <p className="text-[10px] font-mono text-[var(--on-surface-variant)]">
@@ -494,16 +429,11 @@ export default function ParentFeesPage() {
 
           <Card>
             <CardBody>
-              <h2 className="font-semibold text-[var(--on-surface)] mb-4">
-                Wallet Activity
-              </h2>
+              <h2 className="font-semibold text-[var(--on-surface)] mb-4">Wallet Activity</h2>
               {loading ? (
                 <div className="space-y-2">
                   {Array.from({ length: 3 }).map((_, index) => (
-                    <div
-                      key={index}
-                      className="h-10 bg-[var(--surface-container)] rounded-xl animate-pulse"
-                    />
+                    <div key={index} className="h-10 bg-[var(--surface-container)] rounded-xl animate-pulse" />
                   ))}
                 </div>
               ) : walletTransactions.length === 0 ? (
@@ -540,14 +470,11 @@ export default function ParentFeesPage() {
                             {transaction.type}
                           </span>
                           <p className="text-[10px] text-[var(--on-surface-variant)]">
-                            {new Date(transaction.created_at).toLocaleDateString(
-                              "en-GB",
-                              {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                              },
-                            )}
+                            {new Date(transaction.created_at).toLocaleDateString("en-GB", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            })}
                           </p>
                         </div>
                       </div>
@@ -564,13 +491,9 @@ export default function ParentFeesPage() {
             <div className="bg-[var(--surface)] rounded-3xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl p-8 space-y-5">
               <div className="flex justify-between items-center">
                 <div>
-                  <h2 className="text-xl font-black text-[var(--on-surface)]">
-                    Add Pocket Money
-                  </h2>
+                  <h2 className="text-xl font-black text-[var(--on-surface)]">Add Pocket Money</h2>
                   <p className="text-sm text-[var(--on-surface-variant)]">
-                    {selectedChild
-                      ? `Top up ${selectedChild.first_name}'s canteen wallet`
-                      : "Select a learner first"}
+                    {selectedChild ? `Top up ${selectedChild.first_name}'s canteen wallet` : "Select a learner first"}
                   </p>
                 </div>
                 <button
@@ -587,6 +510,7 @@ export default function ParentFeesPage() {
                 </label>
                 <input
                   type="number"
+                  inputMode="numeric"
                   value={topupAmount}
                   onChange={(event) => setTopupAmount(event.target.value)}
                   placeholder="e.g. 10000"

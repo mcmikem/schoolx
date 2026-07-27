@@ -460,18 +460,16 @@ export default function SettingsPage() {
     try {
       const { withTimeout } = await import("@/lib/hooks/utils");
       const classResult = await withTimeout(
-        supabase
-          .from("classes")
-          .upsert(
-            {
-              school_id: school.id,
-              name: name.trim(),
-              stream: stream.trim() || null,
-              level: inferClassLevel(name, schoolType),
-              academic_year: new Date().getFullYear().toString(),
-            },
-            { onConflict: "school_id,name,academic_year" },
-          ),
+        supabase.from("classes").upsert(
+          {
+            school_id: school.id,
+            name: name.trim(),
+            stream: stream.trim() || null,
+            level: inferClassLevel(name, schoolType),
+            academic_year: new Date().getFullYear().toString(),
+          },
+          { onConflict: "school_id,name,academic_year" },
+        ),
         15000,
         timeoutFallback(),
       );
@@ -912,6 +910,7 @@ export default function SettingsPage() {
                     <label className="block text-sm font-medium text-[var(--t2)] mb-1">Support WhatsApp Number</label>
                     <input
                       type="tel"
+                      inputMode="tel"
                       value={supportPhone}
                       onChange={(e) => setSupportPhone(e.target.value)}
                       placeholder="e.g. 0772000000"
@@ -1450,6 +1449,7 @@ export default function SettingsPage() {
                   <label className="block text-xs font-semibold text-[var(--t2)] mb-1">Mobile Money Phone Number</label>
                   <input
                     type="tel"
+                    inputMode="tel"
                     value={paymentPhone}
                     onChange={(e) => setPaymentPhone(e.target.value)}
                     placeholder="e.g. 0772000000"

@@ -1091,6 +1091,7 @@ export default function StudentProfilePage() {
                 </label>
                 <input
                   type="tel"
+                  inputMode="tel"
                   value={guardianForm.phone}
                   onChange={(e) => setGuardianForm({ ...guardianForm, phone: e.target.value })}
                   className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"

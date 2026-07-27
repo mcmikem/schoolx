@@ -60,15 +60,16 @@ export default function HomeworkPage() {
     marks: 10,
   });
 
-  const homeworkValidationError = !newHomework.title.trim() || !newHomework.description.trim()
-    ? "Add both title and description to assign homework."
-    : !newHomework.subject_id || !newHomework.class_id
-      ? "Select both class and subject."
-      : !newHomework.due_date
-        ? "Choose a due date to continue."
-        : newHomework.marks <= 0
-          ? "Marks must be greater than zero."
-          : "";
+  const homeworkValidationError =
+    !newHomework.title.trim() || !newHomework.description.trim()
+      ? "Add both title and description to assign homework."
+      : !newHomework.subject_id || !newHomework.class_id
+        ? "Select both class and subject."
+        : !newHomework.due_date
+          ? "Choose a due date to continue."
+          : newHomework.marks <= 0
+            ? "Marks must be greater than zero."
+            : "";
 
   // Update draft when form changes
   const handleNewHomeworkChange = (updates: Partial<typeof newHomework>) => {
@@ -174,356 +175,298 @@ export default function HomeworkPage() {
     const isOverdue = dueDate < now;
 
     if (isOverdue) {
-      return (
-        <span className="px-2 py-1 rounded-lg text-xs font-medium bg-red-100 text-red-600">
-          Overdue
-        </span>
-      );
+      return <span className="px-2 py-1 rounded-lg text-xs font-medium bg-red-100 text-red-600">Overdue</span>;
     }
-    return (
-      <span className="px-2 py-1 rounded-lg text-xs font-medium bg-green-100 text-green-600">
-        Active
-      </span>
-    );
+    return <span className="px-2 py-1 rounded-lg text-xs font-medium bg-green-100 text-green-600">Active</span>;
   };
 
   return (
     <PageErrorBoundary>
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="font-bold text-2xl text-gray-900">
-            Class Tests & Assessments
-          </h2>
-          <p className="text-gray-500 mt-1">
-            Track continuous assessments, quizzes, and test scores
-          </p>
-        </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gray-900 text-white font-semibold text-sm hover:bg-gray-800 shadow-lg transition-all"
-        >
-          <MaterialIcon icon="add" className="text-lg" />
-          Add Test
-        </button>
-      </div>
-
-      {/* Filters */}
-      <div className="flex gap-3 flex-wrap">
-        <select
-          value={selectedClass}
-          onChange={(e) => {
-            setSelectedClass(e.target.value);
-          }}
-          className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm font-medium"
-        >
-          <option value="">All Classes</option>
-          {classes.length > 0 ? (
-            classes.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))
-          ) : (
-            <option disabled>No classes available</option>
-          )}
-        </select>
-      </div>
-
-      {/* Tests Grid */}
-      {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 animate-pulse"
-            >
-              <div className="skeleton h-5 w-24 mb-3"></div>
-              <div className="skeleton h-6 w-full mb-2"></div>
-              <div className="skeleton h-4 w-3/4"></div>
-            </div>
-          ))}
-        </div>
-      ) : homework.length === 0 ? (
-        <div className="bg-white rounded-2xl p-12 text-center shadow-sm border border-gray-100">
-          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <MaterialIcon className="text-3xl text-gray-400">
-              assignment
-            </MaterialIcon>
+      <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 className="font-bold text-2xl text-gray-900">Class Tests & Assessments</h2>
+            <p className="text-gray-500 mt-1">Track continuous assessments, quizzes, and test scores</p>
           </div>
-          <h3 className="font-bold text-gray-900 mb-2">No Homework Assigned</h3>
-          <p className="text-gray-500 mb-4">
-            Assign your first homework to get started
-          </p>
           <button
             onClick={() => setShowModal(true)}
-            className="px-6 py-2.5 bg-gray-900 text-white rounded-xl font-semibold"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gray-900 text-white font-semibold text-sm hover:bg-gray-800 shadow-lg transition-all"
           >
-            Assign Homework
+            <MaterialIcon icon="add" className="text-lg" />
+            Add Test
           </button>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {homework.map((hw) => (
-            <div
-              key={hw.id}
-              className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
-                    <MaterialIcon className="text-blue-600">
-                      menu_book
-                    </MaterialIcon>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500 font-medium">
-                      {hw.subjects?.name || "Subject"}
-                    </p>
-                    <p className="text-xs text-gray-400">{hw.classes?.name}</p>
-                  </div>
-                </div>
-                {getStatusBadge(hw)}
-              </div>
 
-              <h3 className="font-bold text-gray-900 mb-2">{hw.title}</h3>
-              <p className="text-sm text-gray-500 line-clamp-2 mb-4">
-                {hw.description}
-              </p>
-
-              <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                <div className="flex items-center gap-3 text-xs text-gray-500">
-                  <span className="flex items-center gap-1">
-                    <MaterialIcon className="text-sm">
-                      calendar_today
-                    </MaterialIcon>
-                    {hw.due_date}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <MaterialIcon className="text-sm">grade</MaterialIcon>
-                    {hw.marks} marks
-                  </span>
-                </div>
-                <button
-                  onClick={() => handleDeleteHomework(hw.id)}
-                  disabled={deletingId === hw.id}
-                  className="p-2 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-500 disabled:opacity-50 transition-colors"
-                  title="Delete homework"
-                >
-                  <MaterialIcon className="text-sm">
-                    {deletingId === hw.id ? "hourglass_empty" : "delete"}
-                  </MaterialIcon>
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Create Modal */}
-      {showModal && (
-        <div
-          className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto"
-          onClick={() => setShowModal(false)}
-        >
-          <div
-            className="bg-white rounded-2xl max-w-lg w-full max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto p-6 my-auto"
-            onClick={(e) => e.stopPropagation()}
+        {/* Filters */}
+        <div className="flex gap-3 flex-wrap">
+          <select
+            value={selectedClass}
+            onChange={(e) => {
+              setSelectedClass(e.target.value);
+            }}
+            className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm font-medium"
           >
-            <h3 className="font-bold text-xl text-gray-900 mb-4">
+            <option value="">All Classes</option>
+            {classes.length > 0 ? (
+              classes.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))
+            ) : (
+              <option disabled>No classes available</option>
+            )}
+          </select>
+        </div>
+
+        {/* Tests Grid */}
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 animate-pulse">
+                <div className="skeleton h-5 w-24 mb-3"></div>
+                <div className="skeleton h-6 w-full mb-2"></div>
+                <div className="skeleton h-4 w-3/4"></div>
+              </div>
+            ))}
+          </div>
+        ) : homework.length === 0 ? (
+          <div className="bg-white rounded-2xl p-12 text-center shadow-sm border border-gray-100">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <MaterialIcon className="text-3xl text-gray-400">assignment</MaterialIcon>
+            </div>
+            <h3 className="font-bold text-gray-900 mb-2">No Homework Assigned</h3>
+            <p className="text-gray-500 mb-4">Assign your first homework to get started</p>
+            <button
+              onClick={() => setShowModal(true)}
+              className="px-6 py-2.5 bg-gray-900 text-white rounded-xl font-semibold"
+            >
               Assign Homework
-            </h3>
-            <form onSubmit={handleCreateHomework} className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 block">
-                  Title
-                </label>
-                <input
-                  type="text"
-                  value={newHomework.title}
-                  onChange={(e) =>
-                    handleNewHomeworkChange({ title: e.target.value })
-                  }
-                  className="input"
-                  required
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 block">
-                  Description
-                </label>
-                <textarea
-                  value={newHomework.description}
-                  onChange={(e) =>
-                    handleNewHomeworkChange({ description: e.target.value })
-                  }
-                  className="input"
-                  rows={3}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">
-                    Class
-                  </label>
-                  {classes.length === 0 ? (
-                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-800">
-                      No classes available
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {homework.map((hw) => (
+              <div
+                key={hw.id}
+                className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+                      <MaterialIcon className="text-blue-600">menu_book</MaterialIcon>
                     </div>
-                  ) : (
-                    <select
-                      value={newHomework.class_id}
-                      onChange={(e) =>
-                        handleNewHomeworkChange({ class_id: e.target.value })
-                      }
-                      className="input"
-                      required
-                    >
-                      <option value="">Select Class</option>
-                      {classes.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
-                  )}
+                    <div>
+                      <p className="text-xs text-gray-500 font-medium">{hw.subjects?.name || "Subject"}</p>
+                      <p className="text-xs text-gray-400">{hw.classes?.name}</p>
+                    </div>
+                  </div>
+                  {getStatusBadge(hw)}
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">
-                    Subject
-                  </label>
-                  {subjects.length === 0 ? (
-                    <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-800">
-                      No subjects available
-                    </div>
-                  ) : (
-                    <select
-                      value={newHomework.subject_id}
-                      onChange={(e) =>
-                        handleNewHomeworkChange({ subject_id: e.target.value })
-                      }
-                      className="input"
-                      required
-                    >
-                      <option value="">Select Subject</option>
-                      {subjects.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.name}
-                        </option>
-                      ))}
-                    </select>
-                  )}
+
+                <h3 className="font-bold text-gray-900 mb-2">{hw.title}</h3>
+                <p className="text-sm text-gray-500 line-clamp-2 mb-4">{hw.description}</p>
+
+                <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                  <div className="flex items-center gap-3 text-xs text-gray-500">
+                    <span className="flex items-center gap-1">
+                      <MaterialIcon className="text-sm">calendar_today</MaterialIcon>
+                      {hw.due_date}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <MaterialIcon className="text-sm">grade</MaterialIcon>
+                      {hw.marks} marks
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => handleDeleteHomework(hw.id)}
+                    disabled={deletingId === hw.id}
+                    className="p-2 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-500 disabled:opacity-50 transition-colors"
+                    title="Delete homework"
+                  >
+                    <MaterialIcon className="text-sm">
+                      {deletingId === hw.id ? "hourglass_empty" : "delete"}
+                    </MaterialIcon>
+                  </button>
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+            ))}
+          </div>
+        )}
+
+        {/* Create Modal */}
+        {showModal && (
+          <div
+            className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto"
+            onClick={() => setShowModal(false)}
+          >
+            <div
+              className="bg-white rounded-2xl max-w-lg w-full max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto p-6 my-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="font-bold text-xl text-gray-900 mb-4">Assign Homework</h3>
+              <form onSubmit={handleCreateHomework} className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">
-                    Due Date
-                  </label>
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">Title</label>
                   <input
-                    type="date"
-                    value={newHomework.due_date}
-                    onChange={(e) =>
-                      handleNewHomeworkChange({ due_date: e.target.value })
-                    }
+                    type="text"
+                    value={newHomework.title}
+                    onChange={(e) => handleNewHomeworkChange({ title: e.target.value })}
                     className="input"
                     required
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">
-                    Marks
-                  </label>
-                  <input
-                    type="number"
-                    value={newHomework.marks}
-                    onChange={(e) =>
-                      handleNewHomeworkChange({
-                        marks: parseInt(e.target.value) || 10,
-                      })
-                    }
+                  <label className="text-sm font-medium text-gray-700 mb-2 block">Description</label>
+                  <textarea
+                    value={newHomework.description}
+                    onChange={(e) => handleNewHomeworkChange({ description: e.target.value })}
                     className="input"
-                    min={1}
+                    rows={3}
                   />
                 </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 mb-2 block">Class</label>
+                    {classes.length === 0 ? (
+                      <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-800">
+                        No classes available
+                      </div>
+                    ) : (
+                      <select
+                        value={newHomework.class_id}
+                        onChange={(e) => handleNewHomeworkChange({ class_id: e.target.value })}
+                        className="input"
+                        required
+                      >
+                        <option value="">Select Class</option>
+                        {classes.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 mb-2 block">Subject</label>
+                    {subjects.length === 0 ? (
+                      <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-800">
+                        No subjects available
+                      </div>
+                    ) : (
+                      <select
+                        value={newHomework.subject_id}
+                        onChange={(e) => handleNewHomeworkChange({ subject_id: e.target.value })}
+                        className="input"
+                        required
+                      >
+                        <option value="">Select Subject</option>
+                        {subjects.map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {s.name}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 mb-2 block">Due Date</label>
+                    <input
+                      type="date"
+                      value={newHomework.due_date}
+                      onChange={(e) => handleNewHomeworkChange({ due_date: e.target.value })}
+                      className="input"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 mb-2 block">Marks</label>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      value={newHomework.marks}
+                      onChange={(e) =>
+                        handleNewHomeworkChange({
+                          marks: parseInt(e.target.value) || 10,
+                        })
+                      }
+                      className="input"
+                      min={1}
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowModal(false)}
+                    className="flex-1 py-2.5 border border-gray-200 rounded-xl font-semibold text-gray-600 hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={Boolean(homeworkValidationError)}
+                    className="flex-1 py-2.5 bg-gray-900 text-white rounded-xl font-semibold hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Assign
+                  </button>
+                </div>
+                {homeworkValidationError && <p className="text-sm text-gray-500">{homeworkValidationError}</p>}
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Draft Restore Dialog */}
+        {homeworkDraft.showRestoreDialog && (
+          <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl max-w-sm w-full max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto p-6 my-auto">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
+                  <MaterialIcon icon="restore" className="text-gray-600" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900">Restore Draft?</h3>
+                  <p className="text-sm text-gray-500">You have an unsaved homework form</p>
+                </div>
               </div>
-              <div className="flex gap-3 pt-2">
+              <p className="text-sm text-gray-500 mb-6">Would you like to restore your previous draft?</p>
+              <div className="flex gap-3">
                 <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="flex-1 py-2.5 border border-gray-200 rounded-xl font-semibold text-gray-600 hover:bg-gray-50"
+                  onClick={homeworkDraft.discardDraft}
+                  className="flex-1 py-3 bg-gray-100 font-semibold rounded-xl text-gray-600"
                 >
-                  Cancel
+                  Discard
                 </button>
                 <button
-                  type="submit"
-                  disabled={Boolean(homeworkValidationError)}
-                  className="flex-1 py-2.5 bg-gray-900 text-white rounded-xl font-semibold hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={() => {
+                    setNewHomework(homeworkDraft.savedDraft as typeof newHomework);
+                    homeworkDraft.restoreDraft();
+                  }}
+                  className="flex-1 py-3 bg-gray-900 text-white font-semibold rounded-xl"
                 >
-                  Assign
+                  Restore
                 </button>
               </div>
-              {homeworkValidationError && (
-                <p className="text-sm text-gray-500">{homeworkValidationError}</p>
-              )}
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Draft Restore Dialog */}
-      {homeworkDraft.showRestoreDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl max-w-sm w-full max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto p-6 my-auto">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center">
-                <MaterialIcon icon="restore" className="text-gray-600" />
-              </div>
-              <div>
-                <h3 className="font-bold text-gray-900">Restore Draft?</h3>
-                <p className="text-sm text-gray-500">
-                  You have an unsaved homework form
-                </p>
-              </div>
-            </div>
-            <p className="text-sm text-gray-500 mb-6">
-              Would you like to restore your previous draft?
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={homeworkDraft.discardDraft}
-                className="flex-1 py-3 bg-gray-100 font-semibold rounded-xl text-gray-600"
-              >
-                Discard
-              </button>
-              <button
-                onClick={() => {
-                  setNewHomework(
-                    homeworkDraft.savedDraft as typeof newHomework,
-                  );
-                  homeworkDraft.restoreDraft();
-                }}
-                className="flex-1 py-3 bg-gray-900 text-white font-semibold rounded-xl"
-              >
-                Restore
-              </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <ConfirmDialog
-        isOpen={confirmOpen}
-        onClose={() => setConfirmOpen(false)}
-        onConfirm={() => {
-          setConfirmOpen(false);
-          pendingAction?.();
-        }}
-        title="Delete Homework"
-        message="Delete this homework assignment?"
-        variant="danger"
-      />
-    </div>
+        <ConfirmDialog
+          isOpen={confirmOpen}
+          onClose={() => setConfirmOpen(false)}
+          onConfirm={() => {
+            setConfirmOpen(false);
+            pendingAction?.();
+          }}
+          title="Delete Homework"
+          message="Delete this homework assignment?"
+          variant="danger"
+        />
+      </div>
     </PageErrorBoundary>
   );
 }

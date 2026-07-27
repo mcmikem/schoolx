@@ -67,16 +67,10 @@ export default function MessageAutomation({
                   <div
                     className={`p-3 rounded-2xl ${trigger.is_active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}
                   >
-                    <MaterialIcon>
-                      {trigger.event_type === "fee_overdue"
-                        ? "payments"
-                        : "person_off"}
-                    </MaterialIcon>
+                    <MaterialIcon>{trigger.event_type === "fee_overdue" ? "payments" : "person_off"}</MaterialIcon>
                   </div>
                   <button
-                    onClick={() =>
-                      onToggleTrigger(trigger.id, trigger.is_active)
-                    }
+                    onClick={() => onToggleTrigger(trigger.id, trigger.is_active)}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${trigger.is_active ? "bg-green-600" : "bg-gray-300"}`}
                   >
                     <span
@@ -86,9 +80,7 @@ export default function MessageAutomation({
                 </div>
                 <div className="space-y-4">
                   <div>
-                    <h3 className="text-lg font-bold text-[var(--t1)]">
-                      {trigger.name}
-                    </h3>
+                    <h3 className="text-lg font-bold text-[var(--t1)]">{trigger.name}</h3>
                     <p className="text-xs text-[var(--t3)] uppercase tracking-widest">
                       {trigger.event_type.replace("_", " ")}
                     </p>
@@ -101,30 +93,18 @@ export default function MessageAutomation({
                   </div>
                   <div className="pt-4 border-t border-[var(--border)] flex items-center justify-between">
                     <p className="text-[10px] text-[var(--t3)] italic">
-                      Last run:{" "}
-                      {trigger.last_run_at
-                        ? new Date(trigger.last_run_at).toLocaleDateString()
-                        : "Never"}
+                      Last run: {trigger.last_run_at ? new Date(trigger.last_run_at).toLocaleDateString() : "Never"}
                     </p>
                     <div className="flex items-center gap-2">
                       <Button
                         variant="ghost"
                         size="sm"
-                        disabled={
-                          runningTriggerId === trigger.id ||
-                          !trigger.is_active
-                        }
+                        disabled={runningTriggerId === trigger.id || !trigger.is_active}
                         onClick={() => onRunTrigger(trigger.id)}
                       >
-                        {runningTriggerId === trigger.id
-                          ? "Running..."
-                          : "Run Now"}
+                        {runningTriggerId === trigger.id ? "Running..." : "Run Now"}
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onOpenEditRule(trigger)}
-                      >
+                      <Button variant="ghost" size="sm" onClick={() => onOpenEditRule(trigger)}>
                         Edit Rule
                       </Button>
                     </div>
@@ -139,26 +119,20 @@ export default function MessageAutomation({
               <div className="w-12 h-12 rounded-full bg-[var(--surface-container)] flex items-center justify-center text-[var(--t3)] group-hover:text-blue-500 group-hover:bg-blue-100 transition-all">
                 <MaterialIcon>add</MaterialIcon>
               </div>
-              <p className="text-sm font-medium text-[var(--t3)] group-hover:text-[var(--t2)]">
-                New Automation Rule
-              </p>
+              <p className="text-sm font-medium text-[var(--t3)] group-hover:text-[var(--t2)]">New Automation Rule</p>
             </button>
           </div>
 
           <Card className="p-6">
             <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
-              <div className="text-sm font-semibold text-amber-900">
-                Attendance trigger preview
-              </div>
+              <div className="text-sm font-semibold text-amber-900">Attendance trigger preview</div>
               <div className="mt-1 text-sm text-amber-800">
                 {absencePreview.count} student
-                {absencePreview.count === 1 ? "" : "s"} currently meet the{" "}
-                {absencePreview.threshold}-day consecutive absence threshold.
+                {absencePreview.count === 1 ? "" : "s"} currently meet the {absencePreview.threshold}-day consecutive
+                absence threshold.
               </div>
             </div>
-            <h2 className="text-xl font-bold text-[var(--t1)] mb-6">
-              Automation Logs
-            </h2>
+            <h2 className="text-xl font-bold text-[var(--t1)] mb-6">Automation Logs</h2>
             <div className="space-y-3">
               {automationLogs.length === 0 ? (
                 <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-container)] p-4 text-sm text-[var(--t3)]">
@@ -177,14 +151,10 @@ export default function MessageAutomation({
                       <div>
                         <p className="text-sm font-medium text-[var(--t1)]">
                           {log.sms_triggers?.name || "Automation Rule"}{" "}
-                          {log.status === "sent"
-                            ? "processed successfully"
-                            : "failed"}
+                          {log.status === "sent" ? "processed successfully" : "failed"}
                         </p>
                         <p className="text-[10px] text-[var(--t3)]">
-                          {new Date(
-                            log.sent_at || log.created_at,
-                          ).toLocaleString()}
+                          {new Date(log.sent_at || log.created_at).toLocaleString()}
                         </p>
                       </div>
                     </div>
@@ -209,23 +179,17 @@ export default function MessageAutomation({
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-lg font-semibold text-[var(--t1)] mb-4">
-              {editingTrigger
-                ? "Edit Automation Rule"
-                : "Create Automation Rule"}
+              {editingTrigger ? "Edit Automation Rule" : "Create Automation Rule"}
             </h2>
             <form className="space-y-4" onSubmit={onSaveRule}>
               <Input
                 label="Rule Name"
                 value={ruleForm.name}
-                onChange={(e) =>
-                  onRuleFormChange({ ...ruleForm, name: e.target.value })
-                }
+                onChange={(e) => onRuleFormChange({ ...ruleForm, name: e.target.value })}
                 required
               />
               <div>
-                <label className="block text-sm font-medium text-[var(--on-surface)] mb-2">
-                  Trigger Event
-                </label>
+                <label className="block text-sm font-medium text-[var(--on-surface)] mb-2">Trigger Event</label>
                 <select
                   value={ruleForm.event_type}
                   disabled={Boolean(editingTrigger)}
@@ -244,6 +208,7 @@ export default function MessageAutomation({
               <Input
                 label="Threshold Days"
                 type="number"
+                inputMode="numeric"
                 min={0}
                 value={String(ruleForm.threshold_days)}
                 onChange={(e) =>
@@ -276,13 +241,16 @@ export default function MessageAutomation({
                 >
                   Cancel
                 </Button>
-                <Button type="submit" className="flex-1" loading={savingRule} disabled={savingRule || Boolean(ruleValidationError)}>
+                <Button
+                  type="submit"
+                  className="flex-1"
+                  loading={savingRule}
+                  disabled={savingRule || Boolean(ruleValidationError)}
+                >
                   Save Rule
                 </Button>
               </div>
-              {ruleValidationError && (
-                <p className="text-sm text-[var(--t3)]">{ruleValidationError}</p>
-              )}
+              {ruleValidationError && <p className="text-sm text-[var(--t3)]">{ruleValidationError}</p>}
             </form>
           </Card>
         </div>

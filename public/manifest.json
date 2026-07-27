@@ -67,7 +67,22 @@
       "icons": [{ "src": "/icons/icon-192x192.png", "sizes": "192x192" }]
     }
   ],
-  "screenshots": [],
+  "screenshots": [
+    {
+      "src": "/icons/screenshot-1280x720.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "SkoolMate OS Dashboard overview with attendance, fees, and student analytics"
+    },
+    {
+      "src": "/icons/screenshot-720x1280.png",
+      "sizes": "720x1280",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Student attendance tracking and grade management on mobile"
+    }
+  ],
   "related_applications": [],
   "prefer_related_applications": false,
   "launch_handler": {

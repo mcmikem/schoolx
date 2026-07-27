@@ -44,11 +44,8 @@ export default function HomePage() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [headlineIndex, setHeadlineIndex] = useState(0);
-  const [installPrompt, setInstallPrompt] =
-    useState<BeforeInstallPromptEvent | null>(null);
-  const [deviceTarget, setDeviceTarget] = useState<DownloadTarget>(
-    DEFAULT_DEVICE_TARGET,
-  );
+  const [installPrompt, setInstallPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [deviceTarget, setDeviceTarget] = useState<DownloadTarget>(DEFAULT_DEVICE_TARGET);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showIosModal, setShowIosModal] = useState(false);
 
@@ -57,13 +54,11 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    const isCapacitor =
-      typeof window !== "undefined" && (window as any).Capacitor?.isNative;
+    const isCapacitor = typeof window !== "undefined" && (window as any).Capacitor?.isNative;
     const isStandalone =
       typeof window !== "undefined" &&
       (window.matchMedia("(display-mode: standalone)").matches ||
-        (window.navigator as Navigator & { standalone?: boolean }).standalone ===
-          true);
+        (window.navigator as Navigator & { standalone?: boolean }).standalone === true);
     if (isCapacitor || isStandalone) {
       router.replace("/login");
     }
@@ -88,8 +83,7 @@ export default function HomePage() {
       key: "browser",
       label: "Install on this device",
       icon: "install_desktop",
-      helper:
-        "Install SkoolMate from your browser for fast access on supported desktop and mobile devices.",
+      helper: "Install SkoolMate from your browser for fast access on supported desktop and mobile devices.",
       badge: "Browser install",
       useInstallPrompt: true,
     };
@@ -102,8 +96,7 @@ export default function HomePage() {
             href: ANDROID_APP_URL,
             label: "Get Android app",
             icon: "android",
-            helper:
-              "Download the Android APK directly to your phone or tablet.",
+            helper: "Download the Android APK directly to your phone or tablet.",
             badge: "Android APK",
           };
         }
@@ -138,8 +131,7 @@ export default function HomePage() {
           href: "/login",
           label: "Open on iPhone or iPad",
           icon: "phone_iphone",
-          helper:
-            "On iPhone or iPad, open the web app in Safari and use Share > Add to Home Screen.",
+          helper: "On iPhone or iPad, open the web app in Safari and use Share > Add to Home Screen.",
           badge: "Safari install",
         };
       }
@@ -147,24 +139,7 @@ export default function HomePage() {
       return installFromBrowser;
     };
 
-    const handleBeforeInstallPrompt = (event: Event) => {
-      event.preventDefault();
-      setInstallPrompt(event as BeforeInstallPromptEvent);
-      setDeviceTarget((current) => {
-        if (current.href && current.href !== "/login") return current;
-        return installFromBrowser;
-      });
-    };
-
     setDeviceTarget(nextTarget());
-    window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-
-    return () => {
-      window.removeEventListener(
-        "beforeinstallprompt",
-        handleBeforeInstallPrompt,
-      );
-    };
   }, []);
 
   const handleInstallApp = async () => {
@@ -189,10 +164,7 @@ export default function HomePage() {
 
   return (
     <PageErrorBoundary>
-      <main
-        className="min-h-screen bg-[var(--bg)] text-[var(--t1)]"
-        id="main-content"
-      >
+      <main className="min-h-screen bg-[var(--bg)] text-[var(--t1)]" id="main-content">
         {/* ===== HERO ===== */}
         <section className="relative overflow-hidden">
           <div className="absolute inset-x-0 top-0 h-[620px] bg-[radial-gradient(circle_at_top_left,_rgba(23,50,95,0.13),_transparent_42%),radial-gradient(circle_at_top_right,_rgba(46,148,72,0.10),_transparent_38%),linear-gradient(180deg,_#ffffff_0%,_var(--bg)_72%)]" />
@@ -204,51 +176,30 @@ export default function HomePage() {
             <nav className="flex items-center justify-between rounded-full border border-white/70 bg-white/80 px-4 py-3 shadow-[0_8px_30px_rgba(15,23,42,0.06)] backdrop-blur sm:px-6">
               <SkoolMateLogo size="md" variant="default" />
               <div className="hidden items-center gap-8 text-sm font-medium text-slate-600 md:flex">
-                <button
-                  onClick={() => smoothScroll("#features")}
-                  className="transition hover:text-slate-950 cursor-pointer"
-                >
+                <Link href="/features" className="transition hover:text-slate-950">
                   Features
-                </button>
-                <button
-                  onClick={() => smoothScroll("#how-it-works")}
-                  className="transition hover:text-slate-950 cursor-pointer"
-                >
-                  How it works
-                </button>
-                <button
-                  onClick={() => smoothScroll("#story")}
-                  className="transition hover:text-slate-950 cursor-pointer"
-                >
-                  Story
-                </button>
-                <button
-                  onClick={() => smoothScroll("#security")}
-                  className="transition hover:text-slate-950 cursor-pointer"
-                >
-                  Security
-                </button>
-                <button
-                  onClick={() => smoothScroll("#pricing")}
-                  className="transition hover:text-slate-950 cursor-pointer"
-                >
+                </Link>
+                <Link href="/pricing" className="transition hover:text-slate-950">
                   Pricing
-                </button>
-                <button
-                  onClick={() => smoothScroll("#faq")}
-                  className="transition hover:text-slate-950 cursor-pointer"
-                >
-                  FAQ
-                </button>
+                </Link>
+                <Link href="/demo" className="transition hover:text-slate-950">
+                  Demo
+                </Link>
+                <Link href="/blog" className="transition hover:text-slate-950">
+                  Blog
+                </Link>
+                <Link href="/about" className="transition hover:text-slate-950">
+                  About
+                </Link>
+                <Link href="/contact" className="transition hover:text-slate-950">
+                  Contact
+                </Link>
               </div>
               <div className="flex items-center gap-2 sm:gap-3">
                 <Link href="/login" className="btn btn-secondary btn-sm">
                   Sign in
                 </Link>
-                <Link
-                  href="/register"
-                  className="btn btn-primary btn-sm hidden sm:inline-flex"
-                >
+                <Link href="/register" className="btn btn-primary btn-sm hidden sm:inline-flex">
                   Start free trial
                 </Link>
                 <button
@@ -257,9 +208,7 @@ export default function HomePage() {
                   aria-expanded={mobileMenuOpen}
                   onClick={() => setMobileMenuOpen((prev) => !prev)}
                 >
-                  <span className="material-symbols-outlined text-[20px]">
-                    {mobileMenuOpen ? "close" : "menu"}
-                  </span>
+                  <span className="material-symbols-outlined text-[20px]">{mobileMenuOpen ? "close" : "menu"}</span>
                 </button>
               </div>
             </nav>
@@ -268,26 +217,48 @@ export default function HomePage() {
             {mobileMenuOpen && (
               <div className="md:hidden fixed left-4 right-4 top-[72px] z-50 rounded-[24px] border border-white/70 bg-white/96 shadow-[0_16px_48px_rgba(15,23,42,0.12)] backdrop-blur p-4">
                 <div className="flex flex-col gap-1">
-                  {[
-                    { label: "Features", id: "#features" },
-                    { label: "How it works", id: "#how-it-works" },
-                    { label: "Install", id: "#install" },
-                    { label: "Story", id: "#story" },
-                    { label: "Security", id: "#security" },
-                    { label: "Pricing", id: "#pricing" },
-                    { label: "FAQ", id: "#faq" },
-                  ].map((item) => (
-                    <button
-                      key={item.label}
-                      onClick={() => {
-                        smoothScroll(item.id);
-                        setMobileMenuOpen(false);
-                      }}
-                      className="w-full text-left px-4 py-3 rounded-[16px] text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
-                    >
-                      {item.label}
-                    </button>
-                  ))}
+                  <Link
+                    href="/features"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full text-left px-4 py-3 rounded-[16px] text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
+                  >
+                    Features
+                  </Link>
+                  <Link
+                    href="/pricing"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full text-left px-4 py-3 rounded-[16px] text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
+                  >
+                    Pricing
+                  </Link>
+                  <Link
+                    href="/demo"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full text-left px-4 py-3 rounded-[16px] text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
+                  >
+                    Request Demo
+                  </Link>
+                  <Link
+                    href="/blog"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full text-left px-4 py-3 rounded-[16px] text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
+                  >
+                    Blog
+                  </Link>
+                  <Link
+                    href="/about"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full text-left px-4 py-3 rounded-[16px] text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
+                  >
+                    About
+                  </Link>
+                  <Link
+                    href="/contact"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="w-full text-left px-4 py-3 rounded-[16px] text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
+                  >
+                    Contact
+                  </Link>
                   <div className="mt-2 pt-3 border-t border-slate-100">
                     <Link
                       href="/register"
@@ -315,33 +286,22 @@ export default function HomePage() {
                   Admissions, attendance, fees, reports, and parent follow-up
                 </div>
                 <h1 className="mt-6 font-['Sora'] text-5xl font-semibold tracking-[-0.05em] text-[var(--t1)] sm:text-6xl lg:text-7xl">
-                  <span
-                    className="block leading-none overflow-hidden"
-                    style={{ minHeight: "1.1em" }}
-                  >
-                    <span
-                      key={headlineIndex}
-                      className="animate-fade-in block leading-none"
-                    >
+                  <span className="block leading-none overflow-hidden" style={{ minHeight: "1.1em" }}>
+                    <span key={headlineIndex} className="animate-fade-in block leading-none">
                       {HEADLINES[headlineIndex]}
                     </span>
                   </span>
                   <span className="block leading-tight mt-2">
-                    with <span className="text-[var(--green)]">all-in-one</span>{" "}
-                    school management.
+                    with <span className="text-[var(--green)]">all-in-one</span> school management.
                   </span>
                 </h1>
                 <p className="mt-6 max-w-xl text-lg leading-8 text-[var(--t2)] sm:text-xl">
-                  Handle attendance, fees, marks, and parent messages — all in
-                  one place. Built for Ugandan schools. Works even without
-                  internet.
+                  Handle attendance, fees, marks, and parent messages — all in one place. Built for Ugandan schools.
+                  Works even without internet.
                 </p>
 
                 <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                  <Link
-                    href="/register"
-                    className="btn btn-primary px-7 py-4 text-base"
-                  >
+                  <Link href="/register" className="btn btn-primary px-7 py-4 text-base">
                     Start 30-day free trial
                   </Link>
                   {mounted &&
@@ -350,10 +310,7 @@ export default function HomePage() {
                         href={deviceTarget.href}
                         className="btn btn-secondary px-7 py-4 text-base flex items-center gap-3"
                       >
-                        <MaterialIcon
-                          icon={deviceTarget.icon}
-                          className="text-[22px]"
-                        />
+                        <MaterialIcon icon={deviceTarget.icon} className="text-[22px]" />
                         {deviceTarget.label}
                       </Link>
                     ) : (
@@ -361,10 +318,7 @@ export default function HomePage() {
                         className="btn btn-secondary px-7 py-4 text-base flex items-center gap-3"
                         onClick={handleInstallApp}
                       >
-                        <MaterialIcon
-                          icon={deviceTarget.icon}
-                          className="text-[22px]"
-                        />
+                        <MaterialIcon icon={deviceTarget.icon} className="text-[22px]" />
                         {deviceTarget.label}
                       </button>
                     ))}
@@ -376,10 +330,7 @@ export default function HomePage() {
                       key={badge.label}
                       className="flex items-center gap-1.5 text-[11px] font-medium text-[var(--t3)]"
                     >
-                      <MaterialIcon
-                        icon={badge.icon}
-                        className="text-[14px] text-[var(--green)]"
-                      />
+                      <MaterialIcon icon={badge.icon} className="text-[14px] text-[var(--green)]" />
                       {badge.label}
                     </div>
                   ))}
@@ -397,16 +348,9 @@ export default function HomePage() {
                       ["Fee follow-up", "426 parents queued"],
                       ["Candidate review", "S.4 report cards ready"],
                     ].map(([label, note]) => (
-                      <div
-                        key={label}
-                        className="rounded-[20px] bg-slate-50 p-3 ring-1 ring-slate-200"
-                      >
-                        <p className="text-sm font-semibold text-slate-900">
-                          {label}
-                        </p>
-                        <p className="mt-1 text-xs leading-5 text-slate-500">
-                          {note}
-                        </p>
+                      <div key={label} className="rounded-[20px] bg-slate-50 p-3 ring-1 ring-slate-200">
+                        <p className="text-sm font-semibold text-slate-900">{label}</p>
+                        <p className="mt-1 text-xs leading-5 text-slate-500">{note}</p>
                       </div>
                     ))}
                   </div>
@@ -421,9 +365,7 @@ export default function HomePage() {
                   <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--primary)]">
                     From registers to reports
                   </p>
-                  <p className="mt-1 text-sm font-semibold text-[var(--t1)]">
-                    One flow, one view, one calmer morning.
-                  </p>
+                  <p className="mt-1 text-sm font-semibold text-[var(--t1)]">One flow, one view, one calmer morning.</p>
                 </div>
               </div>
             </div>
@@ -437,9 +379,7 @@ export default function HomePage() {
         <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
           <FadeIn>
             <div className="text-center mb-10">
-              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">
-                Get started in 3 steps
-              </p>
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">Get started in 3 steps</p>
               <h2 className="mt-3 font-['Sora'] text-2xl font-semibold text-slate-950 sm:text-3xl">
                 From signup to running your school
               </h2>
@@ -473,9 +413,7 @@ export default function HomePage() {
                     <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#eaf4ed] text-[#2E9448] mx-auto mt-2">
                       <MaterialIcon icon={item.icon} className="text-[26px]" />
                     </div>
-                    <h3 className="mt-4 text-base font-semibold text-slate-900">
-                      {item.title}
-                    </h3>
+                    <h3 className="mt-4 text-base font-semibold text-slate-900">{item.title}</h3>
                     <p className="mt-2 text-sm text-slate-600">{item.desc}</p>
                   </div>
                 </FadeIn>
@@ -502,8 +440,8 @@ export default function HomePage() {
                 <span className="text-[#2E9448]">fully interactive</span>
               </h2>
               <p className="mx-auto mt-4 max-w-2xl text-center text-lg text-slate-600">
-                Click through the tabs below. This is exactly what you and your
-                staff will see every morning — no sign-up required.
+                Click through the tabs below. This is exactly what you and your staff will see every morning — no
+                sign-up required.
               </p>
             </FadeIn>
             <div className="mt-10 max-w-5xl mx-auto">
@@ -511,13 +449,8 @@ export default function HomePage() {
             </div>
             <FadeIn delay={200}>
               <div className="mt-10 text-center">
-                <p className="text-sm text-slate-500 mb-4">
-                  No catch. No credit card. Start your 30-day free trial.
-                </p>
-                <Link
-                  href="/register"
-                  className="btn btn-primary px-8 py-4 text-base inline-flex items-center gap-2"
-                >
+                <p className="text-sm text-slate-500 mb-4">No catch. No credit card. Start your 30-day free trial.</p>
+                <Link href="/register" className="btn btn-primary px-8 py-4 text-base inline-flex items-center gap-2">
                   Start free trial
                   <MaterialIcon icon="arrow_forward" className="text-lg" />
                 </Link>
@@ -533,10 +466,7 @@ export default function HomePage() {
         <DayTimeline />
 
         {/* ===== STORY ===== */}
-        <section
-          id="story"
-          className="mx-auto max-w-7xl px-4 py-18 sm:px-6 lg:px-8 lg:py-24"
-        >
+        <section id="story" className="mx-auto max-w-7xl px-4 py-18 sm:px-6 lg:px-8 lg:py-24">
           <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
             <FadeIn>
               <div className="rounded-[34px] bg-[#0f1f3d] p-7 text-white shadow-[0_24px_60px_rgba(15,23,42,0.16)] lg:p-8">
@@ -544,21 +474,16 @@ export default function HomePage() {
                   The story behind SkoolMate OS
                 </p>
                 <h2 className="mt-4 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] sm:text-4xl">
-                  It did not start as an idea. It started with what schools kept
-                  carrying every day.
+                  It did not start as an idea. It started with what schools kept carrying every day.
                 </h2>
                 <p className="mt-5 text-base leading-7 text-white/76">
-                  At Omuto Foundation, the work has been close enough to schools
-                  to see the real picture, not an abstract one. The issue was
-                  never that people were not trying. The issue was that the
-                  system around them kept slowing the work down.
+                  At Omuto Foundation, the work has been close enough to schools to see the real picture, not an
+                  abstract one. The issue was never that people were not trying. The issue was that the system around
+                  them kept slowing the work down.
                 </p>
                 <div className="mt-8 grid gap-3">
                   {storyMoments.map((item) => (
-                    <div
-                      key={item}
-                      className="story-card rounded-[22px] border border-white/10 bg-white/6 px-4 py-4"
-                    >
+                    <div key={item} className="story-card rounded-[22px] border border-white/10 bg-white/6 px-4 py-4">
                       <p className="text-sm leading-6 text-white/82">{item}</p>
                     </div>
                   ))}
@@ -576,11 +501,9 @@ export default function HomePage() {
                     Schools do not need more pressure. They need better tools.
                   </h3>
                   <p className="mt-4 text-base leading-7 text-slate-600">
-                    SkoolMate OS was built to match the real flow of school
-                    life: attendance, marks, fees, communication, and
-                    decision-making in one place. Not another generic system. A
-                    calmer operating layer for schools that are already working
-                    hard.
+                    SkoolMate OS was built to match the real flow of school life: attendance, marks, fees,
+                    communication, and decision-making in one place. Not another generic system. A calmer operating
+                    layer for schools that are already working hard.
                   </p>
                 </div>
               </FadeIn>
@@ -590,14 +513,9 @@ export default function HomePage() {
                   <FadeIn key={item.label} delay={i * 100}>
                     <div className="story-card rounded-[28px] border border-slate-200 bg-[#f8fbff] p-5 shadow-sm h-full">
                       <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#17325F]/8 text-[#17325F]">
-                        <MaterialIcon
-                          icon={item.icon}
-                          className="text-[20px]"
-                        />
+                        <MaterialIcon icon={item.icon} className="text-[20px]" />
                       </div>
-                      <p className="mt-4 text-base font-semibold leading-7 text-slate-900">
-                        {item.label}
-                      </p>
+                      <p className="mt-4 text-base font-semibold leading-7 text-slate-900">{item.label}</p>
                     </div>
                   </FadeIn>
                 ))}
@@ -609,11 +527,9 @@ export default function HomePage() {
                     What changes when the system runs well
                   </p>
                   <p className="mt-4 text-base leading-7 text-slate-600">
-                    Teachers get more time to focus on students. Leaders can see
-                    what is working and what is not. Parents stay informed.
-                    Students are noticed early instead of slipping through the
-                    cracks. The X in SkoolMate OS stands for Xperience, because
-                    this system comes from what has been seen, learned, and
+                    Teachers get more time to focus on students. Leaders can see what is working and what is not.
+                    Parents stay informed. Students are noticed early instead of slipping through the cracks. The X in
+                    SkoolMate OS stands for Xperience, because this system comes from what has been seen, learned, and
                     asked for in the field.
                   </p>
                 </div>
@@ -627,17 +543,14 @@ export default function HomePage() {
           <FadeIn>
             <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
               <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">
-                  Inside the platform
-                </p>
+                <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">Inside the platform</p>
                 <h2 className="mt-4 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] text-slate-950 sm:text-4xl">
                   Every major school unit connected in one system.
                 </h2>
                 <p className="mt-5 max-w-xl text-lg leading-8 text-slate-600">
-                  From academics to administration, SkoolMate OS is designed to
-                  reduce duplicate work. Enter data once, then reuse it across
-                  report cards, parent communication, financial follow-up, UNEB
-                  prep, and board reporting.
+                  From academics to administration, SkoolMate OS is designed to reduce duplicate work. Enter data once,
+                  then reuse it across report cards, parent communication, financial follow-up, UNEB prep, and board
+                  reporting.
                 </p>
               </div>
 
@@ -647,14 +560,9 @@ export default function HomePage() {
                     <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-4 shadow-sm hover:shadow-md hover:border-[#2E9448]/30 transition-all cursor-default">
                       <div className="flex items-center gap-3">
                         <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#eaf4ed] text-[#2E9448]">
-                          <MaterialIcon
-                            icon={module.icon}
-                            className="text-[20px]"
-                          />
+                          <MaterialIcon icon={module.icon} className="text-[20px]" />
                         </div>
-                        <p className="text-sm font-semibold text-slate-800">
-                          {module.label}
-                        </p>
+                        <p className="text-sm font-semibold text-slate-800">{module.label}</p>
                       </div>
                     </div>
                   </FadeIn>
@@ -668,9 +576,7 @@ export default function HomePage() {
         <section id="install" className="mx-auto max-w-7xl px-4 py-18 sm:px-6 lg:px-8 lg:py-24">
           <FadeIn>
             <div className="text-center mb-10">
-              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">
-                Install on any device
-              </p>
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">Install on any device</p>
               <h2 className="mt-3 font-['Sora'] text-2xl font-semibold text-slate-950 sm:text-3xl">
                 Use SkoolMate OS everywhere
               </h2>
@@ -705,9 +611,7 @@ export default function HomePage() {
                 {
                   icon: "laptop_mac",
                   platform: "Mac",
-                  desc: MAC_APP_URL
-                    ? "Download the macOS desktop build."
-                    : "Use Chrome address bar install icon.",
+                  desc: MAC_APP_URL ? "Download the macOS desktop build." : "Use Chrome address bar install icon.",
                   color: "bg-slate-100 text-slate-700",
                 },
               ].map((item, i) => (
@@ -716,12 +620,8 @@ export default function HomePage() {
                     <div className={`flex h-11 w-11 items-center justify-center rounded-2xl ${item.color}`}>
                       <MaterialIcon icon={item.icon} className="text-[22px]" />
                     </div>
-                    <p className="mt-4 text-sm font-semibold text-slate-900">
-                      {item.platform}
-                    </p>
-                    <p className="mt-1 text-xs text-slate-500 leading-5">
-                      {item.desc}
-                    </p>
+                    <p className="mt-4 text-sm font-semibold text-slate-900">{item.platform}</p>
+                    <p className="mt-1 text-xs text-slate-500 leading-5">{item.desc}</p>
                   </div>
                 </FadeIn>
               ))}
@@ -739,14 +639,12 @@ export default function HomePage() {
                     SkoolMate OS and OSX
                   </p>
                   <h2 className="mt-4 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] text-slate-950 sm:text-4xl">
-                    SkoolMate OS is the system layer inside the wider SkoolMate
-                    School Xperience.
+                    SkoolMate OS is the system layer inside the wider SkoolMate School Xperience.
                   </h2>
                   <p className="mt-5 max-w-xl text-lg leading-8 text-slate-600">
-                    OSX is the broader transformation model. SkoolMate OS is the
-                    layer that helps that transformation hold, because progress
-                    is hard to sustain when the underlying school systems stay
-                    scattered and manual.
+                    OSX is the broader transformation model. SkoolMate OS is the layer that helps that transformation
+                    hold, because progress is hard to sustain when the underlying school systems stay scattered and
+                    manual.
                   </p>
                 </div>
 
@@ -754,29 +652,21 @@ export default function HomePage() {
                   <div className="rounded-[32px] border border-slate-200 bg-[#f7f9fc] p-6 shadow-sm lg:p-8">
                     <div className="grid gap-4 md:grid-cols-2">
                       <div className="rounded-[24px] bg-white p-5 ring-1 ring-slate-200 hover:shadow-md transition-shadow">
-                        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">
-                          OSX
-                        </p>
+                        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">OSX</p>
                         <p className="mt-3 text-xl font-semibold tracking-tight text-slate-950">
                           Drives transformation
                         </p>
                         <p className="mt-3 text-sm leading-6 text-slate-600">
-                          Leadership, student engagement, accountability, and a
-                          culture where schools do not just operate, but
-                          perform.
+                          Leadership, student engagement, accountability, and a culture where schools do not just
+                          operate, but perform.
                         </p>
                       </div>
                       <div className="rounded-[24px] bg-[#17325F] p-5 text-white hover:shadow-lg transition-shadow">
-                        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/60">
-                          SkoolMate OS
-                        </p>
-                        <p className="mt-3 text-xl font-semibold tracking-tight">
-                          Sustains it daily
-                        </p>
+                        <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/60">SkoolMate OS</p>
+                        <p className="mt-3 text-xl font-semibold tracking-tight">Sustains it daily</p>
                         <p className="mt-3 text-sm leading-6 text-white/76">
-                          Attendance, academics, fees, communication, and
-                          operational visibility working in one reliable school
-                          workflow.
+                          Attendance, academics, fees, communication, and operational visibility working in one reliable
+                          school workflow.
                         </p>
                       </div>
                     </div>
@@ -786,28 +676,19 @@ export default function HomePage() {
                     <FadeIn key={item} delay={i * 100}>
                       <div className="story-card flex items-start gap-3 rounded-[26px] border border-slate-200 bg-white px-5 py-4 shadow-sm hover:shadow-md transition-shadow">
                         <div className="mt-1 flex h-10 w-10 items-center justify-center rounded-2xl bg-[#eaf4ed] text-[#2E9448] flex-shrink-0">
-                          <MaterialIcon
-                            icon="north_east"
-                            className="text-[18px]"
-                          />
+                          <MaterialIcon icon="north_east" className="text-[18px]" />
                         </div>
-                        <p className="text-sm leading-6 text-slate-700">
-                          {item}
-                        </p>
+                        <p className="text-sm leading-6 text-slate-700">{item}</p>
                       </div>
                     </FadeIn>
                   ))}
 
                   <div className="rounded-[30px] border border-[#d7e4fb] bg-[linear-gradient(180deg,#f8fbff_0%,#eef5ff_100%)] p-6">
-                    <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">
-                      The result
-                    </p>
+                    <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">The result</p>
                     <p className="mt-4 text-base leading-7 text-slate-700">
-                      Together, OSX drives the transformation and SkoolMate OS
-                      makes it visible, usable, and measurable. That is the
-                      complete school experience: organised systems, informed
-                      decisions, earlier support, and progress that leaders can
-                      actually track.
+                      Together, OSX drives the transformation and SkoolMate OS makes it visible, usable, and measurable.
+                      That is the complete school experience: organised systems, informed decisions, earlier support,
+                      and progress that leaders can actually track.
                     </p>
                   </div>
                 </div>
@@ -817,10 +698,7 @@ export default function HomePage() {
         </section>
 
         {/* ===== SECURITY & DATA PROTECTION ===== */}
-        <section
-          id="security"
-          className="mx-auto max-w-7xl px-4 py-18 sm:px-6 lg:px-8 lg:py-24"
-        >
+        <section id="security" className="mx-auto max-w-7xl px-4 py-18 sm:px-6 lg:px-8 lg:py-24">
           <FadeIn>
             <div className="text-center mb-14">
               <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">
@@ -830,8 +708,8 @@ export default function HomePage() {
                 Your school data is safe with us.
               </h2>
               <p className="mt-5 max-w-2xl mx-auto text-lg leading-8 text-slate-600">
-                Student records, grades, and financial data are sensitive. Here
-                is exactly how we protect your school — in plain language.
+                Student records, grades, and financial data are sensitive. Here is exactly how we protect your school —
+                in plain language.
               </p>
             </div>
           </FadeIn>
@@ -843,12 +721,8 @@ export default function HomePage() {
                   <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#eaf4ed] text-[#2E9448]">
                     <MaterialIcon icon={feature.icon} className="text-[24px]" />
                   </div>
-                  <h3 className="mt-4 text-lg font-semibold text-slate-900">
-                    {feature.title}
-                  </h3>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">
-                    {feature.desc}
-                  </p>
+                  <h3 className="mt-4 text-lg font-semibold text-slate-900">{feature.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">{feature.desc}</p>
                 </div>
               </FadeIn>
             ))}
@@ -856,25 +730,19 @@ export default function HomePage() {
         </section>
 
         {/* ===== PRICING ===== */}
-        <section
-          id="pricing"
-          className="relative bg-[#0d1930] py-18 text-white lg:py-24"
-        >
+        <section id="pricing" className="relative bg-[#0d1930] py-18 text-white lg:py-24">
           <div className="absolute top-8 left-8 opacity-30">
             <AnimatedLogo type="logo_white" className="w-16 h-16" />
           </div>
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <FadeIn>
               <div className="max-w-2xl">
-                <p className="text-sm font-semibold uppercase tracking-[0.24em] text-white/60">
-                  Pricing
-                </p>
+                <p className="text-sm font-semibold uppercase tracking-[0.24em] text-white/60">Pricing</p>
                 <h2 className="mt-4 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] sm:text-4xl">
                   Clear pricing. No hidden fees.
                 </h2>
                 <p className="mt-5 text-lg leading-8 text-white/72">
-                  Per-student pricing that scales with your school. Start free,
-                  upgrade when ready.
+                  Per-student pricing that scales with your school. Start free, upgrade when ready.
                 </p>
                 <div className="mt-6">
                   <button
@@ -898,9 +766,7 @@ export default function HomePage() {
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <p
-                        className={`text-lg font-semibold ${plan.featured ? "text-slate-950" : "text-white"}`}
-                      >
+                      <p className={`text-lg font-semibold ${plan.featured ? "text-slate-950" : "text-white"}`}>
                         {plan.name}
                       </p>
                       {plan.featured && (
@@ -914,14 +780,10 @@ export default function HomePage() {
                     >
                       {plan.price}
                     </p>
-                    <p
-                      className={`mt-1 text-sm ${plan.featured ? "text-slate-500" : "text-white/60"}`}
-                    >
+                    <p className={`mt-1 text-sm ${plan.featured ? "text-slate-500" : "text-white/60"}`}>
                       {plan.cadence}
                     </p>
-                    <p
-                      className={`mt-1 text-xs ${plan.featured ? "text-slate-400" : "text-white/50"}`}
-                    >
+                    <p className={`mt-1 text-xs ${plan.featured ? "text-slate-400" : "text-white/50"}`}>
                       {plan.contrastLabel}
                     </p>
                     <p
@@ -930,7 +792,9 @@ export default function HomePage() {
                       {plan.bestFor}
                     </p>
                     <div className="mt-6 space-y-3 flex-1">
-                      <p className={`text-xs font-semibold uppercase tracking-wider ${plan.featured ? "text-slate-500" : "text-white/60"}`}>
+                      <p
+                        className={`text-xs font-semibold uppercase tracking-wider ${plan.featured ? "text-slate-500" : "text-white/60"}`}
+                      >
                         What's included
                       </p>
                       {plan.features.map((feature) => (
@@ -939,17 +803,15 @@ export default function HomePage() {
                             icon="check"
                             className={`mt-0.5 text-[18px] ${plan.featured ? "text-[#2E9448]" : "text-white"}`}
                           />
-                          <p
-                            className={`text-sm ${plan.featured ? "text-slate-700" : "text-white/80"}`}
-                          >
-                            {feature}
-                          </p>
+                          <p className={`text-sm ${plan.featured ? "text-slate-700" : "text-white/80"}`}>{feature}</p>
                         </div>
                       ))}
                       {(plan as any).lossItems && (plan as any).lossItems.length > 0 && (
                         <>
                           <div className={`my-3 border-t ${plan.featured ? "border-slate-200" : "border-white/10"}`} />
-                          <p className={`text-xs font-semibold uppercase tracking-wider ${plan.featured ? "text-amber-600" : "text-amber-400"}`}>
+                          <p
+                            className={`text-xs font-semibold uppercase tracking-wider ${plan.featured ? "text-amber-600" : "text-amber-400"}`}
+                          >
                             Not included on this plan
                           </p>
                           {(plan as any).lossItems.map((item: string) => (
@@ -958,11 +820,7 @@ export default function HomePage() {
                                 icon="close"
                                 className={`mt-0.5 text-[16px] ${plan.featured ? "text-amber-400" : "text-amber-500"}`}
                               />
-                              <p
-                                className={`text-sm ${plan.featured ? "text-slate-500" : "text-white/60"}`}
-                              >
-                                {item}
-                              </p>
+                              <p className={`text-sm ${plan.featured ? "text-slate-500" : "text-white/60"}`}>{item}</p>
                             </div>
                           ))}
                         </>
@@ -986,37 +844,26 @@ export default function HomePage() {
         </section>
 
         {/* ===== COMPARISON TABLE ===== */}
-        <section
-          id="comparison"
-          className="mx-auto max-w-7xl px-4 py-18 sm:px-6 lg:py-24"
-        >
+        <section id="comparison" className="mx-auto max-w-7xl px-4 py-18 sm:px-6 lg:py-24">
           <FadeIn>
             <div className="text-center mb-10">
-              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">
-                Feature Comparison
-              </p>
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">Feature Comparison</p>
               <h2 className="mt-3 font-['Sora'] text-2xl font-semibold text-slate-950 sm:text-3xl">
                 How SkoolMate OS compares
               </h2>
             </div>
             <p className="text-center text-sm text-slate-500 mb-2">
-              ✓ = Included &nbsp;&nbsp; ✗ = Not available &nbsp;&nbsp; ~ =
-              Partial
+              ✓ = Included &nbsp;&nbsp; ✗ = Not available &nbsp;&nbsp; ~ = Partial
             </p>
             <p className="text-center text-xs text-slate-400 mb-8">
-              Based on publicly available information, April 2026. Competitor
-              columns are illustrative.
+              Based on publicly available information, April 2026. Competitor columns are illustrative.
             </p>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-slate-200">
-                    <th className="text-left py-3 px-4 font-semibold text-slate-900">
-                      Feature
-                    </th>
-                    <th className="py-3 px-4 font-bold text-[#2E9448] bg-green-50">
-                      SkoolMate
-                    </th>
+                    <th className="text-left py-3 px-4 font-semibold text-slate-900">Feature</th>
+                    <th className="py-3 px-4 font-bold text-[#2E9448] bg-green-50">SkoolMate</th>
                     <th className="py-3 px-4 text-slate-500">Alt A</th>
                     <th className="py-3 px-4 text-slate-500">Alt B</th>
                     <th className="py-3 px-4 text-slate-500">Alt C</th>
@@ -1035,23 +882,12 @@ export default function HomePage() {
                     ["UNEB registration", "✓", "~", "✗", "✗"],
                     ["Full payroll", "✓", "✓", "✓", "~"],
                   ].map((row, i) => (
-                    <tr
-                      key={i}
-                      className="border-b border-slate-100 hover:bg-slate-50"
-                    >
+                    <tr key={i} className="border-b border-slate-100 hover:bg-slate-50">
                       <td className="py-3 px-4 text-slate-700">{row[0]}</td>
-                      <td className="py-3 px-4 text-center font-bold bg-green-50/50">
-                        {row[1]}
-                      </td>
-                      <td className="py-3 px-4 text-center text-slate-500">
-                        {row[2]}
-                      </td>
-                      <td className="py-3 px-4 text-center text-slate-500">
-                        {row[3]}
-                      </td>
-                      <td className="py-3 px-4 text-center text-slate-500">
-                        {row[4]}
-                      </td>
+                      <td className="py-3 px-4 text-center font-bold bg-green-50/50">{row[1]}</td>
+                      <td className="py-3 px-4 text-center text-slate-500">{row[2]}</td>
+                      <td className="py-3 px-4 text-center text-slate-500">{row[3]}</td>
+                      <td className="py-3 px-4 text-center text-slate-500">{row[4]}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -1061,10 +897,7 @@ export default function HomePage() {
         </section>
 
         {/* ===== FAQ ===== */}
-        <section
-          id="faq"
-          className="mx-auto max-w-3xl px-4 py-18 sm:px-6 lg:px-8 lg:py-24"
-        >
+        <section id="faq" className="mx-auto max-w-3xl px-4 py-18 sm:px-6 lg:px-8 lg:py-24">
           <FadeIn>
             <div className="text-center mb-10">
               <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">
@@ -1096,22 +929,15 @@ export default function HomePage() {
                   Give your school one place to run the term.
                 </h2>
                 <p className="mt-4 text-base leading-7 text-[var(--t2)]">
-                  Register your school, set up classes and subjects, and start
-                  using attendance, grading, fees, and parent communication in a
-                  single workspace.
+                  Register your school, set up classes and subjects, and start using attendance, grading, fees, and
+                  parent communication in a single workspace.
                 </p>
               </div>
               <div className="mt-6 flex flex-col gap-3 sm:flex-row lg:mt-0">
-                <Link
-                  href="/register"
-                  className="btn btn-primary px-7 py-4 text-base"
-                >
+                <Link href="/register" className="btn btn-primary px-7 py-4 text-base">
                   Start free trial
                 </Link>
-                <Link
-                  href="/login"
-                  className="btn btn-secondary px-7 py-4 text-base"
-                >
+                <Link href="/login" className="btn btn-secondary px-7 py-4 text-base">
                   Sign in
                 </Link>
               </div>
@@ -1126,106 +952,23 @@ export default function HomePage() {
               <div>
                 <SkoolMateLogo size="md" variant="default" />
                 <p className="mt-4 text-sm leading-6 text-slate-500">
-                  The school operating system built from real experience in
-                  Ugandan schools.
+                  The school operating system built from real experience in Ugandan schools.
                 </p>
-              </div>
-              <div>
-                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-400">
-                  Product
-                </h4>
-                <ul className="mt-4 space-y-3">
-                  <li>
-                    <button
-                      onClick={() => smoothScroll("#features")}
-                      className="text-sm text-slate-600 hover:text-slate-900 transition cursor-pointer"
-                    >
-                      Features
-                    </button>
-                  </li>
-                  <li>
-                    <button
-                      onClick={() => smoothScroll("#comparison")}
-                      className="text-sm text-slate-600 hover:text-slate-900 transition cursor-pointer"
-                    >
-                      Compare
-                    </button>
-                  </li>
-                  <li>
-                    <button
-                      onClick={() => smoothScroll("#security")}
-                      className="text-sm text-slate-600 hover:text-slate-900 transition cursor-pointer"
-                    >
-                      Security
-                    </button>
-                  </li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-400">
-                  Resources
-                </h4>
-                <ul className="mt-4 space-y-3">
-                  <li>
-                    <a
-                      href="/login"
-                      className="text-sm text-slate-600 hover:text-slate-900 transition"
-                    >
-                      Sign In
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      href="/register"
-                      className="text-sm text-slate-600 hover:text-slate-900 transition"
-                    >
-                      Register School
-                    </a>
-                  </li>
-                  <li>
-                    <Link
-                      href="/parent-portal"
-                      className="text-sm text-slate-600 hover:text-slate-900 transition"
-                    >
-                      Parent Portal
-                    </Link>
-                  </li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-400">
-                  Contact
-                </h4>
-                <ul className="mt-4 space-y-3">
-                  <li className="flex items-center gap-2 text-sm text-slate-600">
-                    <MaterialIcon
-                      icon="mail"
-                      className="text-[16px] text-[#17325F]"
-                    />
-                    <a
-                      href="mailto:os@omuto.org"
-                      className="hover:text-slate-900 transition"
-                    >
+                <div className="mt-6 space-y-2">
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <MaterialIcon icon="mail" className="text-[14px] text-[#17325F]" />
+                    <a href="mailto:os@omuto.org" className="hover:text-slate-900 transition">
                       os@omuto.org
                     </a>
-                  </li>
-                  <li className="flex items-center gap-2 text-sm text-slate-600">
-                    <MaterialIcon
-                      icon="phone"
-                      className="text-[16px] text-[#17325F]"
-                    />
-                    <a
-                      href="tel:0750028703"
-                      className="hover:text-slate-900 transition"
-                    >
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <MaterialIcon icon="phone" className="text-[14px] text-[#17325F]" />
+                    <a href="tel:0750028703" className="hover:text-slate-900 transition">
                       0750 028 703
                     </a>
-                  </li>
-                  <li className="flex items-center gap-2 text-sm text-slate-600">
-                    <MaterialIcon
-                      icon="chat"
-                      className="text-[16px] text-[#25D366]"
-                    />
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-slate-600">
+                    <MaterialIcon icon="chat" className="text-[14px] text-[#25D366]" />
                     <a
                       href="https://wa.me/256750028703"
                       target="_blank"
@@ -1234,14 +977,83 @@ export default function HomePage() {
                     >
                       WhatsApp
                     </a>
+                  </div>
+                </div>
+              </div>
+              <div>
+                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-400">Product</h4>
+                <ul className="mt-4 space-y-3">
+                  <li>
+                    <Link href="/features" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                      Features
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/pricing" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                      Pricing
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/about" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                      About
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/demo" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                      Request Demo
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-400">Resources</h4>
+                <ul className="mt-4 space-y-3">
+                  <li>
+                    <Link href="/blog" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                      Blog
+                    </Link>
+                  </li>
+                  <li>
+                    <a href="/login" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                      Sign In
+                    </a>
+                  </li>
+                  <li>
+                    <a href="/register" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                      Register School
+                    </a>
+                  </li>
+                  <li>
+                    <Link href="/contact" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                      Contact Us
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/parent-portal" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                      Parent Portal
+                    </Link>
+                  </li>
+                </ul>
+              </div>
+              <div>
+                <h4 className="text-sm font-semibold uppercase tracking-[0.15em] text-slate-400">Legal</h4>
+                <ul className="mt-4 space-y-3">
+                  <li>
+                    <Link href="/privacy" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                      Privacy Policy
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/terms" className="text-sm text-slate-600 hover:text-slate-900 transition">
+                      Terms of Service
+                    </Link>
                   </li>
                 </ul>
               </div>
             </div>
             <div className="mt-10 border-t border-slate-200 pt-8 flex flex-col sm:flex-row items-center justify-between gap-4">
               <p className="text-sm text-slate-400" suppressHydrationWarning>
-                &copy; {new Date().getFullYear()} Omuto Foundation. All rights
-                reserved.
+                &copy; {new Date().getFullYear()} Omuto Foundation. All rights reserved.
               </p>
               <div className="flex items-center gap-2 text-sm text-slate-400">
                 <MaterialIcon icon="lock" className="text-[14px]" />
@@ -1254,10 +1066,7 @@ export default function HomePage() {
         {/* ===== STICKY MOBILE CTA ===== */}
         <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur border-t border-slate-200 px-4 py-3 shadow-[0_-4px_24px_rgba(15,23,42,0.10)]">
           <div className="flex gap-3 max-w-sm mx-auto">
-            <Link
-              href="/register"
-              className="btn btn-primary flex-1 justify-center py-3 text-sm"
-            >
+            <Link href="/register" className="btn btn-primary flex-1 justify-center py-3 text-sm">
               Start free trial
             </Link>
             {installPrompt ? (
@@ -1282,13 +1091,10 @@ export default function HomePage() {
         {showIosModal && (
           <div className="fixed inset-0 z-50 bg-black/60 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
             <div className="bg-white rounded-2xl w-full max-w-sm max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto p-6 shadow-2xl">
-              <h3 className="text-lg font-bold text-slate-800 mb-3">
-                Add to Home Screen
-              </h3>
+              <h3 className="text-lg font-bold text-slate-800 mb-3">Add to Home Screen</h3>
               <p className="text-sm text-slate-600 mb-4">
-                On iPhone or iPad: Open this page in <strong>Safari</strong>, tap
-                the <strong>Share Button</strong> (the square with arrow pointing
-                up), then tap <strong>&quot;Add to Home Screen&quot;</strong>.
+                On iPhone or iPad: Open this page in <strong>Safari</strong>, tap the <strong>Share Button</strong> (the
+                square with arrow pointing up), then tap <strong>&quot;Add to Home Screen&quot;</strong>.
               </p>
               <button
                 onClick={() => setShowIosModal(false)}

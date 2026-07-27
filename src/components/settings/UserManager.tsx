@@ -5,12 +5,7 @@ import { Button } from "@/components/ui/index";
 import MaterialIcon from "@/components/MaterialIcon";
 import PersonInitials from "@/components/ui/PersonInitials";
 import { ROLE_LABELS, type UserRole } from "@/lib/roles";
-import {
-  FEATURE_STAGES,
-  canUseModule,
-  type FeatureStage,
-  type ModuleKey,
-} from "@/lib/featureStages";
+import { FEATURE_STAGES, canUseModule, type FeatureStage, type ModuleKey } from "@/lib/featureStages";
 
 interface UserItem {
   id: string;
@@ -24,12 +19,7 @@ interface UserManagerProps {
   users: UserItem[];
   loadingUsers: boolean;
   onToggleUserStatus: (id: string, currentStatus: boolean) => void;
-  onAddUser: (data: {
-    full_name: string;
-    phone: string;
-    role: UserRole;
-    password: string;
-  }) => void;
+  onAddUser: (data: { full_name: string; phone: string; role: UserRole; password: string }) => void;
   selectedStage: FeatureStage;
 }
 
@@ -40,14 +30,12 @@ const ROLE_OPTIONS: {
 }[] = [
   {
     value: "teacher",
-    description:
-      "Attendance, grades, homework, lesson plans and classroom communication.",
+    description: "Attendance, grades, homework, lesson plans and classroom communication.",
     modules: ["attendance", "marks", "communications"],
   },
   {
     value: "school_admin",
-    description:
-      "Oversee operations, exports, dashboards, and general settings.",
+    description: "Oversee operations, exports, dashboards, and general settings.",
     modules: ["operations", "reports"],
   },
   {
@@ -57,8 +45,7 @@ const ROLE_OPTIONS: {
   },
   {
     value: "bursar",
-    description:
-      "Finance, invoicing, payroll, budgeting, and payment tracking.",
+    description: "Finance, invoicing, payroll, budgeting, and payment tracking.",
     modules: ["finance", "payroll"],
   },
   {
@@ -107,16 +94,9 @@ export default function UserManager({
     password: "",
   });
 
-  const selectedRoleOption = ROLE_OPTIONS.find(
-    (option) => option.value === newUser.role,
-  );
-  const missingModules =
-    selectedRoleOption?.modules.filter(
-      (module) => !canUseModule(selectedStage, module),
-    ) || [];
-  const missingModuleLabels = missingModules.map(
-    (module) => MODULE_LABELS[module],
-  );
+  const selectedRoleOption = ROLE_OPTIONS.find((option) => option.value === newUser.role);
+  const missingModules = selectedRoleOption?.modules.filter((module) => !canUseModule(selectedStage, module)) || [];
+  const missingModuleLabels = missingModules.map((module) => MODULE_LABELS[module]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -159,9 +139,7 @@ export default function UserManager({
                   <div className="flex items-center gap-4">
                     <PersonInitials name={u.full_name} size={48} />
                     <div>
-                      <div className="font-medium text-[var(--on-surface)]">
-                        {u.full_name}
-                      </div>
+                      <div className="font-medium text-[var(--on-surface)]">{u.full_name}</div>
                       <div className="flex items-center gap-2 mt-2">
                         <span className="px-2 py-1 rounded-lg text-xs font-medium bg-[var(--green-soft)] text-[var(--green)]">
                           {u.role === "dos"
@@ -170,8 +148,7 @@ export default function UserManager({
                               ? "Administrator"
                               : u.role === "bursar"
                                 ? "Bursar"
-                                : u.role.charAt(0).toUpperCase() +
-                                  u.role.slice(1)}
+                                : u.role.charAt(0).toUpperCase() + u.role.slice(1)}
                         </span>
                         <span
                           className={`px-2 py-1 rounded-lg text-xs font-medium ${u.is_active ? "bg-[var(--green-soft)] text-[var(--green)]" : "bg-[var(--red-soft)] text-[var(--red)]"}`}
@@ -206,9 +183,7 @@ export default function UserManager({
           >
             <div className="p-6 border-b border-[var(--border)]">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-[var(--on-surface)]">
-                  Add Staff Member
-                </h2>
+                <h2 className="text-lg font-semibold text-[var(--on-surface)]">Add Staff Member</h2>
                 <button
                   onClick={() => setShowAddUser(false)}
                   className="p-2 text-[var(--t3)] hover:text-[var(--on-surface)]"
@@ -220,38 +195,29 @@ export default function UserManager({
             <div className="p-6 space-y-4">
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">
-                    Full Name
-                  </label>
+                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Full Name</label>
                   <input
                     type="text"
                     value={newUser.full_name}
-                    onChange={(e) =>
-                      setNewUser({ ...newUser, full_name: e.target.value })
-                    }
+                    onChange={(e) => setNewUser({ ...newUser, full_name: e.target.value })}
                     className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]"
                     required
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">
-                    Phone Number
-                  </label>
+                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Phone Number</label>
                   <input
                     type="tel"
+                    inputMode="tel"
                     placeholder="0700000000"
                     value={newUser.phone}
-                    onChange={(e) =>
-                      setNewUser({ ...newUser, phone: e.target.value })
-                    }
+                    onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
                     className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]"
                     required
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">
-                    Role
-                  </label>
+                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Role</label>
                   <select
                     value={newUser.role}
                     onChange={(e) =>
@@ -277,40 +243,28 @@ export default function UserManager({
                     {selectedRoleOption?.description ||
                       "This role inherits the default access for the selected profile."}
                   </div>
-                  <div className="text-xs text-[var(--t3)]">
-                    Current stage: {FEATURE_STAGES[selectedStage].label}
-                  </div>
+                  <div className="text-xs text-[var(--t3)]">Current stage: {FEATURE_STAGES[selectedStage].label}</div>
                   {missingModuleLabels.length > 0 && (
                     <div className="text-xs text-[var(--amber)]">
-                      Stage {FEATURE_STAGES[selectedStage].label} does not
-                      include {missingModuleLabels.join(", ")}. Upgrade or
-                      choose a broader stage before assigning this role.
+                      Stage {FEATURE_STAGES[selectedStage].label} does not include {missingModuleLabels.join(", ")}.
+                      Upgrade or choose a broader stage before assigning this role.
                     </div>
                   )}
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">
-                    Password
-                  </label>
+                  <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Password</label>
                   <input
                     type="password"
                     placeholder="Min 6 characters"
                     value={newUser.password}
-                    onChange={(e) =>
-                      setNewUser({ ...newUser, password: e.target.value })
-                    }
+                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
                     className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]"
                     required
                     minLength={6}
                   />
                 </div>
                 <div className="flex gap-3 pt-4">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="flex-1"
-                    onClick={() => setShowAddUser(false)}
-                  >
+                  <Button type="button" variant="secondary" className="flex-1" onClick={() => setShowAddUser(false)}>
                     Cancel
                   </Button>
                   <Button type="submit" className="flex-1">

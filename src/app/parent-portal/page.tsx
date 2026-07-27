@@ -39,9 +39,7 @@ function ParentDashboardContent() {
   const router = useRouter();
   const toast = useToast();
   const [children, setChildren] = useState<ParentPortalChild[]>([]);
-  const [selectedChild, setSelectedChild] = useState<ParentPortalChild | null>(
-    null,
-  );
+  const [selectedChild, setSelectedChild] = useState<ParentPortalChild | null>(null);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [showTopup, setShowTopup] = useState(false);
@@ -49,9 +47,7 @@ function ParentDashboardContent() {
   const [topupLoading, setTopupLoading] = useState(false);
   const [showNotificationsDropdown, setShowNotificationsDropdown] = useState(false);
   const [notices, setNotices] = useState<ParentPortalNotice[]>([]);
-  const [attendance, setAttendance] = useState<ParentPortalAttendanceRecord[]>(
-    [],
-  );
+  const [attendance, setAttendance] = useState<ParentPortalAttendanceRecord[]>([]);
   const [grades, setGrades] = useState<ParentPortalGradeRecord[]>([]);
   const [feeStructureItems, setFeeStructureItems] = useState<ParentPortalFeeStructureItem[]>([]);
   const [feePayments, setFeePayments] = useState<ParentPortalPayment[]>([]);
@@ -59,10 +55,7 @@ function ParentDashboardContent() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [childDataLoading, setChildDataLoading] = useState(false);
 
-  const feeStats = useMemo(
-    () => calculateFeeStats(feeStructureItems, feePayments),
-    [feeStructureItems, feePayments],
-  );
+  const feeStats = useMemo(() => calculateFeeStats(feeStructureItems, feePayments), [feeStructureItems, feePayments]);
 
   useEffect(() => {
     async function fetchChildren() {
@@ -82,11 +75,27 @@ function ParentDashboardContent() {
         setChildren(demoChildren);
         setSelectedChild(demoChildren[0]);
         setNotices([
-          { title: "Easter Break", content: "School will be closed from Friday to Monday. Happy Holidays!", created_at: new Date().toISOString() },
-          { title: "Visitation Day", content: "Parents are invited to check student progress this Saturday.", created_at: new Date().toISOString() }
+          {
+            title: "Easter Break",
+            content: "School will be closed from Friday to Monday. Happy Holidays!",
+            created_at: new Date().toISOString(),
+          },
+          {
+            title: "Visitation Day",
+            content: "Parents are invited to check student progress this Saturday.",
+            created_at: new Date().toISOString(),
+          },
         ]);
         setFeeStructureItems([{ id: "demo-fee", name: "Tuition", amount: 1200000, term: "Term 1" }]);
-        setFeePayments([{ id: "demo-pay", amount_paid: 1080000, payment_date: new Date().toISOString(), payment_method: "Cash", payment_reference: "DEMO-001" }]);
+        setFeePayments([
+          {
+            id: "demo-pay",
+            amount_paid: 1080000,
+            payment_date: new Date().toISOString(),
+            payment_method: "Cash",
+            payment_reference: "DEMO-001",
+          },
+        ]);
         setLoading(false);
         return;
       }
@@ -119,11 +128,10 @@ function ParentDashboardContent() {
                   .from("students")
                   .select("id, parent_phone, parent_phone2, school_id")
                   .eq("status", "active");
-                matchedStudents = fuzzyMatches?.filter(
-                  (s) =>
-                    s.parent_phone?.slice(-9) === last9 ||
-                    s.parent_phone2?.slice(-9) === last9,
-                ) || null;
+                matchedStudents =
+                  fuzzyMatches?.filter(
+                    (s) => s.parent_phone?.slice(-9) === last9 || s.parent_phone2?.slice(-9) === last9,
+                  ) || null;
               }
 
               if (matchedStudents && matchedStudents.length > 0) {
@@ -172,7 +180,6 @@ function ParentDashboardContent() {
             logger.warn("Failed to fetch parent notices:", noticeErr);
             setNotices([]);
           }
-
         } catch (err) {
           logger.error("Fetch children error:", err);
         } finally {
@@ -196,7 +203,10 @@ function ParentDashboardContent() {
 
     async function fetchStudentData() {
       const scopedChild = resolveSelectedChild(children, selectedChildId);
-      if (!scopedChild) { setChildDataLoading(false); return; }
+      if (!scopedChild) {
+        setChildDataLoading(false);
+        return;
+      }
       try {
         const attRes = await withTimeout(
           supabase.from("attendance").select("id, date, status, remarks").eq("student_id", scopedChild.id).limit(10),
@@ -204,36 +214,56 @@ function ParentDashboardContent() {
           timeoutFallback(),
         );
         const gradesRes = await withTimeout(
-          supabase.from("grades").select("id, score, max_score, grade, term, exam_type, teacher_comment, subjects(name)").eq("student_id", scopedChild.id).limit(6),
+          supabase
+            .from("grades")
+            .select("id, score, max_score, grade, term, exam_type, teacher_comment, subjects(name)")
+            .eq("student_id", scopedChild.id)
+            .limit(6),
           15000,
           timeoutFallback(),
         );
 
         const modernFeeTermsRes = await withTimeout(
-          supabase.from("student_fee_terms").select("id, final_amount, academic_year, fee_terms(name)").eq("student_id", scopedChild.id).order("created_at", { ascending: false }),
+          supabase
+            .from("student_fee_terms")
+            .select("id, final_amount, academic_year, fee_terms(name)")
+            .eq("student_id", scopedChild.id)
+            .order("created_at", { ascending: false }),
           15000,
           timeoutFallback(),
         );
         const modernPaymentsRes = await withTimeout(
-          supabase.from("fee_payments").select("id, amount, payment_date, payment_method, transaction_reference, student_fee_terms!inner(student_id, fee_terms(name))").eq("student_fee_terms.student_id", scopedChild.id).order("payment_date", { ascending: false }),
+          supabase
+            .from("fee_payments")
+            .select(
+              "id, amount, payment_date, payment_method, transaction_reference, student_fee_terms!inner(student_id, fee_terms(name))",
+            )
+            .eq("student_fee_terms.student_id", scopedChild.id)
+            .order("payment_date", { ascending: false }),
           15000,
           timeoutFallback(),
         );
         const legacyPaymentsRes = await withTimeout(
-          supabase.from("fee_payments").select("id, amount_paid, payment_date, payment_method, payment_reference").eq("student_id", scopedChild.id),
+          supabase
+            .from("fee_payments")
+            .select("id, amount_paid, payment_date, payment_method, payment_reference")
+            .eq("student_id", scopedChild.id),
           15000,
           timeoutFallback(),
         );
         const legacyFeeTermsRes = await withTimeout(
-          supabase.from("fee_structure").select("*").eq("school_id", scopedChild.school_id).is("deleted_at", null).or(`class_id.is.null,class_id.eq.${scopedChild.class_id}`),
+          supabase
+            .from("fee_structure")
+            .select("*")
+            .eq("school_id", scopedChild.school_id)
+            .is("deleted_at", null)
+            .or(`class_id.is.null,class_id.eq.${scopedChild.class_id}`),
           15000,
           timeoutFallback(),
         );
 
         const normalizedFeeStructure = pickPreferredSchemaRows({
-          modernRows: normalizeFeeTermItems(
-            (modernFeeTermsRes.data || []) as never[],
-          ),
+          modernRows: normalizeFeeTermItems((modernFeeTermsRes.data || []) as never[]),
           modernError: modernFeeTermsRes.error,
           legacyRows: legacyFeeTermsRes.data || [],
           legacyError: legacyFeeTermsRes.error,
@@ -286,15 +316,31 @@ function ParentDashboardContent() {
   useEffect(() => {
     if (isDemo) {
       setNotifications([
-        { id: "1", type: "grade_posted", title: "New Grade Posted", content: "Math exam results ready", message: "Math exam results ready", is_read: false, created_at: new Date().toISOString() },
-        { id: "2", type: "payment_received", title: "Payment Received", content: "UGX 50,000 received", message: "UGX 50,000 received", is_read: true, created_at: new Date(Date.now() - 86400000).toISOString() },
+        {
+          id: "1",
+          type: "grade_posted",
+          title: "New Grade Posted",
+          content: "Math exam results ready",
+          message: "Math exam results ready",
+          is_read: false,
+          created_at: new Date().toISOString(),
+        },
+        {
+          id: "2",
+          type: "payment_received",
+          title: "Payment Received",
+          content: "UGX 50,000 received",
+          message: "UGX 50,000 received",
+          is_read: true,
+          created_at: new Date(Date.now() - 86400000).toISOString(),
+        },
       ]);
       setUnreadCount(1);
       return;
     }
     fetch("/api/parent/notifications?limit=10")
-      .then(res => res.json())
-      .then(data => {
+      .then((res) => res.json())
+      .then((data) => {
         if (data.success) {
           setNotifications(data.notifications || []);
           setUnreadCount((data.notifications || []).filter((n: any) => !n.is_read).length);
@@ -323,7 +369,9 @@ function ParentDashboardContent() {
         },
       )
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user?.id, isDemo, toast]);
 
   const markNotificationRead = async (id: string) => {
@@ -332,15 +380,15 @@ function ParentDashboardContent() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ notification_id: id }),
     });
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
-    setUnreadCount(prev => Math.max(0, prev - 1));
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)));
+    setUnreadCount((prev) => Math.max(0, prev - 1));
   };
 
   const handleTopup = async () => {
     if (!selectedChild || !topupAmount) return;
     setTopupLoading(true);
     if (isDemo) {
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise((r) => setTimeout(r, 1000));
       setWalletBalance((prev) => (prev ?? 0) + parseFloat(topupAmount));
       setTopupAmount("");
       setShowTopup(false);
@@ -396,7 +444,10 @@ function ParentDashboardContent() {
           </div>
           <h2 className="text-lg font-bold text-[#17325f]">Parent portal access unavailable</h2>
           <p className="mt-2 text-sm text-[#60748f]">Please contact your school if you believe this is a mistake.</p>
-          <Link href="/dashboard" className="mt-4 inline-flex rounded-xl bg-[#17325f] px-4 py-2 text-sm font-semibold text-white">
+          <Link
+            href="/dashboard"
+            className="mt-4 inline-flex rounded-xl bg-[#17325f] px-4 py-2 text-sm font-semibold text-white"
+          >
             Go to dashboard
           </Link>
         </div>
@@ -433,21 +484,21 @@ function ParentDashboardContent() {
               <div className="text-center py-10">
                 <OwlMascot size={56} premium ring glow animated />
                 <h3 className="text-lg font-bold mt-4">No learners linked yet</h3>
-                <p className="text-sm text-[var(--t3)] mt-1">Your phone on file: {user?.phone || 'N/A'}</p>
+                <p className="text-sm text-[var(--t3)] mt-1">Your phone on file: {user?.phone || "N/A"}</p>
                 <p className="text-sm text-[var(--t3)]">Contact the school office to link your account.</p>
               </div>
             ) : (
               <>
                 {/* Section 1: Child selector — large visual cards */}
                 <div className="flex gap-3 overflow-x-auto pb-2 mb-6">
-                  {children.map(child => {
+                  {children.map((child) => {
                     const isSelected = selectedChild?.id === child.id;
                     return (
                       <button
                         key={child.id}
                         onClick={() => setSelectedChild(child)}
                         className={`shrink-0 rounded-[24px] border-2 p-4 min-w-[140px] text-left transition-all ${
-                          isSelected ? 'border-[#17325f] bg-[#f0f6ff] shadow-md' : 'border-[#e5ecf4] bg-white'
+                          isSelected ? "border-[#17325f] bg-[#f0f6ff] shadow-md" : "border-[#e5ecf4] bg-white"
                         }`}
                       >
                         <div className="h-14 w-14 rounded-full bg-[#17325f] flex items-center justify-center text-xl font-bold text-white mx-auto mb-2 overflow-hidden">
@@ -460,10 +511,12 @@ function ParentDashboardContent() {
                               className="w-full h-full object-cover"
                             />
                           ) : (
-                            <span>{(child.first_name?.[0] || child.last_name?.[0] || '?')}</span>
+                            <span>{child.first_name?.[0] || child.last_name?.[0] || "?"}</span>
                           )}
                         </div>
-                        <p className="text-sm font-bold text-[#17325f] text-center">{child.first_name} {child.last_name}</p>
+                        <p className="text-sm font-bold text-[#17325f] text-center">
+                          {child.first_name} {child.last_name}
+                        </p>
                         <p className="text-[11px] text-[#7f91aa] text-center">{child.class_name}</p>
                       </button>
                     );
@@ -474,18 +527,28 @@ function ParentDashboardContent() {
                 {selectedChild && (
                   <div className="grid grid-cols-2 gap-3 mb-6">
                     {/* Attendance today */}
-                    <div className={`rounded-[24px] p-5 text-center ${attendanceStatus === 'present' ? 'bg-[#e1f3ee]' : 'bg-[#f6f9fc]'}`}>
-                      <span className={`material-symbols-outlined text-4xl ${attendanceStatus === 'present' ? 'text-[#1f8a70]' : 'text-[#b0c4db]'}`}>
-                        {attendanceStatus === 'present' ? 'check_circle' : 'help'}
+                    <div
+                      className={`rounded-[24px] p-5 text-center ${attendanceStatus === "present" ? "bg-[#e1f3ee]" : "bg-[#f6f9fc]"}`}
+                    >
+                      <span
+                        className={`material-symbols-outlined text-4xl ${attendanceStatus === "present" ? "text-[#1f8a70]" : "text-[#b0c4db]"}`}
+                      >
+                        {attendanceStatus === "present" ? "check_circle" : "help"}
                       </span>
-                      <p className="text-sm font-bold text-[#17325f] mt-2">Today: {attendanceStatus === 'present' ? 'Present' : 'Not recorded'}</p>
+                      <p className="text-sm font-bold text-[#17325f] mt-2">
+                        Today: {attendanceStatus === "present" ? "Present" : "Not recorded"}
+                      </p>
                     </div>
 
                     {/* Fee balance */}
-                    <div className={`rounded-[24px] p-5 text-center ${feeStats.balance > 0 ? 'bg-[#ffefe8]' : 'bg-[#e1f3ee]'}`}>
+                    <div
+                      className={`rounded-[24px] p-5 text-center ${feeStats.balance > 0 ? "bg-[#ffefe8]" : "bg-[#e1f3ee]"}`}
+                    >
                       <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#7f91aa]">Fee Balance</p>
-                      <p className={`text-xl font-bold mt-1 ${feeStats.balance > 0 ? 'text-[#c2472b]' : 'text-[#1f8a70]'}`}>
-                        {feeStats.balance > 0 ? `UGX ${feeStats.balance?.toLocaleString()}` : 'Cleared'}
+                      <p
+                        className={`text-xl font-bold mt-1 ${feeStats.balance > 0 ? "text-[#c2472b]" : "text-[#1f8a70]"}`}
+                      >
+                        {feeStats.balance > 0 ? `UGX ${feeStats.balance?.toLocaleString()}` : "Cleared"}
                       </p>
                       <p className="text-[11px] text-[#7f91aa] mt-1">of UGX {feeStats.totalFee?.toLocaleString()}</p>
                     </div>
@@ -495,19 +558,31 @@ function ParentDashboardContent() {
                 {/* Section 3: Quick actions + exceptions */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                   <div className="lg:col-span-2 grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <Link href={`/parent-portal/fees${selectedChild ? `?child=${selectedChild.id}` : ''}`} className="rounded-[20px] bg-white border border-[#e5ecf4] p-4 text-center hover:bg-[#f8fbff] transition-colors">
+                    <Link
+                      href={`/parent-portal/fees${selectedChild ? `?child=${selectedChild.id}` : ""}`}
+                      className="rounded-[20px] bg-white border border-[#e5ecf4] p-4 text-center hover:bg-[#f8fbff] transition-colors"
+                    >
                       <span className="material-symbols-outlined text-[28px] text-[#17325f]">payments</span>
                       <p className="text-xs font-bold text-[#17325f] mt-2">Pay fees</p>
                     </Link>
-                    <Link href={`/parent-portal/attendance${selectedChild ? `?child=${selectedChild.id}` : ''}`} className="rounded-[20px] bg-white border border-[#e5ecf4] p-4 text-center hover:bg-[#f8fbff] transition-colors">
+                    <Link
+                      href={`/parent-portal/attendance${selectedChild ? `?child=${selectedChild.id}` : ""}`}
+                      className="rounded-[20px] bg-white border border-[#e5ecf4] p-4 text-center hover:bg-[#f8fbff] transition-colors"
+                    >
                       <span className="material-symbols-outlined text-[28px] text-[#17325f]">how_to_reg</span>
                       <p className="text-xs font-bold text-[#17325f] mt-2">Attendance</p>
                     </Link>
-                    <Link href={`/parent-portal/homework${selectedChild ? `?child=${selectedChild.id}` : ''}`} className="rounded-[20px] bg-white border border-[#e5ecf4] p-4 text-center hover:bg-[#f8fbff] transition-colors">
+                    <Link
+                      href={`/parent-portal/homework${selectedChild ? `?child=${selectedChild.id}` : ""}`}
+                      className="rounded-[20px] bg-white border border-[#e5ecf4] p-4 text-center hover:bg-[#f8fbff] transition-colors"
+                    >
                       <span className="material-symbols-outlined text-[28px] text-[#17325f]">assignment</span>
                       <p className="text-xs font-bold text-[#17325f] mt-2">Homework</p>
                     </Link>
-                    <Link href={`/parent-portal/academics${selectedChild ? `?child=${selectedChild.id}` : ''}`} className="rounded-[20px] bg-white border border-[#e5ecf4] p-4 text-center hover:bg-[#f8fbff] transition-colors">
+                    <Link
+                      href={`/parent-portal/academics${selectedChild ? `?child=${selectedChild.id}` : ""}`}
+                      className="rounded-[20px] bg-white border border-[#e5ecf4] p-4 text-center hover:bg-[#f8fbff] transition-colors"
+                    >
                       <span className="material-symbols-outlined text-[28px] text-[#17325f]">grade</span>
                       <p className="text-xs font-bold text-[#17325f] mt-2">Grades</p>
                     </Link>
@@ -516,16 +591,20 @@ function ParentDashboardContent() {
                   <div className="rounded-[20px] border border-[#e5ecf4] bg-white p-4">
                     <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#7f91aa]">Exceptions First</p>
                     <div className="space-y-2 mt-3">
-                      <div className={`rounded-xl border p-3 ${hasFeeBalance ? 'border-[#f5d0c5] bg-[#ffefe8]' : 'border-[#d8efe7] bg-[#f3fbf8]'}`}>
+                      <div
+                        className={`rounded-xl border p-3 ${hasFeeBalance ? "border-[#f5d0c5] bg-[#ffefe8]" : "border-[#d8efe7] bg-[#f3fbf8]"}`}
+                      >
                         <p className="text-xs font-semibold text-[#17325f]">Fees</p>
-                        <p className={`text-sm font-bold mt-1 ${hasFeeBalance ? 'text-[#c2472b]' : 'text-[#1f8a70]'}`}>
-                          {hasFeeBalance ? `Balance UGX ${feeStats.balance.toLocaleString()}` : 'No fee balance'}
+                        <p className={`text-sm font-bold mt-1 ${hasFeeBalance ? "text-[#c2472b]" : "text-[#1f8a70]"}`}>
+                          {hasFeeBalance ? `Balance UGX ${feeStats.balance.toLocaleString()}` : "No fee balance"}
                         </p>
                       </div>
-                      <div className={`rounded-xl border p-3 ${urgentUnreads ? 'border-[#f5deb3] bg-[#fff8eb]' : 'border-[#e5ecf4] bg-[#f8fbff]'}`}>
+                      <div
+                        className={`rounded-xl border p-3 ${urgentUnreads ? "border-[#f5deb3] bg-[#fff8eb]" : "border-[#e5ecf4] bg-[#f8fbff]"}`}
+                      >
                         <p className="text-xs font-semibold text-[#17325f]">School alerts</p>
                         <p className="text-sm font-bold mt-1 text-[#17325f]">
-                          {urgentUnreads ? `${unreadCount} unread notification(s)` : 'All notifications read'}
+                          {urgentUnreads ? `${unreadCount} unread notification(s)` : "All notifications read"}
                         </p>
                       </div>
                     </div>
@@ -550,11 +629,14 @@ function ParentDashboardContent() {
                   </button>
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900 mb-1">Add Pocket Money</h3>
-                <p className="text-base text-gray-500 font-medium mb-8">Funds will be available immediately in {selectedChild?.first_name}&apos;s digital wallet</p>
+                <p className="text-base text-gray-500 font-medium mb-8">
+                  Funds will be available immediately in {selectedChild?.first_name}&apos;s digital wallet
+                </p>
 
                 <div className="space-y-6">
                   <input
                     type="number"
+                    inputMode="numeric"
                     value={topupAmount}
                     onChange={(e) => setTopupAmount(e.target.value)}
                     placeholder="Amount (UGX)"
@@ -576,10 +658,13 @@ function ParentDashboardContent() {
                     disabled={!topupAmount || topupLoading}
                     className="w-full py-4 bg-blue-900 text-white rounded-xl font-bold uppercase tracking-wide hover:bg-blue-800 transition-colors disabled:opacity-50 flex items-center justify-center gap-3"
                   >
-                    {topupLoading
-                      ? <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      : <><MaterialIcon icon="bolt" /> Confirm Top-up</>
-                    }
+                    {topupLoading ? (
+                      <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <MaterialIcon icon="bolt" /> Confirm Top-up
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
@@ -606,9 +691,9 @@ function SidebarOverlay() {
 export default function ParentPortal() {
   return (
     <PageErrorBoundary>
-    <SidebarProvider>
-      <ParentDashboardContent />
-    </SidebarProvider>
+      <SidebarProvider>
+        <ParentDashboardContent />
+      </SidebarProvider>
     </PageErrorBoundary>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import Link from "next/link";
 import { Student, FeeStructure, FeePayment } from "@/types";
 import MaterialIcon from "@/components/MaterialIcon";
 
@@ -58,10 +59,7 @@ export default function TopDefaulters({
           <h2 id="defaulters-heading" className="text-sm font-bold text-[#17325f]">
             Top defaulters ({debtors.length})
           </h2>
-          <MaterialIcon
-            icon={isOpen ? "expand_less" : "expand_more"}
-            className="text-[#7f91aa] text-lg"
-          />
+          <MaterialIcon icon={isOpen ? "expand_less" : "expand_more"} className="text-[#7f91aa] text-lg" />
         </div>
         <span className="text-xs font-bold text-[#c2472b] bg-[#ffefe8] px-2 py-0.5 rounded-full">
           UGX {formatCurrency(debtors.reduce((sum, d) => sum + d.balance, 0))}
@@ -117,9 +115,12 @@ export default function TopDefaulters({
             </div>
           ))}
           <div className="pt-2 text-center">
-            <a href="/dashboard/fees" className="text-xs font-bold text-[#42638d] hover:underline focus:outline-none focus:ring-2 focus:ring-[#17325f] rounded">
+            <Link
+              href="/dashboard/fees"
+              className="text-xs font-bold text-[#42638d] hover:underline focus:outline-none focus:ring-2 focus:ring-[#17325f] rounded"
+            >
               View all {debtors.length} debtors →
-            </a>
+            </Link>
           </div>
         </div>
       )}

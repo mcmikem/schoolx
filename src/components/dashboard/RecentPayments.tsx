@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import Link from "next/link";
 import MaterialIcon from "@/components/MaterialIcon";
 
 function formatCurrency(amount: number) {
@@ -33,10 +34,7 @@ export default function RecentPayments({
           <h2 id="recent-payments-heading" className="text-sm font-bold text-[#17325f]">
             Recent payments
           </h2>
-          <MaterialIcon
-            icon={isOpen ? "expand_less" : "expand_more"}
-            className="text-[#7f91aa] text-lg"
-          />
+          <MaterialIcon icon={isOpen ? "expand_less" : "expand_more"} className="text-[#7f91aa] text-lg" />
         </div>
         <span className="text-xs font-bold text-[#1f8a70] bg-[#e1f3ee] px-2 py-0.5 rounded-full">
           +UGX {formatCurrency(thisMonthTotal)}
@@ -65,9 +63,7 @@ export default function RecentPayments({
                   className="h-8 w-8 rounded-lg bg-white border border-[#eaedf2] flex items-center justify-center text-xs font-bold text-[#17325f] shrink-0"
                   aria-hidden="true"
                 >
-                  {student
-                    ? (student.first_name?.[0] || "") + (student.last_name?.[0] || "")
-                    : "?"}
+                  {student ? (student.first_name?.[0] || "") + (student.last_name?.[0] || "") : "?"}
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-bold text-[#17325f] truncate">
@@ -83,16 +79,17 @@ export default function RecentPayments({
                 <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${methodColor}`}>
                   {method === "mobile_money" ? "Mobile" : method}
                 </span>
-                <p className="text-sm font-bold text-[#1f8a70]">
-                  UGX {formatCurrency(p.amount_paid || p.amount || 0)}
-                </p>
+                <p className="text-sm font-bold text-[#1f8a70]">UGX {formatCurrency(p.amount_paid || p.amount || 0)}</p>
               </div>
             );
           })}
           <div className="pt-2 text-center">
-            <a href="/dashboard/fees" className="text-xs font-bold text-[#42638d] hover:underline focus:outline-none focus:ring-2 focus:ring-[#17325f] rounded">
+            <Link
+              href="/dashboard/fees"
+              className="text-xs font-bold text-[#42638d] hover:underline focus:outline-none focus:ring-2 focus:ring-[#17325f] rounded"
+            >
               View all payments →
-            </a>
+            </Link>
           </div>
         </div>
       )}

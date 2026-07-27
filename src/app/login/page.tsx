@@ -541,7 +541,7 @@ export default function LoginPage() {
             <span>
               Want to see it first?{" "}
               <a
-                href="https://wa.me/256700000000?text=Hi%2C%20I%27d%20like%20a%20demo%20of%20SkoolMate"
+                href="https://wa.me/256750028703?text=Hi%2C%20I%27d%20like%20a%20demo%20of%20SkoolMate"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-medium text-slate-900 hover:underline"

@@ -1,15 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
+import Link from "next/link";
 import { logger } from "@/lib/logger";
 
-export default function DashboardError({
-  error,
-  reset,
-}: {
-  error: Error & { digest?: string };
-  reset: () => void;
-}) {
+export default function DashboardError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
     logger.error("[Dashboard Error]", error);
   }, [error]);
@@ -22,19 +17,14 @@ export default function DashboardError({
             <span className="material-symbols-rounded text-red-500 text-2xl">warning</span>
           </div>
           <h2 className="text-lg font-bold text-[var(--t1)] mb-2">Page Error</h2>
-          <p className="text-sm text-[var(--t3)] mb-6">
-            This page encountered an error. Your data is safe.
-          </p>
+          <p className="text-sm text-[var(--t3)] mb-6">This page encountered an error. Your data is safe.</p>
           <div className="flex gap-3 justify-center">
-            <button
-              onClick={reset}
-              className="btn btn-ghost text-sm"
-            >
+            <button onClick={reset} className="btn btn-ghost text-sm">
               Retry
             </button>
-            <a href="/dashboard" className="btn btn-primary text-sm">
+            <Link href="/dashboard" className="btn btn-primary text-sm">
               Back to Dashboard
-            </a>
+            </Link>
           </div>
         </div>
       </div>

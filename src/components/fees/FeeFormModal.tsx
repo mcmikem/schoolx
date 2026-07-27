@@ -31,8 +31,8 @@ interface FeeFormModalProps {
 }
 
 const feeRules = {
-  name: { ...ValidationRules.required, message: 'Fee name is required' },
-  amount: { ...ValidationRules.required, ...ValidationRules.positiveNumber, message: 'Amount must be greater than 0' },
+  name: { ...ValidationRules.required, message: "Fee name is required" },
+  amount: { ...ValidationRules.required, ...ValidationRules.positiveNumber, message: "Amount must be greater than 0" },
   class_id: ValidationRules.required,
   term: ValidationRules.required,
 };
@@ -53,14 +53,13 @@ export default function FeeFormModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const fields = ['name', 'amount', 'class_id', 'term'];
-    fields.forEach(f => feeValidation.markTouched(f));
+    const fields = ["name", "amount", "class_id", "term"];
+    fields.forEach((f) => feeValidation.markTouched(f));
     if (!feeValidation.validate(newFee)) return;
     onSubmit(e);
   };
 
-  const showError = (field: string) =>
-    feeValidation.isTouched(field) && feeValidation.getFieldError(field);
+  const showError = (field: string) => feeValidation.isTouched(field) && feeValidation.getFieldError(field);
 
   const errorBorder = (field: string) =>
     showError(field)
@@ -80,13 +79,8 @@ export default function FeeFormModal({
       >
         <div className="p-6 border-b border-outline-variant/10">
           <div className="flex items-center justify-between">
-            <h2 className="font-headline font-bold text-xl text-primary">
-              Add New Fee
-            </h2>
-            <AutoSaveIndicator
-              lastSaved={draftLastSaved ?? null}
-              isDirty={draftIsDirty ?? false}
-            />
+            <h2 className="font-headline font-bold text-xl text-primary">Add New Fee</h2>
+            <AutoSaveIndicator lastSaved={draftLastSaved ?? null} isDirty={draftIsDirty ?? false} />
           </div>
         </div>
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
@@ -116,21 +110,13 @@ export default function FeeFormModal({
             </label>
             {classesLoading ? (
               <div className="bg-[var(--navy-soft)] border border-[rgba(0,31,63,0.12)] rounded-xl p-4">
-                <p className="text-[var(--t1)] text-sm font-medium">
-                  Loading classes...
-                </p>
-                <p className="text-[var(--t3)] text-xs mt-1">
-                  The class list is still being fetched for this school.
-                </p>
+                <p className="text-[var(--t1)] text-sm font-medium">Loading classes...</p>
+                <p className="text-[var(--t3)] text-xs mt-1">The class list is still being fetched for this school.</p>
               </div>
             ) : classes.length === 0 ? (
               <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-                <p className="text-amber-800 text-sm font-medium">
-                  No classes found
-                </p>
-                <p className="text-amber-600 text-xs mt-1">
-                  Contact support if this persists.
-                </p>
+                <p className="text-amber-800 text-sm font-medium">No classes found</p>
+                <p className="text-amber-600 text-xs mt-1">Contact support if this persists.</p>
               </div>
             ) : (
               <select
@@ -161,6 +147,7 @@ export default function FeeFormModal({
               </label>
               <input
                 type="number"
+                inputMode="numeric"
                 min="1"
                 value={newFee.amount}
                 onChange={(e) => onFeeChange({ amount: e.target.value })}
@@ -182,9 +169,7 @@ export default function FeeFormModal({
               </label>
               <select
                 value={newFee.term}
-                onChange={(e) =>
-                  onFeeChange({ term: Number(e.target.value) as 1 | 2 | 3 })
-                }
+                onChange={(e) => onFeeChange({ term: Number(e.target.value) as 1 | 2 | 3 })}
                 onBlur={() => feeValidation.markTouched("term")}
                 className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm"
               >
@@ -212,11 +197,7 @@ export default function FeeFormModal({
             />
           </div>
           <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="btn btn-ghost flex-1"
-            >
+            <button type="button" onClick={onClose} className="btn btn-ghost flex-1">
               Cancel
             </button>
             <button

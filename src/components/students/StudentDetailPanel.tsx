@@ -933,6 +933,7 @@ export default function StudentDetailPanel({
                     id="parent-phone"
                     name="parent_phone"
                     type="tel"
+                    inputMode="tel"
                     placeholder="0700000000"
                     value={pPhone}
                     onChange={(e) => setPPhone(e.target.value)}
@@ -960,6 +961,7 @@ export default function StudentDetailPanel({
                     id="parent-phone2"
                     name="parent_phone2"
                     type="tel"
+                    inputMode="tel"
                     placeholder="0700000000"
                     value={pPhone2}
                     onChange={(e) => setPPhone2(e.target.value)}
@@ -1062,10 +1064,10 @@ export default function StudentDetailPanel({
                   </span>
                   <input
                     type="number"
+                    inputMode="numeric"
                     value={ob}
                     onChange={(e) => setOb(e.target.value)}
                     className="input"
-                    inputMode="numeric"
                     step="1"
                     style={{ paddingLeft: 45 }}
                   />
