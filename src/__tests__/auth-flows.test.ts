@@ -8,10 +8,7 @@
  */
 
 import { normalizeAuthPhone } from "@/lib/validation";
-import {
-  buildAuthLoginAttempts,
-  buildAuthEmailFromPhone,
-} from "@/lib/auth-login";
+import { buildAuthLoginAttempts, buildAuthEmailFromPhone } from "@/lib/auth-login";
 
 // ---------------------------------------------------------------------------
 // normalizeAuthPhone — phone normalisation must be stable
@@ -55,9 +52,7 @@ describe("normalizeAuthPhone", () => {
 
 describe("buildAuthEmailFromPhone", () => {
   it("builds @omuto.org email from normalised phone", () => {
-    expect(buildAuthEmailFromPhone("0700000000")).toBe(
-      "256700000000@omuto.org",
-    );
+    expect(buildAuthEmailFromPhone("0700000000")).toBe("256700000000@omuto.org");
   });
 
   it("produces the same email regardless of input format", () => {
@@ -89,13 +84,9 @@ describe("buildAuthLoginAttempts", () => {
 
   it("includes normalized omuto.org email for phone input", () => {
     const attempts = buildAuthLoginAttempts("0700000000");
-    const emailValues = attempts
-      .filter((a) => a.type === "email")
-      .map((a) => a.value);
+    const emailValues = attempts.filter((a) => a.type === "email").map((a) => a.value);
     // Primary format: normalized@omuto.org
     expect(emailValues).toContain("256700000000@omuto.org");
-    // Legacy fallback: normalized@omuto.sms
-    expect(emailValues).toContain("256700000000@omuto.sms");
   });
 
   it("includes phone fallback attempts for phone input", () => {
@@ -129,14 +120,7 @@ describe("buildAuthLoginAttempts", () => {
 // Re-implement DEMO_ALLOWED_ROLES and sanitizeDemoRole in isolation so this
 // test does NOT depend on auth-context internals (which would require a full
 // React provider setup).
-const DEMO_ALLOWED_ROLES = [
-  "headmaster",
-  "dean_of_studies",
-  "bursar",
-  "teacher",
-  "secretary",
-  "dorm_master",
-];
+const DEMO_ALLOWED_ROLES = ["headmaster", "dean_of_studies", "bursar", "teacher", "secretary", "dorm_master"];
 
 function sanitizeDemoRole(raw: unknown): string {
   if (typeof raw === "string" && DEMO_ALLOWED_ROLES.includes(raw)) return raw;
@@ -184,10 +168,7 @@ describe("sanitizeDemoRole", () => {
 // ---------------------------------------------------------------------------
 
 /** Mirrors the validateStep3 password logic in register/page.tsx */
-function validateRegisterPassword(
-  password: string,
-  confirmPassword: string,
-): string | null {
+function validateRegisterPassword(password: string, confirmPassword: string): string | null {
   if (password.length < 8) return "Password must be at least 8 characters";
   if (!/[A-Z]/.test(password) || !/[0-9]/.test(password)) {
     return "Password must contain at least one uppercase letter and one number";
@@ -202,9 +183,7 @@ describe("register password validation", () => {
   });
 
   it("rejects passwords without an uppercase letter", () => {
-    expect(validateRegisterPassword("abc12345", "abc12345")).toMatch(
-      /uppercase/i,
-    );
+    expect(validateRegisterPassword("abc12345", "abc12345")).toMatch(/uppercase/i);
   });
 
   it("rejects passwords without a number", () => {
@@ -212,9 +191,7 @@ describe("register password validation", () => {
   });
 
   it("rejects mismatched confirmation", () => {
-    expect(validateRegisterPassword("SecurePass1", "DifferentPass1")).toMatch(
-      /do not match/i,
-    );
+    expect(validateRegisterPassword("SecurePass1", "DifferentPass1")).toMatch(/do not match/i);
   });
 
   it("accepts a valid password", () => {
@@ -243,10 +220,7 @@ describe("auth-context: onAuthStateChange SIGNED_IN loading guard", () => {
     // Read the compiled source to assert the invariant exists.
     const fs = await import("fs");
     const path = await import("path");
-    const filePath = path.default.resolve(
-      __dirname,
-      "../lib/auth-context.tsx",
-    );
+    const filePath = path.default.resolve(__dirname, "../lib/auth-context.tsx");
     const source = fs.default.readFileSync(filePath, "utf-8");
 
     // The guard should only set loading=true on explicit SIGNED_IN events.

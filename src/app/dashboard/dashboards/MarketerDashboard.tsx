@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { logger } from "@/lib/logger";
 import { APP_NAME } from "@/lib/app-name";
@@ -1085,6 +1086,7 @@ function OutreachTab() {
 // ─── Resources Tab ────────────────────────────────────────────────────────────
 
 function ResourcesTab() {
+  const isExternal = (href: string) => href.startsWith("http") || href.startsWith("//");
   return (
     <div>
       <div className="mb-4">
@@ -1094,23 +1096,39 @@ function ResourcesTab() {
         </p>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        {RESOURCES.map((r) => (
-          <a
-            key={r.title}
-            href={r.href}
-            target={r.href.startsWith("http") ? "_blank" : undefined}
-            rel="noopener noreferrer"
-            className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 hover:shadow-md hover:border-[var(--primary)]/30 transition-all group"
-          >
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3 bg-gradient-to-br from-[#ec4899]/10 to-[#8b5cf6]/10 text-[#8b5cf6] group-hover:scale-110 transition-transform">
-              <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
-                {r.icon}
-              </span>
-            </div>
-            <h3 className="font-['Sora'] text-[13px] font-bold text-[var(--t1)] mb-1">{r.title}</h3>
-            <p className="text-[11px] text-[var(--t3)] leading-relaxed">{r.desc}</p>
-          </a>
-        ))}
+        {RESOURCES.map((r) =>
+          isExternal(r.href) ? (
+            <a
+              key={r.title}
+              href={r.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 hover:shadow-md hover:border-[var(--primary)]/30 transition-all group"
+            >
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3 bg-gradient-to-br from-[#ec4899]/10 to-[#8b5cf6]/10 text-[#8b5cf6] group-hover:scale-110 transition-transform">
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+                  {r.icon}
+                </span>
+              </div>
+              <h3 className="font-['Sora'] text-[13px] font-bold text-[var(--t1)] mb-1">{r.title}</h3>
+              <p className="text-[11px] text-[var(--t3)] leading-relaxed">{r.desc}</p>
+            </a>
+          ) : (
+            <Link
+              key={r.title}
+              href={r.href}
+              className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 hover:shadow-md hover:border-[var(--primary)]/30 transition-all group"
+            >
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3 bg-gradient-to-br from-[#ec4899]/10 to-[#8b5cf6]/10 text-[#8b5cf6] group-hover:scale-110 transition-transform">
+                <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
+                  {r.icon}
+                </span>
+              </div>
+              <h3 className="font-['Sora'] text-[13px] font-bold text-[var(--t1)] mb-1">{r.title}</h3>
+              <p className="text-[11px] text-[var(--t3)] leading-relaxed">{r.desc}</p>
+            </Link>
+          ),
+        )}
       </div>
     </div>
   );
