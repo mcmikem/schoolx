@@ -42,6 +42,7 @@ import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
 import { getErrorMessage } from "@/lib/validation";
 import { APP_NAME } from "@/lib/app-name";
+import { logger } from "@/lib/logger";
 
 interface PaymentPlan {
   id: string;
@@ -763,7 +764,8 @@ export default function FinanceHubPage() {
       try {
         iframe.contentWindow?.focus();
         iframe.contentWindow?.print();
-      } catch {
+      } catch (err) {
+        logger.warn("Print failed:", err);
         toast.error("Printing failed. Please use Ctrl+P/Cmd+P instead.");
       }
       iframe.removeEventListener("load", onLoad);
@@ -826,7 +828,8 @@ export default function FinanceHubPage() {
         try {
           iframe.contentWindow?.focus();
           iframe.contentWindow?.print();
-        } catch {
+        } catch (err) {
+          logger.warn("Print failed:", err);
           toast.error("Printing failed. Please use Ctrl+P/Cmd+P instead.");
         }
         iframe.removeEventListener("load", onLoad);
@@ -1082,7 +1085,8 @@ export default function FinanceHubPage() {
       try {
         iframe.contentWindow?.focus();
         iframe.contentWindow?.print();
-      } catch {
+      } catch (err) {
+        logger.warn("Print failed:", err);
         toast.error("Printing failed. Please use Ctrl+P/Cmd+P instead.");
       }
       iframe.removeEventListener("load", onLoad);
@@ -1109,7 +1113,8 @@ export default function FinanceHubPage() {
         }),
       });
       toast.success("Invoice sent via SMS");
-    } catch {
+    } catch (err) {
+      logger.warn("Send invoice SMS failed:", err);
       toast.error("Failed to send SMS");
     }
   };
@@ -1152,7 +1157,8 @@ export default function FinanceHubPage() {
       } else {
         toast.error(data.error || "Failed to send reminders");
       }
-    } catch {
+    } catch (err) {
+      logger.warn("Send fee reminders failed:", err);
       toast.error("Failed to send fee reminders");
     } finally {
       setSendingReminders(false);

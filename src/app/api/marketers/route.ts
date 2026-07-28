@@ -67,7 +67,8 @@ export async function GET(request: NextRequest) {
       .order("created_at", { ascending: false });
 
     if (error) {
-      return apiError("Failed to fetch marketers", 500);
+      logger.error("Failed to fetch marketers:", error);
+      return apiError(error.message, 500);
     }
 
     return apiSuccess(marketers);

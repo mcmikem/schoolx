@@ -86,8 +86,10 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     const { error } = await supabase.from("marketer_leads").delete().eq("id", id).eq("marketer_id", profile.id);
 
-    if (error) return apiError("Failed to delete lead", 500);
-
+    if (error) {
+      logger.error("Failed to delete lead:", error);
+      return apiError(error.message, 500);
+    }
     return apiSuccess(null, "Lead deleted");
   } catch (error) {
     logger.error("DELETE /api/marketers/leads/[id] error:", error);

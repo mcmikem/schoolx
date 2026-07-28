@@ -1,4 +1,5 @@
 import { NextRequest } from "next/server";
+import { logger } from "@/lib/logger";
 import {
   apiError,
   apiSuccess,
@@ -8,13 +9,7 @@ import {
   createServiceRoleClientOrThrow,
 } from "@/lib/api-utils";
 
-const MODE_ADMIN_ROLES = [
-  "super_admin",
-  "school_admin",
-  "admin",
-  "headmaster",
-  "bursar",
-];
+const MODE_ADMIN_ROLES = ["super_admin", "school_admin", "admin", "headmaster", "bursar"];
 
 export async function POST(request: NextRequest) {
   try {
@@ -47,7 +42,8 @@ export async function POST(request: NextRequest) {
       .eq("id", auth.context.schoolId);
 
     if (error) {
-      return apiError("Failed to update billing mode", 500);
+      logger.error("Failed to update billing mode:", error);
+      return apiError(error.message, 500);
     }
 
     return apiSuccess({ billing_mode: billingMode }, "Billing mode updated");

@@ -549,7 +549,8 @@ export default function GradesPage() {
               return next;
             });
           }, 2000);
-        } catch {
+        } catch (err) {
+          logger.warn("Failed to auto-save grade:", err);
           setSaveStatuses((prev) => ({ ...prev, [key]: "idle" }));
           toast.error(`Failed to auto-save ${type.toUpperCase()} for student`);
         }
@@ -663,7 +664,8 @@ export default function GradesPage() {
         return next;
       });
       toast.success(`Copied ${prevGrades.length} grades from Term ${prevTerm}`);
-    } catch {
+    } catch (err) {
+      logger.warn("Failed to copy grades from previous term:", err);
       toast.error("Failed to copy grades from previous term");
     } finally {
       setLoading(false);
@@ -1052,7 +1054,8 @@ export default function GradesPage() {
       }
       fetchCoverage();
       toast.success("Topic status updated");
-    } catch {
+    } catch (err) {
+      logger.warn("Failed to update topic status:", err);
       toast.error("Failed to update");
     }
   };

@@ -64,19 +64,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Update password via admin API
-    const { error: updateError } = await supabase.auth.admin.updateUserById(
-      userData.auth_id,
-      { password: password },
-    );
+    const { error: updateError } = await supabase.auth.admin.updateUserById(userData.auth_id, { password: password });
 
     if (updateError) {
       logger.error("Failed to update password:", updateError);
-      return apiError("Failed to update password", 500);
+      return apiError(updateError.message, 500);
     }
 
     return apiSuccess({ success: true }, "Password reset successful");
   } catch (error) {
     logger.error("[Admin Reset Password Error]", error);
-    return apiError("Failed to reset password", 500);
+    return apiError(error instanceof Error ? error.message : "Failed to reset password", 500);
   }
 }

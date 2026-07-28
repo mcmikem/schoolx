@@ -10,6 +10,7 @@ import {
   validateRequiredFields,
 } from "@/lib/api-utils";
 import { requireModuleEntitlement } from "@/lib/subscription-guard";
+import { logger } from "@/lib/logger";
 
 const ATTENDANCE_ALLOWED_ROLES = [
   "super_admin",
@@ -36,12 +37,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { class_id, date_from, date_to, status, school_id } = body;
 
-    const validationError = validateRequiredFields(body, [
-      "class_id",
-      "date_from",
-      "date_to",
-      "status",
-    ]);
+    const validationError = validateRequiredFields(body, ["class_id", "date_from", "date_to", "status"]);
     if (validationError) {
       return apiError(validationError, 400);
     }
@@ -92,7 +88,8 @@ export async function POST(request: NextRequest) {
       .eq("status", "active");
 
     if (studentsError) {
-      return apiError("Failed to fetch students", 500);
+      logger.error("Failed to fetch students:", studentsError);
+      return apiError(studentsError.message, 500);
     }
 
     if (!students || students.length === 0) {
@@ -123,9 +120,7 @@ export async function POST(request: NextRequest) {
     let upserted = 0;
     for (let i = 0; i < records.length; i += BATCH_SIZE) {
       const batch = records.slice(i, i + BATCH_SIZE);
-      const { error: upsertError } = await supabase
-        .from("attendance")
-        .upsert(batch, { onConflict: "student_id,date" });
+      const { error: upsertError } = await supabase.from("attendance").upsert(batch, { onConflict: "student_id,date" });
       if (upsertError) throw upsertError;
       upserted += batch.length;
     }

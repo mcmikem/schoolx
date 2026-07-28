@@ -10,13 +10,7 @@ import {
 } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
 
-const STUDENT_MGMT_ROLES = [
-  "super_admin",
-  "school_admin",
-  "admin",
-  "headmaster",
-  "secretary",
-];
+const STUDENT_MGMT_ROLES = ["super_admin", "school_admin", "admin", "headmaster", "secretary"];
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -43,7 +37,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       .eq("school_id", schoolId)
       .single();
 
-    if (error || !student) {
+    if (error) {
+      logger.error("[API Students] Failed to fetch student:", error);
+      return apiError(error.message, 500);
+    }
+    if (!student) {
       return apiError("Student not found", 404);
     }
 
@@ -81,16 +79,41 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const supabase = createServiceRoleClientOrThrow();
 
     const allowedFields = [
-      "first_name", "last_name", "gender", "date_of_birth",
-      "parent_name", "parent_phone", "parent_phone2", "parent_email",
-      "address", "class_id", "student_number", "ple_index_number",
-      "opening_balance", "boarding_status", "house_id", "previous_school",
-      "district_origin", "sub_county", "parish", "village",
-      "photo_url", "blood_type", "religion", "nationality",
-      "prefect_role", "student_council_role", "games_house",
-      "is_class_monitor", "nin", "status",
-      "transfer_from", "transfer_to", "transfer_reason",
-      "dropout_reason", "dropout_date",
+      "first_name",
+      "last_name",
+      "gender",
+      "date_of_birth",
+      "parent_name",
+      "parent_phone",
+      "parent_phone2",
+      "parent_email",
+      "address",
+      "class_id",
+      "student_number",
+      "ple_index_number",
+      "opening_balance",
+      "boarding_status",
+      "house_id",
+      "previous_school",
+      "district_origin",
+      "sub_county",
+      "parish",
+      "village",
+      "photo_url",
+      "blood_type",
+      "religion",
+      "nationality",
+      "prefect_role",
+      "student_council_role",
+      "games_house",
+      "is_class_monitor",
+      "nin",
+      "status",
+      "transfer_from",
+      "transfer_to",
+      "transfer_reason",
+      "dropout_reason",
+      "dropout_date",
     ];
 
     const sanitized: Record<string, unknown> = {};
@@ -110,7 +133,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     if (error) {
       logger.error("[API Students] Update failed:", error);
-      return apiError("Failed to update student", 500);
+      return apiError(error.message, 500);
     }
 
     logger.info(`Updated student ${id} in school ${schoolId}`);
@@ -157,7 +180,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     if (error) {
       logger.error("[API Students] Soft-delete failed:", error);
-      return apiError("Failed to delete student", 500);
+      return apiError(error.message, 500);
     }
 
     logger.info(`Soft-deleted student ${id} in school ${schoolId}`);

@@ -186,7 +186,8 @@ async function parseApiResponse(response: Response): Promise<Record<string, any>
   if (contentType.includes("application/json")) {
     try {
       return (await response.json()) as Record<string, any>;
-    } catch {
+    } catch (err) {
+      logger.warn("parseApiResponse JSON parse failed:", err);
       return {
         success: false,
         error: response.ok ? "Unexpected response from server" : "Server returned invalid JSON",
@@ -194,7 +195,10 @@ async function parseApiResponse(response: Response): Promise<Record<string, any>
     }
   }
 
-  const text = await response.text().catch(() => "");
+  const text = await response.text().catch((err) => {
+    logger.warn("parseApiResponse text read failed:", err);
+    return "";
+  });
   const trimmed = text.trim();
   const isHtml = /^<!doctype html|^<html/i.test(trimmed);
   const fallbackMessage = response.ok ? "Unexpected response from server" : "Server returned an unexpected error page";
@@ -1738,8 +1742,9 @@ export default function SuperAdminPage() {
     try {
       localStorage.setItem("platform_settings", JSON.stringify(settings));
       toast.success("Platform settings saved");
-    } catch {
-      toast.error("Failed to save settings");
+    } catch (err) {
+      logger.warn("Failed to save platform settings:", err);
+      toast.error(err instanceof Error ? err.message : "Failed to save settings");
     } finally {
       setSettingsSaving(false);
     }
@@ -2492,7 +2497,8 @@ export default function SuperAdminPage() {
                       const res = await fetch("/api/modules/entitlements/?scope=all_pending");
                       const body = await res.json();
                       setPendingModules(body.data?.requests || []);
-                    } catch {
+                    } catch (err) {
+                      logger.warn("Modules refresh failed:", err);
                       toast.error("Failed to load pending requests");
                     } finally {
                       setModulesLoading(false);
@@ -2563,7 +2569,8 @@ export default function SuperAdminPage() {
                                   (r: any) => !(r.school_id === req.school_id && r.module_key === req.module_key),
                                 ),
                               );
-                            } catch {
+                            } catch (err) {
+                              logger.warn("Module approval failed:", err);
                               toast.error("Failed to approve module");
                             }
                           }}
@@ -2591,7 +2598,8 @@ export default function SuperAdminPage() {
                                   (r: any) => !(r.school_id === req.school_id && r.module_key === req.module_key),
                                 ),
                               );
-                            } catch {
+                            } catch (err) {
+                              logger.warn("Module rejection failed:", err);
                               toast.error("Failed to reject request");
                             }
                           }}
@@ -2779,8 +2787,9 @@ function MarketersTab() {
       const body = await res.json();
       if (body.success) setMarketers(body.data || []);
       else setError(body.error || "Failed to load");
-    } catch {
-      setError("Network error");
+    } catch (err) {
+      logger.warn("fetchMarketers failed:", err);
+      setError(err instanceof Error ? err.message : "Network error");
     } finally {
       setLoading(false);
     }
@@ -2796,7 +2805,7 @@ function MarketersTab() {
       .then((b) => {
         if (b.success) setSchoolsList((b.data || []).map((s: any) => ({ id: s.id, name: s.name })));
       })
-      .catch(() => {});
+      .catch((err) => logger.warn("schools fetch failed:", err));
   }, []);
 
   useEffect(() => {
@@ -2807,7 +2816,10 @@ function MarketersTab() {
         setEmailConfigured(configured);
         if (!configured) setContactMethod("phone");
       })
-      .catch(() => setContactMethod("phone"));
+      .catch((err) => {
+        logger.warn("marketers config fetch failed:", err);
+        setContactMethod("phone");
+      });
   }, []);
 
   const createMarketer = async (e: React.FormEvent) => {
@@ -2845,8 +2857,9 @@ function MarketersTab() {
       } else {
         setError(body.error || "Failed to create");
       }
-    } catch {
-      setError("Network error");
+    } catch (err) {
+      logger.warn("createMarketer failed:", err);
+      setError(err instanceof Error ? err.message : "Network error");
     } finally {
       setCreating(false);
     }
@@ -2877,7 +2890,9 @@ function MarketersTab() {
           [marketerId]: { data: list, summary: { total, pending, paid, schools_count: schools } },
         }));
       }
-    } catch {}
+    } catch (err) {
+      logger.warn("toggleExpand earnings fetch failed:", err);
+    }
   };
 
   const addEarning = async (marketerId: string) => {
@@ -2902,8 +2917,9 @@ function MarketersTab() {
       } else {
         setError(body.error || "Failed to add earning");
       }
-    } catch {
-      setError("Network error");
+    } catch (err) {
+      logger.warn("addEarning failed:", err);
+      setError(err instanceof Error ? err.message : "Network error");
     }
   };
 
@@ -3235,8 +3251,9 @@ function AuditLogTab() {
       const body = await res.json();
       if (body.success) setLogs(body.data?.logs || []);
       else setError(body.error || "Failed to load");
-    } catch {
-      setError("Network error");
+    } catch (err) {
+      logger.warn("AuditLogTab fetchLogs failed:", err);
+      setError(err instanceof Error ? err.message : "Network error");
     } finally {
       setLoading(false);
     }
@@ -3378,8 +3395,9 @@ function AppActivityTab() {
           if (body.success) setSummary(body.data);
           else setErr(body.error || "Failed to load");
         }
-      } catch {
-        setErr("Network error");
+      } catch (err) {
+        logger.warn("AppActivityTab fetchData failed:", err);
+        setErr(err instanceof Error ? err.message : "Network error");
       } finally {
         setLoading(false);
       }

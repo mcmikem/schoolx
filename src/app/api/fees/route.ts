@@ -12,14 +12,7 @@ import {
 import { logger } from "@/lib/logger";
 import { requireModuleEntitlement } from "@/lib/subscription-guard";
 
-const FEE_MGMT_ROLES = [
-  "super_admin",
-  "school_admin",
-  "admin",
-  "headmaster",
-  "secretary",
-  "bursar",
-];
+const FEE_MGMT_ROLES = ["super_admin", "school_admin", "admin", "headmaster", "secretary", "bursar"];
 
 export async function GET(request: NextRequest) {
   try {
@@ -73,7 +66,8 @@ export async function GET(request: NextRequest) {
     const { data: fees, count, error } = await query.range(offset, offset + limit - 1);
 
     if (error) {
-      return apiError("Failed to fetch fee structures", 500);
+      logger.error("Failed to fetch fee structures:", error);
+      return apiError(error.message, 500);
     }
 
     return apiSuccess({ fees: fees || [], total: count || 0 });
@@ -102,12 +96,7 @@ export async function POST(request: NextRequest) {
     });
     if (!roleCheck.ok) return roleCheck.response;
 
-    const missing = validateRequiredFields(feeData, [
-      "name",
-      "amount",
-      "term",
-      "academic_year",
-    ]);
+    const missing = validateRequiredFields(feeData, ["name", "amount", "term", "academic_year"]);
     if (missing) {
       return apiError(missing, 400);
     }
@@ -141,23 +130,17 @@ export async function POST(request: NextRequest) {
       due_date: feeData.due_date || null,
     };
 
-    const { data, error } = await supabase
-      .from("fee_structure")
-      .insert(payload)
-      .select("id, name, amount")
-      .single();
+    const { data, error } = await supabase.from("fee_structure").insert(payload).select("id, name, amount").single();
 
     if (error) {
       if (error.code === "23505") {
         return apiError("A fee structure with the same name, class, term, and academic year already exists", 409);
       }
       logger.error("[API Fees] Insert failed:", error);
-      return apiError("Failed to create fee structure", 500);
+      return apiError(error.message, 500);
     }
 
-    logger.info(
-      `Created fee structure ${data.id} (${payload.name}) in school ${schoolId}`,
-    );
+    logger.info(`Created fee structure ${data.id} (${payload.name}) in school ${schoolId}`);
 
     return apiSuccess({ id: data.id }, "Fee structure created successfully", 201);
   } catch (error) {

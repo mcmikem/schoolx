@@ -49,7 +49,7 @@ export function useActivityComments(options: UseActivityCommentsOptions = {}) {
       setComments(data || []);
     } catch (err) {
       logger.error("Error fetching comments:", err);
-      toast.error("Failed to load comments");
+      toast.error(err instanceof Error ? err.message : "Failed to load comments");
     } finally {
       setLoading(false);
     }
@@ -79,7 +79,10 @@ export function useActivityComments(options: UseActivityCommentsOptions = {}) {
             .select()
             .single(),
           15000,
-          { data: null, error: { message: "Comment creation timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+          {
+            data: null,
+            error: { message: "Comment creation timed out", name: "TimeoutError", details: "", hint: "", code: "" },
+          } as any,
         );
 
         if (error) throw error;
@@ -88,7 +91,7 @@ export function useActivityComments(options: UseActivityCommentsOptions = {}) {
         return data;
       } catch (err) {
         logger.error("Error adding comment:", err);
-        toast.error("Failed to add comment");
+        toast.error(err instanceof Error ? err.message : "Failed to add comment");
         return null;
       }
     },
@@ -99,12 +102,11 @@ export function useActivityComments(options: UseActivityCommentsOptions = {}) {
     async (id: string, content: string) => {
       try {
         const { error } = await withTimeout(
-          supabase
-            .from("activity_comments")
-            .update({ content })
-            .eq("id", id),
+          supabase.from("activity_comments").update({ content }).eq("id", id),
           15000,
-          { error: { message: "Comment update timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+          {
+            error: { message: "Comment update timed out", name: "TimeoutError", details: "", hint: "", code: "" },
+          } as any,
         );
 
         if (error) throw error;
@@ -112,7 +114,7 @@ export function useActivityComments(options: UseActivityCommentsOptions = {}) {
         fetchComments();
       } catch (err) {
         logger.error("Error updating comment:", err);
-        toast.error("Failed to update comment");
+        toast.error(err instanceof Error ? err.message : "Failed to update comment");
       }
     },
     [toast, fetchComments],
@@ -121,21 +123,16 @@ export function useActivityComments(options: UseActivityCommentsOptions = {}) {
   const deleteComment = useCallback(
     async (id: string) => {
       try {
-        const { error } = await withTimeout(
-          supabase
-            .from("activity_comments")
-            .delete()
-            .eq("id", id),
-          15000,
-          { error: { message: "Comment deletion timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
-        );
+        const { error } = await withTimeout(supabase.from("activity_comments").delete().eq("id", id), 15000, {
+          error: { message: "Comment deletion timed out", name: "TimeoutError", details: "", hint: "", code: "" },
+        } as any);
 
         if (error) throw error;
         toast.success("Comment deleted");
         fetchComments();
       } catch (err) {
         logger.error("Error deleting comment:", err);
-        toast.error("Failed to delete comment");
+        toast.error(err instanceof Error ? err.message : "Failed to delete comment");
       }
     },
     [toast, fetchComments],
@@ -145,12 +142,11 @@ export function useActivityComments(options: UseActivityCommentsOptions = {}) {
     async (id: string) => {
       try {
         const { error } = await withTimeout(
-          supabase
-            .from("activity_comments")
-            .update({ comment_type: "resolved" })
-            .eq("id", id),
+          supabase.from("activity_comments").update({ comment_type: "resolved" }).eq("id", id),
           15000,
-          { error: { message: "Action resolution timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+          {
+            error: { message: "Action resolution timed out", name: "TimeoutError", details: "", hint: "", code: "" },
+          } as any,
         );
 
         if (error) throw error;
@@ -158,7 +154,7 @@ export function useActivityComments(options: UseActivityCommentsOptions = {}) {
         fetchComments();
       } catch (err) {
         logger.error("Error resolving action:", err);
-        toast.error("Failed to resolve action");
+        toast.error(err instanceof Error ? err.message : "Failed to resolve action");
       }
     },
     [toast, fetchComments],

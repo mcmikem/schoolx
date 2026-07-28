@@ -494,7 +494,10 @@ export async function POST(request: NextRequest) {
     } catch (setupError) {
       logger.error("[Setup] Auto-setup failed, rolling back registration:", setupError);
       await rollbackAll();
-      return apiError("Registration could not be completed. Please try again.", 500);
+      return apiError(
+        setupError instanceof Error ? setupError.message : "Registration could not be completed. Please try again.",
+        500,
+      );
     }
 
     return apiSuccess(

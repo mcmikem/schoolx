@@ -43,8 +43,10 @@ export async function GET(request: NextRequest) {
     }
 
     const { data: leads, error } = await query;
-    if (error) return apiError("Failed to fetch leads", 500);
-
+    if (error) {
+      logger.error("Failed to fetch leads:", error);
+      return apiError(error.message, 500);
+    }
     return apiSuccess({ leads: leads || [] });
   } catch (error) {
     logger.error("GET /api/marketers/leads error:", error);
@@ -91,8 +93,10 @@ export async function POST(request: NextRequest) {
       .select()
       .single();
 
-    if (error) return apiError("Failed to create lead", 500);
-
+    if (error) {
+      logger.error("Failed to create lead:", error);
+      return apiError(error.message, 500);
+    }
     return apiSuccess({ lead }, "Lead created", 201);
   } catch (error) {
     logger.error("POST /api/marketers/leads error:", error);

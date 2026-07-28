@@ -9,6 +9,7 @@ import { useStudents } from "@/lib/hooks";
 import MaterialIcon from "@/components/MaterialIcon";
 import { format } from "date-fns";
 import { getErrorMessage } from "@/lib/validation";
+import { logger } from "@/lib/logger";
 
 interface BehaviorLog {
   id: string;
@@ -71,7 +72,8 @@ export default function ConductManagementPage() {
         .limit(100);
       if (error) throw error;
       setLogs((data as BehaviorLog[]) || []);
-    } catch {
+    } catch (err) {
+      logger.warn("Failed to load conduct records:", err);
       toast.error("Failed to load conduct records");
     } finally {
       setLoading(false);

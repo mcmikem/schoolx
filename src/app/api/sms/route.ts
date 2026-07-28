@@ -9,10 +9,7 @@ import {
   assertUserRoleOrDeny,
   createServiceRoleClientOrThrow,
 } from "@/lib/api-utils";
-import {
-  requireActiveSubscription,
-  requireModuleEntitlement,
-} from "@/lib/subscription-guard";
+import { requireActiveSubscription, requireModuleEntitlement } from "@/lib/subscription-guard";
 import {
   formatUgandaPhone,
   getAfricasTalkingConfig,
@@ -25,14 +22,7 @@ import { validateRequest, smsRequestSchema } from "@/lib/validation";
 import { logger } from "@/lib/logger";
 
 const { apiKey: AFRICAS_TALKING_API_KEY } = getAfricasTalkingConfig();
-const SMS_ALLOWED_ROLES = [
-  "super_admin",
-  "school_admin",
-  "admin",
-  "headmaster",
-  "bursar",
-  "secretary",
-];
+const SMS_ALLOWED_ROLES = ["super_admin", "school_admin", "admin", "headmaster", "bursar", "secretary"];
 
 async function handlePost(request: NextRequest) {
   try {
@@ -77,10 +67,7 @@ async function handlePost(request: NextRequest) {
 
     const withinLimit = await checkSmsDailyLimit(schoolId, 1);
     if (!withinLimit) {
-      return apiError(
-        "Daily SMS limit reached. Please try again tomorrow or contact support.",
-        429,
-      );
+      return apiError("Daily SMS limit reached. Please try again tomorrow or contact support.", 429);
     }
 
     if (!phone) {
@@ -112,17 +99,15 @@ async function handlePost(request: NextRequest) {
           .single();
 
         if (student?.parent_id) {
-          const { error: notifyError } = await supabase
-            .from("parent_notifications")
-            .insert({
-              school_id: schoolId,
-              parent_id: student.parent_id,
-              student_id: student.id,
-              type: "message",
-              title: "Message available",
-              message: `A school message for ${student.first_name} ${student.last_name} is available in the parent portal.`,
-              action_url: "/parent-portal/messages",
-            });
+          const { error: notifyError } = await supabase.from("parent_notifications").insert({
+            school_id: schoolId,
+            parent_id: student.parent_id,
+            student_id: student.id,
+            type: "message",
+            title: "Message available",
+            message: `A school message for ${student.first_name} ${student.last_name} is available in the parent portal.`,
+            action_url: "/parent-portal/messages",
+          });
 
           portalNotificationQueued = !notifyError;
         }
@@ -195,16 +180,10 @@ async function handlePut(request: NextRequest) {
 
     const withinLimit = await checkSmsDailyLimit(schoolId, phones.length);
     if (!withinLimit) {
-      return apiError(
-        "Daily SMS limit would be exceeded. Please reduce recipients or try again tomorrow.",
-        429,
-      );
+      return apiError("Daily SMS limit would be exceeded. Please reduce recipients or try again tomorrow.", 429);
     }
 
-    const validPhones = phones.filter(
-      (p): p is string =>
-        typeof p === "string" && p.length >= 10 && p.length <= 15,
-    );
+    const validPhones = phones.filter((p): p is string => typeof p === "string" && p.length >= 10 && p.length <= 15);
 
     if (validPhones.length === 0) {
       return apiError("No valid phone numbers provided", 400);
@@ -273,7 +252,8 @@ export async function GET(request: NextRequest) {
       .range(offset, offset + limit - 1);
 
     if (error) {
-      return apiError("Failed to fetch messages", 500);
+      logger.error("Failed to fetch messages:", error);
+      return apiError(error.message, 500);
     }
 
     return apiSuccess({ messages: messages || [] });
@@ -297,22 +277,14 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const { id, status, phoneNumber, failureReason } = body;
 
-    logger.debug(
-      `[SMS Delivery] ID: ${id}, Status: ${status}, Phone: ${phoneNumber}`,
-    );
+    logger.debug(`[SMS Delivery] ID: ${id}, Status: ${status}, Phone: ${phoneNumber}`);
 
     const supabase = createServiceRoleClientOrThrow();
-    await supabase
-      .from("messages")
-      .update({ status })
-      .eq("message_id", id);
+    await supabase.from("messages").update({ status }).eq("message_id", id);
 
     // Try updating delivery_status separately for graceful degradation
     try {
-      await supabase
-        .from("messages")
-        .update({ delivery_status: status })
-        .eq("message_id", id);
+      await supabase.from("messages").update({ delivery_status: status }).eq("message_id", id);
     } catch (deliveryError) {
       logger.warn("Delivery status update failed (column may not exist yet):", deliveryError);
     }

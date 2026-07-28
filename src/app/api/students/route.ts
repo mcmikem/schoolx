@@ -12,13 +12,7 @@ import {
 import { logger } from "@/lib/logger";
 import { requireModuleEntitlement } from "@/lib/subscription-guard";
 
-const STUDENT_MGMT_ROLES = [
-  "super_admin",
-  "school_admin",
-  "admin",
-  "headmaster",
-  "secretary",
-];
+const STUDENT_MGMT_ROLES = ["super_admin", "school_admin", "admin", "headmaster", "secretary"];
 
 export async function GET(request: NextRequest) {
   try {
@@ -74,7 +68,8 @@ export async function GET(request: NextRequest) {
     const { data: students, count, error } = await query.range(offset, offset + limit - 1);
 
     if (error) {
-      return apiError("Failed to fetch students", 500);
+      logger.error("Failed to fetch students:", error);
+      return apiError(error.message, 500);
     }
 
     return apiSuccess({ students: students || [], total: count || 0 });
@@ -161,20 +156,14 @@ export async function POST(request: NextRequest) {
       status: studentData.status || "active",
     };
 
-    const { data, error } = await supabase
-      .from("students")
-      .insert(payload)
-      .select("id, student_number")
-      .single();
+    const { data, error } = await supabase.from("students").insert(payload).select("id, student_number").single();
 
     if (error) {
       logger.error("[API Students] Insert failed:", error);
-      return apiError("Failed to create student", 500);
+      return apiError(error.message, 500);
     }
 
-    logger.info(
-      `Created student ${data.id} (${payload.first_name} ${payload.last_name}) in school ${schoolId}`,
-    );
+    logger.info(`Created student ${data.id} (${payload.first_name} ${payload.last_name}) in school ${schoolId}`);
 
     return apiSuccess({ id: data.id, student_number: data.student_number }, "Student created successfully", 201);
   } catch (error) {

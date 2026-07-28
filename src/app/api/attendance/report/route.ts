@@ -8,6 +8,7 @@ import {
   assertUserRoleOrDeny,
   createServiceRoleClientOrThrow,
 } from "@/lib/api-utils";
+import { logger } from "@/lib/logger";
 
 const REPORT_ALLOWED_ROLES = [
   "super_admin",
@@ -65,7 +66,8 @@ export async function GET(request: NextRequest) {
 
     const { data: attendance, error: attError } = await attendanceQuery;
     if (attError) {
-      return apiError("Failed to fetch attendance records", 500);
+      logger.error("Failed to fetch attendance records:", attError);
+      return apiError(attError.message, 500);
     }
 
     if (!attendance || attendance.length === 0) {
@@ -84,12 +86,11 @@ export async function GET(request: NextRequest) {
       .in("id", studentIds);
 
     if (studentsError) {
-      return apiError("Failed to fetch student details", 500);
+      logger.error("Failed to fetch student details:", studentsError);
+      return apiError(studentsError.message, 500);
     }
 
-    const studentMap = new Map(
-      (studentsData || []).map((s: any) => [s.id, s]),
-    );
+    const studentMap = new Map((studentsData || []).map((s: any) => [s.id, s]));
 
     const perStudent: Record<string, any> = {};
     for (const sid of studentIds) {
@@ -104,20 +105,18 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const studentSummaries = Object.entries(perStudent).map(
-      ([sid, counts]: [string, any]) => {
-        const student = studentMap.get(sid);
-        const rate = counts.total > 0 ? counts.present / counts.total : 0;
-        return {
-          student_id: sid,
-          first_name: student?.first_name || "Unknown",
-          last_name: student?.last_name || "Unknown",
-          student_number: student?.student_number || "",
-          ...counts,
-          rate: Math.round(rate * 1000) / 10,
-        };
-      },
-    );
+    const studentSummaries = Object.entries(perStudent).map(([sid, counts]: [string, any]) => {
+      const student = studentMap.get(sid);
+      const rate = counts.total > 0 ? counts.present / counts.total : 0;
+      return {
+        student_id: sid,
+        first_name: student?.first_name || "Unknown",
+        last_name: student?.last_name || "Unknown",
+        student_number: student?.student_number || "",
+        ...counts,
+        rate: Math.round(rate * 1000) / 10,
+      };
+    });
 
     const totalPresent = attendance.filter((a: any) => a.status === "present").length;
     const totalAbsent = attendance.filter((a: any) => a.status === "absent").length;

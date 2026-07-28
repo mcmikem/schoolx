@@ -37,9 +37,7 @@ interface UseStudentEnrollmentsOptions {
   state?: string;
 }
 
-export function useStudentEnrollments(
-  options: UseStudentEnrollmentsOptions = {},
-) {
+export function useStudentEnrollments(options: UseStudentEnrollmentsOptions = {}) {
   const { school } = useAuth();
   const toast = useToast();
   const [loading, setLoading] = useState(false);
@@ -65,9 +63,7 @@ export function useStudentEnrollments(
     try {
       let query = supabase
         .from("student_enrollments")
-        .select(
-          "*, student:students(first_name, last_name, student_number), class:classes(name, level)",
-        )
+        .select("*, student:students(first_name, last_name, student_number), class:classes(name, level)")
         .eq("school_id", school.id);
 
       if (options.studentId) {
@@ -95,7 +91,7 @@ export function useStudentEnrollments(
         setEnrollments(cached);
         setIsStale(true);
       } else {
-        toast.error("Failed to load enrollments");
+        toast.error(err instanceof Error ? err.message : "Failed to load enrollments");
       }
     } finally {
       setLoading(false);
@@ -161,7 +157,7 @@ export function useStudentEnrollments(
         return data;
       } catch (err) {
         logger.error("Error creating enrollment:", err);
-        toast.error("Failed to create enrollment");
+        toast.error(err instanceof Error ? err.message : "Failed to create enrollment");
         return null;
       }
     },
@@ -172,12 +168,7 @@ export function useStudentEnrollments(
     async (id: string, updates: Partial<Enrollment>) => {
       try {
         const { data, error } = await withTimeout(
-          supabase
-            .from("student_enrollments")
-            .update(updates)
-            .eq("id", id)
-            .select()
-            .single(),
+          supabase.from("student_enrollments").update(updates).eq("id", id).select().single(),
           15000,
           { data: null, error: { message: "Enrollment update timed out", code: "TIMEOUT" } } as any,
         );
@@ -188,7 +179,7 @@ export function useStudentEnrollments(
         return data;
       } catch (err) {
         logger.error("Error updating enrollment:", err);
-        toast.error("Failed to update enrollment");
+        toast.error(err instanceof Error ? err.message : "Failed to update enrollment");
         return null;
       }
     },
@@ -207,11 +198,7 @@ export function useStudentEnrollments(
   );
 
   const transferStudent = useCallback(
-    async (
-      enrollmentId: string,
-      newClassId: string,
-      newAcademicYear: string,
-    ) => {
+    async (enrollmentId: string, newClassId: string, newAcademicYear: string) => {
       try {
         const { error } = await withTimeout(
           supabase
@@ -228,8 +215,7 @@ export function useStudentEnrollments(
         if (error) throw error;
 
         const newEnrollment = await createEnrollment({
-          student_id: enrollments.find((e) => e.id === enrollmentId)
-            ?.student_id,
+          student_id: enrollments.find((e) => e.id === enrollmentId)?.student_id,
           class_id: newClassId,
           academic_year: newAcademicYear,
           state: "running",
@@ -239,7 +225,7 @@ export function useStudentEnrollments(
         return newEnrollment;
       } catch (err) {
         logger.error("Error transferring student:", err);
-        toast.error("Failed to transfer student");
+        toast.error(err instanceof Error ? err.message : "Failed to transfer student");
         return null;
       }
     },

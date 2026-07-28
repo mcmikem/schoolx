@@ -10,14 +10,7 @@ import {
 } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
 
-const FEE_MGMT_ROLES = [
-  "super_admin",
-  "school_admin",
-  "admin",
-  "headmaster",
-  "secretary",
-  "bursar",
-];
+const FEE_MGMT_ROLES = ["super_admin", "school_admin", "admin", "headmaster", "secretary", "bursar"];
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -58,9 +51,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     const supabase = createServiceRoleClientOrThrow();
 
-    const allowedFields = [
-      "name", "class_id", "amount", "term", "academic_year", "due_date",
-    ];
+    const allowedFields = ["name", "class_id", "amount", "term", "academic_year", "due_date"];
 
     const sanitized: Record<string, unknown> = {};
     for (const key of allowedFields) {
@@ -79,7 +70,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     if (error) {
       logger.error("[API Fees] Update failed:", error);
-      return apiError("Failed to update fee structure", 500);
+      return apiError(error.message, 500);
     }
 
     logger.info(`Updated fee structure ${id} in school ${schoolId}`);
@@ -124,7 +115,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     if (error) {
       logger.error("[API Fees] Soft-delete failed:", error);
-      return apiError("Failed to delete fee structure", 500);
+      return apiError(error.message, 500);
     }
 
     logger.info(`Soft-deleted fee structure ${id} in school ${schoolId}`);

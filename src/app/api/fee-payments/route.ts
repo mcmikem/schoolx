@@ -72,7 +72,8 @@ export async function GET(request: NextRequest) {
     const { data: payments, count, error } = await query.range(offset, offset + limit - 1);
 
     if (error) {
-      return apiError("Failed to fetch fee payments", 500);
+      logger.error("Failed to fetch fee payments:", error);
+      return apiError(error.message, 500);
     }
 
     return apiSuccess({
@@ -156,7 +157,7 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       logger.error("[API FeePayments] Insert failed:", error);
-      return apiError("Failed to create fee payment", 500);
+      return apiError(error.message, 500);
     }
 
     logger.info(`Created fee payment ${data.id} (UGX ${parsedAmount}) in school ${schoolId}`);

@@ -42,8 +42,10 @@ export async function GET(request: NextRequest) {
     }
 
     const { data: referrals, error } = await query;
-    if (error) return apiError("Failed to fetch referrals", 500);
-
+    if (error) {
+      logger.error("Failed to fetch referrals:", error);
+      return apiError(error.message, 500);
+    }
     return apiSuccess({ referrals: referrals || [] });
   } catch (error) {
     logger.error("GET /api/marketers/referrals error:", error);
@@ -97,8 +99,10 @@ export async function POST(request: NextRequest) {
       .select()
       .single();
 
-    if (error) return apiError("Failed to create referral code", 500);
-
+    if (error) {
+      logger.error("Failed to create referral code:", error);
+      return apiError(error.message, 500);
+    }
     return apiSuccess({ referral }, "Referral code created", 201);
   } catch (error) {
     logger.error("POST /api/marketers/referrals error:", error);

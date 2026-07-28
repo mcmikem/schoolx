@@ -9,6 +9,7 @@ import {
   createServiceRoleClientOrThrow,
 } from "@/lib/api-utils";
 import { createManagedUserAccount, createSupabaseAdminClient } from "@/lib/server/user-provisioning";
+import { logger } from "@/lib/logger";
 
 const VALID_ROLES = [
   "school_admin",
@@ -66,7 +67,8 @@ export async function GET(request: NextRequest) {
     const { data: users, error } = await query;
 
     if (error) {
-      return apiError("Failed to fetch users", 500);
+      logger.error("Failed to fetch users:", error);
+      return apiError(error.message, 500);
     }
 
     return apiSuccess({ users: users || [] });

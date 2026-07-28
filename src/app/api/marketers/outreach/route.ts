@@ -37,8 +37,10 @@ export async function GET(request: NextRequest) {
     }
 
     const { data: messages, error } = await query;
-    if (error) return apiError("Failed to fetch outreach", 500);
-
+    if (error) {
+      logger.error("Failed to fetch outreach:", error);
+      return apiError(error.message, 500);
+    }
     return apiSuccess({ messages: messages || [] });
   } catch (error) {
     logger.error("GET /api/marketers/outreach error:", error);
@@ -86,8 +88,10 @@ export async function POST(request: NextRequest) {
       .select()
       .single();
 
-    if (error) return apiError("Failed to log outreach", 500);
-
+    if (error) {
+      logger.error("Failed to log outreach:", error);
+      return apiError(error.message, 500);
+    }
     return apiSuccess({ message }, "Outreach logged", 201);
   } catch (error) {
     logger.error("POST /api/marketers/outreach error:", error);

@@ -32,7 +32,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     const { data, error } = await supabase.from("marketer_earnings").update(updates).eq("id", id).select().single();
 
-    if (error) return apiError("Failed to update earning", 500);
+    if (error) {
+      logger.error("Failed to update earning:", error);
+      return apiError(error.message, 500);
+    }
     return apiSuccess(data);
   } catch (error) {
     logger.error("PATCH /api/marketers/earnings/[id] error:", error);
@@ -56,8 +59,10 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     if (!profile || profile.role !== "super_admin") return apiError("Forbidden", 403);
 
     const { error } = await supabase.from("marketer_earnings").delete().eq("id", id);
-    if (error) return apiError("Failed to delete earning", 500);
-
+    if (error) {
+      logger.error("Failed to delete earning:", error);
+      return apiError(error.message, 500);
+    }
     return apiSuccess({ deleted: true });
   } catch (error) {
     logger.error("DELETE /api/marketers/earnings/[id] error:", error);

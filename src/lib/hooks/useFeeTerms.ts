@@ -96,11 +96,7 @@ export function useFeeTerms() {
 
       setLoading(true);
       try {
-        let query = supabase
-          .from("fee_terms")
-          .select("*, fee_term_lines(*)")
-          .eq("school_id", school.id)
-          .order("name");
+        let query = supabase.from("fee_terms").select("*, fee_term_lines(*)").eq("school_id", school.id).order("name");
 
         if (academicYear) {
           query = query.eq("academic_year", academicYear);
@@ -118,7 +114,7 @@ export function useFeeTerms() {
           setFeeTerms(cached);
           setIsStale(true);
         } else {
-          toast.error("Failed to load fee terms");
+          toast.error(err instanceof Error ? err.message : "Failed to load fee terms");
         }
       } finally {
         setLoading(false);
@@ -189,27 +185,30 @@ export function useFeeTerms() {
             .select()
             .single(),
           15000,
-          { data: null, error: { message: "Fee term creation timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as unknown as PostgrestSingleResponse<never>,
+          {
+            data: null,
+            error: { message: "Fee term creation timed out", name: "TimeoutError", details: "", hint: "", code: "" },
+          } as unknown as PostgrestSingleResponse<never>,
         );
 
         if (termError) throw termError;
 
         if (lines.length > 0 && newTerm) {
           const { error: linesError } = await withTimeout(
-            supabase
-              .from("fee_term_lines")
-              .insert(
-                lines.map((line, i) => ({
-                  term_id: newTerm.id,
-                  installment_number: line.installment_number || i + 1,
-                  due_days: line.due_days,
-                  due_date: line.due_date,
-                  amount_percentage: line.amount_percentage,
-                  is_optional: line.is_optional || false,
-                })),
-              ),
+            supabase.from("fee_term_lines").insert(
+              lines.map((line, i) => ({
+                term_id: newTerm.id,
+                installment_number: line.installment_number || i + 1,
+                due_days: line.due_days,
+                due_date: line.due_date,
+                amount_percentage: line.amount_percentage,
+                is_optional: line.is_optional || false,
+              })),
+            ),
             15000,
-            { error: { message: "Fee term lines timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as unknown as PostgrestSingleResponse<never>,
+            {
+              error: { message: "Fee term lines timed out", name: "TimeoutError", details: "", hint: "", code: "" },
+            } as unknown as PostgrestSingleResponse<never>,
           );
 
           if (linesError) throw linesError;
@@ -220,7 +219,7 @@ export function useFeeTerms() {
         return newTerm;
       } catch (err) {
         logger.error("Error creating fee term:", err);
-        toast.error("Failed to create fee term");
+        toast.error(err instanceof Error ? err.message : "Failed to create fee term");
         return null;
       }
     },
@@ -273,19 +272,14 @@ export function useStudentFeeTerms(studentId?: string) {
       setStudentFeeTerms(data || []);
     } catch (err) {
       logger.error("Error fetching student fee terms:", err);
-      toast.error("Failed to load student fee terms");
+      toast.error(err instanceof Error ? err.message : "Failed to load student fee terms");
     } finally {
       setLoading(false);
     }
   }, [school?.id, studentId, toast]);
 
   const assignFeeTermToStudent = useCallback(
-    async (assignment: {
-      student_id: string;
-      fee_term_id: string;
-      class_id?: string;
-      academic_year: string;
-    }) => {
+    async (assignment: { student_id: string; fee_term_id: string; class_id?: string; academic_year: string }) => {
       if (!school?.id) return null;
 
       try {
@@ -299,11 +293,9 @@ export function useStudentFeeTerms(studentId?: string) {
           { data: null, error: { message: "Fee terms fetch timed out", code: "TIMEOUT" } } as any,
         );
 
-        if (termError || !ftData)
-          throw termError || new Error("Fee term not found");
+        if (termError || !ftData) throw termError || new Error("Fee term not found");
 
-        const discountAmount =
-          (ftData.total_amount * (ftData.discount_percentage || 0)) / 100;
+        const discountAmount = (ftData.total_amount * (ftData.discount_percentage || 0)) / 100;
         const finalAmount = ftData.total_amount - discountAmount;
 
         const { data, error } = await withTimeout(
@@ -322,7 +314,10 @@ export function useStudentFeeTerms(studentId?: string) {
             .select()
             .single(),
           15000,
-          { data: null, error: { message: "Fee term assignment timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as unknown as PostgrestSingleResponse<never>,
+          {
+            data: null,
+            error: { message: "Fee term assignment timed out", name: "TimeoutError", details: "", hint: "", code: "" },
+          } as unknown as PostgrestSingleResponse<never>,
         );
 
         if (error) throw error;
@@ -331,7 +326,7 @@ export function useStudentFeeTerms(studentId?: string) {
         return data;
       } catch (err) {
         logger.error("Error assigning fee term:", err);
-        toast.error("Failed to assign fee term");
+        toast.error(err instanceof Error ? err.message : "Failed to assign fee term");
         return null;
       }
     },
@@ -362,7 +357,10 @@ export function useStudentFeeTerms(studentId?: string) {
             .select()
             .single(),
           15000,
-          { data: null, error: { message: "Payment creation timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as unknown as PostgrestSingleResponse<never>,
+          {
+            data: null,
+            error: { message: "Payment creation timed out", name: "TimeoutError", details: "", hint: "", code: "" },
+          } as unknown as PostgrestSingleResponse<never>,
         );
 
         if (paymentError) throw paymentError;
@@ -379,8 +377,7 @@ export function useStudentFeeTerms(studentId?: string) {
 
         if (sftData) {
           const newPaid = (sftData.amount_paid || 0) + payment.amount;
-          const newStat =
-            newPaid >= (sftData.final_amount || 0) ? "completed" : "active";
+          const newStat = newPaid >= (sftData.final_amount || 0) ? "completed" : "active";
 
           await withTimeout(
             supabase
@@ -388,7 +385,9 @@ export function useStudentFeeTerms(studentId?: string) {
               .update({ amount_paid: newPaid, status: newStat })
               .eq("id", payment.student_fee_term_id),
             15000,
-            { error: { message: "Payment update timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as unknown as PostgrestSingleResponse<never>,
+            {
+              error: { message: "Payment update timed out", name: "TimeoutError", details: "", hint: "", code: "" },
+            } as unknown as PostgrestSingleResponse<never>,
           );
         }
 

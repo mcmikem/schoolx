@@ -67,7 +67,8 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (tokenMatches.error || !tokenMatches.data) {
-      return apiError("Invalid or expired token", 400);
+      if (tokenMatches.error) logger.error("Token lookup error:", tokenMatches.error);
+      return apiError(tokenMatches.error?.message || "Invalid or expired token", 400);
     }
 
     const { id: tokenId, user_id: userId, expires_at: expiresAt, used_at: usedAt } = tokenMatches.data;
@@ -93,7 +94,8 @@ export async function POST(request: NextRequest) {
     });
 
     if (updateError) {
-      return apiError("Failed to update password", 500);
+      logger.error("Password update error:", updateError);
+      return apiError(updateError.message, 500);
     }
 
     await supabase.from("password_reset_tokens").update({ used_at: new Date().toISOString() }).eq("id", tokenId);
@@ -101,6 +103,6 @@ export async function POST(request: NextRequest) {
     return apiSuccess({ success: true }, "Password reset successful");
   } catch (error) {
     logger.error("[Reset Password Error]", error);
-    return apiError("Failed to reset password", 500);
+    return apiError(error instanceof Error ? error.message : "Failed to reset password", 500);
   }
 }

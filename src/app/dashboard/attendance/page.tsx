@@ -139,7 +139,8 @@ export default function AttendancePage() {
       const pending = await offlineDB.getPendingSync();
       const attendancePending = pending.filter((p) => p.table === "attendance");
       setOfflineCount(attendancePending.length);
-    } catch {
+    } catch (err) {
+      logger.warn("Failed to get offline count:", err);
       setOfflineCount(0);
     }
   }, []);
@@ -153,7 +154,8 @@ export default function AttendancePage() {
       try {
         const status = await getAutomationStatus({ schoolId: school?.id, isDemo });
         setAbsenteeAlertEnabled(status.absentee_alert ?? false);
-      } catch {
+      } catch (err) {
+        logger.warn("Failed to load automation status:", err);
         setAbsenteeAlertEnabled(false);
       } finally {
         setLoadingAutomation(false);
@@ -333,7 +335,8 @@ export default function AttendancePage() {
         }
         toast.success("Attendance saved");
         await loadOfflineCount();
-      } catch {
+      } catch (err) {
+        logger.warn("Failed to save attendance, saving offline:", err);
         await saveOffline(records);
       } finally {
         setSaving(false);
@@ -397,7 +400,8 @@ export default function AttendancePage() {
       if (date >= bulkDateFrom && date <= bulkDateTo) {
         Object.keys(attendance).forEach((sid) => markAttendance(sid, status));
       }
-    } catch {
+    } catch (err) {
+      logger.warn("Failed to bulk mark attendance:", err);
       toast.error("Failed to bulk mark attendance");
     } finally {
       setBulkProgress(null);
@@ -471,7 +475,8 @@ export default function AttendancePage() {
       } else {
         toast.warning(`No attendance records found for ${yesterdayStr}`);
       }
-    } catch {
+    } catch (err) {
+      logger.warn("Failed to copy yesterday's attendance:", err);
       toast.error("Failed to copy yesterday's attendance");
     } finally {
       setCopyingYesterday(false);

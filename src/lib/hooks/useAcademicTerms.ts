@@ -81,7 +81,7 @@ export function useAcademicTerms(options: UseAcademicTermsOptions = {}) {
         setCurrentTerm(cached.find((t) => t.is_current) || null);
         setIsStale(true);
       } else {
-        toast.error("Failed to load academic terms");
+        toast.error(err instanceof Error ? err.message : "Failed to load academic terms");
       }
     } finally {
       setLoading(false);
@@ -138,7 +138,16 @@ export function useAcademicTerms(options: UseAcademicTermsOptions = {}) {
             .select()
             .single(),
           15000,
-          { data: null, error: { message: "Academic term creation timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+          {
+            data: null,
+            error: {
+              message: "Academic term creation timed out",
+              name: "TimeoutError",
+              details: "",
+              hint: "",
+              code: "",
+            },
+          } as any,
         );
 
         if (error) throw error;
@@ -147,7 +156,7 @@ export function useAcademicTerms(options: UseAcademicTermsOptions = {}) {
         return data;
       } catch (err) {
         logger.error("Error creating academic term:", err);
-        toast.error("Failed to create academic term");
+        toast.error(err instanceof Error ? err.message : "Failed to create academic term");
         return null;
       }
     },
@@ -158,14 +167,12 @@ export function useAcademicTerms(options: UseAcademicTermsOptions = {}) {
     async (id: string, updates: Partial<AcademicTerm>) => {
       try {
         const { data, error } = await withTimeout(
-          supabase
-            .from("academic_terms")
-            .update(updates)
-            .eq("id", id)
-            .select()
-            .single(),
+          supabase.from("academic_terms").update(updates).eq("id", id).select().single(),
           15000,
-          { data: null, error: { message: "Academic term update timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+          {
+            data: null,
+            error: { message: "Academic term update timed out", name: "TimeoutError", details: "", hint: "", code: "" },
+          } as any,
         );
 
         if (error) throw error;
@@ -179,7 +186,7 @@ export function useAcademicTerms(options: UseAcademicTermsOptions = {}) {
         return data;
       } catch (err) {
         logger.error("Error updating academic term:", err);
-        toast.error("Failed to update academic term");
+        toast.error(err instanceof Error ? err.message : "Failed to update academic term");
         return null;
       }
     },
@@ -210,7 +217,7 @@ export function useAcademicTerms(options: UseAcademicTermsOptions = {}) {
         toast.success("Current term updated");
       } catch (err) {
         logger.error("Error setting current term:", err);
-        toast.error("Failed to set current term");
+        toast.error(err instanceof Error ? err.message : "Failed to set current term");
       }
     },
     [terms, toast],

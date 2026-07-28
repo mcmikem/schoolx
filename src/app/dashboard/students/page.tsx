@@ -29,6 +29,7 @@ import { useStudentPromotion } from "@/hooks/useStudentPromotion";
 import { supabase } from "@/lib/supabase";
 import { withTimeout } from "@/lib/hooks/utils";
 import { DEMO_ATTENDANCE } from "@/lib/demo-data";
+import { logger } from "@/lib/logger";
 
 type StudentWorkspaceTab = "registry" | "transfers" | "dropouts" | "promotion";
 
@@ -472,7 +473,8 @@ export default function StudentHubPage() {
         startNum++;
       }
       toast.success(`Generated ${p7Students.length} PLE index numbers`);
-    } catch {
+    } catch (err) {
+      logger.warn("Failed to generate index numbers:", err);
       toast.error("Failed to generate index numbers");
     }
   };
@@ -482,7 +484,8 @@ export default function StudentHubPage() {
     try {
       await deleteStudent(deleteConfirm.studentId);
       toast.success("Student removed");
-    } catch {
+    } catch (err) {
+      logger.warn("Failed to remove student:", err);
       toast.error("Failed to remove student");
     } finally {
       setDeleteConfirm({ open: false, studentId: null });

@@ -33,8 +33,10 @@ export async function GET(request: NextRequest) {
     }
 
     const { data, error } = await query;
-    if (error) return apiError("Failed to fetch payouts", 500);
-
+    if (error) {
+      logger.error("Failed to fetch payouts:", error);
+      return apiError(error.message, 500);
+    }
     return apiSuccess(data);
   } catch (error) {
     logger.error("GET /api/marketers/payouts error:", error);
@@ -72,7 +74,10 @@ export async function POST(request: NextRequest) {
       .select()
       .single();
 
-    if (error) return apiError("Failed to create payout", 500);
+    if (error) {
+      logger.error("Failed to create payout:", error);
+      return apiError(error.message, 500);
+    }
     return apiSuccess(data);
   } catch (error) {
     logger.error("POST /api/marketers/payouts error:", error);

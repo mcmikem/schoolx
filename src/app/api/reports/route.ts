@@ -135,7 +135,8 @@ export async function GET(request: NextRequest) {
       .limit(limit);
 
     if (studentsError) {
-      return apiError("Failed to fetch students", 500);
+      logger.error("Failed to fetch students:", studentsError);
+      return apiError(studentsError.message, 500);
     }
 
     return apiSuccess({ students: students || [] });

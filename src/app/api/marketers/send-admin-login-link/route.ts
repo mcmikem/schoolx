@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
 
     if (linkError || !linkData) {
       logger.error("[Send Admin Login Link] generateLink error:", linkError);
-      return apiError("Failed to generate login link. Please try again.", 500);
+      return apiError(linkError?.message || "Failed to generate login link. Please try again.", 500);
     }
 
     const actionLink = linkData.properties?.action_link || "";

@@ -1,11 +1,7 @@
 import { NextRequest } from "next/server";
-import {
-  apiError,
-  apiSuccess,
-  handleApiError,
-  requireUserWithSchool,
-} from "@/lib/api-utils";
+import { apiError, apiSuccess, handleApiError, requireUserWithSchool } from "@/lib/api-utils";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { logger } from "@/lib/logger";
 
 const ADMIN_ROLES = new Set(["school_admin", "admin", "headmaster", "super_admin"]);
 const VALID_MEALS = new Set(["breakfast", "lunch", "supper"]);
@@ -67,7 +63,8 @@ export async function GET(request: NextRequest) {
       .order("meal_type", { ascending: true });
 
     if (error) {
-      return apiError("Failed to load meal settings", 500);
+      logger.error("Failed to load meal settings:", error);
+      return apiError(error.message, 500);
     }
 
     if (!data || data.length === 0) {
@@ -88,7 +85,8 @@ export async function GET(request: NextRequest) {
         .order("meal_type", { ascending: true });
 
       if (seedError) {
-        return apiError("Failed to initialize meal settings", 500);
+        logger.error("Failed to initialize meal settings:", seedError);
+        return apiError(seedError.message, 500);
       }
       data = seededData || [];
     }
@@ -156,7 +154,8 @@ export async function POST(request: NextRequest) {
       .order("meal_type", { ascending: true });
 
     if (error) {
-      return apiError("Failed to save meal settings", 500);
+      logger.error("Failed to save meal settings:", error);
+      return apiError(error.message, 500);
     }
 
     return apiSuccess({ rules: data || [] }, "Meal settings updated");

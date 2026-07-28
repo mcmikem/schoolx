@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/index";
 import { Modal } from "@/components/ui/Modal";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { logger } from "@/lib/logger";
 
 interface Course {
   id: string;
@@ -157,7 +158,8 @@ export default function CoursesPage() {
 
       courseTableExists.current = true;
       setCourses(data || []);
-    } catch {
+    } catch (err) {
+      logger.warn("fetchCourses failed, falling back to subjects:", err);
       await loadSubjects();
     } finally {
       setLoading(false);
@@ -235,7 +237,8 @@ export default function CoursesPage() {
         if (error) throw error;
         toast.success("Course deleted");
         fetchCourses();
-      } catch {
+      } catch (err) {
+        logger.warn("Failed to delete course, trying subjects table:", err);
         const { error } = await supabase.from("subjects").delete().eq("id", id);
         if (error) {
           toast.error("Failed to delete subject");
@@ -254,7 +257,8 @@ export default function CoursesPage() {
 
       if (error) throw error;
       fetchCourses();
-    } catch {
+    } catch (err) {
+      logger.warn("Failed to update course status:", err);
       toast.error("Failed to update course status");
     }
   };

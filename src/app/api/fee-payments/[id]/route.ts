@@ -10,14 +10,7 @@ import {
 } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
 
-const FEE_MGMT_ROLES = [
-  "super_admin",
-  "school_admin",
-  "admin",
-  "headmaster",
-  "secretary",
-  "bursar",
-];
+const FEE_MGMT_ROLES = ["super_admin", "school_admin", "admin", "headmaster", "secretary", "bursar"];
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -51,8 +44,13 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const supabase = createServiceRoleClientOrThrow();
 
     const allowedFields = [
-      "amount_paid", "payment_method", "payment_reference",
-      "paid_by", "notes", "payment_date", "fee_id",
+      "amount_paid",
+      "payment_method",
+      "payment_reference",
+      "paid_by",
+      "notes",
+      "payment_date",
+      "fee_id",
     ];
 
     const sanitized: Record<string, unknown> = {};
@@ -72,7 +70,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     if (error) {
       logger.error("[API FeePayments] Update failed:", error);
-      return apiError("Failed to update fee payment", 500);
+      return apiError(error.message, 500);
     }
 
     logger.info(`Updated fee payment ${id} in school ${schoolId}`);
@@ -121,7 +119,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     if (error) {
       logger.error("[API FeePayments] Soft-delete failed:", error);
-      return apiError("Failed to delete fee payment", 500);
+      return apiError(error.message, 500);
     }
 
     logger.info(`Soft-deleted fee payment ${id} in school ${schoolId}`);

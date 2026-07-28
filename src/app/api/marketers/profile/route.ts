@@ -84,8 +84,10 @@ export async function PATCH(request: NextRequest) {
       .select("id, full_name, phone, email, role")
       .single();
 
-    if (error) return apiError("Failed to update profile", 500);
-
+    if (error) {
+      logger.error("Failed to update profile:", error);
+      return apiError(error.message, 500);
+    }
     return apiSuccess({ profile: updated }, "Profile updated");
   } catch (error) {
     logger.error("PATCH /api/marketers/profile error:", error);

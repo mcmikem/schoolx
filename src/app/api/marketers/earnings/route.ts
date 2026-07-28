@@ -40,8 +40,10 @@ export async function GET(request: NextRequest) {
     }
 
     const { data, error } = await query;
-    if (error) return apiError("Failed to fetch earnings", 500);
-
+    if (error) {
+      logger.error("Failed to fetch earnings:", error);
+      return apiError(error.message, 500);
+    }
     return apiSuccess(data);
   } catch (error) {
     logger.error("GET /api/marketers/earnings error:", error);
@@ -81,7 +83,10 @@ export async function POST(request: NextRequest) {
       .select()
       .single();
 
-    if (error) return apiError("Failed to create earning record", 500);
+    if (error) {
+      logger.error("Failed to create earning record:", error);
+      return apiError(error.message, 500);
+    }
     return apiSuccess(data);
   } catch (error) {
     logger.error("POST /api/marketers/earnings error:", error);

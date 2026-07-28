@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { apiError, apiSuccess, handleApiError, requireUserWithSchool } from "@/lib/api-utils";
 import { createSupabaseAdminClient } from "@/lib/server/user-provisioning";
+import { logger } from "@/lib/logger";
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,7 +28,8 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     if (error) {
-      return apiError("Failed to save school logo", 500);
+      logger.error("Failed to save school logo:", error);
+      return apiError(error.message, 500);
     }
 
     if (!data) {

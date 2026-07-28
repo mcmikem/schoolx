@@ -78,10 +78,7 @@ export function useCourses(options: UseCoursesOptions = {}) {
 
     setLoading(true);
     try {
-      let query = supabase
-        .from("courses")
-        .select("*")
-        .eq("school_id", school.id);
+      let query = supabase.from("courses").select("*").eq("school_id", school.id);
 
       if (category) {
         query = query.eq("category", category);
@@ -102,7 +99,7 @@ export function useCourses(options: UseCoursesOptions = {}) {
         setCourses(cached);
         setIsStale(true);
       } else {
-        toast.error("Failed to load courses");
+        toast.error(err instanceof Error ? err.message : "Failed to load courses");
       }
     } finally {
       setLoading(false);
@@ -165,7 +162,10 @@ export function useCourses(options: UseCoursesOptions = {}) {
             .select()
             .single(),
           15000,
-          { data: null, error: { message: "Course creation timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+          {
+            data: null,
+            error: { message: "Course creation timed out", name: "TimeoutError", details: "", hint: "", code: "" },
+          } as any,
         );
 
         if (error) throw error;
@@ -174,7 +174,7 @@ export function useCourses(options: UseCoursesOptions = {}) {
         return data;
       } catch (err) {
         logger.error("Error creating course:", err);
-        toast.error("Failed to create course");
+        toast.error(err instanceof Error ? err.message : "Failed to create course");
         return null;
       }
     },
@@ -185,14 +185,12 @@ export function useCourses(options: UseCoursesOptions = {}) {
     async (id: string, updates: Partial<Course>) => {
       try {
         const { data, error } = await withTimeout(
-          supabase
-            .from("courses")
-            .update(updates)
-            .eq("id", id)
-            .select()
-            .single(),
+          supabase.from("courses").update(updates).eq("id", id).select().single(),
           15000,
-          { data: null, error: { message: "Course update timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+          {
+            data: null,
+            error: { message: "Course update timed out", name: "TimeoutError", details: "", hint: "", code: "" },
+          } as any,
         );
 
         if (error) throw error;
@@ -201,7 +199,7 @@ export function useCourses(options: UseCoursesOptions = {}) {
         return data;
       } catch (err) {
         logger.error("Error updating course:", err);
-        toast.error("Failed to update course");
+        toast.error(err instanceof Error ? err.message : "Failed to update course");
         return null;
       }
     },
@@ -211,7 +209,9 @@ export function useCourses(options: UseCoursesOptions = {}) {
   const deleteCourse = useCallback(
     async (id: string) => {
       try {
-        const { error } = await withTimeout(supabase.from("courses").delete().eq("id", id), 15000, { error: { message: "Course deletion timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any);
+        const { error } = await withTimeout(supabase.from("courses").delete().eq("id", id), 15000, {
+          error: { message: "Course deletion timed out", name: "TimeoutError", details: "", hint: "", code: "" },
+        } as any);
 
         if (error) throw error;
         toast.success("Course deleted");
@@ -252,10 +252,7 @@ export function useCourseClasses() {
           .select(
             "*, course:courses(name, code, category, color, icon), class:classes(name, level), teacher:users(full_name)",
           )
-          .eq(
-            "academic_year",
-            academicYear || new Date().getFullYear().toString(),
-          );
+          .eq("academic_year", academicYear || new Date().getFullYear().toString());
 
         if (classId) {
           query = query.eq("class_id", classId);
@@ -279,11 +276,7 @@ export function useCourseClasses() {
     async (courseClass: Partial<CourseClass>) => {
       try {
         const { data, error } = await withTimeout(
-          supabase
-            .from("course_classes")
-            .insert(courseClass)
-            .select()
-            .single(),
+          supabase.from("course_classes").insert(courseClass).select().single(),
           15000,
           { data: null, error: { message: "Course assignment timed out", code: "TIMEOUT" } } as any,
         );
@@ -303,14 +296,9 @@ export function useCourseClasses() {
   const updateCourseClass = useCallback(
     async (id: string, updates: Partial<CourseClass>) => {
       try {
-        const { error } = await withTimeout(
-          supabase
-            .from("course_classes")
-            .update(updates)
-            .eq("id", id),
-          15000,
-          { error: { message: "Course class update timed out", code: "TIMEOUT" } } as any,
-        );
+        const { error } = await withTimeout(supabase.from("course_classes").update(updates).eq("id", id), 15000, {
+          error: { message: "Course class update timed out", code: "TIMEOUT" },
+        } as any);
 
         if (error) throw error;
         toast.success("Assignment updated");

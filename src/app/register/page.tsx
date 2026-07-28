@@ -295,7 +295,8 @@ function RegisterPageContent() {
       let data: Record<string, unknown>;
       try {
         data = await response.json();
-      } catch {
+      } catch (err) {
+        logger.warn("Registration response JSON parse failed:", err);
         setApiError("Registration failed. Please check your connection and try again.");
         setLoading(false);
         return;
