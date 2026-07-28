@@ -16,21 +16,10 @@
 // ============================================================================
 import { NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import {
-  apiSuccess,
-  apiError,
-  handleApiError,
-  rateLimit,
-} from "@/lib/api-utils";
-import {
-  PRIMARY_TEMPLATE,
-  SECONDARY_TEMPLATE,
-} from "@/lib/curriculum-templates";
+import { apiSuccess, apiError, handleApiError, rateLimit } from "@/lib/api-utils";
+import { PRIMARY_TEMPLATE, SECONDARY_TEMPLATE } from "@/lib/curriculum-templates";
 import { normalizePlanType } from "@/lib/payments/subscription-client";
-import {
-  buildUgandaAcademicTerms,
-  buildUgandaCalendarEvents,
-} from "@/lib/uganda-school-calendar";
+import { buildUgandaAcademicTerms, buildUgandaCalendarEvents } from "@/lib/uganda-school-calendar";
 import { normalizeAuthPhone } from "@/lib/validation";
 import { buildDefaultClasses, type SchoolSetupType } from "@/lib/school-setup";
 import { logger } from "@/lib/logger";
@@ -175,18 +164,12 @@ export async function POST(request: NextRequest) {
     const { success } = rateLimit(request, 5, 600_000);
     if (!success) {
       logger.debug("[Register] Rate limited");
-      return apiError(
-        "Too many registration attempts. Please try again later.",
-        429,
-      );
+      return apiError("Too many registration attempts. Please try again later.", 429);
     }
 
     if (!supabaseServiceKey) {
       logger.debug("[Register] ERROR: SUPABASE_SERVICE_ROLE_KEY not set");
-      return apiError(
-        "Server configuration error: SUPABASE_SERVICE_ROLE_KEY not set",
-        500,
-      );
+      return apiError("Server configuration error: SUPABASE_SERVICE_ROLE_KEY not set", 500);
     }
     logger.debug("[Register] Step 2: Parsing request body");
 
@@ -237,12 +220,13 @@ export async function POST(request: NextRequest) {
     if (email && email.length > 254) return apiError("Email is too long", 400);
 
     const subscriptionPlan = normalizePlanType(selectedPackage || "basic");
-    const normalizedBillingMode =
-      billingMode === "modular" ? "modular" : "full_suite";
+    const normalizedBillingMode = billingMode === "modular" ? "modular" : "full_suite";
     const normalizedModules = normalizeSelectedModules(selectedModules);
     const modulesToSeed: ModuleKey[] =
       normalizedBillingMode === "modular"
-        ? (normalizedModules.length > 0 ? normalizedModules : (["reports", "attendance"] as ModuleKey[]))
+        ? normalizedModules.length > 0
+          ? normalizedModules
+          : (["reports", "attendance"] as ModuleKey[])
         : [];
 
     if (schoolName.trim().length < 3) {
@@ -254,16 +238,10 @@ export async function POST(request: NextRequest) {
     }
 
     if (password.length < 8) {
-      return apiError(
-        "Password must be at least 8 characters with one uppercase letter and one number",
-        400,
-      );
+      return apiError("Password must be at least 8 characters with one uppercase letter and one number", 400);
     }
     if (!/[A-Z]/.test(password) || !/[0-9]/.test(password)) {
-      return apiError(
-        "Password must contain at least one uppercase letter and one number",
-        400,
-      );
+      return apiError("Password must contain at least one uppercase letter and one number", 400);
     }
 
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -274,10 +252,7 @@ export async function POST(request: NextRequest) {
     const normalizedPhone = normalizeAuthPhone(adminPhone);
 
     if (normalizedPhone.length < 10 || normalizedPhone.length > 12) {
-      return apiError(
-        "Invalid phone number format. Please use Uganda format (e.g., 0700000000)",
-        400,
-      );
+      return apiError("Invalid phone number format. Please use Uganda format (e.g., 0700000000)", 400);
     }
 
     logger.debug("[Register] Step 4: Creating Supabase admin client");
@@ -290,17 +265,10 @@ export async function POST(request: NextRequest) {
 
     // 1. Check if phone number already exists
     logger.debug("[Register] Step 5: Checking existing user in DB");
-    const { data: existingUser } = await supabaseAdmin
-      .from("users")
-      .select("id")
-      .eq("phone", normalizedPhone)
-      .single();
+    const { data: existingUser } = await supabaseAdmin.from("users").select("id").eq("phone", normalizedPhone).single();
 
     if (existingUser) {
-      return apiError(
-        "Registration could not be completed. If you already have an account, please sign in.",
-        400,
-      );
+      return apiError("Registration could not be completed. If you already have an account, please sign in.", 400);
     }
 
     // 2. Generate unique school code
@@ -322,44 +290,38 @@ export async function POST(request: NextRequest) {
     }
 
     if (codeAttempts >= 10) {
-      return apiError(
-        "Unable to generate unique school code. Please try again.",
-        400,
-      );
+      return apiError("Unable to generate unique school code. Please try again.", 400);
     }
 
     // 3. Create auth user using admin client
     const normalizedEmail = email?.trim().toLowerCase();
-    const hasValidProvidedEmail =
-      !!normalizedEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail);
-    const emailForAuth = hasValidProvidedEmail
-      ? normalizedEmail
-      : `${normalizedPhone}@omuto.org`;
-    const { data: authData, error: authError } =
-      await supabaseAdmin.auth.admin.createUser({
-        email: emailForAuth,
-        password: password,
-        email_confirm: true,
-        user_metadata: {
-          full_name: adminName,
-          phone: normalizedPhone,
-          role: "school_admin",
-        },
-      });
+    const hasValidProvidedEmail = !!normalizedEmail && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail);
+    const emailForAuth = hasValidProvidedEmail ? normalizedEmail : `${normalizedPhone}@omuto.org`;
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email: emailForAuth,
+      password: password,
+      email_confirm: true,
+      user_metadata: {
+        full_name: adminName,
+        phone: normalizedPhone,
+        role: "school_admin",
+      },
+    });
 
     if (authError) {
       if (
         authError.message.includes("already registered") ||
-        authError.message.includes("duplicate")
+        authError.message.includes("duplicate") ||
+        authError.message.includes("already exists") ||
+        authError.message.includes("already taken")
       ) {
-        return apiError(
-          "Registration could not be completed. If you already have an account, please sign in.",
-          400,
-        );
+        return apiError("Registration could not be completed. If you already have an account, please sign in.", 400);
       }
       throw authError;
     }
-    rollbacks.push(async () => { await supabaseAdmin.auth.admin.deleteUser(authData.user.id); });
+    rollbacks.push(async () => {
+      await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+    });
 
     // 4. Create school record
     const { data: schoolData, error: schoolError } = await supabaseAdmin
@@ -378,16 +340,16 @@ export async function POST(request: NextRequest) {
         subscription_plan: subscriptionPlan,
         billing_mode: normalizedBillingMode,
         subscription_status: "trial",
-        trial_ends_at: new Date(
-          Date.now() + 30 * 24 * 60 * 60 * 1000,
-        ).toISOString(),
+        trial_ends_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         primary_color: "#1e3a5f",
       })
       .select()
       .single();
 
     if (schoolError) throw schoolError;
-    rollbacks.push(async () => { await supabaseAdmin.from("schools").delete().eq("id", schoolData.id); });
+    rollbacks.push(async () => {
+      await supabaseAdmin.from("schools").delete().eq("id", schoolData.id);
+    });
 
     // 5. Create user record
     const { data: createdUser, error: userError } = await supabaseAdmin
@@ -471,23 +433,15 @@ export async function POST(request: NextRequest) {
           level: s.level,
           is_compulsory: s.is_compulsory,
         }));
-        const { error: subjectsError } = await supabaseAdmin
-          .from("subjects")
-          .insert(subjectRecords);
+        const { error: subjectsError } = await supabaseAdmin.from("subjects").insert(subjectRecords);
         if (subjectsError) {
           logger.warn("[Setup] Subjects seed failed:", subjectsError);
         }
       }
 
-      const defaultClasses = buildDefaultClasses(
-        schoolData.id,
-        schoolType as SchoolSetupType,
-        currentYear,
-      );
+      const defaultClasses = buildDefaultClasses(schoolData.id, schoolType as SchoolSetupType, currentYear);
       if (defaultClasses.length > 0) {
-        const { error: classesError } = await supabaseAdmin
-          .from("classes")
-          .insert(defaultClasses);
+        const { error: classesError } = await supabaseAdmin.from("classes").insert(defaultClasses);
         if (classesError) {
           logger.warn("[Setup] Classes seed failed:", classesError);
         }
@@ -508,10 +462,7 @@ export async function POST(request: NextRequest) {
       }
 
       if (academicYear) {
-        const defaultAcademicTerms = buildUgandaAcademicTerms(
-          schoolData.id,
-          currentYear,
-        );
+        const defaultAcademicTerms = buildUgandaAcademicTerms(schoolData.id, currentYear);
         const defaultTermRows = defaultAcademicTerms.map((term) => ({
           school_id: schoolData.id,
           academic_year_id: academicYear.id,
@@ -521,18 +472,14 @@ export async function POST(request: NextRequest) {
           is_current: term.is_current,
         }));
 
-        const { error: termsError } = await supabaseAdmin
-          .from("terms")
-          .insert(defaultTermRows);
+        const { error: termsError } = await supabaseAdmin.from("terms").insert(defaultTermRows);
         if (termsError) {
           logger.warn("[Setup] Terms seed failed:", termsError);
         }
 
-        const { error: atError } = await supabaseAdmin
-          .from("academic_terms")
-          .upsert(defaultAcademicTerms, {
-            onConflict: "school_id,academic_year,term_number",
-          });
+        const { error: atError } = await supabaseAdmin.from("academic_terms").upsert(defaultAcademicTerms, {
+          onConflict: "school_id,academic_year,term_number",
+        });
         if (atError) {
           logger.warn("[Setup] Academic terms upsert failed:", atError);
         }
@@ -565,31 +512,14 @@ export async function POST(request: NextRequest) {
     await rollbackAll();
     if (error instanceof Error) {
       const msg = error.message.toLowerCase();
-      if (
-        msg.includes("duplicate") ||
-        msg.includes("unique") ||
-        msg.includes("already exists")
-      ) {
-        return apiError(
-          "Registration could not be completed. If you already have an account, please sign in.",
-          400,
-        );
+      if (msg.includes("duplicate") || msg.includes("unique") || msg.includes("already exists")) {
+        return apiError("Registration could not be completed. If you already have an account, please sign in.", 400);
       }
       if (msg.includes("relation") || msg.includes("does not exist")) {
-        return apiError(
-          "Database setup incomplete. Please contact support.",
-          500,
-        );
+        return apiError("Database setup incomplete. Please contact support.", 500);
       }
-      if (
-        msg.includes("permission") ||
-        msg.includes("rls") ||
-        msg.includes("policy")
-      ) {
-        return apiError(
-          "Server configuration error. Please contact support.",
-          500,
-        );
+      if (msg.includes("permission") || msg.includes("rls") || msg.includes("policy")) {
+        return apiError("Server configuration error. Please contact support.", 500);
       }
     }
     return handleApiError(error);

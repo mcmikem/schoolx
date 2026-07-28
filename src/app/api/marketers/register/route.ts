@@ -157,7 +157,12 @@ export async function POST(request: NextRequest) {
     });
 
     if (authError) {
-      if (authError.message.includes("already registered") || authError.message.includes("duplicate")) {
+      if (
+        authError.message.includes("already registered") ||
+        authError.message.includes("duplicate") ||
+        authError.message.includes("already exists") ||
+        authError.message.includes("already taken")
+      ) {
         return apiError("This account already exists. Ask the admin to sign in.", 400);
       }
       throw authError;

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireUserWithSchool } from "@/lib/api-utils";
 import { rateLimit } from "@/lib/api-utils";
 import { sendWelcomeEmail, sendPasswordResetEmail, sendReceiptEmail } from "@/lib/email/service";
+import { logger } from "@/lib/logger";
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,7 +39,13 @@ export async function POST(request: NextRequest) {
         result = await sendPasswordResetEmail(to, params.resetToken || "", params.schoolName || "School");
         break;
       case "receipt":
-        result = await sendReceiptEmail(to, params.studentName || "", params.amount || 0, params.schoolName || "School", params.receiptNumber || "");
+        result = await sendReceiptEmail(
+          to,
+          params.studentName || "",
+          params.amount || 0,
+          params.schoolName || "School",
+          params.receiptNumber || "",
+        );
         break;
       default:
         return NextResponse.json({ error: "Invalid email type" }, { status: 400 });
@@ -50,6 +57,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: result.error }, { status: 500 });
     }
   } catch (error) {
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    logger.error("[Email Send] Error:", error);
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Server error" }, { status: 500 });
   }
 }

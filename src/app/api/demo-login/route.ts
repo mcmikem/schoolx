@@ -13,6 +13,7 @@
 // ============================================================================
 import { NextRequest, NextResponse } from "next/server";
 import { requireDevelopmentRouteOrDeny, rateLimit } from "@/lib/api-utils";
+import { logger } from "@/lib/logger";
 
 // Demo credentials - ONLY accessible server-side
 const DEMO_CREDS = {
@@ -67,29 +68,20 @@ export async function POST(request: NextRequest) {
   }
 
   if (!DEMO_PASSWORD) {
-    return NextResponse.json(
-      { error: "Demo login is not configured" },
-      { status: 503 },
-    );
+    return NextResponse.json({ error: "Demo login is not configured" }, { status: 503 });
   }
 
   try {
     const { phone, password } = await request.json();
 
     if (!phone || !password) {
-      return NextResponse.json(
-        { error: "Phone and password required" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Phone and password required" }, { status: 400 });
     }
 
     const cleanPhone = phone.replace(/[^0-9]/g, "");
 
     // Validate demo login server-side
-    if (
-      password === DEMO_PASSWORD &&
-      DEMO_CREDS[cleanPhone as keyof typeof DEMO_CREDS]
-    ) {
+    if (password === DEMO_PASSWORD && DEMO_CREDS[cleanPhone as keyof typeof DEMO_CREDS]) {
       return NextResponse.json({
         success: true,
         demo: true,
@@ -100,6 +92,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
   } catch (error) {
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    logger.error("[Demo Login] Error:", error);
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Server error" }, { status: 500 });
   }
 }

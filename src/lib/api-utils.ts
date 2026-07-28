@@ -35,8 +35,6 @@ export function apiError(error: string, status: number = 400): NextResponse<ApiR
 }
 
 export function handleApiError(error: unknown): NextResponse<ApiResponse> {
-  const sanitizedMessage = "An unexpected error occurred. Please try again later.";
-
   Sentry.captureException(error);
 
   if (error instanceof Error) {
@@ -45,9 +43,10 @@ export function handleApiError(error: unknown): NextResponse<ApiResponse> {
       stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
       timestamp: new Date().toISOString(),
     });
+    return apiError(error.message, 500);
   }
 
-  return apiError(sanitizedMessage, 500);
+  return apiError("An unexpected error occurred. Please try again later.", 500);
 }
 
 export function validateRequiredFields(body: Record<string, unknown>, fields: string[]): string | null {

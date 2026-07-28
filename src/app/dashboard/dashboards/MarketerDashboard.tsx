@@ -762,7 +762,8 @@ function RegisterTab({
       } else {
         setResult({ success: false, message: body.error || "Registration failed" });
       }
-    } catch {
+    } catch (err) {
+      logger.error("[MarketerDashboard] Registration network error:", err);
       setResult({ success: false, message: "Network error. Please try again." });
     } finally {
       setSubmitting(false);
@@ -789,7 +790,8 @@ function RegisterTab({
       } else {
         setLinkResult({ ok: false, message: body.error || "Failed to send link" });
       }
-    } catch {
+    } catch (err) {
+      logger.error("[MarketerDashboard] Send login link network error:", err);
       setLinkResult({ ok: false, message: "Network error. Please try again." });
     } finally {
       setSendingLink(false);
@@ -1106,7 +1108,8 @@ function LeadsTab({ onConvertToSchool }: { onConvertToSchool?: (lead: LeadRow) =
       const body = await res.json();
       if (body.success) setLeads(body.data?.leads || []);
       else setError(body.error || "Failed to load");
-    } catch {
+    } catch (err) {
+      logger.error("[MarketerDashboard] Fetch leads network error:", err);
       setError("Network error");
     } finally {
       setLoading(false);
@@ -1138,7 +1141,8 @@ function LeadsTab({ onConvertToSchool }: { onConvertToSchool?: (lead: LeadRow) =
         setShowForm(false);
         fetchLeads();
       } else setError(body.error || "Failed to create");
-    } catch {
+    } catch (err) {
+      logger.error("[MarketerDashboard] Create lead network error:", err);
       setError("Network error");
     }
   };
@@ -1151,7 +1155,8 @@ function LeadsTab({ onConvertToSchool }: { onConvertToSchool?: (lead: LeadRow) =
         body: JSON.stringify({ status }),
       });
       fetchLeads();
-    } catch {
+    } catch (err) {
+      logger.error("[MarketerDashboard] Update lead status network error:", err);
       setError("Failed to update");
     }
   };
@@ -1161,7 +1166,8 @@ function LeadsTab({ onConvertToSchool }: { onConvertToSchool?: (lead: LeadRow) =
     try {
       await fetch(`/api/marketers/leads/${id}/`, { method: "DELETE" });
       fetchLeads();
-    } catch {
+    } catch (err) {
+      logger.error("[MarketerDashboard] Delete lead network error:", err);
       setError("Failed to delete");
     }
   };
@@ -1205,7 +1211,8 @@ function LeadsTab({ onConvertToSchool }: { onConvertToSchool?: (lead: LeadRow) =
                   const body = await res.json();
                   setImportMsg(body.success ? body.message : body.error || "Import failed");
                   if (body.success) fetchLeads();
-                } catch {
+                } catch (err) {
+                  logger.error("[MarketerDashboard] CSV import network error:", err);
                   setImportMsg("Network error");
                 } finally {
                   setImporting(false);
@@ -1383,8 +1390,8 @@ function OutreachTab() {
       const res = await fetch("/api/marketers/outreach/");
       const body = await res.json();
       if (body.success) setOutreach(body.data?.messages || []);
-    } catch {
-      /* ignore */
+    } catch (err) {
+      logger.error("[MarketerDashboard] Fetch outreach network error:", err);
     } finally {
       setLoading(false);
     }
@@ -1527,8 +1534,8 @@ function ReferralsTab() {
       const res = await fetch("/api/marketers/referrals/");
       const body = await res.json();
       if (body.success) setReferrals(body.data?.referrals || []);
-    } catch {
-      /* ignore */
+    } catch (err) {
+      logger.error("[MarketerDashboard] Fetch referrals network error:", err);
     } finally {
       setLoading(false);
     }
@@ -1551,8 +1558,8 @@ function ReferralsTab() {
         setLabel("");
         fetchReferrals();
       }
-    } catch {
-      /* ignore */
+    } catch (err) {
+      logger.error("[MarketerDashboard] Create referral network error:", err);
     } finally {
       setCreating(false);
     }
@@ -1816,7 +1823,8 @@ function SettingsTab() {
       const body = await res.json();
       if (body.success) setMessage({ type: "success", text: "Profile updated successfully!" });
       else setMessage({ type: "error", text: body.error || "Failed to update" });
-    } catch {
+    } catch (err) {
+      logger.error("[MarketerDashboard] Profile update network error:", err);
       setMessage({ type: "error", text: "Network error" });
     } finally {
       setSaving(false);
@@ -1929,7 +1937,8 @@ function EditSchoolModal({
       } else {
         setError(body.error || "Failed to update");
       }
-    } catch {
+    } catch (err) {
+      logger.error("[MarketerDashboard] Edit school network error:", err);
       setError("Network error");
     } finally {
       setSaving(false);

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { rateLimit } from "@/lib/api-utils";
+import { logger } from "@/lib/logger";
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,7 +11,10 @@ export async function GET(request: NextRequest) {
     }
 
     const supabase = await createSupabaseServerClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -42,14 +46,18 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({ success: true, notifications });
   } catch (error) {
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    logger.error("[Parent Notifications GET] Error:", error);
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Server error" }, { status: 500 });
   }
 }
 
 export async function PATCH(request: NextRequest) {
   try {
     const supabase = await createSupabaseServerClient();
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
     if (authError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -92,6 +100,7 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
   } catch (error) {
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    logger.error("[Parent Notifications PATCH] Error:", error);
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Server error" }, { status: 500 });
   }
 }

@@ -407,7 +407,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setIsDemo(false);
           setLoading(false);
           setAuthInitialized(true);
-        } catch {
+        } catch (err) {
+          logger.error("[Auth] getUser failed in auth state handler:", err);
           setUser(null);
           setSchool(null);
           setIsDemo(false);
@@ -418,7 +419,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false);
         setAuthInitialized(true);
       }
-    } catch {
+    } catch (err) {
+      logger.error("[Auth] onAuthStateChange handler failed:", err);
       setIsDemo(false);
       setLoading(false);
     } finally {
