@@ -6,6 +6,7 @@ import Providers from "./providers";
 import MobileInit from "./mobile-init";
 import DebugPing from "@/components/DebugPing";
 import { Analytics } from "@/components/Analytics";
+import { AppTracker } from "@/components/AppTracker";
 import Script from "next/script";
 import { Suspense } from "react";
 import { logger } from "@/lib/logger";
@@ -133,6 +134,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {process.env.NODE_ENV === "development" && <DebugPing />}
         <Suspense fallback={null}>
           <Analytics />
+        </Suspense>
+        <Suspense fallback={null}>
+          <AppTracker />
         </Suspense>
         <MobileInit />
       </body>

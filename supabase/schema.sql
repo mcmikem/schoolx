@@ -502,6 +502,48 @@ CREATE INDEX IF NOT EXISTS idx_audit_module ON audit_log(module);
 CREATE INDEX IF NOT EXISTS idx_audit_created ON audit_log(created_at DESC);
 
 -- ============================================
+-- 16B. APP EVENTS — usage & error tracking
+-- ============================================
+CREATE TABLE IF NOT EXISTS app_events (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    school_id UUID REFERENCES schools(id) ON DELETE SET NULL,
+    event_type TEXT NOT NULL CHECK (event_type IN ('page_view', 'feature_use', 'error', 'api_call')),
+    event_name TEXT NOT NULL,
+    metadata JSONB DEFAULT '{}',
+    url TEXT,
+    ip_address TEXT,
+    user_agent TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_app_events_created ON app_events (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_app_events_type ON app_events (event_type);
+CREATE INDEX IF NOT EXISTS idx_app_events_name ON app_events (event_name);
+CREATE INDEX IF NOT EXISTS idx_app_events_school ON app_events (school_id);
+CREATE INDEX IF NOT EXISTS idx_app_events_user ON app_events (user_id);
+
+ALTER TABLE app_events ENABLE ROW LEVEL SECURITY;
+
+-- Super admins can read all events
+CREATE POLICY app_events_select_super_admin ON app_events
+  FOR SELECT
+  TO authenticated
+  USING (
+    EXISTS (
+      SELECT 1 FROM users
+      WHERE users.auth_id = auth.uid()
+        AND users.role = 'super_admin'
+    )
+  );
+
+-- Service role can insert events (API endpoint uses service role)
+CREATE POLICY app_events_insert_service ON app_events
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (true);
+
+-- ============================================
 -- 17. PARENT-STUDENT LINK
 -- ============================================
 CREATE TABLE IF NOT EXISTS parent_students (

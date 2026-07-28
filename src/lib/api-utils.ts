@@ -34,19 +34,29 @@ export function apiError(error: string, status: number = 400): NextResponse<ApiR
   );
 }
 
+function extractErrorMessage(error: unknown): string {
+  if (typeof error === "string") return error;
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === "object") {
+    if ("message" in error && typeof (error as any).message === "string") return (error as any).message;
+    if ("error" in error && typeof (error as any).error === "string") return (error as any).error;
+    if ("msg" in error && typeof (error as any).msg === "string") return (error as any).msg;
+    if ("error_description" in error && typeof (error as any).error_description === "string")
+      return (error as any).error_description;
+  }
+  return "An unexpected error occurred. Please try again later.";
+}
+
 export function handleApiError(error: unknown): NextResponse<ApiResponse> {
   Sentry.captureException(error);
 
-  if (error instanceof Error) {
-    logger.error("[Server Error]", {
-      message: error.message,
-      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
-      timestamp: new Date().toISOString(),
-    });
-    return apiError(error.message, 500);
-  }
-
-  return apiError("An unexpected error occurred. Please try again later.", 500);
+  const message = extractErrorMessage(error);
+  logger.error("[Server Error]", {
+    message,
+    stack: error instanceof Error ? error.stack : undefined,
+    timestamp: new Date().toISOString(),
+  });
+  return apiError(message, 500);
 }
 
 export function validateRequiredFields(body: Record<string, unknown>, fields: string[]): string | null {

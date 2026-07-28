@@ -763,8 +763,14 @@ function RegisterTab({
         setResult({ success: false, message: body.error || "Registration failed" });
       }
     } catch (err) {
-      logger.error("[MarketerDashboard] Registration network error:", err);
-      setResult({ success: false, message: "Network error. Please try again." });
+      logger.error("[MarketerDashboard] Registration error:", err);
+      const msg =
+        err instanceof Error
+          ? err.message
+          : err && typeof err === "object" && "message" in err
+            ? String((err as any).message)
+            : "Network error. Please try again.";
+      setResult({ success: false, message: msg });
     } finally {
       setSubmitting(false);
     }
