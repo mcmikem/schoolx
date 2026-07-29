@@ -108,7 +108,7 @@ BEGIN
 		PERFORM cron.schedule(
 			'purge-meal-scan-logs',
 			'10 * * * *',
-			$$SELECT cleanup_old_meal_scan_logs();$$
+			$sql$SELECT cleanup_old_meal_scan_logs()$sql$
 		);
 	END IF;
 END $$;
