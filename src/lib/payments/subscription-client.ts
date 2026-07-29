@@ -1,15 +1,16 @@
 // Subscription client - matches landing page pricing
-// Starter: UGX 2,000/student/term
-// Growth: UGX 3,500/student/term
-// Enterprise: UGX 5,500/student/term
-// Lifetime: UGX 8-15M one-time
+// Starter: UGX 1,400/student/term (30% off)
+// Growth: UGX 2,450/student/term (30% off)
+// Enterprise: UGX 3,850/student/term (30% off)
+// Lifetime: UGX 8-15M one-time (white-label, source code)
 
-export type PlanType =
-  | "starter"
-  | "growth"
-  | "enterprise"
-  | "lifetime"
-  | "free_trial";
+export const PROMO_DISCOUNT_PERCENT = 30;
+
+function applyPromo(amount: number): number {
+  return Math.round(amount * (1 - PROMO_DISCOUNT_PERCENT / 100));
+}
+
+export type PlanType = "starter" | "growth" | "enterprise" | "lifetime" | "free_trial";
 
 const LEGACY_PLAN_MAP = {
   basic: "starter",
@@ -72,7 +73,7 @@ export const PLANS: Record<PlanType, PlanFeatures> = {
   },
   starter: {
     name: "Starter",
-    pricePerStudent: 2000,
+    pricePerStudent: applyPromo(2000),
     priceFrequency: "term",
     maxStudents: 500,
     adminUsers: 3,
@@ -97,7 +98,7 @@ export const PLANS: Record<PlanType, PlanFeatures> = {
   },
   growth: {
     name: "Growth",
-    pricePerStudent: 3500,
+    pricePerStudent: applyPromo(3500),
     priceFrequency: "term",
     maxStudents: 2000,
     adminUsers: 10,
@@ -122,7 +123,7 @@ export const PLANS: Record<PlanType, PlanFeatures> = {
   },
   enterprise: {
     name: "Enterprise",
-    pricePerStudent: 5500,
+    pricePerStudent: applyPromo(5500),
     priceFrequency: "term",
     maxStudents: Infinity,
     adminUsers: Infinity,
@@ -173,13 +174,7 @@ export const PLANS: Record<PlanType, PlanFeatures> = {
 };
 
 // Plan order for upgrades
-export const order: PlanType[] = [
-  "free_trial",
-  "starter",
-  "growth",
-  "enterprise",
-  "lifetime",
-];
+export const order: PlanType[] = ["free_trial", "starter", "growth", "enterprise", "lifetime"];
 
 export function normalizePlanType(plan?: string | null): PlanType {
   if (!plan) return "free_trial";
@@ -203,30 +198,20 @@ export function calculatePrice(plan: PlanType, studentCount: number): number {
 }
 
 // Check if feature is available
-export function hasFeature(
-  plan: PlanType,
-  feature: keyof PlanFeatures,
-): boolean {
+export function hasFeature(plan: PlanType, feature: keyof PlanFeatures): boolean {
   const value = PLANS[plan][feature];
   return value === true || value === Infinity;
 }
 
 // Get feature limit value
-export function getFeatureLimit(
-  plan: PlanType,
-  feature: keyof PlanFeatures,
-): number {
+export function getFeatureLimit(plan: PlanType, feature: keyof PlanFeatures): number {
   const value = PLANS[plan][feature];
   if (value === Infinity) return -1;
   return typeof value === "number" ? value : 0;
 }
 
 // Get plan usage warning message
-export function getPlanUsageWarning(
-  plan: PlanType,
-  currentCount: number,
-  feature: keyof PlanFeatures,
-): string | null {
+export function getPlanUsageWarning(plan: PlanType, currentCount: number, feature: keyof PlanFeatures): string | null {
   const limit = getFeatureLimit(plan, feature);
   if (limit === -1) return null; // Unlimited
   if (currentCount >= limit) {

@@ -130,13 +130,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         >
           Skip to main content
         </a>
-        <Providers>{children}</Providers>
+        <Providers>
+          {children}
+          <Suspense fallback={null}>
+            <AppTracker />
+          </Suspense>
+        </Providers>
         {process.env.NODE_ENV === "development" && <DebugPing />}
         <Suspense fallback={null}>
           <Analytics />
-        </Suspense>
-        <Suspense fallback={null}>
-          <AppTracker />
         </Suspense>
         <MobileInit />
       </body>

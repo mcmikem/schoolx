@@ -764,6 +764,7 @@ function RegisterTab({
       }
     } catch (err) {
       logger.error("[MarketerDashboard] Registration error:", err);
+      logger.error("[MarketerDashboard] Registration error (stringified):", JSON.stringify(err));
       const msg =
         err instanceof Error
           ? err.message

@@ -1,19 +1,19 @@
 // Subscription plans - matches landing page pricing
 import { logger } from "@/lib/logger";
 
+export const PROMO_DISCOUNT_PERCENT = 30;
+
+export function applyPromo(amount: number): number {
+  return Math.round(amount * (1 - PROMO_DISCOUNT_PERCENT / 100));
+}
+
 // Starter: UGX 2,000/student/term (≤200 students, rural/primary)
 // Growth: UGX 3,500/student/term (≤500 students, urban/secondary)
 // Enterprise: UGX 5,500/student/term (unlimited, full features + UNEB)
 // Lifetime: UGX 8-15M one-time (white-label, source code)
 
 export const FEATURE_TIERS = {
-  starter: [
-    "sms",
-    "attendance",
-    "grades",
-    "fees",
-    "basic_reports",
-  ],
+  starter: ["sms", "attendance", "grades", "fees", "basic_reports"],
   growth: [
     "sms",
     "attendance",
@@ -77,13 +77,7 @@ export const FEATURE_TIERS = {
   ],
 };
 
-export const PLAN_TYPES = [
-  "starter",
-  "growth",
-  "enterprise",
-  "lifetime",
-  "free_trial",
-] as const;
+export const PLAN_TYPES = ["starter", "growth", "enterprise", "lifetime", "free_trial"] as const;
 
 export type PlanType = (typeof PLAN_TYPES)[number];
 
@@ -147,7 +141,7 @@ export const PLANS: Record<PlanType, PlanFeatures> = {
   },
   starter: {
     name: "Starter",
-    pricePerStudent: 2000,
+    pricePerStudent: applyPromo(2000),
     priceFrequency: "term",
     maxStudents: 200,
     adminUsers: 3,
@@ -175,7 +169,7 @@ export const PLANS: Record<PlanType, PlanFeatures> = {
   },
   growth: {
     name: "Growth",
-    pricePerStudent: 3500,
+    pricePerStudent: applyPromo(3500),
     priceFrequency: "term",
     maxStudents: 500,
     adminUsers: 10,
@@ -203,7 +197,7 @@ export const PLANS: Record<PlanType, PlanFeatures> = {
   },
   enterprise: {
     name: "Enterprise",
-    pricePerStudent: 5500,
+    pricePerStudent: applyPromo(5500),
     priceFrequency: "term",
     maxStudents: 999999,
     adminUsers: 999,
@@ -261,24 +255,18 @@ export const PLANS: Record<PlanType, PlanFeatures> = {
 
 export const PLAN_PRICES = {
   free_trial: { term: 0, oneTime: 0 },
-  starter: { term: 2000, oneTime: null },
-  growth: { term: 3500, oneTime: null },
-  enterprise: { term: 5500, oneTime: null },
-  lifetime: { term: null, oneTime: 12000000 }, // UGX 12M average
+  starter: { term: applyPromo(2000), oneTime: null },
+  growth: { term: applyPromo(3500), oneTime: null },
+  enterprise: { term: applyPromo(5500), oneTime: null },
+  lifetime: { term: null, oneTime: applyPromo(12000000) },
 };
 
-export function canUseFeature(
-  plan: PlanType,
-  feature: keyof PlanFeatures,
-): boolean {
+export function canUseFeature(plan: PlanType, feature: keyof PlanFeatures): boolean {
   const value = PLANS[plan][feature];
   return value === true || value === Infinity;
 }
 
-export function getFeatureLimit(
-  plan: PlanType,
-  feature: keyof PlanFeatures,
-): number {
+export function getFeatureLimit(plan: PlanType, feature: keyof PlanFeatures): number {
   const value = PLANS[plan][feature];
   if (value === Infinity) return -1; // -1 means unlimited
   return typeof value === "number" ? value : 0;
@@ -294,18 +282,13 @@ export function getUpgradeMessage(feature: string): string {
 }
 
 // Calculate monthly cost based on student count
-export function calculateMonthlyCost(
-  plan: PlanType,
-  studentCount: number,
-): number {
+export function calculateMonthlyCost(plan: PlanType, studentCount: number): number {
   const pricePerStudent = PLANS[plan].pricePerStudent;
   // 3 terms per year
   return (pricePerStudent * studentCount * 3) / 12;
 }
 
-export function getPlanForSchoolType(
-  schoolType: "primary" | "secondary" | "combined",
-): PlanType {
+export function getPlanForSchoolType(schoolType: "primary" | "secondary" | "combined"): PlanType {
   switch (schoolType) {
     case "primary":
       return "starter";
@@ -341,10 +324,7 @@ export async function updateSchoolSubscription(
   try {
     const supabase = await createSupabaseServerClient();
 
-    const { data, error } = await supabase
-      .from("schools")
-      .update(updates)
-      .eq("id", schoolId);
+    const { data, error } = await supabase.from("schools").update(updates).eq("id", schoolId);
 
     if (error) {
       logger.error("Error updating school subscription:", error);
@@ -430,13 +410,7 @@ export async function sendPaymentReceipt(
 export async function handleSubscriptionChange(
   schoolId: string,
   changeData: {
-    status:
-      | "active"
-      | "past_due"
-      | "canceled"
-      | "unpaid"
-      | "trial"
-      | "suspended";
+    status: "active" | "past_due" | "canceled" | "unpaid" | "trial" | "suspended";
     plan?: PlanType;
     provider: "mtn" | "airtel" | "bank" | "paypal" | "stripe";
     subscriptionId?: string;
@@ -479,10 +453,7 @@ export async function handleSubscriptionChange(
 
     await updateSchoolSubscription(schoolId, updates);
 
-    logger.debug(
-      `Subscription changed for school ${schoolId}:`,
-      subscriptionStatus,
-    );
+    logger.debug(`Subscription changed for school ${schoolId}:`, subscriptionStatus);
 
     return { success: true };
   } catch (error) {
@@ -491,10 +462,7 @@ export async function handleSubscriptionChange(
   }
 }
 
-export function determinePlanFromAmount(
-  amount: number,
-  isOneTime: boolean = false,
-): PlanType {
+export function determinePlanFromAmount(amount: number, isOneTime: boolean = false): PlanType {
   if (isOneTime) {
     if (amount >= 8000000) return "lifetime";
     return "lifetime";

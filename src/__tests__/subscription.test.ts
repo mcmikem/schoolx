@@ -36,16 +36,16 @@ describe("Subscription - Plan Features", () => {
   });
 
   describe("PLAN_PRICES", () => {
-    test("starter is UGX 2,000", () => {
-      expect(PLAN_PRICES.starter.term).toBe(2000);
+    test("starter is UGX 1,400 (30% off)", () => {
+      expect(PLAN_PRICES.starter.term).toBe(1400);
     });
 
-    test("growth is UGX 3,500", () => {
-      expect(PLAN_PRICES.growth.term).toBe(3500);
+    test("growth is UGX 2,450 (30% off)", () => {
+      expect(PLAN_PRICES.growth.term).toBe(2450);
     });
 
-    test("enterprise is UGX 5,500", () => {
-      expect(PLAN_PRICES.enterprise.term).toBe(5500);
+    test("enterprise is UGX 3,850 (30% off)", () => {
+      expect(PLAN_PRICES.enterprise.term).toBe(3850);
     });
 
     test("lifetime is one-time", () => {

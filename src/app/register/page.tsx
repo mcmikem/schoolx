@@ -560,6 +560,10 @@ function RegisterPageContent() {
                         onChange={(e) => updateForm("billingMode", e.target.value)}
                         required
                       />
+                      <p className="text-xs text-slate-500 -mt-2">
+                        Full Suite: pay per student/term, all features included. Modular: core features free, pay
+                        annually for extras. Switch anytime.
+                      </p>
 
                       {form.billingMode === "modular" && (
                         <div className="space-y-2 rounded-xl border border-[var(--border)] bg-white p-3">

@@ -360,6 +360,13 @@ export async function proxy(request: NextRequest) {
   }
 
   if (!verifiedUser) {
+    // API routes handle their own auth. Let them through so they can return
+    // proper JSON errors instead of getting redirected to the login HTML page.
+    if (pathname.startsWith("/api/")) {
+      supabaseResponse.headers.set("x-auth-status", "no-verified-user");
+      return supabaseResponse;
+    }
+
     // In some production edge cases, token validation can fail transiently
     // while auth cookies are still present. Failing open for app shells avoids
     // redirect loops; client auth guards still enforce access.
@@ -367,8 +374,7 @@ export async function proxy(request: NextRequest) {
       hasAuthSessionCookie(request) &&
       (pathname.startsWith("/dashboard") ||
         pathname.startsWith("/super-admin") ||
-        pathname.startsWith("/parent-portal") ||
-        pathname.startsWith("/api/marketers"))
+        pathname.startsWith("/parent-portal"))
     ) {
       supabaseResponse.headers.set("x-auth-status", "cookie-present-user-unverified");
       return supabaseResponse;

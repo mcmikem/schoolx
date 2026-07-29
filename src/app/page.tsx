@@ -774,6 +774,11 @@ export default function HomePage() {
                           Most chosen
                         </span>
                       )}
+                      {(plan as any).promoBadge && (
+                        <span className="rounded-full bg-red-500 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-white ml-2">
+                          {(plan as any).promoBadge}
+                        </span>
+                      )}
                     </div>
                     <p
                       className={`mt-4 font-['Sora'] text-4xl font-semibold tracking-[-0.05em] ${plan.featured ? "text-slate-950" : "text-white"}`}

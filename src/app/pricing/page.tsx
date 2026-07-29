@@ -11,10 +11,11 @@ import { APP_NAME } from "@/lib/app-name";
 export const metadata: Metadata = {
   title: `Pricing — ${APP_NAME}`,
   description:
-    "Simple, per-student pricing for SkoolMate OS. Start free for 30 days. No hidden fees. Plans from UGX 2,000/student/term.",
+    "Limited time — 30% off all plans. Simple, per-student pricing for SkoolMate OS. Start free for 30 days. Plans from UGX 1,400/student/term.",
   openGraph: {
     title: `Pricing — ${APP_NAME}`,
-    description: "Per-student pricing starting at UGX 2,000/term. Free trial available. No credit card required.",
+    description:
+      "30% off — per-student pricing starting at UGX 1,400/term. Free trial available. No credit card required.",
   },
 };
 
@@ -81,6 +82,12 @@ export default function PricingPage() {
 
         {/* Plans */}
         <section className="mx-auto max-w-7xl px-4 pb-16 sm:px-6 lg:px-8 lg:pb-24">
+          <div className="mb-8 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600">
+            <strong className="text-slate-900">How billing works:</strong> Pick a plan below and pay per student per
+            term — all features in that tier are included (Full Suite). Alternatively, choose <strong>Modular</strong>{" "}
+            during registration — core modules are free based on your school size, and you add individual modules at
+            annual prices. You're never charged both ways and can switch at any time.
+          </div>
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {plans.map((plan, i) => (
               <FadeIn key={plan.name} delay={i * 150}>
@@ -96,6 +103,11 @@ export default function PricingPage() {
                     {plan.featured && (
                       <span className="rounded-full bg-[#17325F] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-white">
                         Most chosen
+                      </span>
+                    )}
+                    {(plan as any).promoBadge && (
+                      <span className="rounded-full bg-red-500 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-white ml-2">
+                        {(plan as any).promoBadge}
                       </span>
                     )}
                   </div>

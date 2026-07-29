@@ -38,10 +38,11 @@ export const modules = [
 export const plans = [
   {
     name: "Starter",
-    price: "UGX 2,000",
+    price: "UGX 1,400",
     cadence: "per student/term",
     bestFor: "Rural primary · under 200 students",
-    contrastLabel: "≈ 550 UGX/student/month — less than a soda",
+    contrastLabel: "≈ 470 UGX/student/month — less than a soda",
+    promoBadge: "30% OFF",
     features: [
       "Student records & profiles",
       "Daily attendance",
@@ -61,10 +62,11 @@ export const plans = [
   },
   {
     name: "Growth",
-    price: "UGX 3,500",
+    price: "UGX 2,450",
     cadence: "per student/term",
     bestFor: "Urban primary · 200-500 students",
-    contrastLabel: "≈ 1,170 UGX/student/month — less than a chapati a day",
+    contrastLabel: "≈ 820 UGX/student/month — less than a chapati a day",
+    promoBadge: "30% OFF",
     features: [
       "Everything in Starter",
       "Bulk SMS (200/term included)",
@@ -85,10 +87,11 @@ export const plans = [
   },
   {
     name: "Enterprise",
-    price: "UGX 5,500",
+    price: "UGX 3,850",
     cadence: "per student/term",
     bestFor: "Secondary · 500+ students",
-    contrastLabel: "≈ 1,830 UGX/student/month — less than a bottle of water a day",
+    contrastLabel: "≈ 1,280 UGX/student/month — less than a bottle of water a day",
+    promoBadge: "30% OFF",
     features: [
       "Everything in Growth",
       "UNEB candidate registration",
@@ -188,6 +191,10 @@ export const faqItems = [
   {
     q: "Will it work on my phone?",
     a: "Yes. SkoolMate OS is fully responsive and works on any smartphone, tablet, or computer. The mobile experience is optimised for teachers marking attendance on the go.",
+  },
+  {
+    q: "What's the difference between Full Suite and Modular billing?",
+    a: "Both give you the same SkoolMate features, just different ways to pay. Full Suite is our standard model: pick a plan (Starter, Growth, or Enterprise) and pay per student per term — all features in that tier are included automatically. Modular is an alternative: core modules are free based on your school size, and you add individual modules at annual prices. You're never charged both ways. You can switch between modes in Settings at any time.",
   },
   {
     q: "How long does setup take?",
