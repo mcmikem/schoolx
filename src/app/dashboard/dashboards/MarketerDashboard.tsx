@@ -678,6 +678,7 @@ function RegisterTab({
     commission?: number;
     adminPhone?: string;
     adminEmail?: string;
+    schoolName?: string;
   } | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [sendingLink, setSendingLink] = useState(false);
@@ -740,6 +741,7 @@ function RegisterTab({
           commission,
           adminPhone: body.data?.adminPhone,
           adminEmail: body.data?.adminEmail,
+          schoolName: form.schoolName,
         });
         setForm({
           schoolName: "",
@@ -788,7 +790,7 @@ function RegisterTab({
         body: JSON.stringify({
           email: result.adminEmail,
           name: form.adminName || "School Admin",
-          schoolName: form.schoolName || "",
+          schoolName: result.schoolName || "",
         }),
       });
       const body = await res.json();
@@ -830,10 +832,11 @@ function RegisterTab({
                 Phone: <span className="font-mono font-bold">{result.adminPhone}</span>
               </div>
               <div className="text-[11px]">
-                Password: <span className="font-mono font-bold">{form.password}</span>
+                Password: <span className="font-mono font-bold">********</span>
               </div>
               <p className="text-[10px] mt-1 text-green-600">
-                Share these credentials with the school admin. They can sign in at /login
+                Share these credentials with the school admin. They can sign in at /login. The password you set was used
+                during registration and is not stored here.
               </p>
             </div>
           )}
@@ -1573,7 +1576,7 @@ function ReferralsTab() {
   };
 
   const copyToClipboard = (code: string) => {
-    const url = `${baseUrl}/api/marketers/referrals/${code}`;
+    const url = `${baseUrl}/register?ref=${code}`;
     navigator.clipboard
       .writeText(url)
       .then(() => {

@@ -1103,7 +1103,7 @@ export default function FinanceHubPage() {
         return;
       }
       const message = `Dear Parent, ${invoice.student_name} (${invoice.student_number}) fee invoice: Total ${formatCurrency(invoice.total_amount)}, Paid ${formatCurrency(invoice.amount_paid)}, Balance ${formatCurrency(invoice.balance)}. ${school?.name}`;
-      await fetch("/api/sms", {
+      const res = await fetch("/api/sms", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1112,6 +1112,7 @@ export default function FinanceHubPage() {
           schoolId: school?.id,
         }),
       });
+      if (!res.ok) throw new Error(`SMS API returned ${res.status}`);
       toast.success("Invoice sent via SMS");
     } catch (err) {
       logger.warn("Send invoice SMS failed:", err);

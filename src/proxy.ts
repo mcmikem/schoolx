@@ -307,14 +307,19 @@ export async function proxy(request: NextRequest) {
   }
 
   if (!hasUsableSupabaseConfig) {
-    if (pathname === "/login" || pathname === "/register" || pathname === "/" || pathname.startsWith("/setup")) {
+    if (
+      normalizedPath === "/login" ||
+      normalizedPath === "/register" ||
+      normalizedPath === "/" ||
+      normalizedPath.startsWith("/setup")
+    ) {
       const response = NextResponse.next({ request });
       applySecurityHeaders(response);
       return response;
     }
 
     const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("redirect", pathname);
+    loginUrl.searchParams.set("redirect", normalizedPath);
     const response = NextResponse.redirect(loginUrl);
     applySecurityHeaders(response);
     return response;
@@ -374,7 +379,8 @@ export async function proxy(request: NextRequest) {
       hasAuthSessionCookie(request) &&
       (pathname.startsWith("/dashboard") ||
         pathname.startsWith("/super-admin") ||
-        pathname.startsWith("/parent-portal"))
+        pathname.startsWith("/parent-portal") ||
+        pathname.startsWith("/student-portal"))
     ) {
       supabaseResponse.headers.set("x-auth-status", "cookie-present-user-unverified");
       return supabaseResponse;

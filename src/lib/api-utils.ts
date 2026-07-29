@@ -131,9 +131,9 @@ function rateLimitInMemory(
   const now = Date.now();
 
   if (rateLimitMap.size > MAX_MAP_SIZE || now - lastCleanup > CLEANUP_INTERVAL) {
-    rateLimitMap.forEach((v, k) => {
+    for (const [k, v] of rateLimitMap) {
       if (now > v.resetTime) rateLimitMap.delete(k);
-    });
+    }
     lastCleanup = now;
   }
 
