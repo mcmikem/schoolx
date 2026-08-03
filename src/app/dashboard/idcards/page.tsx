@@ -19,14 +19,10 @@ export default function IDCardsPage() {
   const [selectedClass, setSelectedClass] = useState("");
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
 
-  const filteredStudents = selectedClass
-    ? students.filter((s) => s.class_id === selectedClass)
-    : students;
+  const filteredStudents = selectedClass ? students.filter((s) => s.class_id === selectedClass) : students;
 
   const toggleStudent = (id: string) => {
-    setSelectedStudents((prev) =>
-      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id],
-    );
+    setSelectedStudents((prev) => (prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]));
   };
 
   const selectAll = () => {
@@ -185,9 +181,11 @@ export default function IDCardsPage() {
     const idCardBody = `
       <div class="id-card">
         <div class="left-section">
-          ${schoolLogo
-            ? `<img src="${escapeHtml(schoolLogo)}" alt="${escapeHtml(schoolName)} logo" class="school-logo" />`
-            : `<div class="school-logo-fallback">${escapeHtml(schoolName.charAt(0).toUpperCase())}</div>`}
+          ${
+            schoolLogo
+              ? `<img src="${escapeHtml(schoolLogo)}" alt="${escapeHtml(schoolName)} logo" class="school-logo" />`
+              : `<div class="school-logo-fallback">${escapeHtml(schoolName.charAt(0).toUpperCase())}</div>`
+          }
           <div class="avatar">${firstName?.[0]}${lastName?.[0]}</div>
           <div class="school-name-small">${escapeHtml(schoolName)}</div>
         </div>
@@ -200,19 +198,19 @@ export default function IDCardsPage() {
           <div class="student-info">Class: ${escapeHtml(student.classes?.name || "N/A")}</div>
           <div class="student-info">Student No: ${escapeHtml(student.student_number || "N/A")}</div>
           <div class="student-info">Gender: ${student.gender === "M" ? "Male" : "Female"}</div>
-          ${(student as any).boarding_status && (student as any).boarding_status !== 'day' ? `<div class="student-info">Boarder: ${(student as any).boarding_status}</div>` : ''}
-          ${(student as any).houses?.name ? `<div class="student-info">House: ${(student as any).houses.name}</div>` : ''}
+          ${(student as any).boarding_status && (student as any).boarding_status !== "day" ? `<div class="student-info">Boarder: ${(student as any).boarding_status}</div>` : ""}
+          ${(student as any).houses?.name ? `<div class="student-info">House: ${(student as any).houses.name}</div>` : ""}
           <div class="barcode"></div>
         </div>
       </div>
     `;
 
     cardWindow.document.open();
-    cardWindow.document.title = 'ID Card - ' + escapeHtml(firstName) + ' ' + escapeHtml(lastName);
-    document.querySelectorAll('link[rel="stylesheet"], style').forEach(el => {
+    cardWindow.document.title = "ID Card - " + escapeHtml(firstName) + " " + escapeHtml(lastName);
+    document.querySelectorAll('link[rel="stylesheet"], style').forEach((el) => {
       cardWindow.document.head.appendChild(el.cloneNode(true));
     });
-    cardWindow.document.head.insertAdjacentHTML('beforeend', `<style>${idCardStyles}</style>`);
+    cardWindow.document.head.insertAdjacentHTML("beforeend", `<style>${idCardStyles}</style>`);
     cardWindow.document.body.innerHTML = idCardBody;
     cardWindow.document.close();
     cardWindow.focus();
@@ -228,112 +226,94 @@ export default function IDCardsPage() {
 
   return (
     <PageErrorBoundary>
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
-      <PageHeader
-        title="Student ID Cards"
-        subtitle="Generate and print student identification cards"
-        actions={
-          <Button
-            onClick={printAllCards}
-            disabled={selectedStudents.length === 0}
-            icon={<MaterialIcon icon="print" />}
-          >
-            Print Selected ({selectedStudents.length})
-          </Button>
-        }
-      />
-
-      <div className="flex flex-wrap gap-3 items-center">
-        <Select
-          aria-label="Filter by class"
-          value={selectedClass}
-          onChange={(e) => {
-            setSelectedClass(e.target.value);
-            setSelectedStudents([]);
-          }}
-          options={[
-            { value: "", label: "All Classes" },
-            ...classes.map((c) => ({ value: c.id, label: c.name })),
-          ]}
-        />
-        <Button variant="secondary" size="sm" onClick={selectAll}>
-          Select All
-        </Button>
-        <Button variant="ghost" size="sm" onClick={deselectAll}>
-          Deselect All
-        </Button>
-      </div>
-
-      {filteredStudents.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filteredStudents.map((student) => (
-            <Card
-              key={student.id}
-              className={`overflow-hidden transition-all ${
-                selectedStudents.includes(student.id)
-                  ? "ring-2 ring-[var(--primary)] shadow-md"
-                  : ""
-              }`}
-              onClick={() => toggleStudent(student.id)}
+      <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+        <PageHeader
+          title="Student ID Cards"
+          subtitle="Generate and print student identification cards"
+          actions={
+            <Button
+              onClick={printAllCards}
+              disabled={selectedStudents.length === 0}
+              icon={<MaterialIcon icon="print" />}
             >
-              <CardBody>
-                <div className="flex items-center gap-4">
-                  <div
-                    className={`w-14 h-14 rounded-full flex items-center justify-center font-bold text-lg shadow-sm ${
-                      student.gender === "M"
-                        ? "bg-[var(--primary)] text-[var(--on-primary)]"
-                        : "bg-[var(--pink-500)] text-white"
-                    }`}
-                  >
-                    {student.first_name?.[0]}
-                    {student.last_name?.[0]}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-[var(--t1)] truncate">
-                      {student.first_name} {student.last_name}
-                    </h3>
-                    <p className="text-sm text-[var(--t3)]">
-                      {student.classes?.name}
-                    </p>
-                    <p className="text-xs text-[var(--t4)]">
-                      {student.student_number}
-                    </p>
-                  </div>
-                  {selectedStudents.includes(student.id) && (
-                    <div className="w-6 h-6 bg-[var(--primary)] rounded-full flex items-center justify-center">
-                      <MaterialIcon
-                        className="text-white text-sm"
-                        style={{ fontVariationSettings: "FILL 1" }}
-                      >
-                        check
-                      </MaterialIcon>
-                    </div>
-                  )}
-                </div>
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  className="w-full mt-4"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    generateIDCard(student);
-                  }}
-                  icon={<MaterialIcon icon="badge" />}
-                >
-                  Generate Card
-                </Button>
-              </CardBody>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <EmptyState
-          icon="badge"
-          title="No Students Found"
-          description="Add students to generate ID cards"
+              Print Selected ({selectedStudents.length})
+            </Button>
+          }
         />
-      )}
-    </div>
+
+        <div className="flex flex-wrap gap-3 items-center">
+          <Select
+            aria-label="Filter by class"
+            value={selectedClass}
+            onChange={(e) => {
+              setSelectedClass(e.target.value);
+              setSelectedStudents([]);
+            }}
+            options={[{ value: "", label: "All Classes" }, ...classes.map((c) => ({ value: c.id, label: c.name }))]}
+          />
+          <Button variant="secondary" size="sm" onClick={selectAll}>
+            Select All
+          </Button>
+          <Button variant="ghost" size="sm" onClick={deselectAll}>
+            Deselect All
+          </Button>
+        </div>
+
+        {filteredStudents.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {filteredStudents.map((student) => (
+              <Card
+                key={student.id}
+                className={`overflow-hidden transition-all ${
+                  selectedStudents.includes(student.id) ? "ring-2 ring-[var(--primary)] shadow-md" : ""
+                }`}
+                onClick={() => toggleStudent(student.id)}
+              >
+                <CardBody>
+                  <div className="flex items-center gap-4">
+                    <div
+                      className={`w-14 h-14 rounded-full flex items-center justify-center font-bold text-lg shadow-sm ${
+                        student.gender === "M"
+                          ? "bg-[var(--primary)] text-[var(--on-primary)]"
+                          : "bg-[var(--pink-500)] text-white"
+                      }`}
+                    >
+                      {student.first_name?.[0]}
+                      {student.last_name?.[0]}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-[var(--t1)] truncate">
+                        {student.first_name} {student.last_name}
+                      </h3>
+                      <p className="text-sm text-[var(--t3)]">{student.classes?.name}</p>
+                      <p className="text-xs text-[var(--t4)]">{student.student_number}</p>
+                    </div>
+                    {selectedStudents.includes(student.id) && (
+                      <div className="w-6 h-6 bg-[var(--primary)] rounded-full flex items-center justify-center">
+                        <MaterialIcon className="text-white text-sm">check</MaterialIcon>
+                      </div>
+                    )}
+                  </div>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="w-full mt-4"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      generateIDCard(student);
+                    }}
+                    icon={<MaterialIcon icon="badge" />}
+                  >
+                    Generate Card
+                  </Button>
+                </CardBody>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <EmptyState icon="badge" title="No Students Found" description="Add students to generate ID cards" />
+        )}
+      </div>
     </PageErrorBoundary>
   );
 }

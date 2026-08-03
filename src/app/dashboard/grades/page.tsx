@@ -1218,7 +1218,7 @@ export default function GradesPage() {
                 onClick={() => handleSaveGrades()}
                 disabled={saving || !selectedClass || !selectedSubject || isPublished}
                 loading={saving}
-                icon={<MaterialIcon icon="save" className="text-lg" style={{ fontVariationSettings: "FILL 1" }} />}
+                icon={<MaterialIcon icon="save" className="text-lg" />}
               >
                 Save Grades
               </Button>
@@ -2211,9 +2211,7 @@ export default function GradesPage() {
         {/* Sticky Action Bar */}
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-[var(--surface)]/80 dark:bg-[var(--surface-container-lowest)]/80 backdrop-blur-2xl px-6 py-4 rounded-full shadow-2xl z-40 border border-[var(--border)]/50 hidden md:flex">
           <div className="flex items-center gap-2 text-secondary px-4 border-r border-[var(--border)]">
-            <MaterialIcon className="text-xl" style={{ fontVariationSettings: "FILL 1" }}>
-              cloud_done
-            </MaterialIcon>
+            <MaterialIcon className="text-xl">cloud_done</MaterialIcon>
             <span className="text-xs font-bold uppercase tracking-wider">Sync Active</span>
           </div>
           <button

@@ -5,18 +5,22 @@ import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import SkoolMateLogo from "@/components/SkoolMateLogo";
 import AnimatedLogo from "@/components/AnimatedLogo";
-import LaptopMockup from "@/components/LaptopMockup";
 import { MaterialIcon } from "@/components/marketing/MaterialIcon";
 import { FadeIn } from "@/components/marketing/FadeIn";
 import { FAQItem } from "@/components/marketing/FAQItem";
-import { StatStrip } from "@/components/marketing/StatStrip";
-import { RoleSwitcher } from "@/components/marketing/RoleSwitcher";
-import { DayTimeline } from "@/components/marketing/DayTimeline";
-import { DesktopMockup } from "@/components/marketing/DesktopMockup";
-import { PhoneMockup } from "@/components/marketing/PhoneMockup";
 import { smoothScroll } from "@/lib/scroll";
+
+const LaptopMockup = dynamic(() => import("@/components/LaptopMockup"));
+const PhoneMockup = dynamic(() => import("@/components/marketing/PhoneMockup").then((m) => m.PhoneMockup));
+const DesktopMockup = dynamic(() => import("@/components/marketing/DesktopMockup").then((m) => m.DesktopMockup), {
+  ssr: false,
+});
+const StatStrip = dynamic(() => import("@/components/marketing/StatStrip").then((m) => m.StatStrip));
+const RoleSwitcher = dynamic(() => import("@/components/marketing/RoleSwitcher").then((m) => m.RoleSwitcher));
+const DayTimeline = dynamic(() => import("@/components/marketing/DayTimeline").then((m) => m.DayTimeline));
 import {
   HEADLINES,
   ROTATION_INTERVAL,

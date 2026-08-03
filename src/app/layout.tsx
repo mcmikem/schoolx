@@ -75,15 +75,31 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </>
         )}
         <link
-          rel="preload"
-          as="style"
-          crossOrigin="anonymous"
-          href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=Sora:wght@300;400;500;600;700;800&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=Sora:wght@300;400;500;600;700;800&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
+          id="google-fonts-link"
           rel="stylesheet"
+          media="print"
+          crossOrigin="anonymous"
+          href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=Sora:wght@300;400;500;600;700;800&family=Material+Symbols+Outlined:opsz,wght@20..48,300..700&display=swap"
         />
+        <Script id="google-fonts-activate" strategy="beforeInteractive">
+          {`
+            (function () {
+              var link = document.getElementById('google-fonts-link');
+              if (link) {
+                link.addEventListener('load', function () {
+                  if (link.media !== 'all') { link.media = 'all'; }
+                }, { once: true });
+                link.media = 'all';
+              }
+            })();
+          `}
+        </Script>
+        <noscript>
+          <link
+            href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=Sora:wght@300;400;500;600;700;800&family=Material+Symbols+Outlined:opsz,wght@20..48,300..700&display=swap"
+            rel="stylesheet"
+          />
+        </noscript>
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
         <link rel="icon" href="/icons/icon-512x512.png" type="image/png" />
       </head>
