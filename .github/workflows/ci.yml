@@ -64,6 +64,12 @@ jobs:
           NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES: "true"
           NEXT_PUBLIC_DEMO_ENABLED: "true"
           DEMO_ADMIN_PASSWORD: ${{ secrets.DEMO_ADMIN_PASSWORD }}
+          # The E2E suite mocks /auth/v1/token and expects the app to use the real
+          # browser Supabase client. Without a configured URL the app falls back to
+          # the in-memory mock client, sign-in "succeeds" with no error, and the
+          # strict login-error assertions can never pass.
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
       
       - name: Build application
         run: npm run build
