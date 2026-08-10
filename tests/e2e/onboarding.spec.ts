@@ -217,22 +217,14 @@ test.describe("Registration / Onboarding flow", () => {
 
   // ── Setup page ──
 
-  test("setup page shows environment variable instructions", async ({
+  test("setup page redirects to login when Supabase is configured", async ({
     page,
   }) => {
     await page.goto("/setup");
-    await expect(
-      page.getByRole("heading", { name: /^configuration required$/i }),
-    ).toBeVisible();
-    await expect(
-      page.getByText("NEXT_PUBLIC_SUPABASE_URL"),
-    ).toBeVisible();
-    await expect(
-      page.getByText("NEXT_PUBLIC_SUPABASE_ANON_KEY"),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("link", { name: /go to login/i }),
-    ).toBeVisible();
+    // /setup is only for first-time configuration when Supabase env vars are
+    // missing. Once a Supabase project has any schools (which the live env
+    // does), the proxy redirects to /login so the setup form cannot be reached.
+    await expect(page).toHaveURL(/\/login/, { timeout: 10000 });
   });
 });
 

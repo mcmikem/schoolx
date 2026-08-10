@@ -15,7 +15,26 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import { seedDemoSession } from "./helpers/demo";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "http://127.0.0.1:54321";
+// The Playwright test runner does not load .env.local, so resolve the Supabase
+// URL the browser actually talks to from the project env file. Mocks must match
+// the real URL or they silently never intercept.
+function resolveSupabaseUrl(): string {
+  const fromEnv = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (fromEnv) return fromEnv;
+  try {
+    const fs = require("node:fs");
+    const path = require("node:path");
+    const envPath = path.join(process.cwd(), ".env.local");
+    const contents = fs.readFileSync(envPath, "utf8");
+    const match = contents.match(/^NEXT_PUBLIC_SUPABASE_URL=(.+)$/m);
+    if (match) return match[1].trim();
+  } catch {
+    // ignore and fall back to the local default
+  }
+  return "http://127.0.0.1:54321";
+}
+
+const SUPABASE_URL = resolveSupabaseUrl();
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -161,14 +180,9 @@ async function resetAuthState(page: Page) {
 
 async function expectProtectedRouteOutcome(page: Page) {
   await page.waitForTimeout(400);
-  const url = page.url();
-  if (/\/login/.test(url)) {
-    await expect(page).toHaveURL(/\/login/, { timeout: 10_000 });
-    return;
-  }
-
-  // In mock/dev mode without live Supabase, route guards can degrade to dashboard access.
-  expect(url).toMatch(/\/dashboard/);
+  // Unauthenticated users MUST be redirected to /login. Accepting /dashboard here
+  // would make these tests pass even when the auth guard is completely broken.
+  await expect(page).toHaveURL(/\/login/, { timeout: 10_000 });
 }
 
 async function gotoRoute(page: Page, path: string) {
@@ -233,15 +247,9 @@ test.describe("Auth – sign-out", () => {
   test("sign out lands on /login", async ({ page }) => {
     await seedDemoSession(page, "headmaster");
     await page.goto("/dashboard");
-    // Wait for dashboard to fully load (TopBar with user menu)
-    await page.waitForSelector('[aria-label="User menu"]', { timeout: 20000 }).catch(() => {
-      // If demo session doesn't work with live Supabase, skip gracefully
-    });
-    const userMenuVisible = await page.getByRole("button", { name: /user menu/i }).isVisible().catch(() => false);
-    if (!userMenuVisible) {
-      test.skip();
-      return;
-    }
+    // The demo session MUST render the TopBar user menu; if it doesn't, the
+    // demo-session flow is broken and the test should fail, not self-skip.
+    await expect(page.getByRole("button", { name: /user menu/i })).toBeVisible({ timeout: 20_000 });
     await openUserMenu(page);
     await page.getByRole("button", { name: /sign out/i }).click();
     await expectProtectedRouteOutcome(page);
@@ -252,12 +260,7 @@ test.describe("Auth – sign-out", () => {
   }) => {
     await seedDemoSession(page, "headmaster");
     await page.goto("/dashboard");
-    await page.waitForSelector('[aria-label="User menu"]', { timeout: 20000 }).catch(() => {});
-    const userMenuVisible = await page.getByRole("button", { name: /user menu/i }).isVisible().catch(() => false);
-    if (!userMenuVisible) {
-      test.skip();
-      return;
-    }
+    await expect(page.getByRole("button", { name: /user menu/i })).toBeVisible({ timeout: 20_000 });
     await openUserMenu(page);
     await page.getByRole("button", { name: /sign out/i }).click();
     await expectProtectedRouteOutcome(page);
@@ -270,12 +273,7 @@ test.describe("Auth – sign-out", () => {
   test("sign-out clears demo session storage", async ({ page }) => {
     await seedDemoSession(page, "headmaster");
     await page.goto("/dashboard");
-    await page.waitForSelector('[aria-label="User menu"]', { timeout: 20000 }).catch(() => {});
-    const userMenuVisible = await page.getByRole("button", { name: /user menu/i }).isVisible().catch(() => false);
-    if (!userMenuVisible) {
-      test.skip();
-      return;
-    }
+    await expect(page.getByRole("button", { name: /user menu/i })).toBeVisible({ timeout: 20_000 });
     await openUserMenu(page);
     await page.getByRole("button", { name: /sign out/i }).click();
     await expectProtectedRouteOutcome(page);
@@ -315,14 +313,17 @@ test.describe("Auth – login form", () => {
 
     await expect(page).toHaveURL(/\/login/, { timeout: 10_000 });
 
-    const errorMessage = page
-      .getByText(/invalid phone number or password|invalid.*credentials|wrong.*password/i)
-      .first();
-    const hasVisibleError = await errorMessage.isVisible().catch(() => false);
-
-    if (!hasVisibleError) {
-      await expect(page.getByRole("button", { name: /^sign in$/i })).toBeVisible();
-    }
+    // The mocked /auth/v1/token request always returns 400 invalid_grant, so the
+    // form MUST surface an error message. Wait for the sign-in to settle first
+    // (button leaves "Signing in...") so the toast assertion starts inside the
+    // toast's visibility window instead of racing its auto-dismiss. A fallback
+    // assertion would make this test pass even when errors are swallowed.
+    await expect(page.getByRole("button", { name: /^sign in$/i })).toBeVisible({ timeout: 20_000 });
+    await expect(
+      page
+        .getByText(/invalid phone number or password|invalid.*credentials|wrong.*password/i)
+        .first(),
+    ).toBeVisible({ timeout: 5_000 });
   });
 
   test("wrong credentials never redirect to /dashboard", async ({ page }) => {
@@ -362,7 +363,12 @@ test.describe("Auth – login form", () => {
       await page.waitForTimeout(1000);
     }
 
-    // 6th attempt should trigger rate limit lockout
+    // The 5th failed attempt must flip the client-side lockout state. Wait for
+    // the lockout banner to render — attempting the 6th login before it appears
+    // would fire an extra auth request and make this test flaky.
+    await expect(page.getByText(/too many attempts/i).first()).toBeVisible({ timeout: 10_000 });
+
+    // 6th attempt should be blocked client-side: no additional auth request.
     const callsBeforeSixthAttempt = tokenCalls;
     await fillLoginForm(page, "0700000000", "WrongPassword1");
     await page.getByRole("button", { name: /^sign in$/i }).click();
@@ -481,18 +487,11 @@ test.describe("Auth – register validation (no backend)", () => {
 
     await fillAndSubmitRegisterForm(page);
 
-    const reachedLogin = await page
-      .waitForURL(/\/login/, { timeout: 25_000 })
-      .then(() => true)
-      .catch(() => false);
-
-    if (reachedLogin) {
-      await expect(page.getByRole("button", { name: /^sign in$/i })).toBeVisible();
-      return;
-    }
-
-    // In noisy mock/dev mode, fallback redirect can be skipped; ensure user still has a clear sign-in path.
-    await expect(page).toHaveURL(/\/register\/?/);
-    await expect(page.getByRole("link", { name: /sign in/i })).toBeVisible();
+    // Real behavior (register/page.tsx): after a successful registration, auto
+    // sign-in is attempted with retries. If all attempts fail the user is sent
+    // to /login?registered=1 with the phone pre-filled — never left stranded on
+    // /register.
+    await expect(page).toHaveURL(/\/login/, { timeout: 25_000 });
+    await expect(page.getByRole("button", { name: /^sign in$/i })).toBeVisible();
   });
 });

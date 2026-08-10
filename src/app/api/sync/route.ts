@@ -1,5 +1,5 @@
-import { NextRequest } from 'next/server'
-import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import { NextRequest } from "next/server";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import {
   apiSuccess,
   apiError,
@@ -8,300 +8,276 @@ import {
   requireUserWithSchool,
   assertSchoolScopeOrDeny,
   assertUserRoleOrDeny,
-} from '@/lib/api-utils'
-import type { Database } from '@/lib/supabase'
+} from "@/lib/api-utils";
+import type { Database } from "@/lib/supabase";
+import { SYNC_VALID_TABLES, SYNC_MAX_ITEMS, isValidSyncData } from "@/lib/server/sync-validation";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 interface SyncItem {
-  id: string
-  table: string
-  action: 'create' | 'update' | 'delete'
-  data: Record<string, unknown>
+  id: string;
+  table: string;
+  action: "create" | "update" | "delete";
+  data: Record<string, unknown>;
 }
 
-const VALID_TABLES = [
-  'students',
-  'classes',
-  'subjects',
-  'attendance',
-  'grades',
-  'fee_payments',
-  'fee_structure',
-  'fee_adjustments',
-  'messages',
-  'events',
-  'timetable',
-]
-const SOFT_DELETE_TABLES = new Set(['grades', 'fee_payments', 'fee_structure', 'fee_adjustments'])
+const SOFT_DELETE_TABLES = new Set(["grades", "fee_payments", "fee_structure", "fee_adjustments"]);
 const DIRECT_SCHOOL_TABLES = new Set([
-  'students',
-  'classes',
-  'subjects',
-  'fee_structure',
-  'fee_adjustments',
-  'messages',
-  'events',
-  'timetable',
-])
-const OWNED_RELATION_TABLES = new Set(['attendance', 'grades', 'fee_payments'])
+  "students",
+  "classes",
+  "subjects",
+  "fee_structure",
+  "fee_adjustments",
+  "messages",
+  "events",
+  "timetable",
+]);
+const OWNED_RELATION_TABLES = new Set(["attendance", "grades", "fee_payments"]);
 const SYNC_ALLOWED_ROLES = [
-  'super_admin',
-  'school_admin',
-  'admin',
-  'headmaster',
-  'dean_of_studies',
-  'teacher',
-  'bursar',
-  'secretary',
-  'dorm_master',
-]
+  "super_admin",
+  "school_admin",
+  "admin",
+  "headmaster",
+  "dean_of_studies",
+  "teacher",
+  "bursar",
+  "secretary",
+  "dorm_master",
+];
 
 async function resolveSchoolOwnership(params: {
-  supabase: SupabaseClient<Database>
-  table: string
-  action: SyncItem['action']
-  data: Record<string, unknown>
-  schoolId: string
+  supabase: SupabaseClient<Database>;
+  table: string;
+  action: SyncItem["action"];
+  data: Record<string, unknown>;
+  schoolId: string;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
-  const { supabase, table, action, data, schoolId } = params
+  const { supabase, table, action, data, schoolId } = params;
 
   if (DIRECT_SCHOOL_TABLES.has(table)) {
-    if (action === 'create') {
+    if (action === "create") {
       return data.school_id === schoolId
         ? { ok: true }
-        : { ok: false, error: `Forbidden: school scope mismatch for ${table}` }
+        : { ok: false, error: `Forbidden: school scope mismatch for ${table}` };
     }
 
-    const recordId = data.id
-    if (typeof recordId !== 'string' || recordId.length === 0) {
-      return { ok: false, error: `Missing id for ${action} on ${table}` }
+    const recordId = data.id;
+    if (typeof recordId !== "string" || recordId.length === 0) {
+      return { ok: false, error: `Missing id for ${action} on ${table}` };
     }
 
-    const { data: existing, error } = await supabase
-      .from(table)
-      .select('school_id')
-      .eq('id', recordId)
-      .maybeSingle()
+    const { data: existing, error } = await supabase.from(table).select("school_id").eq("id", recordId).maybeSingle();
 
-    const existingRecord = existing as { school_id?: string | null } | null
-    const existingSchoolId = existingRecord?.school_id
+    const existingRecord = existing as { school_id?: string | null } | null;
+    const existingSchoolId = existingRecord?.school_id;
 
     if (error || !existingSchoolId || existingSchoolId !== schoolId) {
-      return { ok: false, error: `Forbidden: school scope mismatch for ${table}` }
+      return { ok: false, error: `Forbidden: school scope mismatch for ${table}` };
     }
 
-    return { ok: true }
+    return { ok: true };
   }
 
-  if (table === 'attendance') {
-    if (action === 'create') {
-      const classId = data.class_id
-      const studentId = data.student_id
+  if (table === "attendance") {
+    if (action === "create") {
+      const classId = data.class_id;
+      const studentId = data.student_id;
 
-      if (typeof classId === 'string') {
-        const { data: classRow } = await supabase
-          .from('classes')
-          .select('school_id')
-          .eq('id', classId)
-          .maybeSingle()
-        const classSchoolId = (classRow as { school_id?: string | null } | null)?.school_id
-        if (classSchoolId === schoolId) return { ok: true }
+      if (typeof classId === "string") {
+        const { data: classRow } = await supabase.from("classes").select("school_id").eq("id", classId).maybeSingle();
+        const classSchoolId = (classRow as { school_id?: string | null } | null)?.school_id;
+        if (classSchoolId === schoolId) return { ok: true };
       }
 
-      if (typeof studentId === 'string') {
+      if (typeof studentId === "string") {
         const { data: studentRow } = await supabase
-          .from('students')
-          .select('school_id')
-          .eq('id', studentId)
-          .maybeSingle()
-        const studentSchoolId = (studentRow as { school_id?: string | null } | null)?.school_id
-        if (studentSchoolId === schoolId) return { ok: true }
+          .from("students")
+          .select("school_id")
+          .eq("id", studentId)
+          .maybeSingle();
+        const studentSchoolId = (studentRow as { school_id?: string | null } | null)?.school_id;
+        if (studentSchoolId === schoolId) return { ok: true };
       }
 
-      return { ok: false, error: 'Forbidden: attendance record is outside school scope' }
+      return { ok: false, error: "Forbidden: attendance record is outside school scope" };
     }
 
-    const recordId = data.id
-    if (typeof recordId !== 'string' || recordId.length === 0) {
-      return { ok: false, error: `Missing id for ${action} on attendance` }
+    const recordId = data.id;
+    if (typeof recordId !== "string" || recordId.length === 0) {
+      return { ok: false, error: `Missing id for ${action} on attendance` };
     }
 
     const { data: existing } = await supabase
-      .from('attendance')
-      .select('student_id, class_id')
-      .eq('id', recordId)
-      .maybeSingle()
+      .from("attendance")
+      .select("student_id, class_id")
+      .eq("id", recordId)
+      .maybeSingle();
 
     if (!existing) {
-      return { ok: false, error: 'Forbidden: attendance record not found in school scope' }
+      return { ok: false, error: "Forbidden: attendance record not found in school scope" };
     }
 
     return resolveSchoolOwnership({
       supabase,
-      table: 'attendance',
-      action: 'create',
+      table: "attendance",
+      action: "create",
       data: existing as Record<string, unknown>,
       schoolId,
-    })
+    });
   }
 
-  if (table === 'grades') {
-    if (action === 'create') {
-      const classId = data.class_id
-      const studentId = data.student_id
+  if (table === "grades") {
+    if (action === "create") {
+      const classId = data.class_id;
+      const studentId = data.student_id;
 
-      if (typeof classId === 'string') {
-        const { data: classRow } = await supabase
-          .from('classes')
-          .select('school_id')
-          .eq('id', classId)
-          .maybeSingle()
-        const classSchoolId = (classRow as { school_id?: string | null } | null)?.school_id
-        if (classSchoolId === schoolId) return { ok: true }
+      if (typeof classId === "string") {
+        const { data: classRow } = await supabase.from("classes").select("school_id").eq("id", classId).maybeSingle();
+        const classSchoolId = (classRow as { school_id?: string | null } | null)?.school_id;
+        if (classSchoolId === schoolId) return { ok: true };
       }
 
-      if (typeof studentId === 'string') {
+      if (typeof studentId === "string") {
         const { data: studentRow } = await supabase
-          .from('students')
-          .select('school_id')
-          .eq('id', studentId)
-          .maybeSingle()
-        const studentSchoolId = (studentRow as { school_id?: string | null } | null)?.school_id
-        if (studentSchoolId === schoolId) return { ok: true }
+          .from("students")
+          .select("school_id")
+          .eq("id", studentId)
+          .maybeSingle();
+        const studentSchoolId = (studentRow as { school_id?: string | null } | null)?.school_id;
+        if (studentSchoolId === schoolId) return { ok: true };
       }
 
-      return { ok: false, error: 'Forbidden: grade record is outside school scope' }
+      return { ok: false, error: "Forbidden: grade record is outside school scope" };
     }
 
-    const recordId = data.id
-    if (typeof recordId !== 'string' || recordId.length === 0) {
-      return { ok: false, error: `Missing id for ${action} on grades` }
+    const recordId = data.id;
+    if (typeof recordId !== "string" || recordId.length === 0) {
+      return { ok: false, error: `Missing id for ${action} on grades` };
     }
 
     const { data: existing } = await supabase
-      .from('grades')
-      .select('student_id, class_id')
-      .eq('id', recordId)
-      .maybeSingle()
+      .from("grades")
+      .select("student_id, class_id")
+      .eq("id", recordId)
+      .maybeSingle();
 
     if (!existing) {
-      return { ok: false, error: 'Forbidden: grade record not found in school scope' }
+      return { ok: false, error: "Forbidden: grade record not found in school scope" };
     }
 
     return resolveSchoolOwnership({
       supabase,
-      table: 'grades',
-      action: 'create',
+      table: "grades",
+      action: "create",
       data: existing as Record<string, unknown>,
       schoolId,
-    })
+    });
   }
 
-  if (table === 'fee_payments') {
-    if (action === 'create') {
-      const studentId = data.student_id
-      if (typeof studentId !== 'string') {
-        return { ok: false, error: 'Missing student_id for fee_payments create' }
+  if (table === "fee_payments") {
+    if (action === "create") {
+      const studentId = data.student_id;
+      if (typeof studentId !== "string") {
+        return { ok: false, error: "Missing student_id for fee_payments create" };
       }
 
       const { data: studentRow } = await supabase
-        .from('students')
-        .select('school_id')
-        .eq('id', studentId)
-        .maybeSingle()
+        .from("students")
+        .select("school_id")
+        .eq("id", studentId)
+        .maybeSingle();
 
-      const studentSchoolId = (studentRow as { school_id?: string | null } | null)?.school_id
+      const studentSchoolId = (studentRow as { school_id?: string | null } | null)?.school_id;
 
       return studentSchoolId === schoolId
         ? { ok: true }
-        : { ok: false, error: 'Forbidden: fee payment is outside school scope' }
+        : { ok: false, error: "Forbidden: fee payment is outside school scope" };
     }
 
-    const recordId = data.id
-    if (typeof recordId !== 'string' || recordId.length === 0) {
-      return { ok: false, error: `Missing id for ${action} on fee_payments` }
+    const recordId = data.id;
+    if (typeof recordId !== "string" || recordId.length === 0) {
+      return { ok: false, error: `Missing id for ${action} on fee_payments` };
     }
 
     const { data: existing } = await supabase
-      .from('fee_payments')
-      .select('student_id')
-      .eq('id', recordId)
-      .maybeSingle()
+      .from("fee_payments")
+      .select("student_id")
+      .eq("id", recordId)
+      .maybeSingle();
 
     if (!existing) {
-      return { ok: false, error: 'Forbidden: fee payment not found in school scope' }
+      return { ok: false, error: "Forbidden: fee payment not found in school scope" };
     }
 
     return resolveSchoolOwnership({
       supabase,
-      table: 'fee_payments',
-      action: 'create',
+      table: "fee_payments",
+      action: "create",
       data: existing as Record<string, unknown>,
       schoolId,
-    })
+    });
   }
 
-  return { ok: false, error: `Unsupported sync table: ${table}` }
+  return { ok: false, error: `Unsupported sync table: ${table}` };
 }
 
 async function handleSyncPost(request: NextRequest) {
   try {
-    const body = await request.json()
-    const items: SyncItem[] = body.items
-    const schoolId = body.schoolId as unknown
+    const body = await request.json();
+    const items: SyncItem[] = body.items;
+    const schoolId = body.schoolId as unknown;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
-      return apiError('No sync items provided', 400)
+      return apiError("No sync items provided", 400);
     }
 
-    if (items.length > 100) {
-      return apiError('Too many items in a single sync request (max 100)', 400)
+    if (items.length > SYNC_MAX_ITEMS) {
+      return apiError("Too many items in a single sync request (max 100)", 400);
     }
 
-    const auth = await requireUserWithSchool(request)
-    if (!auth.ok) return auth.response
+    const auth = await requireUserWithSchool(request);
+    if (!auth.ok) return auth.response;
 
     const roleCheck = assertUserRoleOrDeny({
       userRole: auth.context.user.role,
       allowedRoles: SYNC_ALLOWED_ROLES,
-    })
-    if (!roleCheck.ok) return roleCheck.response
+    });
+    if (!roleCheck.ok) return roleCheck.response;
 
     const scope = assertSchoolScopeOrDeny({
       userSchoolId: auth.context.schoolId,
       requestedSchoolId: schoolId,
-    })
-    if (!scope.ok) return scope.response
+    });
+    if (!scope.ok) return scope.response;
 
     // Use service role to support background sync for offline clients, but enforce tenancy checks below.
-    const key = supabaseServiceKey
-    if (!key) return apiError('Server configuration error: SUPABASE_SERVICE_ROLE_KEY not set', 500)
+    const key = supabaseServiceKey;
+    if (!key) return apiError("Server configuration error: SUPABASE_SERVICE_ROLE_KEY not set", 500);
 
     const supabase: SupabaseClient<Database> = createClient(supabaseUrl, key, {
       auth: {
         autoRefreshToken: false,
         persistSession: false,
       },
-    })
+    });
 
-    let successCount = 0
-    let failedCount = 0
-    const errors: string[] = []
+    let successCount = 0;
+    let failedCount = 0;
+    const errors: string[] = [];
 
     for (const item of items) {
       try {
-        if (!VALID_TABLES.includes(item.table)) {
-          failedCount++
-          errors.push(`Invalid table: ${item.table}`)
-          continue
+        if (!SYNC_VALID_TABLES.includes(item.table)) {
+          failedCount++;
+          errors.push(`Invalid table: ${item.table}`);
+          continue;
         }
 
-        if (!item.data || typeof item.data !== 'object') {
-          failedCount++
-          errors.push(`Invalid data for item ${item.id}`)
-          continue
+        if (!isValidSyncData(item.data)) {
+          failedCount++;
+          errors.push(`Invalid data for item ${item.id}`);
+          continue;
         }
 
         // Basic tenancy enforcement: require school_id to match on all scoped tables.
@@ -311,71 +287,74 @@ async function handleSyncPost(request: NextRequest) {
           action: item.action,
           data: item.data,
           schoolId: scope.schoolId,
-        })
+        });
         if (!ownership.ok) {
-          failedCount++
-          errors.push(ownership.error)
-          continue
+          failedCount++;
+          errors.push(ownership.error);
+          continue;
         }
 
         switch (item.action) {
-          case 'create': {
-            const { error } = await supabase.from(item.table as any).insert(item.data as never)
+          case "create": {
+            const { error } = await supabase.from(item.table as any).insert(item.data as never);
             if (error) {
-              failedCount++
-              errors.push(`Create failed for ${item.table}`)
+              failedCount++;
+              errors.push(`Create failed for ${item.table}`);
             } else {
-              successCount++
+              successCount++;
             }
-            break
+            break;
           }
 
-          case 'update': {
-            const recordId = item.data.id as string
+          case "update": {
+            const recordId = item.data.id as string;
             if (!recordId) {
-              failedCount++
-              errors.push(`Missing id for update on ${item.table}`)
-              continue
+              failedCount++;
+              errors.push(`Missing id for update on ${item.table}`);
+              continue;
             }
-            const { id, ...updateData } = item.data
-            const query = supabase.from(item.table as any).update(updateData as never).eq('id', recordId)
-            const { error } = await query
+            const { id, ...updateData } = item.data;
+            const query = supabase
+              .from(item.table as any)
+              .update(updateData as never)
+              .eq("id", recordId);
+            const { error } = await query;
             if (error) {
-              failedCount++
-              errors.push(`Update failed for ${item.table}`)
+              failedCount++;
+              errors.push(`Update failed for ${item.table}`);
             } else {
-              successCount++
+              successCount++;
             }
-            break
+            break;
           }
 
-          case 'delete': {
-            const deleteId = item.data.id as string
+          case "delete": {
+            const deleteId = item.data.id as string;
             if (!deleteId) {
-              failedCount++
-              errors.push(`Missing id for delete on ${item.table}`)
-              continue
+              failedCount++;
+              errors.push(`Missing id for delete on ${item.table}`);
+              continue;
             }
-            const query = supabase.from(item.table as any)
+            const query = supabase.from(item.table as any);
             const { error } = SOFT_DELETE_TABLES.has(item.table)
-              ? await query.update({ deleted_at: new Date().toISOString() } as never).eq('id', deleteId)
-              : await query.delete().eq('id', deleteId)
+              ? await query.update({ deleted_at: new Date().toISOString() } as never).eq("id", deleteId)
+              : await query.delete().eq("id", deleteId);
             if (error) {
-              failedCount++
-              errors.push(`Delete failed for ${item.table}`)
+              failedCount++;
+              errors.push(`Delete failed for ${item.table}`);
             } else {
-              successCount++
+              successCount++;
             }
-            break
+            break;
           }
 
           default:
-            failedCount++
-            errors.push(`Unknown action: ${item.action}`)
+            failedCount++;
+            errors.push(`Unknown action: ${item.action}`);
         }
       } catch (err) {
-        failedCount++
-        errors.push(`Unexpected error processing item ${item.id}`)
+        failedCount++;
+        errors.push(`Unexpected error processing item ${item.id}`);
       }
     }
 
@@ -383,12 +362,12 @@ async function handleSyncPost(request: NextRequest) {
       success: successCount,
       failed: failedCount,
       errors: errors.length > 0 ? errors : undefined,
-    })
+    });
   } catch (error) {
-    return handleApiError(error)
+    return handleApiError(error);
   }
 }
 
 export const POST = withSecurity(handleSyncPost, {
   rateLimit: { limit: 10, windowMs: 60000 },
-})
+});

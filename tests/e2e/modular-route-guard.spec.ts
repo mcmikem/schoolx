@@ -189,7 +189,7 @@ test.describe("Modular route guard (feature stage)", () => {
 
     await gotoRouteWithRetry(page, "/dashboard/settings?tab=subscription");
     await expect(
-      page.getByText(/modular access/i),
+      page.getByRole("heading", { name: /choose your modules/i }),
     ).toBeVisible({ timeout: 30_000 });
 
     await expect(
@@ -197,7 +197,7 @@ test.describe("Modular route guard (feature stage)", () => {
     ).toBeVisible();
 
     await expect(
-      page.getByText(/finance/i),
+      page.getByRole("heading", { name: "Finance" }),
     ).toBeVisible();
     await expect(
       page.getByText(/ugx 200,000/i),

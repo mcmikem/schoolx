@@ -379,7 +379,7 @@ export function useStudentFeeTerms(studentId?: string) {
           const newPaid = (sftData.amount_paid || 0) + payment.amount;
           const newStat = newPaid >= (sftData.final_amount || 0) ? "completed" : "active";
 
-          await withTimeout(
+          const updateResult = await withTimeout(
             supabase
               .from("student_fee_terms")
               .update({ amount_paid: newPaid, status: newStat })
@@ -389,6 +389,12 @@ export function useStudentFeeTerms(studentId?: string) {
               error: { message: "Payment update timed out", name: "TimeoutError", details: "", hint: "", code: "" },
             } as unknown as PostgrestSingleResponse<never>,
           );
+          if (updateResult?.error) {
+            logger.error("Payment recorded but fee-term balance update failed:", updateResult.error);
+            await fetchStudentFeeTerms();
+            toast.warning("Payment recorded, but the fee balance could not be updated. It will reconcile on refresh.");
+            return paymentData;
+          }
         }
 
         await fetchStudentFeeTerms();

@@ -15,9 +15,7 @@ export function formatUgandaPhone(phone: string): string {
 
   if (formatted.startsWith("256")) {
     if (formatted.length !== 12) {
-      throw new Error(
-        "Invalid phone number: must be 12 digits with country code",
-      );
+      throw new Error("Invalid phone number: must be 12 digits with country code");
     }
     return `+${formatted}`;
   }
@@ -25,9 +23,7 @@ export function formatUgandaPhone(phone: string): string {
   if (formatted.startsWith("0")) {
     formatted = formatted.slice(1);
     if (formatted.length !== 9) {
-      throw new Error(
-        "Invalid phone number: must be 9 digits after leading zero",
-      );
+      throw new Error("Invalid phone number: must be 9 digits after leading zero");
     }
     return `+256${formatted}`;
   }
@@ -41,12 +37,8 @@ export function formatUgandaPhone(phone: string): string {
 
 export function getAfricasTalkingConfig() {
   return {
-    apiKey:
-      process.env.AFRICAS_TALKING_API_KEY || process.env.SMS_API_KEY || "",
-    username:
-      process.env.AFRICAS_TALKING_USERNAME ||
-      process.env.SMS_USERNAME ||
-      "sandbox",
+    apiKey: process.env.AFRICAS_TALKING_API_KEY || process.env.SMS_API_KEY || "",
+    username: process.env.AFRICAS_TALKING_USERNAME || process.env.SMS_USERNAME || "sandbox",
   };
 }
 
@@ -75,16 +67,22 @@ export async function sendAfricasTalkingSMS(
   }
 
   if (!apiKey) {
-    logger.debug(`[SMS Demo] To: ${recipient}, Message: ${message}`);
-    if (schoolId) {
-      await incrementSmsUsage(schoolId, true);
+    if (process.env.NODE_ENV === "development") {
+      logger.debug(`[SMS Demo] To: ${recipient}, Message: ${message}`);
+      if (schoolId) {
+        await incrementSmsUsage(schoolId, true);
+      }
+      return {
+        success: true,
+        demo: true,
+        messageId: `demo-${Date.now()}`,
+        statusCode: 101,
+      };
     }
-    return {
-      success: true,
-      demo: true,
-      messageId: `demo-${Date.now()}`,
-      statusCode: 101,
-    };
+    // Production: never claim a message was sent when no gateway is configured.
+    const error = "SMS not configured: AFRICAS_TALKING_API_KEY is missing";
+    logger.error(`[SMS] ${error}`);
+    return { success: false, error };
   }
 
   try {
@@ -93,18 +91,15 @@ export async function sendAfricasTalkingSMS(
       body.set("from", options.from);
     }
 
-    const response = await fetch(
-      "https://api.africastalking.com/version1/messaging",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          Accept: "application/json",
-          apiKey,
-        },
-        body,
+    const response = await fetch("https://api.africastalking.com/version1/messaging", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        Accept: "application/json",
+        apiKey,
       },
-    );
+      body,
+    });
 
     const responseText = await response.text();
     let payload: any = null;
@@ -119,9 +114,7 @@ export async function sendAfricasTalkingSMS(
     const recipientResult = payload?.SMSMessageData?.Recipients?.[0];
     const statusCode = recipientResult?.statusCode;
     const messageId = recipientResult?.messageId;
-    const success =
-      response.ok &&
-      (statusCode === undefined || statusCode === 101 || statusCode === 102);
+    const success = response.ok && (statusCode === undefined || statusCode === 101 || statusCode === 102);
 
     if (schoolId) {
       await incrementSmsUsage(schoolId, success);
@@ -177,10 +170,7 @@ export async function sendAfricasTalkingSMSWithRetry(
   return lastError ?? { success: false, error: "SMS failed after all retries" };
 }
 
-export async function checkSmsDailyLimit(
-  schoolId: string,
-  requestedCount: number,
-): Promise<boolean> {
+export async function checkSmsDailyLimit(schoolId: string, requestedCount: number): Promise<boolean> {
   const { createClient } = await import("@supabase/supabase-js");
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -237,18 +227,10 @@ export async function checkSmsQuota(
     const month = now.toLocaleString("en-US", { month: "short" }).toLowerCase();
     const year = now.getFullYear();
 
-    let { data: quota } = await supabase
-      .from("sms_quota")
-      .select("*")
-      .eq("school_id", schoolId)
-      .maybeSingle();
+    let { data: quota } = await supabase.from("sms_quota").select("*").eq("school_id", schoolId).maybeSingle();
 
     if (!quota) {
-      const { data: newQuota } = await supabase
-        .from("sms_quota")
-        .insert({ school_id: schoolId })
-        .select()
-        .single();
+      const { data: newQuota } = await supabase.from("sms_quota").insert({ school_id: schoolId }).select().single();
       quota = newQuota;
     }
 
@@ -266,10 +248,7 @@ export async function checkSmsQuota(
   }
 }
 
-export async function incrementSmsUsage(
-  schoolId: string,
-  success: boolean,
-): Promise<void> {
+export async function incrementSmsUsage(schoolId: string, success: boolean): Promise<void> {
   const { createClient } = await import("@supabase/supabase-js");
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;

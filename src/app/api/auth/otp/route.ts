@@ -77,15 +77,16 @@ export async function POST(request: NextRequest) {
 
     // Store OTP in the parent's user metadata via auth
     // We use a simple approach: store in a "otps" table
-    const { error: upsertError } = await supabaseAdmin
-      .from("otps")
-      .upsert({
+    const { error: upsertError } = await supabaseAdmin.from("otps").upsert(
+      {
         phone: normalizedPhone,
         code: otp,
         expires_at: expiresAt,
         used: false,
         created_at: new Date().toISOString(),
-      }, { onConflict: "phone" });
+      },
+      { onConflict: "phone" },
+    );
 
     if (upsertError) {
       logger.error("[OTP] Failed to store OTP:", upsertError);
@@ -98,19 +99,42 @@ export async function POST(request: NextRequest) {
     try {
       const formattedPhone = formatUgandaPhone(normalizedPhone);
       const smsMessage = `Your SkoolMate verification code is: ${otp}. Valid for ${OTP_EXPIRY_MINUTES} minutes. Do not share this code.`;
-      await sendAfricasTalkingSMSWithRetry(formattedPhone, smsMessage, { formatUgandaNumber: true });
-      logger.info(`[OTP] Sent OTP to ${normalizedPhone.slice(-4)}`);
-    } catch (smsError) {
-      logger.error("[OTP] SMS send failed:", smsError);
-      // In demo mode (no SMS config), return OTP directly for testing
-      if (!process.env.AFRICAS_TALKING_API_KEY) {
+      const smsResult = await sendAfricasTalkingSMSWithRetry(formattedPhone, smsMessage, { formatUgandaNumber: true });
+
+      if (smsResult.demo) {
+        // Dev-only demo gateway (no API key): return the OTP so testing can proceed.
+        logger.info(`[OTP] Demo SMS (no gateway) — OTP for ${normalizedPhone.slice(-4)}`);
         return NextResponse.json({
           success: true,
           message: "OTP generated (demo mode — check console)",
           demoOtp: otp,
         });
       }
-      return NextResponse.json({ success: true, message: "If this phone is registered, an OTP has been sent." });
+
+      if (!smsResult.success) {
+        logger.error(`[OTP] SMS send failed: ${smsResult.error}`);
+        // Don't reveal whether the phone exists — but do surface a generic failure.
+        return NextResponse.json(
+          { success: false, message: "Unable to send OTP right now. Please try again later." },
+          { status: 500 },
+        );
+      }
+
+      logger.info(`[OTP] Sent OTP to ${normalizedPhone.slice(-4)}`);
+    } catch (smsError) {
+      logger.error("[OTP] SMS send failed:", smsError);
+      // In demo mode (no SMS config), return OTP directly for testing
+      if (process.env.NODE_ENV === "development" && !process.env.AFRICAS_TALKING_API_KEY) {
+        return NextResponse.json({
+          success: true,
+          message: "OTP generated (demo mode — check console)",
+          demoOtp: otp,
+        });
+      }
+      return NextResponse.json(
+        { success: false, message: "Unable to send OTP right now. Please try again later." },
+        { status: 500 },
+      );
     }
 
     return NextResponse.json({ success: true, message: "If this phone is registered, an OTP has been sent." });

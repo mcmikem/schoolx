@@ -40,9 +40,11 @@ test.describe("Critical app flows", () => {
     }).toPass({ timeout: 15000 });
   });
 
-  test("setup wizard redirects unauthenticated users", async ({ page }) => {
+  test("setup admin page redirects existing schools to /login", async ({ page }) => {
     await page.goto("/setup-admin");
-    // Should redirect to login or show access denied
-    await expect(page.url()).toMatch(/login|setup|register/);
+    // /setup-admin is only for first-time setup. Once a Supabase project has any
+    // schools (which the live env does), the proxy redirects to /login so the
+    // super-admin creation form cannot be reached through the public web.
+    await expect(page).toHaveURL(/\/login/, { timeout: 10000 });
   });
 });

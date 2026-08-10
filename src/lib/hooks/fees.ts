@@ -16,6 +16,7 @@ import {
   validateFeeStructureInput,
   validatePaymentInput,
 } from "@/lib/validation";
+import { validateAdjustment } from "@/lib/server/fee-logic";
 
 let feePaymentsDeletedAtSupported: boolean | null = null;
 
@@ -610,6 +611,11 @@ export function useFeeAdjustments(schoolId?: string) {
     amount: number;
     description?: string;
   }) => {
+    const validationErrors = validateAdjustment(adj);
+    if (validationErrors.length > 0) {
+      logger.error("Fee adjustment validation failed:", validationErrors);
+      throw new Error(validationErrors.join(", "));
+    }
     if (isDemo || isDemoSchool(schoolId)) {
       const mappedType =
         adj.adjustment_type === "write_off" || adj.adjustment_type === "amnesty"

@@ -248,14 +248,14 @@ describe("Production Hardening Regression Tests", () => {
   });
 
   describe("Marketer Features", () => {
-    it("should have commission amounts (70k/80k/4k) in register route", () => {
-      const registerRoute = require("fs").readFileSync(
-        require("path").join(process.cwd(), "src/app/api/marketers/register/route.ts"),
+    it("should have commission amounts (70k/80k/4k) in marketer logic", () => {
+      const marketerLogic = require("fs").readFileSync(
+        require("path").join(process.cwd(), "src/lib/server/marketer-logic.ts"),
         "utf8",
       );
-      expect(registerRoute).toContain("70000");
-      expect(registerRoute).toContain("80000");
-      expect(registerRoute).toContain("4000");
+      expect(marketerLogic).toContain("70000");
+      expect(marketerLogic).toContain("80000");
+      expect(marketerLogic).toContain("4000");
     });
 
     it("should have digitization fee validation (10000-50000) in register route", () => {

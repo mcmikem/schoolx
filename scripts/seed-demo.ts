@@ -1,7 +1,14 @@
 // Demo data seeder for OmutoSMS
 // Run this to populate the database with test data
+// NOTE: refuses to run when NODE_ENV=production to avoid injecting the reserved
+// demo school UUID into a live tenant database.
 
 import { createClient } from '@supabase/supabase-js'
+
+if (process.env.NODE_ENV === 'production') {
+  console.error('❌ Refusing to seed demo data in production. Set NODE_ENV=development to continue.')
+  process.exit(1)
+}
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://your-project.supabase.co'
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY

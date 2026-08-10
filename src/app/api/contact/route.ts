@@ -46,8 +46,8 @@ export async function POST(request: NextRequest) {
 
     const resendApiKey = process.env.RESEND_API_KEY;
     if (!resendApiKey) {
-      logger.warn("Resend API key not configured — contact form submission skipped");
-      return apiSuccess(null, "Message received (email delivery not configured)", 200);
+      logger.error("Resend API key not configured — contact form message NOT delivered");
+      return apiError("Message delivery is not configured on the server. Please contact the school directly.", 503);
     }
 
     const subject =

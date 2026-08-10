@@ -18,20 +18,20 @@ test.describe("Core Workflows (Big Five)", () => {
     // Check if the form renders
     await expect(page.getByRole("heading", { name: /register student|add new student/i })).toBeVisible();
     
-    // Fill basic details
+    // Fill required basic details
     await page.getByLabel(/first name/i).fill("TestName");
     await page.getByLabel(/last name/i).fill("TestSurname");
+    await page.locator("#parent-name").fill("Test Parent");
+    await page.locator("#parent-phone").fill("0700111222");
     
     // Wait for the class dropdown and select a valid class
-    const classSelect = page.getByLabel(/class|grade/i);
+    const classSelect = page.locator("#student-class-id");
     await classSelect.waitFor({ state: "visible" });
     await classSelect.selectOption({ index: 1 }); // Select first available class
 
-    // Since it's a demo mode, we might just submit or cancel to ensure the form is fully interactive
-    const cancelBtn = page.getByRole("button", { name: /cancel/i });
-    if (await cancelBtn.isVisible()) {
-      await cancelBtn.click();
-    }
+    // Submit the form and verify the student is actually created
+    await page.getByRole("button", { name: /add student/i }).click();
+    await expect(page.getByText(/student added successfully/i)).toBeVisible({ timeout: 10_000 });
   });
 
   test("2. Fee Payment & Receipting Flow", async ({ page }) => {
@@ -46,13 +46,19 @@ test.describe("Core Workflows (Big Five)", () => {
     await page.getByRole("button", { name: /add payment/i }).click();
     await expect(page.getByRole("heading", { name: /record payment/i })).toBeVisible();
 
-    // Select a student (using standard combobox if applicable)
-    // Here we'll just check if the amount field is visible
+    // Select a student and enter an amount
+    const studentSelect = page.getByLabel(/^student$/i);
+    await expect(studentSelect).toBeVisible();
+    await studentSelect.selectOption({ index: 1 });
     const amountInput = page.getByLabel(/amount/i);
-    await expect(amountInput).toBeVisible();
-    
-    // Close modal
-    await page.getByRole("button", { name: /cancel/i }).click();
+    await amountInput.fill("50000");
+
+    // Advance to step 2 and record the payment
+    await page.getByRole("button", { name: /^next$/i }).click();
+    await page.getByRole("button", { name: /record payment/i }).click();
+
+    // Verify the payment is actually recorded
+    await expect(page.getByText(/payment recorded successfully/i)).toBeVisible({ timeout: 10_000 });
   });
 
   test("3. Grade Entry Flow", async ({ page }) => {
@@ -79,42 +85,31 @@ test.describe("Core Workflows (Big Five)", () => {
   });
 
   test("4. Report Card Generation Flow", async ({ page }) => {
-    test.setTimeout(45_000);
+    test.setTimeout(60_000);
     await seedDemoSession(page, "headmaster");
     
     // Go to Report Cards page
     await page.goto("/dashboard/report-cards");
     await expect(page.getByRole("heading", { name: /report cards/i })).toBeVisible();
 
-    // Select first non-empty class option
+    // Select P.1 (class value "4") — the demo class with students AND grades.
+    // Other classes have no demo students, so generation would legitimately
+    // no-op; P.1 verifies actual report generation end-to-end.
     const classSelect = page.getByLabel(/select class/i);
-    const classValue = await classSelect.evaluate((el) => {
-      const select = el as HTMLSelectElement;
-      const option = Array.from(select.options).find((opt, idx) => idx > 0 && opt.value);
-      return option?.value || "";
-    });
-
-    if (!classValue) {
-      throw new Error("No selectable class option found on report cards page");
-    }
-
-    await classSelect.selectOption(classValue);
+    await classSelect.waitFor({ state: "visible" });
+    await classSelect.selectOption("4");
     
     // Click Generate
     await page.getByRole("button", { name: /generate now|generate report cards/i }).click();
     
-    // Verify either successful generation or graceful no-students validation
-    const classAverage = page.getByText(/class average/i).first();
-    const noStudentsMessage = page.getByText(/no students found for the selected class/i).first();
-
-    await expect(async () => {
-      const generated = await classAverage.isVisible().catch(() => false);
-      const noStudents = await noStudentsMessage.isVisible().catch(() => false);
-      expect(generated || noStudents).toBeTruthy();
-    }).toPass({ timeout: 20_000 });
-
-    if (await classAverage.isVisible().catch(() => false)) {
-      await expect(page.getByRole("checkbox").first()).toBeVisible();
-    }
+    // Verify actual report generation — class average stats block only renders
+    // when reports were produced (never accept a "no students" fallback).
+    await expect(
+      page.getByText(/class average/i).first(),
+    ).toBeVisible({ timeout: 30_000 });
+    await expect(
+      page.getByText(/division 1/i).first(),
+    ).toBeVisible();
+    await expect(page.getByRole("checkbox").first()).toBeVisible();
   });
 });

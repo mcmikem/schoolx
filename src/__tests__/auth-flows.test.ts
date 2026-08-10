@@ -116,16 +116,10 @@ describe("buildAuthLoginAttempts", () => {
 // ---------------------------------------------------------------------------
 // Demo-role sanitisation — privilege escalation must be blocked
 // ---------------------------------------------------------------------------
+// Tests the REAL exported functions from auth-context-types (not a local copy),
+// so they can never drift from production the way a re-implementation can.
 
-// Re-implement DEMO_ALLOWED_ROLES and sanitizeDemoRole in isolation so this
-// test does NOT depend on auth-context internals (which would require a full
-// React provider setup).
-const DEMO_ALLOWED_ROLES = ["headmaster", "dean_of_studies", "bursar", "teacher", "secretary", "dorm_master"];
-
-function sanitizeDemoRole(raw: unknown): string {
-  if (typeof raw === "string" && DEMO_ALLOWED_ROLES.includes(raw)) return raw;
-  return "teacher"; // lowest-privilege default
-}
+import { DEMO_ALLOWED_ROLES, sanitizeDemoRole } from "@/lib/auth-context-types";
 
 describe("sanitizeDemoRole", () => {
   it("returns the role unchanged for allowed roles", () => {
@@ -142,8 +136,8 @@ describe("sanitizeDemoRole", () => {
     expect(sanitizeDemoRole("school_admin")).toBe("teacher");
   });
 
-  it("blocks parent role (not in allowed list)", () => {
-    expect(sanitizeDemoRole("parent")).toBe("teacher");
+  it("allows parent role (in real allowed list)", () => {
+    expect(sanitizeDemoRole("parent")).toBe("parent");
   });
 
   it("defaults to teacher for null input", () => {
@@ -167,14 +161,13 @@ describe("sanitizeDemoRole", () => {
 // Register form password rules — must match API validation (8+ chars, 1 upper, 1 digit)
 // ---------------------------------------------------------------------------
 
-/** Mirrors the validateStep3 password logic in register/page.tsx */
+import { validatePassword as validateRegisterPasswordRules } from "@/lib/server/marketer-logic";
+
 function validateRegisterPassword(password: string, confirmPassword: string): string | null {
-  if (password.length < 8) return "Password must be at least 8 characters";
-  if (!/[A-Z]/.test(password) || !/[0-9]/.test(password)) {
-    return "Password must contain at least one uppercase letter and one number";
-  }
+  const ruleError = validateRegisterPasswordRules(password);
+  if (ruleError) return ruleError;
   if (password !== confirmPassword) return "Passwords do not match";
-  return null; // valid
+  return null;
 }
 
 describe("register password validation", () => {

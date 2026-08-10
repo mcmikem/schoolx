@@ -669,12 +669,17 @@ export default function SettingsPage() {
         "users",
       ];
       const allData: Record<string, unknown[]> = {};
+      const failedTables: string[] = [];
       for (const table of tables) {
         const result = await withTimeout(
           supabase.from(table).select("*").eq("school_id", school.id),
           15000,
           timeoutFallback(),
         );
+        if (result?.error) {
+          failedTables.push(table);
+          continue;
+        }
         if (result?.data) allData[table] = result.data;
       }
       const blob = new Blob([JSON.stringify(allData, null, 2)], { type: "application/json" });
@@ -684,7 +689,13 @@ export default function SettingsPage() {
       a.download = `skoolmate_backup_${school.name}_${new Date().toISOString().split("T")[0]}.json`;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success("Data exported successfully");
+      if (failedTables.length > 0) {
+        toast.warning(
+          `Export saved but ${failedTables.length} table(s) could not be fetched and were omitted: ${failedTables.join(", ")}`,
+        );
+      } else {
+        toast.success("Data exported successfully");
+      }
     } catch (err) {
       toast.error("Export failed");
     }

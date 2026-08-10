@@ -7,31 +7,11 @@ import { buildUgandaAcademicTerms, buildUgandaCalendarEvents } from "@/lib/ugand
 import { normalizeAuthPhone } from "@/lib/validation";
 import { buildDefaultClasses, type SchoolSetupType } from "@/lib/school-setup";
 import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
+import { generateSchoolCode, calculateCommission } from "@/lib/server/marketer-logic";
 import { logger } from "@/lib/logger";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-function generateSchoolCode(schoolName: string, district: string): string {
-  const nameWords = schoolName
-    .toUpperCase()
-    .replace(/[^A-Z\s]/g, "")
-    .split(/\s+/)
-    .filter((w) => w.length > 0);
-  let nameCode = "";
-  for (const word of nameWords.slice(0, 3)) {
-    nameCode += word.substring(0, 2);
-    if (nameCode.length >= 4) break;
-  }
-  nameCode = nameCode.substring(0, 4) || "SCHL";
-  const districtCode =
-    district
-      .toUpperCase()
-      .replace(/[^A-Z]/g, "")
-      .substring(0, 2) || "UG";
-  const randomNum = Math.floor(100 + Math.random() * 900);
-  return `${nameCode}${districtCode}${randomNum}`;
-}
 
 function getDefaultSubjects(schoolType: string) {
   if (schoolType === "primary") return PRIMARY_TEMPLATE.subjects;
@@ -287,7 +267,7 @@ export const POST = withRateLimit(
       // ── Auto-create commission earnings ──────────────────────────────────────
       const isPaid = subscriptionPlan !== "free_trial";
       const isPremium = subscriptionPlan === "growth" || subscriptionPlan === "enterprise";
-      const commissionAmount = isPaid ? (isPremium ? 80000 : 70000) : 4000;
+      const commissionAmount = calculateCommission(subscriptionPlan);
 
       try {
         await withTimeout(

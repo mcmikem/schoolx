@@ -1,4 +1,5 @@
 import { calculateStudentFeePosition } from "../lib/operations";
+import { validateAdjustment, validatePayment, generateInvoice } from "../lib/server/fee-logic";
 
 describe("calculateStudentFeePosition", () => {
   it("returns unpaid when there are no payments or adjustments", () => {
@@ -397,93 +398,3 @@ describe("Payment validation", () => {
     expect(errors).toHaveLength(0);
   });
 });
-
-// --- Helper functions for validation used in tests ---
-
-interface AdjustmentInput {
-  student_id: string;
-  adjustment_type: string;
-  amount: number;
-  description?: string;
-}
-
-function validateAdjustment(adj: AdjustmentInput): string[] {
-  const errors: string[] = [];
-  const validTypes = ["discount", "scholarship", "penalty", "manual_credit", "write_off", "bursary", "amnesty"];
-
-  if (!adj.student_id) errors.push("Student is required");
-  if (!adj.amount || adj.amount <= 0) errors.push("Amount must be positive");
-  if (adj.amount > 100_000_000) errors.push("Amount seems too large");
-  if (!validTypes.includes(adj.adjustment_type)) errors.push("Invalid adjustment type");
-
-  return errors;
-}
-
-interface PaymentInput {
-  student_id: string;
-  amount_paid: number;
-  payment_method: string;
-  payment_reference?: string;
-  paid_by?: string;
-  notes?: string;
-}
-
-function validatePayment(payment: PaymentInput): string[] {
-  const errors: string[] = [];
-  const validMethods = ["cash", "mobile_money", "bank", "installment", "in_kind"];
-
-  if (!payment.student_id) errors.push("Student is required");
-  if (!payment.amount_paid || payment.amount_paid <= 0) errors.push("Amount must be positive");
-  if (payment.amount_paid > 100_000_000) errors.push("Amount seems too large");
-  if (!validMethods.includes(payment.payment_method)) errors.push("Invalid payment method");
-
-  return errors;
-}
-
-interface FeeItem {
-  name: string;
-  amount: number;
-}
-
-interface InvoiceInput {
-  studentId: string;
-  studentName: string;
-  studentNumber: string;
-  className: string;
-  feeItems: FeeItem[];
-  payments: Array<{ student_id: string; amount_paid: number }>;
-  term: number;
-  academicYear: string;
-}
-
-interface GeneratedInvoice {
-  student_id: string;
-  student_name: string;
-  student_number: string;
-  class_name: string;
-  fee_items: FeeItem[];
-  total_amount: number;
-  amount_paid: number;
-  balance: number;
-  status: string;
-}
-
-function generateInvoice(input: InvoiceInput): GeneratedInvoice {
-  const totalAmount = input.feeItems.reduce((sum, f) => sum + f.amount, 0);
-  const studentPayments = input.payments.filter((p) => p.student_id === input.studentId);
-  const amountPaid = studentPayments.reduce((sum, p) => sum + p.amount_paid, 0);
-  const balance = Math.max(0, totalAmount - amountPaid);
-  const status = balance === 0 ? "paid" : "issued";
-
-  return {
-    student_id: input.studentId,
-    student_name: input.studentName,
-    student_number: input.studentNumber,
-    class_name: input.className,
-    fee_items: input.feeItems,
-    total_amount: totalAmount,
-    amount_paid: amountPaid,
-    balance,
-    status,
-  };
-}

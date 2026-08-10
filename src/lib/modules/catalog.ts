@@ -86,25 +86,8 @@ export interface ModuleDefinition {
 // ─── Feature stage definitions ───────────────────────────────────────────────
 // Which modules are included at each stage of a full-suite plan.
 export const FEATURE_STAGE_MODULES: Record<FeatureStage, ModuleKey[]> = {
-  core: [
-    "dashboard",
-    "attendance",
-    "communications",
-    "settings",
-    "staff",
-    "students",
-  ],
-  academic: [
-    "dashboard",
-    "attendance",
-    "communications",
-    "marks",
-    "exams",
-    "reports",
-    "settings",
-    "staff",
-    "students",
-  ],
+  core: ["dashboard", "attendance", "communications", "settings", "staff", "students"],
+  academic: ["dashboard", "attendance", "communications", "marks", "exams", "reports", "settings", "staff", "students"],
   finance: [
     "dashboard",
     "attendance",
@@ -147,10 +130,7 @@ export const FEATURE_STAGE_MODULES: Record<FeatureStage, ModuleKey[]> = {
 
 export const DEFAULT_FEATURE_STAGE: FeatureStage = "core";
 
-export function isModuleInFeatureStage(
-  stage: FeatureStage | undefined,
-  moduleKey: ModuleKey,
-): boolean {
+export function isModuleInFeatureStage(stage: FeatureStage | undefined, moduleKey: ModuleKey): boolean {
   const key = stage || DEFAULT_FEATURE_STAGE;
   return FEATURE_STAGE_MODULES[key].includes(moduleKey);
 }
@@ -158,10 +138,7 @@ export function isModuleInFeatureStage(
 // ─── Size-based core (modular mode) ──────────────────────────────────────────
 // In modular mode, every school gets certain modules included for free
 // based on their size band. Everything beyond core must be purchased.
-export function isModuleInCoreBySize(
-  sizeBand: SchoolSizeBand | undefined | null,
-  moduleKey: ModuleKey,
-): boolean {
+export function isModuleInCoreBySize(sizeBand: SchoolSizeBand | undefined | null, moduleKey: ModuleKey): boolean {
   const moduleDef = MODULE_CATALOG.find((m) => m.module_key === moduleKey);
   if (!moduleDef) return false;
   if (sizeBand === "large") return moduleDef.included_in_core_large;
@@ -205,13 +182,15 @@ export function getFeatureStageForPlan(plan: PlanTier | string): FeatureStage {
 // ─── Route-based module lookup ───────────────────────────────────────────────
 const MODULE_MATCH_ORDER: ModuleKey[] = [
   // Most-specific prefixes first so longer paths match before shorter ones.
+  // `dashboard` is deliberately LAST because its bare `/dashboard` prefix
+  // matches every dashboard route (e.g. `/dashboard/fees`), which would
+  // shadow feature-stage gating for finance, exams, marks, etc.
   "discipline",
   "analytics",
   "assets",
   "attendance",
   "canteen",
   "communications",
-  "dashboard",
   "dorm",
   "exams",
   "finance",
@@ -226,6 +205,7 @@ const MODULE_MATCH_ORDER: ModuleKey[] = [
   "staff",
   "students",
   "transport",
+  "dashboard",
 ];
 
 const MODULE_ROUTE_MAP: Record<ModuleKey, string[]> = {
@@ -235,15 +215,8 @@ const MODULE_ROUTE_MAP: Record<ModuleKey, string[]> = {
     "/dashboard/class-comparison",
     "/dashboard/teacher-performance",
   ],
-  assets: [
-    "/dashboard/assets",
-    "/dashboard/inventory",
-  ],
-  attendance: [
-    "/dashboard/attendance",
-    "/dashboard/period-attendance",
-    "/dashboard/staff-attendance/scan",
-  ],
+  assets: ["/dashboard/assets", "/dashboard/inventory"],
+  attendance: ["/dashboard/attendance", "/dashboard/period-attendance", "/dashboard/staff-attendance/scan"],
   canteen: [
     "/dashboard/canteen",
     "/dashboard/store/pos",
@@ -262,27 +235,10 @@ const MODULE_ROUTE_MAP: Record<ModuleKey, string[]> = {
     "/dashboard/suggestions",
     "/dashboard/comments",
   ],
-  dashboard: [
-    "/dashboard",
-    "/dashboard/calendar",
-    "/dashboard/osx",
-  ],
-  discipline: [
-    "/dashboard/discipline",
-    "/dashboard/behavior",
-    "/dashboard/warnings",
-  ],
-  dorm: [
-    "/dashboard/dorm",
-    "/dashboard/dorm-attendance",
-    "/dashboard/dorm-supplies",
-  ],
-  exams: [
-    "/dashboard/exams",
-    "/dashboard/exam-timetable",
-    "/dashboard/uneb",
-    "/dashboard/uneb-registration",
-  ],
+  dashboard: ["/dashboard", "/dashboard/calendar", "/dashboard/osx"],
+  discipline: ["/dashboard/discipline", "/dashboard/behavior", "/dashboard/warnings"],
+  dorm: ["/dashboard/dorm", "/dashboard/dorm-attendance", "/dashboard/dorm-supplies"],
+  exams: ["/dashboard/exams", "/dashboard/exam-timetable", "/dashboard/uneb", "/dashboard/uneb-registration"],
   finance: [
     "/dashboard/fees",
     "/dashboard/fee-terms",
@@ -293,13 +249,8 @@ const MODULE_ROUTE_MAP: Record<ModuleKey, string[]> = {
     "/dashboard/expense-approvals",
     "/dashboard/billing",
   ],
-  health: [
-    "/dashboard/health",
-    "/dashboard/health-log",
-  ],
-  library: [
-    "/dashboard/library",
-  ],
+  health: ["/dashboard/health", "/dashboard/health-log"],
+  library: ["/dashboard/library"],
   marks: [
     "/dashboard/grades",
     "/dashboard/marks-completion",
@@ -329,13 +280,8 @@ const MODULE_ROUTE_MAP: Record<ModuleKey, string[]> = {
     "/dashboard/onboarding",
     "/dashboard/inspection-report",
   ],
-  parent_portal: [
-    "/dashboard/parent",
-    "/parent-portal",
-  ],
-  payroll: [
-    "/dashboard/payroll",
-  ],
+  parent_portal: ["/dashboard/parent", "/parent-portal"],
+  payroll: ["/dashboard/payroll"],
   reports: [
     "/dashboard/reports",
     "/dashboard/report-cards",
@@ -382,9 +328,7 @@ const MODULE_ROUTE_MAP: Record<ModuleKey, string[]> = {
     "/dashboard/students/admission-package",
     "/dashboard/students/conduct",
   ],
-  transport: [
-    "/dashboard/transport",
-  ],
+  transport: ["/dashboard/transport"],
 };
 
 // Static lookup: find which module a dashboard path belongs to (or null if core/unrestricted)
@@ -768,9 +712,7 @@ export function getCoreModules(sizeBand: SchoolSizeBand): ModuleDefinition[] {
 }
 
 export function getModulesForStage(stage: FeatureStage): ModuleDefinition[] {
-  return FEATURE_STAGE_MODULES[stage]
-    .map((key) => getModuleDefinition(key))
-    .filter((m): m is ModuleDefinition => !!m);
+  return FEATURE_STAGE_MODULES[stage].map((key) => getModuleDefinition(key)).filter((m): m is ModuleDefinition => !!m);
 }
 
 export function getAnnualModulePrice(

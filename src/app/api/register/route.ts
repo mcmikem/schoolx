@@ -26,6 +26,7 @@ import { logger } from "@/lib/logger";
 import { type ModuleKey } from "@/lib/modules/catalog";
 import { generateWhatsAppShareLink } from "@/lib/whatsapp";
 import { PLATFORM_SUPPORT_PHONE } from "@/lib/support-contact";
+import { generateSchoolCode } from "@/lib/server/marketer-logic";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -108,34 +109,6 @@ function formatModuleRequestMessage(params: {
     `Plan: ${params.selectedPackage}`,
     `Requested Modules: ${moduleList}`,
   ].join("\n");
-}
-
-// Generate a unique school code based on school name and district
-function generateSchoolCode(schoolName: string, district: string): string {
-  // Get first 2 letters of each word in school name (max 4 letters)
-  const nameWords = schoolName
-    .toUpperCase()
-    .replace(/[^A-Z\s]/g, "")
-    .split(/\s+/)
-    .filter((w) => w.length > 0);
-  let nameCode = "";
-  for (const word of nameWords.slice(0, 3)) {
-    nameCode += word.substring(0, 2);
-    if (nameCode.length >= 4) break;
-  }
-  nameCode = nameCode.substring(0, 4) || "SCHL";
-
-  // Get first 2 letters of district
-  const districtCode =
-    district
-      .toUpperCase()
-      .replace(/[^A-Z]/g, "")
-      .substring(0, 2) || "UG";
-
-  // Generate random 3-digit number
-  const randomNum = Math.floor(100 + Math.random() * 900);
-
-  return `${nameCode}${districtCode}${randomNum}`;
 }
 
 export async function POST(request: NextRequest) {

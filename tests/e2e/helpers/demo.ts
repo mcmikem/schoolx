@@ -48,7 +48,10 @@ export async function seedDemoSession(page: Page, role: DemoRole) {
 
   await page.addInitScript(
     ({ key, value }) => {
-      // auth-context.tsx reads sessionStorage first, then falls back to localStorage
+      // Restore the demo session in storage, but ONLY while the demo cookie is
+      // still present. After a real sign-out the cookie is cleared, so this
+      // script must not resurrect the session on the next navigation.
+      if (!document.cookie.includes(key)) return;
       sessionStorage.setItem(key, value)
       localStorage.setItem('academic_year', '2026')
       localStorage.setItem('current_term', '1')

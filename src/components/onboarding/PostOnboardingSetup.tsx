@@ -356,14 +356,17 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
     try {
       let headteacherUrl = "";
       let classTeacherUrl = "";
+      const uploadFailed: string[] = [];
 
       if (signatures.headteacher) {
         const url = await uploadSignatureToStorage(signatures.headteacher, "headteacher");
         if (url) headteacherUrl = url;
+        else uploadFailed.push("Headteacher");
       }
       if (signatures.class_teacher) {
         const url = await uploadSignatureToStorage(signatures.class_teacher, "class_teacher");
         if (url) classTeacherUrl = url;
+        else uploadFailed.push("Class teacher");
       }
 
       const updateData: Record<string, string> = {};
@@ -380,7 +383,17 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
         if (refreshSchool) await refreshSchool();
       }
 
-      toast.success("Signatures saved successfully");
+      if (uploadFailed.length > 0) {
+        toast.warning(
+          `Could not upload ${uploadFailed.join(" and ")} signature${
+            uploadFailed.length > 1 ? "s" : ""
+          }. The saved ones were applied. Please retry the failed uploads.`,
+        );
+      } else if (Object.keys(updateData).length > 0) {
+        toast.success("Signatures saved successfully");
+      } else {
+        toast.warning("No signature changes were applied.");
+      }
       await markComplete("signatures");
     } catch (err: unknown) {
       toast.error(getErrorMessage(err, "Failed to save signatures"));

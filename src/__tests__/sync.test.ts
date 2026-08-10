@@ -1,95 +1,63 @@
-describe('Sync API Validation', () => {
-  describe('Sync Item Validation', () => {
-    const VALID_TABLES = [
-      'students', 'classes', 'subjects', 'attendance', 'grades',
-      'fee_payments', 'fee_structure', 'fee_adjustments', 'messages', 'events', 'timetable', 'audit_log'
-    ]
+import {
+  SYNC_VALID_TABLES,
+  SYNC_VALID_ACTIONS,
+  SYNC_MAX_ITEMS,
+  validateSyncItem,
+  isValidSyncTable,
+  isValidSyncAction,
+  isValidSyncData,
+} from "../lib/server/sync-validation";
 
-    const VALID_ACTIONS = ['create', 'update', 'delete']
+describe("Sync API Validation", () => {
+  describe("Sync Item Validation", () => {
+    test("validates sync items structure", () => {
+      const item = { id: "1", table: "students", action: "create", data: { name: "John" } };
+      expect(validateSyncItem(item)).toHaveLength(0);
+    });
 
-    test('validates sync items structure', () => {
-      const validateSyncItem = (item: any): string[] => {
-        const errors: string[] = []
-        if (!item.id) errors.push('id required')
-        if (!item.table) errors.push('table required')
-        if (!item.action) errors.push('action required')
-        if (!item.data) errors.push('data required')
-        return errors
+    test("rejects incomplete sync items", () => {
+      expect(validateSyncItem({} as never)).toHaveLength(4);
+      expect(validateSyncItem({ id: "1" } as never)).toHaveLength(3);
+    });
+
+    test("every declared table is valid", () => {
+      for (const table of SYNC_VALID_TABLES) {
+        expect(isValidSyncTable(table)).toBe(true);
       }
+    });
 
-      const item = { id: '1', table: 'students', action: 'create', data: { name: 'John' } }
-      expect(validateSyncItem(item)).toHaveLength(0)
-    })
+    test("rejects table names not in the allowlist", () => {
+      expect(isValidSyncTable("students")).toBe(true);
+      expect(isValidSyncTable("users")).toBe(false);
+      expect(isValidSyncTable("invalid_table")).toBe(false);
+    });
 
-    test('rejects incomplete sync items', () => {
-      const validateSyncItem = (item: any): string[] => {
-        const errors: string[] = []
-        if (!item.id) errors.push('id required')
-        if (!item.table) errors.push('table required')
-        if (!item.action) errors.push('action required')
-        if (!item.data) errors.push('data required')
-        return errors
+    test("every declared action is valid", () => {
+      for (const action of SYNC_VALID_ACTIONS) {
+        expect(isValidSyncAction(action)).toBe(true);
       }
+    });
 
-      expect(validateSyncItem({})).toHaveLength(4)
-      expect(validateSyncItem({ id: '1' })).toHaveLength(3)
-    })
+    test("rejects unknown actions", () => {
+      expect(isValidSyncAction("drop")).toBe(false);
+      expect(isValidSyncAction("rename")).toBe(false);
+    });
 
-    test('validates table names', () => {
-      VALID_TABLES.forEach(table => {
-        expect(VALID_TABLES).toContain(table)
-      })
-    })
+    test("enforces max items limit constant", () => {
+      expect(SYNC_MAX_ITEMS).toBeGreaterThan(0);
+      expect(SYNC_MAX_ITEMS).toBe(100);
+    });
 
-    test('validates action types', () => {
-      VALID_ACTIONS.forEach(action => {
-        expect(VALID_ACTIONS).toContain(action)
-      })
-    })
+    test("validates data must be a plain object", () => {
+      expect(isValidSyncData({ name: "John" })).toBe(true);
+      expect(isValidSyncData([])).toBe(false);
+      expect(isValidSyncData("string")).toBe(false);
+      expect(isValidSyncData(null)).toBe(false);
+    });
 
-    test('rejects invalid table names', () => {
-      const isValidTable = (table: string) => VALID_TABLES.includes(table)
-      expect(isValidTable('students')).toBe(true)
-      expect(isValidTable('invalid_table')).toBe(false)
-      expect(isValidTable('users')).toBe(false)
-    })
-
-    test('enforces max items limit', () => {
-      const MAX_ITEMS = 100
-      const items = Array.from({ length: MAX_ITEMS }, (_, i) => ({ id: String(i), table: 'students', action: 'create', data: {} }))
-      expect(items.length).toBe(MAX_ITEMS)
-      
-      const overLimit = Array.from({ length: MAX_ITEMS + 1 }, (_, i) => ({ id: String(i), table: 'students', action: 'create', data: {} }))
-      expect(overLimit.length).toBeGreaterThan(MAX_ITEMS)
-    })
-
-    test('prevents SQL injection in table names', () => {
-      const maliciousTable = "students; DROP TABLE users--"
-      const isValidTable = (table: string) => VALID_TABLES.includes(table)
-      expect(isValidTable(maliciousTable)).toBe(false)
-    })
-  })
-
-  describe('Data Integrity', () => {
-    test('validates required sync item fields', () => {
-      const validateSyncItem = (item: any): string[] => {
-        const errors: string[] = []
-        if (!item.id) errors.push('id required')
-        if (!item.table) errors.push('table required')
-        if (!item.action) errors.push('action required')
-        if (!item.data) errors.push('data required')
-        return errors
-      }
-
-      expect(validateSyncItem({})).toHaveLength(4)
-      expect(validateSyncItem({ id: '1', table: 'students', action: 'create', data: {} })).toHaveLength(0)
-    })
-
-    test('validates data is an object', () => {
-      const isValidData = (data: any) => data && typeof data === 'object' && !Array.isArray(data)
-      expect(isValidData({ name: 'John' })).toBe(true)
-      expect(isValidData([])).toBe(false)
-      expect(isValidData('string')).toBe(false)
-    })
-  })
-})
+    test("prevents SQL injection in table names via allowlist", () => {
+      const maliciousTable = "students; DROP TABLE users--";
+      expect(isValidSyncTable(maliciousTable)).toBe(false);
+    });
+  });
+});

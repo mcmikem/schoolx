@@ -1588,9 +1588,13 @@ function ReferralsTab() {
         input.value = url;
         document.body.appendChild(input);
         input.select();
-        document.execCommand("copy");
+        const ok = document.execCommand("copy");
         document.body.removeChild(input);
-        alert("Referral link copied!");
+        if (ok) {
+          alert("Referral link copied!");
+        } else {
+          alert("Could not copy the link automatically. Please copy it manually: " + url);
+        }
       });
   };
 

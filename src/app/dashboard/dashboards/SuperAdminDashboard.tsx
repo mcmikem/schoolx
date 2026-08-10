@@ -199,38 +199,28 @@ function SuperAdminDashboardContent() {
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [planBreakdown, setPlanBreakdown] = useState<{ plan: string; count: number }[]>([]);
+  const [configWarning, setConfigWarning] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
     try {
       if (!isSupabaseConfigured) {
-        const createdAt = new Date().toISOString();
-        const demoSchool: RecentSchool = {
-          id: "mock-school-1",
-          name: "St. Mary's Primary School (Demo)",
-          district: "Kampala",
-          school_type: "primary",
-          subscription_plan: "growth",
-          subscription_status: "active",
-          student_count: 0,
-          created_at: createdAt,
-          primary_color: "#0d9488",
-        };
-
+        setConfigWarning("Supabase is not configured. Platform statistics are unavailable — no mock data is shown.");
         setStats({
-          totalSchools: 1,
-          activeSchools: 1,
+          totalSchools: 0,
+          activeSchools: 0,
           trialSchools: 0,
           expiredSchools: 0,
           totalStudents: 0,
-          totalUsers: 1,
+          totalUsers: 0,
           totalRevenue: 0,
-          newThisMonth: 1,
+          newThisMonth: 0,
         });
-        setRecentSchools([demoSchool]);
-        setPlanBreakdown([{ plan: "growth", count: 1 }]);
+        setRecentSchools([]);
+        setPlanBreakdown([]);
         setAlerts([]);
         return;
       }
+      setConfigWarning(null);
 
       const [schoolsRes, usersRes] = await Promise.all([
         supabase
@@ -364,6 +354,14 @@ function SuperAdminDashboardContent() {
           <MaterialIcon icon="refresh" style={{ fontSize: 18 }} />
         </button>
       </div>
+
+      {/* ── Config warning ──────────────────────────────────── */}
+      {configWarning && (
+        <div className="mb-6 rounded-xl border border-[var(--amber-border)] bg-[var(--amber-soft)] px-4 py-3 flex items-start gap-3">
+          <MaterialIcon icon="warning" style={{ fontSize: 18, color: "var(--amber)" }} />
+          <p className="text-[13px] text-[var(--t1)]">{configWarning}</p>
+        </div>
+      )}
 
       {/* ── 4 Big Numbers ───────────────────────────────────── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">

@@ -523,6 +523,9 @@ export default function ReportCardsPage() {
       const { supabase: sb } = await import("@/lib/supabase");
       const best4 = (scores: number[]) => [...scores].sort((a, b) => b - a).slice(0, 4);
 
+      let savedCount = 0;
+      const failedNames: string[] = [];
+
       for (const rpt of reportList) {
         const subjectsJson = rpt.subjects.map((s) => ({
           name: s.name,
@@ -563,14 +566,34 @@ export default function ReportCardsPage() {
           generated_by: user?.full_name || user?.id || "system",
         };
 
+        let writeResult: { error?: unknown } | null = null;
         if (existingCard && existingCard.length > 0) {
-          await withTimeout(sb.from("report_cards").update(cardPayload).eq("id", existingCard[0].id), 15000, null);
+          writeResult = await withTimeout(
+            sb.from("report_cards").update(cardPayload).eq("id", existingCard[0].id),
+            15000,
+            timeoutFallback(),
+          );
         } else {
-          await withTimeout(sb.from("report_cards").insert(cardPayload), 15000, null);
+          writeResult = await withTimeout(sb.from("report_cards").insert(cardPayload), 15000, timeoutFallback());
+        }
+
+        if (writeResult?.error) {
+          logger.error(`Failed to save report card for ${rpt.name}:`, writeResult.error);
+          failedNames.push(rpt.name);
+        } else {
+          savedCount++;
         }
       }
 
-      toast.success(`Report cards generated for ${reportList.length} students`);
+      if (failedNames.length > 0) {
+        toast.warning(
+          `Saved ${savedCount}/${reportList.length} report cards. Failed: ${failedNames.slice(0, 3).join(", ")}${
+            failedNames.length > 3 ? ` and ${failedNames.length - 3} more` : ""
+          }`,
+        );
+      } else {
+        toast.success(`Report cards generated for ${savedCount} students`);
+      }
     } catch (err) {
       logger.error("Error generating report cards:", err);
       toast.error("Failed to generate report cards");
@@ -1041,23 +1064,51 @@ export default function ReportCardsPage() {
 
     setSendingSms(true);
     try {
-      const { supabase: sb } = await import("@/lib/supabase");
       const message = `SkoolMate Alert: ${report.name} (Term ${currentTerm} Results). Avg: ${report.average}%, Pos: ${report.position}, Div: ${report.division}. Balance: UGX ${report.feeBalance.toLocaleString()}.`;
 
-      const msgResult = await withTimeout(
-        sb.from("messages").insert({
-          school_id: school?.id,
-          recipient_phone: student.parent_phone,
+      const response = await fetch("/api/sms/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          phone: student.parent_phone,
           message,
-          status: "sent",
-          type: "report_card",
+          schoolId: school?.id,
+          studentId: student.id,
+          type: "individual",
         }),
-        15000,
-        timeoutFallback(),
-      );
-      const error = msgResult?.error;
-      if (error) throw error;
-      toast.success(`Result summary sent to ${student.parent_phone}`);
+      });
+      const result = await response.json().catch(() => null);
+      const resultData = result?.data || {};
+
+      if (response.ok && resultData.status === "sent") {
+        const { supabase: sb } = await import("@/lib/supabase");
+        const msgResult = await withTimeout(
+          sb.from("messages").insert({
+            school_id: school?.id,
+            recipient_type: "individual",
+            recipient_id: student.id,
+            phone: student.parent_phone,
+            message,
+            status: "sent",
+            sent_by: user?.id,
+            sent_at: new Date().toISOString(),
+          }),
+          15000,
+          timeoutFallback(),
+        );
+        if (msgResult?.error) throw msgResult.error;
+        toast.success(`Result summary sent to ${student.parent_phone}`);
+      } else if (response.ok && resultData.demo) {
+        toast.info(`Demo mode: result summary logged for ${student.parent_phone} (no SMS gateway)`);
+      } else if (response.ok && resultData.status === "fallback") {
+        toast.warning(
+          resultData.smsError
+            ? `SMS provider failed for ${student.parent_phone}: ${resultData.smsError}`
+            : `SMS could not be sent to ${student.parent_phone}`,
+        );
+      } else {
+        toast.error(result?.error || "Failed to send results via SMS");
+      }
     } catch (err) {
       logger.error("SMS Error:", err);
       toast.error("Failed to send results via SMS");

@@ -189,19 +189,21 @@ export default function BudgetPage() {
     if (!school?.id) return;
     setSaving(true);
     try {
+      const failures: string[] = [];
       for (const item of Object.values(budgetItems)) {
         if (item.id) {
-          await withTimeout(
+          const result = await withTimeout(
             supabase
               .from("budget_items")
               .update({ budgeted: item.budgeted })
               .eq("id", item.id)
               .then((r) => r),
             15000,
-            { data: null, error: null } as any,
+            { data: null, error: { message: "Timeout saving budget item" } } as any,
           );
+          if (result?.error) failures.push(item.category);
         } else {
-          const { data } = await withTimeout(
+          const { data, error } = await withTimeout(
             supabase
               .from("budget_items")
               .insert({
@@ -215,13 +217,25 @@ export default function BudgetPage() {
               .single()
               .then((r) => r),
             15000,
-            { data: null, error: null } as any,
+            { data: null, error: { message: "Timeout saving budget item" } } as any,
           );
-          if (data) item.id = data.id;
+          if (error) {
+            failures.push(item.category);
+          } else if (data) {
+            item.id = data.id;
+          }
         }
       }
       setBudgetItems({ ...budgetItems });
-      toast.success("Budget saved successfully");
+      if (failures.length > 0) {
+        toast.warning(
+          `Saved with errors — ${failures.length} item(s) failed: ${failures.slice(0, 3).join(", ")}${
+            failures.length > 3 ? ` and ${failures.length - 3} more` : ""
+          }`,
+        );
+      } else {
+        toast.success("Budget saved successfully");
+      }
     } catch (err: any) {
       toast.error(err.message || "Failed to save budget");
     } finally {
