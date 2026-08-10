@@ -79,7 +79,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           rel="stylesheet"
           media="print"
           crossOrigin="anonymous"
-          href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=Sora:wght@300;400;500;600;700;800&family=Material+Symbols+Outlined:opsz,wght@20..48,300..700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght@20..48,300..700&display=swap"
         />
         <Script id="google-fonts-activate" strategy="beforeInteractive">
           {`
@@ -96,7 +96,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </Script>
         <noscript>
           <link
-            href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=Sora:wght@300;400;500;600;700;800&family=Material+Symbols+Outlined:opsz,wght@20..48,300..700&display=swap"
+            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght@20..48,300..700&display=swap"
             rel="stylesheet"
           />
         </noscript>

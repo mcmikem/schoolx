@@ -42,13 +42,11 @@ export function Button({
     "font-semibold rounded-xl transition-all duration-200 inline-flex items-center justify-center gap-2";
 
   const variants = {
-    primary:
-      "bg-[var(--primary)] text-[var(--on-primary)] hover:opacity-90 shadow-sm",
-    secondary:
-      "bg-[var(--surface-container)] text-[var(--on-surface)] hover:opacity-80",
-    ghost:
-      "bg-transparent text-[var(--on-surface)] hover:bg-[var(--surface-container)]",
-    outline: "bg-transparent border border-[var(--border)] text-[var(--on-surface)] hover:bg-[var(--surface-container)]",
+    primary: "bg-[var(--primary)] text-[var(--on-primary)] hover:opacity-90 shadow-sm",
+    secondary: "bg-[var(--surface-container)] text-[var(--on-surface)] hover:opacity-80",
+    ghost: "bg-transparent text-[var(--on-surface)] hover:bg-[var(--surface-container)]",
+    outline:
+      "bg-transparent border border-[var(--border)] text-[var(--on-surface)] hover:bg-[var(--surface-container)]",
     danger: "bg-[var(--error)] text-white hover:opacity-90",
   };
 
@@ -65,11 +63,7 @@ export function Button({
       title={title || extractButtonLabel(children) || undefined}
       {...props}
     >
-      {loading ? (
-        <RingSpinner size={16} />
-      ) : icon ? (
-        icon
-      ) : null}
+      {loading ? <RingSpinner size={16} /> : icon ? icon : null}
       {children}
     </button>
   );
@@ -82,14 +76,7 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   endAdornment?: React.ReactNode;
 }
 
-export function Input({
-  label,
-  error,
-  className = "",
-  endAdornment,
-  id: idProp,
-  ...props
-}: InputProps) {
+export function Input({ label, error, className = "", endAdornment, id: idProp, ...props }: InputProps) {
   const generatedId = useId();
   const inputId = idProp ?? generatedId;
   const paddingRight = endAdornment ? "pr-12" : "";
@@ -98,52 +85,60 @@ export function Input({
   return (
     <div className="space-y-1">
       {label && (
-        <label
-          htmlFor={inputId}
-          className="block text-sm font-medium text-[var(--on-surface)]"
-        >
+        <label htmlFor={inputId} className="block text-sm font-medium text-[var(--on-surface)]">
           {label}
         </label>
       )}
       {endAdornment ? (
         <div className="relative">
-          <input id={inputId} className={fieldClass} {...props} />
+          <input
+            id={inputId}
+            aria-invalid={Boolean(error)}
+            aria-describedby={error ? `${inputId}-error` : undefined}
+            className={fieldClass}
+            {...props}
+          />
           <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
             <div className="pointer-events-auto">{endAdornment}</div>
           </div>
         </div>
       ) : (
-        <input id={inputId} className={fieldClass} {...props} />
+        <input
+          id={inputId}
+          aria-invalid={Boolean(error)}
+          aria-describedby={error ? `${inputId}-error` : undefined}
+          className={fieldClass}
+          {...props}
+        />
       )}
-      {error && <p className="text-sm text-[var(--error)]">{error}</p>}
+      {error && (
+        <p id={`${inputId}-error`} className="text-sm text-[var(--error)]">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
 
 interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
+  error?: string;
   options: { value: string; label: string }[];
 }
 
-export function Select({
-  label,
-  options,
-  className = "",
-  ...props
-}: SelectProps) {
+export function Select({ label, options, className = "", error, ...props }: SelectProps) {
   const id = useId();
   return (
     <div className="space-y-1">
       {label && (
-        <label
-          htmlFor={id}
-          className="block text-sm font-medium text-[var(--on-surface)]"
-        >
+        <label htmlFor={id} className="block text-sm font-medium text-[var(--on-surface)]">
           {label}
         </label>
       )}
       <select
         id={id}
+        aria-invalid={Boolean(error)}
+        aria-describedby={error ? `${id}-error` : undefined}
         className={`w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] transition-colors ${className} text-base`}
         {...props}
       >
@@ -153,6 +148,11 @@ export function Select({
           </option>
         ))}
       </select>
+      {error && (
+        <p id={`${id}-error`} className="text-sm text-[var(--error)]">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
@@ -172,9 +172,7 @@ export function Badge({ children, variant = "default" }: BadgeProps) {
   };
 
   return (
-    <span
-      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${variants[variant]}`}
-    >
+    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${variants[variant]}`}>
       {children}
     </span>
   );
@@ -216,12 +214,7 @@ export function Avatar({ src, name, size = "md" }: AvatarProps) {
   if (src) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
-      <img
-        src={src}
-        alt={name}
-        loading="lazy"
-        className={`${sizes[size]} rounded-full object-cover`}
-      />
+      <img src={src} alt={name} loading="lazy" className={`${sizes[size]} rounded-full object-cover`} />
     );
   }
 

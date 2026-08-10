@@ -1,6 +1,6 @@
 import { formatUgandaPhone, checkSmsDailyLimit, checkSmsQuota } from "../lib/africas-talking";
 import { detectConsecutiveAbsenceAlerts } from "../lib/operations";
-import { sendWhatsApp } from "../lib/whatsapp";
+import { sendParentPortalCredentials, sendWhatsApp } from "../lib/whatsapp";
 
 function buildMockClient() {
   const client: Record<string, jest.Mock> = {} as any;
@@ -157,6 +157,80 @@ describe("WhatsApp sendWhatsApp", () => {
 
     process.env.WHATSAPP_BUSINESS_TOKEN = origToken;
     process.env.WHATSAPP_PHONE_NUMBER_ID = origId;
+  });
+
+  test("parent portal credentials use a template message when configured", async () => {
+    const origToken = process.env.WHATSAPP_BUSINESS_TOKEN;
+    const origId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+    const origName = process.env.WHATSAPP_PARENT_PORTAL_TEMPLATE_NAME;
+    process.env.WHATSAPP_BUSINESS_TOKEN = "token";
+    process.env.WHATSAPP_PHONE_NUMBER_ID = "phone-id";
+    process.env.WHATSAPP_PARENT_PORTAL_TEMPLATE_NAME = "parent_portal_credentials";
+
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: true,
+      json: async () => ({ messages: [{ id: "wa-mock" }] }),
+    });
+
+    const result = await sendParentPortalCredentials({
+      parentName: "Jane Doe",
+      parentPhone: "0700000000",
+      studentName: "John Doe",
+      password: "Sm!secretA9",
+      portalUrl: "https://app.skoolmate.org/parent-portal",
+      schoolName: "Test School",
+    });
+
+    expect(result.success).toBe(true);
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    const [url, init] = (global.fetch as jest.Mock).mock.calls[0];
+    expect(String(url)).toContain("/phone-id/messages");
+    const body = JSON.parse(init.body as string);
+    expect(body.type).toBe("template");
+    expect(body.template.name).toBe("parent_portal_credentials");
+    expect(body.template.components[0].parameters).toEqual([
+      { type: "text", text: "Jane Doe" },
+      { type: "text", text: "0700000000" },
+      { type: "text", text: "Sm!secretA9" },
+      { type: "text", text: "https://app.skoolmate.org/parent-portal" },
+      { type: "text", text: "Test School" },
+    ]);
+
+    process.env.WHATSAPP_BUSINESS_TOKEN = origToken;
+    process.env.WHATSAPP_PHONE_NUMBER_ID = origId;
+    process.env.WHATSAPP_PARENT_PORTAL_TEMPLATE_NAME = origName;
+  });
+
+  test("template send failure surfaces a real error (not a fake success)", async () => {
+    const origToken = process.env.WHATSAPP_BUSINESS_TOKEN;
+    const origId = process.env.WHATSAPP_PHONE_NUMBER_ID;
+    const origName = process.env.WHATSAPP_PARENT_PORTAL_TEMPLATE_NAME;
+    process.env.WHATSAPP_BUSINESS_TOKEN = "token";
+    process.env.WHATSAPP_PHONE_NUMBER_ID = "phone-id";
+    process.env.WHATSAPP_PARENT_PORTAL_TEMPLATE_NAME = "parent_portal_credentials";
+
+    (global.fetch as jest.Mock).mockResolvedValue({
+      ok: false,
+      status: 400,
+      json: async () => ({ error: { message: "Message undeliverable" } }),
+    });
+
+    const result = await sendParentPortalCredentials({
+      parentName: "Jane Doe",
+      parentPhone: "0700000000",
+      studentName: "John Doe",
+      password: "Sm!secretA9",
+      portalUrl: "https://app.skoolmate.org/parent-portal",
+      schoolName: "Test School",
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("Message undeliverable");
+    expect(result.shareLink).toBeTruthy();
+
+    process.env.WHATSAPP_BUSINESS_TOKEN = origToken;
+    process.env.WHATSAPP_PHONE_NUMBER_ID = origId;
+    process.env.WHATSAPP_PARENT_PORTAL_TEMPLATE_NAME = origName;
   });
 });
 

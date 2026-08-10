@@ -52,9 +52,8 @@ export default function IDCardsPage() {
     const lastName = student.last_name || "";
 
     const idCardStyles = `
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
       * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { font-family: 'Inter', sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+      body { font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
       .id-card {
         width: 350px;
         height: 220px;

@@ -175,6 +175,33 @@ export async function sendWhatsApp(to: string, message: string): Promise<WhatsAp
   return sendWhatsAppTextMessage(to, message);
 }
 
+export function getParentPortalTemplateConfig() {
+  return {
+    templateName: process.env.WHATSAPP_PARENT_PORTAL_TEMPLATE_NAME || "",
+    templateLanguage: process.env.WHATSAPP_PARENT_PORTAL_TEMPLATE_LANGUAGE || "en",
+  };
+}
+
+export function buildParentPortalTemplate(opts: ParentPortalMessageOptions): WhatsAppTemplateMessage {
+  const { templateName, templateLanguage } = getParentPortalTemplateConfig();
+  return {
+    templateName,
+    templateLanguage,
+    components: [
+      {
+        type: "body",
+        parameters: [
+          { type: "text", text: opts.parentName },
+          { type: "text", text: opts.parentPhone },
+          { type: "text", text: opts.password },
+          { type: "text", text: opts.portalUrl },
+          { type: "text", text: opts.schoolName },
+        ],
+      },
+    ],
+  };
+}
+
 export async function sendParentPortalCredentials(
   opts: ParentPortalMessageOptions,
 ): Promise<WhatsAppResult & { shareLink: string }> {
@@ -182,6 +209,21 @@ export async function sendParentPortalCredentials(
   const shareLink = generateWhatsAppShareLink(opts.parentPhone, message);
 
   if (isWhatsAppConfigured()) {
+    const { templateName } = getParentPortalTemplateConfig();
+
+    if (templateName) {
+      // Business-initiated messages (new parent, outside the 24h customer-service
+      // window) MUST use a Meta-approved template or the API rejects them.
+      const result = await sendWhatsAppTemplateMessage(opts.parentPhone, buildParentPortalTemplate(opts));
+      if (result.success) return { ...result, shareLink };
+      logger.error(
+        `[WhatsApp] Parent portal template "${templateName}" failed; credentials were NOT delivered:`,
+        result.error,
+      );
+      return { ...result, shareLink };
+    }
+
+    // No template configured — fall back to free text (only works inside the 24h window).
     const result = await sendWhatsAppTextMessage(opts.parentPhone, message);
     return { ...result, shareLink };
   }

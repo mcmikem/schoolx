@@ -103,3 +103,38 @@ body {
     display: none;
   }
 }
+
+/* Safe-area padding for fixed bars so iOS/Android notches never overlap content */
+@supports (padding: max(0px)) {
+  .topbar {
+    padding-top: max(env(safe-area-inset-top), 0px);
+  }
+
+  .sidebar {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+/* Reserve space above the floating bottom nav so content is never hidden behind it */
+@media (max-width: 640px) {
+  main {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 96px);
+  }
+}
+
+/* Minimum touch targets on coarse-pointer (mobile) devices */
+@media (pointer: coarse) {
+  .mobile-nav-item {
+    min-height: 52px;
+  }
+
+  .mobile-nav-fab {
+    min-width: 50px;
+    min-height: 50px;
+  }
+
+  .tap-target {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}

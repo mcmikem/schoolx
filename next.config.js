@@ -32,7 +32,7 @@ const nextConfig = {
   poweredByHeader: false,
   compress: true,
   reactStrictMode: true,
-  turbopack: {
+  turbopack: process.env.NEXT_DISABLE_TURBOPACK === "1" ? false : {
     root: __dirname,
   },
   experimental: {
