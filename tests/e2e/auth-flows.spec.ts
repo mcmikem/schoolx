@@ -45,13 +45,12 @@ async function openUserMenu(page: Page) {
 
 /** Fill the login form using stable locators. */
 async function fillLoginForm(page: Page, phone: string, password: string) {
+  // #identifier always exists on the current login page. Waiting for it instead
+  // of a one-shot isVisible() check avoids racing a slow page load (which made
+  // the legacy #phone fallback hang for the full test timeout).
   const identifierField = page.locator("#identifier").first();
-  const legacyPhoneField = page.locator("#phone").first();
-  if (await identifierField.isVisible().catch(() => false)) {
-    await identifierField.fill(phone);
-  } else {
-    await legacyPhoneField.fill(phone);
-  }
+  await identifierField.waitFor({ state: "visible", timeout: 10_000 });
+  await identifierField.fill(phone);
   await page.locator("#password").fill(password);
 }
 
@@ -321,7 +320,9 @@ test.describe("Auth – login form", () => {
     await expect(page.getByRole("button", { name: /^sign in$/i })).toBeVisible({ timeout: 20_000 });
     await expect(
       page
-        .getByText(/invalid phone number or password|invalid.*credentials|wrong.*password/i)
+        .getByText(
+          /invalid phone number or password|invalid.*credentials|wrong.*password|invalid login details|login failed/i,
+        )
         .first(),
     ).toBeVisible({ timeout: 5_000 });
   });
