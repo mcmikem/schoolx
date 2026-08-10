@@ -116,6 +116,14 @@ RETURNS uuid AS $$
   LIMIT 1;
 $$ LANGUAGE sql SECURITY DEFINER;
 
+-- Helper function: get current user's role
+CREATE OR REPLACE FUNCTION public.current_user_role()
+RETURNS text AS $$
+  SELECT role FROM public.users
+  WHERE auth_id = auth.uid()
+  LIMIT 1;
+$$ LANGUAGE sql SECURITY DEFINER;
+
 -- ============================================
 -- SCHOOLS
 -- super_admin: see ALL schools
@@ -148,7 +156,11 @@ CREATE POLICY "users_select" ON users FOR SELECT
   USING (
     public.is_super_admin()
     OR auth_id = auth.uid()
-    OR school_id = public.current_user_school_id()
+    -- Allow same-school visibility for non-parent internal users only.
+    OR (
+      school_id = public.current_user_school_id()
+      AND public.current_user_role() IS DISTINCT FROM 'parent'
+    )
   );
 
 CREATE POLICY "users_insert" ON users FOR INSERT
@@ -407,4 +419,13 @@ CREATE POLICY "parent_students_select" ON parent_students FOR SELECT
   );
 
 CREATE POLICY "parent_students_insert" ON parent_students FOR INSERT
-  WITH CHECK (true);
+  WITH CHECK (
+    public.is_super_admin()
+    -- Allow a parent to create a link only for themselves and only to students in their school
+    OR (
+      parent_id = (SELECT id FROM users WHERE auth_id = auth.uid())
+      AND student_id IN (
+        SELECT id FROM students WHERE school_id = public.current_user_school_id()
+      )
+    )
+  );
