@@ -79,11 +79,15 @@ body {
     margin-left: 0;
     margin-right: 0;
     width: 100%;
-    border-radius: 0.5rem;
+    border-radius: 0.75rem;
   }
 
   .blur-3xl {
     display: none;
+  }
+
+  .page-section {
+    padding: 1rem 0;
   }
 }
 

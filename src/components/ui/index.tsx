@@ -36,10 +36,11 @@ export function Button({
   className = "",
   disabled,
   title,
+  fullWidth = false,
   ...props
-}: ButtonProps) {
+}: ButtonProps & { fullWidth?: boolean }) {
   const baseClass =
-    "font-semibold rounded-xl transition-all duration-200 inline-flex items-center justify-center gap-2";
+    "font-semibold rounded-xl transition-all duration-200 inline-flex items-center justify-center gap-2 min-h-[44px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--background)]";
 
   const variants = {
     primary: "bg-[var(--primary)] text-[var(--on-primary)] hover:opacity-90 shadow-sm",
@@ -58,7 +59,7 @@ export function Button({
 
   return (
     <button
-      className={`${baseClass} ${variants[variant]} ${sizes[size]} ${disabled || loading ? "opacity-50 cursor-not-allowed" : ""} ${className}`}
+      className={`${baseClass} ${variants[variant]} ${sizes[size]} ${fullWidth ? "w-full" : ""} ${disabled || loading ? "opacity-50 cursor-not-allowed" : ""} ${className}`}
       disabled={disabled || loading}
       title={title || extractButtonLabel(children) || undefined}
       {...props}
@@ -142,6 +143,9 @@ export function Select({ label, options, className = "", error, ...props }: Sele
         className={`w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] transition-colors ${className} text-base`}
         {...props}
       >
+        <option value="" disabled hidden>
+          Select option
+        </option>
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>
             {opt.label}
@@ -150,6 +154,38 @@ export function Select({ label, options, className = "", error, ...props }: Sele
       </select>
       {error && (
         <p id={`${id}-error`} className="text-sm text-[var(--error)]">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
+  label?: string;
+  error?: string;
+}
+
+export function Textarea({ label, error, className = "", id: idProp, ...props }: TextareaProps) {
+  const generatedId = useId();
+  const textareaId = idProp ?? generatedId;
+
+  return (
+    <div className="space-y-1">
+      {label && (
+        <label htmlFor={textareaId} className="block text-sm font-medium text-[var(--on-surface)]">
+          {label}
+        </label>
+      )}
+      <textarea
+        id={textareaId}
+        aria-invalid={Boolean(error)}
+        aria-describedby={error ? `${textareaId}-error` : undefined}
+        className={`w-full min-h-[140px] resize-vertical px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] transition-colors ${error ? "border-[var(--error)]" : ""} ${className} text-base`}
+        {...props}
+      />
+      {error && (
+        <p id={`${textareaId}-error`} className="text-sm text-[var(--error)]">
           {error}
         </p>
       )}

@@ -121,13 +121,17 @@ function ParentDashboardContent() {
                 .from("students")
                 .select("id, parent_phone, parent_phone2, school_id")
                 .eq("status", "active")
+                // Restrict auto-link matching to the parent's school to avoid
+                // linking across schools when phone numbers overlap.
+                .eq("school_id", user.school_id || "")
                 .or(`parent_phone.eq.${normalized},parent_phone2.eq.${normalized}`);
 
               if (!matchedStudents?.length && last9) {
                 const { data: fuzzyMatches } = await supabase
                   .from("students")
                   .select("id, parent_phone, parent_phone2, school_id")
-                  .eq("status", "active");
+                  .eq("status", "active")
+                  .eq("school_id", user.school_id || "");
                 matchedStudents =
                   fuzzyMatches?.filter(
                     (s) => s.parent_phone?.slice(-9) === last9 || s.parent_phone2?.slice(-9) === last9,
@@ -475,142 +479,234 @@ function ParentDashboardContent() {
         <TopBar pageTitle="Parent Portal" onSignOut={handleSignOut} />
 
         <div className="p-4 sm:p-6 lg:p-8 flex-1 overflow-y-auto">
-          <div className="max-w-2xl mx-auto">
+          <div className="max-w-6xl mx-auto space-y-8">
+            <section className="rounded-[28px] border border-[#e5ecf4] bg-white p-6 shadow-sm">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#7f91aa]">Parent Portal</p>
+                  <h1 className="mt-2 text-3xl font-bold text-[#17325f]">
+                    Welcome back, {user?.full_name?.split(" ")[0] || "Parent"}
+                  </h1>
+                  <p className="mt-3 max-w-2xl text-base text-[#60748f]">
+                    Keep track of your child&apos;s attendance, fees, homework, and school updates in one place.
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  <button
+                    type="button"
+                    onClick={() => selectedChild && router.push(`/parent-portal/fees?child=${selectedChild.id}`)}
+                    className="rounded-2xl bg-[#eef4ff] px-4 py-3 text-sm font-semibold text-[#17325f] transition hover:bg-[#d9e7fb]"
+                  >
+                    Pay fees
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => selectedChild && router.push(`/parent-portal/attendance?child=${selectedChild.id}`)}
+                    className="rounded-2xl bg-[#f8fafc] px-4 py-3 text-sm font-semibold text-[#17325f] transition hover:bg-[#e5effb]"
+                  >
+                    Attendance
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleSignOut()}
+                    className="rounded-2xl bg-[#fff7ed] px-4 py-3 text-sm font-semibold text-[#ae580c] transition hover:bg-[#fce4c0]"
+                  >
+                    Sign out
+                  </button>
+                </div>
+              </div>
+            </section>
+
             {loading ? (
               <div className="flex items-center justify-center min-h-[300px]">
                 <OwlMascot size={52} premium ring glow animated />
               </div>
             ) : children.length === 0 ? (
-              <div className="text-center py-10">
+              <div className="text-center py-10 rounded-[28px] border border-[#e5ecf4] bg-white p-8 shadow-sm">
                 <OwlMascot size={56} premium ring glow animated />
-                <h3 className="text-lg font-bold mt-4">No learners linked yet</h3>
-                <p className="text-sm text-[var(--t3)] mt-1">Your phone on file: {user?.phone || "N/A"}</p>
-                <p className="text-sm text-[var(--t3)]">Contact the school office to link your account.</p>
+                <h3 className="text-lg font-bold mt-4 text-[#17325f]">No learners linked yet</h3>
+                <p className="text-sm text-[#60748f] mt-1">Your phone on file: {user?.phone || "N/A"}</p>
+                <p className="text-sm text-[#60748f] mt-2">
+                  Contact the school office to link your account and access the portal.
+                </p>
               </div>
             ) : (
-              <>
-                {/* Section 1: Child selector — large visual cards */}
-                <div className="flex gap-3 overflow-x-auto pb-2 mb-6">
-                  {children.map((child) => {
-                    const isSelected = selectedChild?.id === child.id;
-                    return (
-                      <button
-                        key={child.id}
-                        onClick={() => setSelectedChild(child)}
-                        className={`shrink-0 rounded-[24px] border-2 p-4 min-w-[140px] text-left transition-all ${
-                          isSelected ? "border-[#17325f] bg-[#f0f6ff] shadow-md" : "border-[#e5ecf4] bg-white"
-                        }`}
+              <div className="space-y-8">
+                <section
+                  aria-labelledby="learner-selector"
+                  className="rounded-[28px] border border-[#e5ecf4] bg-white p-4 shadow-sm"
+                >
+                  <div className="flex items-center justify-between gap-4 pb-4">
+                    <div>
+                      <p className="text-sm font-semibold uppercase tracking-[0.20em] text-[#7f91aa]">Learners</p>
+                      <h2 id="learner-selector" className="mt-2 text-xl font-bold text-[#17325f]">
+                        Choose a learner to view details
+                      </h2>
+                    </div>
+                    <p className="text-sm text-[#60748f]">Tap a card to switch learner data.</p>
+                  </div>
+                  <div className="flex gap-3 overflow-x-auto pb-2">
+                    {children.map((child) => {
+                      const isSelected = selectedChild?.id === child.id;
+                      return (
+                        <button
+                          key={child.id}
+                          onClick={() => setSelectedChild(child)}
+                          className={`shrink-0 rounded-[24px] border-2 p-4 min-w-[160px] text-left transition-all ${
+                            isSelected
+                              ? "border-[#17325f] bg-[#f0f6ff] shadow-md"
+                              : "border-[#e5ecf4] bg-white hover:border-[#c5d7f3]"
+                          }`}
+                        >
+                          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-[#17325f] text-xl font-bold text-white">
+                            {child.photo_url ? (
+                              <Image
+                                src={child.photo_url}
+                                alt={`${child.first_name} ${child.last_name}`}
+                                width={56}
+                                height={56}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <span>{child.first_name?.[0] || child.last_name?.[0] || "?"}</span>
+                            )}
+                          </div>
+                          <p className="text-sm font-bold text-[#17325f] text-center">
+                            {child.first_name} {child.last_name}
+                          </p>
+                          <p className="text-[11px] text-[#7f91aa] text-center">{child.class_name}</p>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </section>
+
+                <section className="grid gap-4 xl:grid-cols-[1.4fr_0.9fr]">
+                  <div className="grid gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <article
+                        className={`rounded-[28px] border p-5 ${attendanceStatus === "present" ? "bg-[#e1f3ee] border-[#d7efe3]" : "bg-[#f6f9fc] border-[#d7e2ef]"}`}
                       >
-                        <div className="h-14 w-14 rounded-full bg-[#17325f] flex items-center justify-center text-xl font-bold text-white mx-auto mb-2 overflow-hidden">
-                          {child.photo_url ? (
-                            <Image
-                              src={child.photo_url}
-                              alt={`${child.first_name} ${child.last_name}`}
-                              width={56}
-                              height={56}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <span>{child.first_name?.[0] || child.last_name?.[0] || "?"}</span>
-                          )}
+                        <div className="flex items-center justify-between gap-4">
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.20em] text-[#7f91aa]">
+                              Attendance
+                            </p>
+                            <p className="mt-3 text-xl font-bold text-[#17325f]">
+                              {attendanceStatus === "present" ? "Present" : "Not recorded"}
+                            </p>
+                          </div>
+                          <span
+                            className={`material-symbols-outlined text-4xl ${attendanceStatus === "present" ? "text-[#1f8a70]" : "text-[#7c92ae]"}`}
+                          >
+                            {attendanceStatus === "present" ? "check_circle" : "help"}
+                          </span>
                         </div>
-                        <p className="text-sm font-bold text-[#17325f] text-center">
-                          {child.first_name} {child.last_name}
-                        </p>
-                        <p className="text-[11px] text-[#7f91aa] text-center">{child.class_name}</p>
-                      </button>
-                    );
-                  })}
-                </div>
-
-                {/* Section 2: Today's status — visual cards */}
-                {selectedChild && (
-                  <div className="grid grid-cols-2 gap-3 mb-6">
-                    {/* Attendance today */}
-                    <div
-                      className={`rounded-[24px] p-5 text-center ${attendanceStatus === "present" ? "bg-[#e1f3ee]" : "bg-[#f6f9fc]"}`}
-                    >
-                      <span
-                        className={`material-symbols-outlined text-4xl ${attendanceStatus === "present" ? "text-[#1f8a70]" : "text-[#b0c4db]"}`}
+                      </article>
+                      <article
+                        className={`rounded-[28px] border p-5 ${hasFeeBalance ? "bg-[#ffefe8] border-[#f4d2c5]" : "bg-[#e1f3ee] border-[#d7ebe5]"}`}
                       >
-                        {attendanceStatus === "present" ? "check_circle" : "help"}
-                      </span>
-                      <p className="text-sm font-bold text-[#17325f] mt-2">
-                        Today: {attendanceStatus === "present" ? "Present" : "Not recorded"}
-                      </p>
+                        <div className="flex items-center justify-between gap-4">
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.20em] text-[#7f91aa]">
+                              Fee Balance
+                            </p>
+                            <p
+                              className={`mt-3 text-xl font-bold ${hasFeeBalance ? "text-[#c2472b]" : "text-[#1f8a70]"}`}
+                            >
+                              {hasFeeBalance ? `UGX ${feeStats.balance?.toLocaleString()}` : "Cleared"}
+                            </p>
+                          </div>
+                          <span className="material-symbols-outlined text-4xl text-[#17325f]">payments</span>
+                        </div>
+                        <p className="mt-3 text-sm text-[#60748f]">
+                          Total fee: UGX {feeStats.totalFee?.toLocaleString()}
+                        </p>
+                      </article>
                     </div>
 
-                    {/* Fee balance */}
-                    <div
-                      className={`rounded-[24px] p-5 text-center ${feeStats.balance > 0 ? "bg-[#ffefe8]" : "bg-[#e1f3ee]"}`}
-                    >
-                      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#7f91aa]">Fee Balance</p>
-                      <p
-                        className={`text-xl font-bold mt-1 ${feeStats.balance > 0 ? "text-[#c2472b]" : "text-[#1f8a70]"}`}
-                      >
-                        {feeStats.balance > 0 ? `UGX ${feeStats.balance?.toLocaleString()}` : "Cleared"}
-                      </p>
-                      <p className="text-[11px] text-[#7f91aa] mt-1">of UGX {feeStats.totalFee?.toLocaleString()}</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Section 3: Quick actions + exceptions */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                  <div className="lg:col-span-2 grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <Link
-                      href={`/parent-portal/fees${selectedChild ? `?child=${selectedChild.id}` : ""}`}
-                      className="rounded-[20px] bg-white border border-[#e5ecf4] p-4 text-center hover:bg-[#f8fbff] transition-colors"
-                    >
-                      <span className="material-symbols-outlined text-[28px] text-[#17325f]">payments</span>
-                      <p className="text-xs font-bold text-[#17325f] mt-2">Pay fees</p>
-                    </Link>
-                    <Link
-                      href={`/parent-portal/attendance${selectedChild ? `?child=${selectedChild.id}` : ""}`}
-                      className="rounded-[20px] bg-white border border-[#e5ecf4] p-4 text-center hover:bg-[#f8fbff] transition-colors"
-                    >
-                      <span className="material-symbols-outlined text-[28px] text-[#17325f]">how_to_reg</span>
-                      <p className="text-xs font-bold text-[#17325f] mt-2">Attendance</p>
-                    </Link>
-                    <Link
-                      href={`/parent-portal/homework${selectedChild ? `?child=${selectedChild.id}` : ""}`}
-                      className="rounded-[20px] bg-white border border-[#e5ecf4] p-4 text-center hover:bg-[#f8fbff] transition-colors"
-                    >
-                      <span className="material-symbols-outlined text-[28px] text-[#17325f]">assignment</span>
-                      <p className="text-xs font-bold text-[#17325f] mt-2">Homework</p>
-                    </Link>
-                    <Link
-                      href={`/parent-portal/academics${selectedChild ? `?child=${selectedChild.id}` : ""}`}
-                      className="rounded-[20px] bg-white border border-[#e5ecf4] p-4 text-center hover:bg-[#f8fbff] transition-colors"
-                    >
-                      <span className="material-symbols-outlined text-[28px] text-[#17325f]">grade</span>
-                      <p className="text-xs font-bold text-[#17325f] mt-2">Grades</p>
-                    </Link>
-                  </div>
-
-                  <div className="rounded-[20px] border border-[#e5ecf4] bg-white p-4">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#7f91aa]">Exceptions First</p>
-                    <div className="space-y-2 mt-3">
-                      <div
-                        className={`rounded-xl border p-3 ${hasFeeBalance ? "border-[#f5d0c5] bg-[#ffefe8]" : "border-[#d8efe7] bg-[#f3fbf8]"}`}
-                      >
-                        <p className="text-xs font-semibold text-[#17325f]">Fees</p>
-                        <p className={`text-sm font-bold mt-1 ${hasFeeBalance ? "text-[#c2472b]" : "text-[#1f8a70]"}`}>
-                          {hasFeeBalance ? `Balance UGX ${feeStats.balance.toLocaleString()}` : "No fee balance"}
-                        </p>
+                    <article className="rounded-[28px] border border-[#e5ecf4] bg-white p-6 shadow-sm">
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <p className="text-sm font-semibold uppercase tracking-[0.20em] text-[#7f91aa]">
+                            Quick Actions
+                          </p>
+                          <p className="mt-2 text-sm text-[#60748f]">
+                            Jump to the most important sections for this learner.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handlePayFees()}
+                          className="rounded-2xl bg-[#005ce6] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0047c2]"
+                        >
+                          View fee details
+                        </button>
                       </div>
-                      <div
-                        className={`rounded-xl border p-3 ${urgentUnreads ? "border-[#f5deb3] bg-[#fff8eb]" : "border-[#e5ecf4] bg-[#f8fbff]"}`}
-                      >
-                        <p className="text-xs font-semibold text-[#17325f]">School alerts</p>
-                        <p className="text-sm font-bold mt-1 text-[#17325f]">
-                          {urgentUnreads ? `${unreadCount} unread notification(s)` : "All notifications read"}
-                        </p>
+
+                      <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                        <Link
+                          href={`/parent-portal/attendance${selectedChild ? `?child=${selectedChild.id}` : ""}`}
+                          className="flex items-center gap-3 rounded-2xl border border-[#e5ecf4] bg-[#f8fbff] p-4 text-sm font-semibold text-[#17325f] hover:border-[#c5d7f3]"
+                        >
+                          <span className="material-symbols-outlined text-[26px]">how_to_reg</span>
+                          Attendance
+                        </Link>
+                        <Link
+                          href={`/parent-portal/homework${selectedChild ? `?child=${selectedChild.id}` : ""}`}
+                          className="flex items-center gap-3 rounded-2xl border border-[#e5ecf4] bg-[#f8fbff] p-4 text-sm font-semibold text-[#17325f] hover:border-[#c5d7f3]"
+                        >
+                          <span className="material-symbols-outlined text-[26px]">assignment</span>
+                          Homework
+                        </Link>
+                        <Link
+                          href={`/parent-portal/academics${selectedChild ? `?child=${selectedChild.id}` : ""}`}
+                          className="flex items-center gap-3 rounded-2xl border border-[#e5ecf4] bg-[#f8fbff] p-4 text-sm font-semibold text-[#17325f] hover:border-[#c5d7f3]"
+                        >
+                          <span className="material-symbols-outlined text-[26px]">grade</span>
+                          Grades
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => setShowTopup(true)}
+                          className="flex items-center gap-3 rounded-2xl border border-[#e5ecf4] bg-[#f8fbff] p-4 text-sm font-semibold text-[#17325f] hover:border-[#c5d7f3]"
+                        >
+                          <span className="material-symbols-outlined text-[26px]">wallet</span>
+                          Add pocket money
+                        </button>
                       </div>
-                    </div>
+                    </article>
                   </div>
-                </div>
-              </>
+
+                  <aside className="space-y-4">
+                    <article className="rounded-[28px] border border-[#e5ecf4] bg-white p-6 shadow-sm">
+                      <p className="text-sm font-semibold uppercase tracking-[0.20em] text-[#7f91aa]">
+                        Important alerts
+                      </p>
+                      <div className="mt-4 space-y-3">
+                        <div className="rounded-2xl bg-[#fff8eb] p-4">
+                          <p className="text-sm font-semibold text-[#ae580c]">
+                            {urgentUnreads ? `You have ${unreadCount} unread notification(s)` : "No new notifications"}
+                          </p>
+                        </div>
+                        <div className="rounded-2xl bg-[#f3fbf8] p-4">
+                          <p className="text-sm text-[#17325f]">
+                            {hasFeeBalance ? "Please settle your fee balance soon." : "Fee account is up to date."}
+                          </p>
+                        </div>
+                      </div>
+                    </article>
+                    <article className="rounded-[28px] border border-[#e5ecf4] bg-white p-6 shadow-sm">
+                      <p className="text-sm font-semibold uppercase tracking-[0.20em] text-[#7f91aa]">Next steps</p>
+                      <ol className="mt-3 space-y-3 text-sm text-[#60748f]">
+                        <li>• Check today's attendance</li>
+                        <li>• Review recent notifications</li>
+                        <li>• Pay any outstanding fees</li>
+                      </ol>
+                    </article>
+                  </aside>
+                </section>
+              </div>
             )}
           </div>
         </div>
