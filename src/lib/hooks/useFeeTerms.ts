@@ -1,10 +1,12 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
 import { logger } from "@/lib/logger";
-import { getCachedResponse, cacheResponse, queueMutation, isOnline, generateCacheKey } from "@/lib/offline-db";
+import { queueMutation, isOnline } from "@/lib/offline-db";
 import { generateWhatsAppShareLink } from "@/lib/whatsapp";
+import { useSupabaseQuery } from "@/lib/hooks/useSupabaseQuery";
 import { withTimeout } from "./utils";
 import type { PostgrestSingleResponse } from "@supabase/supabase-js";
 
@@ -74,54 +76,35 @@ interface FeePayment {
 export function useFeeTerms() {
   const { school } = useAuth();
   const toast = useToast();
-  const [loading, setLoading] = useState(false);
-  const [feeTerms, setFeeTerms] = useState<FeeTerm[]>([]);
-  const [isStale, setIsStale] = useState(false);
+  const queryClient = useQueryClient();
+  const [localFeeTerms, setLocalFeeTerms] = useState<FeeTerm[]>([]);
 
-  const fetchFeeTerms = useCallback(
-    async (academicYear?: string) => {
-      if (!school?.id) return;
+  const cacheKey = `/api/fee-terms/${school?.id}`;
+  const cacheParams = useMemo<Record<string, unknown>>(() => ({}), []);
 
-      const cacheKey = generateCacheKey(`/api/fee-terms/${school.id}`, { academicYear } as Record<string, unknown>);
+  const {
+    data: feeTerms = [],
+    isLoading: loading,
+    isStale,
+  } = useSupabaseQuery<FeeTerm[]>({
+    queryKey: ["feeTerms", school?.id],
+    cacheEndpoint: cacheKey,
+    cacheParams,
+    enabled: Boolean(school?.id),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("fee_terms")
+        .select("*, fee_term_lines(*)")
+        .eq("school_id", school?.id)
+        .order("name");
 
-      if (!isOnline()) {
-        const cached = await getCachedResponse<FeeTerm[]>(cacheKey);
-        if (cached) {
-          setFeeTerms(cached);
-          setIsStale(true);
-          setLoading(false);
-          return;
-        }
-      }
-
-      setLoading(true);
-      try {
-        let query = supabase.from("fee_terms").select("*, fee_term_lines(*)").eq("school_id", school.id).order("name");
-
-        if (academicYear) {
-          query = query.eq("academic_year", academicYear);
-        }
-
-        const { data, error } = await query;
-
-        if (error) throw error;
-        setFeeTerms(data || []);
-        await cacheResponse(cacheKey, data || [], undefined, 5 * 60 * 1000);
-      } catch (err) {
-        logger.error("Error fetching fee terms:", err);
-        const cached = await getCachedResponse<FeeTerm[]>(cacheKey);
-        if (cached) {
-          setFeeTerms(cached);
-          setIsStale(true);
-        } else {
-          toast.error(err instanceof Error ? err.message : "Failed to load fee terms");
-        }
-      } finally {
-        setLoading(false);
-      }
+      if (error) throw error;
+      return data || [];
     },
-    [school?.id, toast],
-  );
+    onSuccess: (data) => {
+      setLocalFeeTerms(data);
+    },
+  });
 
   const createFeeTerm = useCallback(
     async (term: Partial<FeeTerm>, lines: Partial<FeeTermLine>[]) => {
@@ -155,7 +138,7 @@ export function useFeeTerms() {
             is_optional: l.is_optional || false,
           })),
         };
-        setFeeTerms((prev) => [...prev, offlineTerm]);
+        setLocalFeeTerms((prev) => [...prev, offlineTerm]);
         await queueMutation({
           endpoint: "fee_terms",
           method: "POST",
@@ -214,7 +197,7 @@ export function useFeeTerms() {
           if (linesError) throw linesError;
         }
 
-        await fetchFeeTerms();
+        await queryClient.invalidateQueries({ queryKey: ["feeTerms", school.id] });
         toast.success("Fee term created");
         return newTerm;
       } catch (err) {
@@ -223,23 +206,21 @@ export function useFeeTerms() {
         return null;
       }
     },
-    [school?.id, toast, fetchFeeTerms],
+    [school?.id, toast, queryClient],
   );
 
   useEffect(() => {
     const handleOnline = () => {
-      setIsStale(true);
-      fetchFeeTerms();
+      queryClient.invalidateQueries({ queryKey: ["feeTerms", school?.id] });
     };
     window.addEventListener("online", handleOnline);
     return () => window.removeEventListener("online", handleOnline);
-  }, [fetchFeeTerms]);
+  }, [queryClient, school?.id]);
 
   return {
-    feeTerms,
+    feeTerms: localFeeTerms.length > 0 ? localFeeTerms : feeTerms,
     loading,
     isStale,
-    fetchFeeTerms,
     createFeeTerm,
   };
 }

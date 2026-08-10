@@ -1,9 +1,11 @@
-import { useState, useCallback, useEffect } from "react";
+import { useCallback, useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
 import { logger } from "@/lib/logger";
-import { getCachedResponse, cacheResponse, queueMutation, isOnline, generateCacheKey } from "@/lib/offline-db";
+import { cacheResponse, queueMutation, isOnline } from "@/lib/offline-db";
+import { useSupabaseQuery } from "@/lib/hooks/useSupabaseQuery";
 import { withTimeout } from "./utils";
 
 interface Course {
@@ -55,65 +57,29 @@ interface UseCoursesOptions {
 export function useCourses(options: UseCoursesOptions = {}) {
   const { school } = useAuth();
   const toast = useToast();
-  const [loading, setLoading] = useState(false);
-  const [courses, setCourses] = useState<Course[]>([]);
-  const [isStale, setIsStale] = useState(false);
+  const queryClient = useQueryClient();
 
   const { category, isActive } = options;
+  const cacheParams = { category, isActive } as Record<string, unknown>;
+  const cacheKey = `/api/courses/${school?.id}`;
 
-  const fetchCourses = useCallback(async () => {
-    if (!school?.id) return;
-
-    const cacheKey = generateCacheKey(`/api/courses/${school.id}`, { category, isActive } as Record<string, unknown>);
-
-    if (!isOnline()) {
-      const cached = await getCachedResponse<Course[]>(cacheKey);
-      if (cached) {
-        setCourses(cached);
-        setIsStale(true);
-        setLoading(false);
-        return;
-      }
-    }
-
-    setLoading(true);
-    try {
-      let query = supabase.from("courses").select("*").eq("school_id", school.id);
-
-      if (category) {
-        query = query.eq("category", category);
-      }
-      if (isActive !== undefined) {
-        query = query.eq("is_active", isActive);
-      }
-
-      const { data, error } = await query.order("name");
+  const {
+    data: courses = [],
+    isLoading: loading,
+    isStale,
+    refetch,
+  } = useSupabaseQuery<Course[]>({
+    queryKey: ["courses", school?.id, category, isActive],
+    cacheEndpoint: cacheKey,
+    cacheParams,
+    enabled: Boolean(school?.id),
+    queryFn: async () => {
+      const { data, error } = await supabase.from("courses").select("*").eq("school_id", school?.id).order("name");
 
       if (error) throw error;
-      setCourses(data || []);
-      await cacheResponse(cacheKey, data || [], undefined, 5 * 60 * 1000);
-    } catch (err) {
-      logger.error("Error fetching courses:", err);
-      const cached = await getCachedResponse<Course[]>(cacheKey);
-      if (cached) {
-        setCourses(cached);
-        setIsStale(true);
-      } else {
-        toast.error(err instanceof Error ? err.message : "Failed to load courses");
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [school?.id, category, isActive, toast]);
-
-  useEffect(() => {
-    const handleOnline = () => {
-      setIsStale(true);
-      fetchCourses();
-    };
-    window.addEventListener("online", handleOnline);
-    return () => window.removeEventListener("online", handleOnline);
-  }, [fetchCourses]);
+      return data || [];
+    },
+  });
 
   const createCourse = useCallback(
     async (course: Partial<Course>) => {
@@ -141,7 +107,10 @@ export function useCourses(options: UseCoursesOptions = {}) {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
-        setCourses((prev) => [...prev, offlineCourse]);
+        queryClient.setQueryData(["courses", school.id, category, isActive], (old: Course[] | undefined) => [
+          ...(old || []),
+          offlineCourse,
+        ]);
         await queueMutation({
           endpoint: "courses",
           method: "POST",
@@ -170,7 +139,7 @@ export function useCourses(options: UseCoursesOptions = {}) {
 
         if (error) throw error;
         toast.success("Course created");
-        fetchCourses();
+        refetch();
         return data;
       } catch (err) {
         logger.error("Error creating course:", err);
@@ -178,7 +147,7 @@ export function useCourses(options: UseCoursesOptions = {}) {
         return null;
       }
     },
-    [school?.id, toast, fetchCourses],
+    [school?.id, toast, refetch, queryClient, category, isActive],
   );
 
   const updateCourse = useCallback(
@@ -195,7 +164,7 @@ export function useCourses(options: UseCoursesOptions = {}) {
 
         if (error) throw error;
         toast.success("Course updated");
-        fetchCourses();
+        refetch();
         return data;
       } catch (err) {
         logger.error("Error updating course:", err);
@@ -203,7 +172,7 @@ export function useCourses(options: UseCoursesOptions = {}) {
         return null;
       }
     },
-    [toast, fetchCourses],
+    [toast, refetch],
   );
 
   const deleteCourse = useCallback(
@@ -215,20 +184,20 @@ export function useCourses(options: UseCoursesOptions = {}) {
 
         if (error) throw error;
         toast.success("Course deleted");
-        fetchCourses();
+        refetch();
       } catch (err) {
         logger.error("Error deleting course:", err);
         toast.error("Failed to delete course");
       }
     },
-    [toast, fetchCourses],
+    [toast, refetch],
   );
 
   return {
     courses,
     loading,
     isStale,
-    fetchCourses,
+    fetchCourses: refetch,
     createCourse,
     updateCourse,
     deleteCourse,

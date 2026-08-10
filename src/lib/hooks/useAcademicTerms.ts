@@ -1,9 +1,11 @@
 import { useState, useCallback, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
 import { logger } from "@/lib/logger";
-import { getCachedResponse, cacheResponse, queueMutation, isOnline, generateCacheKey } from "@/lib/offline-db";
+import { queueMutation, isOnline } from "@/lib/offline-db";
+import { useSupabaseQuery } from "@/lib/hooks/useSupabaseQuery";
 import { withTimeout } from "./utils";
 
 interface AcademicTerm {
@@ -29,33 +31,27 @@ interface UseAcademicTermsOptions {
 export function useAcademicTerms(options: UseAcademicTermsOptions = {}) {
   const { school } = useAuth();
   const toast = useToast();
-  const [loading, setLoading] = useState(false);
-  const [terms, setTerms] = useState<AcademicTerm[]>([]);
-  const [currentTerm, setCurrentTerm] = useState<AcademicTerm | null>(null);
-  const [isStale, setIsStale] = useState(false);
+  const queryClient = useQueryClient();
+  const [localTerms, setLocalTerms] = useState<AcademicTerm[]>([]);
 
-  const fetchTerms = useCallback(async () => {
-    if (!school?.id) return;
+  const cacheParams = options as Record<string, unknown>;
+  const cacheKey = `/api/academic-terms/${school?.id}`;
 
-    const cacheKey = generateCacheKey(`/api/academic-terms/${school.id}`, options as Record<string, unknown>);
-
-    if (!isOnline()) {
-      const cached = await getCachedResponse<AcademicTerm[]>(cacheKey);
-      if (cached) {
-        setTerms(cached);
-        setCurrentTerm(cached.find((t) => t.is_current) || null);
-        setIsStale(true);
-        setLoading(false);
-        return;
-      }
-    }
-
-    setLoading(true);
-    try {
+  const {
+    data: queryTerms = [],
+    isLoading: loading,
+    isStale,
+    refetch,
+  } = useSupabaseQuery<AcademicTerm[]>({
+    queryKey: ["academicTerms", school?.id, options.academicYear, options.isCurrent],
+    cacheEndpoint: cacheKey,
+    cacheParams,
+    enabled: Boolean(school?.id),
+    queryFn: async () => {
       let query = supabase
         .from("academic_terms")
         .select("*")
-        .eq("school_id", school.id)
+        .eq("school_id", school?.id)
         .order("term_number", { ascending: true });
 
       if (options.academicYear) {
@@ -66,36 +62,21 @@ export function useAcademicTerms(options: UseAcademicTermsOptions = {}) {
       }
 
       const { data, error } = await query;
-
       if (error) throw error;
-      setTerms(data || []);
-      await cacheResponse(cacheKey, data || [], undefined, 60 * 60 * 1000);
+      return data || [];
+    },
+  });
 
-      const current = data?.find((t) => t.is_current);
-      setCurrentTerm(current || null);
-    } catch (err) {
-      logger.error("Error fetching academic terms:", err);
-      const cached = await getCachedResponse<AcademicTerm[]>(cacheKey);
-      if (cached) {
-        setTerms(cached);
-        setCurrentTerm(cached.find((t) => t.is_current) || null);
-        setIsStale(true);
-      } else {
-        toast.error(err instanceof Error ? err.message : "Failed to load academic terms");
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [school?.id, options, toast]);
+  const terms = localTerms.length > 0 ? localTerms : queryTerms;
+  const currentTerm = terms.find((t) => t.is_current) || null;
 
   useEffect(() => {
     const handleOnline = () => {
-      setIsStale(true);
-      fetchTerms();
+      refetch().catch(() => undefined);
     };
     window.addEventListener("online", handleOnline);
     return () => window.removeEventListener("online", handleOnline);
-  }, [fetchTerms]);
+  }, [refetch]);
 
   const createTerm = useCallback(
     async (term: Partial<AcademicTerm>) => {
@@ -117,7 +98,7 @@ export function useAcademicTerms(options: UseAcademicTermsOptions = {}) {
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         };
-        setTerms((prev) => [...prev, offlineTerm]);
+        setLocalTerms((prev) => [...prev, offlineTerm]);
         await queueMutation({
           endpoint: "academic_terms",
           method: "POST",
@@ -151,7 +132,7 @@ export function useAcademicTerms(options: UseAcademicTermsOptions = {}) {
         );
 
         if (error) throw error;
-        setTerms((prev) => [...prev, data]);
+        queryClient.invalidateQueries({ queryKey: ["academicTerms", school.id] });
         toast.success("Academic term created");
         return data;
       } catch (err) {
@@ -176,12 +157,7 @@ export function useAcademicTerms(options: UseAcademicTermsOptions = {}) {
         );
 
         if (error) throw error;
-        setTerms((prev) => prev.map((t) => (t.id === id ? data : t)));
-
-        if (data.is_current) {
-          setCurrentTerm(data);
-        }
-
+        queryClient.invalidateQueries({ queryKey: ["academicTerms", school?.id] });
         toast.success("Academic term updated");
         return data;
       } catch (err) {
@@ -190,7 +166,7 @@ export function useAcademicTerms(options: UseAcademicTermsOptions = {}) {
         return null;
       }
     },
-    [toast],
+    [toast, queryClient, school?.id],
   );
 
   const setCurrent = useCallback(
@@ -202,17 +178,14 @@ export function useAcademicTerms(options: UseAcademicTermsOptions = {}) {
 
         if (error) throw error;
 
-        setTerms((prev) =>
+        setLocalTerms((prev) =>
           prev.map((t) => ({
             ...t,
             is_current: t.id === termId,
           })),
         );
 
-        const updated = terms.find((t) => t.id === termId);
-        if (updated) {
-          setCurrentTerm({ ...updated, is_current: true });
-        }
+        queryClient.invalidateQueries({ queryKey: ["academicTerms", school?.id] });
 
         toast.success("Current term updated");
       } catch (err) {
@@ -220,7 +193,7 @@ export function useAcademicTerms(options: UseAcademicTermsOptions = {}) {
         toast.error(err instanceof Error ? err.message : "Failed to set current term");
       }
     },
-    [terms, toast],
+    [queryClient, school?.id, toast],
   );
 
   const getActiveTerms = useCallback(() => {
@@ -245,7 +218,6 @@ export function useAcademicTerms(options: UseAcademicTermsOptions = {}) {
     currentTerm,
     loading,
     isStale,
-    fetchTerms,
     createTerm,
     updateTerm,
     setCurrent,
