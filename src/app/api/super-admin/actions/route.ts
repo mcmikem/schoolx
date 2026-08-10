@@ -249,7 +249,7 @@ export async function POST(request: NextRequest) {
                 )
               : PRIMARY_TEMPLATE.subjects;
         if (defaultSubjects.length > 0) {
-          await admin.from("subjects").insert(
+          const { error: subjectsError } = await admin.from("subjects").insert(
             defaultSubjects.map((s: any) => ({
               school_id: schoolData.id,
               name: s.name,
@@ -258,6 +258,7 @@ export async function POST(request: NextRequest) {
               is_compulsory: s.is_compulsory,
             })),
           );
+          if (subjectsError) throw subjectsError;
         }
 
         const defaultClasses = buildDefaultClasses(
@@ -266,23 +267,29 @@ export async function POST(request: NextRequest) {
           currentYear,
         );
         if (defaultClasses.length > 0) {
-          await admin.from("classes").insert(defaultClasses);
+          const { error: classesError } = await admin.from("classes").insert(defaultClasses);
+          if (classesError) throw classesError;
         }
 
-        const { data: academicYear } = await admin
+        const { data: academicYear, error: yearError } = await admin
           .from("academic_years")
           .insert({ school_id: schoolData.id, year: currentYear, is_current: true })
           .select("id")
           .single();
+        if (yearError) throw yearError;
 
         if (academicYear) {
           const terms = buildUgandaAcademicTerms(schoolData.id, currentYear);
-          await admin.from("academic_terms").upsert(
+          const { error: termsError } = await admin.from("academic_terms").upsert(
             terms.map((t: any) => ({ ...t, academic_year_id: academicYear.id })),
             { onConflict: "school_id,academic_year,term_number" },
           );
+          if (termsError) throw termsError;
         }
-        await admin.from("events").insert(buildUgandaCalendarEvents(schoolData.id, currentYear));
+        const { error: eventsError } = await admin
+          .from("events")
+          .insert(buildUgandaCalendarEvents(schoolData.id, currentYear));
+        if (eventsError) throw eventsError;
 
         // 5. Optional digitization fee
         const digiFee = Math.max(0, Number(digitization_fee) || 0);

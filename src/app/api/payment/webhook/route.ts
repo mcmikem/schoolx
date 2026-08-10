@@ -1,10 +1,6 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
-import {
-  sendPaymentReceipt,
-  handleSubscriptionChange,
-  PLAN_PRICES,
-} from "@/lib/subscription";
+import { sendPaymentReceipt, handleSubscriptionChange, PLAN_PRICES } from "@/lib/subscription";
 import { PlanType } from "@/lib/payments/subscription-client";
 import { logger } from "@/lib/logger";
 import { checkAndRecordIdempotency, markWebhookProcessed } from "@/lib/payments/idempotency";
@@ -41,12 +37,10 @@ export async function POST(request: Request) {
   let hadError = false;
 
   // Idempotency check: skip duplicate webhook deliveries
-  const { shouldProcess } = await checkAndRecordIdempotency(
-    event.id,
-    "stripe",
-    event.type,
-    { id: event.id, type: event.type },
-  );
+  const { shouldProcess } = await checkAndRecordIdempotency(event.id, "stripe", event.type, {
+    id: event.id,
+    type: event.type,
+  });
   if (!shouldProcess) {
     return new NextResponse(JSON.stringify({ received: true, skipped: "duplicate" }), { status: 200 });
   }
@@ -60,10 +54,9 @@ export async function POST(request: Request) {
 
       if (session.mode === "subscription" && session.subscription) {
         try {
-          const subscription = (await stripe.subscriptions.retrieve(
-            session.subscription as string,
-            { expand: ["customer", "items.data.price"] },
-          )) as unknown as {
+          const subscription = (await stripe.subscriptions.retrieve(session.subscription as string, {
+            expand: ["customer", "items.data.price"],
+          })) as unknown as {
             status: string;
             items: { data: { price: any }[] };
             id: string;
@@ -99,15 +92,12 @@ export async function POST(request: Request) {
           throw new Error("Missing subscription id on paid invoice");
         }
 
-        const subscription = await stripe.subscriptions.retrieve(
-          subscriptionId,
-          { expand: ["customer", "items.data.price"] },
-        );
+        const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+          expand: ["customer", "items.data.price"],
+        });
 
         const schoolId =
-          invoice.metadata?.school_id ||
-          (subscription.customer as Stripe.Customer)?.metadata?.school_id ||
-          "";
+          invoice.metadata?.school_id || (subscription.customer as Stripe.Customer)?.metadata?.school_id || "";
 
         await handleSubscriptionChange(schoolId, {
           status: "active",
@@ -127,15 +117,12 @@ export async function POST(request: Request) {
             : null;
 
         if (subscriptionId) {
-          const subscription = await stripe.subscriptions.retrieve(
-            subscriptionId,
-            { expand: ["customer", "items.data.price"] },
-          );
+          const subscription = await stripe.subscriptions.retrieve(subscriptionId, {
+            expand: ["customer", "items.data.price"],
+          });
 
           const schoolId =
-            invoice.metadata?.school_id ||
-            (subscription.customer as Stripe.Customer)?.metadata?.school_id ||
-            "";
+            invoice.metadata?.school_id || (subscription.customer as Stripe.Customer)?.metadata?.school_id || "";
 
           await sendPaymentReceipt(schoolId, {
             amount: invoice.amount_paid / 100,
@@ -143,8 +130,7 @@ export async function POST(request: Request) {
             date: new Date(invoice.created * 1000).toISOString(),
             plan: determinePlanFromPrice(subscription.items.data[0]?.price),
             provider: "stripe",
-            transactionId: (invoice as unknown as { payment_intent: string })
-              .payment_intent as string,
+            transactionId: (invoice as unknown as { payment_intent: string }).payment_intent as string,
           });
         }
       } catch (error) {
@@ -258,7 +244,10 @@ export async function POST(request: Request) {
 
   await markWebhookProcessed(event.id, "stripe", hadError ? "Some events failed processing" : undefined);
   if (hadError) {
-    return new NextResponse(JSON.stringify({ received: true, warning: "Some events failed processing" }), { status: 200 });
+    // Signal failure so Stripe retries delivery; idempotency allows reprocessing.
+    return new NextResponse(JSON.stringify({ received: false, error: "Some events failed processing" }), {
+      status: 500,
+    });
   }
   return new NextResponse(JSON.stringify({ received: true }), { status: 200 });
 }

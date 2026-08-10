@@ -68,7 +68,7 @@ export default function SyllabusTrackerPage() {
         useAI: config.enable_ai_generation || false,
       });
 
-      toast.success("Lesson plans are being generated...");
+      toast.success("Lesson plans generated");
       refetchSyllabi();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to generate lesson plans");

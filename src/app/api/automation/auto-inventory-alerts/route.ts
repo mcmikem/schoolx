@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Log the alert in the database
-        await supabase.from("inventory_alerts").insert({
+        const { error: logError } = await supabase.from("inventory_alerts").insert({
           school_id: school.schoolId,
           asset_id: item.id,
           alert_type: "low_stock",
@@ -144,6 +144,15 @@ export async function POST(request: NextRequest) {
           notified_at: new Date().toISOString(),
           status: "pending",
         });
+
+        if (logError) {
+          logger.error(`Auto inventory alerts: failed to log alert for item ${item.id}:`, logError);
+          errors.push({
+            itemId: item.id,
+            name: item.name,
+            reason: "Failed to record inventory alert",
+          });
+        }
       }
     }
 

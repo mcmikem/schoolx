@@ -285,6 +285,16 @@ export async function createMobileMoneyPaymentLink(request: {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://omuto.org";
   const hasMoneyUnify = !!process.env.MONEY_UNIFY_AUTH_ID;
 
+  const buildStatusUrl = (txRef: string) => {
+    if (request.returnUrl.includes("{reference}")) {
+      return request.returnUrl.replace(/\{reference\}/g, txRef);
+    }
+    if (request.returnUrl) {
+      return `${request.returnUrl}${request.returnUrl.includes("?") ? "&" : "?"}reference=${txRef}`;
+    }
+    return `${baseUrl}/dashboard/settings?tab=subscription&pending=true&provider=${request.provider}&plan=${encodeURIComponent(request.plan)}&reference=${txRef}`;
+  };
+
   if (hasMoneyUnify) {
     // MoneyUnify handles both MTN and Airtel (auto-detects from phone number)
     const client = new MoneyUnifyClient();
@@ -292,8 +302,7 @@ export async function createMobileMoneyPaymentLink(request: {
       phone: request.phone,
       amount: request.amount,
     });
-    const statusUrl = `${baseUrl}/dashboard/settings?tab=subscription&pending=true&provider=${request.provider}&plan=${encodeURIComponent(request.plan)}&reference=${txRef}`;
-    return { link: statusUrl, txRef };
+    return { link: buildStatusUrl(txRef), txRef };
   }
 
   // Fallback: direct MTN MoMo API (only for MTN, requires separate MoMo keys)
@@ -306,8 +315,7 @@ export async function createMobileMoneyPaymentLink(request: {
       payerMessage: `SkoolMate ${request.plan} plan`,
       payeeNote: `School: ${request.name} — Plan: ${request.plan}`,
     });
-    const statusUrl = `${baseUrl}/dashboard/settings?tab=subscription&pending=true&provider=mtn&plan=${encodeURIComponent(request.plan)}&reference=${txRef}`;
-    return { link: statusUrl, txRef };
+    return { link: buildStatusUrl(txRef), txRef };
   }
 
   throw new Error("No mobile money provider configured. Set MONEY_UNIFY_AUTH_ID or MTN MoMo environment variables.");

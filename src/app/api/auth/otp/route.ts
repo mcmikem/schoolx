@@ -90,8 +90,10 @@ export async function POST(request: NextRequest) {
 
     if (upsertError) {
       logger.error("[OTP] Failed to store OTP:", upsertError);
-      // Try creating the table if it doesn't exist
-      return NextResponse.json({ success: true, message: "If this phone is registered, an OTP has been sent." });
+      return NextResponse.json(
+        { success: false, message: "Unable to send OTP right now. Please try again later." },
+        { status: 500 },
+      );
     }
 
     // Send OTP via SMS

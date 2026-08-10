@@ -18,8 +18,14 @@ export async function checkAndRecordIdempotency(
       .single();
 
     if (existing) {
-      logger.warn(`Duplicate webhook event detected: ${eventId} (${eventType}), status=${existing.status}`);
-      return { alreadyProcessed: true, shouldProcess: false };
+      if (existing.status === "processed") {
+        logger.warn(`Duplicate webhook event detected: ${eventId} (${eventType}), already processed`);
+        return { alreadyProcessed: true, shouldProcess: false };
+      }
+      // "received" or "failed": a previous attempt did not complete (crash or 500).
+      // Allow reprocessing so provider retries actually take effect.
+      logger.warn(`Re-processing webhook event ${eventId} (${eventType}), previous status=${existing.status}`);
+      return { alreadyProcessed: false, shouldProcess: true };
     }
 
     const { error: insertError } = await supabase.from("webhook_events").insert({
@@ -45,11 +51,7 @@ export async function checkAndRecordIdempotency(
   }
 }
 
-export async function markWebhookProcessed(
-  eventId: string,
-  provider: string,
-  errorMessage?: string,
-): Promise<void> {
+export async function markWebhookProcessed(eventId: string, provider: string, errorMessage?: string): Promise<void> {
   try {
     const supabase = await createSupabaseServerClient();
     await supabase

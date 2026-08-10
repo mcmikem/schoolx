@@ -50,11 +50,7 @@ export default function EarlyWarningsPage() {
   const fetchThresholds = useCallback(async () => {
     if (!school?.id) return;
     try {
-      const map = await loadSchoolSettings(school.id, [
-        "attendance_threshold",
-        "grade_threshold",
-        "fee_threshold",
-      ]);
+      const map = await loadSchoolSettings(school.id, ["attendance_threshold", "grade_threshold", "fee_threshold"]);
 
       setThresholds({
         attendance: parseInt(map.attendance_threshold) || 80,
@@ -100,8 +96,7 @@ export default function EarlyWarningsPage() {
     // Process data in memory (fast)
     for (const student of students) {
       // Grades analysis
-      const studentGrades =
-        allGrades?.filter((g) => g.student_id === student.id) || [];
+      const studentGrades = allGrades?.filter((g) => g.student_id === student.id) || [];
       if (studentGrades.length > 0) {
         const subjectScores: Record<string, number[]> = {};
         studentGrades.forEach((g) => {
@@ -132,12 +127,9 @@ export default function EarlyWarningsPage() {
       }
 
       // Attendance analysis
-      const studentAttendance =
-        allAttendance?.filter((a) => a.student_id === student.id) || [];
+      const studentAttendance = allAttendance?.filter((a) => a.student_id === student.id) || [];
       if (studentAttendance.length > 0) {
-        const present = studentAttendance.filter(
-          (a) => a.status === "present",
-        ).length;
+        const present = studentAttendance.filter((a) => a.status === "present").length;
         const rate = (present / studentAttendance.length) * 100;
 
         if (rate < thresholds.attendance) {
@@ -154,13 +146,9 @@ export default function EarlyWarningsPage() {
       }
 
       // Fee analysis
-      const studentPayments =
-        allPayments?.filter((p) => p.student_id === student.id) || [];
+      const studentPayments = allPayments?.filter((p) => p.student_id === student.id) || [];
       if (studentPayments.length > 0) {
-        const totalPaid = studentPayments.reduce(
-          (sum, p) => sum + Number(p.amount_paid),
-          0,
-        );
+        const totalPaid = studentPayments.reduce((sum, p) => sum + Number(p.amount_paid), 0);
         if (totalPaid < thresholds.fee) {
           allWarnings.push({
             student_id: student.id,
@@ -202,8 +190,7 @@ export default function EarlyWarningsPage() {
           filteredWarnings.map((w) => w.student_id),
         );
 
-      const phones =
-        studentData?.map((s) => s.parent_phone).filter(Boolean) || [];
+      const phones = studentData?.map((s) => s.parent_phone).filter(Boolean) || [];
 
       if (phones.length === 0) {
         toast.error("No parent phone numbers found");
@@ -216,11 +203,14 @@ export default function EarlyWarningsPage() {
         body: JSON.stringify({ phones, message, schoolId: school?.id }),
       });
 
-      if (response.ok) {
-        const result = await response.json();
-        toast.success(
-          `SMS sent to ${result.data?.totalSent || phones.length} parents`,
-        );
+      const result = await response.json().catch(() => null);
+      const totalSent = result?.data?.totalSent ?? 0;
+      const totalFailed = result?.data?.totalFailed ?? Math.max(0, phones.length - totalSent);
+
+      if (response.ok && totalSent > 0) {
+        toast.success(`SMS sent to ${totalSent} parents${totalFailed > 0 ? ` (${totalFailed} failed)` : ""}`);
+      } else if (response.ok && totalFailed > 0) {
+        toast.error(`Failed to send SMS to ${totalFailed} parents`);
       } else {
         toast.error("Failed to send SMS");
       }
@@ -257,149 +247,111 @@ export default function EarlyWarningsPage() {
 
   return (
     <PageErrorBoundary>
-    <div className="p-4 sm:p-6 lg:p-8">
-      <PageHeader
-        title="Early Warnings"
-        subtitle="Students who need attention"
-      />
+      <div className="p-4 sm:p-6 lg:p-8">
+        <PageHeader title="Early Warnings" subtitle="Students who need attention" />
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
-        <Card className="text-center">
-          <CardBody>
-            <div className="text-2xl font-bold text-[var(--t1)]">
-              {stats.total}
-            </div>
-            <div className="text-sm text-[var(--t3)] mt-1">Total Warnings</div>
-          </CardBody>
-        </Card>
-        <Card className="text-center">
-          <CardBody>
-            <div className="text-2xl font-bold text-[var(--red)]">
-              {stats.high}
-            </div>
-            <div className="text-sm text-[var(--t3)] mt-1">High Priority</div>
-          </CardBody>
-        </Card>
-        <Card className="text-center">
-          <CardBody>
-            <div className="text-2xl font-bold text-[var(--amber)]">
-              {stats.medium}
-            </div>
-            <div className="text-sm text-[var(--t3)] mt-1">Medium</div>
-          </CardBody>
-        </Card>
-        <Card className="text-center">
-          <CardBody>
-            <div className="text-2xl font-bold text-[var(--t1)]">
-              {stats.low}
-            </div>
-            <div className="text-sm text-[var(--t3)] mt-1">Low</div>
-          </CardBody>
-        </Card>
-      </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+          <Card className="text-center">
+            <CardBody>
+              <div className="text-2xl font-bold text-[var(--t1)]">{stats.total}</div>
+              <div className="text-sm text-[var(--t3)] mt-1">Total Warnings</div>
+            </CardBody>
+          </Card>
+          <Card className="text-center">
+            <CardBody>
+              <div className="text-2xl font-bold text-[var(--red)]">{stats.high}</div>
+              <div className="text-sm text-[var(--t3)] mt-1">High Priority</div>
+            </CardBody>
+          </Card>
+          <Card className="text-center">
+            <CardBody>
+              <div className="text-2xl font-bold text-[var(--amber)]">{stats.medium}</div>
+              <div className="text-sm text-[var(--t3)] mt-1">Medium</div>
+            </CardBody>
+          </Card>
+          <Card className="text-center">
+            <CardBody>
+              <div className="text-2xl font-bold text-[var(--t1)]">{stats.low}</div>
+              <div className="text-sm text-[var(--t3)] mt-1">Low</div>
+            </CardBody>
+          </Card>
+        </div>
 
-      <Tabs
-        tabs={[
-          { id: "all", label: "All", count: warnings.length },
-          { id: "high", label: "High", count: stats.high },
-          { id: "medium", label: "Medium", count: stats.medium },
-          { id: "low", label: "Low", count: stats.low },
-        ]}
-        activeTab={filterSeverity}
-        onChange={setFilterSeverity}
-        className="mb-6"
-      />
+        <Tabs
+          tabs={[
+            { id: "all", label: "All", count: warnings.length },
+            { id: "high", label: "High", count: stats.high },
+            { id: "medium", label: "Medium", count: stats.medium },
+            { id: "low", label: "Low", count: stats.low },
+          ]}
+          activeTab={filterSeverity}
+          onChange={setFilterSeverity}
+          className="mb-6"
+        />
 
-      <div className="flex flex-wrap gap-3 mb-6">
-        <Button
-          onClick={fetchWarnings}
-          variant="secondary"
-          icon={<MaterialIcon icon="refresh" className="text-lg" />}
-        >
-          Refresh
-        </Button>
-        {filteredWarnings.length > 0 && (
+        <div className="flex flex-wrap gap-3 mb-6">
           <Button
-            onClick={() => sendBulkSMS()}
-            icon={<MaterialIcon icon="sms" className="text-lg" />}
+            onClick={fetchWarnings}
+            variant="secondary"
+            icon={<MaterialIcon icon="refresh" className="text-lg" />}
           >
-            SMS Guardians ({filteredWarnings.length})
+            Refresh
           </Button>
+          {filteredWarnings.length > 0 && (
+            <Button onClick={() => sendBulkSMS()} icon={<MaterialIcon icon="sms" className="text-lg" />}>
+              SMS Guardians ({filteredWarnings.length})
+            </Button>
+          )}
+        </div>
+
+        {loading ? (
+          <Card>
+            <CardBody className="p-0">
+              <TableSkeleton rows={3} />
+            </CardBody>
+          </Card>
+        ) : filteredWarnings.length === 0 ? (
+          <EmptyState icon="check_circle" title="No warnings" description="All students are performing well" />
+        ) : (
+          <Card>
+            <CardBody className="p-0">
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-[var(--surface-container-low)]">
+                    <tr>
+                      <th className="text-left p-4 text-sm font-semibold text-[var(--t1)]">Student</th>
+                      <th className="text-left p-4 text-sm font-semibold text-[var(--t1)]">Class</th>
+                      <th className="text-left p-4 text-sm font-semibold text-[var(--t1)]">Warning Type</th>
+                      <th className="text-left p-4 text-sm font-semibold text-[var(--t1)]">Details</th>
+                      <th className="text-left p-4 text-sm font-semibold text-[var(--t1)]">Severity</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredWarnings.map((warning, i) => (
+                      <tr key={i} className="border-t border-[var(--border)]">
+                        <td className="p-4">
+                          <div className="font-medium text-[var(--t1)]">{warning.student_name}</div>
+                          <div className="text-xs text-[var(--t3)]">{warning.student_number}</div>
+                        </td>
+                        <td className="p-4 text-[var(--t1)]">{warning.class_name}</td>
+                        <td className="p-4 text-[var(--t1)]">{warning.warning_type}</td>
+                        <td className="p-4 text-[var(--t3)]">{warning.details}</td>
+                        <td className="p-4">
+                          <span
+                            className={`px-3 py-1 rounded-lg text-xs font-medium ${getSeverityBadge(warning.severity)}`}
+                          >
+                            {warning.severity}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardBody>
+          </Card>
         )}
       </div>
-
-      {loading ? (
-        <Card>
-          <CardBody className="p-0">
-            <TableSkeleton rows={3} />
-          </CardBody>
-        </Card>
-      ) : filteredWarnings.length === 0 ? (
-        <EmptyState
-          icon="check_circle"
-          title="No warnings"
-          description="All students are performing well"
-        />
-      ) : (
-        <Card>
-          <CardBody className="p-0">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-[var(--surface-container-low)]">
-                  <tr>
-                    <th className="text-left p-4 text-sm font-semibold text-[var(--t1)]">
-                      Student
-                    </th>
-                    <th className="text-left p-4 text-sm font-semibold text-[var(--t1)]">
-                      Class
-                    </th>
-                    <th className="text-left p-4 text-sm font-semibold text-[var(--t1)]">
-                      Warning Type
-                    </th>
-                    <th className="text-left p-4 text-sm font-semibold text-[var(--t1)]">
-                      Details
-                    </th>
-                    <th className="text-left p-4 text-sm font-semibold text-[var(--t1)]">
-                      Severity
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredWarnings.map((warning, i) => (
-                    <tr key={i} className="border-t border-[var(--border)]">
-                      <td className="p-4">
-                        <div className="font-medium text-[var(--t1)]">
-                          {warning.student_name}
-                        </div>
-                        <div className="text-xs text-[var(--t3)]">
-                          {warning.student_number}
-                        </div>
-                      </td>
-                      <td className="p-4 text-[var(--t1)]">
-                        {warning.class_name}
-                      </td>
-                      <td className="p-4 text-[var(--t1)]">
-                        {warning.warning_type}
-                      </td>
-                      <td className="p-4 text-[var(--t3)]">
-                        {warning.details}
-                      </td>
-                      <td className="p-4">
-                        <span
-                          className={`px-3 py-1 rounded-lg text-xs font-medium ${getSeverityBadge(warning.severity)}`}
-                        >
-                          {warning.severity}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardBody>
-        </Card>
-      )}
-    </div>
     </PageErrorBoundary>
   );
 }

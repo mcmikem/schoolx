@@ -1,6 +1,6 @@
 "use client";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
 import Image from "next/image";
@@ -121,6 +121,14 @@ export default function ReportCardsPage() {
     errors: number;
   }>({ current: 0, total: 0, currentClass: "", studentsProcessed: 0, errors: 0 });
   const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const classId = params.get("class");
+    if (classId && classes.some((c) => c.id === classId)) {
+      setSelectedClass(classId);
+    }
+  }, [classes]);
 
   const filteredStudents = useMemo(() => {
     if (!selectedClass) return [];
@@ -484,6 +492,75 @@ export default function ReportCardsPage() {
     return { reports: reportList, missingMarks: missing };
   }
 
+  const persistReportCards = async (reportList: StudentReport[], classId: string) => {
+    const { supabase: sb } = await import("@/lib/supabase");
+    const best4 = (scores: number[]) => [...scores].sort((a, b) => b - a).slice(0, 4);
+
+    let savedCount = 0;
+    const failedNames: string[] = [];
+
+    for (const rpt of reportList) {
+      const subjectsJson = rpt.subjects.map((s) => ({
+        name: s.name,
+        score: s.score,
+        grade: s.grade,
+        gradeColor: s.gradeColor,
+        competencyLevel: s.competencyLevel,
+        competencyNotes: s.competencyNotes,
+        isMissing: s.isMissing,
+      }));
+      const rptBest4 = best4(rpt.subjects.map((s) => s.score));
+      const rptAggregate = rptBest4.reduce((a, b) => a + b, 0);
+
+      const existingResult = await withTimeout(
+        sb
+          .from("report_cards")
+          .select("id")
+          .eq("student_id", rpt.studentId)
+          .eq("academic_year", academicYear)
+          .eq("term", currentTerm)
+          .limit(1),
+        10000,
+        timeoutFallback(),
+      );
+      const existingCard = existingResult.data;
+
+      const cardPayload = {
+        school_id: school?.id,
+        student_id: rpt.studentId,
+        class_id: classId,
+        academic_year: academicYear,
+        term: currentTerm,
+        subjects: subjectsJson,
+        aggregate: rptAggregate,
+        division: rpt.division,
+        best4: rptBest4,
+        generated_at: new Date().toISOString(),
+        generated_by: user?.full_name || user?.id || "system",
+      };
+
+      let writeResult: { error?: unknown } | null = null;
+      if (existingCard && existingCard.length > 0) {
+        writeResult = await withTimeout(
+          sb.from("report_cards").update(cardPayload).eq("id", existingCard[0].id),
+          15000,
+          timeoutFallback(),
+        );
+      } else {
+        writeResult = await withTimeout(sb.from("report_cards").insert(cardPayload), 15000, timeoutFallback());
+      }
+
+      if (writeResult?.error) {
+        logger.error(`Failed to save report card for ${rpt.name}:`, writeResult.error);
+        failedNames.push(rpt.name);
+      } else {
+        savedCount++;
+      }
+    }
+
+    return { savedCount, failedNames };
+  };
+
   const handleGenerate = async () => {
     if (!selectedClass) {
       toast.error("Please select a class first");
@@ -519,71 +596,7 @@ export default function ReportCardsPage() {
       setComments(initialComments);
       setGenerated(true);
 
-      // Save each report card to the report_cards table
-      const { supabase: sb } = await import("@/lib/supabase");
-      const best4 = (scores: number[]) => [...scores].sort((a, b) => b - a).slice(0, 4);
-
-      let savedCount = 0;
-      const failedNames: string[] = [];
-
-      for (const rpt of reportList) {
-        const subjectsJson = rpt.subjects.map((s) => ({
-          name: s.name,
-          score: s.score,
-          grade: s.grade,
-          gradeColor: s.gradeColor,
-          competencyLevel: s.competencyLevel,
-          competencyNotes: s.competencyNotes,
-          isMissing: s.isMissing,
-        }));
-        const rptBest4 = best4(rpt.subjects.map((s) => s.score));
-        const rptAggregate = rptBest4.reduce((a, b) => a + b, 0);
-
-        const existingResult = await withTimeout(
-          sb
-            .from("report_cards")
-            .select("id")
-            .eq("student_id", rpt.studentId)
-            .eq("academic_year", academicYear)
-            .eq("term", currentTerm)
-            .limit(1),
-          10000,
-          timeoutFallback(),
-        );
-        const existingCard = existingResult.data;
-
-        const cardPayload = {
-          school_id: school?.id,
-          student_id: rpt.studentId,
-          class_id: selectedClass,
-          academic_year: academicYear,
-          term: currentTerm,
-          subjects: subjectsJson,
-          aggregate: rptAggregate,
-          division: rpt.division,
-          best4: rptBest4,
-          generated_at: new Date().toISOString(),
-          generated_by: user?.full_name || user?.id || "system",
-        };
-
-        let writeResult: { error?: unknown } | null = null;
-        if (existingCard && existingCard.length > 0) {
-          writeResult = await withTimeout(
-            sb.from("report_cards").update(cardPayload).eq("id", existingCard[0].id),
-            15000,
-            timeoutFallback(),
-          );
-        } else {
-          writeResult = await withTimeout(sb.from("report_cards").insert(cardPayload), 15000, timeoutFallback());
-        }
-
-        if (writeResult?.error) {
-          logger.error(`Failed to save report card for ${rpt.name}:`, writeResult.error);
-          failedNames.push(rpt.name);
-        } else {
-          savedCount++;
-        }
-      }
+      const { savedCount, failedNames } = await persistReportCards(reportList, selectedClass);
 
       if (failedNames.length > 0) {
         toast.warning(
@@ -618,6 +631,8 @@ export default function ReportCardsPage() {
     const allReports: StudentReport[] = [];
     let totalErrors = 0;
     let totalStudents = 0;
+    let totalSaved = 0;
+    let totalFailed = 0;
 
     for (let i = 0; i < classes.length; i++) {
       const c = classes[i];
@@ -644,6 +659,10 @@ export default function ReportCardsPage() {
           ...prev,
           studentsProcessed: totalStudents,
         }));
+
+        const { savedCount, failedNames } = await persistReportCards(classReports, c.id);
+        totalSaved += savedCount;
+        totalFailed += failedNames.length;
       } catch (err) {
         logger.error(`Error generating reports for class ${className}:`, err);
         totalErrors++;
@@ -671,7 +690,20 @@ export default function ReportCardsPage() {
       setReports(allReports);
       setComments(initialComments);
       setGenerated(true);
-      toast.success(`Report cards generated for ${allReports.length} students across ${classes.length} classes`);
+
+      if (totalFailed > 0) {
+        toast.warning(
+          `Report cards generated for ${totalSaved} students across ${classes.length} classes. ${totalFailed} could not be saved${
+            totalErrors > 0 ? `, and ${totalErrors} class${totalErrors > 1 ? "es" : ""} failed to generate` : ""
+          }.`,
+        );
+      } else if (totalErrors > 0) {
+        toast.warning(
+          `Generated and saved ${totalSaved} report cards, but ${totalErrors} class${totalErrors > 1 ? "es" : ""} failed to generate.`,
+        );
+      } else {
+        toast.success(`Report cards generated and saved for ${totalSaved} students across ${classes.length} classes`);
+      }
     } else {
       toast.error("No reports could be generated for any class");
     }

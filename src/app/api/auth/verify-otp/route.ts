@@ -56,12 +56,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "OTP expired. Please request a new one." }, { status: 401 });
     }
 
-    // Mark OTP as used
-    await supabaseAdmin
-      .from("otps")
-      .update({ used: true })
-      .eq("id", otpRecord.id);
-
     // Find the parent user (include email for magic link generation)
     const { data: parentUser, error: userError } = await supabaseAdmin
       .from("users")
@@ -87,7 +81,10 @@ export async function POST(request: NextRequest) {
 
     if (linkError || !linkData?.properties?.action_link) {
       logger.error("[verify-otp] Failed to generate magic link:", linkError);
-      return NextResponse.json({ error: "Unable to create login session. Please try password login." }, { status: 500 });
+      return NextResponse.json(
+        { error: "Unable to create login session. Please try password login." },
+        { status: 500 },
+      );
     }
 
     // Extract the token from the action link URL
@@ -96,8 +93,15 @@ export async function POST(request: NextRequest) {
     const token = tokenMatch ? tokenMatch[1] : null;
 
     if (!token) {
-      return NextResponse.json({ error: "Unable to create login session. Please try password login." }, { status: 500 });
+      return NextResponse.json(
+        { error: "Unable to create login session. Please try password login." },
+        { status: 500 },
+      );
     }
+
+    // Mark OTP as used only after a successful session link was created, so a
+    // failed verification does not burn the code.
+    await supabaseAdmin.from("otps").update({ used: true }).eq("id", otpRecord.id);
 
     return NextResponse.json({
       success: true,

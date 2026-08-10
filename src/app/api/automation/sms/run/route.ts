@@ -114,6 +114,7 @@ async function handlePost(request: NextRequest) {
 
     for (const alert of alertsToSend) {
       // Actually send the SMS via Africa's Talking
+      let smsDelivered = false;
       if (alert.shouldSendSms && alert.parentPhone) {
         try {
           const withinLimit = await checkSmsDailyLimit(scope.schoolId, 1);
@@ -121,6 +122,7 @@ async function handlePost(request: NextRequest) {
             const smsResult = await sendAfricasTalkingSMSWithRetry(alert.parentPhone, alert.smsMessage, {
               formatUgandaNumber: true,
             });
+            smsDelivered = smsResult.success;
             if (!smsResult.success) {
               logger.warn(`[sms/run] SMS send failed for ${alert.studentId}: ${smsResult.error}`);
             }
@@ -138,9 +140,9 @@ async function handlePost(request: NextRequest) {
         recipient_id: alert.studentId,
         phone: alert.parentPhone,
         message: alert.smsMessage,
-        status: alert.shouldSendSms ? "sent" : "failed",
+        status: smsDelivered ? "sent" : "failed",
         sent_by: actor.id,
-        sent_at: alert.shouldSendSms ? sentAt : null,
+        sent_at: smsDelivered ? sentAt : null,
       });
 
       if (!messageError) {
@@ -152,8 +154,8 @@ async function handlePost(request: NextRequest) {
         trigger_id: trigger.id,
         recipient_id: alert.parentPhone || null,
         record_id: alert.studentId,
-        status: alert.shouldSendSms ? "sent" : "failed",
-        sent_at: sentAt,
+        status: smsDelivered ? "sent" : "failed",
+        sent_at: smsDelivered ? sentAt : null,
       });
 
       if (logError) {

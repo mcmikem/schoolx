@@ -1113,7 +1113,16 @@ export default function FinanceHubPage() {
         }),
       });
       if (!res.ok) throw new Error(`SMS API returned ${res.status}`);
-      toast.success("Invoice sent via SMS");
+      const smsResult = await res.json().catch(() => null);
+      const smsData = smsResult?.data || {};
+      if (smsData.status === "sent") {
+        toast.success("Invoice sent via SMS");
+      } else if (smsData.status === "fallback" && typeof smsData.whatsappLink === "string") {
+        window.open(smsData.whatsappLink, "_blank", "noopener,noreferrer");
+        toast.error("SMS failed. Opened WhatsApp fallback for manual send.");
+      } else {
+        throw new Error("SMS could not be sent");
+      }
     } catch (err) {
       logger.warn("Send invoice SMS failed:", err);
       toast.error("Failed to send SMS");

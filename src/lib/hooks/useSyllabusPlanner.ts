@@ -468,8 +468,89 @@ export function useLessonPlanGeneration(schoolId: string | undefined) {
 
         setLastGenerationId(generationRecord?.id || null);
 
-        // TODO: Call backend service to actually generate lesson plans
-        // This would create lesson_plan entries based on syllabus topics
+        // Generate lesson plans from syllabus topics. Fetch the topics, then create
+        // one lesson_plans row per topic that does not already exist for this
+        // subject/class/term/year so re-runs never duplicate.
+        const topicsResult = await withTimeout(
+          supabase
+            .from("syllabus")
+            .select("id, topic, subtopics, objectives, weeks_covered, resources")
+            .in("id", params.syllabusIds),
+          10000,
+          timeoutFallback(),
+        );
+        if (topicsResult.error) throw topicsResult.error;
+
+        const topics = topicsResult.data || [];
+
+        const existingResult = await withTimeout(
+          supabase
+            .from("lesson_plans")
+            .select("topic")
+            .eq("school_id", schoolId)
+            .eq("subject_id", params.subjectId)
+            .eq("class_id", params.classId)
+            .eq("term", params.termNumber)
+            .eq("academic_year", params.academicYear),
+          10000,
+          timeoutFallback(),
+        );
+        if (existingResult.error) throw existingResult.error;
+
+        const existingTopics = new Set((existingResult.data || []).map((r) => r.topic));
+
+        const generatedIds: string[] = [];
+        for (const topic of topics) {
+          if (!topic.topic || existingTopics.has(topic.topic)) continue;
+
+          const insertResult = await withTimeout(
+            supabase
+              .from("lesson_plans")
+              .insert({
+                school_id: schoolId,
+                teacher_id: params.teacherId,
+                subject_id: params.subjectId,
+                class_id: params.classId,
+                topic: topic.topic,
+                subtopics: topic.subtopics,
+                objectives: topic.objectives,
+                materials_needed: topic.resources,
+                duration: 40,
+                term: params.termNumber,
+                academic_year: params.academicYear,
+                status: "draft",
+              })
+              .select("id")
+              .single(),
+            10000,
+            timeoutFallback(),
+          );
+          if (insertResult.error) {
+            logger.error("Failed to create lesson plan from syllabus topic:", insertResult.error);
+            throw insertResult.error;
+          }
+          if (insertResult.data?.id) {
+            generatedIds.push(insertResult.data.id);
+          }
+        }
+
+        const updateResult = await withTimeout(
+          supabase
+            .from("lesson_plan_generations")
+            .update({
+              status: "completed",
+              topic_count: topics.length,
+              lessons_generated: generatedIds.length,
+              generated_lesson_ids: generatedIds.length > 0 ? JSON.stringify(generatedIds) : null,
+              completed_at: new Date().toISOString(),
+            })
+            .eq("id", generationRecord?.id),
+          10000,
+          timeoutFallback(),
+        );
+        if (updateResult.error) {
+          logger.error("Failed to finalize lesson plan generation record:", updateResult.error);
+        }
 
         return generationRecord;
       } catch (err) {

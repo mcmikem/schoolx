@@ -280,7 +280,11 @@ export async function PATCH(request: NextRequest) {
     logger.debug(`[SMS Delivery] ID: ${id}, Status: ${status}, Phone: ${phoneNumber}`);
 
     const supabase = createServiceRoleClientOrThrow();
-    await supabase.from("messages").update({ status }).eq("message_id", id);
+    const { error: updateError } = await supabase.from("messages").update({ status }).eq("message_id", id);
+    if (updateError) {
+      logger.error("SMS delivery report status update failed:", updateError);
+      return apiError("Failed to record delivery status", 500);
+    }
 
     // Try updating delivery_status separately for graceful degradation
     try {

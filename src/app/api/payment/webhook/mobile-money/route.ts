@@ -117,23 +117,22 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true, message: "Already processed" });
       }
 
-      const markResult = await updatePendingMobilePayment(txRef, "completed", pendingPayment.status);
-
-      if (!markResult) {
-        logger.debug(`Payment ${txRef} was already marked completed by another request, skipping`);
-        return NextResponse.json({ success: true, message: "Already processed" });
-      }
-
-      await updatePaymentStatus(txRef, "completed", {
-        paid_at: new Date().toISOString(),
-      });
-
+      // Activate subscription FIRST — the write is idempotent. If it throws, the
+      // 500 response lets the provider retry, and idempotency allows reprocessing.
       await activateSchoolSubscription(
         pendingPayment.school_id,
         pendingPayment.plan as "starter" | "growth" | "enterprise" | "lifetime",
         pendingPayment.provider,
         txRef,
       );
+
+      const markResult = await updatePendingMobilePayment(txRef, "completed", pendingPayment.status);
+
+      if (!markResult) {
+        logger.debug(`Payment ${txRef} was already marked completed by another request, skipping`);
+        await markWebhookProcessed(referenceId, providerName);
+        return NextResponse.json({ received: true, message: "Already processed" });
+      }
 
       try {
         await sendPaymentReceipt(pendingPayment.school_id, {

@@ -387,20 +387,24 @@ export async function sendPaymentReceipt(
       logger.warn("Email receipt not sent:", emailResult.message);
     }
 
+    let smsResult: { success: boolean; message?: string } | null = null;
     if (school.phone) {
-      const smsResult = await receiptsModule.sendSMSReceipt(schoolId, receiptData);
+      smsResult = await receiptsModule.sendSMSReceipt(schoolId, receiptData);
       if (!smsResult.success) {
         logger.warn("SMS receipt not sent:", smsResult.message);
       }
     }
 
-    logger.info("Payment receipt sent", {
+    const delivered = emailResult.success || (smsResult?.success ?? false);
+    logger.info("Payment receipt delivery attempt", {
       schoolId,
       receiptNumber,
       plan: paymentData.plan,
+      emailSent: emailResult.success,
+      smsSent: smsResult?.success ?? false,
     });
 
-    return { success: true, receiptNumber };
+    return { success: delivered, receiptNumber };
   } catch (error) {
     logger.error("Error sending payment receipt:", error);
     throw error;

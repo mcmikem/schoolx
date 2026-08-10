@@ -246,11 +246,45 @@ export default function SettingsPage() {
     const error = searchParams?.get("error");
     const success = searchParams?.get("success");
     const provider = searchParams?.get("provider");
+    const reference = searchParams?.get("reference");
     if (plan) {
       setSelectedPaymentPlan(plan);
       setShowPaymentModal(true);
     }
-    if (success === "true") {
+    if (success === "true" && reference) {
+      const doVerify = async () => {
+        try {
+          const res = await fetch("/api/payment/verify/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ reference, provider: provider || "mtn" }),
+          });
+          const data = await res.json();
+          if (data.status === "completed") {
+            toast.success(
+              provider
+                ? `Your ${provider.toUpperCase()} payment was successful. Your plan has been activated.`
+                : "Your payment was successful. Your plan has been activated.",
+            );
+          } else if (data.status === "failed") {
+            toast.error("Your payment was not successful. Please try again.");
+          } else {
+            toast.info(
+              provider
+                ? `${provider.toUpperCase()} payment is still being processed. We'll activate your plan once it's confirmed.`
+                : "Your payment is still being processed. We'll activate your plan once it's confirmed.",
+            );
+          }
+          await refreshSchool();
+        } catch {
+          toast.info("We could not confirm your payment yet. Refresh to see the latest status.");
+          await refreshSchool();
+        }
+      };
+      doVerify();
+      setShowPaymentModal(false);
+      setPaymentPhone("");
+    } else if (success === "true") {
       toast.success(
         provider
           ? `Payment flow returned from ${provider.toUpperCase()}. We are confirming your upgrade.`
@@ -260,7 +294,7 @@ export default function SettingsPage() {
       setPaymentPhone("");
     }
     if (error === "no_plan") toast.error("Please select a plan to upgrade");
-  }, [searchParams, toast]);
+  }, [searchParams, toast, refreshSchool]);
 
   // schoolData initialized in useState above; no overwrite on school ref change
   const fetchUsers = useCallback(async () => {
@@ -1245,10 +1279,33 @@ export default function SettingsPage() {
                 <div className="flex items-center justify-between mb-6">
                   <div>
                     <h2 className="text-lg font-semibold text-[var(--on-surface)]">SkoolMate Subscription</h2>
-                    <p className="text-sm text-[var(--t3)]">Your account is currently active</p>
+                    <p className="text-sm text-[var(--t3)]">
+                      {(() => {
+                        if (school?.is_tester) return "Test account — full access enabled";
+                        switch (school?.subscription_status) {
+                          case "active":
+                            return "Your subscription is active";
+                          case "trial":
+                            return "Your account is on a trial";
+                          case "past_due":
+                            return "Your subscription has a payment due";
+                          case "expired":
+                          case "canceled":
+                          case "unpaid":
+                          case "suspended":
+                            return "Your subscription is not active";
+                          default:
+                            return "Subscription status unavailable";
+                        }
+                      })()}
+                    </p>
                   </div>
                   <div className="px-4 py-2 bg-[var(--green-soft)] text-[var(--green)] rounded-full text-sm font-semibold">
-                    {school?.subscription_plan ? `${school.subscription_plan.toUpperCase()} PLAN` : "ACTIVE"}
+                    {school?.subscription_plan
+                      ? `${school.subscription_plan.toUpperCase()} PLAN`
+                      : school?.is_tester
+                        ? "TEST"
+                        : "NO PLAN"}
                   </div>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

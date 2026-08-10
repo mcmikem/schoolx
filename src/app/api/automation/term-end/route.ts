@@ -439,10 +439,15 @@ export async function POST(request: NextRequest) {
         if (student.parent_phone) {
           try {
             const smsMessage = `Dear parent, Term ${term} ${year} has ended for ${studentName} (${className}). Report cards are now available. Contact the school for any inquiries.`;
-            await sendAfricasTalkingSMSWithRetry(student.parent_phone, smsMessage, {
+            const smsResult = await sendAfricasTalkingSMSWithRetry(student.parent_phone, smsMessage, {
               formatUgandaNumber: true,
             });
-            noticesSent++;
+            if (smsResult.success) {
+              noticesSent++;
+            } else {
+              logger.warn(`Term end SMS failed for student ${student.id}: ${smsResult.error}`);
+              noticeErrors++;
+            }
           } catch (e) {
             logger.warn(`Term end SMS failed for student ${student.id}:`, e);
             noticeErrors++;

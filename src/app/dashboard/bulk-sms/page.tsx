@@ -374,9 +374,14 @@ export default function SMSCenterPage() {
       });
       const result = await res.json();
       if (result.success) {
-        const sent = isBulk ? result.totalSent : 1;
-        const failed = isBulk ? result.totalFailed : 0;
-        toast.success(`SMS sent to ${sent} recipient(s)${failed > 0 ? ` (${failed} failed)` : ""}`);
+        const data = result.data || {};
+        const sent = isBulk ? (data.totalSent ?? 0) : data.status === "sent" ? 1 : 0;
+        const failed = isBulk ? (data.totalFailed ?? 0) : sent === 1 ? 0 : 1;
+        if (sent > 0) {
+          toast.success(`SMS sent to ${sent} recipient(s)${failed > 0 ? ` (${failed} failed)` : ""}`);
+        } else {
+          toast.error(`Failed to send SMS${failed > 0 ? ` to ${failed} recipient(s)` : ""}`);
+        }
         supabase
           .from("sms_logs")
           .select("*")

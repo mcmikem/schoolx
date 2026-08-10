@@ -55,10 +55,18 @@ function ServiceWorkerRegistration({ children }: { children: ReactNode }) {
     if (typeof window !== "undefined" && "serviceWorker" in navigator) {
       const authRoutePattern = /^\/(login|register|forgot-password)(\/|$)/;
       const shouldForceAuthRouteUpdate = authRoutePattern.test(window.location.pathname);
+      // On the very first install there is no prior controller, so the
+      // controllerchange fired by clients.claim() only reflects the initial
+      // claim — force-reloading then would wipe any input the user has started
+      // (e.g. the login form) and makes e2e tests flaky on slow runners. Only
+      // reload when an actual update (a newer SW replacing an existing one)
+      // takes over.
+      const hadControllerAtStart = !!navigator.serviceWorker.controller;
       let hasReloadedForUpdate = false;
 
       const reloadForActivatedUpdate = () => {
         if (!shouldForceAuthRouteUpdate || hasReloadedForUpdate) return;
+        if (!hadControllerAtStart) return;
         hasReloadedForUpdate = true;
         window.location.reload();
       };

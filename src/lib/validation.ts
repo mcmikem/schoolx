@@ -25,7 +25,7 @@ export const smsRequestSchema = z
     message: z.string().min(1).max(1000, "Message must be 1-1000 characters"),
     schoolId: z.string().uuid("Invalid school ID"),
     studentId: z.string().uuid().optional(),
-    type: z.enum(["individual", "class", "all", "bulk", "staff"]),
+    type: z.enum(["individual", "class", "all", "bulk", "staff"]).optional(),
   })
   .refine(
     (data) => {

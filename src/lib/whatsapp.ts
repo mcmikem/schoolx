@@ -49,37 +49,36 @@ export function generateWhatsAppShareLink(phone: string, message: string): strin
   return `https://wa.me/${formatted}?text=${encodeURIComponent(message)}`;
 }
 
-export async function sendWhatsAppTextMessage(
-  to: string,
-  message: string,
-): Promise<WhatsAppResult> {
+export async function sendWhatsAppTextMessage(to: string, message: string): Promise<WhatsAppResult> {
   const { accessToken, phoneNumberId } = getWhatsAppConfig();
 
   if (!accessToken || !phoneNumberId) {
-    logger.debug(`[WhatsApp Demo] To: ${to}, Message: ${message}`);
-    return { success: true, demo: true, messageId: `demo-wa-${Date.now()}` };
+    if (process.env.NODE_ENV === "development") {
+      logger.debug(`[WhatsApp Demo] To: ${to}, Message: ${message}`);
+      return { success: true, demo: true, messageId: `demo-wa-${Date.now()}` };
+    }
+    const error = "WhatsApp not configured: WHATSAPP_BUSINESS_TOKEN or WHATSAPP_PHONE_NUMBER_ID missing";
+    logger.error(`[WhatsApp] ${error}`);
+    return { success: false, error };
   }
 
   const formattedPhone = formatWhatsAppPhone(to);
 
   try {
-    const response = await fetch(
-      `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          messaging_product: "whatsapp",
-          recipient_type: "individual",
-          to: formattedPhone,
-          type: "text",
-          text: { body: message },
-        }),
+    const response = await fetch(`https://graph.facebook.com/v21.0/${phoneNumberId}/messages`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
       },
-    );
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to: formattedPhone,
+        type: "text",
+        text: { body: message },
+      }),
+    });
 
     const data = await response.json();
 
@@ -105,34 +104,36 @@ export async function sendWhatsAppTemplateMessage(
   const { accessToken, phoneNumberId } = getWhatsAppConfig();
 
   if (!accessToken || !phoneNumberId) {
-    logger.debug(`[WhatsApp Demo] Template to: ${to}, Template: ${template.templateName}`);
-    return { success: true, demo: true, messageId: `demo-wa-tpl-${Date.now()}` };
+    if (process.env.NODE_ENV === "development") {
+      logger.debug(`[WhatsApp Demo] Template to: ${to}, Template: ${template.templateName}`);
+      return { success: true, demo: true, messageId: `demo-wa-tpl-${Date.now()}` };
+    }
+    const error = "WhatsApp not configured: WHATSAPP_BUSINESS_TOKEN or WHATSAPP_PHONE_NUMBER_ID missing";
+    logger.error(`[WhatsApp] ${error}`);
+    return { success: false, error };
   }
 
   const formattedPhone = formatWhatsAppPhone(to);
 
   try {
-    const response = await fetch(
-      `https://graph.facebook.com/v21.0/${phoneNumberId}/messages`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          messaging_product: "whatsapp",
-          recipient_type: "individual",
-          to: formattedPhone,
-          type: "template",
-          template: {
-            name: template.templateName,
-            language: { code: template.templateLanguage },
-            components: template.components,
-          },
-        }),
+    const response = await fetch(`https://graph.facebook.com/v21.0/${phoneNumberId}/messages`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
       },
-    );
+      body: JSON.stringify({
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to: formattedPhone,
+        type: "template",
+        template: {
+          name: template.templateName,
+          language: { code: template.templateLanguage },
+          components: template.components,
+        },
+      }),
+    });
 
     const data = await response.json();
 
@@ -170,10 +171,7 @@ export function buildParentPortalMessage(opts: ParentPortalMessageOptions): stri
   );
 }
 
-export async function sendWhatsApp(
-  to: string,
-  message: string,
-): Promise<WhatsAppResult> {
+export async function sendWhatsApp(to: string, message: string): Promise<WhatsAppResult> {
   return sendWhatsAppTextMessage(to, message);
 }
 
@@ -189,5 +187,8 @@ export async function sendParentPortalCredentials(
   }
 
   logger.info("[WhatsApp] Not configured — returning share link for manual send");
-  return { success: true, demo: true, shareLink };
+  if (process.env.NODE_ENV === "development") {
+    return { success: true, demo: true, shareLink };
+  }
+  return { success: false, error: "WhatsApp not configured: credentials were not delivered", shareLink };
 }

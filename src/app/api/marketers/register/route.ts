@@ -211,7 +211,7 @@ export const POST = withRateLimit(
         const currentYear = new Date().getFullYear().toString();
         const defaultSubjects = getDefaultSubjects(schoolType);
         if (defaultSubjects.length > 0) {
-          await withTimeout(
+          const { error: subjectsError } = await withTimeout(
             supabaseAdmin.from("subjects").insert(
               defaultSubjects.map((s) => ({
                 school_id: schoolData.id,
@@ -224,14 +224,20 @@ export const POST = withRateLimit(
             15000,
             timeoutFallback(),
           );
+          if (subjectsError) throw subjectsError;
         }
 
         const defaultClasses = buildDefaultClasses(schoolData.id, schoolType as SchoolSetupType, currentYear);
         if (defaultClasses.length > 0) {
-          await withTimeout(supabaseAdmin.from("classes").insert(defaultClasses), 15000, timeoutFallback());
+          const { error: classesError } = await withTimeout(
+            supabaseAdmin.from("classes").insert(defaultClasses),
+            15000,
+            timeoutFallback(),
+          );
+          if (classesError) throw classesError;
         }
 
-        const { data: academicYear } = await withTimeout(
+        const { data: academicYear, error: yearError } = await withTimeout(
           supabaseAdmin
             .from("academic_years")
             .insert({ school_id: schoolData.id, year: currentYear, is_current: true })
@@ -240,10 +246,11 @@ export const POST = withRateLimit(
           10000,
           timeoutFallback(),
         );
+        if (yearError) throw yearError;
 
         if (academicYear) {
           const terms = buildUgandaAcademicTerms(schoolData.id, currentYear);
-          await withTimeout(
+          const { error: termsError } = await withTimeout(
             supabaseAdmin.from("academic_terms").upsert(
               terms.map((t) => ({ ...t, academic_year_id: academicYear.id })),
               { onConflict: "school_id,academic_year,term_number" },
@@ -251,13 +258,15 @@ export const POST = withRateLimit(
             15000,
             timeoutFallback(),
           );
+          if (termsError) throw termsError;
         }
 
-        await withTimeout(
+        const { error: eventsError } = await withTimeout(
           supabaseAdmin.from("events").insert(buildUgandaCalendarEvents(schoolData.id, currentYear)),
           15000,
           timeoutFallback(),
         );
+        if (eventsError) throw eventsError;
       } catch (setupError) {
         logger.error("[Marketer Register] Auto-setup failed, rolling back:", setupError);
         await rollbackAll();

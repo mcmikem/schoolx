@@ -144,15 +144,16 @@ describe("WhatsApp sendWhatsApp", () => {
     global.fetch = jest.fn();
   });
 
-  test("returns demo result when not configured", async () => {
+  test("returns failure (not fake demo success) when not configured outside development", async () => {
     const origToken = process.env.WHATSAPP_BUSINESS_TOKEN;
     const origId = process.env.WHATSAPP_PHONE_NUMBER_ID;
     delete process.env.WHATSAPP_BUSINESS_TOKEN;
     delete process.env.WHATSAPP_PHONE_NUMBER_ID;
 
     const result = await sendWhatsApp("0700000000", "Hello");
-    expect(result.success).toBe(true);
-    expect(result.demo).toBe(true);
+    expect(result.success).toBe(false);
+    expect(result.demo).toBeUndefined();
+    expect(result.error).toContain("not configured");
 
     process.env.WHATSAPP_BUSINESS_TOKEN = origToken;
     process.env.WHATSAPP_PHONE_NUMBER_ID = origId;

@@ -119,11 +119,15 @@ export async function POST(request: NextRequest) {
 
     const linkRelation = relationship || "parent";
     if (!existingLink) {
-      await supabaseAdmin.from("parent_students").insert({
+      const { error: linkError } = await supabaseAdmin.from("parent_students").insert({
         parent_id: existingUser.id,
         student_id: student.id,
         relationship: linkRelation,
       });
+      if (linkError) {
+        logger.error("[create-parent-portal] parent_students link failed:", linkError);
+        return NextResponse.json({ error: "Failed to create student-parent link" }, { status: 500 });
+      }
     }
 
     if (existingUser.auth_id) {
@@ -147,12 +151,8 @@ export async function POST(request: NextRequest) {
     let credentialsDelivered = false;
     if (shouldDeliver) {
       try {
-        const { generateWhatsAppShareLink } = await import("@/lib/whatsapp");
-        const link = generateWhatsAppShareLink(
-          phoneNormalized,
-          `Hello ${parentName}! Your SkoolMate parent portal credentials.\n\nLogin: ${phoneNormalized}\nPassword: ${generatedPassword}\nLink: ${portalUrl}\n\n- ${schoolName}`,
-        );
-        credentialsDelivered = Boolean(link);
+        const waResult = await sendParentPortalCredentials(whatsappOpts);
+        credentialsDelivered = Boolean(waResult.success && !waResult.demo);
       } catch {
         credentialsDelivered = false;
       }
@@ -165,8 +165,8 @@ export async function POST(request: NextRequest) {
       parentPhone: phoneNormalized,
       authEmail,
       credentialsDelivered,
-      credentialsExposed: !shouldDeliver ? true : false,
-      ...(shouldDeliver ? {} : { generatedPassword }),
+      credentialsExposed: !shouldDeliver || !credentialsDelivered ? true : false,
+      ...(shouldDeliver && credentialsDelivered ? {} : { generatedPassword }),
     });
   }
 
@@ -262,8 +262,8 @@ export async function POST(request: NextRequest) {
     try {
       if (isWhatsAppConfigured()) {
         const waResult = await sendParentPortalCredentials(whatsappOpts);
-        credentialsDelivered = Boolean(waResult.shareLink);
-        whatsappSent = waResult.success && !waResult.demo;
+        credentialsDelivered = Boolean(waResult.success && !waResult.demo);
+        whatsappSent = credentialsDelivered;
         if (waResult.success && !waResult.demo) {
           logger.info(`[create-parent-portal] WhatsApp credentials sent to ${phoneNormalized}`);
         }
@@ -273,7 +273,8 @@ export async function POST(request: NextRequest) {
           phoneNormalized,
           `Hello ${parentName}! Your SkoolMate parent portal is ready.\n\nLogin: ${phoneNormalized}\nPassword: ${generatedPassword}\nLink: ${portalUrl}\n\n- ${schoolName}`,
         );
-        credentialsDelivered = Boolean(link);
+        logger.info(`[create-parent-portal] WhatsApp not configured — manual share link ready for ${phoneNormalized}`);
+        void link;
       }
     } catch (e) {
       logger.warn("[create-parent-portal] WhatsApp send failed (non-blocking):", e);
@@ -286,9 +287,9 @@ export async function POST(request: NextRequest) {
     parentName,
     parentPhone: phoneNormalized,
     credentialsDelivered,
-    credentialsExposed: !shouldDeliver ? true : false,
+    credentialsExposed: !shouldDeliver || !credentialsDelivered ? true : false,
     whatsappSent,
-    ...(shouldDeliver ? {} : { generatedPassword }),
+    ...(shouldDeliver && credentialsDelivered ? {} : { generatedPassword }),
     linkedChildren: linkedChildren || [],
   });
 }

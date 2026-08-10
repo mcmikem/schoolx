@@ -7,65 +7,65 @@ import Link from "next/link";
 import { APP_NAME } from "@/lib/app-name";
 
 export const metadata: Metadata = {
-  title: `Case Studies — ${APP_NAME}`,
+  title: `Use Cases — ${APP_NAME}`,
   description:
-    "See how Ugandan schools use SkoolMate OS to transform attendance, fees, grading, and parent communication.",
+    "Illustrative scenarios showing how Ugandan schools can use SkoolMate OS for attendance, fees, grading, and parent communication.",
   openGraph: {
-    title: `Case Studies — ${APP_NAME}`,
-    description: "Real stories from schools using SkoolMate OS.",
+    title: `Use Cases — ${APP_NAME}`,
+    description: "How schools can use SkoolMate OS.",
   },
 };
 
 const caseStudies = [
   {
-    school: "Kampala High School",
+    school: "Urban secondary school",
     type: "Secondary, Urban",
-    students: "840",
+    scenario: true,
     quote:
-      "Attendance tracking went from 45 minutes per class to under 2 minutes. We know exactly who is in school before the first lesson starts.",
+      "Illustrative scenario: attendance tracking can go from ~45 minutes per class to under 2 minutes, so staff know who is in school before the first lesson starts.",
     results: [
-      "Attendance filing time reduced by 95%",
-      "Report card generation dropped from 3 weeks to 1 day",
-      "Fee collection up 32% with mobile money integration",
+      "Daily attendance capture per class in minutes, not a full lesson",
+      "Report card generation in under a day instead of weeks",
+      "Fee collection via mobile money without manual reconciliation",
     ],
     icon: "school",
   },
   {
-    school: "St. Mary's Primary School, Jinja",
+    school: "Primary school in a peri-urban area",
     type: "Primary, Peri-urban",
-    students: "520",
+    scenario: true,
     quote:
-      "We used to have three separate ledgers for fees, attendance, and grades. Now it is all in one place. The head teacher can see everything on her phone.",
+      "Illustrative scenario: instead of separate ledgers for fees, attendance, and grades, everything lives in one place the head teacher can review on a phone.",
     results: [
-      "Eliminated duplicate data entry across 3 systems",
-      "Parent SMS engagement improved from 20% to 89%",
-      "End-of-term reporting time reduced by 80%",
+      "No duplicate data entry across separate systems",
+      "Parents reached by SMS about fees, attendance, and results",
+      "End-of-term reporting time cut dramatically",
     ],
     icon: "stars",
   },
   {
-    school: "Busoga College, Mwiri",
+    school: "Boarding secondary school",
     type: "Secondary, Boarding",
-    students: "1,200",
+    scenario: true,
     quote:
-      "UNEB registration used to take a full week of manual data entry. With SkoolMate OS, we completed it in half a day with zero errors.",
+      "Illustrative scenario: UNEB registration and large end-of-term batches move from days of manual data entry to a short automated run.",
     results: [
-      "UNEB registration completed in 4 hours vs 5 days",
-      "Report cards aligned with NCDC 2025 standards",
-      "Dormitory attendance tracking implemented across 12 houses",
+      "UNEB registration prepared in a single session instead of days",
+      "Report cards generated in bulk and aligned with current standards",
+      "Dormitory and house attendance tracked centrally",
     ],
     icon: "insights",
   },
   {
-    school: "Nkozi Community School",
+    school: "Rural school with limited connectivity",
     type: "Primary, Rural",
-    students: "310",
+    scenario: true,
     quote:
-      "Internet is unreliable here, but SkoolMate OS works offline. Teachers mark attendance on their phones and it syncs when they reach town.",
+      "Illustrative scenario: the app is designed to work with limited connectivity, with offline-first entry that syncs when a connection is available.",
     results: [
-      "Offline-first design enables daily attendance in areas with no connectivity",
-      "First time the school has digital records for all students",
-      "Parents receive SMS updates even in remote areas",
+      "Attendance captured on phones even with patchy connectivity",
+      "Digital records for every student instead of paper registers",
+      "Parents receive updates by SMS where SMS is available",
     ],
     icon: "wifi_off",
   },
@@ -116,14 +116,14 @@ export default function CaseStudiesPage() {
             <div className="text-center max-w-3xl mx-auto">
               <span className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-white px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[#17325F] shadow-sm">
                 <MaterialIcon icon="stars" className="text-sm" />
-                Success stories
+                Use cases
               </span>
               <h1 className="mt-6 font-['Sora'] text-4xl font-semibold tracking-[-0.05em] text-slate-950 sm:text-5xl lg:text-6xl">
-                Schools already running better.
+                How schools run better with SkoolMate OS.
               </h1>
               <p className="mt-6 text-lg leading-8 text-slate-600 max-w-2xl mx-auto">
-                See how Ugandan schools are using SkoolMate OS to save time, improve accuracy, and keep parents
-                informed.
+                Illustrative scenarios of how Ugandan schools can use SkoolMate OS to save time, improve accuracy, and
+                keep parents informed.
               </p>
             </div>
           </FadeIn>
@@ -140,15 +140,16 @@ export default function CaseStudiesPage() {
                     </div>
                     <div>
                       <h3 className="font-['Sora'] text-base font-semibold text-slate-900">{cs.school}</h3>
-                      <p className="text-xs text-slate-500">
-                        {cs.type} &middot; {cs.students} students
-                      </p>
+                      <p className="text-xs text-slate-500">{cs.type}</p>
                     </div>
                   </div>
                   <blockquote className="flex-1">
                     <p className="text-sm leading-6 text-slate-600 italic">&ldquo;{cs.quote}&rdquo;</p>
                   </blockquote>
                   <div className="mt-4 pt-4 border-t border-slate-100">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">
+                      What it looks like
+                    </p>
                     <ul className="space-y-1.5">
                       {cs.results.map((r) => (
                         <li key={r} className="flex items-start gap-2 text-xs text-slate-700">

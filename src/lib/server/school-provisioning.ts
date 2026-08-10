@@ -1,52 +1,43 @@
-import type { SupabaseClient } from '@supabase/supabase-js'
-import {
-  PRIMARY_TEMPLATE,
-  SECONDARY_TEMPLATE,
-} from '@/lib/curriculum-templates'
-import {
-  buildUgandaAcademicTerms,
-  buildUgandaCalendarEvents,
-} from '@/lib/uganda-school-calendar'
-import {
-  buildDefaultClasses,
-  type SchoolSetupType,
-} from '@/lib/school-setup'
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { PRIMARY_TEMPLATE, SECONDARY_TEMPLATE } from "@/lib/curriculum-templates";
+import { buildUgandaAcademicTerms, buildUgandaCalendarEvents } from "@/lib/uganda-school-calendar";
+import { buildDefaultClasses, type SchoolSetupType } from "@/lib/school-setup";
 
 export function getDefaultSubjects(schoolType: string) {
-  if (schoolType === 'primary') return PRIMARY_TEMPLATE.subjects
-  if (schoolType === 'secondary') return SECONDARY_TEMPLATE.subjects
+  if (schoolType === "primary") return PRIMARY_TEMPLATE.subjects;
+  if (schoolType === "secondary") return SECONDARY_TEMPLATE.subjects;
 
-  const combined = [...PRIMARY_TEMPLATE.subjects]
+  const combined = [...PRIMARY_TEMPLATE.subjects];
   SECONDARY_TEMPLATE.subjects.forEach((subject) => {
     if (!combined.find((item) => item.code === subject.code && item.level === subject.level)) {
-      combined.push(subject)
+      combined.push(subject);
     }
-  })
-  return combined
+  });
+  return combined;
 }
 
 export function generateSchoolCode(schoolName: string, district: string): string {
   const nameWords = schoolName
     .toUpperCase()
-    .replace(/[^A-Z\s]/g, '')
+    .replace(/[^A-Z\s]/g, "")
     .split(/\s+/)
-    .filter((word) => word.length > 0)
+    .filter((word) => word.length > 0);
 
-  let nameCode = ''
+  let nameCode = "";
   for (const word of nameWords.slice(0, 3)) {
-    nameCode += word.substring(0, 2)
-    if (nameCode.length >= 4) break
+    nameCode += word.substring(0, 2);
+    if (nameCode.length >= 4) break;
   }
-  nameCode = nameCode.substring(0, 4) || 'SCHL'
+  nameCode = nameCode.substring(0, 4) || "SCHL";
 
   const districtCode =
     district
       .toUpperCase()
-      .replace(/[^A-Z]/g, '')
-      .substring(0, 2) || 'UG'
+      .replace(/[^A-Z]/g, "")
+      .substring(0, 2) || "UG";
 
-  const randomNum = Math.floor(100 + Math.random() * 900)
-  return `${nameCode}${districtCode}${randomNum}`
+  const randomNum = Math.floor(100 + Math.random() * 900);
+  return `${nameCode}${districtCode}${randomNum}`;
 }
 
 export async function reserveUniqueSchoolCode(
@@ -55,51 +46,47 @@ export async function reserveUniqueSchoolCode(
   district: string,
   requestedCode?: string | null,
 ) {
-  const sanitizedRequestedCode = requestedCode?.trim().toUpperCase()
+  const sanitizedRequestedCode = requestedCode?.trim().toUpperCase();
 
   if (sanitizedRequestedCode) {
     const { data: existingSchool } = await supabaseAdmin
-      .from('schools')
-      .select('id')
-      .eq('school_code', sanitizedRequestedCode)
-      .maybeSingle()
+      .from("schools")
+      .select("id")
+      .eq("school_code", sanitizedRequestedCode)
+      .maybeSingle();
 
     if (existingSchool) {
-      throw new Error('School code already exists')
+      throw new Error("School code already exists");
     }
 
-    return sanitizedRequestedCode
+    return sanitizedRequestedCode;
   }
 
-  let attempts = 0
-  let schoolCode = generateSchoolCode(schoolName, district)
+  let attempts = 0;
+  let schoolCode = generateSchoolCode(schoolName, district);
 
   while (attempts < 10) {
     const { data: existingSchool } = await supabaseAdmin
-      .from('schools')
-      .select('id')
-      .eq('school_code', schoolCode)
-      .maybeSingle()
+      .from("schools")
+      .select("id")
+      .eq("school_code", schoolCode)
+      .maybeSingle();
 
-    if (!existingSchool) return schoolCode
+    if (!existingSchool) return schoolCode;
 
-    schoolCode = generateSchoolCode(schoolName, district)
-    attempts += 1
+    schoolCode = generateSchoolCode(schoolName, district);
+    attempts += 1;
   }
 
-  throw new Error('Unable to generate unique school code. Please try again.')
+  throw new Error("Unable to generate unique school code. Please try again.");
 }
 
-export async function seedSchoolDefaults(
-  supabaseAdmin: SupabaseClient,
-  schoolId: string,
-  schoolType: SchoolSetupType,
-) {
-  const currentYear = new Date().getFullYear().toString()
-  const defaultSubjects = getDefaultSubjects(schoolType)
+export async function seedSchoolDefaults(supabaseAdmin: SupabaseClient, schoolId: string, schoolType: SchoolSetupType) {
+  const currentYear = new Date().getFullYear().toString();
+  const defaultSubjects = getDefaultSubjects(schoolType);
 
   if (defaultSubjects.length > 0) {
-    await supabaseAdmin.from('subjects').insert(
+    const { error } = await supabaseAdmin.from("subjects").insert(
       defaultSubjects.map((subject) => ({
         school_id: schoolId,
         name: subject.name,
@@ -107,27 +94,30 @@ export async function seedSchoolDefaults(
         level: subject.level,
         is_compulsory: subject.is_compulsory,
       })),
-    )
+    );
+    if (error) throw error;
   }
 
-  const defaultClasses = buildDefaultClasses(schoolId, schoolType, currentYear)
+  const defaultClasses = buildDefaultClasses(schoolId, schoolType, currentYear);
   if (defaultClasses.length > 0) {
-    await supabaseAdmin.from('classes').insert(defaultClasses)
+    const { error } = await supabaseAdmin.from("classes").insert(defaultClasses);
+    if (error) throw error;
   }
 
-  const { data: academicYear } = await supabaseAdmin
-    .from('academic_years')
+  const { data: academicYear, error: yearError } = await supabaseAdmin
+    .from("academic_years")
     .insert({
       school_id: schoolId,
       year: currentYear,
       is_current: true,
     })
     .select()
-    .single()
+    .single();
+  if (yearError) throw yearError;
 
   if (academicYear) {
-    const defaultAcademicTerms = buildUgandaAcademicTerms(schoolId, currentYear)
-    await supabaseAdmin.from('terms').insert(
+    const defaultAcademicTerms = buildUgandaAcademicTerms(schoolId, currentYear);
+    const { error: termsError } = await supabaseAdmin.from("terms").insert(
       defaultAcademicTerms.map((term) => ({
         school_id: schoolId,
         academic_year_id: academicYear.id,
@@ -136,14 +126,17 @@ export async function seedSchoolDefaults(
         end_date: term.end_date,
         is_current: term.is_current,
       })),
-    )
+    );
+    if (termsError) throw termsError;
 
-    await supabaseAdmin.from('academic_terms').upsert(defaultAcademicTerms, {
-      onConflict: 'school_id,academic_year,term_number',
-    })
+    const { error: academicTermsError } = await supabaseAdmin.from("academic_terms").upsert(defaultAcademicTerms, {
+      onConflict: "school_id,academic_year,term_number",
+    });
+    if (academicTermsError) throw academicTermsError;
   }
 
-  await supabaseAdmin
-    .from('events')
-    .insert(buildUgandaCalendarEvents(schoolId, currentYear))
+  const { error: eventsError } = await supabaseAdmin
+    .from("events")
+    .insert(buildUgandaCalendarEvents(schoolId, currentYear));
+  if (eventsError) throw eventsError;
 }

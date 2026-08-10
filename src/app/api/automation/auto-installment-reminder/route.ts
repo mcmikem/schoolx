@@ -21,6 +21,11 @@ export async function POST(request: NextRequest) {
       .eq("school_id", school.schoolId)
       .eq("status", "active");
 
+    if (plansQuery.error) {
+      logger.error("Installment reminder: failed to fetch payment plans:", plansQuery.error);
+      return NextResponse.json({ error: "Failed to fetch payment plans" }, { status: 500 });
+    }
+
     const plans: any[] = (plansQuery.data || []) as any[];
 
     if (plans.length === 0) {
@@ -32,17 +37,27 @@ export async function POST(request: NextRequest) {
 
     // 2. Get installments and students
     const planIds = plans.map((p: any) => p.id);
-    const { data: installments } = await supabase
+    const { data: installments, error: installmentsError } = await supabase
       .from("payment_plan_installments")
       .select("*")
       .in("plan_id", planIds)
       .eq("paid", false);
 
+    if (installmentsError) {
+      logger.error("Installment reminder: failed to fetch installments:", installmentsError);
+      return NextResponse.json({ error: "Failed to fetch installments" }, { status: 500 });
+    }
+
     const studentIds = Array.from(new Set(plans.map((p) => p.student_id)));
-    const { data: students } = await supabase
+    const { data: students, error: studentsError } = await supabase
       .from("students")
       .select("id, first_name, last_name, parent_phone")
       .in("id", studentIds);
+
+    if (studentsError) {
+      logger.error("Installment reminder: failed to fetch students:", studentsError);
+      return NextResponse.json({ error: "Failed to fetch students" }, { status: 500 });
+    }
 
     // 3. Detect reminders using lib
     const reminders = detectInstallmentReminders({
