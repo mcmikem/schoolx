@@ -39,15 +39,32 @@ export async function GET(request: NextRequest) {
   });
 
   // Verify the token and get the auth user
-  const { data: { user: authUser }, error: authError } = await supabaseAdmin.auth.getUser(authHeader);
+  const {
+    data: { user: authUser },
+    error: authError,
+  } = await supabaseAdmin.auth.getUser(authHeader);
   if (authError || !authUser) {
     return NextResponse.json({ error: "Invalid token" }, { status: 401 });
   }
 
   // Fetch profile from users table using service role (bypasses RLS entirely)
+  // Return a limited set of safe fields to avoid leaking sensitive columns.
   const { data: userData, error: userError } = await supabaseAdmin
     .from("users")
-    .select("*")
+    .select(
+      [
+        "id",
+        "auth_id",
+        "full_name",
+        "role",
+        "email",
+        "phone",
+        "school_id",
+        "is_active",
+        "created_at",
+        "updated_at",
+      ].join(", "),
+    )
     .eq("auth_id", authUser.id)
     .maybeSingle();
 
@@ -62,12 +79,9 @@ export async function GET(request: NextRequest) {
 
   // Fetch school data
   let schoolData = null;
-  if (userData.school_id) {
-    const { data: sd } = await supabaseAdmin
-      .from("schools")
-      .select("*")
-      .eq("id", userData.school_id)
-      .single();
+  const user = userData as any;
+  if (user && user.school_id) {
+    const { data: sd } = await supabaseAdmin.from("schools").select("*").eq("id", user.school_id).single();
     schoolData = sd;
   }
 
