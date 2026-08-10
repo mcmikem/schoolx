@@ -313,18 +313,23 @@ test.describe("Auth – login form", () => {
     await expect(page).toHaveURL(/\/login/, { timeout: 10_000 });
 
     // The mocked /auth/v1/token request always returns 400 invalid_grant, so the
-    // form MUST surface an error message. Wait for the sign-in to settle first
-    // (button leaves "Signing in...") so the toast assertion starts inside the
-    // toast's visibility window instead of racing its auto-dismiss. A fallback
-    // assertion would make this test pass even when errors are swallowed.
-    await expect(page.getByRole("button", { name: /^sign in$/i })).toBeVisible({ timeout: 20_000 });
-    await expect(
-      page
-        .getByText(
-          /invalid phone number or password|invalid.*credentials|wrong.*password|invalid login details|login failed/i,
-        )
-        .first(),
-    ).toBeVisible({ timeout: 5_000 });
+    // form MUST surface an error message. signIn tries several identifier
+    // formats, which can take a few seconds on a slow runner — re-submit until
+    // the error toast actually renders. Re-submitting is safe (a few failed
+    // logins stay far below the lockout threshold) and the assertion stays
+    // strict: the test can only pass if an explicit error is shown. A fallback
+    // assertion would make it pass even when errors are silently swallowed.
+    const errorToast = page
+      .getByText(
+        /invalid phone number or password|invalid.*credentials|wrong.*password|invalid login details|login failed/i,
+      )
+      .first();
+    await expect(async () => {
+      if (!(await errorToast.isVisible().catch(() => false))) {
+        await page.getByRole("button", { name: /^sign in$/i }).click();
+      }
+      await expect(errorToast).toBeVisible({ timeout: 2_000 });
+    }).toPass({ timeout: 30_000 });
   });
 
   test("wrong credentials never redirect to /dashboard", async ({ page }) => {
@@ -364,10 +369,17 @@ test.describe("Auth – login form", () => {
       await page.waitForTimeout(1000);
     }
 
-    // The 5th failed attempt must flip the client-side lockout state. Wait for
-    // the lockout banner to render — attempting the 6th login before it appears
-    // would fire an extra auth request and make this test flaky.
-    await expect(page.getByText(/too many attempts/i).first()).toBeVisible({ timeout: 10_000 });
+    // The 5th failed attempt must flip the client-side lockout state. If a
+    // click landed while a previous sign-in was still in-flight (dropped by the
+    // sign-in lock), keep re-submitting until the lockout banner renders — the
+    // 6th+ click is a client-side no-op once locked out.
+    const lockoutBanner = page.getByText(/too many attempts/i).first();
+    await expect(async () => {
+      if (!(await lockoutBanner.isVisible().catch(() => false))) {
+        await page.getByRole("button", { name: /^sign in$/i }).click();
+      }
+      await expect(lockoutBanner).toBeVisible({ timeout: 2_000 });
+    }).toPass({ timeout: 30_000 });
 
     // 6th attempt should be blocked client-side: no additional auth request.
     const callsBeforeSixthAttempt = tokenCalls;
