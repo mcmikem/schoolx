@@ -64,7 +64,7 @@ export default function PricingPage() {
         <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
           <FadeIn>
             <div className="text-center max-w-3xl mx-auto">
-              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-white px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[#17325F] shadow-sm">
+              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-white px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--brand-ink)] shadow-sm">
                 <MaterialIcon icon="payments" className="text-sm" />
                 Simple, transparent pricing
               </span>
@@ -94,14 +94,14 @@ export default function PricingPage() {
                 <div
                   className={`rounded-[32px] border p-6 h-full flex flex-col ${
                     plan.featured
-                      ? "border-[#17325F]/20 bg-white text-slate-950 shadow-[0_24px_60px_rgba(0,0,0,0.08)]"
+                      ? "border-[var(--brand-ink)]/20 bg-white text-slate-950 shadow-[0_24px_60px_rgba(0,0,0,0.08)]"
                       : "border-slate-200 bg-white"
                   }`}
                 >
                   <div className="flex items-center justify-between">
                     <p className="text-lg font-semibold text-slate-950">{plan.name}</p>
                     {plan.featured && (
-                      <span className="rounded-full bg-[#17325F] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-white">
+                      <span className="rounded-full bg-[var(--brand-ink)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-white">
                         Most chosen
                       </span>
                     )}
@@ -122,7 +122,7 @@ export default function PricingPage() {
                     </p>
                     {plan.features.map((feature) => (
                       <div key={feature} className="flex items-start gap-3">
-                        <MaterialIcon icon="check" className="mt-0.5 text-[18px] text-[#2E9448]" />
+                        <MaterialIcon icon="check" className="mt-0.5 text-[18px] text-[var(--brand-green)]" />
                         <p className="text-sm text-slate-700">{feature}</p>
                       </div>
                     ))}
@@ -158,7 +158,7 @@ export default function PricingPage() {
         </section>
 
         {/* Comparison table */}
-        <section className="bg-[#f2f6fe] py-16 lg:py-24">
+        <section className="bg-[var(--brand-surface-muted)] py-16 lg:py-24">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <FadeIn>
               <div className="text-center mb-10">
@@ -177,7 +177,7 @@ export default function PricingPage() {
                   <thead>
                     <tr className="border-b border-slate-200">
                       <th className="text-left py-3 px-4 font-semibold text-slate-900">Feature</th>
-                      <th className="py-3 px-4 font-bold text-[#2E9448] bg-green-50">SkoolMate</th>
+                      <th className="py-3 px-4 font-bold text-[var(--brand-green)] bg-green-50">SkoolMate</th>
                       <th className="py-3 px-4 text-slate-500">Alt A</th>
                       <th className="py-3 px-4 text-slate-500">Alt B</th>
                       <th className="py-3 px-4 text-slate-500">Alt C</th>

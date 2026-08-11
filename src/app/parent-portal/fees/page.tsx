@@ -294,7 +294,7 @@ export default function ParentFeesPage() {
             },
           ].map((item) => (
             <Card key={item.label}>
-              <CardBody className="flex items-center gap-4 bg-[linear-gradient(180deg,#ffffff_0%,#f9fbff_100%)]">
+              <CardBody className="flex items-center gap-4 bg-[linear-gradient(180deg,var(--portal-surface-tint)_0%,var(--portal-surface)_100%)]">
                 <div className="flex h-12 w-12 items-center justify-center rounded-[16px] bg-[var(--surface-container-low)] border border-[var(--border)]">
                   <MaterialIcon icon={item.icon} className={`text-2xl ${item.color}`} />
                 </div>
@@ -310,7 +310,7 @@ export default function ParentFeesPage() {
         </div>
 
         <Card>
-          <CardBody className="space-y-4 bg-[linear-gradient(180deg,#ffffff_0%,#f7faff_100%)]">
+          <CardBody className="space-y-4 bg-[linear-gradient(180deg,var(--portal-surface-tint)_0%,var(--portal-surface-gray-2)_100%)]">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm font-semibold text-[var(--on-surface)]">Payment Progress</p>

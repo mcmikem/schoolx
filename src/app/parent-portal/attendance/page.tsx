@@ -26,9 +26,7 @@ const STATUS_STYLES: Record<string, string> = {
 export default function ParentAttendancePage() {
   const { user, isDemo } = useAuth();
   const [children, setChildren] = useState<ParentPortalChild[]>([]);
-  const [selectedChild, setSelectedChild] = useState<ParentPortalChild | null>(
-    null,
-  );
+  const [selectedChild, setSelectedChild] = useState<ParentPortalChild | null>(null);
   const [records, setRecords] = useState<ParentPortalAttendanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ present: 0, absent: 0, late: 0, excused: 0, total: 0 });
@@ -54,106 +52,149 @@ export default function ParentAttendancePage() {
     setSelectedChild((current) => resolveSelectedChild(children, current?.id));
   }, [children]);
 
-  const fetchAttendance = useCallback(async (child: ParentPortalChild | null) => {
-    const scopedChild = resolveSelectedChild(children, child?.id);
-    if (!scopedChild) return;
-    setLoading(true);
-    if (isDemo) {
-      const demoRecords = Array.from({ length: 20 }, (_, i) => ({
-        id: `demo-${i}`,
-        date: new Date(Date.now() - i * 86400000).toISOString().split("T")[0],
-        status: ["present", "present", "present", "absent", "late"][i % 5],
-        notes: i % 5 === 3 ? "Parent not informed" : null,
-      }));
-      const normalized = normalizeAttendanceRecords(demoRecords);
+  const fetchAttendance = useCallback(
+    async (child: ParentPortalChild | null) => {
+      const scopedChild = resolveSelectedChild(children, child?.id);
+      if (!scopedChild) return;
+      setLoading(true);
+      if (isDemo) {
+        const demoRecords = Array.from({ length: 20 }, (_, i) => ({
+          id: `demo-${i}`,
+          date: new Date(Date.now() - i * 86400000).toISOString().split("T")[0],
+          status: ["present", "present", "present", "absent", "late"][i % 5],
+          notes: i % 5 === 3 ? "Parent not informed" : null,
+        }));
+        const normalized = normalizeAttendanceRecords(demoRecords);
+        setRecords(normalized);
+        setStats(calculateAttendanceStats(normalized));
+        setLoading(false);
+        return;
+      }
+      const { data } = await supabase
+        .from("attendance")
+        .select("id, date, status, remarks")
+        .eq("student_id", scopedChild.id)
+        .order("date", { ascending: false })
+        .limit(60);
+      const normalized = normalizeAttendanceRecords(data || []);
       setRecords(normalized);
       setStats(calculateAttendanceStats(normalized));
       setLoading(false);
-      return;
-    }
-    const { data } = await supabase
-      .from("attendance")
-      .select("id, date, status, remarks")
-      .eq("student_id", scopedChild.id)
-      .order("date", { ascending: false })
-      .limit(60);
-    const normalized = normalizeAttendanceRecords(data || []);
-    setRecords(normalized);
-    setStats(calculateAttendanceStats(normalized));
-    setLoading(false);
-  }, [isDemo, children]);
+    },
+    [isDemo, children],
+  );
 
-  useEffect(() => { fetchChildren(); }, [fetchChildren]);
-  useEffect(() => { if (selectedChild) fetchAttendance(selectedChild); }, [selectedChild, fetchAttendance]);
+  useEffect(() => {
+    fetchChildren();
+  }, [fetchChildren]);
+  useEffect(() => {
+    if (selectedChild) fetchAttendance(selectedChild);
+  }, [selectedChild, fetchAttendance]);
 
   const attendanceRate = stats.total > 0 ? Math.round(((stats.present + stats.late) / stats.total) * 100) : 0;
 
   return (
     <ParentPortalShell pageTitle="Attendance">
-    <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500">
-      <PageHeader title="Attendance" subtitle="See how often your child is present, absent, or late" variant="premium" />
+      <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto space-y-6 animate-in fade-in duration-500">
+        <PageHeader
+          title="Attendance"
+          subtitle="See how often your child is present, absent, or late"
+          variant="premium"
+        />
 
-      {children.length > 1 && (
-        <div className="flex gap-3 overflow-x-auto pb-1">
-          {children.map((c) => (
-            <button key={c.id} onClick={() => setSelectedChild(c)}
-              className={`rounded-full px-4 py-2 text-sm font-semibold whitespace-nowrap transition-all border ${selectedChild?.id === c.id ? "bg-[var(--primary)] text-[var(--on-primary)] border-transparent shadow-[0_12px_24px_rgba(0,92,230,0.18)]" : "bg-white text-[var(--on-surface-variant)] border-[var(--border)] hover:bg-[var(--surface-container-low)]"}`}>
-              {c.first_name} {c.last_name}
-            </button>
+        {children.length > 1 && (
+          <div className="flex gap-3 overflow-x-auto pb-1">
+            {children.map((c) => (
+              <button
+                key={c.id}
+                onClick={() => setSelectedChild(c)}
+                className={`rounded-full px-4 py-2 text-sm font-semibold whitespace-nowrap transition-all border ${selectedChild?.id === c.id ? "bg-[var(--primary)] text-[var(--on-primary)] border-transparent shadow-[0_12px_24px_rgba(0,92,230,0.18)]" : "bg-white text-[var(--on-surface-variant)] border-[var(--border)] hover:bg-[var(--surface-container-low)]"}`}
+              >
+                {c.first_name} {c.last_name}
+              </button>
+            ))}
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {[
+            {
+              label: "Attendance Rate",
+              value: `${attendanceRate}%`,
+              icon: "percent",
+              color: attendanceRate >= 80 ? "text-emerald-600" : "text-red-600",
+            },
+            { label: "Present", value: stats.present, icon: "check_circle", color: "text-emerald-600" },
+            { label: "Absent", value: stats.absent, icon: "cancel", color: "text-red-600" },
+            { label: "Late", value: stats.late, icon: "schedule", color: "text-amber-600" },
+          ].map((s) => (
+            <Card key={s.label}>
+              <CardBody className="text-center space-y-2 bg-[linear-gradient(180deg,var(--portal-surface-tint)_0%,var(--portal-surface)_100%)]">
+                <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-[15px] border border-[var(--border)] bg-[var(--surface-container-low)]">
+                  <MaterialIcon icon={s.icon} className={`text-xl ${s.color}`} />
+                </div>
+                <p className={`text-2xl font-black ${s.color}`}>{s.value}</p>
+                <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
+                  {s.label}
+                </p>
+              </CardBody>
+            </Card>
           ))}
         </div>
-      )}
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        {[
-          { label: "Attendance Rate", value: `${attendanceRate}%`, icon: "percent", color: attendanceRate >= 80 ? "text-emerald-600" : "text-red-600" },
-          { label: "Present", value: stats.present, icon: "check_circle", color: "text-emerald-600" },
-          { label: "Absent", value: stats.absent, icon: "cancel", color: "text-red-600" },
-          { label: "Late", value: stats.late, icon: "schedule", color: "text-amber-600" },
-        ].map((s) => (
-          <Card key={s.label}>
-            <CardBody className="text-center space-y-2 bg-[linear-gradient(180deg,#ffffff_0%,#f9fbff_100%)]">
-              <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-[15px] border border-[var(--border)] bg-[var(--surface-container-low)]">
-                <MaterialIcon icon={s.icon} className={`text-xl ${s.color}`} />
+        <Card>
+          <CardBody>
+            <h2 className="font-bold text-[var(--on-surface)] mb-4">Recent Records (Last 60 Days)</h2>
+            {loading ? (
+              <div className="space-y-2">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="h-10 bg-[var(--surface-container)] rounded-2xl animate-pulse" />
+                ))}
               </div>
-              <p className={`text-2xl font-black ${s.color}`}>{s.value}</p>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">{s.label}</p>
-            </CardBody>
-          </Card>
-        ))}
-      </div>
-
-      <Card>
-        <CardBody>
-          <h2 className="font-bold text-[var(--on-surface)] mb-4">Recent Records (Last 60 Days)</h2>
-          {loading ? (
-            <div className="space-y-2">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-10 bg-[var(--surface-container)] rounded-2xl animate-pulse" />)}</div>
-          ) : records.length === 0 ? (
-            <p className="text-center text-[var(--on-surface-variant)] py-8">No attendance records found</p>
-          ) : (
-            <div className="space-y-2 max-h-[500px] overflow-y-auto">
-              {records.map((r) => (
-                <div key={r.id} className="flex items-center justify-between p-3 bg-[var(--surface-container-low)] rounded-[18px] border border-[var(--border)]">
-                  <div className="flex items-center gap-3">
-                    <MaterialIcon icon={r.status === "present" ? "check_circle" : r.status === "absent" ? "cancel" : "schedule"}
-                      className={r.status === "present" ? "text-emerald-500" : r.status === "absent" ? "text-red-500" : "text-amber-500"} />
-                    <div>
-                      <p className="font-bold text-sm text-[var(--on-surface)]">
-                        {new Date(r.date).toLocaleDateString("en-GB", { weekday: "short", day: "2-digit", month: "short", year: "numeric" })}
-                      </p>
-                      {r.notes && <p className="text-[10px] text-[var(--on-surface-variant)]">{r.notes}</p>}
+            ) : records.length === 0 ? (
+              <p className="text-center text-[var(--on-surface-variant)] py-8">No attendance records found</p>
+            ) : (
+              <div className="space-y-2 max-h-[500px] overflow-y-auto">
+                {records.map((r) => (
+                  <div
+                    key={r.id}
+                    className="flex items-center justify-between p-3 bg-[var(--surface-container-low)] rounded-[18px] border border-[var(--border)]"
+                  >
+                    <div className="flex items-center gap-3">
+                      <MaterialIcon
+                        icon={r.status === "present" ? "check_circle" : r.status === "absent" ? "cancel" : "schedule"}
+                        className={
+                          r.status === "present"
+                            ? "text-emerald-500"
+                            : r.status === "absent"
+                              ? "text-red-500"
+                              : "text-amber-500"
+                        }
+                      />
+                      <div>
+                        <p className="font-bold text-sm text-[var(--on-surface)]">
+                          {new Date(r.date).toLocaleDateString("en-GB", {
+                            weekday: "short",
+                            day: "2-digit",
+                            month: "short",
+                            year: "numeric",
+                          })}
+                        </p>
+                        {r.notes && <p className="text-[10px] text-[var(--on-surface-variant)]">{r.notes}</p>}
+                      </div>
                     </div>
+                    <span
+                      className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${STATUS_STYLES[r.status] || "bg-gray-50 text-gray-600 border-gray-200"}`}
+                    >
+                      {r.status}
+                    </span>
                   </div>
-                  <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${STATUS_STYLES[r.status] || "bg-gray-50 text-gray-600 border-gray-200"}`}>
-                    {r.status}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardBody>
-      </Card>
-    </div>
+                ))}
+              </div>
+            )}
+          </CardBody>
+        </Card>
+      </div>
     </ParentPortalShell>
   );
 }

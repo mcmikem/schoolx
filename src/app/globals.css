@@ -269,6 +269,106 @@ button {
   transform: scale(0.97);
 }
 
+/* Parent portal semantic tokens — keep themed surfaces/text in sync with dark mode */
+:root {
+  --portal-ink: #17325f;
+  --portal-ink-soft: #60748f;
+  --portal-muted: #7f91aa;
+  --portal-muted-strong: #7c92ae;
+  --portal-border: #e5ecf4;
+  --portal-border-strong: #c5d7f3;
+  --portal-surface: #f8fbff;
+  --portal-surface-alt: #f8fafc;
+  --portal-surface-tint: #f0f6ff;
+  --portal-surface-blue: #eef4ff;
+  --portal-surface-blue-2: #e5effb;
+  --portal-surface-gray: #f6f9fc;
+  --portal-surface-gray-2: #f7faff;
+  --portal-surface-gray-3: #d7e2ef;
+  --portal-success: #1f8a70;
+  --portal-success-soft: #e1f3ee;
+  --portal-success-soft-2: #d7ebe5;
+  --portal-success-faint: #f3fbf8;
+  --portal-success-border: #d7efe3;
+  --portal-danger: #c2472b;
+  --portal-danger-soft: #ffefe8;
+  --portal-danger-border: #f4d2c5;
+  --portal-warning: #ae580c;
+  --portal-warning-soft: #fff8eb;
+  --portal-warning-soft-2: #fff7ed;
+  --portal-warning-border: #fce4c0;
+  --portal-primary: #005ce6;
+  --portal-primary-deep: #0047c2;
+}
+
+[data-theme="dark"] {
+  --portal-ink: #e8ecf1;
+  --portal-ink-soft: #9aa5b4;
+  --portal-muted: #6b7785;
+  --portal-muted-strong: #8a97a8;
+  --portal-border: #2d3640;
+  --portal-border-strong: #3d4a58;
+  --portal-surface: #1a2129;
+  --portal-surface-alt: #141a20;
+  --portal-surface-tint: #16233a;
+  --portal-surface-blue: #1d3050;
+  --portal-surface-blue-2: #243c60;
+  --portal-surface-gray: #1e2630;
+  --portal-surface-gray-2: #1d2530;
+  --portal-surface-gray-3: #2b3442;
+  --portal-success: #7fe0d2;
+  --portal-success-soft: #0d2c29;
+  --portal-success-soft-2: #113a35;
+  --portal-success-faint: #0e2421;
+  --portal-success-border: #1a463d;
+  --portal-danger: #ff7a7a;
+  --portal-danger-soft: #331a1a;
+  --portal-danger-border: #4a2222;
+  --portal-warning: #ffb84d;
+  --portal-warning-soft: #33260f;
+  --portal-warning-soft-2: #3a2a10;
+  --portal-warning-border: #4a3413;
+  --portal-primary: #8ab0f0;
+  --portal-primary-deep: #7ca8f2;
+}
+
+/* Marketing / landing page tokens — brand navy + green identity */
+:root {
+  --brand-ink: #17325f;
+  --brand-navy: #0f1f3d;
+  --brand-navy-deep: #0d1930;
+  --brand-green: #2e9448;
+  --brand-green-soft: #eaf4ed;
+  --brand-green-soft-2: #dff3e5;
+  --brand-border: #d7e4fb;
+  --brand-surface: #f8fbff;
+  --brand-surface-tint: #eef5ff;
+  --brand-surface-blue: #f5f9ff;
+  --brand-surface-blue-soft: #d6e4ff;
+  --brand-surface-muted: #f2f6fe;
+  --brand-surface-cool: #f7f9fc;
+  --brand-whatsapp: #25d366;
+  --brand-accent: #d97706;
+}
+
+[data-theme="dark"] {
+  --brand-ink: #e8ecf1;
+  --brand-navy: #1a2437;
+  --brand-navy-deep: #141b2a;
+  --brand-green: #4ade80;
+  --brand-green-soft: #0d2c1a;
+  --brand-green-soft-2: #113322;
+  --brand-border: #2d3640;
+  --brand-surface: #1a2129;
+  --brand-surface-tint: #1d2530;
+  --brand-surface-blue: #161e29;
+  --brand-surface-blue-soft: #24304a;
+  --brand-surface-muted: #1e2630;
+  --brand-surface-cool: #1c242e;
+  --brand-whatsapp: #4ade80;
+  --brand-accent: #fbbf24;
+}
+
 /* Dark Theme */
 [data-theme="dark"] {
   color-scheme: dark;

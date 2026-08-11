@@ -22,7 +22,7 @@ const featureGroups = [
   {
     title: "Student Management",
     icon: "group",
-    color: "bg-blue-50 text-[#17325F]",
+    color: "bg-blue-50 text-[var(--brand-ink)]",
     features: [
       "Centralized student & parent records",
       "Admission & transfer management",
@@ -34,7 +34,7 @@ const featureGroups = [
   {
     title: "Attendance & Registers",
     icon: "how_to_reg",
-    color: "bg-green-50 text-[#2E9448]",
+    color: "bg-green-50 text-[var(--brand-green)]",
     features: [
       "Daily attendance on any device",
       "Period-by-period class registers",
@@ -58,7 +58,7 @@ const featureGroups = [
   {
     title: "Fees, Payroll & Budgets",
     icon: "payments",
-    color: "bg-amber-50 text-[#d97706]",
+    color: "bg-amber-50 text-[var(--brand-accent)]",
     features: [
       "Fee structure & collection tracking",
       "MTN MoMo & Airtel Money integration",
@@ -138,7 +138,7 @@ export default function FeaturesPage() {
         <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
           <FadeIn>
             <div className="text-center max-w-3xl mx-auto">
-              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-white px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[#17325F] shadow-sm">
+              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-white px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--brand-ink)] shadow-sm">
                 <MaterialIcon icon="travel_explore" className="text-sm" />
                 Everything in one platform
               </span>
@@ -180,7 +180,7 @@ export default function FeaturesPage() {
         </section>
 
         {/* Modules from landing-data */}
-        <section className="bg-[#f2f6fe] py-16 lg:py-24">
+        <section className="bg-[var(--brand-surface-muted)] py-16 lg:py-24">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <FadeIn>
               <div className="text-center max-w-3xl mx-auto">
@@ -195,8 +195,8 @@ export default function FeaturesPage() {
             <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 max-w-4xl mx-auto">
               {modules.map((mod, i) => (
                 <FadeIn key={mod.label} delay={i * 80}>
-                  <div className="rounded-[24px] border border-slate-200 bg-white px-5 py-5 shadow-sm hover:shadow-md hover:border-[#2E9448]/30 transition-all flex items-center gap-4">
-                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#eaf4ed] text-[#2E9448] flex-shrink-0">
+                  <div className="rounded-[24px] border border-slate-200 bg-white px-5 py-5 shadow-sm hover:shadow-md hover:border-[var(--brand-green)]/30 transition-all flex items-center gap-4">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--brand-green-soft)] text-[var(--brand-green)] flex-shrink-0">
                       <MaterialIcon icon={mod.icon} className="text-[22px]" />
                     </div>
                     <p className="text-sm font-semibold text-slate-800">{mod.label}</p>
@@ -222,8 +222,8 @@ export default function FeaturesPage() {
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {securityDetails.map((item, i) => (
               <FadeIn key={item.title} delay={i * 100}>
-                <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md hover:border-[#2E9448]/30 transition-all h-full">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#eaf4ed] text-[#2E9448]">
+                <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md hover:border-[var(--brand-green)]/30 transition-all h-full">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--brand-green-soft)] text-[var(--brand-green)]">
                     <MaterialIcon icon={item.icon} className="text-[24px]" />
                   </div>
                   <h3 className="mt-4 text-lg font-semibold text-slate-900">{item.title}</h3>

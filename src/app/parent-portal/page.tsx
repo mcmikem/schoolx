@@ -442,15 +442,17 @@ function ParentDashboardContent() {
   if (!isAuthorized) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
-        <div className="w-full max-w-md rounded-2xl border border-[#e5ecf4] bg-white p-6 text-center shadow-sm">
-          <div className="mx-auto mb-3 h-12 w-12 rounded-xl bg-[#ffefe8] text-[#c2472b] flex items-center justify-center">
+        <div className="w-full max-w-md rounded-2xl border border-[var(--portal-border)] bg-white p-6 text-center shadow-sm">
+          <div className="mx-auto mb-3 h-12 w-12 rounded-xl bg-[var(--portal-danger-soft)] text-[var(--portal-danger)] flex items-center justify-center">
             <MaterialIcon icon="lock" />
           </div>
-          <h2 className="text-lg font-bold text-[#17325f]">Parent portal access unavailable</h2>
-          <p className="mt-2 text-sm text-[#60748f]">Please contact your school if you believe this is a mistake.</p>
+          <h2 className="text-lg font-bold text-[var(--portal-ink)]">Parent portal access unavailable</h2>
+          <p className="mt-2 text-sm text-[var(--portal-ink-soft)]">
+            Please contact your school if you believe this is a mistake.
+          </p>
           <Link
             href="/dashboard"
-            className="mt-4 inline-flex rounded-xl bg-[#17325f] px-4 py-2 text-sm font-semibold text-white"
+            className="mt-4 inline-flex rounded-xl bg-[var(--portal-ink)] px-4 py-2 text-sm font-semibold text-white"
           >
             Go to dashboard
           </Link>
@@ -480,14 +482,16 @@ function ParentDashboardContent() {
 
         <div className="p-4 sm:p-6 lg:p-8 flex-1 overflow-y-auto">
           <div className="max-w-6xl mx-auto space-y-8">
-            <section className="rounded-[28px] border border-[#e5ecf4] bg-white p-6 shadow-sm">
+            <section className="rounded-[28px] border border-[var(--portal-border)] bg-white p-6 shadow-sm">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#7f91aa]">Parent Portal</p>
-                  <h1 className="mt-2 text-3xl font-bold text-[#17325f]">
+                  <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--portal-muted)]">
+                    Parent Portal
+                  </p>
+                  <h1 className="mt-2 text-3xl font-bold text-[var(--portal-ink)]">
                     Welcome back, {user?.full_name?.split(" ")[0] || "Parent"}
                   </h1>
-                  <p className="mt-3 max-w-2xl text-base text-[#60748f]">
+                  <p className="mt-3 max-w-2xl text-base text-[var(--portal-ink-soft)]">
                     Keep track of your child&apos;s attendance, fees, homework, and school updates in one place.
                   </p>
                 </div>
@@ -495,21 +499,21 @@ function ParentDashboardContent() {
                   <button
                     type="button"
                     onClick={() => selectedChild && router.push(`/parent-portal/fees?child=${selectedChild.id}`)}
-                    className="rounded-2xl bg-[#eef4ff] px-4 py-3 text-sm font-semibold text-[#17325f] transition hover:bg-[#d9e7fb]"
+                    className="rounded-2xl bg-[var(--portal-surface-blue)] px-4 py-3 text-sm font-semibold text-[var(--portal-ink)] transition hover:bg-[var(--portal-border)]"
                   >
                     Pay fees
                   </button>
                   <button
                     type="button"
                     onClick={() => selectedChild && router.push(`/parent-portal/attendance?child=${selectedChild.id}`)}
-                    className="rounded-2xl bg-[#f8fafc] px-4 py-3 text-sm font-semibold text-[#17325f] transition hover:bg-[#e5effb]"
+                    className="rounded-2xl bg-[var(--portal-surface-alt)] px-4 py-3 text-sm font-semibold text-[var(--portal-ink)] transition hover:bg-[var(--portal-surface-blue-2)]"
                   >
                     Attendance
                   </button>
                   <button
                     type="button"
                     onClick={() => handleSignOut()}
-                    className="rounded-2xl bg-[#fff7ed] px-4 py-3 text-sm font-semibold text-[#ae580c] transition hover:bg-[#fce4c0]"
+                    className="rounded-2xl bg-[var(--portal-warning-soft-2)] px-4 py-3 text-sm font-semibold text-[var(--portal-warning)] transition hover:bg-[var(--portal-warning-border)]"
                   >
                     Sign out
                   </button>
@@ -522,11 +526,11 @@ function ParentDashboardContent() {
                 <OwlMascot size={52} premium ring glow animated />
               </div>
             ) : children.length === 0 ? (
-              <div className="text-center py-10 rounded-[28px] border border-[#e5ecf4] bg-white p-8 shadow-sm">
+              <div className="text-center py-10 rounded-[28px] border border-[var(--portal-border)] bg-white p-8 shadow-sm">
                 <OwlMascot size={56} premium ring glow animated />
-                <h3 className="text-lg font-bold mt-4 text-[#17325f]">No learners linked yet</h3>
-                <p className="text-sm text-[#60748f] mt-1">Your phone on file: {user?.phone || "N/A"}</p>
-                <p className="text-sm text-[#60748f] mt-2">
+                <h3 className="text-lg font-bold mt-4 text-[var(--portal-ink)]">No learners linked yet</h3>
+                <p className="text-sm text-[var(--portal-ink-soft)] mt-1">Your phone on file: {user?.phone || "N/A"}</p>
+                <p className="text-sm text-[var(--portal-ink-soft)] mt-2">
                   Contact the school office to link your account and access the portal.
                 </p>
               </div>
@@ -534,16 +538,18 @@ function ParentDashboardContent() {
               <div className="space-y-8">
                 <section
                   aria-labelledby="learner-selector"
-                  className="rounded-[28px] border border-[#e5ecf4] bg-white p-4 shadow-sm"
+                  className="rounded-[28px] border border-[var(--portal-border)] bg-white p-4 shadow-sm"
                 >
                   <div className="flex items-center justify-between gap-4 pb-4">
                     <div>
-                      <p className="text-sm font-semibold uppercase tracking-[0.20em] text-[#7f91aa]">Learners</p>
-                      <h2 id="learner-selector" className="mt-2 text-xl font-bold text-[#17325f]">
+                      <p className="text-sm font-semibold uppercase tracking-[0.20em] text-[var(--portal-muted)]">
+                        Learners
+                      </p>
+                      <h2 id="learner-selector" className="mt-2 text-xl font-bold text-[var(--portal-ink)]">
                         Choose a learner to view details
                       </h2>
                     </div>
-                    <p className="text-sm text-[#60748f]">Tap a card to switch learner data.</p>
+                    <p className="text-sm text-[var(--portal-ink-soft)]">Tap a card to switch learner data.</p>
                   </div>
                   <div className="flex gap-3 overflow-x-auto pb-2">
                     {children.map((child) => {
@@ -554,11 +560,11 @@ function ParentDashboardContent() {
                           onClick={() => setSelectedChild(child)}
                           className={`shrink-0 rounded-[24px] border-2 p-4 min-w-[160px] text-left transition-all ${
                             isSelected
-                              ? "border-[#17325f] bg-[#f0f6ff] shadow-md"
-                              : "border-[#e5ecf4] bg-white hover:border-[#c5d7f3]"
+                              ? "border-[var(--portal-ink)] bg-[var(--portal-surface-tint)] shadow-md"
+                              : "border-[var(--portal-border)] bg-white hover:border-[var(--portal-border-strong)]"
                           }`}
                         >
-                          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-[#17325f] text-xl font-bold text-white">
+                          <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-[var(--portal-ink)] text-xl font-bold text-white">
                             {child.photo_url ? (
                               <Image
                                 src={child.photo_url}
@@ -571,10 +577,10 @@ function ParentDashboardContent() {
                               <span>{child.first_name?.[0] || child.last_name?.[0] || "?"}</span>
                             )}
                           </div>
-                          <p className="text-sm font-bold text-[#17325f] text-center">
+                          <p className="text-sm font-bold text-[var(--portal-ink)] text-center">
                             {child.first_name} {child.last_name}
                           </p>
-                          <p className="text-[11px] text-[#7f91aa] text-center">{child.class_name}</p>
+                          <p className="text-[11px] text-[var(--portal-muted)] text-center">{child.class_name}</p>
                         </button>
                       );
                     })}
@@ -585,60 +591,60 @@ function ParentDashboardContent() {
                   <div className="grid gap-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <article
-                        className={`rounded-[28px] border p-5 ${attendanceStatus === "present" ? "bg-[#e1f3ee] border-[#d7efe3]" : "bg-[#f6f9fc] border-[#d7e2ef]"}`}
+                        className={`rounded-[28px] border p-5 ${attendanceStatus === "present" ? "bg-[var(--portal-success-soft)] border-[var(--portal-success-border)]" : "bg-[var(--portal-surface-gray)] border-[var(--portal-surface-gray-3)]"}`}
                       >
                         <div className="flex items-center justify-between gap-4">
                           <div>
-                            <p className="text-xs font-semibold uppercase tracking-[0.20em] text-[#7f91aa]">
+                            <p className="text-xs font-semibold uppercase tracking-[0.20em] text-[var(--portal-muted)]">
                               Attendance
                             </p>
-                            <p className="mt-3 text-xl font-bold text-[#17325f]">
+                            <p className="mt-3 text-xl font-bold text-[var(--portal-ink)]">
                               {attendanceStatus === "present" ? "Present" : "Not recorded"}
                             </p>
                           </div>
                           <span
-                            className={`material-symbols-outlined text-4xl ${attendanceStatus === "present" ? "text-[#1f8a70]" : "text-[#7c92ae]"}`}
+                            className={`material-symbols-outlined text-4xl ${attendanceStatus === "present" ? "text-[var(--portal-success)]" : "text-[var(--portal-muted-strong)]"}`}
                           >
                             {attendanceStatus === "present" ? "check_circle" : "help"}
                           </span>
                         </div>
                       </article>
                       <article
-                        className={`rounded-[28px] border p-5 ${hasFeeBalance ? "bg-[#ffefe8] border-[#f4d2c5]" : "bg-[#e1f3ee] border-[#d7ebe5]"}`}
+                        className={`rounded-[28px] border p-5 ${hasFeeBalance ? "bg-[var(--portal-danger-soft)] border-[var(--portal-danger-border)]" : "bg-[var(--portal-success-soft)] border-[var(--portal-success-soft-2)]"}`}
                       >
                         <div className="flex items-center justify-between gap-4">
                           <div>
-                            <p className="text-xs font-semibold uppercase tracking-[0.20em] text-[#7f91aa]">
+                            <p className="text-xs font-semibold uppercase tracking-[0.20em] text-[var(--portal-muted)]">
                               Fee Balance
                             </p>
                             <p
-                              className={`mt-3 text-xl font-bold ${hasFeeBalance ? "text-[#c2472b]" : "text-[#1f8a70]"}`}
+                              className={`mt-3 text-xl font-bold ${hasFeeBalance ? "text-[var(--portal-danger)]" : "text-[var(--portal-success)]"}`}
                             >
                               {hasFeeBalance ? `UGX ${feeStats.balance?.toLocaleString()}` : "Cleared"}
                             </p>
                           </div>
-                          <span className="material-symbols-outlined text-4xl text-[#17325f]">payments</span>
+                          <span className="material-symbols-outlined text-4xl text-[var(--portal-ink)]">payments</span>
                         </div>
-                        <p className="mt-3 text-sm text-[#60748f]">
+                        <p className="mt-3 text-sm text-[var(--portal-ink-soft)]">
                           Total fee: UGX {feeStats.totalFee?.toLocaleString()}
                         </p>
                       </article>
                     </div>
 
-                    <article className="rounded-[28px] border border-[#e5ecf4] bg-white p-6 shadow-sm">
+                    <article className="rounded-[28px] border border-[var(--portal-border)] bg-white p-6 shadow-sm">
                       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                         <div>
-                          <p className="text-sm font-semibold uppercase tracking-[0.20em] text-[#7f91aa]">
+                          <p className="text-sm font-semibold uppercase tracking-[0.20em] text-[var(--portal-muted)]">
                             Quick Actions
                           </p>
-                          <p className="mt-2 text-sm text-[#60748f]">
+                          <p className="mt-2 text-sm text-[var(--portal-ink-soft)]">
                             Jump to the most important sections for this learner.
                           </p>
                         </div>
                         <button
                           type="button"
                           onClick={() => handlePayFees()}
-                          className="rounded-2xl bg-[#005ce6] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#0047c2]"
+                          className="rounded-2xl bg-[var(--portal-primary)] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[var(--portal-primary-deep)]"
                         >
                           View fee details
                         </button>
@@ -647,21 +653,21 @@ function ParentDashboardContent() {
                       <div className="mt-5 grid gap-3 sm:grid-cols-2">
                         <Link
                           href={`/parent-portal/attendance${selectedChild ? `?child=${selectedChild.id}` : ""}`}
-                          className="flex items-center gap-3 rounded-2xl border border-[#e5ecf4] bg-[#f8fbff] p-4 text-sm font-semibold text-[#17325f] hover:border-[#c5d7f3]"
+                          className="flex items-center gap-3 rounded-2xl border border-[var(--portal-border)] bg-[var(--portal-surface)] p-4 text-sm font-semibold text-[var(--portal-ink)] hover:border-[var(--portal-border-strong)]"
                         >
                           <span className="material-symbols-outlined text-[26px]">how_to_reg</span>
                           Attendance
                         </Link>
                         <Link
                           href={`/parent-portal/homework${selectedChild ? `?child=${selectedChild.id}` : ""}`}
-                          className="flex items-center gap-3 rounded-2xl border border-[#e5ecf4] bg-[#f8fbff] p-4 text-sm font-semibold text-[#17325f] hover:border-[#c5d7f3]"
+                          className="flex items-center gap-3 rounded-2xl border border-[var(--portal-border)] bg-[var(--portal-surface)] p-4 text-sm font-semibold text-[var(--portal-ink)] hover:border-[var(--portal-border-strong)]"
                         >
                           <span className="material-symbols-outlined text-[26px]">assignment</span>
                           Homework
                         </Link>
                         <Link
                           href={`/parent-portal/academics${selectedChild ? `?child=${selectedChild.id}` : ""}`}
-                          className="flex items-center gap-3 rounded-2xl border border-[#e5ecf4] bg-[#f8fbff] p-4 text-sm font-semibold text-[#17325f] hover:border-[#c5d7f3]"
+                          className="flex items-center gap-3 rounded-2xl border border-[var(--portal-border)] bg-[var(--portal-surface)] p-4 text-sm font-semibold text-[var(--portal-ink)] hover:border-[var(--portal-border-strong)]"
                         >
                           <span className="material-symbols-outlined text-[26px]">grade</span>
                           Grades
@@ -669,7 +675,7 @@ function ParentDashboardContent() {
                         <button
                           type="button"
                           onClick={() => setShowTopup(true)}
-                          className="flex items-center gap-3 rounded-2xl border border-[#e5ecf4] bg-[#f8fbff] p-4 text-sm font-semibold text-[#17325f] hover:border-[#c5d7f3]"
+                          className="flex items-center gap-3 rounded-2xl border border-[var(--portal-border)] bg-[var(--portal-surface)] p-4 text-sm font-semibold text-[var(--portal-ink)] hover:border-[var(--portal-border-strong)]"
                         >
                           <span className="material-symbols-outlined text-[26px]">wallet</span>
                           Add pocket money
@@ -679,26 +685,28 @@ function ParentDashboardContent() {
                   </div>
 
                   <aside className="space-y-4">
-                    <article className="rounded-[28px] border border-[#e5ecf4] bg-white p-6 shadow-sm">
-                      <p className="text-sm font-semibold uppercase tracking-[0.20em] text-[#7f91aa]">
+                    <article className="rounded-[28px] border border-[var(--portal-border)] bg-white p-6 shadow-sm">
+                      <p className="text-sm font-semibold uppercase tracking-[0.20em] text-[var(--portal-muted)]">
                         Important alerts
                       </p>
                       <div className="mt-4 space-y-3">
-                        <div className="rounded-2xl bg-[#fff8eb] p-4">
-                          <p className="text-sm font-semibold text-[#ae580c]">
+                        <div className="rounded-2xl bg-[var(--portal-warning-soft)] p-4">
+                          <p className="text-sm font-semibold text-[var(--portal-warning)]">
                             {urgentUnreads ? `You have ${unreadCount} unread notification(s)` : "No new notifications"}
                           </p>
                         </div>
-                        <div className="rounded-2xl bg-[#f3fbf8] p-4">
-                          <p className="text-sm text-[#17325f]">
+                        <div className="rounded-2xl bg-[var(--portal-success-faint)] p-4">
+                          <p className="text-sm text-[var(--portal-ink)]">
                             {hasFeeBalance ? "Please settle your fee balance soon." : "Fee account is up to date."}
                           </p>
                         </div>
                       </div>
                     </article>
-                    <article className="rounded-[28px] border border-[#e5ecf4] bg-white p-6 shadow-sm">
-                      <p className="text-sm font-semibold uppercase tracking-[0.20em] text-[#7f91aa]">Next steps</p>
-                      <ol className="mt-3 space-y-3 text-sm text-[#60748f]">
+                    <article className="rounded-[28px] border border-[var(--portal-border)] bg-white p-6 shadow-sm">
+                      <p className="text-sm font-semibold uppercase tracking-[0.20em] text-[var(--portal-muted)]">
+                        Next steps
+                      </p>
+                      <ol className="mt-3 space-y-3 text-sm text-[var(--portal-ink-soft)]">
                         <li>• Check today's attendance</li>
                         <li>• Review recent notifications</li>
                         <li>• Pay any outstanding fees</li>

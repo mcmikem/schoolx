@@ -172,8 +172,8 @@ export default function HomePage() {
         {/* ===== HERO ===== */}
         <section className="relative overflow-hidden">
           <div className="absolute inset-x-0 top-0 h-[620px] bg-[radial-gradient(circle_at_top_left,_rgba(23,50,95,0.13),_transparent_42%),radial-gradient(circle_at_top_right,_rgba(46,148,72,0.10),_transparent_38%),linear-gradient(180deg,_#ffffff_0%,_var(--bg)_72%)]" />
-          <div className="absolute left-[8%] top-24 h-40 w-40 rounded-full bg-[#d6e4ff] blur-3xl opacity-50" />
-          <div className="absolute right-[10%] top-40 h-48 w-48 rounded-full bg-[#dff3e5] blur-3xl opacity-50" />
+          <div className="absolute left-[8%] top-24 h-40 w-40 rounded-full bg-[var(--brand-surface-blue-soft)] blur-3xl opacity-50" />
+          <div className="absolute right-[10%] top-40 h-48 w-48 rounded-full bg-[var(--brand-green-soft-2)] blur-3xl opacity-50" />
 
           <div className="relative mx-auto max-w-7xl px-4 pb-16 pt-5 sm:px-6 lg:px-8 lg:pb-24">
             {/* Nav */}
@@ -365,7 +365,7 @@ export default function HomePage() {
                 <div className="desktop-stage relative z-0 hidden lg:block lg:ml-16">
                   <LaptopMockup />
                 </div>
-                <div className="floating-callout absolute bottom-5 left-3 z-20 rounded-[24px] border border-[#d7e4fb] bg-white/92 px-4 py-3 shadow-[0_22px_55px_rgba(15,23,42,0.12)] backdrop-blur md:block hidden">
+                <div className="floating-callout absolute bottom-5 left-3 z-20 rounded-[24px] border border-[var(--brand-border)] bg-white/92 px-4 py-3 shadow-[0_22px_55px_rgba(15,23,42,0.12)] backdrop-blur md:block hidden">
                   <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--primary)]">
                     From registers to reports
                   </p>
@@ -383,7 +383,9 @@ export default function HomePage() {
         <section className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
           <FadeIn>
             <div className="text-center mb-10">
-              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">Get started in 3 steps</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--brand-ink)]">
+                Get started in 3 steps
+              </p>
               <h2 className="mt-3 font-['Sora'] text-2xl font-semibold text-slate-950 sm:text-3xl">
                 From signup to running your school
               </h2>
@@ -411,10 +413,10 @@ export default function HomePage() {
               ].map((item, i) => (
                 <FadeIn key={item.step} delay={i * 150}>
                   <div className="relative rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-shadow text-center">
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-7 h-7 rounded-full bg-[#17325F] text-white text-xs font-bold flex items-center justify-center">
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-7 h-7 rounded-full bg-[var(--brand-ink)] text-white text-xs font-bold flex items-center justify-center">
                       {item.step}
                     </div>
-                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#eaf4ed] text-[#2E9448] mx-auto mt-2">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--brand-green-soft)] text-[var(--brand-green)] mx-auto mt-2">
                       <MaterialIcon icon={item.icon} className="text-[26px]" />
                     </div>
                     <h3 className="mt-4 text-base font-semibold text-slate-900">{item.title}</h3>
@@ -427,13 +429,13 @@ export default function HomePage() {
         </section>
 
         {/* ===== INTERACTIVE DASHBOARD PREVIEW (Reciprocity) ===== */}
-        <section className="relative overflow-hidden bg-[#f2f6fe] py-18 sm:py-24">
-          <div className="absolute top-[-20%] right-[-10%] h-[60%] w-[50%] rounded-full bg-[#d6e4ff] blur-[120px] opacity-40" />
-          <div className="absolute bottom-[-20%] left-[-10%] h-[50%] w-[40%] rounded-full bg-[#dff3e5] blur-[120px] opacity-30" />
+        <section className="relative overflow-hidden bg-[var(--brand-surface-muted)] py-18 sm:py-24">
+          <div className="absolute top-[-20%] right-[-10%] h-[60%] w-[50%] rounded-full bg-[var(--brand-surface-blue-soft)] blur-[120px] opacity-40" />
+          <div className="absolute bottom-[-20%] left-[-10%] h-[50%] w-[40%] rounded-full bg-[var(--brand-green-soft-2)] blur-[120px] opacity-30" />
           <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <FadeIn>
               <div className="text-center mb-4">
-                <span className="inline-flex items-center gap-2 rounded-full border border-[#17325F]/10 bg-white px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[#17325F] shadow-sm">
+                <span className="inline-flex items-center gap-2 rounded-full border border-[var(--brand-ink)]/10 bg-white px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--brand-ink)] shadow-sm">
                   <MaterialIcon icon="travel_explore" className="text-sm" />
                   See it for yourself
                 </span>
@@ -441,7 +443,7 @@ export default function HomePage() {
               <h2 className="text-center font-['Sora'] text-3xl font-semibold tracking-[-0.03em] text-slate-950 sm:text-4xl">
                 Your school dashboard,
                 <br />
-                <span className="text-[#2E9448]">fully interactive</span>
+                <span className="text-[var(--brand-green)]">fully interactive</span>
               </h2>
               <p className="mx-auto mt-4 max-w-2xl text-center text-lg text-slate-600">
                 Click through the tabs below. This is exactly what you and your staff will see every morning — no
@@ -473,7 +475,7 @@ export default function HomePage() {
         <section id="story" className="mx-auto max-w-7xl px-4 py-18 sm:px-6 lg:px-8 lg:py-24">
           <div className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
             <FadeIn>
-              <div className="rounded-[34px] bg-[#0f1f3d] p-7 text-white shadow-[0_24px_60px_rgba(15,23,42,0.16)] lg:p-8">
+              <div className="rounded-[34px] bg-[var(--brand-navy)] p-7 text-white shadow-[0_24px_60px_rgba(15,23,42,0.16)] lg:p-8">
                 <p className="text-sm font-semibold uppercase tracking-[0.24em] text-white/60">
                   The story behind SkoolMate OS
                 </p>
@@ -498,7 +500,7 @@ export default function HomePage() {
             <div className="grid gap-5">
               <FadeIn>
                 <div className="rounded-[34px] border border-slate-200 bg-white p-6 shadow-sm lg:p-8">
-                  <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">
+                  <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--brand-ink)]">
                     What became obvious
                   </p>
                   <h3 className="mt-4 font-['Sora'] text-2xl font-semibold leading-tight tracking-[-0.03em] text-slate-950">
@@ -515,8 +517,8 @@ export default function HomePage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 {storyPrinciples.map((item, i) => (
                   <FadeIn key={item.label} delay={i * 100}>
-                    <div className="story-card rounded-[28px] border border-slate-200 bg-[#f8fbff] p-5 shadow-sm h-full">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#17325F]/8 text-[#17325F]">
+                    <div className="story-card rounded-[28px] border border-slate-200 bg-[var(--brand-surface)] p-5 shadow-sm h-full">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--brand-ink)]/8 text-[var(--brand-ink)]">
                         <MaterialIcon icon={item.icon} className="text-[20px]" />
                       </div>
                       <p className="mt-4 text-base font-semibold leading-7 text-slate-900">{item.label}</p>
@@ -526,8 +528,8 @@ export default function HomePage() {
               </div>
 
               <FadeIn delay={200}>
-                <div className="rounded-[34px] border border-[#d7e4fb] bg-[linear-gradient(180deg,#ffffff_0%,#f5f9ff_100%)] p-6 shadow-sm lg:p-8">
-                  <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">
+                <div className="rounded-[34px] border border-[var(--brand-border)] bg-[linear-gradient(180deg,var(--brand-surface-tint)_0%,var(--brand-surface-blue)_100%)] p-6 shadow-sm lg:p-8">
+                  <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--brand-ink)]">
                     What changes when the system runs well
                   </p>
                   <p className="mt-4 text-base leading-7 text-slate-600">
@@ -547,7 +549,9 @@ export default function HomePage() {
           <FadeIn>
             <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
               <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">Inside the platform</p>
+                <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--brand-ink)]">
+                  Inside the platform
+                </p>
                 <h2 className="mt-4 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] text-slate-950 sm:text-4xl">
                   Every major school unit connected in one system.
                 </h2>
@@ -561,9 +565,9 @@ export default function HomePage() {
               <div className="grid gap-3 sm:grid-cols-2">
                 {modules.map((module, i) => (
                   <FadeIn key={module.label} delay={i * 80}>
-                    <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-4 shadow-sm hover:shadow-md hover:border-[#2E9448]/30 transition-all cursor-default">
+                    <div className="rounded-[24px] border border-slate-200 bg-white px-4 py-4 shadow-sm hover:shadow-md hover:border-[var(--brand-green)]/30 transition-all cursor-default">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#eaf4ed] text-[#2E9448]">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--brand-green-soft)] text-[var(--brand-green)]">
                           <MaterialIcon icon={module.icon} className="text-[20px]" />
                         </div>
                         <p className="text-sm font-semibold text-slate-800">{module.label}</p>
@@ -580,7 +584,9 @@ export default function HomePage() {
         <section id="install" className="mx-auto max-w-7xl px-4 py-18 sm:px-6 lg:px-8 lg:py-24">
           <FadeIn>
             <div className="text-center mb-10">
-              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">Install on any device</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--brand-ink)]">
+                Install on any device
+              </p>
               <h2 className="mt-3 font-['Sora'] text-2xl font-semibold text-slate-950 sm:text-3xl">
                 Use SkoolMate OS everywhere
               </h2>
@@ -639,7 +645,7 @@ export default function HomePage() {
             <FadeIn>
               <div className="grid gap-8 lg:grid-cols-[0.88fr_1.12fr] lg:items-start">
                 <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">
+                  <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--brand-ink)]">
                     SkoolMate OS and OSX
                   </p>
                   <h2 className="mt-4 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] text-slate-950 sm:text-4xl">
@@ -653,7 +659,7 @@ export default function HomePage() {
                 </div>
 
                 <div className="grid gap-4">
-                  <div className="rounded-[32px] border border-slate-200 bg-[#f7f9fc] p-6 shadow-sm lg:p-8">
+                  <div className="rounded-[32px] border border-slate-200 bg-[var(--brand-surface-cool)] p-6 shadow-sm lg:p-8">
                     <div className="grid gap-4 md:grid-cols-2">
                       <div className="rounded-[24px] bg-white p-5 ring-1 ring-slate-200 hover:shadow-md transition-shadow">
                         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">OSX</p>
@@ -665,7 +671,7 @@ export default function HomePage() {
                           operate, but perform.
                         </p>
                       </div>
-                      <div className="rounded-[24px] bg-[#17325F] p-5 text-white hover:shadow-lg transition-shadow">
+                      <div className="rounded-[24px] bg-[var(--brand-ink)] p-5 text-white hover:shadow-lg transition-shadow">
                         <p className="text-xs font-semibold uppercase tracking-[0.22em] text-white/60">SkoolMate OS</p>
                         <p className="mt-3 text-xl font-semibold tracking-tight">Sustains it daily</p>
                         <p className="mt-3 text-sm leading-6 text-white/76">
@@ -679,7 +685,7 @@ export default function HomePage() {
                   {osxLinks.map((item, i) => (
                     <FadeIn key={item} delay={i * 100}>
                       <div className="story-card flex items-start gap-3 rounded-[26px] border border-slate-200 bg-white px-5 py-4 shadow-sm hover:shadow-md transition-shadow">
-                        <div className="mt-1 flex h-10 w-10 items-center justify-center rounded-2xl bg-[#eaf4ed] text-[#2E9448] flex-shrink-0">
+                        <div className="mt-1 flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--brand-green-soft)] text-[var(--brand-green)] flex-shrink-0">
                           <MaterialIcon icon="north_east" className="text-[18px]" />
                         </div>
                         <p className="text-sm leading-6 text-slate-700">{item}</p>
@@ -687,8 +693,10 @@ export default function HomePage() {
                     </FadeIn>
                   ))}
 
-                  <div className="rounded-[30px] border border-[#d7e4fb] bg-[linear-gradient(180deg,#f8fbff_0%,#eef5ff_100%)] p-6">
-                    <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">The result</p>
+                  <div className="rounded-[30px] border border-[var(--brand-border)] bg-[linear-gradient(180deg,var(--brand-surface)_0%,var(--brand-surface-tint)_100%)] p-6">
+                    <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--brand-ink)]">
+                      The result
+                    </p>
                     <p className="mt-4 text-base leading-7 text-slate-700">
                       Together, OSX drives the transformation and SkoolMate OS makes it visible, usable, and measurable.
                       That is the complete school experience: organised systems, informed decisions, earlier support,
@@ -705,7 +713,7 @@ export default function HomePage() {
         <section id="security" className="mx-auto max-w-7xl px-4 py-18 sm:px-6 lg:px-8 lg:py-24">
           <FadeIn>
             <div className="text-center mb-14">
-              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--brand-ink)]">
                 Security &amp; Data Protection
               </p>
               <h2 className="mt-4 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] text-slate-950 sm:text-4xl">
@@ -721,8 +729,8 @@ export default function HomePage() {
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {securityDetails.map((feature, i) => (
               <FadeIn key={feature.title} delay={i * 100}>
-                <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md hover:border-[#2E9448]/30 transition-all h-full">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#eaf4ed] text-[#2E9448]">
+                <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md hover:border-[var(--brand-green)]/30 transition-all h-full">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--brand-green-soft)] text-[var(--brand-green)]">
                     <MaterialIcon icon={feature.icon} className="text-[24px]" />
                   </div>
                   <h3 className="mt-4 text-lg font-semibold text-slate-900">{feature.title}</h3>
@@ -734,7 +742,7 @@ export default function HomePage() {
         </section>
 
         {/* ===== PRICING ===== */}
-        <section id="pricing" className="relative bg-[#0d1930] py-18 text-white lg:py-24">
+        <section id="pricing" className="relative bg-[var(--brand-navy-deep)] py-18 text-white lg:py-24">
           <div className="absolute top-8 left-8 opacity-30">
             <AnimatedLogo type="logo_white" className="w-16 h-16" />
           </div>
@@ -774,7 +782,7 @@ export default function HomePage() {
                         {plan.name}
                       </p>
                       {plan.featured && (
-                        <span className="rounded-full bg-[#17325F] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-white">
+                        <span className="rounded-full bg-[var(--brand-ink)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-white">
                           Most chosen
                         </span>
                       )}
@@ -796,7 +804,7 @@ export default function HomePage() {
                       {plan.contrastLabel}
                     </p>
                     <p
-                      className={`mt-2 text-xs font-semibold uppercase tracking-wider ${plan.featured ? "text-[#2E9448]" : "text-white/80"}`}
+                      className={`mt-2 text-xs font-semibold uppercase tracking-wider ${plan.featured ? "text-[var(--brand-green)]" : "text-white/80"}`}
                     >
                       {plan.bestFor}
                     </p>
@@ -810,7 +818,7 @@ export default function HomePage() {
                         <div key={feature} className="flex items-start gap-3">
                           <MaterialIcon
                             icon="check"
-                            className={`mt-0.5 text-[18px] ${plan.featured ? "text-[#2E9448]" : "text-white"}`}
+                            className={`mt-0.5 text-[18px] ${plan.featured ? "text-[var(--brand-green)]" : "text-white"}`}
                           />
                           <p className={`text-sm ${plan.featured ? "text-slate-700" : "text-white/80"}`}>{feature}</p>
                         </div>
@@ -856,7 +864,9 @@ export default function HomePage() {
         <section id="comparison" className="mx-auto max-w-7xl px-4 py-18 sm:px-6 lg:py-24">
           <FadeIn>
             <div className="text-center mb-10">
-              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">Feature Comparison</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--brand-ink)]">
+                Feature Comparison
+              </p>
               <h2 className="mt-3 font-['Sora'] text-2xl font-semibold text-slate-950 sm:text-3xl">
                 How SkoolMate OS compares
               </h2>
@@ -872,7 +882,7 @@ export default function HomePage() {
                 <thead>
                   <tr className="border-b border-slate-200">
                     <th className="text-left py-3 px-4 font-semibold text-slate-900">Feature</th>
-                    <th className="py-3 px-4 font-bold text-[#2E9448] bg-green-50">SkoolMate</th>
+                    <th className="py-3 px-4 font-bold text-[var(--brand-green)] bg-green-50">SkoolMate</th>
                     <th className="py-3 px-4 text-slate-500">Alt A</th>
                     <th className="py-3 px-4 text-slate-500">Alt B</th>
                     <th className="py-3 px-4 text-slate-500">Alt C</th>
@@ -909,7 +919,7 @@ export default function HomePage() {
         <section id="faq" className="mx-auto max-w-3xl px-4 py-18 sm:px-6 lg:px-8 lg:py-24">
           <FadeIn>
             <div className="text-center mb-10">
-              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--brand-ink)]">
                 Frequently asked questions
               </p>
               <h2 className="mt-3 font-['Sora'] text-2xl font-semibold text-slate-950 sm:text-3xl">
@@ -965,19 +975,19 @@ export default function HomePage() {
                 </p>
                 <div className="mt-6 space-y-2">
                   <div className="flex items-center gap-2 text-sm text-slate-600">
-                    <MaterialIcon icon="mail" className="text-[14px] text-[#17325F]" />
+                    <MaterialIcon icon="mail" className="text-[14px] text-[var(--brand-ink)]" />
                     <a href="mailto:os@omuto.org" className="hover:text-slate-900 transition">
                       os@omuto.org
                     </a>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-slate-600">
-                    <MaterialIcon icon="phone" className="text-[14px] text-[#17325F]" />
+                    <MaterialIcon icon="phone" className="text-[14px] text-[var(--brand-ink)]" />
                     <a href="tel:0750028703" className="hover:text-slate-900 transition">
                       0750 028 703
                     </a>
                   </div>
                   <div className="flex items-center gap-2 text-sm text-slate-600">
-                    <MaterialIcon icon="chat" className="text-[14px] text-[#25D366]" />
+                    <MaterialIcon icon="chat" className="text-[14px] text-[var(--brand-whatsapp)]" />
                     <a
                       href="https://wa.me/256750028703"
                       target="_blank"
