@@ -632,7 +632,15 @@ CREATE TABLE IF NOT EXISTS canteen_orders (
 );
 ALTER TABLE canteen_orders ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "School users canteen_orders all" ON canteen_orders;
-CREATE POLICY "School users canteen_orders all" ON canteen_orders FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+CREATE POLICY "School users canteen_orders all" ON canteen_orders FOR ALL TO authenticated
+USING (
+  (school_id = my_school_id() AND is_staff_role())
+  OR student_id IN (SELECT my_student_ids())
+)
+WITH CHECK (
+  (school_id = my_school_id() AND is_staff_role())
+  OR (school_id = my_school_id() AND student_id IS NOT NULL AND student_id IN (SELECT my_student_ids()))
+);
 
 -- ============================================
 -- 22. CANTEEN SALES
@@ -843,7 +851,15 @@ CREATE INDEX IF NOT EXISTS idx_parent_messages_parent ON parent_messages(parent_
 CREATE INDEX IF NOT EXISTS idx_parent_messages_student ON parent_messages(student_id);
 ALTER TABLE parent_messages ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "School users parent_messages all" ON parent_messages;
-CREATE POLICY "School users parent_messages all" ON parent_messages FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+CREATE POLICY "School users parent_messages all" ON parent_messages FOR ALL TO authenticated
+USING (
+  (school_id = my_school_id() AND is_staff_role())
+  OR parent_id IN (SELECT id FROM users WHERE auth_id = auth.uid())
+)
+WITH CHECK (
+  (school_id = my_school_id() AND is_staff_role())
+  OR (school_id = my_school_id() AND parent_id IN (SELECT id FROM users WHERE auth_id = auth.uid()))
+);
 
 -- ============================================
 -- 31.5 PARENT NOTIFICATIONS
@@ -867,6 +883,15 @@ ALTER TABLE parent_notifications ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Parent notifications own" ON parent_notifications;
 CREATE POLICY "Parent notifications own" ON parent_notifications FOR ALL TO authenticated USING (
   parent_id IN (SELECT id FROM users WHERE auth_id = auth.uid())
+) WITH CHECK (
+  parent_id IN (SELECT id FROM users WHERE auth_id = auth.uid())
+);
+
+DROP POLICY IF EXISTS "School users parent_notifications all" ON parent_notifications;
+CREATE POLICY "School users parent_notifications all" ON parent_notifications FOR ALL TO authenticated USING (
+  school_id = my_school_id() AND is_staff_role()
+) WITH CHECK (
+  school_id = my_school_id() AND is_staff_role()
 );
 
 -- ============================================
@@ -1074,7 +1099,7 @@ CREATE TABLE IF NOT EXISTS report_cards (
 );
 ALTER TABLE report_cards ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "School users report_cards all" ON report_cards;
-CREATE POLICY "School users report_cards all" ON report_cards FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+CREATE POLICY "School users report_cards all" ON report_cards FOR ALL TO authenticated USING (school_id = my_school_id() AND is_staff_role()) WITH CHECK (school_id = my_school_id() AND is_staff_role());
 
 -- ============================================
 -- 42. SALARY PAYMENTS
@@ -1347,7 +1372,15 @@ CREATE TABLE IF NOT EXISTS student_fee_terms (
 CREATE INDEX IF NOT EXISTS idx_student_fee_terms_student ON student_fee_terms(student_id);
 ALTER TABLE student_fee_terms ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "School users student_fee_terms all" ON student_fee_terms;
-CREATE POLICY "School users student_fee_terms all" ON student_fee_terms FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+CREATE POLICY "School users student_fee_terms all" ON student_fee_terms FOR ALL TO authenticated
+USING (
+  (school_id = my_school_id() AND is_staff_role())
+  OR student_id IN (SELECT my_student_ids())
+)
+WITH CHECK (
+  (school_id = my_school_id() AND is_staff_role())
+  OR (school_id = my_school_id() AND student_id IN (SELECT my_student_ids()))
+);
 
 -- ============================================
 -- 53. STUDENT FEES
@@ -1430,7 +1463,15 @@ CREATE TABLE IF NOT EXISTS student_wallets (
 CREATE INDEX IF NOT EXISTS idx_student_wallets_school ON student_wallets(school_id);
 ALTER TABLE student_wallets ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "School users student_wallets all" ON student_wallets;
-CREATE POLICY "School users student_wallets all" ON student_wallets FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+CREATE POLICY "School users student_wallets all" ON student_wallets FOR ALL TO authenticated
+USING (
+  (school_id = my_school_id() AND is_staff_role())
+  OR student_id IN (SELECT my_student_ids())
+)
+WITH CHECK (
+  (school_id = my_school_id() AND is_staff_role())
+  OR (school_id = my_school_id() AND student_id IN (SELECT my_student_ids()))
+);
 
 -- ============================================
 -- 57. SUGGESTIONS
@@ -1526,7 +1567,15 @@ CREATE INDEX IF NOT EXISTS idx_wallet_transactions_school ON wallet_transactions
 CREATE INDEX IF NOT EXISTS idx_wallet_transactions_wallet ON wallet_transactions(wallet_id);
 ALTER TABLE wallet_transactions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "School users wallet_transactions all" ON wallet_transactions;
-CREATE POLICY "School users wallet_transactions all" ON wallet_transactions FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+CREATE POLICY "School users wallet_transactions all" ON wallet_transactions FOR ALL TO authenticated
+USING (
+  (school_id = my_school_id() AND is_staff_role())
+  OR student_id IN (SELECT my_student_ids())
+)
+WITH CHECK (
+  (school_id = my_school_id() AND is_staff_role())
+  OR (school_id = my_school_id() AND student_id IN (SELECT my_student_ids()))
+);
 
 -- ============================================
 -- ROW LEVEL SECURITY (RLS)
@@ -1595,6 +1644,51 @@ AS $$
       AND school_id = p_school_id
       AND role IN ('school_admin', 'headmaster', 'admin', 'super_admin')
   )
+$$;
+
+CREATE OR REPLACE FUNCTION my_student_ids()
+RETURNS SETOF UUID
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+AS $$
+  SELECT ps.student_id
+  FROM parent_students ps
+  JOIN users u ON u.id = ps.parent_id
+  WHERE u.auth_id = auth.uid()
+  UNION
+  SELECT s.id
+  FROM students s
+  JOIN users u ON u.id = s.user_id
+  WHERE u.auth_id = auth.uid()
+$$;
+
+CREATE OR REPLACE FUNCTION is_staff_role()
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM users
+    WHERE auth_id = auth.uid()
+      AND role IS DISTINCT FROM 'parent'
+      AND role IS DISTINCT FROM 'student'
+  )
+$$;
+
+CREATE OR REPLACE FUNCTION my_children_class_ids()
+RETURNS SETOF UUID
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+AS $$
+  SELECT DISTINCT s.class_id
+  FROM parent_students ps
+  JOIN students s ON s.id = ps.student_id
+  JOIN users u ON u.id = ps.parent_id
+  WHERE u.auth_id = auth.uid()
+    AND s.class_id IS NOT NULL
 $$;
 
 CREATE OR REPLACE FUNCTION increment_sms_usage(
@@ -1754,15 +1848,18 @@ CREATE POLICY "School users fee_payments select"
 ON "fee_payments"
 FOR SELECT
 TO authenticated
-USING (student_id IN (SELECT id FROM students WHERE school_id = my_school_id()));
+USING (
+  (student_id IN (SELECT id FROM students WHERE school_id = my_school_id()) AND is_staff_role())
+  OR student_id IN (SELECT my_student_ids())
+);
 
 DROP POLICY IF EXISTS "School users fee_payments write" ON "fee_payments";
 CREATE POLICY "School users fee_payments write"
 ON "fee_payments"
 FOR ALL
 TO authenticated
-USING (student_id IN (SELECT id FROM students WHERE school_id = my_school_id()))
-WITH CHECK (student_id IN (SELECT id FROM students WHERE school_id = my_school_id()));
+USING (student_id IN (SELECT id FROM students WHERE school_id = my_school_id()) AND is_staff_role())
+WITH CHECK (student_id IN (SELECT id FROM students WHERE school_id = my_school_id()) AND is_staff_role());
 
 -- =========================
 -- MESSAGES
@@ -1785,7 +1882,7 @@ FOR SELECT
 TO authenticated
 USING (
   parent_id IN (SELECT id FROM users WHERE auth_id = auth.uid())
-  OR student_id IN (SELECT id FROM students WHERE school_id = my_school_id())
+  OR (student_id IN (SELECT id FROM students WHERE school_id = my_school_id()) AND is_staff_role())
 );
 
 DROP POLICY IF EXISTS "School users parent_students write" ON "parent_students";
@@ -1903,11 +2000,12 @@ ON "attendance"
 FOR SELECT
 TO authenticated
 USING (
-  "class_id" IN (
+  ("class_id" IN (
     SELECT "id"
     FROM "classes"
     WHERE school_id = my_school_id()
-  )
+  ) AND is_staff_role())
+  OR student_id IN (SELECT my_student_ids())
 );
 
 DROP POLICY IF EXISTS "School users attendance write" ON "attendance";
@@ -1920,14 +2018,14 @@ USING (
     SELECT "id"
     FROM "classes"
     WHERE school_id = my_school_id()
-  )
+  ) AND is_staff_role()
 )
 WITH CHECK (
   "class_id" IN (
     SELECT "id"
     FROM "classes"
     WHERE school_id = my_school_id()
-  )
+  ) AND is_staff_role()
 );
 
 -- =========================
@@ -1940,11 +2038,12 @@ ON "grades"
 FOR SELECT
 TO authenticated
 USING (
-  "class_id" IN (
+  ("class_id" IN (
     SELECT "id"
     FROM "classes"
     WHERE school_id = my_school_id()
-  )
+  ) AND is_staff_role())
+  OR student_id IN (SELECT my_student_ids())
 );
 
 DROP POLICY IF EXISTS "School users grades write" ON "grades";
@@ -1957,14 +2056,14 @@ USING (
     SELECT "id"
     FROM "classes"
     WHERE school_id = my_school_id()
-  )
+  ) AND is_staff_role()
 )
 WITH CHECK (
   "class_id" IN (
     SELECT "id"
     FROM "classes"
     WHERE school_id = my_school_id()
-  )
+  ) AND is_staff_role()
 );
 
 -- ============================================
@@ -3115,7 +3214,13 @@ CREATE POLICY "School users audit_log insert" ON audit_log FOR INSERT TO authent
 
 ALTER TABLE homework ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "School users homework all" ON homework;
-CREATE POLICY "School users homework all" ON homework FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+CREATE POLICY "School users homework all" ON homework FOR ALL TO authenticated
+USING (
+  (school_id = my_school_id() AND is_staff_role())
+  OR (school_id = my_school_id() AND class_id IS NULL)
+  OR class_id IN (SELECT DISTINCT s.class_id FROM students s WHERE s.id IN (SELECT my_student_ids()) AND s.class_id IS NOT NULL)
+)
+WITH CHECK (school_id = my_school_id() AND is_staff_role());
 
 ALTER TABLE exams ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "School users exams all" ON exams;
@@ -3191,13 +3296,23 @@ ALTER TABLE teacher_timetable ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "School users teacher_timetable all" ON teacher_timetable;
 CREATE POLICY "School users teacher_timetable all" ON teacher_timetable FOR ALL TO authenticated USING (EXISTS (SELECT 1 FROM users u WHERE u.id = teacher_timetable.teacher_id AND u.school_id = my_school_id())) WITH CHECK (EXISTS (SELECT 1 FROM users u WHERE u.id = teacher_timetable.teacher_id AND u.school_id = my_school_id()));
 
+DROP POLICY IF EXISTS "Parents teacher_timetable select" ON teacher_timetable;
+CREATE POLICY "Parents teacher_timetable select" ON teacher_timetable
+FOR SELECT TO authenticated
+USING (class_id IN (SELECT my_children_class_ids()));
+
 ALTER TABLE dorm_attendance ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "School users dorm_attendance all" ON dorm_attendance;
 CREATE POLICY "School users dorm_attendance all" ON dorm_attendance FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
 
 ALTER TABLE homework_submissions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "School users homework_submissions all" ON homework_submissions;
-CREATE POLICY "School users homework_submissions all" ON homework_submissions FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+CREATE POLICY "School users homework_submissions all" ON homework_submissions FOR ALL TO authenticated
+USING (
+  (school_id = my_school_id() AND is_staff_role())
+  OR student_id IN (SELECT my_student_ids())
+)
+WITH CHECK (school_id = my_school_id() AND is_staff_role());
 
 ALTER TABLE uneb_candidates ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "School users uneb_candidates all" ON uneb_candidates;
@@ -3439,3 +3554,562 @@ AS $$
       AND e.ends_at >= now()
   );
 $$;
+
+
+-- ============================================================================
+-- DRIFT RECONCILIATION: tables defined in migrations/ but missing from this
+-- schema file. Added so `supabase db reset` reproduces a complete database.
+-- Sources: supabase/migrations/*.sql
+-- ============================================================================
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'refund_status') THEN
+    CREATE TYPE public.refund_status AS ENUM ('pending', 'approved', 'rejected');
+  END IF;
+END $$;
+
+
+CREATE TABLE IF NOT EXISTS public.otps (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  phone TEXT NOT NULL,
+  code TEXT NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  used BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMPTZ DEFAULT now(),
+
+  -- One active OTP per phone at a time
+  CONSTRAINT otps_unique_phone UNIQUE (phone)
+);
+
+
+CREATE TABLE IF NOT EXISTS public.marketer_leads (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    marketer_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    school_id UUID REFERENCES public.schools(id) ON DELETE SET NULL,
+    school_name TEXT NOT NULL,
+    contact_name TEXT,
+    contact_phone TEXT,
+    contact_email TEXT,
+    district TEXT,
+    status TEXT NOT NULL DEFAULT 'new'
+        CHECK (status IN ('new', 'contacted', 'interested', 'not_interested', 'converted', 'lost')),
+    notes TEXT,
+    next_follow_up TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+
+CREATE TABLE IF NOT EXISTS public.marketer_outreach (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    marketer_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    lead_id UUID REFERENCES public.marketer_leads(id) ON DELETE SET NULL,
+    school_id UUID REFERENCES public.schools(id) ON DELETE SET NULL,
+    type TEXT NOT NULL CHECK (type IN ('email', 'sms', 'call', 'whatsapp', 'meeting')),
+    recipient_name TEXT,
+    recipient_contact TEXT,
+    subject TEXT,
+    content TEXT,
+    status TEXT NOT NULL DEFAULT 'sent' CHECK (status IN ('sent', 'failed', 'scheduled')),
+    sent_at TIMESTAMPTZ DEFAULT NOW(),
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+
+CREATE TABLE IF NOT EXISTS public.marketer_referral_codes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    marketer_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    code TEXT NOT NULL UNIQUE,
+    label TEXT,
+    clicks INTEGER NOT NULL DEFAULT 0,
+    conversions INTEGER NOT NULL DEFAULT 0,
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+
+CREATE TABLE IF NOT EXISTS syllabus_timeline (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    subject_id UUID NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
+    class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+    syllabus_id UUID NOT NULL REFERENCES syllabus(id) ON DELETE CASCADE,
+    term INTEGER NOT NULL CHECK (term IN (1, 2, 3)),
+    academic_year TEXT NOT NULL,
+    
+    -- Timeline specifics
+    week_number INTEGER NOT NULL,
+    planned_start_date DATE NOT NULL,
+    planned_end_date DATE NOT NULL,
+    actual_start_date DATE,
+    actual_end_date DATE,
+    
+    -- Progress tracking
+    status TEXT CHECK (status IN ('not_started', 'in_progress', 'completed', 'postponed', 'accelerated')) DEFAULT 'not_started',
+    completion_percentage INTEGER DEFAULT 0 CHECK (completion_percentage >= 0 AND completion_percentage <= 100),
+    
+    -- Teaching metrics
+    lessons_planned INTEGER DEFAULT 0,
+    lessons_completed INTEGER DEFAULT 0,
+    student_comprehension_rating INTEGER CHECK (student_comprehension_rating >= 1 AND student_comprehension_rating <= 5),
+    
+    -- Notes
+    teacher_notes TEXT,
+    challenges TEXT,
+    adaptations_made TEXT,
+    
+    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    
+    UNIQUE(school_id, class_id, subject_id, syllabus_id, term, academic_year, week_number)
+);
+
+
+CREATE TABLE IF NOT EXISTS topic_performance (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+    subject_id UUID NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
+    syllabus_id UUID NOT NULL REFERENCES syllabus(id) ON DELETE CASCADE,
+    syllabus_timeline_id UUID REFERENCES syllabus_timeline(id) ON DELETE SET NULL,
+    
+    term INTEGER NOT NULL,
+    academic_year TEXT NOT NULL,
+    topic TEXT NOT NULL,
+    
+    -- Performance metrics
+    average_score DECIMAL(5, 2),
+    student_count INTEGER,
+    students_above_75 INTEGER DEFAULT 0,
+    students_50_to_75 INTEGER DEFAULT 0,
+    students_below_50 INTEGER DEFAULT 0,
+    
+    -- Mastery levels
+    mastery_level TEXT CHECK (mastery_level IN ('beginner', 'developing', 'proficient', 'advanced')) DEFAULT 'developing',
+    
+    -- Revision needed
+    revision_required BOOLEAN DEFAULT false,
+    revision_priority TEXT CHECK (revision_priority IN ('low', 'medium', 'high')) DEFAULT 'low',
+    
+    -- Feedback
+    common_misconceptions TEXT,
+    differentiation_needed TEXT,
+    
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+
+CREATE TABLE IF NOT EXISTS lesson_plan_templates (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    subject_id UUID REFERENCES subjects(id) ON DELETE SET NULL,
+    
+    name TEXT NOT NULL,
+    description TEXT,
+    
+    -- Template structure (JSON)
+    introduction_template TEXT,
+    main_content_template TEXT,
+    consolidation_template TEXT,
+    assessment_template TEXT,
+    
+    -- Default resources
+    default_materials TEXT, -- JSON array
+    suggested_duration INTEGER DEFAULT 40, -- minutes
+    
+    -- AI config
+    use_ai_generation BOOLEAN DEFAULT true,
+    ai_model TEXT DEFAULT 'openai', -- 'openai', 'claude', 'rules_based'
+    
+    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+
+CREATE TABLE IF NOT EXISTS auto_planner_config (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    
+    -- Enable/disable features
+    enable_ai_generation BOOLEAN DEFAULT true,
+    enable_weekly_distribution BOOLEAN DEFAULT true,
+    enable_smart_scheduling BOOLEAN DEFAULT true,
+    
+    -- Scheduling rules
+    lessons_per_week_target INTEGER DEFAULT 2,
+    account_for_holidays BOOLEAN DEFAULT true,
+    account_for_exams BOOLEAN DEFAULT true,
+    
+    -- AI preferences
+    ai_provider TEXT CHECK (ai_provider IN ('openai', 'claude', 'rules_based')) DEFAULT 'rules_based',
+    ai_temperature DECIMAL(3, 2) DEFAULT 0.7, -- 0.0 to 1.0
+    
+    -- Default lesson structure
+    default_lesson_duration INTEGER DEFAULT 40, -- minutes
+    include_homework BOOLEAN DEFAULT true,
+    include_assessment BOOLEAN DEFAULT true,
+    
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    
+    UNIQUE(school_id)
+);
+
+
+CREATE TABLE IF NOT EXISTS lesson_plan_generations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    teacher_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    syllabus_id UUID REFERENCES syllabus(id) ON DELETE SET NULL,
+    
+    subject_id UUID REFERENCES subjects(id) ON DELETE SET NULL,
+    class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+    term INTEGER NOT NULL,
+    academic_year TEXT NOT NULL,
+    
+    -- Generation details
+    topic_count INTEGER DEFAULT 0,
+    lessons_generated INTEGER DEFAULT 0,
+    
+    -- Metadata
+    generation_source TEXT CHECK (generation_source IN ('auto', 'ai_enhanced', 'manual_with_suggestions')) DEFAULT 'auto',
+    ai_used BOOLEAN DEFAULT false,
+    ai_model_used TEXT,
+    
+    -- Generated lesson plan IDs (JSON array of UUIDs)
+    generated_lesson_ids TEXT,
+    
+    -- Status
+    status TEXT CHECK (status IN ('pending', 'completed', 'cancelled')) DEFAULT 'pending',
+    error_message TEXT,
+    
+    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    completed_at TIMESTAMPTZ
+);
+
+
+CREATE TABLE IF NOT EXISTS learning_objectives (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    subject_id UUID REFERENCES subjects(id) ON DELETE SET NULL,
+    
+    topic TEXT NOT NULL,
+    objective TEXT NOT NULL,
+    
+    -- Bloom's taxonomy level
+    bloom_level TEXT CHECK (bloom_level IN ('remember', 'understand', 'apply', 'analyze', 'evaluate', 'create')) DEFAULT 'understand',
+    
+    -- Competencies
+    competency TEXT,
+    cross_cutting_theme TEXT,
+    
+    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+
+CREATE TABLE IF NOT EXISTS teaching_resources (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    subject_id UUID REFERENCES subjects(id) ON DELETE SET NULL,
+    
+    topic TEXT NOT NULL,
+    resource_name TEXT NOT NULL,
+    resource_type TEXT CHECK (resource_type IN ('video', 'image', 'document', 'link', 'file', 'simulation')) NOT NULL,
+    
+    -- URL or file reference
+    resource_url TEXT,
+    resource_file_path TEXT,
+    
+    -- Metadata
+    description TEXT,
+    difficulty_level TEXT CHECK (difficulty_level IN ('beginner', 'intermediate', 'advanced')),
+    duration_minutes INTEGER,
+    
+    -- Quality rating
+    rating INTEGER CHECK (rating >= 1 AND rating <= 5),
+    used_count INTEGER DEFAULT 0,
+    
+    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+
+CREATE TABLE IF NOT EXISTS bug_reports (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    page_url TEXT,
+    screenshot_url TEXT,
+    browser_info TEXT,
+    status TEXT CHECK (status IN ('open', 'in_progress', 'resolved', 'closed')) DEFAULT 'open',
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+
+CREATE TABLE IF NOT EXISTS co_curricular_activities (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+  activity_name TEXT NOT NULL,
+  period TEXT, -- e.g., "2023 Q1"
+  score NUMERIC,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+
+CREATE TABLE IF NOT EXISTS error_logs (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  school_id UUID,
+  user_id TEXT,
+  user_role TEXT,
+  error_message TEXT NOT NULL,
+  error_stack TEXT,
+  page_url TEXT,
+  browser_info TEXT,
+  severity TEXT NOT NULL DEFAULT 'error' CHECK (severity IN ('info', 'warning', 'error', 'critical')),
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+
+CREATE TABLE IF NOT EXISTS feedbacks (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  school_id UUID REFERENCES schools(id) ON DELETE SET NULL,
+  user_id TEXT,
+  user_name TEXT NOT NULL,
+  user_role TEXT NOT NULL,
+  type TEXT NOT NULL CHECK (type IN ('bug', 'feature_request', 'feedback', 'custom_package')),
+  title TEXT NOT NULL,
+  description TEXT NOT NULL,
+  priority TEXT NOT NULL DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high', 'critical')),
+  status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'in_progress', 'resolved', 'closed')),
+  page_url TEXT,
+  admin_response TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  resolved_at TIMESTAMPTZ
+);
+
+
+CREATE TABLE IF NOT EXISTS public.library_issues (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID REFERENCES public.schools(id) ON DELETE CASCADE,
+    book_id UUID REFERENCES public.library_books(id) ON DELETE CASCADE,
+    student_id UUID REFERENCES public.students(id) ON DELETE SET NULL,
+    issued_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    due_date DATE,
+    returned_date DATE,
+    status TEXT NOT NULL CHECK (status IN ('issued', 'returned', 'overdue')) DEFAULT 'issued',
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+
+CREATE TABLE IF NOT EXISTS plan_features (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    plan TEXT NOT NULL CHECK (plan IN ('starter', 'growth', 'enterprise', 'lifetime')),
+    feature_key TEXT NOT NULL,
+    feature_name TEXT NOT NULL,
+    included BOOLEAN DEFAULT TRUE,
+    limit_value INTEGER,
+    unit TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+
+CREATE TABLE IF NOT EXISTS refund_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+  fee_payment_id UUID NOT NULL REFERENCES fee_payments(id) ON DELETE CASCADE,
+  requested_by UUID NOT NULL REFERENCES users(id) ON DELETE SET NULL,
+  amount NUMERIC NOT NULL,
+  reason TEXT,
+  status refund_status NOT NULL DEFAULT 'pending',
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+
+CREATE TABLE IF NOT EXISTS report_templates (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  template_type TEXT NOT NULL DEFAULT 'report_card',
+  config JSONB DEFAULT '{}',
+  is_active BOOLEAN DEFAULT true,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+
+CREATE TABLE IF NOT EXISTS security_events (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES users(id),
+    event_type TEXT NOT NULL CHECK (event_type IN (
+        'login_failed', 'login_success', 'logout', 
+        'password_reset_requested', 'password_reset_completed',
+        'account_locked', 'account_unlocked', 'password_reset_failed',
+        'password_reset_reused', 'password_reset_failed_expired'
+    )),
+    ip_address TEXT,
+    user_agent TEXT,
+    details JSONB,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+
+CREATE TABLE IF NOT EXISTS student_conduct (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  student_id UUID REFERENCES students(id) ON DELETE CASCADE,
+  school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
+  term INTEGER NOT NULL,
+  academic_year TEXT NOT NULL,
+  punctuality INTEGER DEFAULT 5 CHECK (punctuality BETWEEN 1 AND 5),
+  neatness INTEGER DEFAULT 5 CHECK (neatness BETWEEN 1 AND 5),
+  honesty INTEGER DEFAULT 5 CHECK (honesty BETWEEN 1 AND 5),
+  discipline INTEGER DEFAULT 5 CHECK (discipline BETWEEN 1 AND 5),
+  respect INTEGER DEFAULT 5 CHECK (respect BETWEEN 1 AND 5),
+  leadership INTEGER DEFAULT 5 CHECK (leadership BETWEEN 1 AND 5),
+  cooperation INTEGER DEFAULT 5 CHECK (cooperation BETWEEN 1 AND 5),
+  class_teacher_remark TEXT,
+  head_teacher_remark TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(student_id, term, academic_year)
+);
+
+
+CREATE TABLE IF NOT EXISTS subscription_history (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
+    plan TEXT NOT NULL CHECK (plan IN ('starter', 'growth', 'enterprise', 'lifetime')),
+    amount_paid INTEGER NOT NULL,
+    currency TEXT DEFAULT 'UGX',
+    payment_method TEXT CHECK (payment_method IN ('momo', 'bank', 'cash', 'card', 'paypal')),
+    transaction_id TEXT,
+    payment_status TEXT CHECK (payment_status IN ('pending', 'completed', 'failed', 'refunded')),
+    payment_for_term TEXT,
+    student_count INTEGER,
+    start_date TIMESTAMPTZ,
+    end_date TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+
+CREATE TABLE IF NOT EXISTS timetable_constraints (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
+    teacher_id UUID REFERENCES users(id) ON DELETE CASCADE,
+    day_of_week INTEGER CHECK (day_of_week BETWEEN 1 AND 7),
+    slot_id UUID REFERENCES timetable_slots(id) ON DELETE CASCADE,
+    constraint_type TEXT CHECK (constraint_type IN ('unavailable', 'preferred')) NOT NULL,
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+
+CREATE INDEX IF NOT EXISTS idx_otps_phone ON public.otps (phone);
+CREATE INDEX IF NOT EXISTS idx_otps_expires ON public.otps (expires_at);
+CREATE INDEX IF NOT EXISTS idx_marketer_leads_marketer ON public.marketer_leads (marketer_id);
+CREATE INDEX IF NOT EXISTS idx_marketer_leads_status ON public.marketer_leads (status);
+CREATE INDEX IF NOT EXISTS idx_marketer_leads_created ON public.marketer_leads (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_marketer_outreach_marketer ON public.marketer_outreach (marketer_id);
+CREATE INDEX IF NOT EXISTS idx_marketer_outreach_lead ON public.marketer_outreach (lead_id);
+CREATE INDEX IF NOT EXISTS idx_marketer_outreach_sent ON public.marketer_outreach (sent_at DESC);
+CREATE INDEX IF NOT EXISTS idx_marketer_referral_codes_marketer ON public.marketer_referral_codes (marketer_id);
+
+ALTER TABLE public.otps ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Anyone can request OTP" ON public.otps;
+CREATE POLICY "Anyone can request OTP" ON public.otps FOR INSERT WITH CHECK (true);
+DROP POLICY IF EXISTS "Service role can manage OTPs" ON public.otps;
+CREATE POLICY "Service role can manage OTPs" ON public.otps FOR ALL USING (auth.role() = 'service_role');
+
+ALTER TABLE public.marketer_leads ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.marketer_outreach ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.marketer_referral_codes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS marketer_leads_self ON public.marketer_leads;
+CREATE POLICY marketer_leads_self ON public.marketer_leads FOR ALL USING (marketer_id IN (SELECT id FROM public.users WHERE auth_id = auth.uid() AND role = 'marketer'));
+DROP POLICY IF EXISTS marketer_leads_admin ON public.marketer_leads;
+CREATE POLICY marketer_leads_admin ON public.marketer_leads FOR ALL USING (EXISTS (SELECT 1 FROM public.users WHERE auth_id = auth.uid() AND role = 'super_admin'));
+DROP POLICY IF EXISTS marketer_outreach_self ON public.marketer_outreach;
+CREATE POLICY marketer_outreach_self ON public.marketer_outreach FOR ALL USING (marketer_id IN (SELECT id FROM public.users WHERE auth_id = auth.uid() AND role = 'marketer'));
+DROP POLICY IF EXISTS marketer_outreach_admin ON public.marketer_outreach;
+CREATE POLICY marketer_outreach_admin ON public.marketer_outreach FOR ALL USING (EXISTS (SELECT 1 FROM public.users WHERE auth_id = auth.uid() AND role = 'super_admin'));
+DROP POLICY IF EXISTS marketer_referral_codes_self ON public.marketer_referral_codes;
+CREATE POLICY marketer_referral_codes_self ON public.marketer_referral_codes FOR ALL USING (marketer_id IN (SELECT id FROM public.users WHERE auth_id = auth.uid() AND role = 'marketer'));
+DROP POLICY IF EXISTS marketer_referral_codes_admin ON public.marketer_referral_codes;
+CREATE POLICY marketer_referral_codes_admin ON public.marketer_referral_codes FOR ALL USING (EXISTS (SELECT 1 FROM public.users WHERE auth_id = auth.uid() AND role = 'super_admin'));
+
+ALTER TABLE syllabus_timeline ENABLE ROW LEVEL SECURITY;
+ALTER TABLE topic_performance ENABLE ROW LEVEL SECURITY;
+ALTER TABLE lesson_plan_templates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE auto_planner_config ENABLE ROW LEVEL SECURITY;
+ALTER TABLE lesson_plan_generations ENABLE ROW LEVEL SECURITY;
+ALTER TABLE learning_objectives ENABLE ROW LEVEL SECURITY;
+ALTER TABLE teaching_resources ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School staff manage syllabus_timeline" ON syllabus_timeline;
+CREATE POLICY "School staff manage syllabus_timeline" ON syllabus_timeline FOR ALL USING (school_id IN (SELECT my_school_id()));
+DROP POLICY IF EXISTS "School staff view topic_performance" ON topic_performance;
+CREATE POLICY "School staff view topic_performance" ON topic_performance FOR SELECT USING (school_id IN (SELECT my_school_id()));
+DROP POLICY IF EXISTS "School staff manage templates" ON lesson_plan_templates;
+CREATE POLICY "School staff manage templates" ON lesson_plan_templates FOR ALL USING (school_id IN (SELECT my_school_id()));
+DROP POLICY IF EXISTS "School staff manage planner_config" ON auto_planner_config;
+CREATE POLICY "School staff manage planner_config" ON auto_planner_config FOR ALL USING (school_id IN (SELECT my_school_id()));
+DROP POLICY IF EXISTS "School staff manage generations" ON lesson_plan_generations;
+CREATE POLICY "School staff manage generations" ON lesson_plan_generations FOR ALL USING (school_id IN (SELECT my_school_id()));
+DROP POLICY IF EXISTS "School staff manage objectives" ON learning_objectives;
+CREATE POLICY "School staff manage objectives" ON learning_objectives FOR ALL USING (school_id IN (SELECT my_school_id()));
+DROP POLICY IF EXISTS "School staff manage resources" ON teaching_resources;
+CREATE POLICY "School staff manage resources" ON teaching_resources FOR ALL USING (school_id IN (SELECT my_school_id()));
+
+ALTER TABLE bug_reports ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Bug reports insert" ON bug_reports;
+CREATE POLICY "Bug reports insert" ON bug_reports FOR INSERT TO authenticated WITH CHECK (school_id = my_school_id());
+DROP POLICY IF EXISTS "Bug reports select" ON bug_reports;
+CREATE POLICY "Bug reports select" ON bug_reports FOR SELECT TO authenticated USING (school_id = my_school_id());
+DROP POLICY IF EXISTS "Bug reports admin" ON bug_reports;
+CREATE POLICY "Bug reports admin" ON bug_reports FOR ALL TO authenticated USING (EXISTS (SELECT 1 FROM users WHERE users.auth_id = auth.uid() AND users.role = 'super_admin'));
+
+ALTER TABLE co_curricular_activities ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users co_curricular all" ON co_curricular_activities;
+CREATE POLICY "School users co_curricular all" ON co_curricular_activities FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+ALTER TABLE error_logs ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "error_logs_select" ON error_logs;
+CREATE POLICY "error_logs_select" ON error_logs FOR SELECT TO authenticated USING (school_id = my_school_id());
+ALTER TABLE feedbacks ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "feedbacks_school" ON feedbacks;
+CREATE POLICY "feedbacks_school" ON feedbacks FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+ALTER TABLE public.library_issues ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "library_issues_all" ON public.library_issues;
+CREATE POLICY "library_issues_all" ON public.library_issues FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+ALTER TABLE plan_features ENABLE ROW LEVEL SECURITY;
+ALTER TABLE subscription_history ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Schools can view own plan features" ON plan_features;
+CREATE POLICY "Schools can view own plan features" ON plan_features FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "Schools can view own subscription history" ON subscription_history;
+CREATE POLICY "Schools can view own subscription history" ON subscription_history FOR SELECT TO authenticated USING (school_id = my_school_id());
+ALTER TABLE refund_requests ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS refund_select ON refund_requests;
+CREATE POLICY refund_select ON refund_requests FOR SELECT USING (school_id = my_school_id());
+DROP POLICY IF EXISTS refund_insert ON refund_requests;
+CREATE POLICY refund_insert ON refund_requests FOR INSERT WITH CHECK (school_id = my_school_id());
+ALTER TABLE report_templates ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "report_templates_school" ON report_templates;
+CREATE POLICY "report_templates_school" ON report_templates FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+ALTER TABLE security_events ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "security_events_all" ON security_events;
+CREATE POLICY "security_events_all" ON security_events FOR SELECT TO authenticated USING (true);
+DROP POLICY IF EXISTS "security_events_insert" ON security_events;
+CREATE POLICY "security_events_insert" ON security_events FOR INSERT TO authenticated WITH CHECK (true);
+ALTER TABLE student_conduct ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "student_conduct_school" ON student_conduct;
+CREATE POLICY "student_conduct_school" ON student_conduct FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+ALTER TABLE timetable_constraints ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS timetable_constraints_school ON timetable_constraints;
+CREATE POLICY timetable_constraints_school ON timetable_constraints FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+
