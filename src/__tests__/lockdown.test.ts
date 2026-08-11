@@ -239,6 +239,34 @@ describe("🔒 LOCKDOWN: Auth Context", () => {
     expect(authContext).toContain("offlineDB");
     expect(authContext).toContain("refreshAll");
   });
+
+  it("must keep a valid session when profile fetch fails (degraded login, NOT signout)", () => {
+    // A valid Supabase session must never be discarded just because the profile
+    // endpoint errored. Fall back to the cached/metadata user instead — the old
+    // "logged in on another device" lockout stranded users on login.
+    expect(authContext).toContain("applyDegradedUser");
+    expect(authContext).toContain("applyDegradedUser(verifiedUser)");
+    expect(authContext).toContain("applyDegradedUser(authUser)");
+    expect(authContext).not.toMatch(/if \(!profile && navigator\.onLine\) \{\s*clearAuthState\(\);/);
+    expect(authContext).not.toContain("another device");
+  });
+
+  it("must still sign out (and only sign out) when the profile is genuinely missing (404)", () => {
+    expect(authContext).toContain("res.status === 404");
+    expect(authContext).toContain("signOut()");
+    expect(authContext).toContain("clearAuthState()");
+  });
+
+  it("must build a degraded user from auth user_metadata role", () => {
+    // role must be read from user_metadata (every provisioning path stores it)
+    expect(authContext).toContain('typeof meta.role === "string" ? (meta.role as User["role"]) : undefined');
+  });
+
+  it("login page must not blame another device when profile load fails", () => {
+    const loginPage = read("src/app/login/page.tsx");
+    expect(loginPage).not.toContain("another device");
+    expect(loginPage).toContain("refresh the page to try again");
+  });
 });
 
 // ============================================================================

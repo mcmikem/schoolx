@@ -154,9 +154,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
         const token = session?.access_token;
         if (!token) {
-          if (typeof navigator !== "undefined" && navigator.onLine) {
-            clearAuthState();
-          }
+          // No access token yet (e.g. right after sign-in fires). Never clear
+          // the auth state here — the caller decides whether to fall back to a
+          // degraded login instead of stranding the user.
           setLoading(false);
           return null;
         }
@@ -186,8 +186,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               await new Promise((r) => setTimeout(r, 500));
               return fetchUserData(authId, retryCount + 1);
             }
-            logger.warn("[Auth] Profile fetch auth token rejected after refresh — clearing state");
-            clearAuthState();
+            logger.warn("[Auth] Profile fetch auth token rejected after refresh — keeping session for degraded login");
             return null;
           } else {
             logger.error("[Auth] Profile fetch failed with status:", res.status);
@@ -250,15 +249,71 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           await new Promise((r) => setTimeout(r, 1500));
           return fetchUserData(authId, retryCount + 1);
         }
-        if (typeof navigator !== "undefined" && navigator.onLine) {
-          clearAuthState();
-        }
+        // Never clear the auth state on transient failures — a valid Supabase
+        // session exists; the profile endpoint was just unreachable. The caller
+        // falls back to a degraded (metadata/cache) login instead of stranding
+        // the user with a misleading "logged in elsewhere" error.
         logger.error("Error fetching user data:", errMsg);
         setLoading(false);
         return null;
       }
     },
     [clearAuthState],
+  );
+
+  // Degraded login fallback: the profile endpoint (/api/auth/me/) is down or
+  // unreachable but Supabase issued a valid session. Restore the user from the
+  // offline cache first (best fidelity), else build a minimal user from the
+  // auth token's user_metadata (every account provisioning path stores the role
+  // there). This prevents valid logins from failing with a misleading
+  // "session conflict" error.
+  const applyDegradedUser = useCallback(
+    (verifiedUser: {
+      id: string;
+      email?: string | null;
+      phone?: string | null;
+      created_at?: string;
+      user_metadata?: unknown;
+    }) => {
+      let restored: User | null = null;
+      try {
+        const raw = localStorage.getItem(OFFLINE_USER_KEY);
+        if (raw) {
+          const cached = JSON.parse(raw) as User;
+          if (cached && (cached.auth_id === verifiedUser.id || cached.id === verifiedUser.id)) {
+            restored = cached;
+          }
+        }
+      } catch (error) {
+        logger.warn("[Auth] Failed to read cached user for degraded login:", error);
+      }
+      if (!restored) {
+        const meta = (verifiedUser.user_metadata ?? {}) as Record<string, unknown>;
+        restored = {
+          id: verifiedUser.id,
+          auth_id: verifiedUser.id,
+          school_id: null,
+          full_name: typeof meta.full_name === "string" ? meta.full_name : verifiedUser.email || "Account",
+          phone: verifiedUser.phone ?? (typeof meta.phone === "string" ? meta.phone : ""),
+          email: verifiedUser.email ?? undefined,
+          role: (typeof meta.role === "string" ? (meta.role as User["role"]) : undefined) || "school_admin",
+          is_active: true,
+          created_at: verifiedUser.created_at || new Date().toISOString(),
+        };
+      }
+      setUser(restored);
+      try {
+        const rawSchool = localStorage.getItem(OFFLINE_SCHOOL_KEY);
+        if (rawSchool) setSchool(JSON.parse(rawSchool));
+      } catch (error) {
+        logger.warn("[Auth] Failed to restore cached school for degraded login:", error);
+      }
+      setIsDemo(false);
+      setLoading(false);
+      setAuthInitialized(true);
+      logger.warn("[Auth] Degraded login fallback applied — profile endpoint unreachable");
+    },
+    [setAuthInitialized, setIsDemo, setLoading, setSchool, setUser],
   );
 
   const checkUser = useCallback(async () => {
@@ -368,8 +423,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           if (authUser) {
             const profile = await fetchUserData(authUser.id);
-            if (!profile && navigator.onLine) {
-              clearAuthState();
+            if (!profile && typeof navigator !== "undefined" && navigator.onLine) {
+              applyDegradedUser(authUser);
             }
             setIsDemo(false);
             setLoading(false);
@@ -427,7 +482,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearTimeout(safetyTimer);
       setAuthInitialized(true);
     }
-  }, [fetchUserData, clearAuthState]);
+  }, [applyDegradedUser, fetchUserData, clearAuthState]);
 
   useEffect(() => {
     // Reset the abort flag on (re)mount — React StrictMode unmounts/remounts
@@ -558,11 +613,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 // fetchUserData to avoid race conditions and timeouts.
                 try {
                   const profile = await fetchUserData(verifiedUser.id);
-                  if (!profile && navigator.onLine) {
-                    clearAuthState();
+                  if (!profile && typeof navigator !== "undefined" && navigator.onLine) {
+                    // Profile endpoint unreachable but we hold a valid session —
+                    // degrade to cached/metadata user instead of signing out.
+                    applyDegradedUser(verifiedUser);
                   }
                 } catch {
                   logger.warn("[Auth] fetchUserData failed in state change handler");
+                  applyDegradedUser(verifiedUser);
                 }
                 if (!handlerSafetyFired) {
                   setIsDemo(false);
@@ -615,7 +673,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearTimeout(timer);
       authFetchAborted.current = true;
     };
-  }, [checkUser, clearAuthState, fetchUserData]);
+  }, [checkUser, clearAuthState, fetchUserData, applyDegradedUser]);
 
   const userRef = useRef(user);
   userRef.current = user;

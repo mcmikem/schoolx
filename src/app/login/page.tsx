@@ -112,16 +112,15 @@ export default function LoginPage() {
   }, [authInitialized, user, router]);
 
   // Detect when auth succeeds (signInWithPassword works) but profile fetch
-  // fails silently. This happens when there's a session conflict (e.g.
-  // already logged in on another browser) or the /api/auth/me/ endpoint
-  // errors. The user ends up stranded on the login page with no feedback.
+  // fails silently (e.g. /api/auth/me/ errors). The user would otherwise end
+  // up stranded on the login page with no feedback. With the degraded-login
+  // fallback in auth-context this should rarely fire, but keep the toast as a
+  // final safety net.
   useEffect(() => {
     if (!waitingForProfile) return;
     if (!authInitialized) return;
     if (!user) {
-      toast.error(
-        "Signed in but failed to load your account. This can happen if you have an active session on another device. Please sign out from other devices or contact support.",
-      );
+      toast.error("Signed in but failed to load your account. Please wait a moment and refresh the page to try again.");
       setWaitingForProfile(false);
     }
   }, [authInitialized, user, waitingForProfile, toast]);
