@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
         .from("students")
         .select("*, classes (id, name, level)")
         .eq("id", studentId)
-        .single();
+        .maybeSingle();
 
       if (studentError || !student) {
         return apiError("Student not found", 404);
@@ -191,7 +191,7 @@ export async function POST(request: NextRequest) {
       .from("students")
       .select("*, classes (id, name, level)")
       .eq("id", studentId)
-      .single();
+      .maybeSingle();
 
     if (studentError || !student) {
       return apiError("Student not found", 404);
@@ -209,14 +209,28 @@ export async function POST(request: NextRequest) {
         userRole,
       )
     ) {
-      // If parent, must be parent of this student
-      if (!(userRole === "parent" && student.parent_id === userId)) {
+      // If parent, must be a linked parent of this student
+      if (userRole === "parent") {
+        const { data: link } = await supabase
+          .from("parent_students")
+          .select("parent_id")
+          .eq("parent_id", userId)
+          .eq("student_id", studentId)
+          .maybeSingle();
+        if (!link) {
+          return apiError("Not authorized to view this student report", 403);
+        }
+      } else {
         return apiError("Not authorized to view this student report", 403);
       }
     }
 
     // Fetch school info
-    const { data: school } = await supabase.from("schools").select("*").eq("id", scope.schoolId).single();
+    const { data: school } = await supabase.from("schools").select("*").eq("id", scope.schoolId).maybeSingle();
+
+    if (!school) {
+      return apiError("School not found", 404);
+    }
 
     // Fetch grades for this term
     const { data: grades } = await supabase

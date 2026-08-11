@@ -132,7 +132,7 @@ async function handlePayPalPaymentSuccess(
     return;
   }
 
-  const { data: school, error } = await supabase.from("schools").select("id").eq("id", schoolId).single();
+  const { data: school, error } = await supabase.from("schools").select("id").eq("id", schoolId).maybeSingle();
 
   if (error || !school) {
     logger.warn(`School not found for PayPal payment: ${schoolId} — skipping`);
@@ -175,7 +175,7 @@ async function handlePayPalPaymentFailure(
     return;
   }
 
-  const { data: school, error } = await supabase.from("schools").select("id").eq("id", schoolId).single();
+  const { data: school, error } = await supabase.from("schools").select("id").eq("id", schoolId).maybeSingle();
 
   if (error || !school) {
     logger.warn(`School not found for PayPal payment: ${schoolId} — skipping`);
@@ -201,7 +201,7 @@ async function handlePayPalSubscriptionActivated(
     return;
   }
 
-  const { data: school, error } = await supabase.from("schools").select("id").eq("id", schoolId).single();
+  const { data: school, error } = await supabase.from("schools").select("id").eq("id", schoolId).maybeSingle();
 
   if (error || !school) {
     logger.warn(`School not found for PayPal subscription: ${schoolId} — skipping`);
@@ -227,7 +227,7 @@ async function handlePayPalSubscriptionCancelled(
     return;
   }
 
-  const { data: school, error } = await supabase.from("schools").select("id").eq("id", schoolId).single();
+  const { data: school, error } = await supabase.from("schools").select("id").eq("id", schoolId).maybeSingle();
 
   if (error || !school) {
     logger.warn(`School not found for PayPal subscription: ${schoolId} — skipping`);
@@ -253,7 +253,7 @@ async function handlePayPalSubscriptionSuspended(
     return;
   }
 
-  const { data: school, error } = await supabase.from("schools").select("id").eq("id", schoolId).single();
+  const { data: school, error } = await supabase.from("schools").select("id").eq("id", schoolId).maybeSingle();
 
   if (error || !school) {
     logger.warn(`School not found for PayPal subscription: ${schoolId} — skipping`);
@@ -277,7 +277,7 @@ async function handlePayPalSubscriptionPaymentFailed(
     return;
   }
 
-  const { data: school, error } = await supabase.from("schools").select("id").eq("id", schoolId).single();
+  const { data: school, error } = await supabase.from("schools").select("id").eq("id", schoolId).maybeSingle();
 
   if (error || !school) {
     logger.warn(`School not found for PayPal subscription: ${schoolId} — skipping`);

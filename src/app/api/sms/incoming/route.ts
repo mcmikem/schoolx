@@ -23,20 +23,12 @@ function hasValidWebhookSignature(rawBody: string, signatureHeader: string): boo
   const normalized = signatureHeader.trim();
   if (!normalized) return false;
 
-  const sha256Hex = createHmac("sha256", webhookSecret)
-    .update(rawBody)
-    .digest("hex");
-  const sha256Base64 = createHmac("sha256", webhookSecret)
-    .update(rawBody)
-    .digest("base64");
+  const sha256Hex = createHmac("sha256", webhookSecret).update(rawBody).digest("hex");
+  const sha256Base64 = createHmac("sha256", webhookSecret).update(rawBody).digest("base64");
   const sha1Hex = createHmac("sha1", webhookSecret).update(rawBody).digest("hex");
-  const sha1Base64 = createHmac("sha1", webhookSecret)
-    .update(rawBody)
-    .digest("base64");
+  const sha1Base64 = createHmac("sha1", webhookSecret).update(rawBody).digest("base64");
 
-  return [sha256Hex, sha256Base64, sha1Hex, sha1Base64].some((candidate) =>
-    safeEqualString(candidate, normalized),
-  );
+  return [sha256Hex, sha256Base64, sha1Hex, sha1Base64].some((candidate) => safeEqualString(candidate, normalized));
 }
 
 function createSupabaseAdminClient() {
@@ -57,9 +49,7 @@ export async function POST(request: NextRequest) {
     // Africa's Talking sends payload as application/x-www-form-urlencoded.
     const rawBody = await request.text();
     const signatureHeader =
-      request.headers.get("x-africastalking-signature") ||
-      request.headers.get("x-signature") ||
-      "";
+      request.headers.get("x-africastalking-signature") || request.headers.get("x-signature") || "";
 
     if (!webhookSecret) {
       if (process.env.NODE_ENV !== "development") {
@@ -98,7 +88,8 @@ export async function POST(request: NextRequest) {
       .from("students")
       .select("id, first_name, last_name, school_id, parent_phone")
       .or(`parent_phone.eq.${normalizedPhone},parent_phone.eq.${from}`)
-      .single();
+      .limit(1)
+      .maybeSingle();
 
     if (!student) {
       logger.warn(`No student found for phone: ${from}`);
@@ -125,30 +116,31 @@ export async function POST(request: NextRequest) {
 
     // Create a notification for the school
     try {
-      await supabaseAdmin
-        .from("parent_notifications")
-        .insert({
-          school_id: student.school_id,
-          parent_id: null, // No user for incoming SMS
-          student_id: student.id,
-          type: "message",
-          title: "Parent Reply",
-          message: `Parent of ${student.first_name} replied: ${message.substring(0, 100)}`,
-          action_url: `/dashboard/messages?from=${student.id}`,
-        });
+      await supabaseAdmin.from("parent_notifications").insert({
+        school_id: student.school_id,
+        parent_id: null, // No user for incoming SMS
+        student_id: student.id,
+        type: "message",
+        title: "Parent Reply",
+        message: `Parent of ${student.first_name} replied: ${message.substring(0, 100)}`,
+        action_url: `/dashboard/messages?from=${student.id}`,
+      });
     } catch (notifError) {
       logger.warn("Failed to create parent notification (table may not exist):", notifError);
     }
 
     // Auto-reply with confirmation
     const autoReply = `Thank you for your message. The school has received your response.`;
-    
-    return new NextResponse(`<?xml version="1.0" encoding="UTF-8"?>
+
+    return new NextResponse(
+      `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Message>${autoReply}</Message>
-</Response>`, {
-      headers: { "Content-Type": "application/xml" },
-    });
+</Response>`,
+      {
+        headers: { "Content-Type": "application/xml" },
+      },
+    );
   } catch (error) {
     logger.error("Incoming SMS webhook error:", error);
     return NextResponse.json({ status: "error", message: "Internal server error" }, { status: 500 });

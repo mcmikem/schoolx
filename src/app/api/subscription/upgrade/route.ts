@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
       .from("schools")
       .select("subscription_plan, subscription_status")
       .eq("id", profile.school_id)
-      .single();
+      .maybeSingle();
 
     if (!school) return apiError("School not found", 404);
 

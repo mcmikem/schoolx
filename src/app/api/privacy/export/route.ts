@@ -15,7 +15,10 @@ export async function GET(request: NextRequest) {
   });
 
   const token = authHeader.slice(7);
-  const { data: { user: authUser }, error: authError } = await supabaseAdmin.auth.getUser(token);
+  const {
+    data: { user: authUser },
+    error: authError,
+  } = await supabaseAdmin.auth.getUser(token);
   if (authError || !authUser) {
     return NextResponse.json({ error: "Invalid token" }, { status: 401 });
   }
@@ -28,7 +31,7 @@ export async function GET(request: NextRequest) {
       .from("users")
       .select("*")
       .eq("auth_id", userId)
-      .single();
+      .maybeSingle();
     if (profileError || !profileData) {
       return NextResponse.json({ error: "User profile not found" }, { status: 403 });
     }
@@ -45,17 +48,36 @@ export async function GET(request: NextRequest) {
     const studentIds = (schoolStudents || []).map((s: { id: string }) => s.id);
 
     const [studentsRes, attendanceRes, gradesRes, paymentsRes, messagesRes] = await Promise.all([
-      supabaseAdmin.from("students").select("id, first_name, last_name, student_number, parent_name, parent_phone, class_id, status, created_at").eq("school_id", verifiedSchoolId),
+      supabaseAdmin
+        .from("students")
+        .select("id, first_name, last_name, student_number, parent_name, parent_phone, class_id, status, created_at")
+        .eq("school_id", verifiedSchoolId),
       studentIds.length > 0
-        ? supabaseAdmin.from("attendance").select("id, student_id, date, status").in("student_id", studentIds).limit(1000)
+        ? supabaseAdmin
+            .from("attendance")
+            .select("id, student_id, date, status")
+            .in("student_id", studentIds)
+            .limit(1000)
         : Promise.resolve({ data: [] }),
       studentIds.length > 0
-        ? supabaseAdmin.from("grades").select("id, student_id, score, max_score, term, academic_year").in("student_id", studentIds).limit(1000)
+        ? supabaseAdmin
+            .from("grades")
+            .select("id, student_id, score, max_score, term, academic_year")
+            .in("student_id", studentIds)
+            .limit(1000)
         : Promise.resolve({ data: [] }),
       studentIds.length > 0
-        ? supabaseAdmin.from("fee_payments").select("id, student_id, amount_paid, payment_method, payment_date").in("student_id", studentIds).limit(500)
+        ? supabaseAdmin
+            .from("fee_payments")
+            .select("id, student_id, amount_paid, payment_method, payment_date")
+            .in("student_id", studentIds)
+            .limit(500)
         : Promise.resolve({ data: [] }),
-      supabaseAdmin.from("messages").select("id, message, created_at, channel").eq("school_id", verifiedSchoolId).limit(500),
+      supabaseAdmin
+        .from("messages")
+        .select("id, message, created_at, channel")
+        .eq("school_id", verifiedSchoolId)
+        .limit(500),
     ]);
 
     const exportData = {

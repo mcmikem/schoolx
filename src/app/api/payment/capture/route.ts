@@ -95,7 +95,11 @@ export async function GET(request: NextRequest) {
     }
 
     const supabase = await createSupabaseServerClient();
-    const { data: school } = await supabase.from("schools").select("id, subscription_plan").eq("id", schoolId).single();
+    const { data: school } = await supabase
+      .from("schools")
+      .select("id, subscription_plan")
+      .eq("id", schoolId)
+      .maybeSingle();
 
     if (!school) {
       return NextResponse.redirect(new URL("/dashboard/settings?tab=subscription&error=school_not_found", baseUrl));

@@ -28,7 +28,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return apiError("Forbidden", 403);
     }
 
-    const { data: school } = await supabaseAdmin.from("schools").select("id, onboarded_by").eq("id", id).single();
+    const { data: school } = await supabaseAdmin.from("schools").select("id, onboarded_by").eq("id", id).maybeSingle();
 
     if (!school) return apiError("School not found", 404);
     if (school.onboarded_by !== profile.id) {

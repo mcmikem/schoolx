@@ -81,8 +81,8 @@ export async function GET(request: NextRequest) {
   let schoolData = null;
   const user = userData as any;
   if (user && user.school_id) {
-    const { data: sd } = await supabaseAdmin.from("schools").select("*").eq("id", user.school_id).single();
-    schoolData = sd;
+    const { data: sd } = await supabaseAdmin.from("schools").select("*").eq("id", user.school_id).maybeSingle();
+    if (sd) schoolData = sd;
   }
 
   return NextResponse.json({ user: userData, school: schoolData });

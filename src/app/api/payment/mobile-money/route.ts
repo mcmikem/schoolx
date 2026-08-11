@@ -2,25 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { createMobileMoneyPaymentLink } from "@/lib/payments/mobile-money";
 import { PLAN_TYPES, PlanType } from "@/lib/subscription";
 import { normalizePlanType } from "@/lib/payments/subscription-client";
-import {
-  getPlanPrice,
-  calculateTotalPrice,
-  recordPayment,
-  savePendingMobilePayment,
-} from "@/lib/payments/utils";
+import { getPlanPrice, calculateTotalPrice, recordPayment, savePendingMobilePayment } from "@/lib/payments/utils";
 import { requireUserWithSchool, assertUserRoleOrDeny, rateLimit } from "@/lib/api-utils";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { logger } from "@/lib/logger";
 import { normalizeAuthPhone } from "@/lib/validation";
 import { errorWithWhatsApp } from "@/lib/support-contact";
 
-const BILLING_ROLES = [
-  "super_admin",
-  "school_admin",
-  "admin",
-  "headmaster",
-  "bursar",
-];
+const BILLING_ROLES = ["super_admin", "school_admin", "admin", "headmaster", "bursar"];
 
 const VALID_PLAN_TYPES = new Set<string>(PLAN_TYPES);
 
@@ -50,40 +39,24 @@ export async function POST(request: NextRequest) {
     planInfo.planName = plan;
 
     if (!provider || !plan || !phoneNumber) {
-      return NextResponse.json(
-        { error: "Missing required fields: provider, plan, phoneNumber" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Missing required fields: provider, plan, phoneNumber" }, { status: 400 });
     }
 
     if (!VALID_PLAN_TYPES.has(plan)) {
-      return NextResponse.json(
-        { error: "Invalid plan selected" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Invalid plan selected" }, { status: 400 });
     }
 
     if (provider !== "mtn" && provider !== "airtel") {
-      return NextResponse.json(
-        { error: 'Invalid provider. Use "mtn" or "airtel".' },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: 'Invalid provider. Use "mtn" or "airtel".' }, { status: 400 });
     }
 
     const normalizedPhone = normalizeAuthPhone(phoneNumber);
     if (normalizedPhone.length !== 12 || !normalizedPhone.startsWith("256")) {
-      return NextResponse.json(
-        { error: "Invalid phone number format. Use a valid Ugandan number." },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Invalid phone number format. Use a valid Ugandan number." }, { status: 400 });
     }
 
     const supabase = await createSupabaseServerClient();
-    const { data: school } = await supabase
-      .from("schools")
-      .select("*")
-      .eq("id", auth.context.schoolId)
-      .single();
+    const { data: school } = await supabase.from("schools").select("*").eq("id", auth.context.schoolId).maybeSingle();
 
     if (!school) {
       return NextResponse.json({ error: "School not found" }, { status: 404 });
@@ -99,10 +72,7 @@ export async function POST(request: NextRequest) {
     const amount = await calculateTotalPrice(plan, studentCount || 0);
 
     if (amount <= 0) {
-      return NextResponse.json(
-        { error: "Selected plan is not billable" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Selected plan is not billable" }, { status: 400 });
     }
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";

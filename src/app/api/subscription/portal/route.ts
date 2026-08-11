@@ -1,18 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { logger } from "@/lib/logger";
-import {
-  requireUserWithSchool,
-  assertUserRoleOrDeny,
-} from "@/lib/api-utils";
+import { requireUserWithSchool, assertUserRoleOrDeny } from "@/lib/api-utils";
 
-const BILLING_ROLES = [
-  "super_admin",
-  "school_admin",
-  "admin",
-  "headmaster",
-  "bursar",
-];
+const BILLING_ROLES = ["super_admin", "school_admin", "admin", "headmaster", "bursar"];
 
 // Create Stripe customer portal session
 export async function POST(request: NextRequest) {
@@ -29,10 +20,7 @@ export async function POST(request: NextRequest) {
     const { customerId, returnUrl } = await request.json();
 
     if (!customerId) {
-      return NextResponse.json(
-        { error: "Customer ID is required" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Customer ID is required" }, { status: 400 });
     }
 
     const supabase = await createSupabaseServerClient();
@@ -43,23 +31,17 @@ export async function POST(request: NextRequest) {
       .select("id, stripe_customer_id")
       .eq("id", auth.context.schoolId)
       .eq("stripe_customer_id", customerId)
-      .single();
+      .maybeSingle();
 
     if (error || !school) {
-      return NextResponse.json(
-        { error: "Invalid customer ID" },
-        { status: 403 },
-      );
+      return NextResponse.json({ error: "Invalid customer ID" }, { status: 403 });
     }
 
     // Create the portal session
     const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 
     if (!stripeSecretKey) {
-      return NextResponse.json(
-        { error: "Payment processing not configured" },
-        { status: 503 },
-      );
+      return NextResponse.json({ error: "Payment processing not configured" }, { status: 503 });
     }
 
     const Stripe = require("stripe");
@@ -67,16 +49,12 @@ export async function POST(request: NextRequest) {
 
     const portalUrl = await stripe.billingPortal.sessions.create({
       customer: customerId,
-      return_url:
-        returnUrl || `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/billing`,
+      return_url: returnUrl || `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/billing`,
     });
 
     return NextResponse.json({ url: portalUrl.url });
   } catch (error) {
     logger.error("Error creating customer portal session:", error);
-    return NextResponse.json(
-      { error: "Failed to create customer portal session" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to create customer portal session" }, { status: 500 });
   }
 }

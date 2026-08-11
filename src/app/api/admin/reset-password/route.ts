@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
       .from("users")
       .select("auth_id, school_id")
       .eq("id", userId)
-      .single();
+      .maybeSingle();
 
     if (userError || !userData?.auth_id || !userData?.school_id) {
       return apiError("User not found", 404);

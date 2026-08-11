@@ -15,7 +15,10 @@ export async function POST(request: NextRequest) {
   });
 
   const token = authHeader.slice(7);
-  const { data: { user: authUser }, error: authError } = await supabaseAdmin.auth.getUser(token);
+  const {
+    data: { user: authUser },
+    error: authError,
+  } = await supabaseAdmin.auth.getUser(token);
   if (authError || !authUser) {
     return NextResponse.json({ error: "Invalid token" }, { status: 401 });
   }
@@ -27,7 +30,7 @@ export async function POST(request: NextRequest) {
       .from("users")
       .select("id, role, school_id")
       .eq("auth_id", userId)
-      .single();
+      .maybeSingle();
 
     if (!profile) {
       return NextResponse.json({ error: "Profile not found" }, { status: 404 });
@@ -46,10 +49,7 @@ export async function POST(request: NextRequest) {
 
     // If parent: remove parent_students links
     if (profile.role === "parent") {
-      await supabaseAdmin
-        .from("parent_students")
-        .delete()
-        .eq("parent_id", profile.id);
+      await supabaseAdmin.from("parent_students").delete().eq("parent_id", profile.id);
     }
 
     // Delete the auth user (cascades to Supabase auth)

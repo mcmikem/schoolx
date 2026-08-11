@@ -19,14 +19,16 @@ export async function GET(req: NextRequest) {
     const authHeader = req.headers.get("authorization")?.replace("Bearer ", "");
     if (!authHeader) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { data: { user } } = await supabaseAdmin.auth.getUser(authHeader);
+    const {
+      data: { user },
+    } = await supabaseAdmin.auth.getUser(authHeader);
     if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const { data: parentUser } = await supabaseAdmin
       .from("users")
       .select("id, role")
       .eq("auth_id", user.id)
-      .single();
+      .maybeSingle();
 
     if (!parentUser || parentUser.role !== "parent") {
       return NextResponse.json({ error: "Only parents can access this endpoint" }, { status: 403 });

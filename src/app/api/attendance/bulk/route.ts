@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
       .from("classes")
       .select("id, school_id")
       .eq("id", class_id)
-      .single();
+      .maybeSingle();
 
     if (classError || !classData) {
       return apiError("Class not found", 404);

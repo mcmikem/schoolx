@@ -96,7 +96,7 @@ async function handlePost(request: NextRequest) {
           .from("students")
           .select("id, parent_id, first_name, last_name")
           .eq("id", studentId)
-          .single();
+          .maybeSingle();
 
         if (student?.parent_id) {
           const { error: notifyError } = await supabase.from("parent_notifications").insert({

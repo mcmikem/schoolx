@@ -2,19 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { logger } from "@/lib/logger";
 import { errorWithWhatsApp } from "@/lib/support-contact";
-import {
-  requireUserWithSchool,
-  assertUserRoleOrDeny,
-  rateLimit,
-} from "@/lib/api-utils";
+import { requireUserWithSchool, assertUserRoleOrDeny, rateLimit } from "@/lib/api-utils";
 
-const BILLING_ROLES = [
-  "super_admin",
-  "school_admin",
-  "admin",
-  "headmaster",
-  "bursar",
-];
+const BILLING_ROLES = ["super_admin", "school_admin", "admin", "headmaster", "bursar"];
 
 function validateReturnUrl(url: string | undefined, baseUrl: string): string {
   if (!url) return `${baseUrl}/dashboard/billing`;
@@ -53,13 +43,10 @@ export async function POST(request: NextRequest) {
       .from("schools")
       .select("stripe_customer_id")
       .eq("id", schoolId)
-      .single();
+      .maybeSingle();
 
     if (!school?.stripe_customer_id) {
-      return NextResponse.json(
-        { error: "No Stripe customer found. Subscribe first." },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "No Stripe customer found. Subscribe first." }, { status: 400 });
     }
 
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
@@ -91,9 +78,6 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     logger.error("Portal session error:", error);
-    return errorWithWhatsApp(
-      "Failed to access payment portal. Please try again or contact support.",
-      500,
-    );
+    return errorWithWhatsApp("Failed to access payment portal. Please try again or contact support.", 500);
   }
 }

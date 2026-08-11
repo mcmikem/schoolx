@@ -35,7 +35,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       .select("*, classes(id, name, level, stream)")
       .eq("id", id)
       .eq("school_id", schoolId)
-      .single();
+      .maybeSingle();
 
     if (error) {
       logger.error("[API Students] Failed to fetch student:", error);

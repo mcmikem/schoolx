@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
         .from("users")
         .select("full_name, phone")
         .eq("id", cls.teacher_id)
-        .single();
+        .maybeSingle();
 
       const teacherUser = teacher as any;
       if (teacherUser?.phone) {

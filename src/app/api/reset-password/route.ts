@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
       .from("password_reset_tokens")
       .select("id, user_id, expires_at, used_at")
       .eq("token", token)
-      .single();
+      .maybeSingle();
 
     if (tokenMatches.error || !tokenMatches.data) {
       if (tokenMatches.error) logger.error("Token lookup error:", tokenMatches.error);
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
       return apiError("Token expired", 400);
     }
 
-    const { data: userData } = await supabase.from("users").select("auth_id").eq("id", userId).single();
+    const { data: userData } = await supabase.from("users").select("auth_id").eq("id", userId).maybeSingle();
 
     if (!userData?.auth_id) {
       return apiError("User not found", 404);

@@ -3,21 +3,11 @@ import { getSchoolPaymentHistory } from "@/lib/payments/utils";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/server/user-provisioning";
 import { logger } from "@/lib/logger";
-import {
-  requireUserWithSchool,
-  assertSchoolScopeOrDeny,
-  assertUserRoleOrDeny,
-} from "@/lib/api-utils";
+import { requireUserWithSchool, assertSchoolScopeOrDeny, assertUserRoleOrDeny } from "@/lib/api-utils";
 
 export const dynamic = "force-dynamic";
 
-const BILLING_ROLES = [
-  "super_admin",
-  "school_admin",
-  "admin",
-  "headmaster",
-  "bursar",
-];
+const BILLING_ROLES = ["super_admin", "school_admin", "admin", "headmaster", "bursar"];
 
 type InvoicePayment = {
   id: string;
@@ -42,10 +32,7 @@ export async function GET(request: NextRequest) {
     if (!auth.ok) return auth.response;
 
     if (!auth.context.schoolId) {
-      return NextResponse.json(
-        { error: "Missing school context" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Missing school context" }, { status: 400 });
     }
 
     const roleCheck = assertUserRoleOrDeny({
@@ -54,10 +41,7 @@ export async function GET(request: NextRequest) {
     });
     if (!roleCheck.ok) return roleCheck.response;
 
-    const payments = ((await getSchoolPaymentHistory(
-      auth.context.schoolId,
-      limit,
-    )) ?? []) as InvoicePayment[];
+    const payments = ((await getSchoolPaymentHistory(auth.context.schoolId, limit)) ?? []) as InvoicePayment[];
 
     return NextResponse.json(
       {
@@ -80,10 +64,7 @@ export async function GET(request: NextRequest) {
     );
   } catch (error) {
     logger.error("Get invoices error:", error);
-    return NextResponse.json(
-      { error: "Failed to get invoices" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to get invoices" }, { status: 500 });
   }
 }
 
@@ -103,10 +84,7 @@ export async function POST(request: NextRequest) {
     const { plan, amount, currency, schoolId } = body;
 
     if (!plan || !amount || !schoolId) {
-      return NextResponse.json(
-        { error: "Missing required fields: plan, amount, schoolId" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Missing required fields: plan, amount, schoolId" }, { status: 400 });
     }
 
     const ALLOWED_PLANS = ["starter", "growth", "enterprise", "lifetime", "free_trial"];
@@ -118,10 +96,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (typeof amount !== "number" || amount <= 0 || !Number.isFinite(amount)) {
-      return NextResponse.json(
-        { error: "Amount must be a positive number" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Amount must be a positive number" }, { status: 400 });
     }
 
     const scope = assertSchoolScopeOrDeny({
@@ -145,10 +120,7 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error || !invoice) {
-      return NextResponse.json(
-        { error: "Failed to create invoice" },
-        { status: 500 },
-      );
+      return NextResponse.json({ error: "Failed to create invoice" }, { status: 500 });
     }
 
     return NextResponse.json(
@@ -168,10 +140,7 @@ export async function POST(request: NextRequest) {
     );
   } catch (error) {
     logger.error("Create invoice error:", error);
-    return NextResponse.json(
-      { error: "Failed to create invoice" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to create invoice" }, { status: 500 });
   }
 }
 
@@ -187,23 +156,18 @@ export async function PUT(request: NextRequest) {
     if (!roleCheck.ok) return roleCheck.response;
 
     const body = await request.json();
-    const { id, payment_status, transaction_id, invoice_url, receipt_url } =
-      body;
+    const { id, payment_status, transaction_id, invoice_url, receipt_url } = body;
 
     if (!id) {
-      return NextResponse.json(
-        { error: "Invoice ID is required" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Invoice ID is required" }, { status: 400 });
     }
 
     const supabaseAdmin = createSupabaseAdminClient();
-    const { data: existingInvoice, error: existingInvoiceError } =
-      await supabaseAdmin
-        .from("payments")
-        .select("id, school_id")
-        .eq("id", id)
-        .single();
+    const { data: existingInvoice, error: existingInvoiceError } = await supabaseAdmin
+      .from("payments")
+      .select("id, school_id")
+      .eq("id", id)
+      .maybeSingle();
 
     if (existingInvoiceError || !existingInvoice?.school_id) {
       return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
@@ -233,10 +197,7 @@ export async function PUT(request: NextRequest) {
       .single();
 
     if (error || !invoice) {
-      return NextResponse.json(
-        { error: "Failed to update invoice" },
-        { status: 500 },
-      );
+      return NextResponse.json({ error: "Failed to update invoice" }, { status: 500 });
     }
 
     return NextResponse.json(
@@ -260,10 +221,7 @@ export async function PUT(request: NextRequest) {
     );
   } catch (error) {
     logger.error("Update invoice error:", error);
-    return NextResponse.json(
-      { error: "Failed to update invoice" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to update invoice" }, { status: 500 });
   }
 }
 
@@ -282,19 +240,15 @@ export async function DELETE(request: NextRequest) {
     const id = searchParams.get("id");
 
     if (!id) {
-      return NextResponse.json(
-        { error: "Invoice ID is required" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Invoice ID is required" }, { status: 400 });
     }
 
     const supabaseAdmin = createSupabaseAdminClient();
-    const { data: existingInvoice, error: existingInvoiceError } =
-      await supabaseAdmin
-        .from("payments")
-        .select("id, school_id")
-        .eq("id", id)
-        .single();
+    const { data: existingInvoice, error: existingInvoiceError } = await supabaseAdmin
+      .from("payments")
+      .select("id, school_id")
+      .eq("id", id)
+      .maybeSingle();
 
     if (existingInvoiceError || !existingInvoice?.school_id) {
       return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
@@ -306,27 +260,15 @@ export async function DELETE(request: NextRequest) {
     });
     if (!scope.ok) return scope.response;
 
-    const { error } = await supabaseAdmin
-      .from("payments")
-      .delete()
-      .eq("id", id);
+    const { error } = await supabaseAdmin.from("payments").delete().eq("id", id);
 
     if (error) {
-      return NextResponse.json(
-        { error: "Failed to delete invoice" },
-        { status: 500 },
-      );
+      return NextResponse.json({ error: "Failed to delete invoice" }, { status: 500 });
     }
 
-    return NextResponse.json(
-      { success: true, message: "Invoice deleted successfully" },
-      { status: 200 },
-    );
+    return NextResponse.json({ success: true, message: "Invoice deleted successfully" }, { status: 200 });
   } catch (error) {
     logger.error("Delete invoice error:", error);
-    return NextResponse.json(
-      { error: "Failed to delete invoice" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to delete invoice" }, { status: 500 });
   }
 }

@@ -238,7 +238,11 @@ export async function POST(request: NextRequest) {
 
     // 1. Check if phone number already exists
     logger.debug("[Register] Step 5: Checking existing user in DB");
-    const { data: existingUser } = await supabaseAdmin.from("users").select("id").eq("phone", normalizedPhone).single();
+    const { data: existingUser } = await supabaseAdmin
+      .from("users")
+      .select("id")
+      .eq("phone", normalizedPhone)
+      .maybeSingle();
 
     if (existingUser) {
       return apiError("Registration could not be completed. If you already have an account, please sign in.", 400);
@@ -254,7 +258,7 @@ export async function POST(request: NextRequest) {
         .from("schools")
         .select("id")
         .eq("school_code", schoolCode)
-        .single();
+        .maybeSingle();
 
       if (!existingSchool) break;
 
@@ -340,6 +344,9 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (userError) throw userError;
+    rollbacks.push(async () => {
+      await supabaseAdmin.from("users").delete().eq("id", createdUser.id);
+    });
 
     let moduleRequestLink: string | null = null;
     let moduleRequestMessage: string | null = null;

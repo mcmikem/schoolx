@@ -13,13 +13,7 @@ import { logger } from "@/lib/logger";
 
 export const dynamic = "force-dynamic";
 
-const BILLING_ROLES = [
-  "super_admin",
-  "school_admin",
-  "admin",
-  "headmaster",
-  "bursar",
-];
+const BILLING_ROLES = ["super_admin", "school_admin", "admin", "headmaster", "bursar"];
 
 export async function POST(request: NextRequest) {
   try {
@@ -39,20 +33,14 @@ export async function POST(request: NextRequest) {
     };
 
     if (!reference || !provider) {
-      return NextResponse.json(
-        { error: "Missing required fields: reference, provider" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Missing required fields: reference, provider" }, { status: 400 });
     }
 
     if (provider === "mtn" || provider === "airtel") {
       const pendingPayment = await getPendingMobilePayment(reference);
 
       if (!pendingPayment) {
-        return NextResponse.json(
-          { error: "Payment not found" },
-          { status: 404 },
-        );
+        return NextResponse.json({ error: "Payment not found" }, { status: 404 });
       }
 
       if (pendingPayment.school_id !== auth.context.schoolId) {
@@ -70,11 +58,7 @@ export async function POST(request: NextRequest) {
 
         await activateSchoolSubscription(
           pendingPayment.school_id,
-          pendingPayment.plan as
-            | "starter"
-            | "growth"
-            | "enterprise"
-            | "lifetime",
+          pendingPayment.plan as "starter" | "growth" | "enterprise" | "lifetime",
           provider,
           reference,
         );
@@ -83,11 +67,7 @@ export async function POST(request: NextRequest) {
           amount: pendingPayment.amount,
           currency: "UGX",
           date: new Date().toISOString(),
-          plan: pendingPayment.plan as
-            | "starter"
-            | "growth"
-            | "enterprise"
-            | "lifetime",
+          plan: pendingPayment.plan as "starter" | "growth" | "enterprise" | "lifetime",
           provider,
           transactionId: reference,
         });
@@ -115,16 +95,10 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return NextResponse.json(
-      { error: "Verification not supported for this provider" },
-      { status: 400 },
-    );
+    return NextResponse.json({ error: "Verification not supported for this provider" }, { status: 400 });
   } catch (error) {
     logger.error("Payment verification error:", error);
-    return NextResponse.json(
-      { error: "Failed to verify payment" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to verify payment" }, { status: 500 });
   }
 }
 
@@ -143,10 +117,7 @@ export async function GET(request: NextRequest) {
     const reference = searchParams.get("reference");
 
     if (!reference) {
-      return NextResponse.json(
-        { error: "Missing reference parameter" },
-        { status: 400 },
-      );
+      return NextResponse.json({ error: "Missing reference parameter" }, { status: 400 });
     }
 
     const supabase = await createSupabaseServerClient();
@@ -156,7 +127,7 @@ export async function GET(request: NextRequest) {
       .select("*")
       .eq("school_id", auth.context.schoolId)
       .eq("transaction_id", reference)
-      .single();
+      .maybeSingle();
 
     if (error || !payment) {
       return NextResponse.json({ error: "Payment not found" }, { status: 404 });
@@ -177,9 +148,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     logger.error("Get payment error:", error);
-    return NextResponse.json(
-      { error: "Failed to get payment details" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Failed to get payment details" }, { status: 500 });
   }
 }

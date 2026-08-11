@@ -73,7 +73,38 @@ async function ensureBucketExists(supabaseAdmin: any, bucketName: keyof typeof S
   }
 }
 
-function validateFile(file: File): string | null {
+function hasSignature(bytes: Uint8Array, signature: number[], offset = 0): boolean {
+  if (offset + signature.length > bytes.length) return false;
+  for (let i = 0; i < signature.length; i++) {
+    if (bytes[offset + i] !== signature[i]) return false;
+  }
+  return true;
+}
+
+function detectMimeType(bytes: Uint8Array): string | null {
+  if (hasSignature(bytes, [0xff, 0xd8, 0xff])) return "image/jpeg";
+  if (hasSignature(bytes, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) return "image/png";
+  if (
+    hasSignature(bytes, [0x47, 0x49, 0x46, 0x38, 0x37, 0x61]) ||
+    hasSignature(bytes, [0x47, 0x49, 0x46, 0x38, 0x39, 0x61])
+  )
+    return "image/gif";
+  if (hasSignature(bytes, [0x52, 0x49, 0x46, 0x46]) && hasSignature(bytes, [0x57, 0x45, 0x42, 0x50], 8))
+    return "image/webp";
+  if (hasSignature(bytes, [0x25, 0x50, 0x44, 0x46, 0x2d])) return "application/pdf";
+  if (hasSignature(bytes, [0x50, 0x4b, 0x03, 0x04])) return "ooxml";
+  if (hasSignature(bytes, [0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1])) return "ole2";
+  return null;
+}
+
+function sameContentFamily(declaredType: string, detectedType: string): boolean {
+  if (detectedType === "ooxml") return declaredType.startsWith("application/vnd.openxmlformats-officedocument");
+  if (detectedType === "ole2")
+    return declaredType === "application/msword" || declaredType === "application/vnd.ms-excel";
+  return declaredType === detectedType;
+}
+
+async function validateFile(file: File): Promise<string | null> {
   if (file.size > MAX_FILE_SIZE) {
     return `File size exceeds maximum allowed size of ${Math.round(MAX_FILE_SIZE / 1024 / 1024)}MB`;
   }
@@ -81,16 +112,16 @@ function validateFile(file: File): string | null {
     return `File type "${file.type}" is not allowed. Allowed types: images, PDFs, documents`;
   }
 
-  // TODO: Add server-side content verification
-  // In production, use the `file-type` library to verify the actual file content
-  // matches the declared MIME type, preventing MIME-type spoofing attacks.
-  // Example:
-  //   import { fileTypeFromBuffer } from "file-type";
-  //   const buffer = Buffer.from(await file.arrayBuffer());
-  //   const type = await fileTypeFromBuffer(buffer);
-  //   if (!type || !ALLOWED_MIME_TYPES.has(type.mime)) {
-  //     return "File content does not match declared type";
-  //   }
+  const header = new Uint8Array(await file.slice(0, 16).arrayBuffer());
+  const detectedType = detectMimeType(header);
+
+  if (!detectedType) {
+    return "File content could not be verified. Upload a valid image, PDF, or document.";
+  }
+
+  if (!sameContentFamily(file.type, detectedType)) {
+    return "File content does not match its declared type. Please re-export and try again.";
+  }
 
   return null;
 }
@@ -123,7 +154,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const validationError = validateFile(file);
+    const validationError = await validateFile(file);
     if (validationError) {
       return apiError(validationError, 400);
     }

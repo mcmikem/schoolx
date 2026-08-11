@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
     .select("id, first_name, last_name, parent_name, parent_phone")
     .eq("id", studentId)
     .eq("school_id", schoolId)
-    .single();
+    .maybeSingle();
 
   if (studentError || !student) {
     return NextResponse.json({ error: "Student not found" }, { status: 404 });
