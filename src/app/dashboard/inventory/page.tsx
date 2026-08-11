@@ -106,7 +106,7 @@ export default function InventoryPage() {
           {filteredAssets.length === 0 ? (
             <Card>
               <EmptyState
-                icon="inventory_2"
+                icon="inventory"
                 title="No consumable items"
                 description="Add consumable assets to track inventory"
               />

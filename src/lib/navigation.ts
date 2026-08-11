@@ -222,7 +222,7 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> = dee
         {
           href: "/dashboard/students/alumni",
           label: "Alumni",
-          icon: "diversity_3",
+          icon: "groups",
         },
         {
           href: "/dashboard/student-enrollments",
@@ -630,7 +630,7 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> = dee
           icon: "directions_bus",
         },
         { href: "/dashboard/library", label: "Library", icon: "local_library" },
-        { href: "/dashboard/assets", label: "Assets", icon: "inventory_2" },
+        { href: "/dashboard/assets", label: "Assets", icon: "inventory" },
         { href: "/dashboard/dorm", label: "Dormitories", icon: "bed" },
       ],
     },
@@ -778,6 +778,16 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> = dee
           href: "/parent-portal/results",
           label: "Results",
           icon: "description",
+        },
+        {
+          href: "/parent-portal/timetable",
+          label: "Timetable",
+          icon: "calendar_month",
+        },
+        {
+          href: "/parent-portal/events",
+          label: "Events",
+          icon: "event",
         },
       ],
     },

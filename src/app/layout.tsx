@@ -64,44 +64,29 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <head>
-        {/* Google Fonts — single request to reduce latency */}
-        {}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         {process.env.NEXT_PUBLIC_SUPABASE_URL && (
           <>
             <link rel="dns-prefetch" href={process.env.NEXT_PUBLIC_SUPABASE_URL} />
             <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL} />
           </>
         )}
-        <link
-          id="google-fonts-link"
-          rel="stylesheet"
-          media="print"
-          crossOrigin="anonymous"
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght@20..48,300..700&display=swap"
-        />
-        <Script id="google-fonts-activate" strategy="beforeInteractive">
-          {`
-            (function () {
-              var link = document.getElementById('google-fonts-link');
-              if (link) {
-                link.addEventListener('load', function () {
-                  if (link.media !== 'all') { link.media = 'all'; }
-                }, { once: true });
-                link.media = 'all';
-              }
-            })();
-          `}
-        </Script>
-        <noscript>
-          <link
-            href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght@20..48,300..700&display=swap"
-            rel="stylesheet"
-          />
-        </noscript>
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
         <link rel="icon" href="/icons/icon-512x512.png" type="image/png" />
+        <Script
+          id="lite-mode"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `(function () {
+  try {
+    var mem = navigator.deviceMemory || 0;
+    var cores = navigator.hardwareConcurrency || 0;
+    if ((mem && mem <= 3) || (cores && cores <= 4)) {
+      document.documentElement.classList.add('lite');
+    }
+  } catch (e) {}
+})();`,
+          }}
+        />
       </head>
       <body
         className="antialiased min-h-screen"

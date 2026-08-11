@@ -3,20 +3,20 @@ import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
+import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import ParentPortalShell from "@/components/parent-portal/ParentPortalShell";
+import { ChildSelector } from "@/components/parent-portal/ChildSelector";
+import { useParentPortal } from "@/components/parent-portal/ParentPortalProvider";
 import {
   buildReportCardSummaries,
   getUniqueTerms,
-  mapParentStudentLinks,
   normalizeGrades,
-  ParentPortalChild,
   ParentPortalGradeRecord,
-  resolveSelectedChild,
 } from "@/lib/parent-portal";
-import { getDemoChildren, getDemoGrades } from "@/lib/parent-portal-demo";
+import { getDemoGrades } from "@/lib/parent-portal-demo";
 
 const PERFORMANCE_STYLES = {
   excellent: "bg-emerald-50 text-emerald-700 border-emerald-200",
@@ -26,63 +26,44 @@ const PERFORMANCE_STYLES = {
 } as const;
 
 export default function ParentAcademicsPage() {
-  const { user, isDemo } = useAuth();
-  const [children, setChildren] = useState<ParentPortalChild[]>([]);
-  const [selectedChild, setSelectedChild] = useState<ParentPortalChild | null>(null);
+  const { isDemo } = useAuth();
+  const { selectedChild } = useParentPortal();
   const [grades, setGrades] = useState<ParentPortalGradeRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTerm, setSelectedTerm] = useState<string>("all");
   const [terms, setTerms] = useState<string[]>([]);
 
-  const fetchChildren = useCallback(async () => {
-    if (isDemo) {
-      setChildren(getDemoChildren());
-      return;
-    }
-    const parentId = user?.id;
-    if (!parentId) return;
-    const { data } = await supabase
-      .from("parent_students")
-      .select("student:students(id, first_name, last_name, school_id, class_id, class:classes(name))")
-      .eq("parent_id", parentId);
-    setChildren(mapParentStudentLinks(data || []));
-  }, [user?.id, isDemo]);
-
-  useEffect(() => {
-    setSelectedChild((current) => resolveSelectedChild(children, current?.id));
-  }, [children]);
-
   const fetchGrades = useCallback(
-    async (child: ParentPortalChild | null) => {
-      const scopedChild = resolveSelectedChild(children, child?.id);
-      if (!scopedChild) return;
+    async (child: typeof selectedChild) => {
+      if (!child) return;
       setLoading(true);
 
       if (isDemo) {
-        const demoGrades = getDemoGrades(scopedChild.id);
+        const demoGrades = getDemoGrades(child.id);
         setGrades(demoGrades);
         setTerms(getUniqueTerms(demoGrades));
         setLoading(false);
         return;
       }
 
-      const { data } = await supabase
-        .from("grades")
-        .select("id, score, max_score, grade, term, exam_type, teacher_comment, subjects(name)")
-        .eq("student_id", scopedChild.id)
-        .order("created_at", { ascending: false });
+      const { data } = await withTimeout(
+        supabase
+          .from("grades")
+          .select("id, score, max_score, grade, term, exam_type, teacher_comment, subjects(name)")
+          .eq("student_id", child.id)
+          .order("created_at", { ascending: false })
+          .limit(500),
+        12000,
+        timeoutFallback(),
+      );
 
       const mapped = normalizeGrades(data || []);
       setGrades(mapped);
       setTerms(getUniqueTerms(mapped));
       setLoading(false);
     },
-    [isDemo, children],
+    [isDemo],
   );
-
-  useEffect(() => {
-    fetchChildren();
-  }, [fetchChildren]);
 
   useEffect(() => {
     if (selectedChild) {
@@ -117,23 +98,7 @@ export default function ParentAcademicsPage() {
           variant="premium"
         />
 
-        {children.length > 1 && (
-          <div className="flex gap-3 overflow-x-auto pb-1">
-            {children.map((child) => (
-              <button
-                key={child.id}
-                onClick={() => setSelectedChild(child)}
-                className={`rounded-full px-4 py-2 text-sm font-semibold whitespace-nowrap transition-all border ${
-                  selectedChild?.id === child.id
-                    ? "bg-[var(--primary)] text-[var(--on-primary)] border-transparent shadow-[0_12px_24px_rgba(0,92,230,0.18)]"
-                    : "bg-white text-[var(--on-surface-variant)] border-[var(--border)] hover:bg-[var(--surface-container-low)]"
-                }`}
-              >
-                {child.first_name} {child.last_name}
-              </button>
-            ))}
-          </div>
-        )}
+        <ChildSelector />
 
         <div className="grid grid-cols-2 gap-4">
           <Card>

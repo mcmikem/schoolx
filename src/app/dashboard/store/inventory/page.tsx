@@ -356,7 +356,7 @@ export default function InventoryPage() {
           <Card>
             {filteredAssets.filter((asset) => !asset.is_consumable).length === 0 ? (
               <EmptyState
-                icon="inventory_2"
+                icon="inventory"
                 title="No fixed assets yet"
                 description="Register school property such as desks, laptops, projectors, generators, and lab equipment."
               />

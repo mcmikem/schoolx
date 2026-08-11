@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { supabase } from "./supabase";
 import { useAuth } from "./auth-context";
 import { logger } from "./logger";
+import { withTimeout, timeoutFallback } from "./hooks/utils";
 import MaterialIcon from "@/components/MaterialIcon";
 
 interface Notification {
@@ -80,6 +81,49 @@ export function NotificationsProvider({
       const today = new Date().toISOString().slice(0, 10);
 
       const canSeeFees = userRole !== "teacher" && userRole !== "parent";
+
+      // Parents get their own lightweight feed — never pull the entire school's
+      // students/attendance tables onto a phone on 3G.
+      if (userRole === "parent" && user?.id) {
+        try {
+          const { data: parentNotifs, error: parentErr } = await withTimeout(
+            supabase
+              .from("parent_notifications")
+              .select("id, type, title, message, is_read, action_url, created_at")
+              .eq("parent_id", user.id)
+              .order("created_at", { ascending: false })
+              .limit(20),
+            12000,
+            timeoutFallback(),
+          );
+          if (parentErr) throw parentErr;
+          const typeMap: Record<string, Notification["type"]> = {
+            grade_posted: "grade",
+            payment_received: "payment",
+            attendance_alert: "attendance",
+            fee_due: "warning",
+            report_card: "grade",
+            message: "info",
+            general: "info",
+          };
+          setNotifications(
+            ((parentNotifs as any[]) || []).map((n) => ({
+              id: n.id,
+              type: typeMap[n.type] || "info",
+              title: n.title || "Notification",
+              message: n.message || "",
+              read: !!n.is_read,
+              link: n.action_url || undefined,
+              created_at: n.created_at,
+            })),
+          );
+        } catch (err) {
+          logger.warn("[notifications] parent feed failed", err);
+          setNotifications([]);
+        }
+        setLoading(false);
+        return;
+      }
 
       const { data: schoolStudents, error: schoolStudentsError } = await supabase
         .from("students")

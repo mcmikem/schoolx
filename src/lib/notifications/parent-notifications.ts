@@ -10,9 +10,7 @@ function getSupabaseAdminClient() {
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !supabaseServiceKey) {
-    logger.error(
-      "Parent notifications disabled: missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY",
-    );
+    logger.error("Parent notifications disabled: missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY");
     return null;
   }
 
@@ -22,12 +20,12 @@ function getSupabaseAdminClient() {
   return supabaseAdminClient;
 }
 
-export type NotificationType = 
-  | "grade_posted" 
-  | "payment_received" 
-  | "attendance_alert" 
-  | "fee_due" 
-  | "report_card" 
+export type NotificationType =
+  | "grade_posted"
+  | "payment_received"
+  | "attendance_alert"
+  | "fee_due"
+  | "report_card"
   | "message";
 
 interface CreateNotificationParams {
@@ -81,73 +79,81 @@ export async function createParentNotification({
   }
 }
 
+export async function getParentIdsForStudent(supabaseAdmin: any, studentId: string): Promise<string[]> {
+  const { data } = await supabaseAdmin.from("parent_students").select("parent_id").eq("student_id", studentId);
+
+  return (data || []).map((row: { parent_id: string }) => row.parent_id);
+}
+
 export async function notifyGradePosted(schoolId: string, studentId: string, subjectName: string, term: number) {
   const supabaseAdmin = getSupabaseAdminClient();
   if (!supabaseAdmin) return;
 
-  const { data: student } = await supabaseAdmin
-    .from("students")
-    .select("parent_id, first_name")
-    .eq("id", studentId)
-    .single();
+  const { data: student } = await supabaseAdmin.from("students").select("first_name").eq("id", studentId).single();
 
-  if (!student?.parent_id) return;
+  const parentIds = await getParentIdsForStudent(supabaseAdmin, studentId);
+  if (!parentIds.length) return;
 
-  await createParentNotification({
-    schoolId,
-    parentId: student.parent_id,
-    studentId,
-    type: "grade_posted",
-    title: "New Grade Posted",
-    message: `${student.first_name} has a new ${subjectName} grade for Term ${term}. Check the parent portal for details.`,
-    actionUrl: "/parent-portal/grades",
-  });
+  for (const parentId of parentIds) {
+    await createParentNotification({
+      schoolId,
+      parentId,
+      studentId,
+      type: "grade_posted",
+      title: "New Grade Posted",
+      message: `${student?.first_name || "Your child"} has a new ${subjectName} grade for Term ${term}. Check the parent portal for details.`,
+      actionUrl: "/parent-portal/grades",
+    });
+  }
 }
 
-export async function notifyPaymentReceived(schoolId: string, studentId: string, amount: number, paymentMethod: string) {
+export async function notifyPaymentReceived(
+  schoolId: string,
+  studentId: string,
+  amount: number,
+  paymentMethod: string,
+) {
   const supabaseAdmin = getSupabaseAdminClient();
   if (!supabaseAdmin) return;
 
-  const { data: student } = await supabaseAdmin
-    .from("students")
-    .select("parent_id, first_name")
-    .eq("id", studentId)
-    .single();
+  const { data: student } = await supabaseAdmin.from("students").select("first_name").eq("id", studentId).single();
 
-  if (!student?.parent_id) return;
+  const parentIds = await getParentIdsForStudent(supabaseAdmin, studentId);
+  if (!parentIds.length) return;
 
   const formatted = new Intl.NumberFormat("en-UG", { style: "currency", currency: "UGX" }).format(amount);
 
-  await createParentNotification({
-    schoolId,
-    parentId: student.parent_id,
-    studentId,
-    type: "payment_received",
-    title: "Payment Received",
-    message: `Payment of ${formatted} received for ${student.first_name}. Thank you!`,
-    actionUrl: "/parent-portal/fees",
-  });
+  for (const parentId of parentIds) {
+    await createParentNotification({
+      schoolId,
+      parentId,
+      studentId,
+      type: "payment_received",
+      title: "Payment Received",
+      message: `Payment of ${formatted} received for ${student?.first_name || "your child"}. Thank you!`,
+      actionUrl: "/parent-portal/fees",
+    });
+  }
 }
 
 export async function notifyAttendanceAlert(schoolId: string, studentId: string, date: string, status: string) {
   const supabaseAdmin = getSupabaseAdminClient();
   if (!supabaseAdmin) return;
 
-  const { data: student } = await supabaseAdmin
-    .from("students")
-    .select("parent_id, first_name")
-    .eq("id", studentId)
-    .single();
+  const { data: student } = await supabaseAdmin.from("students").select("first_name").eq("id", studentId).single();
 
-  if (!student?.parent_id) return;
+  const parentIds = await getParentIdsForStudent(supabaseAdmin, studentId);
+  if (!parentIds.length) return;
 
-  await createParentNotification({
-    schoolId,
-    parentId: student.parent_id,
-    studentId,
-    type: "attendance_alert",
-    title: "Attendance Alert",
-    message: `${student.first_name} was marked ${status} on ${date}. Please contact the school if this is unexpected.`,
-    actionUrl: "/parent-portal/attendance",
-  });
+  for (const parentId of parentIds) {
+    await createParentNotification({
+      schoolId,
+      parentId,
+      studentId,
+      type: "attendance_alert",
+      title: "Attendance Alert",
+      message: `${student?.first_name || "Your child"} was marked ${status} on ${date}. Please contact the school if this is unexpected.`,
+      actionUrl: "/parent-portal/attendance",
+    });
+  }
 }

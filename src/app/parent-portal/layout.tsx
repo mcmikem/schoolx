@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { APP_NAME } from "@/lib/app-name";
+import { ParentPortalProvider } from "@/components/parent-portal/ParentPortalProvider";
 
 export const metadata: Metadata = {
   title: `Parent Portal | ${APP_NAME}`,
-  description:
-    `Parent portal for ${APP_NAME}. Your Digital School Partner. View your child's attendance, grades, fee balance, and school updates in one place.`,
+  description: `Parent portal for ${APP_NAME}. Your Digital School Partner. View your child's attendance, grades, fee balance, and school updates in one place.`,
   openGraph: {
     title: `Parent Portal | ${APP_NAME}`,
     description:
@@ -15,10 +16,10 @@ export const metadata: Metadata = {
   },
 };
 
-export default function ParentPortalLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return children;
+export default function ParentPortalLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={null}>
+      <ParentPortalProvider>{children}</ParentPortalProvider>
+    </Suspense>
+  );
 }

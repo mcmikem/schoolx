@@ -680,7 +680,7 @@ export const MODULE_CATALOG: ModuleDefinition[] = [
     module_key: "assets",
     display_name: "Assets & Inventory",
     description: "School asset tracking and general inventory management.",
-    icon: "inventory_2",
+    icon: "inventory",
     route_prefixes: MODULE_ROUTE_MAP.assets,
     included_in_stages: ["full"],
     included_in_core_small: false,

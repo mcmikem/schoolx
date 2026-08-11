@@ -126,7 +126,7 @@ const ALL_MODULES = [
   { key: "transport", label: "Transport", icon: "directions_bus" },
   { key: "dorm", label: "Dormitory", icon: "bed" },
   { key: "health", label: "Health", icon: "local_hospital" },
-  { key: "inventory", label: "Inventory", icon: "inventory_2" },
+  { key: "inventory", label: "Inventory", icon: "inventory" },
   { key: "parent_portal", label: "Parent Portal", icon: "family_restroom" },
   { key: "analytics", label: "Analytics", icon: "analytics" },
   { key: "uneb", label: "UNEB", icon: "verified" },

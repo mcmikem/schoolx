@@ -20,13 +20,7 @@ function SidebarOverlay() {
   );
 }
 
-function ParentPortalShellContent({
-  children,
-  pageTitle,
-}: {
-  children: React.ReactNode;
-  pageTitle: string;
-}) {
+function ParentPortalShellContent({ children, pageTitle }: { children: React.ReactNode; pageTitle: string }) {
   const { close: closeSidebar } = useSidebar();
   const { signOut } = useAuth();
   const router = useRouter();
@@ -45,19 +39,16 @@ function ParentPortalShellContent({
         className="main-content mobile-container ml-[var(--sidebar-width)] flex-1 flex flex-col min-h-screen w-[calc(100%-var(--sidebar-width))] overflow-hidden"
       >
         <TopBar pageTitle={pageTitle} onSignOut={handleSignOut} />
-        {children}
+        <div className="parent-portal-shell flex-1 flex flex-col relative overflow-hidden">
+          <div className="parent-portal-atmosphere" aria-hidden="true" />
+          <div className="content-layer flex-1 flex flex-col">{children}</div>
+        </div>
       </main>
     </div>
   );
 }
 
-export default function ParentPortalShell({
-  children,
-  pageTitle,
-}: {
-  children: React.ReactNode;
-  pageTitle: string;
-}) {
+export default function ParentPortalShell({ children, pageTitle }: { children: React.ReactNode; pageTitle: string }) {
   const { isAuthorized, isChecking } = useParentPortalGuard();
 
   if (isChecking) {
@@ -97,9 +88,7 @@ export default function ParentPortalShell({
   return (
     <PageErrorBoundary>
       <SidebarProvider>
-        <ParentPortalShellContent pageTitle={pageTitle}>
-          {children}
-        </ParentPortalShellContent>
+        <ParentPortalShellContent pageTitle={pageTitle}>{children}</ParentPortalShellContent>
       </SidebarProvider>
     </PageErrorBoundary>
   );

@@ -3,16 +3,17 @@ import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
+import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 import ParentPortalShell from "@/components/parent-portal/ParentPortalShell";
+import { ChildSelector } from "@/components/parent-portal/ChildSelector";
+import { useParentPortal } from "@/components/parent-portal/ParentPortalProvider";
 import {
   calculateFeeStats,
-  mapParentStudentLinks,
-  ParentPortalChild,
   ParentPortalFeeStructureItem,
   ParentPortalPayment,
   ParentPortalWalletTransaction,
@@ -20,10 +21,8 @@ import {
   normalizePayments,
   normalizeWalletTransactions,
   pickPreferredSchemaRows,
-  resolveSelectedChild,
 } from "@/lib/parent-portal";
 import {
-  getDemoChildren,
   getDemoFeeStructure,
   getDemoPayments,
   getDemoWalletBalance,
@@ -40,10 +39,9 @@ const WALLET_BADGE_STYLES: Record<ParentPortalWalletTransaction["type"], string>
 const QUICK_TOPUP_AMOUNTS = [5000, 10000, 20000, 50000] as const;
 
 export default function ParentFeesPage() {
-  const { user, isDemo } = useAuth();
+  const { isDemo } = useAuth();
   const toast = useToast();
-  const [children, setChildren] = useState<ParentPortalChild[]>([]);
-  const [selectedChild, setSelectedChild] = useState<ParentPortalChild | null>(null);
+  const { selectedChild } = useParentPortal();
   const [feeStructure, setFeeStructure] = useState<ParentPortalFeeStructureItem[]>([]);
   const [payments, setPayments] = useState<ParentPortalPayment[]>([]);
   const [walletBalance, setWalletBalance] = useState(0);
@@ -52,70 +50,79 @@ export default function ParentFeesPage() {
   const [showTopup, setShowTopup] = useState(false);
   const [topupAmount, setTopupAmount] = useState("");
   const [topupLoading, setTopupLoading] = useState(false);
-
-  const fetchChildren = useCallback(async () => {
-    if (isDemo) {
-      setChildren(getDemoChildren());
-      return;
-    }
-    const parentId = user?.id;
-    if (!parentId) return;
-    const { data } = await supabase
-      .from("parent_students")
-      .select("student:students(id, first_name, last_name, school_id, class_id, class:classes(name))")
-      .eq("parent_id", parentId);
-    setChildren(mapParentStudentLinks(data || []));
-  }, [user?.id, isDemo]);
-
-  useEffect(() => {
-    setSelectedChild((current) => resolveSelectedChild(children, current?.id));
-  }, [children]);
+  const [showPayModal, setShowPayModal] = useState(false);
+  const [payAmount, setPayAmount] = useState("");
+  const [payProvider, setPayProvider] = useState<"mtn" | "airtel">("mtn");
+  const [payPhone, setPayPhone] = useState("");
+  const [payStep, setPayStep] = useState<"form" | "sent" | "verifying">("form");
+  const [payTxRef, setPayTxRef] = useState("");
+  const [payInstructions, setPayInstructions] = useState("");
+  const [payLoading, setPayLoading] = useState(false);
 
   const fetchFees = useCallback(
-    async (child: ParentPortalChild | null) => {
-      const scopedChild = resolveSelectedChild(children, child?.id);
-      if (!scopedChild) return;
+    async (child: typeof selectedChild) => {
+      if (!child) return;
       setLoading(true);
 
       if (isDemo) {
-        setFeeStructure(getDemoFeeStructure(scopedChild.id));
-        setPayments(getDemoPayments(scopedChild.id));
-        setWalletBalance(getDemoWalletBalance(scopedChild.id));
-        setWalletTransactions(getDemoWalletTransactions(scopedChild.id));
+        setFeeStructure(getDemoFeeStructure(child.id));
+        setPayments(getDemoPayments(child.id));
+        setWalletBalance(getDemoWalletBalance(child.id));
+        setWalletTransactions(getDemoWalletTransactions(child.id));
         setLoading(false);
         return;
       }
 
       try {
         const [modernFeeTermsRes, modernPaymentsRes, walletRes] = await Promise.all([
-          supabase
-            .from("student_fee_terms")
-            .select("id, final_amount, academic_year, fee_terms(name)")
-            .eq("student_id", scopedChild.id)
-            .order("created_at", { ascending: false }),
-          supabase
-            .from("fee_payments")
-            .select(
-              "id, amount, payment_date, payment_method, transaction_reference, student_fee_terms!inner(student_id, fee_terms(name))",
-            )
-            .eq("student_fee_terms.student_id", scopedChild.id)
-            .order("payment_date", { ascending: false }),
-          supabase.from("student_wallets").select("id, balance").eq("student_id", scopedChild.id).maybeSingle(),
+          withTimeout(
+            supabase
+              .from("student_fee_terms")
+              .select("id, final_amount, academic_year, fee_terms(name)")
+              .eq("student_id", child.id)
+              .order("created_at", { ascending: false }),
+            12000,
+            timeoutFallback(),
+          ),
+          withTimeout(
+            supabase
+              .from("fee_payments")
+              .select(
+                "id, amount, payment_date, payment_method, transaction_reference, student_fee_terms!inner(student_id, fee_terms(name))",
+              )
+              .eq("student_fee_terms.student_id", child.id)
+              .order("payment_date", { ascending: false }),
+            12000,
+            timeoutFallback(),
+          ),
+          withTimeout(
+            supabase.from("student_wallets").select("id, balance").eq("student_id", child.id).maybeSingle(),
+            12000,
+            timeoutFallback(),
+          ),
         ]);
 
         const [legacyFeeTermsRes, legacyPaymentsRes] = await Promise.all([
-          supabase
-            .from("fee_structure")
-            .select("id, name, amount, term")
-            .eq("school_id", scopedChild.school_id)
-            .is("deleted_at", null)
-            .or(`class_id.is.null,class_id.eq.${scopedChild.class_id}`),
-          supabase
-            .from("fee_payments")
-            .select("id, amount_paid, payment_date, payment_method, payment_reference, fee_structure:fee_id(name)")
-            .eq("student_id", scopedChild.id)
-            .is("deleted_at", null)
-            .order("payment_date", { ascending: false }),
+          withTimeout(
+            supabase
+              .from("fee_structure")
+              .select("id, name, amount, term")
+              .eq("school_id", child.school_id)
+              .is("deleted_at", null)
+              .or(`class_id.is.null,class_id.eq.${child.class_id}`),
+            12000,
+            timeoutFallback(),
+          ),
+          withTimeout(
+            supabase
+              .from("fee_payments")
+              .select("id, amount_paid, payment_date, payment_method, payment_reference, fee_structure:fee_id(name)")
+              .eq("student_id", child.id)
+              .is("deleted_at", null)
+              .order("payment_date", { ascending: false }),
+            12000,
+            timeoutFallback(),
+          ),
         ]);
 
         const feeRows = pickPreferredSchemaRows({
@@ -125,33 +132,43 @@ export default function ParentFeesPage() {
           legacyError: legacyFeeTermsRes.error,
         });
 
-        const paymentRows = pickPreferredSchemaRows({
-          modernRows: normalizePayments((modernPaymentsRes.data || []) as never[]),
-          modernError: modernPaymentsRes.error,
-          legacyRows: normalizePayments((legacyPaymentsRes.data || []) as never[]),
-          legacyError: legacyPaymentsRes.error,
-        });
+        const modernPaymentRows = normalizePayments((modernPaymentsRes.data || []) as never[]);
+        const legacyPaymentRows = normalizePayments((legacyPaymentsRes.data || []) as never[]);
+
+        // Union modern + legacy payment rows (dedupe by id) so mobile money
+        // payments recorded without a fee-term link still show on the portal.
+        const paymentRows = !modernPaymentsRes.error
+          ? [...modernPaymentRows, ...legacyPaymentRows.filter((p) => !modernPaymentRows.some((m) => m.id === p.id))]
+          : legacyPaymentRows;
 
         const walletId = walletRes.data?.id;
         let walletTxData: ParentPortalWalletTransaction[] = [];
 
         if (walletId) {
-          const modernWalletTxRes = await supabase
-            .from("wallet_transactions")
-            .select("id, amount, transaction_type, reference_id, description, created_at")
-            .eq("wallet_id", walletId)
-            .order("created_at", { ascending: false })
-            .limit(8);
+          const modernWalletTxRes = await withTimeout(
+            supabase
+              .from("wallet_transactions")
+              .select("id, amount, transaction_type, reference_id, description, created_at")
+              .eq("wallet_id", walletId)
+              .order("created_at", { ascending: false })
+              .limit(8),
+            12000,
+            timeoutFallback(),
+          );
 
           if (!modernWalletTxRes.error) {
             walletTxData = normalizeWalletTransactions(modernWalletTxRes.data || []);
           } else {
-            const legacyWalletTxRes = await supabase
-              .from("wallet_transactions")
-              .select("id, amount, type, reference, description, created_at")
-              .eq("student_id", scopedChild.id)
-              .order("created_at", { ascending: false })
-              .limit(8);
+            const legacyWalletTxRes = await withTimeout(
+              supabase
+                .from("wallet_transactions")
+                .select("id, amount, type, reference, description, created_at")
+                .eq("student_id", child.id)
+                .order("created_at", { ascending: false })
+                .limit(8),
+              12000,
+              timeoutFallback(),
+            );
 
             if (!legacyWalletTxRes.error) {
               walletTxData = normalizeWalletTransactions(legacyWalletTxRes.data || []);
@@ -167,12 +184,8 @@ export default function ParentFeesPage() {
         setLoading(false);
       }
     },
-    [isDemo, children],
+    [isDemo],
   );
-
-  useEffect(() => {
-    fetchChildren();
-  }, [fetchChildren]);
 
   useEffect(() => {
     if (selectedChild) {
@@ -217,12 +230,16 @@ export default function ParentFeesPage() {
     }
 
     try {
-      const { error } = await supabase.rpc("topup_student_wallet", {
-        p_student_id: selectedChild.id,
-        p_amount: amount,
-        p_description: "Top-up by Parent via Portal",
-        p_ref: `PAR-${Date.now()}`,
-      });
+      const { error } = await withTimeout(
+        supabase.rpc("topup_student_wallet", {
+          p_student_id: selectedChild.id,
+          p_amount: amount,
+          p_description: "Top-up by Parent via Portal",
+          p_ref: `PAR-${Date.now()}`,
+        }),
+        12000,
+        timeoutFallback(),
+      );
 
       if (error) {
         throw error;
@@ -239,6 +256,116 @@ export default function ParentFeesPage() {
     }
   };
 
+  const startPay = async () => {
+    if (!selectedChild) return;
+    const amountValue = Number(payAmount);
+    if (!Number.isFinite(amountValue) || amountValue <= 0) {
+      toast.error("Enter a valid amount to pay.");
+      return;
+    }
+    if (!payPhone || payPhone.replace(/\D/g, "").length < 9) {
+      toast.error("Enter a valid phone number.");
+      return;
+    }
+    setPayLoading(true);
+
+    if (isDemo) {
+      await new Promise((r) => setTimeout(r, 1200));
+      setPayTxRef(`DEMO-FEES-${Date.now()}`);
+      setPayInstructions(
+        `A payment request for UGX ${amountValue.toLocaleString()} has been sent to ${payPhone.replace(/\D/g, "").replace(/^0?/, "256")}. Check your phone and enter your PIN to confirm.`,
+      );
+      setPayStep("sent");
+      setPayLoading(false);
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/parent/fee-payment/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "create",
+          childId: selectedChild.id,
+          amount: amountValue,
+          provider: payProvider,
+          phoneNumber: payPhone,
+        }),
+      });
+      const data = await res.json();
+      if (!data.success) {
+        toast.error(data.error || "Payment could not be started.");
+        return;
+      }
+      setPayTxRef(data.txRef);
+      setPayInstructions(data.instructions);
+      setPayStep("sent");
+    } finally {
+      setPayLoading(false);
+    }
+  };
+
+  const verifyPay = async () => {
+    if (!selectedChild || !payTxRef) return;
+    setPayLoading(true);
+    setPayStep("verifying");
+
+    if (isDemo) {
+      await new Promise((r) => setTimeout(r, 1500));
+      const amountValue = Number(payAmount || 0);
+      const createdAt = new Date().toISOString();
+      setPayments((current) => [
+        {
+          id: `demo-fees-${Date.now()}`,
+          amount_paid: amountValue,
+          payment_date: createdAt,
+          payment_method: payProvider === "airtel" ? "Airtel Money" : "MTN MoMo",
+          payment_reference: payTxRef,
+          fee_structure: null,
+        },
+        ...current,
+      ]);
+      setShowPayModal(false);
+      setPayStep("form");
+      setPayTxRef("");
+      setPayAmount("");
+      toast.success(`Payment of UGX ${amountValue.toLocaleString()} confirmed.`);
+      setPayLoading(false);
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/parent/fee-payment/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "verify",
+          childId: selectedChild.id,
+          reference: payTxRef,
+          provider: payProvider,
+          amount: Number(payAmount || 0),
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.status === "completed") {
+        setShowPayModal(false);
+        setPayStep("form");
+        setPayTxRef("");
+        setPayAmount("");
+        toast.success("Payment confirmed and recorded.");
+        await fetchFees(selectedChild);
+      } else {
+        toast.error(data.message || "Payment not yet confirmed. Try again in a moment.");
+        setPayStep("sent");
+      }
+    } catch {
+      toast.error("Unable to verify payment. Try again.");
+      setPayStep("sent");
+    } finally {
+      setPayLoading(false);
+    }
+  };
+
   return (
     <ParentPortalShell pageTitle="Fees & Receipts">
       <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-6 animate-in fade-in duration-500">
@@ -248,23 +375,7 @@ export default function ParentFeesPage() {
           variant="premium"
         />
 
-        {children.length > 1 && (
-          <div className="flex gap-3 overflow-x-auto pb-1">
-            {children.map((child) => (
-              <button
-                key={child.id}
-                onClick={() => setSelectedChild(child)}
-                className={`rounded-full px-4 py-2 text-sm font-semibold whitespace-nowrap transition-all border ${
-                  selectedChild?.id === child.id
-                    ? "bg-[var(--primary)] text-[var(--on-primary)] border-transparent shadow-[0_12px_24px_rgba(0,92,230,0.18)]"
-                    : "bg-white text-[var(--on-surface-variant)] border-[var(--border)] hover:bg-[var(--surface-container-low)]"
-                }`}
-              >
-                {child.first_name} {child.last_name}
-              </button>
-            ))}
-          </div>
-        )}
+        <ChildSelector />
 
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
           {[
@@ -323,6 +434,16 @@ export default function ParentFeesPage() {
               <div className="flex gap-3">
                 <Button onClick={() => setShowTopup(true)} disabled={!selectedChild} variant="secondary">
                   <MaterialIcon icon="add_card" /> Wallet Top-up
+                </Button>
+                <Button
+                  onClick={() => {
+                    setPayAmount(stats.balance > 0 ? String(stats.balance) : "");
+                    setPayStep("form");
+                    setShowPayModal(true);
+                  }}
+                  disabled={!selectedChild}
+                >
+                  <MaterialIcon icon="bolt" /> Pay Fees
                 </Button>
               </div>
             </div>
@@ -538,6 +659,118 @@ export default function ParentFeesPage() {
               >
                 <MaterialIcon icon="add_card" /> Confirm Top-up
               </Button>
+            </div>
+          </div>
+        )}
+
+        {showPayModal && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
+            <div className="bg-[var(--surface)] rounded-3xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl p-8 space-y-5">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-xl font-black text-[var(--on-surface)]">Pay Fees by Mobile Money</h2>
+                  <p className="text-sm text-[var(--on-surface-variant)]">
+                    {selectedChild ? `${selectedChild.first_name}'s fee payment` : "Select a learner first"}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowPayModal(false);
+                    setPayStep("form");
+                  }}
+                  className="p-2 hover:bg-[var(--surface-container)] rounded-xl"
+                >
+                  <MaterialIcon icon="close" />
+                </button>
+              </div>
+
+              {payStep === "form" ? (
+                <>
+                  <div>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2">
+                      Amount (UGX)
+                    </label>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      value={payAmount}
+                      onChange={(event) => setPayAmount(event.target.value)}
+                      placeholder="e.g. 100000"
+                      className="input w-full"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2">
+                      Mobile Money Provider
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {(["mtn", "airtel"] as const).map((p) => (
+                        <button
+                          key={p}
+                          type="button"
+                          onClick={() => setPayProvider(p)}
+                          className={`rounded-2xl border px-4 py-3 text-sm font-bold transition-all ${
+                            payProvider === p
+                              ? "bg-[var(--primary)] text-[var(--on-primary)] border-transparent"
+                              : "border-[var(--border)] text-[var(--on-surface-variant)] hover:border-[var(--primary)]"
+                          }`}
+                        >
+                          {p === "mtn" ? "MTN MoMo" : "Airtel Money"}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2">
+                      Phone Number
+                    </label>
+                    <input
+                      type="tel"
+                      inputMode="tel"
+                      value={payPhone}
+                      onChange={(event) => setPayPhone(event.target.value)}
+                      placeholder="07XX XXX XXX"
+                      className="input w-full"
+                    />
+                  </div>
+
+                  <Button
+                    onClick={startPay}
+                    disabled={!selectedChild || !payAmount.trim() || !payPhone.trim() || payLoading}
+                    loading={payLoading}
+                    className="w-full"
+                  >
+                    <MaterialIcon icon="bolt" /> Request Payment
+                  </Button>
+                </>
+              ) : (
+                <div className="space-y-5">
+                  <div className="rounded-2xl bg-[var(--surface-container-low)] border border-[var(--border)] p-4 space-y-2">
+                    <div className="flex items-center gap-2 text-[var(--primary)]">
+                      <MaterialIcon icon={payStep === "verifying" ? "hourglass_top" : "smartphone"} />
+                      <p className="text-sm font-black text-[var(--on-surface)]">
+                        {payStep === "verifying" ? "Confirming payment…" : "Check your phone"}
+                      </p>
+                    </div>
+                    <p className="text-sm text-[var(--on-surface-variant)]">{payInstructions}</p>
+                    <p className="text-xs font-mono text-[var(--t3)]">Ref: {payTxRef}</p>
+                  </div>
+
+                  {payStep === "sent" && (
+                    <Button onClick={verifyPay} loading={payLoading} className="w-full">
+                      <MaterialIcon icon="verified" /> I&apos;ve Entered My PIN
+                    </Button>
+                  )}
+                  {payStep === "verifying" && (
+                    <div className="flex items-center justify-center gap-2 text-sm text-[var(--t3)]">
+                      <span className="w-4 h-4 border-2 border-[var(--primary)]/30 border-t-[var(--primary)] rounded-full animate-spin" />
+                      Checking payment status…
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         )}

@@ -199,7 +199,7 @@ export default function LibraryPage() {
             { label: "Total Stock", value: totalBooks, icon: "auto_stories", color: "bg-indigo-600" },
             { label: "On Loan", value: totalBorrowed, icon: "bookmark", color: "bg-blue-500" },
             { label: "In Library", value: availableBooks, icon: "check_circle", color: "bg-emerald-500" },
-            { label: "Inventory Value", value: books.length, icon: "inventory_2", color: "bg-amber-600" },
+            { label: "Inventory Value", value: books.length, icon: "inventory", color: "bg-amber-600" },
           ].map((s) => (
             <div key={s.label} className="p-5 bg-white rounded-3xl border border-slate-100 flex items-center gap-4">
               <div className={`w-12 h-12 rounded-2xl ${s.color} text-white flex items-center justify-center shrink-0`}>

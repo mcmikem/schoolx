@@ -3,19 +3,17 @@ import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
+import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 import ParentPortalShell from "@/components/parent-portal/ParentPortalShell";
-import {
-  mapParentStudentLinks,
-  ParentPortalChild,
-  ParentPortalMessageThreadItem,
-  resolveSelectedChild,
-} from "@/lib/parent-portal";
-import { getDemoChildren, getDemoMessages } from "@/lib/parent-portal-demo";
+import { ChildSelector } from "@/components/parent-portal/ChildSelector";
+import { useParentPortal } from "@/components/parent-portal/ParentPortalProvider";
+import { ParentPortalMessageThreadItem } from "@/lib/parent-portal";
+import { getDemoMessages } from "@/lib/parent-portal-demo";
 import { getErrorMessage } from "@/lib/validation";
 
 const MAX_PARENT_MESSAGE_SUBJECT = 200;
@@ -24,10 +22,7 @@ const MAX_PARENT_MESSAGE_BODY = 5000;
 export default function ParentMessagesPage() {
   const { user, isDemo } = useAuth();
   const toast = useToast();
-  const [children, setChildren] = useState<ParentPortalChild[]>([]);
-  const [selectedChild, setSelectedChild] = useState<ParentPortalChild | null>(
-    null,
-  );
+  const { selectedChild } = useParentPortal();
   const [messages, setMessages] = useState<ParentPortalMessageThreadItem[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [subject, setSubject] = useState("");
@@ -35,26 +30,6 @@ export default function ParentMessagesPage() {
   const [loading, setLoading] = useState(true);
   const [showCompose, setShowCompose] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
-
-  const fetchChildren = useCallback(async () => {
-    if (isDemo) {
-      setChildren(getDemoChildren());
-      return;
-    }
-    const parentId = user?.id;
-    if (!parentId) return;
-    const { data } = await supabase
-      .from("parent_students")
-      .select(
-        "student:students(id, first_name, last_name, school_id, class_id, class:classes(name))",
-      )
-      .eq("parent_id", parentId);
-    setChildren(mapParentStudentLinks(data || []));
-  }, [user?.id, isDemo]);
-
-  useEffect(() => {
-    setSelectedChild((current) => resolveSelectedChild(children, current?.id));
-  }, [children]);
 
   const fetchMessages = useCallback(async () => {
     const parentId = user?.id;
@@ -67,19 +42,19 @@ export default function ParentMessagesPage() {
       return;
     }
 
-    const { data } = await supabase
-      .from("parent_messages")
-      .select("id, subject, body, sender_role, created_at, is_read")
-      .eq("parent_id", parentId!)
-      .order("created_at", { ascending: true });
+    const { data } = await withTimeout(
+      supabase
+        .from("parent_messages")
+        .select("id, subject, body, sender_role, created_at, is_read")
+        .eq("parent_id", parentId!)
+        .order("created_at", { ascending: true }),
+      12000,
+      timeoutFallback(),
+    );
 
     setMessages((data || []) as ParentPortalMessageThreadItem[]);
     setLoading(false);
   }, [user?.id, isDemo]);
-
-  useEffect(() => {
-    fetchChildren();
-  }, [fetchChildren]);
 
   useEffect(() => {
     fetchMessages();
@@ -136,26 +111,27 @@ export default function ParentMessagesPage() {
     }
 
     try {
-      const { data, error } = await supabase
-        .from("parent_messages")
-        .insert({
-          parent_id: parentId,
-          school_id: schoolId,
-          student_id: selectedChild?.id || null,
-          subject: trimmedSubject,
-          body: trimmedBody,
-          sender_role: "parent",
-          is_read: false,
-        })
-        .select("id, subject, body, sender_role, created_at, is_read")
-        .single();
+      const { data, error } = await withTimeout(
+        supabase
+          .from("parent_messages")
+          .insert({
+            parent_id: parentId,
+            school_id: schoolId,
+            student_id: selectedChild?.id || null,
+            subject: trimmedSubject,
+            body: trimmedBody,
+            sender_role: "parent",
+            is_read: false,
+          })
+          .select("id, subject, body, sender_role, created_at, is_read")
+          .single(),
+        12000,
+        timeoutFallback(),
+      );
 
       if (error) throw error;
       if (data) {
-        setMessages((current) => [
-          ...current,
-          data as ParentPortalMessageThreadItem,
-        ]);
+        setMessages((current) => [...current, data as ParentPortalMessageThreadItem]);
         toast.success("Message sent to school");
         setNewMessage("");
         setSubject("");
@@ -181,45 +157,21 @@ export default function ParentMessagesPage() {
           </Button>
         </div>
 
-        {children.length > 1 && (
-          <div className="flex gap-3 overflow-x-auto pb-1">
-            {children.map((child) => (
-              <button
-                key={child.id}
-                onClick={() => setSelectedChild(child)}
-                className={`px-4 py-2 rounded-2xl text-sm font-bold whitespace-nowrap transition-all ${
-                  selectedChild?.id === child.id
-                    ? "bg-[var(--primary)] text-[var(--on-primary)]"
-                    : "bg-[var(--surface-container)] text-[var(--on-surface-variant)] hover:bg-[var(--surface-container-high)]"
-                }`}
-              >
-                {child.first_name} {child.last_name}
-              </button>
-            ))}
-          </div>
-        )}
+        <ChildSelector />
 
         <Card>
           <CardBody>
             {loading ? (
               <div className="space-y-3">
                 {Array.from({ length: 3 }).map((_, index) => (
-                  <div
-                    key={index}
-                    className="h-16 bg-[var(--surface-container)] rounded-2xl animate-pulse"
-                  />
+                  <div key={index} className="h-16 bg-[var(--surface-container)] rounded-2xl animate-pulse" />
                 ))}
               </div>
             ) : messages.length === 0 ? (
               <div className="text-center py-12 text-[var(--on-surface-variant)]">
-                <MaterialIcon
-                  icon="chat_bubble_outline"
-                  className="text-5xl mb-3 opacity-30"
-                />
+                <MaterialIcon icon="chat_bubble_outline" className="text-5xl mb-3 opacity-30" />
                 <p className="font-bold">No messages yet</p>
-                <p className="text-sm">
-                  Click Compose to send your first message to the school
-                </p>
+                <p className="text-sm">Click Compose to send your first message to the school</p>
               </div>
             ) : (
               <div className="space-y-3 max-h-[520px] overflow-y-auto">
@@ -235,31 +187,22 @@ export default function ParentMessagesPage() {
                     <div className="flex justify-between items-start gap-4 mb-1">
                       <div>
                         <p className="text-[10px] font-black uppercase tracking-wider text-[var(--on-surface-variant)]">
-                          {message.sender_role === "parent"
-                            ? "You"
-                            : "School Administration"}
+                          {message.sender_role === "parent" ? "You" : "School Administration"}
                         </p>
                         {message.subject && (
-                          <p className="font-bold text-sm text-[var(--on-surface)]">
-                            {message.subject}
-                          </p>
+                          <p className="font-bold text-sm text-[var(--on-surface)]">{message.subject}</p>
                         )}
                       </div>
                       <p className="text-[10px] text-[var(--on-surface-variant)] whitespace-nowrap">
-                        {new Date(message.created_at).toLocaleDateString(
-                          "en-GB",
-                          {
-                            day: "2-digit",
-                            month: "short",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          },
-                        )}
+                        {new Date(message.created_at).toLocaleDateString("en-GB", {
+                          day: "2-digit",
+                          month: "short",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
                       </p>
                     </div>
-                    <p className="text-sm text-[var(--on-surface)]">
-                      {message.body}
-                    </p>
+                    <p className="text-sm text-[var(--on-surface)]">{message.body}</p>
                   </div>
                 ))}
                 <div ref={bottomRef} />
@@ -273,9 +216,7 @@ export default function ParentMessagesPage() {
             <div className="bg-[var(--surface)] rounded-3xl w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl p-8 space-y-5">
               <div className="flex justify-between items-center">
                 <div>
-                  <h2 className="text-xl font-black text-[var(--on-surface)]">
-                    New Message
-                  </h2>
+                  <h2 className="text-xl font-black text-[var(--on-surface)]">New Message</h2>
                   <p className="text-sm text-[var(--on-surface-variant)]">
                     {selectedChild
                       ? `Current learner context: ${selectedChild.first_name} ${selectedChild.last_name}`

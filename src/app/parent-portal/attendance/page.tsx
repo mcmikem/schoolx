@@ -3,17 +3,17 @@ import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
+import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import ParentPortalShell from "@/components/parent-portal/ParentPortalShell";
+import { ChildSelector } from "@/components/parent-portal/ChildSelector";
+import { useParentPortal } from "@/components/parent-portal/ParentPortalProvider";
 import {
   calculateAttendanceStats,
-  mapParentStudentLinks,
   normalizeAttendanceRecords,
   ParentPortalAttendanceRecord,
-  ParentPortalChild,
-  resolveSelectedChild,
 } from "@/lib/parent-portal";
 
 const STATUS_STYLES: Record<string, string> = {
@@ -24,38 +24,15 @@ const STATUS_STYLES: Record<string, string> = {
 };
 
 export default function ParentAttendancePage() {
-  const { user, isDemo } = useAuth();
-  const [children, setChildren] = useState<ParentPortalChild[]>([]);
-  const [selectedChild, setSelectedChild] = useState<ParentPortalChild | null>(null);
+  const { isDemo } = useAuth();
+  const { selectedChild } = useParentPortal();
   const [records, setRecords] = useState<ParentPortalAttendanceRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ present: 0, absent: 0, late: 0, excused: 0, total: 0 });
 
-  const fetchChildren = useCallback(async () => {
-    if (isDemo) {
-      const demo = [{ id: "child-1", first_name: "Isaac", last_name: "Mugisha", class_name: "P.5 Blue" }];
-      setChildren(demo);
-      setSelectedChild(demo[0]);
-      return;
-    }
-    const parentId = user?.id;
-    if (!parentId) return;
-    const { data } = await supabase
-      .from("parent_students")
-      .select("student:students(id, first_name, last_name, class:classes(name))")
-      .eq("parent_id", parentId);
-    const list = mapParentStudentLinks(data || []);
-    setChildren(list);
-  }, [user?.id, isDemo]);
-
-  useEffect(() => {
-    setSelectedChild((current) => resolveSelectedChild(children, current?.id));
-  }, [children]);
-
   const fetchAttendance = useCallback(
-    async (child: ParentPortalChild | null) => {
-      const scopedChild = resolveSelectedChild(children, child?.id);
-      if (!scopedChild) return;
+    async (child: typeof selectedChild) => {
+      if (!child) return;
       setLoading(true);
       if (isDemo) {
         const demoRecords = Array.from({ length: 20 }, (_, i) => ({
@@ -70,23 +47,24 @@ export default function ParentAttendancePage() {
         setLoading(false);
         return;
       }
-      const { data } = await supabase
-        .from("attendance")
-        .select("id, date, status, remarks")
-        .eq("student_id", scopedChild.id)
-        .order("date", { ascending: false })
-        .limit(60);
+      const { data } = await withTimeout(
+        supabase
+          .from("attendance")
+          .select("id, date, status, remarks")
+          .eq("student_id", child.id)
+          .order("date", { ascending: false })
+          .limit(60),
+        12000,
+        timeoutFallback(),
+      );
       const normalized = normalizeAttendanceRecords(data || []);
       setRecords(normalized);
       setStats(calculateAttendanceStats(normalized));
       setLoading(false);
     },
-    [isDemo, children],
+    [isDemo],
   );
 
-  useEffect(() => {
-    fetchChildren();
-  }, [fetchChildren]);
   useEffect(() => {
     if (selectedChild) fetchAttendance(selectedChild);
   }, [selectedChild, fetchAttendance]);
@@ -102,19 +80,7 @@ export default function ParentAttendancePage() {
           variant="premium"
         />
 
-        {children.length > 1 && (
-          <div className="flex gap-3 overflow-x-auto pb-1">
-            {children.map((c) => (
-              <button
-                key={c.id}
-                onClick={() => setSelectedChild(c)}
-                className={`rounded-full px-4 py-2 text-sm font-semibold whitespace-nowrap transition-all border ${selectedChild?.id === c.id ? "bg-[var(--primary)] text-[var(--on-primary)] border-transparent shadow-[0_12px_24px_rgba(0,92,230,0.18)]" : "bg-white text-[var(--on-surface-variant)] border-[var(--border)] hover:bg-[var(--surface-container-low)]"}`}
-              >
-                {c.first_name} {c.last_name}
-              </button>
-            ))}
-          </div>
-        )}
+        <ChildSelector />
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[

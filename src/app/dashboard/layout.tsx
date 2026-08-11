@@ -55,7 +55,7 @@ const SECTION_LABELS: Record<string, { label: string; icon: string }> = {
   settings: { label: "Settings", icon: "settings" },
   discipline: { label: "Discipline", icon: "gavel" },
   analytics: { label: "Analytics", icon: "insights" },
-  assets: { label: "Assets", icon: "inventory_2" },
+  assets: { label: "Assets", icon: "inventory" },
   export: { label: "Export", icon: "file_download" },
   import: { label: "Import", icon: "file_upload" },
   audit: { label: "Audit", icon: "fact_check" },

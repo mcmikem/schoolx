@@ -8,12 +8,8 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 import { useToast } from "@/components/Toast";
 import ParentPortalShell from "@/components/parent-portal/ParentPortalShell";
-import {
-  mapParentStudentLinks,
-  ParentPortalChild,
-  resolveSelectedChild,
-} from "@/lib/parent-portal";
-import { getDemoChildren } from "@/lib/parent-portal-demo";
+import { ChildSelector } from "@/components/parent-portal/ChildSelector";
+import { useParentPortal } from "@/components/parent-portal/ParentPortalProvider";
 import { withTimeout } from "@/lib/hooks/utils";
 
 interface CanteenItem {
@@ -42,37 +38,17 @@ const DEMO_CANTEEN_ITEMS: CanteenItem[] = [
 ];
 
 export default function ParentCanteenPage() {
-  const { user, isDemo } = useAuth();
+  const { isDemo } = useAuth();
   const toast = useToast();
-  const [children, setChildren] = useState<ParentPortalChild[]>([]);
-  const [selectedChild, setSelectedChild] = useState<ParentPortalChild | null>(null);
+  const { selectedChild } = useParentPortal();
   const [items, setItems] = useState<CanteenItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [placing, setPlacing] = useState(false);
   const [cart, setCart] = useState<CartItem[]>([]);
 
-  const fetchChildren = useCallback(async () => {
-    if (isDemo) {
-      setChildren(getDemoChildren());
-      return;
-    }
-    const parentId = user?.id;
-    if (!parentId) return;
-    const { data } = await supabase
-      .from("parent_students")
-      .select("student:students(id, first_name, last_name, school_id, class_id, class:classes(name))")
-      .eq("parent_id", parentId);
-    setChildren(mapParentStudentLinks(data || []));
-  }, [user?.id, isDemo]);
-
-  useEffect(() => {
-    setSelectedChild((current) => resolveSelectedChild(children, current?.id));
-  }, [children]);
-
   const fetchItems = useCallback(
-    async (child: ParentPortalChild | null) => {
-      const scopedChild = resolveSelectedChild(children, child?.id);
-      if (!scopedChild || !scopedChild.school_id) return;
+    async (child: typeof selectedChild) => {
+      if (!child || !child.school_id) return;
       setLoading(true);
 
       if (isDemo) {
@@ -85,7 +61,7 @@ export default function ParentCanteenPage() {
         supabase
           .from("canteen_items")
           .select("*")
-          .eq("school_id", scopedChild.school_id)
+          .eq("school_id", child.school_id)
           .eq("is_active", true)
           .order("name", { ascending: true }),
         10000,
@@ -94,12 +70,8 @@ export default function ParentCanteenPage() {
       setItems((data as CanteenItem[]) || []);
       setLoading(false);
     },
-    [isDemo, children],
+    [isDemo],
   );
-
-  useEffect(() => {
-    fetchChildren();
-  }, [fetchChildren]);
 
   useEffect(() => {
     if (selectedChild) {
@@ -112,9 +84,7 @@ export default function ParentCanteenPage() {
     setCart((prev) => {
       const existing = prev.find((c) => c.item.id === item.id);
       if (existing) {
-        return prev.map((c) =>
-          c.item.id === item.id ? { ...c, quantity: c.quantity + 1 } : c,
-        );
+        return prev.map((c) => (c.item.id === item.id ? { ...c, quantity: c.quantity + 1 } : c));
       }
       return [...prev, { item, quantity: 1 }];
     });
@@ -127,9 +97,7 @@ export default function ParentCanteenPage() {
       if (existing.quantity <= 1) {
         return prev.filter((c) => c.item.id !== itemId);
       }
-      return prev.map((c) =>
-        c.item.id === itemId ? { ...c, quantity: c.quantity - 1 } : c,
-      );
+      return prev.map((c) => (c.item.id === itemId ? { ...c, quantity: c.quantity - 1 } : c));
     });
   };
 
@@ -185,23 +153,7 @@ export default function ParentCanteenPage() {
           variant="premium"
         />
 
-        {children.length > 1 && (
-          <div className="flex gap-3 overflow-x-auto pb-1">
-            {children.map((child) => (
-              <button
-                key={child.id}
-                onClick={() => setSelectedChild(child)}
-                className={`rounded-full px-4 py-2 text-sm font-semibold whitespace-nowrap transition-all border ${
-                  selectedChild?.id === child.id
-                    ? "bg-[var(--primary)] text-[var(--on-primary)] border-transparent shadow-[0_12px_24px_rgba(0,92,230,0.18)]"
-                    : "bg-white text-[var(--on-surface-variant)] border-[var(--border)] hover:bg-[var(--surface-container-low)]"
-                }`}
-              >
-                {child.first_name} {child.last_name}
-              </button>
-            ))}
-          </div>
-        )}
+        <ChildSelector />
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {loading ? (
@@ -233,9 +185,7 @@ export default function ParentCanteenPage() {
                         </span>
                       </div>
                       <div className="text-right shrink-0">
-                        <p className="text-lg font-black text-[var(--primary)]">
-                          UGX {item.price.toLocaleString()}
-                        </p>
+                        <p className="text-lg font-black text-[var(--primary)]">UGX {item.price.toLocaleString()}</p>
                         <p className="text-[10px] text-[var(--on-surface-variant)] mt-0.5">
                           Stock: {item.stock} {item.unit}
                         </p>
@@ -311,16 +261,9 @@ export default function ParentCanteenPage() {
               </div>
               <div className="flex items-center justify-between pt-4 mt-2 border-t border-[var(--border)]">
                 <span className="text-base font-bold text-[var(--on-surface)]">Total</span>
-                <span className="text-xl font-black text-[var(--primary)]">
-                  UGX {cartTotal.toLocaleString()}
-                </span>
+                <span className="text-xl font-black text-[var(--primary)]">UGX {cartTotal.toLocaleString()}</span>
               </div>
-              <Button
-                className="w-full mt-4"
-                size="lg"
-                onClick={placeOrder}
-                disabled={placing}
-              >
+              <Button className="w-full mt-4" size="lg" onClick={placeOrder} disabled={placing}>
                 {placing ? (
                   <span className="flex items-center gap-2">
                     <MaterialIcon icon="sync" className="animate-spin" />

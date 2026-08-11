@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { isDemoSchool } from "@/lib/demo-utils";
 import { logger } from "@/lib/logger";
 import { offlineDB } from "@/lib/offline";
+import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 
 // Stale-while-revalidate dashboard data backed by React Query + the canonical
 // OfflineDB cache:
@@ -113,63 +114,93 @@ function computePayload(
     const effectiveAcademicYear = academicYear || new Date().getFullYear().toString();
 
     const [attendanceRes, gradesRes, messagesRes, paymentsRes, staffAttRes, dropoutAttRes] = await Promise.all([
-      supabase
-        .from("attendance")
-        .select("student_id, class_id, status, students!inner(school_id)")
-        .eq("students.school_id", schoolId)
-        .eq("date", today),
-      supabase
-        .from("grades")
-        .select("student_id, score, term, academic_year, students!inner(school_id)")
-        .eq("students.school_id", schoolId)
-        .eq("term", currentTerm || 1)
-        .eq("academic_year", effectiveAcademicYear),
-      supabase.from("messages").select("status, created_at").eq("school_id", schoolId).gte("created_at", today),
-      supabase
-        .from("fee_payments")
-        .select("student_id, amount_paid, payment_date, students!inner(school_id)")
-        .eq("students.school_id", schoolId)
-        .gte("payment_date", termStart),
-      supabase
-        .from("staff_attendance")
-        .select("status, staff_id, users!inner(school_id)")
-        .eq("users.school_id", schoolId)
-        .eq("date", today)
-        .in("status", ["present", "late"]),
-      supabase
-        .from("attendance")
-        .select("student_id, status, date, students!inner(school_id)")
-        .eq("students.school_id", schoolId)
-        .gte("date", dropoutStartDate)
-        .lte("date", today)
-        .order("date", { ascending: false }),
+      withTimeout(
+        supabase
+          .from("attendance")
+          .select("student_id, class_id, status, students!inner(school_id)")
+          .eq("students.school_id", schoolId)
+          .eq("date", today),
+        15000,
+        timeoutFallback(),
+      ),
+      withTimeout(
+        supabase
+          .from("grades")
+          .select("student_id, score, term, academic_year, students!inner(school_id)")
+          .eq("students.school_id", schoolId)
+          .eq("term", currentTerm || 1)
+          .eq("academic_year", effectiveAcademicYear),
+        15000,
+        timeoutFallback(),
+      ),
+      withTimeout(
+        supabase.from("messages").select("status, created_at").eq("school_id", schoolId).gte("created_at", today),
+        15000,
+        timeoutFallback(),
+      ),
+      withTimeout(
+        supabase
+          .from("fee_payments")
+          .select("student_id, amount_paid, payment_date, students!inner(school_id)")
+          .eq("students.school_id", schoolId)
+          .gte("payment_date", termStart),
+        15000,
+        timeoutFallback(),
+      ),
+      withTimeout(
+        supabase
+          .from("staff_attendance")
+          .select("status, staff_id, users!inner(school_id)")
+          .eq("users.school_id", schoolId)
+          .eq("date", today)
+          .in("status", ["present", "late"]),
+        15000,
+        timeoutFallback(),
+      ),
+      withTimeout(
+        supabase
+          .from("attendance")
+          .select("student_id, status, date, students!inner(school_id)")
+          .eq("students.school_id", schoolId)
+          .gte("date", dropoutStartDate)
+          .lte("date", today)
+          .order("date", { ascending: false }),
+        15000,
+        timeoutFallback(),
+      ),
     ]);
 
     const [expensesRes, leaveRes] = await Promise.all([
-      supabase
-        .from("expenses")
-        .select("*", { count: "exact", head: true })
-        .eq("school_id", schoolId)
-        .eq("status", "pending")
-        .then((r) => {
-          if (r.error) {
-            logger.warn("expenses query skipped:", r.error.message);
-            return { count: 0, error: null };
-          }
-          return r;
-        }),
-      supabase
-        .from("leave_requests")
-        .select("*", { count: "exact", head: true })
-        .eq("school_id", schoolId)
-        .eq("status", "pending")
-        .then((r) => {
-          if (r.error) {
-            logger.warn("leave_requests query skipped:", r.error.message);
-            return { count: 0, error: null };
-          }
-          return r;
-        }),
+      withTimeout(
+        supabase
+          .from("expenses")
+          .select("*", { count: "exact", head: true })
+          .eq("school_id", schoolId)
+          .eq("status", "pending"),
+        15000,
+        timeoutFallback(),
+      ).then((r) => {
+        if (r.error) {
+          logger.warn("expenses query skipped:", r.error.message);
+          return { count: 0, error: null };
+        }
+        return r;
+      }),
+      withTimeout(
+        supabase
+          .from("leave_requests")
+          .select("*", { count: "exact", head: true })
+          .eq("school_id", schoolId)
+          .eq("status", "pending"),
+        15000,
+        timeoutFallback(),
+      ).then((r) => {
+        if (r.error) {
+          logger.warn("leave_requests query skipped:", r.error.message);
+          return { count: 0, error: null };
+        }
+        return r;
+      }),
     ]);
 
     // Attendance by class

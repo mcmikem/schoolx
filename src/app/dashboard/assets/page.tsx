@@ -123,7 +123,7 @@ export default function AssetsPage() {
             {
               label: "Total Items",
               value: assets.length,
-              icon: "inventory_2",
+              icon: "inventory",
               color: "bg-blue-600",
             },
             {
@@ -192,7 +192,7 @@ export default function AssetsPage() {
             <div className="p-8 text-center font-medium text-[var(--on-surface-variant)]">Loading assets…</div>
           ) : filtered.length === 0 ? (
             <div className="p-12 text-center">
-              <MaterialIcon icon="inventory_2" className="mb-3 text-5xl text-[var(--outline)]" />
+              <MaterialIcon icon="inventory" className="mb-3 text-5xl text-[var(--outline)]" />
               <p className="font-semibold text-[var(--on-surface-variant)]">No assets found</p>
               <p className="mt-1 text-sm text-[var(--outline)]">Register your first asset to get started</p>
             </div>

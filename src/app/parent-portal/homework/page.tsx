@@ -3,19 +3,16 @@ import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
+import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/index";
 import ParentPortalShell from "@/components/parent-portal/ParentPortalShell";
-import {
-  mapParentStudentLinks,
-  normalizeHomeworkAssignments,
-  ParentPortalChild,
-  ParentPortalHomeworkAssignment,
-  resolveSelectedChild,
-} from "@/lib/parent-portal";
-import { getDemoChildren, getDemoHomework } from "@/lib/parent-portal-demo";
+import { ChildSelector } from "@/components/parent-portal/ChildSelector";
+import { useParentPortal } from "@/components/parent-portal/ParentPortalProvider";
+import { normalizeHomeworkAssignments, ParentPortalHomeworkAssignment } from "@/lib/parent-portal";
+import { getDemoHomework } from "@/lib/parent-portal-demo";
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   pending: { label: "Not Submitted", color: "bg-amber-50 text-amber-700 border-amber-200" },
@@ -24,7 +21,10 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
   late: { label: "Late", color: "bg-red-50 text-red-700 border-red-200" },
 };
 
-function getDueDateStatus(dueDate: string, submission: ParentPortalHomeworkAssignment["submission"]): {
+function getDueDateStatus(
+  dueDate: string,
+  submission: ParentPortalHomeworkAssignment["submission"],
+): {
   label: string;
   urgent: boolean;
   overdue: boolean;
@@ -42,63 +42,43 @@ function getDueDateStatus(dueDate: string, submission: ParentPortalHomeworkAssig
 }
 
 export default function ParentHomeworkPage() {
-  const { user, isDemo } = useAuth();
-  const [children, setChildren] = useState<ParentPortalChild[]>([]);
-  const [selectedChild, setSelectedChild] = useState<ParentPortalChild | null>(null);
+  const { isDemo } = useAuth();
+  const { selectedChild } = useParentPortal();
   const [homework, setHomework] = useState<ParentPortalHomeworkAssignment[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterSubject, setFilterSubject] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
 
-  const fetchChildren = useCallback(async () => {
-    if (isDemo) {
-      setChildren(getDemoChildren());
-      return;
-    }
-    const parentId = user?.id;
-    if (!parentId) return;
-    const { data } = await supabase
-      .from("parent_students")
-      .select("student:students(id, first_name, last_name, school_id, class_id, class:classes(name))")
-      .eq("parent_id", parentId);
-    setChildren(mapParentStudentLinks(data || []));
-  }, [user?.id, isDemo]);
-
-  useEffect(() => {
-    setSelectedChild((current) => resolveSelectedChild(children, current?.id));
-  }, [children]);
-
   const fetchHomework = useCallback(
-    async (child: ParentPortalChild | null) => {
-      const scopedChild = resolveSelectedChild(children, child?.id);
-      if (!scopedChild || !scopedChild.class_id) return;
+    async (child: typeof selectedChild) => {
+      if (!child || !child.class_id) return;
       setLoading(true);
 
       if (isDemo) {
-        const demoHW = getDemoHomework(scopedChild.id);
+        const demoHW = getDemoHomework(child.id);
         setHomework(demoHW);
         setLoading(false);
         return;
       }
 
-      const { data } = await supabase
-        .from("homework")
-        .select(
-          "id, title, description, subject_id, class_id, due_date, marks, academic_year, term, created_at, subjects(name), classes(name), homework_submissions(status, submitted_at, marks, feedback)",
-        )
-        .eq("class_id", scopedChild.class_id)
-        .order("due_date", { ascending: false });
+      const { data } = await withTimeout(
+        supabase
+          .from("homework")
+          .select(
+            "id, title, description, subject_id, class_id, due_date, marks, academic_year, term, created_at, subjects(name), classes(name), homework_submissions(status, submitted_at, marks, feedback)",
+          )
+          .eq("class_id", child.class_id)
+          .order("due_date", { ascending: false }),
+        12000,
+        timeoutFallback(),
+      );
 
       const mapped = normalizeHomeworkAssignments(data || []);
       setHomework(mapped);
       setLoading(false);
     },
-    [isDemo, children],
+    [isDemo],
   );
-
-  useEffect(() => {
-    fetchChildren();
-  }, [fetchChildren]);
 
   useEffect(() => {
     if (selectedChild) {
@@ -120,10 +100,8 @@ export default function ParentHomeworkPage() {
   const stats = {
     total: homework.length,
     completed: homework.filter((h) => h.submission?.status === "graded" || h.submission?.status === "submitted").length,
-    overdue: homework.filter(
-      (h) => !h.submission || h.submission.status === "pending"
-        ? new Date(h.due_date + "T23:59:59") < new Date()
-        : false,
+    overdue: homework.filter((h) =>
+      !h.submission || h.submission.status === "pending" ? new Date(h.due_date + "T23:59:59") < new Date() : false,
     ).length,
   };
 
@@ -136,23 +114,7 @@ export default function ParentHomeworkPage() {
           variant="premium"
         />
 
-        {children.length > 1 && (
-          <div className="flex gap-3 overflow-x-auto pb-1">
-            {children.map((child) => (
-              <button
-                key={child.id}
-                onClick={() => setSelectedChild(child)}
-                className={`rounded-full px-4 py-2 text-sm font-semibold whitespace-nowrap transition-all border ${
-                  selectedChild?.id === child.id
-                    ? "bg-[var(--primary)] text-[var(--on-primary)] border-transparent shadow-[0_12px_24px_rgba(0,92,230,0.18)]"
-                    : "bg-white text-[var(--on-surface-variant)] border-[var(--border)] hover:bg-[var(--surface-container-low)]"
-                }`}
-              >
-                {child.first_name} {child.last_name}
-              </button>
-            ))}
-          </div>
-        )}
+        <ChildSelector />
 
         <div className="grid grid-cols-3 gap-4">
           <Card>
@@ -232,9 +194,7 @@ export default function ParentHomeworkPage() {
               <CardBody>
                 <div className="text-center py-8">
                   <MaterialIcon icon="assignment" className="text-4xl text-[var(--on-surface-variant)] mb-2" />
-                  <p className="text-[var(--on-surface-variant)] font-medium">
-                    No homework assignments found
-                  </p>
+                  <p className="text-[var(--on-surface-variant)] font-medium">No homework assignments found</p>
                 </div>
               </CardBody>
             </Card>
@@ -254,18 +214,12 @@ export default function ParentHomeworkPage() {
                             {hw.subject_name}
                           </span>
                           {hw.class_name && (
-                            <span className="text-[10px] text-[var(--on-surface-variant)]">
-                              {hw.class_name}
-                            </span>
+                            <span className="text-[10px] text-[var(--on-surface-variant)]">{hw.class_name}</span>
                           )}
                         </div>
-                        <h3 className="text-base font-bold text-[var(--on-surface)] mt-1">
-                          {hw.title}
-                        </h3>
+                        <h3 className="text-base font-bold text-[var(--on-surface)] mt-1">{hw.title}</h3>
                         {hw.description && (
-                          <p className="text-sm text-[var(--on-surface-variant)] mt-1 line-clamp-2">
-                            {hw.description}
-                          </p>
+                          <p className="text-sm text-[var(--on-surface-variant)] mt-1 line-clamp-2">{hw.description}</p>
                         )}
                       </div>
                       <div className="flex flex-col items-end gap-2 shrink-0">

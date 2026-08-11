@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'skoolmate-v11';
+const CACHE_VERSION = 'skoolmate-v12';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
@@ -10,6 +10,7 @@ const PAGES_TO_CACHE = [
   '/forgot-password/',
   '/manifest.json',
   '/offline.html',
+  '/fonts/material-symbols-outlined.woff2',
 ];
 
 function isNavigationRequest(request) {

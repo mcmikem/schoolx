@@ -3,11 +3,13 @@ import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
+import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import ParentPortalShell from "@/components/parent-portal/ParentPortalShell";
-import { ParentPortalChild, mapParentStudentLinks, resolveSelectedChild } from "@/lib/parent-portal";
+import { ChildSelector } from "@/components/parent-portal/ChildSelector";
+import { useParentPortal } from "@/components/parent-portal/ParentPortalProvider";
 
 interface ReportCardRecord {
   id: string;
@@ -31,52 +33,107 @@ interface ReportCardRecord {
   } | null;
 }
 
+function getDemoReportCards(child: {
+  id: string;
+  first_name: string;
+  last_name: string;
+  class_name?: string;
+}): ReportCardRecord[] {
+  const base = {
+    id: "demo-report",
+    student_id: child.id,
+    class_id: "demo-class",
+    students: {
+      id: child.id,
+      first_name: child.first_name,
+      last_name: child.last_name,
+      student_number: "OMU-2026-001",
+      gender: "M",
+      class: { id: "demo-class", name: child.class_name || "P.5 Blue" },
+    },
+  };
+  const terms: Array<{ year: string; term: number; subjects: any[]; division: string; aggregate: number }> = [
+    {
+      year: "2026",
+      term: 1,
+      division: "Division 1",
+      aggregate: 82,
+      subjects: [
+        { name: "Mathematics", finalScore: 88, grade: "D1" },
+        { name: "English", finalScore: 84, grade: "D1" },
+        { name: "Science", finalScore: 86, grade: "D1" },
+        { name: "Social Studies", finalScore: 79, grade: "D2" },
+        { name: "Kiswahili", finalScore: 81, grade: "D2" },
+        { name: "CRE", finalScore: 74, grade: "C3" },
+      ],
+    },
+    {
+      year: "2025",
+      term: 3,
+      division: "Division 2",
+      aggregate: 76,
+      subjects: [
+        { name: "Mathematics", finalScore: 80, grade: "D2" },
+        { name: "English", finalScore: 78, grade: "D2" },
+        { name: "Science", finalScore: 82, grade: "D1" },
+        { name: "Social Studies", finalScore: 72, grade: "C3" },
+        { name: "Kiswahili", finalScore: 75, grade: "D2" },
+        { name: "CRE", finalScore: 69, grade: "C4" },
+      ],
+    },
+  ];
+  return terms.map((t, i) => ({
+    ...base,
+    id: `${base.id}-${i}`,
+    academic_year: t.year,
+    term: t.term,
+    subjects: t.subjects,
+    aggregate: t.aggregate,
+    division: t.division,
+    best4: t.subjects.slice(0, 4).map((s) => s.finalScore),
+    attendance_rate: 95,
+    generated_at: new Date("2026-04-20T09:00:00Z").toISOString(),
+  }));
+}
+
 export default function ParentResultsPage() {
-  const { user, isDemo } = useAuth();
-  const [children, setChildren] = useState<ParentPortalChild[]>([]);
-  const [selectedChild, setSelectedChild] = useState<ParentPortalChild | null>(null);
+  const { isDemo } = useAuth();
+  const { selectedChild } = useParentPortal();
   const [reports, setReports] = useState<ReportCardRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedYear, setSelectedYear] = useState<string>("all");
   const [selectedTerm, setSelectedTerm] = useState<string>("all");
   const [years, setYears] = useState<string[]>([]);
 
-  const fetchChildren = useCallback(async () => {
-    if (isDemo) return;
-    const parentId = user?.id;
-    if (!parentId) return;
-    const { data } = await supabase
-      .from("parent_students")
-      .select("student:students(id, first_name, last_name, school_id, class_id, class:classes(name))")
-      .eq("parent_id", parentId);
-    setChildren(mapParentStudentLinks(data || []));
-  }, [user?.id, isDemo]);
-
-  useEffect(() => {
-    setSelectedChild((current) => resolveSelectedChild(children, current?.id));
-  }, [children]);
-
-  useEffect(() => {
-    fetchChildren();
-  }, [fetchChildren]);
-
-  const fetchReports = useCallback(async (child: ParentPortalChild | null) => {
-    const scoped = resolveSelectedChild(children, child?.id);
-    if (!scoped) return;
-    setLoading(true);
-    const { data, error } = await supabase
-      .from("report_cards")
-      .select("*")
-      .eq("student_id", scoped.id)
-      .order("academic_year", { ascending: false })
-      .order("term", { ascending: false });
-    if (!error && data) {
-      setReports(data);
-      const uniqueYears = [...new Set(data.map((r) => r.academic_year).filter(Boolean))] as string[];
-      setYears(uniqueYears);
-    }
-    setLoading(false);
-  }, [children]);
+  const fetchReports = useCallback(
+    async (child: typeof selectedChild) => {
+      if (!child) return;
+      setLoading(true);
+      if (isDemo) {
+        setReports(getDemoReportCards(child));
+        setYears(["2026", "2025"]);
+        setLoading(false);
+        return;
+      }
+      const { data, error } = await withTimeout(
+        supabase
+          .from("report_cards")
+          .select("*")
+          .eq("student_id", child.id)
+          .order("academic_year", { ascending: false })
+          .order("term", { ascending: false }),
+        12000,
+        timeoutFallback(),
+      );
+      if (!error && data) {
+        setReports(data);
+        const uniqueYears = [...new Set(data.map((r) => r.academic_year).filter(Boolean))] as string[];
+        setYears(uniqueYears);
+      }
+      setLoading(false);
+    },
+    [isDemo],
+  );
 
   useEffect(() => {
     if (selectedChild) fetchReports(selectedChild);
@@ -90,10 +147,14 @@ export default function ParentResultsPage() {
 
   const getGradeColor = (grade: string) => {
     const colors: Record<string, string> = {
-      D1: "text-green-600", D2: "text-green-500",
-      C3: "text-blue-600", C4: "text-blue-500",
-      C5: "text-yellow-600", C6: "text-yellow-500",
-      P7: "text-orange-500", P8: "text-orange-400",
+      D1: "text-green-600",
+      D2: "text-green-500",
+      C3: "text-blue-600",
+      C4: "text-blue-500",
+      C5: "text-yellow-600",
+      C6: "text-yellow-500",
+      P7: "text-orange-500",
+      P8: "text-orange-400",
       F9: "text-red-500",
     };
     return colors[grade] || "text-gray-500";
@@ -112,23 +173,7 @@ export default function ParentResultsPage() {
       <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-6 animate-in fade-in duration-500">
         <PageHeader title="Report Cards" subtitle="View your child's termly report cards" variant="premium" />
 
-        {children.length > 1 && (
-          <div className="flex gap-3 overflow-x-auto pb-1">
-            {children.map((child) => (
-              <button
-                key={child.id}
-                onClick={() => setSelectedChild(child)}
-                className={`rounded-full px-4 py-2 text-sm font-semibold whitespace-nowrap transition-all border ${
-                  selectedChild?.id === child.id
-                    ? "bg-[var(--primary)] text-[var(--on-primary)] border-transparent shadow-[0_12px_24px_rgba(0,92,230,0.18)]"
-                    : "bg-white text-[var(--on-surface-variant)] border-[var(--border)] hover:bg-[var(--surface-container-low)]"
-                }`}
-              >
-                {child.first_name} {child.last_name}
-              </button>
-            ))}
-          </div>
-        )}
+        <ChildSelector />
 
         <Card>
           <CardBody>
@@ -187,13 +232,17 @@ export default function ParentResultsPage() {
           <div className="grid gap-6">
             {filtered.map((report) => {
               const subjects = (report.subjects || []) as any[];
-              const avgScore = subjects.length > 0
-                ? Math.round(subjects.reduce((s: number, sub: any) => s + (sub.finalScore || sub.score || 0), 0) / subjects.length)
-                : report.aggregate || 0;
+              const avgScore =
+                subjects.length > 0
+                  ? Math.round(
+                      subjects.reduce((s: number, sub: any) => s + (sub.finalScore || sub.score || 0), 0) /
+                        subjects.length,
+                    )
+                  : report.aggregate || 0;
 
               return (
-                <Card key={report.id}>
-                  <CardBody className="space-y-4">
+                <Card key={report.id} className="no-hover">
+                  <CardBody className="space-y-5">
                     <div className="flex items-start justify-between gap-4">
                       <div>
                         <p className="text-lg font-black text-[var(--on-surface)]">
@@ -205,54 +254,109 @@ export default function ParentResultsPage() {
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className={`text-3xl font-black ${getDivisionColor(report.division || "")}`}>
+                        <span
+                          className={`inline-block rounded-full px-3 py-1 text-sm font-black border ${getDivisionColor(report.division || "")} border-current`}
+                        >
                           {report.division || "-"}
-                        </p>
-                        <p className="text-xs text-[var(--t3)]">Division</p>
+                        </span>
+                        <p className="text-xs text-[var(--t3)] mt-1">Division</p>
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-3">
-                      <div className="rounded-[18px] bg-[var(--surface-container-low)] p-3 border border-[var(--border)]">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]">Average</p>
-                        <p className={`text-2xl font-black ${avgScore >= 80 ? "text-emerald-600" : avgScore >= 50 ? "text-blue-600" : "text-red-600"}`}>
-                          {avgScore}%
-                        </p>
+                    <div className="flex items-center gap-5 rounded-[22px] bg-white/50 border border-white/70 p-4">
+                      <div className="relative w-24 h-24 shrink-0">
+                        <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+                          <circle cx="50" cy="50" r="42" fill="none" stroke="var(--border)" strokeWidth="10" />
+                          <circle
+                            cx="50"
+                            cy="50"
+                            r="42"
+                            fill="none"
+                            stroke="url(#avgRing)"
+                            strokeWidth="10"
+                            strokeLinecap="round"
+                            strokeDasharray={`${Math.min(100, avgScore)} 100`}
+                            pathLength={100}
+                          />
+                          <defs>
+                            <linearGradient id="avgRing" x1="0%" y1="0%" x2="100%" y2="100%">
+                              <stop offset="0%" stopColor="var(--primary)" />
+                              <stop offset="100%" stopColor="var(--green)" />
+                            </linearGradient>
+                          </defs>
+                        </svg>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                          <span
+                            className={`text-xl font-black leading-none ${avgScore >= 80 ? "text-emerald-600" : avgScore >= 50 ? "text-[var(--primary)]" : "text-red-600"}`}
+                          >
+                            {avgScore}%
+                          </span>
+                          <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--t3)] mt-1">
+                            Average
+                          </span>
+                        </div>
                       </div>
-                      <div className="rounded-[18px] bg-[var(--surface-container-low)] p-3 border border-[var(--border)]">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]">Subjects</p>
-                        <p className="text-2xl font-black text-[var(--on-surface)]">{subjects.length}</p>
-                      </div>
-                      <div className="rounded-[18px] bg-[var(--surface-container-low)] p-3 border border-[var(--border)]">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]">Attendance</p>
-                        <p className="text-2xl font-black text-[var(--on-surface)]">
-                          {report.attendance_rate ? `${Math.round(report.attendance_rate)}%` : "-"}
-                        </p>
+
+                      <div className="grid flex-1 grid-cols-3 gap-3">
+                        <div className="rounded-[18px] bg-white/50 border border-white/70 p-3">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]">
+                            Subjects
+                          </p>
+                          <p className="text-2xl font-black text-[var(--on-surface)]">{subjects.length}</p>
+                        </div>
+                        <div className="rounded-[18px] bg-white/50 border border-white/70 p-3">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]">
+                            Best 4
+                          </p>
+                          <p className="text-2xl font-black text-[var(--on-surface)]">
+                            {report.best4 && report.best4.length > 0
+                              ? Math.round(
+                                  report.best4.reduce((a: number, b: number) => a + b, 0) / report.best4.length,
+                                )
+                              : "-"}
+                          </p>
+                        </div>
+                        <div className="rounded-[18px] bg-white/50 border border-white/70 p-3">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]">
+                            Attendance
+                          </p>
+                          <p className="text-2xl font-black text-[var(--on-surface)]">
+                            {report.attendance_rate ? `${Math.round(report.attendance_rate)}%` : "-"}
+                          </p>
+                        </div>
                       </div>
                     </div>
 
                     {subjects.length > 0 && (
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                          <thead>
-                            <tr className="border-b border-[var(--border)]">
-                              <th className="text-left py-2 text-[10px] font-black uppercase tracking-widest text-[var(--t3)]">Subject</th>
-                              <th className="text-center py-2 text-[10px] font-black uppercase tracking-widest text-[var(--t3)]">Score</th>
-                              <th className="text-center py-2 text-[10px] font-black uppercase tracking-widest text-[var(--t3)]">Grade</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {subjects.map((sub: any, idx: number) => (
-                              <tr key={idx} className="border-b border-[var(--border)]/50">
-                                <td className="py-2 font-medium">{sub.name || sub.subject_name || `Subject ${idx + 1}`}</td>
-                                <td className="py-2 text-center font-mono">{sub.finalScore ?? sub.score ?? "-"}</td>
-                                <td className={`py-2 text-center font-black ${getGradeColor(sub.grade || "")}`}>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {subjects.map((sub: any, idx: number) => {
+                          const score = Number(sub.finalScore ?? sub.score ?? 0);
+                          const pct = Math.min(100, Math.max(0, score));
+                          const barColor = pct >= 80 ? "var(--green)" : pct >= 50 ? "var(--primary)" : "var(--red)";
+                          return (
+                            <div key={idx} className="rounded-[18px] bg-white/50 border border-white/70 p-3">
+                              <div className="flex items-center justify-between gap-3">
+                                <p className="text-sm font-bold text-[var(--on-surface)] truncate">
+                                  {sub.name || sub.subject_name || `Subject ${idx + 1}`}
+                                </p>
+                                <span className={`text-xs font-black shrink-0 ${getGradeColor(sub.grade || "")}`}>
                                   {sub.grade || "-"}
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                                </span>
+                              </div>
+                              <div className="mt-2 flex items-center gap-3">
+                                <div className="flex-1 h-2 bg-[var(--surface-container)] rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full rounded-full transition-all duration-700"
+                                    style={{ width: `${pct}%`, background: barColor }}
+                                  />
+                                </div>
+                                <span className="text-xs font-mono font-bold text-[var(--on-surface-variant)]">
+                                  {score}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
 

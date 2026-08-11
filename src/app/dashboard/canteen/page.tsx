@@ -194,7 +194,7 @@ export default function CanteenPage() {
                 : "bg-surface-container text-on-surface-variant hover:bg-surface-bright"
             }`}
           >
-            <MaterialIcon icon="inventory_2" className="inline mr-2" />
+            <MaterialIcon icon="inventory" className="inline mr-2" />
             Inventory
           </button>
         </div>
@@ -259,7 +259,7 @@ export default function CanteenPage() {
             <CardBody className="p-0">
               {items.length === 0 ? (
                 <div className="p-8 text-center text-on-surface-variant">
-                  <MaterialIcon className="text-4xl mb-2">inventory_2</MaterialIcon>
+                  <MaterialIcon className="text-4xl mb-2">inventory</MaterialIcon>
                   <p>No items in canteen</p>
                   <Button className="mt-4" onClick={() => setShowAddItem(true)}>
                     Add First Item

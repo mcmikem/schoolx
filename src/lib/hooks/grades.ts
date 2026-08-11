@@ -6,15 +6,9 @@ import { DEMO_GRADES, DemoGrade } from "@/lib/demo-data";
 import { isDemoSchool } from "@/lib/demo-utils";
 import { offlineDB, useOnlineStatus } from "@/lib/offline";
 import { logger } from "@/lib/logger";
-import {
-  deleteRecord,
-  upsertRecordReturning,
-  createRecordReturning,
-} from "@/lib/crud-service";
-import {
-  logAuditEventWithOfflineSupport,
-  logRecordChangeWithOfflineSupport,
-} from "@/lib/audit";
+import { deleteRecord, upsertRecordReturning, createRecordReturning } from "@/lib/crud-service";
+import { logAuditEventWithOfflineSupport, logRecordChangeWithOfflineSupport } from "@/lib/audit";
+import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 
 // NCDC 2025 Competency Levels
 export const COMPETENCY_LEVELS = [
@@ -115,10 +109,7 @@ export function useGrades(
     const payload = { ...grade, max_score: maxScore };
 
     if (!isOnline) {
-      const offlineSaved = await offlineDB.save(
-        "grades",
-        payload as unknown as Record<string, unknown>,
-      );
+      const offlineSaved = await offlineDB.save("grades", payload as unknown as Record<string, unknown>);
       const newGrade = {
         ...payload,
         id: String(offlineSaved.id || `offline-grade-${Date.now()}`),
@@ -168,8 +159,7 @@ export function useGrades(
           supabase
             .from("grades")
             .upsert(payload, {
-              onConflict:
-                "student_id,subject_id,assessment_type,term,academic_year",
+              onConflict: "student_id,subject_id,assessment_type,term,academic_year",
             })
             .select(
               "id, student_id, subject_id, class_id, assessment_type, score, max_score, term, academic_year, status, recorded_by, created_at, deleted_at",
@@ -219,9 +209,7 @@ export function useGrades(
           );
         }
       }
-      await offlineDB.cacheFromServer("grades", [
-        data as unknown as Record<string, unknown>,
-      ]);
+      await offlineDB.cacheFromServer("grades", [data as unknown as Record<string, unknown>]);
       return data;
     } catch (err: any) {
       throw new Error(err.message);
@@ -265,14 +253,11 @@ export function useGrades(
       if (subjectId) query = query.eq("subject_id", subjectId);
       if (term) query = query.eq("term", term);
       if (academicYear) query = query.eq("academic_year", academicYear);
-      const { data, error, count } = await query;
+      const { data, error, count } = await withTimeout(query, 15000, timeoutFallback());
       if (error) throw error;
       setGrades(data || []);
       setTotalCount(count || 0);
-      await offlineDB.cacheFromServer(
-        "grades",
-        (data || []) as unknown as Record<string, unknown>[],
-      );
+      await offlineDB.cacheFromServer("grades", (data || []) as unknown as Record<string, unknown>[]);
     } catch (err) {
       logger.error("Failed to fetch grades:", err);
       setError(err instanceof Error ? err.message : "Unknown error");
@@ -287,12 +272,7 @@ export function useGrades(
   return { grades, loading, error, saveGrade, totalCount };
 }
 
-export function useExamScores(
-  classId?: string,
-  subjectId?: string,
-  term?: number,
-  academicYear?: string,
-) {
+export function useExamScores(classId?: string, subjectId?: string, term?: number, academicYear?: string) {
   const [examScores, setExamScores] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { isDemo } = useAuth();
@@ -322,9 +302,7 @@ export function useExamScores(
       setExamScores((prev) => {
         const existing = prev.findIndex(
           (s) =>
-            s.student_id === score.student_id &&
-            s.subject_id === score.subject_id &&
-            s.exam_type === score.exam_type,
+            s.student_id === score.student_id && s.subject_id === score.subject_id && s.exam_type === score.exam_type,
         );
         if (existing >= 0) {
           const u = [...prev];
@@ -353,9 +331,7 @@ export function useExamScores(
       setExamScores((prev) => {
         const existing = prev.findIndex(
           (s) =>
-            s.student_id === score.student_id &&
-            s.subject_id === score.subject_id &&
-            s.exam_type === score.exam_type,
+            s.student_id === score.student_id && s.subject_id === score.subject_id && s.exam_type === score.exam_type,
         );
         if (existing >= 0) {
           const u = [...prev];
@@ -367,9 +343,7 @@ export function useExamScores(
       return data;
     } catch (err: any) {
       if (err?.code === "42P01") {
-        throw new Error(
-          "Exam scores table not set up. Contact your admin to run migrations.",
-        );
+        throw new Error("Exam scores table not set up. Contact your admin to run migrations.");
       }
       throw new Error(err.message);
     }
@@ -381,10 +355,10 @@ export function useExamScores(
       return;
     }
     try {
-      await deleteRecord(
-        () => supabase.from("exam_scores").delete().eq("id", id),
-        { timeoutMs: 15000, timeoutMessage: "Exam score delete timed out" },
-      );
+      await deleteRecord(() => supabase.from("exam_scores").delete().eq("id", id), {
+        timeoutMs: 15000,
+        timeoutMessage: "Exam score delete timed out",
+      });
       setExamScores((prev) => prev.filter((s) => s.id !== id));
     } catch (err: any) {
       throw new Error(err.message);
@@ -412,7 +386,7 @@ export function useExamScores(
         if (subjectId) query = query.eq("subject_id", subjectId);
         if (term) query = query.eq("term", term);
         if (academicYear) query = query.eq("academic_year", academicYear);
-        const { data, error } = await query;
+        const { data, error } = await withTimeout(query, 15000, timeoutFallback());
         if (error) {
           if (error.code === "42P01") {
             setExamScores([]);
@@ -476,9 +450,7 @@ export function useExams(schoolId?: string) {
       return data;
     } catch (err: any) {
       if (err?.code === "42P01") {
-        throw new Error(
-          "Exams table not set up. Contact your admin to run migrations.",
-        );
+        throw new Error("Exams table not set up. Contact your admin to run migrations.");
       }
       throw new Error(err.message);
     }
@@ -490,10 +462,10 @@ export function useExams(schoolId?: string) {
       return;
     }
     try {
-      await deleteRecord(
-        () => supabase.from("exams").delete().eq("id", id),
-        { timeoutMs: 15000, timeoutMessage: "Exam delete timed out" },
-      );
+      await deleteRecord(() => supabase.from("exams").delete().eq("id", id), {
+        timeoutMs: 15000,
+        timeoutMessage: "Exam delete timed out",
+      });
       setExams((prev) => prev.filter((e) => e.id !== id));
     } catch (err: any) {
       throw new Error(err.message);
@@ -508,17 +480,21 @@ export function useExams(schoolId?: string) {
       }
       try {
         setLoading(true);
-        const { data, error } = await supabase
-          .from("exams")
-          .select(
-            `
+        const { data, error } = await withTimeout(
+          supabase
+            .from("exams")
+            .select(
+              `
             id, school_id, name, exam_type, class_id, subject_id, term, academic_year, exam_date, max_score, weight, created_at,
             classes (id, name), 
             subjects (id, name)
           `,
-          )
-          .eq("school_id", schoolId)
-          .order("exam_date", { ascending: false });
+            )
+            .eq("school_id", schoolId)
+            .order("exam_date", { ascending: false }),
+          15000,
+          timeoutFallback(),
+        );
         if (error) {
           if (error.code === "42P01") {
             setExams([]);
@@ -552,9 +528,7 @@ export function scoreToCompetency(score: number, maxScore = 100): string {
 // Helper function: Convert competency to numerical range description
 export function competencyToRange(competency: string): string {
   const level = COMPETENCY_LEVELS.find((c) => c.id === competency);
-  return level
-    ? `${level.name} (${level.min_score}%-${level.max_score}%)`
-    : "Unknown";
+  return level ? `${level.name} (${level.min_score}%-${level.max_score}%)` : "Unknown";
 }
 
 // Helper function: Get grade classification based on assessment type

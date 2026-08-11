@@ -20,9 +20,7 @@ export default function ImportPage() {
   const { user } = useAuth();
   const toast = useToast();
 
-  const [activeTab, setActiveTab] = useState<
-    "students" | "fees" | "grades" | "ai_paste" | "magic"
-  >("students");
+  const [activeTab, setActiveTab] = useState<"students" | "fees" | "grades" | "ai_paste" | "magic">("students");
 
   const [file, setFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -71,22 +69,13 @@ export default function ImportPage() {
         first_name: row["First Name"] || row["first_name"] || "",
         last_name: row["Last Name"] || row["last_name"] || "",
         gender: row["Gender"] || row["gender"] || "",
-        date_of_birth:
-          row["Date of Birth"] || row["date_of_birth"] || row["DOB"] || "",
-        parent_name:
-          row["Parent Name"] ||
-          row["parent_name"] ||
-          row["Parent/Guardian Name"] ||
-          "",
-        parent_phone:
-          row["Parent Phone"] || row["parent_phone"] || row["Phone"] || "",
-        parent_phone2:
-          row["Parent Phone 2"] || row["parent_phone2"] || row["Phone 2"] || "",
+        date_of_birth: row["Date of Birth"] || row["date_of_birth"] || row["DOB"] || "",
+        parent_name: row["Parent Name"] || row["parent_name"] || row["Parent/Guardian Name"] || "",
+        parent_phone: row["Parent Phone"] || row["parent_phone"] || row["Phone"] || "",
+        parent_phone2: row["Parent Phone 2"] || row["parent_phone2"] || row["Phone 2"] || "",
         class_name: row["Class"] || row["class_name"] || "",
-        student_number:
-          row["Student Number"] || row["student_number"] || row["ID"] || "",
-        ple_index_number:
-          row["PLE Index"] || row["ple_index_number"] || row["PLE"] || "",
+        student_number: row["Student Number"] || row["student_number"] || row["ID"] || "",
+        ple_index_number: row["PLE Index"] || row["ple_index_number"] || row["PLE"] || "",
       }));
 
       setMappedData(mapped);
@@ -206,326 +195,260 @@ export default function ImportPage() {
 
   return (
     <PageErrorBoundary>
-    <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto">
-      <PageHeader
-        title="Import Students"
-        subtitle="Add students using AI smart paste or file upload"
-      />
+      <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto">
+        <PageHeader title="Import Students" subtitle="Add students using AI smart paste or file upload" />
 
-      <UICard className="mb-6 p-2 overflow-x-auto">
-        <div className="flex gap-2 min-w-max">
-          <button
-            onClick={() => {
-              setActiveTab("students");
-              setPreview([]);
-              setMappedData([]);
-            }}
-            className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-medium transition-all ${
-              activeTab === "students"
-                ? "bg-[var(--primary)] text-[var(--on-primary)] shadow-md"
-                : "text-[var(--t3)] hover:bg-[var(--surface-container)]"
-            }`}
-          >
-            <MaterialIcon icon="group" className="text-lg" />
-            Students
-          </button>
-          <button
-            onClick={() => {
-              setActiveTab("fees");
-              setPreview([]);
-              setMappedData([]);
-            }}
-            className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-medium transition-all ${
-              activeTab === "fees"
-                ? "bg-[var(--primary)] text-[var(--on-primary)] shadow-md"
-                : "text-[var(--t3)] hover:bg-[var(--surface-container)]"
-            }`}
-          >
-            <MaterialIcon icon="payments" className="text-lg" />
-            Fee Balances
-          </button>
-          <button
-            onClick={() => {
-              setActiveTab("grades");
-              setPreview([]);
-              setMappedData([]);
-            }}
-            className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-medium transition-all ${
-              activeTab === "grades"
-                ? "bg-[var(--primary)] text-[var(--on-primary)] shadow-md"
-                : "text-[var(--t3)] hover:bg-[var(--surface-container)]"
-            }`}
-          >
-            <MaterialIcon icon="menu_book" className="text-lg" />
-            Grades
-          </button>
-          <button
-            onClick={() => {
-              setActiveTab("ai_paste");
-              setPreview([]);
-              setMappedData([]);
-            }}
-            className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-medium transition-all ${
-              activeTab === "ai_paste"
-                ? "bg-[var(--primary)] text-[var(--on-primary)] shadow-md"
-                : "text-[var(--t3)] hover:bg-[var(--surface-container)]"
-            }`}
-          >
-            <MaterialIcon icon="smart_toys" className="text-lg" />
-            AI Smart Paste
-          </button>
-          <button
-            onClick={() => {
-              setActiveTab("magic");
-              setPreview([]);
-              setMappedData([]);
-            }}
-            className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-medium transition-all ${
-              activeTab === "magic"
-                ? "bg-[var(--primary)] text-[var(--on-primary)] shadow-md"
-                : "text-[var(--t3)] hover:bg-[var(--surface-container)]"
-            }`}
-          >
-            <MaterialIcon icon="auto_awesome" className="text-lg" />
-            Magic Photo (AI)
-          </button>
-        </div>
-      </UICard>
-
-      {activeTab === "magic" && (
-        <UICard className="p-8 text-center border-dashed border-2 border-[var(--primary)] bg-[var(--surface-container-low)] mb-6">
-          <div className="max-w-md mx-auto">
-            <div className="w-20 h-20 rounded-full bg-[var(--primary-soft)] flex items-center justify-center mx-auto mb-6">
-              <MaterialIcon
-                icon="auto_awesome"
-                className="text-4xl text-[var(--primary)] animate-pulse"
-              />
-            </div>
-            <h3 className="text-xl font-bold text-[var(--t1)] mb-2">
-              Magic Student Upload
-            </h3>
-            <p className="text-sm text-[var(--t3)] mb-8">
-              No time to type? Take a clear photo of your handwritten student
-              register. Our AI will read the names and clean them up for you.
-            </p>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Button
-                variant="secondary"
-                className="h-16 flex flex-col gap-1 items-center justify-center"
-              >
-                <MaterialIcon icon="photo_camera" />
-                <span className="text-xs">Take Photo</span>
-              </Button>
-              <Button
-                variant="secondary"
-                className="h-16 flex flex-col gap-1 items-center justify-center"
-              >
-                <MaterialIcon icon="image" />
-                <span className="text-xs">Choose Gallery</span>
-              </Button>
-            </div>
-
-            <div className="mt-8 p-4 bg-[var(--surface)] rounded-xl border border-[var(--border)] text-left">
-              <div className="flex items-center gap-2 mb-2">
-                <MaterialIcon icon="info" className="text-blue-500 text-sm" />
-                <span className="text-xs font-bold text-[var(--t2)] lowercase">
-                  How it works:
-                </span>
-              </div>
-              <ul className="text-[11px] text-[var(--t4)] space-y-1.5 list-disc pl-4">
-                <li>AI will fix typos like &quot;mUKASA jOHN&quot; to &quot;John Mukasa&quot;.</li>
-                <li>It detects genders and classes from headers automatically.</li>
-                <li>Works best with clear daylight photos of handwritten lists.</li>
-              </ul>
-            </div>
+        <UICard className="mb-6 p-2 overflow-x-auto">
+          <div className="flex gap-2 min-w-max">
+            <button
+              onClick={() => {
+                setActiveTab("students");
+                setPreview([]);
+                setMappedData([]);
+              }}
+              className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-medium transition-all ${
+                activeTab === "students"
+                  ? "bg-[var(--primary)] text-[var(--on-primary)] shadow-md"
+                  : "text-[var(--t3)] hover:bg-[var(--surface-container)]"
+              }`}
+            >
+              <MaterialIcon icon="group" className="text-lg" />
+              Students
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab("fees");
+                setPreview([]);
+                setMappedData([]);
+              }}
+              className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-medium transition-all ${
+                activeTab === "fees"
+                  ? "bg-[var(--primary)] text-[var(--on-primary)] shadow-md"
+                  : "text-[var(--t3)] hover:bg-[var(--surface-container)]"
+              }`}
+            >
+              <MaterialIcon icon="payments" className="text-lg" />
+              Fee Balances
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab("grades");
+                setPreview([]);
+                setMappedData([]);
+              }}
+              className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-medium transition-all ${
+                activeTab === "grades"
+                  ? "bg-[var(--primary)] text-[var(--on-primary)] shadow-md"
+                  : "text-[var(--t3)] hover:bg-[var(--surface-container)]"
+              }`}
+            >
+              <MaterialIcon icon="menu_book" className="text-lg" />
+              Grades
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab("ai_paste");
+                setPreview([]);
+                setMappedData([]);
+              }}
+              className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-medium transition-all ${
+                activeTab === "ai_paste"
+                  ? "bg-[var(--primary)] text-[var(--on-primary)] shadow-md"
+                  : "text-[var(--t3)] hover:bg-[var(--surface-container)]"
+              }`}
+            >
+              <MaterialIcon icon="smart_toy" className="text-lg" />
+              AI Smart Paste
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab("magic");
+                setPreview([]);
+                setMappedData([]);
+              }}
+              className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-medium transition-all ${
+                activeTab === "magic"
+                  ? "bg-[var(--primary)] text-[var(--on-primary)] shadow-md"
+                  : "text-[var(--t3)] hover:bg-[var(--surface-container)]"
+              }`}
+            >
+              <MaterialIcon icon="auto_awesome" className="text-lg" />
+              Magic Photo (AI)
+            </button>
           </div>
         </UICard>
-      )}
 
-      {activeTab === "ai_paste" ? (
-        <UICard className="mb-6 p-6">
-          <div className="mb-4">
-            <h2 className="font-semibold text-[var(--on-surface)] flex items-center gap-2">
-              <MaterialIcon
-                icon="auto_awesome"
-                className="text-[var(--primary)]"
-              />
-              Paste Data Automatically
-            </h2>
-            <p className="text-sm text-[var(--t3)] mt-1">
-              Copied a messy table from Excel, Word, or an email? Paste it here
-              and our AI will automatically structure it into valid student
-              records.
-            </p>
-          </div>
-          <textarea
-            value={rawText}
-            onChange={(e) => setRawText(e.target.value)}
-            className="w-full h-48 p-4 bg-[var(--surface-container)] border border-[var(--border)] rounded-xl focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] outline-none resize-none mb-4"
-            placeholder="John Doe M P.3 0701234567\nJane Smith Female S.4 0771234567..."
-          />
-          <Button
-            onClick={handleAIAnalysis}
-            disabled={analyzing || !rawText.trim()}
-            loading={analyzing}
-          >
-            <MaterialIcon icon="psychology" className="text-lg" />
-            {analyzing ? "Analyzing with AI..." : "Analyze Data"}
-          </Button>
-        </UICard>
-      ) : (
-        <div className="space-y-6">
-          <UICard className="p-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h2 className="font-semibold text-[var(--on-surface)]">
-                  Download Template
-                </h2>
-                <p className="text-sm text-[var(--t3)] mt-1">
-                  Use our template for best results when importing students
-                </p>
+        {activeTab === "magic" && (
+          <UICard className="p-8 text-center border-dashed border-2 border-[var(--primary)] bg-[var(--surface-container-low)] mb-6">
+            <div className="max-w-md mx-auto">
+              <div className="w-20 h-20 rounded-full bg-[var(--primary-soft)] flex items-center justify-center mx-auto mb-6">
+                <MaterialIcon icon="auto_awesome" className="text-4xl text-[var(--primary)] animate-pulse" />
               </div>
-              <Button onClick={downloadTemplate} variant="secondary">
-                <MaterialIcon icon="download" className="text-lg" />
-                Template
-              </Button>
+              <h3 className="text-xl font-bold text-[var(--t1)] mb-2">Magic Student Upload</h3>
+              <p className="text-sm text-[var(--t3)] mb-8">
+                No time to type? Take a clear photo of your handwritten student register. Our AI will read the names and
+                clean them up for you.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Button variant="secondary" className="h-16 flex flex-col gap-1 items-center justify-center">
+                  <MaterialIcon icon="photo_camera" />
+                  <span className="text-xs">Take Photo</span>
+                </Button>
+                <Button variant="secondary" className="h-16 flex flex-col gap-1 items-center justify-center">
+                  <MaterialIcon icon="image" />
+                  <span className="text-xs">Choose Gallery</span>
+                </Button>
+              </div>
+
+              <div className="mt-8 p-4 bg-[var(--surface)] rounded-xl border border-[var(--border)] text-left">
+                <div className="flex items-center gap-2 mb-2">
+                  <MaterialIcon icon="info" className="text-blue-500 text-sm" />
+                  <span className="text-xs font-bold text-[var(--t2)] lowercase">How it works:</span>
+                </div>
+                <ul className="text-[11px] text-[var(--t4)] space-y-1.5 list-disc pl-4">
+                  <li>AI will fix typos like &quot;mUKASA jOHN&quot; to &quot;John Mukasa&quot;.</li>
+                  <li>It detects genders and classes from headers automatically.</li>
+                  <li>Works best with clear daylight photos of handwritten lists.</li>
+                </ul>
+              </div>
             </div>
           </UICard>
+        )}
 
-          <div
-            onClick={() => fileInputRef.current?.click()}
-            className="bg-[var(--surface)] rounded-xl border-2 border-dashed border-[var(--border)] hover:border-[var(--primary)] cursor-pointer transition-all p-8 text-center"
-          >
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".xlsx,.xls,.csv"
-              onChange={handleFileSelect}
-              className="hidden"
-            />
-            <div className="w-16 h-16 bg-[var(--navy-soft)] rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <MaterialIcon
-                icon="upload_file"
-                className="text-3xl text-[var(--primary)]"
-              />
-            </div>
-            <p className="text-[var(--on-surface)] font-medium mb-2">
-              {file ? file.name : "Click to upload or drag and drop"}
-            </p>
-            <p className="text-sm text-[var(--t3)]">Excel or CSV file</p>
-          </div>
-        </div>
-      )}
-
-      {preview.length > 0 && (
-        <UICard className="mb-6 mt-6 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-semibold text-[var(--on-surface)]">
-              Review Data Preview
-            </h2>
-            <span className="px-3 py-1 bg-[var(--navy-soft)] text-[var(--navy)] text-sm font-medium rounded-lg">
-              {mappedData.length} records ready
-            </span>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-[var(--surface-container)]">
-                <tr>
-                  <th className="text-left p-3 text-sm font-semibold text-[var(--on-surface)]">
-                    First Name
-                  </th>
-                  <th className="text-left p-3 text-sm font-semibold text-[var(--on-surface)]">
-                    Last Name
-                  </th>
-                  <th className="text-left p-3 text-sm font-semibold text-[var(--on-surface)]">
-                    Gender
-                  </th>
-                  <th className="text-left p-3 text-sm font-semibold text-[var(--on-surface)]">
-                    Class
-                  </th>
-                  <th className="text-left p-3 text-sm font-semibold text-[var(--on-surface)]">
-                    Parent Phone
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {preview.map((row: any, i) => (
-                  <tr key={i} className="border-t border-[var(--border)]">
-                    <td className="p-3 font-medium text-[var(--on-surface)]">
-                      {row.first_name || ""}
-                    </td>
-                    <td className="p-3 font-medium text-[var(--on-surface)]">
-                      {row.last_name || ""}
-                    </td>
-                    <td className="p-3 text-[var(--t3)]">{row.gender || ""}</td>
-                    <td className="p-3 text-[var(--t3)] font-medium">
-                      {row.class_name || ""}
-                    </td>
-                    <td className="p-3 text-[var(--t3)]">
-                      {row.parent_phone || ""}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <p className="text-sm text-[var(--t3)] mt-4">
-            Showing first {preview.length} of {mappedData.length} rows to
-            import.
-          </p>
-        </UICard>
-      )}
-
-      {mappedData.length > 0 && (
-        <Button
-          onClick={handleImport}
-          disabled={importing}
-          loading={importing}
-          className="w-full mb-6"
-          size="lg"
-        >
-          <MaterialIcon icon="database" className="text-xl" />
-          {importing
-            ? "Saving to Database..."
-            : `Confirm & Import ${mappedData.length} Students`}
-        </Button>
-      )}
-
-      {result && (
-        <UICard className="p-6">
-          <h2 className="font-semibold text-[var(--on-surface)] mb-4">
-            Import Results
-          </h2>
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div className="text-center p-4 bg-[var(--green-soft)] rounded-xl">
-              <div className="text-2xl font-bold text-[var(--green)]">
-                {result.success}
-              </div>
-              <div className="text-sm text-[var(--t3)]">Successful Inserts</div>
-            </div>
-            <div className="text-center p-4 bg-[var(--red-soft)] rounded-xl">
-              <div className="text-2xl font-bold text-[var(--red)]">
-                {result.failed}
-              </div>
-              <div className="text-sm text-[var(--t3)]">Failed Inserts</div>
-            </div>
-          </div>
-          {result.errors.length > 0 && (
-            <div className="p-4 bg-[var(--red-soft)] rounded-xl">
-              <p className="text-sm font-medium text-[var(--red)] mb-2">
-                Errors details (check class names exist):
+        {activeTab === "ai_paste" ? (
+          <UICard className="mb-6 p-6">
+            <div className="mb-4">
+              <h2 className="font-semibold text-[var(--on-surface)] flex items-center gap-2">
+                <MaterialIcon icon="auto_awesome" className="text-[var(--primary)]" />
+                Paste Data Automatically
+              </h2>
+              <p className="text-sm text-[var(--t3)] mt-1">
+                Copied a messy table from Excel, Word, or an email? Paste it here and our AI will automatically
+                structure it into valid student records.
               </p>
-              <ul className="text-sm text-[var(--t3)] space-y-1 max-h-40 overflow-y-auto">
-                {result.errors.map((err, i) => (
-                  <li key={i}>{err}</li>
-                ))}
-              </ul>
             </div>
-          )}
-        </UICard>
-      )}
-    </div>
+            <textarea
+              value={rawText}
+              onChange={(e) => setRawText(e.target.value)}
+              className="w-full h-48 p-4 bg-[var(--surface-container)] border border-[var(--border)] rounded-xl focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] outline-none resize-none mb-4"
+              placeholder="John Doe M P.3 0701234567\nJane Smith Female S.4 0771234567..."
+            />
+            <Button onClick={handleAIAnalysis} disabled={analyzing || !rawText.trim()} loading={analyzing}>
+              <MaterialIcon icon="psychology" className="text-lg" />
+              {analyzing ? "Analyzing with AI..." : "Analyze Data"}
+            </Button>
+          </UICard>
+        ) : (
+          <div className="space-y-6">
+            <UICard className="p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="font-semibold text-[var(--on-surface)]">Download Template</h2>
+                  <p className="text-sm text-[var(--t3)] mt-1">
+                    Use our template for best results when importing students
+                  </p>
+                </div>
+                <Button onClick={downloadTemplate} variant="secondary">
+                  <MaterialIcon icon="download" className="text-lg" />
+                  Template
+                </Button>
+              </div>
+            </UICard>
+
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className="bg-[var(--surface)] rounded-xl border-2 border-dashed border-[var(--border)] hover:border-[var(--primary)] cursor-pointer transition-all p-8 text-center"
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+              <div className="w-16 h-16 bg-[var(--navy-soft)] rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <MaterialIcon icon="upload_file" className="text-3xl text-[var(--primary)]" />
+              </div>
+              <p className="text-[var(--on-surface)] font-medium mb-2">
+                {file ? file.name : "Click to upload or drag and drop"}
+              </p>
+              <p className="text-sm text-[var(--t3)]">Excel or CSV file</p>
+            </div>
+          </div>
+        )}
+
+        {preview.length > 0 && (
+          <UICard className="mb-6 mt-6 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-semibold text-[var(--on-surface)]">Review Data Preview</h2>
+              <span className="px-3 py-1 bg-[var(--navy-soft)] text-[var(--navy)] text-sm font-medium rounded-lg">
+                {mappedData.length} records ready
+              </span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-[var(--surface-container)]">
+                  <tr>
+                    <th className="text-left p-3 text-sm font-semibold text-[var(--on-surface)]">First Name</th>
+                    <th className="text-left p-3 text-sm font-semibold text-[var(--on-surface)]">Last Name</th>
+                    <th className="text-left p-3 text-sm font-semibold text-[var(--on-surface)]">Gender</th>
+                    <th className="text-left p-3 text-sm font-semibold text-[var(--on-surface)]">Class</th>
+                    <th className="text-left p-3 text-sm font-semibold text-[var(--on-surface)]">Parent Phone</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {preview.map((row: any, i) => (
+                    <tr key={i} className="border-t border-[var(--border)]">
+                      <td className="p-3 font-medium text-[var(--on-surface)]">{row.first_name || ""}</td>
+                      <td className="p-3 font-medium text-[var(--on-surface)]">{row.last_name || ""}</td>
+                      <td className="p-3 text-[var(--t3)]">{row.gender || ""}</td>
+                      <td className="p-3 text-[var(--t3)] font-medium">{row.class_name || ""}</td>
+                      <td className="p-3 text-[var(--t3)]">{row.parent_phone || ""}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-sm text-[var(--t3)] mt-4">
+              Showing first {preview.length} of {mappedData.length} rows to import.
+            </p>
+          </UICard>
+        )}
+
+        {mappedData.length > 0 && (
+          <Button onClick={handleImport} disabled={importing} loading={importing} className="w-full mb-6" size="lg">
+            <MaterialIcon icon="database" className="text-xl" />
+            {importing ? "Saving to Database..." : `Confirm & Import ${mappedData.length} Students`}
+          </Button>
+        )}
+
+        {result && (
+          <UICard className="p-6">
+            <h2 className="font-semibold text-[var(--on-surface)] mb-4">Import Results</h2>
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div className="text-center p-4 bg-[var(--green-soft)] rounded-xl">
+                <div className="text-2xl font-bold text-[var(--green)]">{result.success}</div>
+                <div className="text-sm text-[var(--t3)]">Successful Inserts</div>
+              </div>
+              <div className="text-center p-4 bg-[var(--red-soft)] rounded-xl">
+                <div className="text-2xl font-bold text-[var(--red)]">{result.failed}</div>
+                <div className="text-sm text-[var(--t3)]">Failed Inserts</div>
+              </div>
+            </div>
+            {result.errors.length > 0 && (
+              <div className="p-4 bg-[var(--red-soft)] rounded-xl">
+                <p className="text-sm font-medium text-[var(--red)] mb-2">Errors details (check class names exist):</p>
+                <ul className="text-sm text-[var(--t3)] space-y-1 max-h-40 overflow-y-auto">
+                  {result.errors.map((err, i) => (
+                    <li key={i}>{err}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </UICard>
+        )}
+      </div>
     </PageErrorBoundary>
   );
 }
