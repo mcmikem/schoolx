@@ -30,6 +30,7 @@ function HeadmasterDashboardContent() {
     overdueFeeCount,
     lowAttendanceClasses,
     loading: loadingExtra,
+    timedOut,
   } = useDashboardExtraData(school?.id, students, feeStructure, currentTerm, academicYear);
 
   const currentDate = useMemo(() => new Date(), []);
@@ -184,6 +185,20 @@ function HeadmasterDashboardContent() {
 
   return (
     <div className="content overflow-x-hidden">
+      {timedOut ? (
+        <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 mb-4 flex items-start gap-2">
+          <span className="material-symbols-outlined text-amber-600 mt-0.5" aria-hidden>
+            wifi_off
+          </span>
+          <div>
+            <p className="text-sm font-semibold text-amber-800">Some dashboard data couldn&apos;t refresh</p>
+            <p className="text-xs text-amber-700 mt-0.5">
+              Showing the most recent available data. This usually means your internet or the school server is slow — it
+              will retry automatically.
+            </p>
+          </div>
+        </div>
+      ) : null}
       {isFirstRun ? (
         <div className="rounded-[24px] border border-[#d6e4e8] bg-[linear-gradient(150deg,#eff7f5_0%,#eaf2f6_44%,#f8fbff_100%)] p-6 text-center mb-6">
           <span className="material-symbols-outlined text-[#17325f] text-4xl">rocket_launch</span>

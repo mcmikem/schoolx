@@ -64,7 +64,11 @@
   white-space: nowrap;
   word-wrap: normal;
   direction: ltr;
-  -webkit-font-feature-settings: "liga";
+  /* The self-hosted subset keeps BOTH 'liga' and 'rlig' GSUB features.
+     `font-feature-settings` replaces the feature set, so enabling both here
+     guarantees icon-name ligatures substitute on every browser. */
+  -webkit-font-feature-settings: "liga", "rlig";
+  font-feature-settings: "liga", "rlig";
   -webkit-font-smoothing: antialiased;
 }
 

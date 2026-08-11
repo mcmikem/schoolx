@@ -53,7 +53,7 @@ export function useDashboardStats(schoolId?: string) {
           .eq("school_id", querySchoolId)
           .eq("status", "active")
           .then((r) => r.data?.map((s: { id: string }) => s.id) || []),
-        5000,
+        20000,
         [] as string[],
       );
 
@@ -66,7 +66,7 @@ export function useDashboardStats(schoolId?: string) {
               .eq("date", today)
               .eq("status", "present")
               .then((r) => r.count),
-            5000,
+            20000,
             0,
           )
         : Promise.resolve(0);
@@ -78,7 +78,7 @@ export function useDashboardStats(schoolId?: string) {
               .select("amount_paid")
               .in("student_id", studentIds)
               .then((r) => r.data || []),
-            5000,
+            20000,
             [] as Array<{ amount_paid: number | null }>,
           )
         : Promise.resolve([] as Array<{ amount_paid: number | null }>);
@@ -101,7 +101,7 @@ export function useDashboardStats(schoolId?: string) {
             .eq("school_id", querySchoolId)
             .eq("status", "active")
             .then((r) => r.count),
-          5000,
+          20000,
           0,
         ),
         withTimeout(
@@ -110,7 +110,7 @@ export function useDashboardStats(schoolId?: string) {
             .select("id", { count: "exact", head: true })
             .eq("school_id", querySchoolId)
             .then((r) => r.count),
-          5000,
+          20000,
           0,
         ),
         withTimeout(
@@ -120,7 +120,7 @@ export function useDashboardStats(schoolId?: string) {
             .eq("school_id", querySchoolId)
             .eq("role", "teacher")
             .then((r) => r.count),
-          5000,
+          20000,
           0,
         ),
         presentCountPromise,
@@ -131,7 +131,7 @@ export function useDashboardStats(schoolId?: string) {
             .select("amount, class_id")
             .eq("school_id", querySchoolId)
             .then((r) => r.data),
-          5000,
+          20000,
           [],
         ),
         withTimeout(
@@ -142,7 +142,7 @@ export function useDashboardStats(schoolId?: string) {
             .eq("status", "active")
             .eq("gender", "M")
             .then((r) => r.count),
-          5000,
+          20000,
           0,
         ),
         withTimeout(
@@ -153,7 +153,7 @@ export function useDashboardStats(schoolId?: string) {
             .eq("status", "active")
             .eq("gender", "F")
             .then((r) => r.count),
-          5000,
+          20000,
           0,
         ),
         withTimeout(
@@ -163,7 +163,7 @@ export function useDashboardStats(schoolId?: string) {
             .eq("school_id", querySchoolId)
             .eq("status", "active")
             .then((r) => r.data || []),
-          5000,
+          20000,
           [],
         ),
       ]);

@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
@@ -35,6 +35,7 @@ interface DashboardExtraData {
   dropoutRiskCount: number;
   loading: boolean;
   isStale: boolean;
+  timedOut: boolean;
 }
 
 interface DashboardPayload {
@@ -89,12 +90,21 @@ const EMPTY_PAYLOAD: DashboardPayload = {
   dropoutRiskCount: 0,
 };
 
+// Raised when the core dashboard queries time out AND no cached payload is
+// available to fall back on. The dashboard must NOT render a plausible-looking
+// zero-stat payload when the data genuinely could not be fetched — that is what
+// made live schools with hundreds of students appear empty.
+class DashboardTimeoutsError extends Error {
+  name = "DashboardTimeoutsError";
+}
+
 function computePayload(
   schoolId: string,
   students: any[],
   feeStructure: any[],
   currentTerm: string | number | undefined,
   academicYear: string | undefined,
+  fallback?: DashboardPayload | null,
 ): Promise<DashboardPayload> {
   return (async () => {
     const today = new Date().toISOString().split("T")[0];
@@ -169,6 +179,18 @@ function computePayload(
         timeoutFallback(),
       ),
     ]);
+
+    // If ANY core query timed out (status 408 from timeoutFallback()), the
+    // payload below would be full of plausible-looking zeros. Prefer the last
+    // known-good cached payload; if there is none, raise so the caller can
+    // surface a retry state instead of claiming the school has no data.
+    const mainTimedOut = [attendanceRes, gradesRes, messagesRes, paymentsRes, staffAttRes, dropoutAttRes].some(
+      (r) => r.status === 408,
+    );
+    if (mainTimedOut) {
+      if (fallback) return { ...fallback };
+      throw new DashboardTimeoutsError();
+    }
 
     const [expensesRes, leaveRes] = await Promise.all([
       withTimeout(
@@ -366,6 +388,7 @@ export function useDashboardExtraData(
   const cacheKey = schoolId ? cacheKeyFor(schoolId, currentTerm, academicYear) : "";
   const [isStale, setIsStale] = useState(false);
   const [cachedPayload, setCachedPayload] = useState<DashboardPayload | null>(null);
+  const usedFallbackRef = useRef(false);
 
   const query = useQuery<DashboardPayload>({
     queryKey: ["dashboard-extra", schoolId, currentTerm, academicYear],
@@ -373,7 +396,23 @@ export function useDashboardExtraData(
     staleTime: 2 * 60 * 1000,
     refetchOnWindowFocus: false,
     retry: 1,
-    queryFn: () => computePayload(schoolId as string, students, feeStructure, currentTerm, academicYear),
+    queryFn: async () => {
+      usedFallbackRef.current = false;
+      try {
+        return await computePayload(schoolId as string, students, feeStructure, currentTerm, academicYear);
+      } catch (error) {
+        if (error instanceof DashboardTimeoutsError) {
+          const cached = await readDashboardCache(cacheKey);
+          if (cached) {
+            // Core queries timed out but the OfflineDB has a last-known-good
+            // payload — show that (marked stale) rather than zeroing the board.
+            usedFallbackRef.current = true;
+            return cached;
+          }
+        }
+        throw error;
+      }
+    },
   });
 
   // Seed instantly from offline cache so the dashboard renders without a spinner.
@@ -393,6 +432,10 @@ export function useDashboardExtraData(
   // Write-through: persist fresh data to the offline cache.
   useEffect(() => {
     if (!enabled || query.data === undefined) return;
+    if (usedFallbackRef.current) {
+      // The payload came from the OfflineDB fallback — nothing new to write.
+      return;
+    }
     setCachedPayload(null);
     setIsStale(false);
     writeDashboardCache(cacheKey, query.data);
@@ -406,7 +449,7 @@ export function useDashboardExtraData(
   }, [enabled]);
 
   if (isDemo || isDemoSchoolId) {
-    return { ...DEMO_PAYLOAD, loading: false, isStale: false };
+    return { ...DEMO_PAYLOAD, loading: false, isStale: false, timedOut: false };
   }
 
   const data = query.data ?? cachedPayload;
@@ -414,6 +457,7 @@ export function useDashboardExtraData(
   return {
     ...(data ?? EMPTY_PAYLOAD),
     loading: !data,
-    isStale,
+    isStale: isStale || (query.data !== undefined && usedFallbackRef.current),
+    timedOut: query.data !== undefined && usedFallbackRef.current,
   };
 }

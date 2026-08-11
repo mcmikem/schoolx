@@ -100,16 +100,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [authInitialized, setAuthInitialized] = useState(false);
   const [isDemo, setIsDemo] = useState(false);
   const [isTrialExpired, setIsTrialExpired] = useState(false);
+  const [profileDegraded, setProfileDegraded] = useState(false);
   const router = useRouter();
 
   const authFetchAborted = useRef(false);
   const authCheckedRef = useRef(false);
+  const degradedUserIdRef = useRef<string | null>(null);
 
   const clearAuthState = useCallback(() => {
     setUser(null);
     setSchool(null);
     setIsDemo(false);
     setIsTrialExpired(false);
+    setProfileDegraded(false);
+    degradedUserIdRef.current = null;
     try {
       localStorage.removeItem(OFFLINE_USER_KEY);
       localStorage.removeItem(OFFLINE_SCHOOL_KEY);
@@ -163,7 +167,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         const res = await fetch("/api/auth/me/", {
           headers: { authorization: `Bearer ${token}` },
-          signal: AbortSignal.timeout(getConnectionTimeout(6000)),
+          // Generous timeout for /api/auth/me/: on a cold-started Supabase the
+          // first profile request can take >6s, and aborting early zeroes the
+          // school (bouncing admins to the setup wizard with empty dashboards).
+          signal: AbortSignal.timeout(getConnectionTimeout(15000)),
         });
         if (!res.ok) {
           // Retry once on transient server errors (502, 503, 504)
@@ -196,6 +203,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
 
         const { user: userData, school: schoolData } = await res.json();
+        setProfileDegraded(false);
 
         const newUser = {
           ...userData,
@@ -311,10 +319,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsDemo(false);
       setLoading(false);
       setAuthInitialized(true);
+      setProfileDegraded(true);
+      degradedUserIdRef.current = verifiedUser.id;
       logger.warn("[Auth] Degraded login fallback applied — profile endpoint unreachable");
     },
-    [setAuthInitialized, setIsDemo, setLoading, setSchool, setUser],
+    [setAuthInitialized, setIsDemo, setLoading, setProfileDegraded, setSchool, setUser],
   );
+
+  // Background profile heal: when a cold-start or temporary outage forced the
+  // degraded fallback (profile/school not reachable), keep retrying
+  // /api/auth/me/ in the background so the full profile + school populate as
+  // soon as the backend recovers — instead of leaving an empty dashboard
+  // (which previously bounced school admins into the setup wizard).
+  useEffect(() => {
+    if (!profileDegraded) return;
+    let cancelled = false;
+    const attempt = async () => {
+      if (cancelled || !navigator.onLine) return;
+      const id = degradedUserIdRef.current;
+      if (!id) return;
+      const profile = await fetchUserData(id);
+      if (!cancelled && profile) setProfileDegraded(false);
+    };
+    const interval = window.setInterval(attempt, 8000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [fetchUserData, profileDegraded]);
 
   const checkUser = useCallback(async () => {
     // Safety timer: fallback to non-loading state if auth takes too long.
@@ -963,6 +995,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         authInitialized,
         isDemo,
         isTrialExpired,
+        profileDegraded,
         signIn,
         signUp,
         signOut,

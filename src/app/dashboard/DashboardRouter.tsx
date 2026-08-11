@@ -139,12 +139,13 @@ function DormMasterDashboard() {
 }
 
 export default function DashboardRouter() {
-  const { user, school, loading, authInitialized } = useAuth();
+  const { user, school, loading, authInitialized, profileDegraded } = useAuth();
   const router = useRouter();
   const [loadingTimedOut, setLoadingTimedOut] = useState(false);
 
   const requiresSetup =
     !!user &&
+    !profileDegraded &&
     user.role !== "super_admin" &&
     user.role !== "marketer" &&
     (!school || !school.name || school.name === "My School");
@@ -177,6 +178,20 @@ export default function DashboardRouter() {
 
   if (!user) {
     return <DashboardSkeleton />;
+  }
+
+  // Cold start / outage: a valid session exists but school data hasn't loaded
+  // yet. Wait for the background profile heal instead of redirecting the admin
+  // into the setup wizard with an empty school.
+  if (profileDegraded && !school) {
+    return (
+      <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[var(--primary)] mx-auto mb-4" />
+          <p className="text-[var(--t2)] text-sm">Reconnecting to your school&apos;s data...</p>
+        </div>
+      </div>
+    );
   }
 
   // Super admin bypasses school check

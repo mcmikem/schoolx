@@ -57,6 +57,10 @@ export interface AuthContextType {
   authInitialized: boolean;
   isDemo: boolean;
   isTrialExpired: boolean;
+  /** True when a valid session exists but the profile/school endpoint was
+   *  unreachable (cold start / outage) and a cached/metadata user is active.
+   *  The provider retries in the background; treat missing data as transient. */
+  profileDegraded: boolean;
   signIn: (phone: string, password: string) => Promise<{ error: any; role?: string }>;
   signUp: (phone: string, password: string, name: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;

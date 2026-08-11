@@ -50,6 +50,8 @@ SYNONYMS = {
     "chat_bubble_outline": "chat_bubble",
     "install_mobile": "install_desktop",
     "emoji_events": "workspace_premium",
+    "payroll": "payments",
+    "elementary": "school",
 }
 
 
@@ -59,15 +61,26 @@ def norm(name: str) -> str:
 
 def collect_icon_names() -> set:
     names = set()
-    pattern = re.compile(r"icon=\"([^\"]+)\"")
+    # Icon ligatures are referenced across the codebase in several shapes:
+    #   <MaterialIcon icon="name" />             -> icon="..."
+    #   <span className="material-symbols-outlined">name</span>
+    #   { icon: "name" }  (nav/config objects)
+    #   <MaterialIcon>name</MaterialIcon>        (children fallback)
+    patterns = [
+        re.compile(r"""icon=["']([a-z0-9_]+)["']"""),
+        re.compile(r"""material-symbols-outlined[^>]*>([a-z0-9_]+)<"""),
+        re.compile(r"""icon:\s*["']([a-z0-9_]+)["']"""),
+        re.compile(r"""<MaterialIcon[^>]*>([a-z0-9_]+)</MaterialIcon>"""),
+    ]
     for dirpath, _dirnames, filenames in os.walk(SRC_DIR):
         for fn in filenames:
             if not fn.endswith((".tsx", ".ts", ".jsx", ".js")):
                 continue
             path = os.path.join(dirpath, fn)
             text = open(path, encoding="utf-8").read()
-            for match in pattern.finditer(text):
-                names.add(match.group(1))
+            for pattern in patterns:
+                for match in pattern.finditer(text):
+                    names.add(match.group(1))
     return names
 
 
@@ -169,7 +182,7 @@ def main():
             codepoints.add(cp)
 
         opts = Options()
-        opts.layout_features = ["rlig"]
+        opts.layout_features = ["liga", "rlig"]
         opts.name_IDs = ["*"]
         opts.name_legacy = True
         opts.notdef_glyph = True
