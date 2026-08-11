@@ -325,7 +325,7 @@ describe("Production Hardening Regression Tests", () => {
 
     it("should have marketer analytics summary cards in super admin page", () => {
       const superAdminPage = require("fs").readFileSync(
-        require("path").join(process.cwd(), "src/app/super-admin/page.tsx"),
+        require("path").join(process.cwd(), "src/app/super-admin/_marketers-tab.tsx"),
         "utf8",
       );
       expect(superAdminPage).toContain("totalEarnings");
