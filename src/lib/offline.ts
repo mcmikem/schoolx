@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 
 const DB_NAME = "omuto.org-db";
-const DB_VERSION = 6;
+const DB_VERSION = 7;
 
 interface OfflineRecord {
   id?: string;
@@ -17,12 +17,7 @@ interface OfflineRecord {
 }
 
 const MAX_RETRY_ATTEMPTS = 3;
-const SOFT_DELETE_TABLES = new Set([
-  "grades",
-  "fee_payments",
-  "fee_structure",
-  "fee_adjustments",
-]);
+const SOFT_DELETE_TABLES = new Set(["grades", "fee_payments", "fee_structure", "fee_adjustments"]);
 
 type SyncItemResult =
   | { status: "synced" }
@@ -81,6 +76,7 @@ class OfflineDB {
           "teacher_substitutions",
           "promotion_history",
           "audit_log",
+          "dashboard_cache",
           "sync_queue",
           "sync_metadata",
         ];
@@ -135,10 +131,7 @@ class OfflineDB {
   }
 
   // Save data locally and queue for sync
-  async save(
-    table: string,
-    data: Record<string, unknown>,
-  ): Promise<Record<string, unknown>> {
+  async save(table: string, data: Record<string, unknown>): Promise<Record<string, unknown>> {
     const db = await this.ensureDb();
 
     return new Promise((resolve, reject) => {
@@ -169,10 +162,7 @@ class OfflineDB {
   }
 
   // Get a single record from local storage
-  async get(
-    table: string,
-    id: string,
-  ): Promise<Record<string, unknown> | null> {
+  async get(table: string, id: string): Promise<Record<string, unknown> | null> {
     const db = await this.ensureDb();
 
     return new Promise((resolve, reject) => {
@@ -186,10 +176,7 @@ class OfflineDB {
   }
 
   // Get all data from a table with optional filters
-  async getAll(
-    table: string,
-    filters?: Record<string, unknown>,
-  ): Promise<Record<string, unknown>[]> {
+  async getAll(table: string, filters?: Record<string, unknown>): Promise<Record<string, unknown>[]> {
     const db = await this.ensureDb();
 
     return new Promise((resolve, reject) => {
@@ -202,9 +189,7 @@ class OfflineDB {
 
         if (filters) {
           results = results.filter((item) => {
-            return Object.entries(filters).every(
-              ([key, value]) => item[key] === value,
-            );
+            return Object.entries(filters).every(([key, value]) => item[key] === value);
           });
         }
 
@@ -240,10 +225,7 @@ class OfflineDB {
   }
 
   // Store data fetched from server into cache
-  async cacheFromServer(
-    table: string,
-    data: Record<string, unknown>[],
-  ): Promise<void> {
+  async cacheFromServer(table: string, data: Record<string, unknown>[]): Promise<void> {
     const db = await this.ensureDb();
 
     return new Promise((resolve, reject) => {
@@ -269,10 +251,7 @@ class OfflineDB {
   }
 
   // Get all cached data from a table (alias for getAll, for clarity)
-  async getAllFromCache(
-    table: string,
-    filters?: Record<string, unknown>,
-  ): Promise<Record<string, unknown>[]> {
+  async getAllFromCache(table: string, filters?: Record<string, unknown>): Promise<Record<string, unknown>[]> {
     return this.getAll(table, filters);
   }
 
@@ -346,9 +325,7 @@ class OfflineDB {
       const request = store.getAll();
 
       request.onsuccess = () => {
-        const items = (request.result || []).filter(
-          (item) => !item.synced && item.attempts < MAX_RETRY_ATTEMPTS,
-        );
+        const items = (request.result || []).filter((item) => !item.synced && item.attempts < MAX_RETRY_ATTEMPTS);
         resolve(items);
       };
       request.onerror = () => reject(request.error);
@@ -364,9 +341,7 @@ class OfflineDB {
       const request = store.getAll();
 
       request.onsuccess = () => {
-        const items = (request.result || []).filter(
-          (item) => !item.synced && item.attempts >= MAX_RETRY_ATTEMPTS,
-        );
+        const items = (request.result || []).filter((item) => !item.synced && item.attempts >= MAX_RETRY_ATTEMPTS);
         resolve(items);
       };
       request.onerror = () => reject(request.error);
@@ -452,11 +427,8 @@ class OfflineDB {
   private async syncSingleItem(item: OfflineRecord): Promise<SyncItemResult> {
     try {
       const { supabase } = await import("@/lib/supabase");
-      const rowId = (item.data as Record<string, unknown>)?.id as
-        | string
-        | undefined;
-      const localUpdatedAt = (item.data as Record<string, unknown>)
-        ?.updated_at as string | undefined;
+      const rowId = (item.data as Record<string, unknown>)?.id as string | undefined;
+      const localUpdatedAt = (item.data as Record<string, unknown>)?.updated_at as string | undefined;
 
       // Server-wins conflict policy for mutable records when updated_at is available.
       // If server has a newer version, skip local write and treat as resolved conflict.
@@ -467,22 +439,11 @@ class OfflineDB {
         item.table !== "attendance" &&
         item.table !== "grades"
       ) {
-        const { data: serverRow } = await supabase
-          .from(item.table)
-          .select("updated_at")
-          .eq("id", rowId)
-          .maybeSingle();
+        const { data: serverRow } = await supabase.from(item.table).select("updated_at").eq("id", rowId).maybeSingle();
 
-        const serverUpdatedAt =
-          (serverRow as Record<string, unknown> | null)?.updated_at as
-            | string
-            | undefined;
+        const serverUpdatedAt = (serverRow as Record<string, unknown> | null)?.updated_at as string | undefined;
 
-        if (
-          serverUpdatedAt &&
-          new Date(serverUpdatedAt).getTime() >
-            new Date(localUpdatedAt).getTime()
-        ) {
+        if (serverUpdatedAt && new Date(serverUpdatedAt).getTime() > new Date(localUpdatedAt).getTime()) {
           return {
             status: "conflict",
             reason: `${item.table}:${rowId} server newer than offline mutation`,
@@ -494,32 +455,22 @@ class OfflineDB {
         const deleteId = (item.data as Record<string, unknown>).id as string;
         const query = supabase.from(item.table);
         const { error } = SOFT_DELETE_TABLES.has(item.table)
-          ? await query
-              .update({ deleted_at: new Date().toISOString() })
-              .eq("id", deleteId)
+          ? await query.update({ deleted_at: new Date().toISOString() }).eq("id", deleteId)
           : await query.delete().eq("id", deleteId);
         if (error) throw error;
       } else if (item.table === "attendance") {
-        const { error } = await supabase
-          .from("attendance")
-          .upsert(item.data, { onConflict: "student_id,date" });
+        const { error } = await supabase.from("attendance").upsert(item.data, { onConflict: "student_id,date" });
         if (error) throw error;
       } else if (item.table === "grades") {
-        const { error } = await supabase
-          .from("grades")
-          .upsert(item.data, {
-            onConflict:
-              "student_id,subject_id,assessment_type,term,academic_year",
-          });
+        const { error } = await supabase.from("grades").upsert(item.data, {
+          onConflict: "student_id,subject_id,assessment_type,term,academic_year",
+        });
         if (error) throw error;
       } else if (item.action === "update") {
         const { id, ...updateData } = item.data as Record<string, unknown> & {
           id: string;
         };
-        const { error } = await supabase
-          .from(item.table)
-          .update(updateData)
-          .eq("id", id);
+        const { error } = await supabase.from(item.table).update(updateData).eq("id", id);
         if (error) throw error;
       } else {
         const { error } = await supabase.from(item.table).insert(item.data);
@@ -536,9 +487,7 @@ class OfflineDB {
 
   // Sync all pending data to server with retry logic
   // apiUrl parameter is accepted for backward compatibility but unused (uses supabase directly)
-  async syncToServer(
-    _apiUrl?: string,
-  ): Promise<{ success: number; failed: number; errors: string[] }> {
+  async syncToServer(_apiUrl?: string): Promise<{ success: number; failed: number; errors: string[] }> {
     const pending = await this.getPendingSync();
     let success = 0;
     let failed = 0;
@@ -558,13 +507,9 @@ class OfflineDB {
         await this.incrementAttempts(itemId);
         const newAttempts = (item.attempts || 0) + 1;
         if (newAttempts >= MAX_RETRY_ATTEMPTS) {
-          errors.push(
-            `Failed to sync ${item.table} (id: ${item.data?.id}) after ${MAX_RETRY_ATTEMPTS} attempts`,
-          );
+          errors.push(`Failed to sync ${item.table} (id: ${item.data?.id}) after ${MAX_RETRY_ATTEMPTS} attempts`);
         } else if (result.reason) {
-          errors.push(
-            `Temporary sync failure for ${item.table} (id: ${item.data?.id}): ${result.reason}`,
-          );
+          errors.push(`Temporary sync failure for ${item.table} (id: ${item.data?.id}): ${result.reason}`);
         }
         failed++;
       }
@@ -574,9 +519,7 @@ class OfflineDB {
   }
 
   // Bulk sync: sync all pending, then re-fetch cache from server for given tables
-  async refreshAll(
-    tables: string[],
-  ): Promise<{ synced: number; errors: string[] }> {
+  async refreshAll(tables: string[]): Promise<{ synced: number; errors: string[] }> {
     const errors: string[] = [];
 
     // First push local changes
@@ -591,14 +534,10 @@ class OfflineDB {
           const { data, error } = await supabase.from(table).select("*");
           if (error) throw error;
           if (data) {
-            await this.cacheFromServer(
-              table,
-              data as Record<string, unknown>[],
-            );
+            await this.cacheFromServer(table, data as Record<string, unknown>[]);
           }
         } catch (e: unknown) {
-          const msg =
-            e instanceof Error ? e.message : `Failed to refresh ${table}`;
+          const msg = e instanceof Error ? e.message : `Failed to refresh ${table}`;
           errors.push(msg);
         }
       }
@@ -611,10 +550,7 @@ class OfflineDB {
   }
 
   // Conflict resolution: server data wins, overwrite local cache
-  async resolveConflicts(
-    table: string,
-    serverData: Record<string, unknown>[],
-  ): Promise<void> {
+  async resolveConflicts(table: string, serverData: Record<string, unknown>[]): Promise<void> {
     await this.cacheFromServer(table, serverData);
   }
 }
