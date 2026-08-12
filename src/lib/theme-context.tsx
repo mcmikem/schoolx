@@ -21,16 +21,9 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     setMounted(true);
-    const saved = localStorage.getItem("skoolmate-theme") as Theme | null;
-    if (saved) {
-      setThemeState(saved);
-      applyTheme(saved);
-    } else {
-      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      const initial = prefersDark ? "dark" : "light";
-      setThemeState(initial);
-      applyTheme(initial);
-    }
+    // Dark mode is temporarily disabled — always force light so the app never
+    // picks up the OS dark preference or a previously saved dark theme.
+    applyTheme("light");
   }, []);
 
   const applyTheme = (t: Theme) => {
@@ -38,9 +31,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   };
 
   const setTheme = (t: Theme) => {
-    setThemeState(t);
-    localStorage.setItem("skoolmate-theme", t);
-    applyTheme(t);
+    void t;
+    setThemeState("light");
+    localStorage.setItem("skoolmate-theme", "light");
+    applyTheme("light");
   };
 
   const toggleTheme = () => {
