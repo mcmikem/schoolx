@@ -22,19 +22,7 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 const isUsableServiceKey = (key?: string): key is string => Boolean(key && key.length > 20 && !key.startsWith("your-"));
 
-function makeClient(authHeader: string): SupabaseClient {
-  // Prefer the service-role client (bypasses RLS). If the service key is missing
-  // or a placeholder, fall back to a user-scoped client built with the caller's
-  // JWT so RLS policies ("Users select own", "School users select own school")
-  // still let each account load its own profile + school. Without this fallback
-  // a misconfigured deployment returned 500 for every account, stranding users
-  // on the dashboard's infinite "Reconnecting to your school's data..." spinner.
-  if (isUsableServiceKey(supabaseServiceKey)) {
-    return createClient(supabaseUrl!, supabaseServiceKey, {
-      auth: { persistSession: false },
-    });
-  }
-  logger.warn("[API auth/me] SUPABASE_SERVICE_ROLE_KEY missing or placeholder — using user-scoped RLS fallback");
+function makeUserScopedClient(authHeader: string): SupabaseClient {
   return createClient(supabaseUrl!, supabaseAnonKey!, {
     auth: { persistSession: false },
     global: { headers: { Authorization: `Bearer ${authHeader}` } },
@@ -56,20 +44,35 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
   }
 
-  const supabaseAdmin = makeClient(authHeader);
+  let authUser = null;
+  let client: SupabaseClient;
+  if (isUsableServiceKey(supabaseServiceKey)) {
+    const supabaseAdmin = createClient(supabaseUrl!, supabaseServiceKey, {
+      auth: { persistSession: false },
+    });
+    const { data, error } = await supabaseAdmin.auth.getUser(authHeader);
+    if (!error && data.user) {
+      authUser = data.user;
+      client = supabaseAdmin;
+    } else {
+      logger.warn("[API auth/me] Service key token verify failed — retrying with user-scoped RLS client");
+      client = makeUserScopedClient(authHeader);
+      const retried = await client.auth.getUser(authHeader);
+      if (!retried.error && retried.data.user) authUser = retried.data.user;
+    }
+  } else {
+    client = makeUserScopedClient(authHeader);
+    const { data, error } = await client.auth.getUser(authHeader);
+    if (!error && data.user) authUser = data.user;
+  }
 
-  // Verify the token and get the auth user
-  const {
-    data: { user: authUser },
-    error: authError,
-  } = await supabaseAdmin.auth.getUser(authHeader);
-  if (authError || !authUser) {
+  if (!authUser) {
     return NextResponse.json({ error: "Invalid token" }, { status: 401 });
   }
 
   // Fetch profile from users table using service role (bypasses RLS entirely)
   // Return a limited set of safe fields to avoid leaking sensitive columns.
-  const { data: userData, error: userError } = await supabaseAdmin
+  const { data: userData, error: userError } = await client
     .from("users")
     .select(
       [
@@ -101,7 +104,7 @@ export async function GET(request: NextRequest) {
   let schoolData = null;
   const user = userData as any;
   if (user && user.school_id) {
-    const { data: sd } = await supabaseAdmin.from("schools").select("*").eq("id", user.school_id).maybeSingle();
+    const { data: sd } = await client.from("schools").select("*").eq("id", user.school_id).maybeSingle();
     if (sd) schoolData = sd;
   }
 
