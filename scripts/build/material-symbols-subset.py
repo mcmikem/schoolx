@@ -59,28 +59,84 @@ def norm(name: str) -> str:
     return name.replace("underscore", "_")
 
 
+WORD = r"[a-z0-9_]+"
+
+
+def _quoted_words(text: str) -> set:
+    return set(re.findall(r"""["']([a-z0-9_]+)["']""", text))
+
+
 def collect_icon_names() -> set:
     names = set()
     # Icon ligatures are referenced across the codebase in several shapes:
     #   <MaterialIcon icon="name" />             -> icon="..."
+    #   <MaterialIcon icon={cond ? "a" : "b"}/>  -> ternary prop
     #   <span className="material-symbols-outlined">name</span>
     #   { icon: "name" }  (nav/config objects)
     #   <MaterialIcon>name</MaterialIcon>        (children fallback)
-    patterns = [
-        re.compile(r"""icon=["']([a-z0-9_]+)["']"""),
-        re.compile(r"""material-symbols-outlined[^>]*>([a-z0-9_]+)<"""),
-        re.compile(r"""icon:\s*["']([a-z0-9_]+)["']"""),
-        re.compile(r"""<MaterialIcon[^>]*>([a-z0-9_]+)</MaterialIcon>"""),
-    ]
+    #   <MaterialIcon> name </MaterialIcon>      (whitespace-wrapped children)
+    #   <MaterialIcon>{cond ? "a" : "b"}</...>   (ternary children)
+    simple_prop = re.compile(r"""icon=["']([a-z0-9_]+)["']""")
+    object_prop = re.compile(r"""icon:\s*["']([a-z0-9_]+)["']""")
+    # icon={...} — grab every quoted literal inside the expression. Handles
+    # ternaries, nested ternaries, and lookups. Each token is expanded
+    # positionally via brace-balancing so multiple expressions per file are
+    # all captured (a single greedy regex could not iterate past the first).
+    expr_prop = re.compile(r"""icon=\{""", re.DOTALL)
+    # <span className="...material-symbols-outlined...">word</span> and
+    # <MaterialIcon>word</MaterialIcon>, tolerant of whitespace/newlines.
+    class_child = re.compile(
+        r"""material-symbols-outlined[^>]*>\s*([a-z0-9_]+)\s*</""",
+        re.DOTALL,
+    )
+    icon_child = re.compile(
+        r"""<MaterialIcon[^>]*>\s*([a-z0-9_]+)\s*</MaterialIcon>""",
+        re.DOTALL,
+    )
+    # <MaterialIcon>{...ternary...</MaterialIcon> — capture quoted literals in
+    # the expression body.
+    expr_child = re.compile(
+        r"""<MaterialIcon[^>]*>\{(.+?)</MaterialIcon>""", re.DOTALL
+    )
+
+    def _icon_exprs(text: str):
+        """Yield the balanced JS expression following each `icon={` token."""
+        for m in expr_prop.finditer(text):
+            start = m.end()
+            depth = 1
+            i = start
+            while i < len(text):
+                if text[i] == "{":
+                    depth += 1
+                elif text[i] == "}":
+                    depth -= 1
+                    if depth == 0:
+                        break
+                i += 1
+            yield text[start:i]
+
+    def scan(text: str):
+        nonlocal names
+        for m in simple_prop.finditer(text):
+            names.add(m.group(1))
+        for m in object_prop.finditer(text):
+            names.add(m.group(1))
+        for branch in _icon_exprs(text):
+            names |= _quoted_words(branch)
+        for m in class_child.finditer(text):
+            names.add(m.group(1))
+        for m in icon_child.finditer(text):
+            names.add(m.group(1))
+        for m in expr_child.finditer(text):
+            names |= _quoted_words(m.group(1))
+
     for dirpath, _dirnames, filenames in os.walk(SRC_DIR):
         for fn in filenames:
             if not fn.endswith((".tsx", ".ts", ".jsx", ".js")):
                 continue
             path = os.path.join(dirpath, fn)
-            text = open(path, encoding="utf-8").read()
-            for pattern in patterns:
-                for match in pattern.finditer(text):
-                    names.add(match.group(1))
+            with open(path, encoding="utf-8") as handle:
+                scan(handle.read())
     return names
 
 
