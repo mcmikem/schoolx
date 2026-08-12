@@ -72,22 +72,11 @@ export async function GET(request: NextRequest) {
 
   // Fetch profile from users table using service role (bypasses RLS entirely)
   // Return a limited set of safe fields to avoid leaking sensitive columns.
+  // NOTE: the users table (schema.sql) has no updated_at column — referencing it
+  // makes PostgREST return 42703 and 500 every account into degraded mode.
   const { data: userData, error: userError } = await client
     .from("users")
-    .select(
-      [
-        "id",
-        "auth_id",
-        "full_name",
-        "role",
-        "email",
-        "phone",
-        "school_id",
-        "is_active",
-        "created_at",
-        "updated_at",
-      ].join(", "),
-    )
+    .select(["id", "auth_id", "full_name", "role", "email", "phone", "school_id", "is_active", "created_at"].join(", "))
     .eq("auth_id", authUser.id)
     .maybeSingle();
 
