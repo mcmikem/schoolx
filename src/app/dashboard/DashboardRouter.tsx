@@ -139,9 +139,10 @@ function DormMasterDashboard() {
 }
 
 export default function DashboardRouter() {
-  const { user, school, loading, authInitialized, profileDegraded } = useAuth();
+  const { user, school, loading, authInitialized, profileDegraded, signOut } = useAuth();
   const router = useRouter();
   const [loadingTimedOut, setLoadingTimedOut] = useState(false);
+  const [reconnectFailed, setReconnectFailed] = useState(false);
 
   const requiresSetup =
     !!user &&
@@ -172,6 +173,20 @@ export default function DashboardRouter() {
     return () => window.clearTimeout(timer);
   }, [loading]);
 
+  // If we're stuck in degraded-with-no-school state, turn the perpetual
+  // "Reconnecting..." spinner into an actionable error after a grace period.
+  useEffect(() => {
+    if (!profileDegraded || school) {
+      setReconnectFailed(false);
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      setReconnectFailed(true);
+      logger.warn("[DashboardRouter] school reconnect timed out — surfacing retry UI");
+    }, 15000);
+    return () => window.clearTimeout(timer);
+  }, [profileDegraded, school]);
+
   if (loading && !loadingTimedOut) {
     return <DashboardSkeleton />;
   }
@@ -181,9 +196,46 @@ export default function DashboardRouter() {
   }
 
   // Cold start / outage: a valid session exists but school data hasn't loaded
-  // yet. Wait for the background profile heal instead of redirecting the admin
-  // into the setup wizard with an empty school.
+  // yet. Wait a grace period for the background profile heal instead of bouncing
+  // the admin into the setup wizard with an empty school — but never hang on an
+  // infinite spinner (cold start that never recovers, missing service-role env
+  // var, or an unreachable profile endpoint).
   if (profileDegraded && !school) {
+    if (reconnectFailed) {
+      return (
+        <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center px-4">
+          <div className="max-w-md w-full text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--surface)]">
+              <span className="material-symbols-outlined text-2xl text-[var(--amber)]">wifi_off</span>
+            </div>
+            <h1 className="text-xl font-bold text-[var(--t1)]">We couldn&apos;t load your school&apos;s data</h1>
+            <p className="mt-2 text-sm text-[var(--t2)]">
+              Your session is active, but we&apos;re still having trouble reaching your account. Check your internet
+              connection and try again.
+            </p>
+            <div className="mt-6 flex flex-col gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setReconnectFailed(false);
+                  router.refresh();
+                }}
+                className="rounded-xl bg-[var(--primary)] text-white px-4 py-2.5 text-sm font-semibold hover:opacity-90 transition-opacity"
+              >
+                Try again
+              </button>
+              <button
+                type="button"
+                onClick={() => void signOut()}
+                className="rounded-xl border border-[var(--border)] px-4 py-2.5 text-sm font-semibold text-[var(--t1)] hover:bg-[var(--surface)] transition-colors"
+              >
+                Sign out
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center">
         <div className="text-center">

@@ -177,6 +177,9 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (hasRedirectedRef.current) return;
     if (!authInitialized || loading || !user || isDemo) return;
+    // The parent-portal guard bounces plan-limited parents here; exempt it so
+    // they land on the access screen instead of orbiting /parent-portal → here.
+    if (pathname?.startsWith("/dashboard/no-access")) return;
 
     if (user.role === "parent") {
       hasRedirectedRef.current = true;
