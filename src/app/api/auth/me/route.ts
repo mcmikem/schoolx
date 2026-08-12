@@ -12,12 +12,34 @@
 // To modify: Run full test suite (lint + typecheck + regression + e2e)
 // ============================================================================
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { logger } from "@/lib/logger";
 import { rateLimit } from "@/lib/api-utils";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+const isUsableServiceKey = (key?: string): key is string => Boolean(key && key.length > 20 && !key.startsWith("your-"));
+
+function makeClient(authHeader: string): SupabaseClient {
+  // Prefer the service-role client (bypasses RLS). If the service key is missing
+  // or a placeholder, fall back to a user-scoped client built with the caller's
+  // JWT so RLS policies ("Users select own", "School users select own school")
+  // still let each account load its own profile + school. Without this fallback
+  // a misconfigured deployment returned 500 for every account, stranding users
+  // on the dashboard's infinite "Reconnecting to your school's data..." spinner.
+  if (isUsableServiceKey(supabaseServiceKey)) {
+    return createClient(supabaseUrl!, supabaseServiceKey, {
+      auth: { persistSession: false },
+    });
+  }
+  logger.warn("[API auth/me] SUPABASE_SERVICE_ROLE_KEY missing or placeholder — using user-scoped RLS fallback");
+  return createClient(supabaseUrl!, supabaseAnonKey!, {
+    auth: { persistSession: false },
+    global: { headers: { Authorization: `Bearer ${authHeader}` } },
+  });
+}
 
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get("authorization")?.replace("Bearer ", "");
@@ -30,13 +52,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
 
-  if (!supabaseUrl || !supabaseServiceKey) {
+  if (!supabaseUrl || (!isUsableServiceKey(supabaseServiceKey) && !supabaseAnonKey)) {
     return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
   }
 
-  const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-    auth: { persistSession: false },
-  });
+  const supabaseAdmin = makeClient(authHeader);
 
   // Verify the token and get the auth user
   const {
