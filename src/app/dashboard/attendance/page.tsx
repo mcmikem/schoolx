@@ -312,7 +312,7 @@ export default function AttendancePage() {
     if (isOnline) {
       try {
         const attResult = await withTimeout(
-          supabase.from("attendance").upsert(records as any, { onConflict: "student_id,date" }),
+          supabase.from("attendance").upsert(records as any, { onConflict: "student_id,date,period_number" }),
           15000,
           timeoutFallback(),
         );

@@ -8,15 +8,9 @@ import { triggerAutomationEvent } from "../automation-engine";
 import { DEMO_ATTENDANCE, DemoAttendance } from "@/lib/demo-data";
 import { isDemoSchool } from "@/lib/demo-utils";
 import { offlineDB, useOnlineStatus } from "@/lib/offline";
-import {
-  logAuditEventWithOfflineSupport,
-  logRecordChangeWithOfflineSupport,
-} from "@/lib/audit";
+import { logAuditEventWithOfflineSupport, logRecordChangeWithOfflineSupport } from "@/lib/audit";
 import { logger } from "@/lib/logger";
-import {
-  normalizeAttendanceInput,
-  validateAttendanceInput,
-} from "@/lib/validation";
+import { normalizeAttendanceInput, validateAttendanceInput } from "@/lib/validation";
 
 export function useAttendance(classId?: string, date?: string) {
   const [attendance, setAttendance] = useState<any[]>([]);
@@ -37,11 +31,7 @@ export function useAttendance(classId?: string, date?: string) {
     prevIsDemo.current = isDemo;
   }, [isDemo]);
 
-  const markAttendance = async (
-    studentId: string,
-    status: string,
-    recordedBy?: string,
-  ) => {
+  const markAttendance = async (studentId: string, status: string, recordedBy?: string) => {
     const currentDate = date || new Date().toISOString().split("T")[0];
     if (isDemo) {
       const newRecord = {
@@ -78,10 +68,7 @@ export function useAttendance(classId?: string, date?: string) {
     const previousRecord = attendance.find((a) => a.student_id === studentId);
 
     if (!isOnline) {
-      const offlineSaved = await offlineDB.save(
-        "attendance",
-        payload as unknown as Record<string, unknown>,
-      );
+      const offlineSaved = await offlineDB.save("attendance", payload as unknown as Record<string, unknown>);
       const newRecord = {
         ...payload,
         id: String(offlineSaved.id || `offline-att-${Date.now()}`),
@@ -116,13 +103,18 @@ export function useAttendance(classId?: string, date?: string) {
       const { data, error } = await withTimeout(
         supabase
           .from("attendance")
-          .upsert(payload, { onConflict: "student_id,date" })
-          .select(
-            "id, student_id, class_id, date, status, remarks, recorded_by, created_at",
-          )
+          .upsert(payload, { onConflict: "student_id,date,period_number" })
+          .select("id, student_id, class_id, date, status, remarks, recorded_by, created_at")
           .single(),
         15000,
-        { data: null, error: { message: "Attendance save timed out", name: "TimeoutError", details: "", hint: "", code: "" }, count: null as number | null, status: 408, statusText: "Timeout", success: false } as unknown as PostgrestSingleResponse<Record<string, unknown>>,
+        {
+          data: null,
+          error: { message: "Attendance save timed out", name: "TimeoutError", details: "", hint: "", code: "" },
+          count: null as number | null,
+          status: 408,
+          statusText: "Timeout",
+          success: false,
+        } as unknown as PostgrestSingleResponse<Record<string, unknown>>,
       );
       if (error) throw error;
       setAttendance((prev) => {
@@ -163,9 +155,7 @@ export function useAttendance(classId?: string, date?: string) {
         }
       }
       triggerAutomationEvent(school?.id, "student_absent", payload);
-      await offlineDB.cacheFromServer("attendance", [
-        data as unknown as Record<string, unknown>,
-      ]);
+      await offlineDB.cacheFromServer("attendance", [data as unknown as Record<string, unknown>]);
       return data;
     } catch (err: any) {
       throw new Error(err.message);
@@ -196,17 +186,12 @@ export function useAttendance(classId?: string, date?: string) {
         }
         const { data, error } = await supabase
           .from("attendance")
-          .select(
-            "id, student_id, class_id, date, status, remarks, recorded_by, created_at",
-          )
+          .select("id, student_id, class_id, date, status, remarks, recorded_by, created_at")
           .eq("class_id", classId)
           .eq("date", date);
         if (error) throw error;
         setAttendance(data || []);
-        await offlineDB.cacheFromServer(
-          "attendance",
-          (data || []) as unknown as Record<string, unknown>[],
-        );
+        await offlineDB.cacheFromServer("attendance", (data || []) as unknown as Record<string, unknown>[]);
       } catch (err) {
         logger.error("Error fetching attendance:", err);
         setError(err instanceof Error ? err.message : "Unknown error");
@@ -220,11 +205,7 @@ export function useAttendance(classId?: string, date?: string) {
   return { attendance, loading, error, markAttendance };
 }
 
-export function useAttendanceHistory(
-  schoolId?: string,
-  academicYear?: string,
-  options?: { limit?: number },
-) {
+export function useAttendanceHistory(schoolId?: string, academicYear?: string, options?: { limit?: number }) {
   const limit = options?.limit || 5000;
   const [loading, setLoading] = useState(false);
 
@@ -234,12 +215,8 @@ export function useAttendanceHistory(
     try {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const startDate = academicYear
-        ? `${academicYear}-01-01`
-        : thirtyDaysAgo.toISOString().split("T")[0];
-      const endDate = academicYear
-        ? `${academicYear}-12-31`
-        : new Date().toISOString().split("T")[0];
+      const startDate = academicYear ? `${academicYear}-01-01` : thirtyDaysAgo.toISOString().split("T")[0];
+      const endDate = academicYear ? `${academicYear}-12-31` : new Date().toISOString().split("T")[0];
 
       const { data: attendanceData, error } = await supabase
         .from("attendance")
@@ -257,10 +234,7 @@ export function useAttendanceHistory(
 
       if (error) throw error;
 
-      const studentAttendance: Record<
-        string,
-        { dates: string[]; statuses: Record<string, string>; student: any }
-      > = {};
+      const studentAttendance: Record<string, { dates: string[]; statuses: Record<string, string>; student: any }> = {};
       attendanceData?.forEach((record: any) => {
         const sid = record.student_id;
         if (!studentAttendance[sid])
@@ -302,9 +276,7 @@ export function useAttendanceHistory(
           });
         }
       }
-      return atRiskStudents.sort(
-        (a, b) => b.consecutiveAbsent - a.consecutiveAbsent,
-      );
+      return atRiskStudents.sort((a, b) => b.consecutiveAbsent - a.consecutiveAbsent);
     } catch (err) {
       logger.error("Error fetching attendance history:", err);
       throw err;
@@ -321,11 +293,7 @@ export function useStaffAttendance(schoolId?: string, date?: string) {
   const [loading, setLoading] = useState(true);
   const { isDemo } = useAuth();
 
-  const markAttendance = async (
-    staffId: string,
-    status: string,
-    remarks?: string,
-  ) => {
+  const markAttendance = async (staffId: string, status: string, remarks?: string) => {
     const currentDate = date || new Date().toISOString().split("T")[0];
     if (isDemo || isDemoSchool(schoolId)) {
       const newRecord = {
@@ -342,23 +310,30 @@ export function useStaffAttendance(schoolId?: string, date?: string) {
     }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo);
     try {
-const { data, error } = await withTimeout(
-         supabase
-           .from("staff_attendance")
-           .upsert(
-             {
-               staff_id: staffId,
-               date: currentDate,
-               status,
-               remarks,
-             },
-             { onConflict: "staff_id,date" },
-           )
-           .select("id, staff_id, date, status, remarks, created_at")
-           .single(),
-         15000,
-          { data: null, error: { message: "Staff attendance save timed out", name: "TimeoutError", details: "", hint: "", code: "" }, count: null as number | null, status: 408, statusText: "Timeout", success: false } as unknown as PostgrestSingleResponse<Record<string, unknown>>,
-       );
+      const { data, error } = await withTimeout(
+        supabase
+          .from("staff_attendance")
+          .upsert(
+            {
+              staff_id: staffId,
+              date: currentDate,
+              status,
+              remarks,
+            },
+            { onConflict: "staff_id,date" },
+          )
+          .select("id, staff_id, date, status, remarks, created_at")
+          .single(),
+        15000,
+        {
+          data: null,
+          error: { message: "Staff attendance save timed out", name: "TimeoutError", details: "", hint: "", code: "" },
+          count: null as number | null,
+          status: 408,
+          statusText: "Timeout",
+          success: false,
+        } as unknown as PostgrestSingleResponse<Record<string, unknown>>,
+      );
       if (error) throw error;
       return data;
     } catch (err: any) {
@@ -377,9 +352,7 @@ const { data, error } = await withTimeout(
         setLoading(true);
         const { data, error } = await supabase
           .from("staff_attendance")
-          .select(
-            "id, staff_id, date, status, remarks, created_at, users!staff_id(id, full_name, phone, school_id)",
-          )
+          .select("id, staff_id, date, status, remarks, created_at, users!staff_id(id, full_name, phone, school_id)")
           .eq("users.school_id", querySchoolId)
           .eq("date", date);
         if (error) throw error;
@@ -396,11 +369,7 @@ const { data, error } = await withTimeout(
   return { attendance, loading, markAttendance };
 }
 
-export function usePeriodAttendance(
-  classId?: string,
-  date?: string,
-  period?: string,
-) {
+export function usePeriodAttendance(classId?: string, date?: string, period?: string) {
   const [attendance, setAttendance] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -440,10 +409,7 @@ export function usePeriodAttendance(
         .eq("status", "active")
         .order("first_name");
       setStudents(studentData || []);
-      await offlineDB.cacheFromServer(
-        "students",
-        (studentData || []) as unknown as Record<string, unknown>[],
-      );
+      await offlineDB.cacheFromServer("students", (studentData || []) as unknown as Record<string, unknown>[]);
 
       const { data: attData } = await supabase
         .from("period_attendance")
@@ -452,10 +418,7 @@ export function usePeriodAttendance(
         .eq("date", date)
         .eq("period", period);
       setAttendance(attData || []);
-      await offlineDB.cacheFromServer(
-        "period_attendance",
-        (attData || []) as unknown as Record<string, unknown>[],
-      );
+      await offlineDB.cacheFromServer("period_attendance", (attData || []) as unknown as Record<string, unknown>[]);
     } catch (err) {
       logger.error("Error fetching period attendance:", err);
       setError(err instanceof Error ? err.message : "Unknown error");
@@ -488,25 +451,17 @@ export function usePeriodAttendance(
       return [...prev, payload];
     });
     if (!isOnline) {
-      await offlineDB.save(
-        "period_attendance",
-        payload as unknown as Record<string, unknown>,
-      );
+      await offlineDB.save("period_attendance", payload as unknown as Record<string, unknown>);
     } else {
       try {
         const { error: upsertError } = await supabase
           .from("period_attendance")
           .upsert(payload, { onConflict: "student_id,date,period" });
         if (upsertError) throw upsertError;
-        await offlineDB.cacheFromServer("period_attendance", [
-          payload as unknown as Record<string, unknown>,
-        ]);
+        await offlineDB.cacheFromServer("period_attendance", [payload as unknown as Record<string, unknown>]);
       } catch {
         setAttendance(prevAttendance);
-        await offlineDB.save(
-          "period_attendance",
-          payload as unknown as Record<string, unknown>,
-        );
+        await offlineDB.save("period_attendance", payload as unknown as Record<string, unknown>);
       }
     }
   };
@@ -514,11 +469,7 @@ export function usePeriodAttendance(
   return { attendance, students, loading, error, markAttendance, refetch: fetchData };
 }
 
-export function useDormAttendance(
-  dormId?: string,
-  date?: string,
-  checkType?: string,
-) {
+export function useDormAttendance(dormId?: string, date?: string, checkType?: string) {
   const [attendance, setAttendance] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
   const [dorms, setDorms] = useState<any[]>([]);
@@ -536,15 +487,9 @@ export function useDormAttendance(
       setDorms(cached as unknown as any[]);
       return;
     }
-    const { data } = await supabase
-      .from("dorms")
-      .select("*")
-      .eq("school_id", school.id);
+    const { data } = await supabase.from("dorms").select("*").eq("school_id", school.id);
     setDorms(data || []);
-    await offlineDB.cacheFromServer(
-      "dorms",
-      (data || []) as unknown as Record<string, unknown>[],
-    );
+    await offlineDB.cacheFromServer("dorms", (data || []) as unknown as Record<string, unknown>[]);
   }, [school?.id, isOnline]);
 
   const fetchData = useCallback(async () => {
@@ -576,10 +521,7 @@ export function useDormAttendance(
         .eq("dorm_id", dormId);
       const studentList = dormStudents?.map((ds: any) => ds.students) || [];
       setStudents(studentList);
-      await offlineDB.cacheFromServer(
-        "dorm_students",
-        (dormStudents || []) as unknown as Record<string, unknown>[],
-      );
+      await offlineDB.cacheFromServer("dorm_students", (dormStudents || []) as unknown as Record<string, unknown>[]);
 
       const { data: attData } = await supabase
         .from("dorm_attendance")
@@ -588,10 +530,7 @@ export function useDormAttendance(
         .eq("date", date)
         .eq("check_type", checkType);
       setAttendance(attData || []);
-      await offlineDB.cacheFromServer(
-        "dorm_attendance",
-        (attData || []) as unknown as Record<string, unknown>[],
-      );
+      await offlineDB.cacheFromServer("dorm_attendance", (attData || []) as unknown as Record<string, unknown>[]);
     } catch (err) {
       logger.error("Error fetching dorm attendance:", err);
       setError(err instanceof Error ? err.message : "Unknown error");
@@ -629,25 +568,17 @@ export function useDormAttendance(
       ...extras,
     };
     if (!isOnline) {
-      await offlineDB.save(
-        "dorm_attendance",
-        payload as unknown as Record<string, unknown>,
-      );
+      await offlineDB.save("dorm_attendance", payload as unknown as Record<string, unknown>);
     } else {
       try {
         const { error: upsertError } = await supabase
           .from("dorm_attendance")
           .upsert(payload, { onConflict: "student_id,dorm_id,date,check_type" });
         if (upsertError) throw upsertError;
-        await offlineDB.cacheFromServer("dorm_attendance", [
-          payload as unknown as Record<string, unknown>,
-        ]);
+        await offlineDB.cacheFromServer("dorm_attendance", [payload as unknown as Record<string, unknown>]);
       } catch {
         setAttendance(prevAttendance);
-        await offlineDB.save(
-          "dorm_attendance",
-          payload as unknown as Record<string, unknown>,
-        );
+        await offlineDB.save("dorm_attendance", payload as unknown as Record<string, unknown>);
       }
     }
   };

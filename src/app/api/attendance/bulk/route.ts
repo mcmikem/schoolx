@@ -112,6 +112,7 @@ export async function POST(request: NextRequest) {
           date,
           status,
           recorded_by: auth.context.user.id,
+          period_number: 1,
         });
       }
     }
@@ -120,7 +121,9 @@ export async function POST(request: NextRequest) {
     let upserted = 0;
     for (let i = 0; i < records.length; i += BATCH_SIZE) {
       const batch = records.slice(i, i + BATCH_SIZE);
-      const { error: upsertError } = await supabase.from("attendance").upsert(batch, { onConflict: "student_id,date" });
+      const { error: upsertError } = await supabase
+        .from("attendance")
+        .upsert(batch, { onConflict: "student_id,date,period_number" });
       if (upsertError) throw upsertError;
       upserted += batch.length;
     }

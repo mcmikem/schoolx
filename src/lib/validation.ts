@@ -189,6 +189,7 @@ export function normalizeAttendanceInput(input: Record<string, any>): Record<str
       .toLowerCase(),
     date: String(input.date || "").trim(),
     recorded_by: String(input.recorded_by || "").trim(),
+    period_number: Number(input.period_number) || 1,
   };
 }
 

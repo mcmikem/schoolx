@@ -62,22 +62,11 @@ export async function seedDemoData() {
 
   try {
     // 1. Check if classes exist, create if needed
-    let { data: classes } = await supabase
-      .from("classes")
-      .select("id, name")
-      .eq("school_id", DEMO_SCHOOL_ID);
+    let { data: classes } = await supabase.from("classes").select("id, name").eq("school_id", DEMO_SCHOOL_ID);
 
     if (!classes || classes.length === 0) {
       logger.debug("No classes found, creating default classes...");
-      const classNames = [
-        "Primary 1",
-        "Primary 2",
-        "Primary 3",
-        "Primary 4",
-        "Primary 5",
-        "Primary 6",
-        "Primary 7",
-      ];
+      const classNames = ["Primary 1", "Primary 2", "Primary 3", "Primary 4", "Primary 5", "Primary 6", "Primary 7"];
       const newClasses = classNames.map((name, i) => ({
         school_id: DEMO_SCHOOL_ID,
         name: name,
@@ -100,10 +89,8 @@ export async function seedDemoData() {
     logger.debug("Seeding students...");
     const students = [];
     for (let i = 0; i < 50; i++) {
-      const firstName =
-        FIRST_NAMES[Math.floor(Math.random() * FIRST_NAMES.length)];
-      const lastName =
-        LAST_NAMES[Math.floor(Math.random() * LAST_NAMES.length)];
+      const firstName = FIRST_NAMES[Math.floor(Math.random() * FIRST_NAMES.length)];
+      const lastName = LAST_NAMES[Math.floor(Math.random() * LAST_NAMES.length)];
       const gender = Math.random() > 0.5 ? "M" : "F";
       const classObj = classes[Math.floor(Math.random() * classes.length)];
 
@@ -113,11 +100,7 @@ export async function seedDemoData() {
         first_name: firstName,
         last_name: lastName,
         gender: gender,
-        date_of_birth: new Date(
-          2010 + Math.floor(Math.random() * 5),
-          Math.floor(Math.random() * 12),
-          1,
-        ).toISOString(),
+        date_of_birth: new Date(2010 + Math.floor(Math.random() * 5), Math.floor(Math.random() * 12), 1).toISOString(),
         parent_name: `${LAST_NAMES[Math.floor(Math.random() * LAST_NAMES.length)]} ${FIRST_NAMES[Math.floor(Math.random() * FIRST_NAMES.length)]}`,
         parent_phone: "07" + Math.floor(10000000 + Math.random() * 90000000),
         class_id: classObj.id,
@@ -176,6 +159,7 @@ export async function seedDemoData() {
           status: status,
           remarks: null,
           recorded_by: "system",
+          period_number: 1,
           created_at: new Date().toISOString(),
         } as unknown as Attendance);
       });
@@ -184,9 +168,7 @@ export async function seedDemoData() {
     // Chunk attendance inserts (supabase limits)
     for (let i = 0; i < attendanceRecords.length; i += 500) {
       const chunk = attendanceRecords.slice(i, i + 500);
-      await supabase
-        .from("attendance")
-        .upsert(chunk, { onConflict: "student_id,date" });
+      await supabase.from("attendance").upsert(chunk, { onConflict: "student_id,date,period_number" });
     }
     logger.debug("Seeded attendance history.");
 

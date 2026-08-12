@@ -459,7 +459,9 @@ class OfflineDB {
           : await query.delete().eq("id", deleteId);
         if (error) throw error;
       } else if (item.table === "attendance") {
-        const { error } = await supabase.from("attendance").upsert(item.data, { onConflict: "student_id,date" });
+        const { error } = await supabase
+          .from("attendance")
+          .upsert(item.data, { onConflict: "student_id,date,period_number" });
         if (error) throw error;
       } else if (item.table === "grades") {
         const { error } = await supabase.from("grades").upsert(item.data, {
