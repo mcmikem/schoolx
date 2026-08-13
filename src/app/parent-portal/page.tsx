@@ -133,7 +133,7 @@ function ParentDashboardContent() {
             withTimeout(
               supabase
                 .from("grades")
-                .select("id, score, max_score, grade, term, exam_type, teacher_comment, subjects(name)")
+                .select("id, score, max_score, term, assessment_type, subjects(name)")
                 .eq("student_id", scopedChild.id)
                 .limit(6),
               12000,

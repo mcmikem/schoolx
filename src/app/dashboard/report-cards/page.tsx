@@ -203,7 +203,7 @@ export default function ReportCardsPage() {
           .eq("class_id", classId)
           .eq("term", currentTerm)
           .eq("academic_year", academicYear)
-          .in("assessment_type", ["numerical", "both", null]),
+          .in("assessment_type", ["ca1", "ca2", "ca3", "ca4", "project", "exam"]),
         15000,
         timeoutFallback(),
       );
@@ -219,7 +219,7 @@ export default function ReportCardsPage() {
             .eq("class_id", classId)
             .eq("term", currentTerm)
             .eq("academic_year", academicYear)
-            .in("assessment_type", ["competency", "both", null]),
+            .in("assessment_type", ["competency"]),
           15000,
           timeoutFallback(),
         );

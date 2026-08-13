@@ -305,6 +305,84 @@ export function validatePaymentInput(input: Record<string, any>, options: { toda
   return errors;
 }
 
+// Partial-safe variant for UPDATE operations. Unlike normalizeStudentInput which
+// always emits a full record (and drops status/dropout/transfer/nin fields), this
+// only normalizes keys that are actually present in the input, preserving
+// status | transfer_* | dropout_* | admission_date | nin when explicitly provided.
+// Fixes: dropout, transfer, PLE-index, and rollover updates corrupting the row
+// (e.g. gender set to "" triggering the CHECK constraint, or status silently dropped).
+export function normalizeStudentUpdateInput(input: Record<string, any>): Record<string, any> {
+  const out: Record<string, any> = {};
+
+  if (input.first_name !== undefined) out.first_name = String(input.first_name || "").trim();
+  if (input.last_name !== undefined) out.last_name = String(input.last_name || "").trim();
+
+  if (input.gender !== undefined) {
+    const rawGender = String(input.gender || "")
+      .trim()
+      .toUpperCase();
+    out.gender =
+      rawGender === "M" || rawGender === "MALE" ? "M" : rawGender === "F" || rawGender === "FEMALE" ? "F" : "";
+  }
+
+  if (input.date_of_birth !== undefined) out.date_of_birth = input.date_of_birth || null;
+  if (input.parent_name !== undefined) out.parent_name = String(input.parent_name || "").trim();
+  if (input.parent_phone !== undefined) out.parent_phone = normalizeAuthPhone(String(input.parent_phone || ""));
+  if (input.parent_phone2 !== undefined) out.parent_phone2 = normalizeAuthPhone(String(input.parent_phone2 || ""));
+  if (input.parent_email !== undefined) out.parent_email = input.parent_email || null;
+  if (input.address !== undefined) out.address = input.address || null;
+
+  if (input.student_number !== undefined) {
+    out.student_number = String(input.student_number || "")
+      .trim()
+      .replace(/\s+/g, "")
+      .toUpperCase();
+  }
+
+  if (input.class_id !== undefined) out.class_id = String(input.class_id || "").trim();
+  if (input.ple_index_number !== undefined) out.ple_index_number = input.ple_index_number || null;
+  if (input.nin !== undefined) out.nin = input.nin || null;
+
+  if (input.opening_balance !== undefined) {
+    const balance =
+      typeof input.opening_balance === "string"
+        ? Number(input.opening_balance.replace(/[^\d.\-]/g, ""))
+        : Number(input.opening_balance);
+    out.opening_balance = isNaN(balance) ? 0 : balance;
+  }
+
+  if (input.photo_url !== undefined) out.photo_url = input.photo_url || null;
+  if (input.blood_type !== undefined) out.blood_type = input.blood_type || null;
+  if (input.religion !== undefined) out.religion = input.religion || null;
+  if (input.nationality !== undefined) out.nationality = input.nationality || null;
+  if (input.boarding_status !== undefined) out.boarding_status = input.boarding_status || "day";
+  if (input.house_id !== undefined) out.house_id = input.house_id || null;
+  if (input.previous_school !== undefined) out.previous_school = input.previous_school || null;
+  if (input.district_origin !== undefined) out.district_origin = input.district_origin || null;
+  if (input.sub_county !== undefined) out.sub_county = input.sub_county || null;
+  if (input.parish !== undefined) out.parish = input.parish || null;
+  if (input.village !== undefined) out.village = input.village || null;
+  if (input.games_house !== undefined) out.games_house = input.games_house || null;
+  if (input.is_class_monitor !== undefined) out.is_class_monitor = input.is_class_monitor === true;
+  if (input.prefect_role !== undefined) out.prefect_role = input.prefect_role || null;
+  if (input.student_council_role !== undefined) out.student_council_role = input.student_council_role || null;
+
+  if (input.status !== undefined) out.status = input.status;
+  if (input.transfer_from !== undefined) out.transfer_from = input.transfer_from || null;
+  if (input.transfer_to !== undefined) out.transfer_to = input.transfer_to || null;
+  if (input.transfer_reason !== undefined) out.transfer_reason = input.transfer_reason || null;
+  if (input.dropout_reason !== undefined) out.dropout_reason = input.dropout_reason || null;
+  if (input.dropout_date !== undefined) out.dropout_date = input.dropout_date || null;
+  if (input.admission_date !== undefined) out.admission_date = input.admission_date || null;
+  if (input.repeating !== undefined)
+    out.repeating = input.repeating === true || input.repeating === 1 || input.repeating === "true";
+  if (input.last_attendance_date !== undefined) out.last_attendance_date = input.last_attendance_date || null;
+  if (input.consecutive_absent_days !== undefined)
+    out.consecutive_absent_days = Number(input.consecutive_absent_days) || 0;
+
+  return out;
+}
+
 export function validateStudentInput(
   input: Record<string, any>,
   options: { partial?: boolean; today?: Date } = {},

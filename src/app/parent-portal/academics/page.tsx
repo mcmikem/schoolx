@@ -49,7 +49,7 @@ export default function ParentAcademicsPage() {
       const { data } = await withTimeout(
         supabase
           .from("grades")
-          .select("id, score, max_score, grade, term, exam_type, teacher_comment, subjects(name)")
+          .select("id, score, max_score, term, assessment_type, subjects(name)")
           .eq("student_id", child.id)
           .order("created_at", { ascending: false })
           .limit(500),

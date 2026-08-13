@@ -17,11 +17,7 @@ interface GoLiveCheck {
   href: string;
 }
 
-export default function GoLiveGate({
-  onDismiss,
-}: {
-  onDismiss: () => void;
-}) {
+export default function GoLiveGate({ onDismiss }: { onDismiss: () => void }) {
   const { school, user } = useAuth();
   const { currentTerm, academicYear } = useAcademic();
   const { students } = useStudents(school?.id);
@@ -35,14 +31,8 @@ export default function GoLiveGate({
     (async () => {
       try {
         const [feesRes, gradingRes] = await Promise.all([
-          supabase
-            .from("fee_structure")
-            .select("id", { count: "exact", head: true })
-            .eq("school_id", school.id),
-          supabase
-            .from("grading_scales")
-            .select("id", { count: "exact", head: true })
-            .eq("school_id", school.id),
+          supabase.from("fee_structure").select("id", { count: "exact", head: true }).eq("school_id", school.id),
+          supabase.from("grading_schemes").select("id", { count: "exact", head: true }).eq("school_id", school.id),
         ]);
         setHasFeeStructure((feesRes.count ?? 0) > 0);
         setHasGrading((gradingRes.count ?? 0) > 0);
@@ -129,7 +119,8 @@ export default function GoLiveGate({
             Almost ready to go live!
           </h2>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Complete these {checks.length - passedCount} remaining setup items so your school can start using SkoolMate effectively.
+            Complete these {checks.length - passedCount} remaining setup items so your school can start using SkoolMate
+            effectively.
           </p>
         </div>
 
@@ -143,23 +134,23 @@ export default function GoLiveGate({
                   : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
               }`}
             >
-              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                check.check
-                  ? "bg-emerald-100 dark:bg-emerald-800"
-                  : "bg-gray-100 dark:bg-gray-700"
-              }`}>
+              <div
+                className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                  check.check ? "bg-emerald-100 dark:bg-emerald-800" : "bg-gray-100 dark:bg-gray-700"
+                }`}
+              >
                 <MaterialIcon
                   icon={check.check ? "check_circle" : check.icon}
                   className={`text-lg ${check.check ? "text-emerald-600 dark:text-emerald-400" : "text-gray-400"}`}
                 />
               </div>
               <div className="flex-1 min-w-0">
-                <div className={`text-sm font-semibold ${check.check ? "text-emerald-700 dark:text-emerald-300 line-through" : "text-gray-900 dark:text-gray-100"}`}>
+                <div
+                  className={`text-sm font-semibold ${check.check ? "text-emerald-700 dark:text-emerald-300 line-through" : "text-gray-900 dark:text-gray-100"}`}
+                >
                   {check.label}
                 </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                  {check.description}
-                </div>
+                <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{check.description}</div>
                 {!check.check && (
                   <a
                     href={check.href}

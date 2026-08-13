@@ -8,7 +8,12 @@ import type { Student, CreateStudentInput, Class } from "@/types";
 import { getQuerySchoolId, withTimeout } from "./utils";
 import type { PostgrestSingleResponse } from "@supabase/supabase-js";
 import { getCachedData, setCachedData, invalidateCache } from "./queryCache";
-import { getErrorMessage, normalizeStudentInput, validateStudentInput } from "@/lib/validation";
+import {
+  getErrorMessage,
+  normalizeStudentInput,
+  normalizeStudentUpdateInput,
+  validateStudentInput,
+} from "@/lib/validation";
 
 import { DEMO_STUDENTS, DEMO_CLASSES, DemoStudent } from "@/lib/demo-data";
 import { isDemoSchool } from "@/lib/demo-utils";
@@ -557,7 +562,7 @@ export function useStudents(schoolId?: string, options?: { limit?: number; offse
   };
 
   const updateStudent = async (id: string, updates: Partial<Student>) => {
-    const normalizedUpdates = normalizeStudentInput(updates);
+    const normalizedUpdates = normalizeStudentUpdateInput(updates);
     const validationErrors = validateStudentInput(normalizedUpdates, {
       partial: true,
     });

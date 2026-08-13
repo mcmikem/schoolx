@@ -1,7 +1,13 @@
 -- Migration: refund_requests
 -- Creates table for refund requests with status tracking and RLS policies
 
-CREATE TYPE IF NOT EXISTS refund_status AS ENUM ('pending','approved','rejected');
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'refund_status') THEN
+    CREATE TYPE refund_status AS ENUM ('pending','approved','rejected');
+  END IF;
+END
+$$;
 
 CREATE TABLE IF NOT EXISTS refund_requests (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

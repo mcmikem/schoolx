@@ -182,7 +182,13 @@ export default function ExamsPage() {
         term: currentTerm || 1,
         academic_year: academicYear,
       });
-      await syncExamScoreToGrades(studentId, score);
+      // Only the terminal exam (EOT) writes to the grades 'exam' slot used by
+      // report cards. Interim types (class_test, bot, mid_term, saturday, mock)
+      // already live in exam_scores keyed by exam_type — writing all of them to
+      // assessment_type='exam' would overwrite the final exam score.
+      if (selectedExamType === "eot") {
+        await syncExamScoreToGrades(studentId, score);
+      }
       toast.success("Score saved");
     } catch (err) {
       toast.error("Failed to score save");

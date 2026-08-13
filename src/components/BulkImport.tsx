@@ -34,9 +34,7 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
   const { classes } = useClasses(school?.id);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [step, setStep] = useState<
-    "upload" | "preview" | "importing" | "complete"
-  >("upload");
+  const [step, setStep] = useState<"upload" | "preview" | "importing" | "complete">("upload");
   const [validatedRows, setValidatedRows] = useState<ValidatedRow[]>([]);
   const [error, setError] = useState<string>("");
   const [selectedClass, setSelectedClass] = useState<string>("");
@@ -47,10 +45,7 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
 
   const parseCSV = (text: string): ValidatedRow[] => {
     const lines = text.trim().split("\n");
-    if (lines.length < 2)
-      throw new Error(
-        "CSV file must have at least a header row and one data row",
-      );
+    if (lines.length < 2) throw new Error("CSV file must have at least a header row and one data row");
 
     const headers = lines[0]
       .toLowerCase()
@@ -61,9 +56,7 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
     // Check if required headers even exist in the document
     const missingHeaders = requiredFields.filter((f) => !headers.includes(f));
     if (missingHeaders.length > 0) {
-      throw new Error(
-        `CSV is missing required columns: ${missingHeaders.join(", ")}`,
-      );
+      throw new Error(`CSV is missing required columns: ${missingHeaders.join(", ")}`);
     }
 
     const processedRows: ValidatedRow[] = [];
@@ -72,9 +65,7 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
       const line = lines[i].trim();
       if (!line) continue;
       // Handle commas inside quotes properly (basic CSV parsing)
-      const values = line
-        .split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/)
-        .map((v) => v.trim().replace(/^['"]|['"]$/g, ""));
+      const values = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map((v) => v.trim().replace(/^['"]|['"]$/g, ""));
       if (values.length === 0 || values.every((v) => !v)) continue;
 
       const student: any = {};
@@ -100,23 +91,15 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
       if (!rawGender) {
         rowErrors.push("Missing gender");
         isValid = false;
-      } else if (
-        rawGender !== "M" &&
-        rawGender !== "F" &&
-        rawGender !== "MALE" &&
-        rawGender !== "FEMALE"
-      ) {
+      } else if (rawGender !== "M" && rawGender !== "F" && rawGender !== "MALE" && rawGender !== "FEMALE") {
         rowErrors.push(`Invalid gender '${rawGender}'`);
         isValid = false;
       } else {
-        normalizedGender = (
-          rawGender === "MALE" ? "M" : rawGender === "FEMALE" ? "F" : rawGender
-        ) as "M" | "F";
+        normalizedGender = (rawGender === "MALE" ? "M" : rawGender === "FEMALE" ? "F" : rawGender) as "M" | "F";
       }
 
       // Format mobile numbers to ensure they look okay (basic validation)
-      let phone =
-        student.parent_phone || student.guardian_phone || student.phone || "";
+      let phone = student.parent_phone || student.guardian_phone || student.phone || "";
       if (phone && phone.length < 9) {
         rowErrors.push("Phone number looks too short");
         isValid = false;
@@ -191,9 +174,7 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
   };
 
   const handleImport = async () => {
-    const isCurrentlyDemo =
-      typeof window !== "undefined" &&
-      localStorage.getItem("skoolmate_demo_v1") !== null;
+    const isCurrentlyDemo = typeof window !== "undefined" && localStorage.getItem("skoolmate_demo_v1") !== null;
 
     if (!school?.id || (!supabase && !isCurrentlyDemo)) {
       setError("Cannot import - no school or database connection");
@@ -206,9 +187,7 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
     const results: ImportResult = { success: 0, failed: 0, errors: [] };
     const batchSize = 10; // Smaller batches for demo feel
 
-    const validStudents = validatedRows
-      .filter((r) => r.isValid)
-      .map((r) => r.data);
+    const validStudents = validatedRows.filter((r) => r.isValid).map((r) => r.data);
     if (validStudents.length === 0) {
       setError("No valid rows to import.");
       setStep("preview");
@@ -225,43 +204,39 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
 
     // Process in batches
     for (let i = 0; i < validStudents.length; i += batchSize) {
-      const batch = validStudents.slice(i, i + batchSize).map((s) => ({
-        school_id: school.id,
-        student_number: s.student_number || `STD-${Date.now()}-${i}`,
-        first_name: s.first_name,
-        last_name: s.last_name,
-        gender: s.gender,
-        date_of_birth: s.date_of_birth || null,
-        parent_name: s.parent_name || null,
-        parent_phone: s.parent_phone || null,
-        class_id: selectedClass || null,
-        status: "active",
-        admission_date: new Date().toISOString().split("T")[0],
-      }));
+      const batch = validStudents.slice(i, i + batchSize).map((s, batchIdx) => {
+        const globalIdx = i + batchIdx;
+        return {
+          school_id: school.id,
+          student_number: s.student_number || `STD-${Date.now()}-${String(globalIdx).padStart(4, "0")}`,
+          first_name: s.first_name,
+          last_name: s.last_name,
+          gender: s.gender,
+          date_of_birth: s.date_of_birth || null,
+          parent_name: s.parent_name || null,
+          parent_phone: s.parent_phone || null,
+          class_id: selectedClass || null,
+          status: "active",
+          admission_date: new Date().toISOString().split("T")[0],
+        };
+      });
 
       try {
         const { data, error: insertError } = await withTimeout(
-          supabase
-            .from("students")
-            .insert(batch)
-            .select(),
+          supabase.from("students").insert(batch).select(),
           15000,
           { data: null, error: { message: "Batch insert timed out", code: "TIMEOUT" } } as any,
         );
 
         if (insertError) {
           results.failed += batch.length;
-          results.errors.push(
-            `Batch ${Math.floor(i / batchSize) + 1}: ${insertError.message}`,
-          );
+          results.errors.push(`Batch ${Math.floor(i / batchSize) + 1}: ${insertError.message}`);
         } else {
           results.success += data?.length || batch.length;
         }
       } catch (err: any) {
         results.failed += batch.length;
-        results.errors.push(
-          `Batch ${Math.floor(i / batchSize) + 1}: ${err.message}`,
-        );
+        results.errors.push(`Batch ${Math.floor(i / batchSize) + 1}: ${err.message}`);
       }
     }
 
@@ -303,7 +278,8 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
     setError("");
     try {
       const res = await fetch(csvExportUrl);
-      if (!res.ok) throw new Error("Could not fetch the sheet. Make sure it is set to 'Anyone with the link can view'.");
+      if (!res.ok)
+        throw new Error("Could not fetch the sheet. Make sure it is set to 'Anyone with the link can view'.");
       const text = await res.text();
       const parsed = parseCSV(text);
       setValidatedRows(parsed);
@@ -425,9 +401,7 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
             >
               {isDragOver ? "Drop your CSV file here" : "Click to upload CSV file"}
             </p>
-            <p style={{ fontSize: 13, color: "var(--t3)" }}>
-              Or drag and drop your file here
-            </p>
+            <p style={{ fontSize: 13, color: "var(--t3)" }}>Or drag and drop your file here</p>
             <input
               ref={fileInputRef}
               type="file"
@@ -463,8 +437,15 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
                 type="url"
                 placeholder="Paste Google Sheets URL here…"
                 value={sheetsUrl}
-                onChange={e => setSheetsUrl(e.target.value)}
-                style={{ flex: 1, padding: "10px 12px", border: "1px solid var(--border)", borderRadius: 8, fontSize: 13, outline: "none" }}
+                onChange={(e) => setSheetsUrl(e.target.value)}
+                style={{
+                  flex: 1,
+                  padding: "10px 12px",
+                  border: "1px solid var(--border)",
+                  borderRadius: 8,
+                  fontSize: 13,
+                  outline: "none",
+                }}
               />
               <button
                 onClick={handleGoogleSheetsImport}
@@ -496,22 +477,14 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
         <div className="animate-fade-in">
           <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center mb-6">
             <div>
-              <h3 className="text-lg font-bold text-[var(--t1)] flex items-center gap-2">
-                Data Validation Preview
-              </h3>
+              <h3 className="text-lg font-bold text-[var(--t1)] flex items-center gap-2">Data Validation Preview</h3>
               <p className="text-sm text-[var(--t3)] mt-1">
-                Found{" "}
-                <strong className="text-[var(--t1)]">
-                  {validatedRows.length}
-                </strong>{" "}
-                total rows.{" "}
+                Found <strong className="text-[var(--t1)]">{validatedRows.length}</strong> total rows.{" "}
                 <span className="text-emerald-600 font-bold">
                   {validatedRows.filter((r) => r.isValid).length} ready
                 </span>
                 ,{" "}
-                <span className="text-red-600 font-bold">
-                  {validatedRows.filter((r) => !r.isValid).length} invalid
-                </span>
+                <span className="text-red-600 font-bold">{validatedRows.filter((r) => !r.isValid).length} invalid</span>
                 .
               </p>
             </div>
@@ -533,31 +506,16 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
             <table className="w-full text-sm text-left whitespace-nowrap">
               <thead className="bg-[var(--surface-container-low)] sticky top-0 z-10 shadow-sm">
                 <tr>
-                  <th className="px-4 py-3 font-semibold text-[var(--t2)] w-12 text-center">
-                    Status
-                  </th>
-                  <th className="px-4 py-3 font-semibold text-[var(--t2)]">
-                    Name
-                  </th>
-                  <th className="px-4 py-3 font-semibold text-[var(--t2)]">
-                    Gender
-                  </th>
-                  <th className="px-4 py-3 font-semibold text-[var(--t2)]">
-                    Parent Phone
-                  </th>
-                  <th className="px-4 py-3 font-semibold text-[var(--t2)]">
-                    Errors
-                  </th>
+                  <th className="px-4 py-3 font-semibold text-[var(--t2)] w-12 text-center">Status</th>
+                  <th className="px-4 py-3 font-semibold text-[var(--t2)]">Name</th>
+                  <th className="px-4 py-3 font-semibold text-[var(--t2)]">Gender</th>
+                  <th className="px-4 py-3 font-semibold text-[var(--t2)]">Parent Phone</th>
+                  <th className="px-4 py-3 font-semibold text-[var(--t2)]">Errors</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)] bg-white">
                 {validatedRows.slice(0, 50).map((row, i) => (
-                  <tr
-                    key={i}
-                    className={
-                      row.isValid ? "hover:bg-slate-50" : "bg-red-50/50"
-                    }
-                  >
+                  <tr key={i} className={row.isValid ? "hover:bg-slate-50" : "bg-red-50/50"}>
                     <td className="px-4 py-3 text-center">
                       <span
                         className={`material-symbols-outlined text-[18px] ${row.isValid ? "text-emerald-500" : "text-red-500"}`}
@@ -566,20 +524,13 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
                       </span>
                     </td>
                     <td className="px-4 py-3 font-medium text-[var(--t1)]">
-                      {row.data.first_name}{" "}
-                      {row.data.last_name || (
-                        <span className="text-red-400 italic">Empty</span>
-                      )}
+                      {row.data.first_name} {row.data.last_name || <span className="text-red-400 italic">Empty</span>}
                     </td>
                     <td className="px-4 py-3 text-[var(--t2)]">
-                      {row.data.gender || (
-                        <span className="text-red-400 italic">Empty</span>
-                      )}
+                      {row.data.gender || <span className="text-red-400 italic">Empty</span>}
                     </td>
                     <td className="px-4 py-3 text-[var(--t2)] font-mono text-xs">
-                      {row.data.parent_phone || (
-                        <span className="text-[var(--t4)] italic">None</span>
-                      )}
+                      {row.data.parent_phone || <span className="text-[var(--t4)] italic">None</span>}
                     </td>
                     <td className="px-4 py-3">
                       {row.errors.length > 0 ? (
@@ -616,15 +567,11 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
           </div>
 
           <div className="bg-blue-50 border border-blue-100 text-blue-800 rounded-xl p-4 mb-6 text-sm flex gap-3">
-            <span className="material-symbols-outlined text-blue-500 shrink-0">
-              info
-            </span>
+            <span className="material-symbols-outlined text-blue-500 shrink-0">info</span>
             <p>
               Only valid records will be imported.{" "}
-              <strong className="font-bold">
-                {validatedRows.filter((r) => !r.isValid).length} invalid rows
-              </strong>{" "}
-              will be skipped entirely.
+              <strong className="font-bold">{validatedRows.filter((r) => !r.isValid).length} invalid rows</strong> will
+              be skipped entirely.
             </p>
           </div>
 
@@ -634,8 +581,7 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
             className="w-full flex justify-center items-center gap-2 px-4 py-3.5 bg-[var(--primary)] text-white font-bold rounded-xl shadow-[var(--sh2)] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
             <span className="material-symbols-outlined">cloud_upload</span>
-            Import {validatedRows.filter((r) => r.isValid).length} Valid
-            Students
+            Import {validatedRows.filter((r) => r.isValid).length} Valid Students
           </button>
         </div>
       )}
@@ -653,9 +599,7 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
               margin: "0 auto 16px",
             }}
           />
-          <p style={{ fontSize: 16, color: "var(--t1)" }}>
-            Importing students...
-          </p>
+          <p style={{ fontSize: 16, color: "var(--t1)" }}>Importing students...</p>
         </div>
       )}
 
@@ -666,10 +610,7 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
               width: 64,
               height: 64,
               borderRadius: "50%",
-              background:
-                result?.failed === 0
-                  ? "var(--green-soft)"
-                  : "var(--amber-soft)",
+              background: result?.failed === 0 ? "var(--green-soft)" : "var(--amber-soft)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -716,10 +657,7 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
               }}
             >
               {result?.errors.slice(0, 10).map((err: string, i: number) => (
-                <p
-                  key={i}
-                  style={{ fontSize: 12, color: "var(--red)", marginBottom: 4 }}
-                >
+                <p key={i} style={{ fontSize: 12, color: "var(--red)", marginBottom: 4 }}>
                   {err}
                 </p>
               ))}

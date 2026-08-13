@@ -91,7 +91,7 @@ export default function StudentPortalPage() {
 
       if (studentData) {
         const { data: attData } = await withTimeout(
-          supabase.from("attendance").select("status").eq("student_id", studentData.id).eq("school_id", school.id),
+          supabase.from("attendance").select("status").eq("student_id", studentData.id),
           5000,
           { data: [] } as any,
         );

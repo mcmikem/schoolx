@@ -24,8 +24,7 @@
 -- ------------------------------------------------------------
 -- 1. Helpers (SECURITY DEFINER, mirrors my_school_id() style)
 -- ------------------------------------------------------------
-DROP FUNCTION IF EXISTS public.my_student_ids();
-CREATE FUNCTION public.my_student_ids()
+CREATE OR REPLACE FUNCTION public.my_student_ids()
 RETURNS SETOF UUID
 LANGUAGE sql
 STABLE
@@ -42,8 +41,7 @@ AS $$
   WHERE u.auth_id = auth.uid()
 $$;
 
-DROP FUNCTION IF EXISTS public.is_staff_role();
-CREATE FUNCTION public.is_staff_role()
+CREATE OR REPLACE FUNCTION public.is_staff_role()
 RETURNS BOOLEAN
 LANGUAGE sql
 STABLE
@@ -115,12 +113,12 @@ DROP POLICY IF EXISTS "School users student_fee_terms all" ON student_fee_terms;
 CREATE POLICY "School users student_fee_terms all" ON student_fee_terms
 FOR ALL TO authenticated
 USING (
-  (school_id = my_school_id() AND is_staff_role())
+  ("class_id" IN (SELECT "id" FROM "classes" WHERE school_id = my_school_id()) AND is_staff_role())
   OR student_id IN (SELECT my_student_ids())
 )
 WITH CHECK (
-  (school_id = my_school_id() AND is_staff_role())
-  OR (school_id = my_school_id() AND student_id IN (SELECT my_student_ids()))
+  ("class_id" IN (SELECT "id" FROM "classes" WHERE school_id = my_school_id()) AND is_staff_role())
+  OR ("class_id" IN (SELECT "id" FROM "classes" WHERE school_id = my_school_id()) AND student_id IN (SELECT my_student_ids()))
 );
 
 -- ------------------------------------------------------------
@@ -143,10 +141,10 @@ DROP POLICY IF EXISTS "School users homework_submissions all" ON homework_submis
 CREATE POLICY "School users homework_submissions all" ON homework_submissions
 FOR ALL TO authenticated
 USING (
-  (school_id = my_school_id() AND is_staff_role())
+  (homework_id IN (SELECT id FROM homework WHERE school_id = my_school_id()) AND is_staff_role())
   OR student_id IN (SELECT my_student_ids())
 )
-WITH CHECK (school_id = my_school_id() AND is_staff_role());
+WITH CHECK (homework_id IN (SELECT id FROM homework WHERE school_id = my_school_id()) AND is_staff_role());
 
 -- ------------------------------------------------------------
 -- 8. CANTEEN ORDERS (parents may place orders for own children)

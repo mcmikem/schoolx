@@ -12,6 +12,7 @@ import {
   normalizeFeeStructureInput,
   normalizePaymentInput,
   normalizeStudentInput,
+  normalizeStudentUpdateInput,
   validateAttendanceInput,
   validateFeeStructureInput,
   validatePaymentInput,
@@ -205,6 +206,74 @@ describe("Validation - Student Input", () => {
         is_class_monitor: false,
         prefect_role: null,
         student_council_role: null,
+      });
+    });
+  });
+
+  describe("normalizeStudentUpdateInput", () => {
+    test("partial update of ple_index_number preserves untouched fields", () => {
+      expect(normalizeStudentUpdateInput({ ple_index_number: "U0123/456" })).toEqual({
+        ple_index_number: "U0123/456",
+      });
+    });
+
+    test("dropout status update keeps status + reasons and does not blank gender", () => {
+      expect(
+        normalizeStudentUpdateInput({
+          status: "dropped",
+          dropout_reason: "Transferred away",
+          dropout_date: "2026-08-01",
+        }),
+      ).toEqual({
+        status: "dropped",
+        dropout_reason: "Transferred away",
+        dropout_date: "2026-08-01",
+      });
+    });
+
+    test("transfer update keeps transfer fields and status", () => {
+      expect(
+        normalizeStudentUpdateInput({
+          status: "transferred",
+          transfer_to: "Another school",
+          transfer_reason: "Family relocation",
+          dropout_date: "2026-08-01",
+        }),
+      ).toEqual({
+        status: "transferred",
+        transfer_to: "Another school",
+        transfer_reason: "Family relocation",
+        dropout_date: "2026-08-01",
+      });
+    });
+
+    test("normalizes gender and phone when provided", () => {
+      expect(
+        normalizeStudentUpdateInput({
+          gender: "f",
+          parent_phone: "+256 700 123 456",
+          student_number: " sm 002 ",
+        }),
+      ).toEqual({
+        gender: "F",
+        parent_phone: "256700123456",
+        student_number: "SM002",
+      });
+    });
+
+    test("handles boolean and numeric fields", () => {
+      expect(
+        normalizeStudentUpdateInput({
+          is_class_monitor: true,
+          repeating: 1 as any,
+          opening_balance: "10,000" as any,
+          consecutive_absent_days: 4,
+        }),
+      ).toEqual({
+        is_class_monitor: true,
+        repeating: true,
+        opening_balance: 10000,
+        consecutive_absent_days: 4,
       });
     });
   });

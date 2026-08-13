@@ -14,6 +14,11 @@ import { requireModuleEntitlement } from "@/lib/subscription-guard";
 
 const STUDENT_MGMT_ROLES = ["super_admin", "school_admin", "admin", "headmaster", "secretary"];
 
+function generateStudentNumber() {
+  const year = new Date().getFullYear();
+  return `SM/${year}/${String(Date.now() % 1000000).padStart(6, "0")}`;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const auth = await requireUserWithSchool(request);
@@ -113,6 +118,13 @@ export async function POST(request: NextRequest) {
       return apiError("Gender must be 'M' or 'F'", 400);
     }
 
+    const openingBalance =
+      typeof studentData.opening_balance === "number" && !isNaN(studentData.opening_balance)
+        ? studentData.opening_balance
+        : typeof studentData.opening_balance === "string"
+          ? parseFloat(studentData.opening_balance.replace(/[^\d.\-]/g, ""))
+          : 0;
+
     const supabase = createServiceRoleClientOrThrow();
 
     const moduleCheck = await requireModuleEntitlement({
@@ -134,9 +146,9 @@ export async function POST(request: NextRequest) {
       parent_email: studentData.parent_email || null,
       address: studentData.address || null,
       class_id: studentData.class_id || null,
-      student_number: studentData.student_number || null,
+      student_number: String(studentData.student_number || "").trim() || generateStudentNumber(),
       ple_index_number: studentData.ple_index_number || null,
-      opening_balance: parseFloat(studentData.opening_balance || "0"),
+      opening_balance: isNaN(openingBalance) ? 0 : openingBalance,
       boarding_status: studentData.boarding_status || "day",
       house_id: studentData.house_id || null,
       previous_school: studentData.previous_school || null,

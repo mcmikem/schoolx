@@ -208,7 +208,7 @@ CREATE TABLE IF NOT EXISTS students (
     class_id UUID REFERENCES classes(id),
     admission_date DATE DEFAULT CURRENT_DATE,
     ple_index_number TEXT, -- For secondary students
-    uneb_number TEXT, -- UNEB candidate number
+    uneab_number TEXT, -- UNEB candidate number (column spelling matches prod)
     status TEXT CHECK (status IN ('active', 'transferred', 'dropped', 'completed')) DEFAULT 'active',
     created_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(school_id, student_number)
@@ -264,11 +264,12 @@ CREATE TABLE IF NOT EXISTS attendance (
     student_id UUID REFERENCES students(id) ON DELETE CASCADE,
     class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
     date DATE NOT NULL,
+    period_number INTEGER DEFAULT 1, -- matches prod (202605190001_scenarios_fixes.sql)
     status TEXT CHECK (status IN ('present', 'absent', 'late', 'excused')) NOT NULL,
     remarks TEXT,
     recorded_by UUID REFERENCES users(id),
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(student_id, date)
+    UNIQUE(student_id, date, period_number)
 );
 
 -- ============================================
@@ -1021,7 +1022,40 @@ CREATE TABLE IF NOT EXISTS period_attendance (
 );
 ALTER TABLE period_attendance ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "School users period_attendance all" ON period_attendance;
-CREATE POLICY "School users period_attendance all" ON period_attendance FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+DROP POLICY IF EXISTS "School users period_attendance select" ON period_attendance;
+DROP POLICY IF EXISTS "School users period_attendance write" ON period_attendance;
+CREATE POLICY "School users period_attendance select" ON period_attendance FOR SELECT TO authenticated USING (
+  (school_id = my_school_id() AND is_staff_role())
+  OR student_id IN (SELECT my_student_ids())
+);
+CREATE POLICY "School users period_attendance write" ON period_attendance FOR ALL TO authenticated USING (
+  school_id = my_school_id() AND is_staff_role()
+) WITH CHECK (school_id = my_school_id() AND is_staff_role());
+
+-- ============================================
+-- 37d. STUDENT COMMENTS (report-card comments)
+-- ============================================
+CREATE TABLE IF NOT EXISTS student_comments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    subject_id UUID NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
+    comment TEXT NOT NULL,
+    created_by UUID REFERENCES users(id),
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(student_id, subject_id)
+);
+ALTER TABLE student_comments ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users student_comments select" ON student_comments;
+DROP POLICY IF EXISTS "School users student_comments write" ON student_comments;
+CREATE POLICY "School users student_comments select" ON student_comments FOR SELECT TO authenticated USING (
+  (student_id IN (SELECT id FROM students WHERE school_id = my_school_id()) AND is_staff_role())
+  OR student_id IN (SELECT my_student_ids())
+);
+CREATE POLICY "School users student_comments write" ON student_comments FOR ALL TO authenticated USING (
+  student_id IN (SELECT id FROM students WHERE school_id = my_school_id()) AND is_staff_role()
+) WITH CHECK (student_id IN (SELECT id FROM students WHERE school_id = my_school_id()) AND is_staff_role());
 
 -- ============================================
 -- 38. PROMOTION HISTORY
@@ -1424,7 +1458,15 @@ CREATE TABLE IF NOT EXISTS student_grades (
 );
 ALTER TABLE student_grades ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "School users student_grades all" ON student_grades;
-CREATE POLICY "School users student_grades all" ON student_grades FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+DROP POLICY IF EXISTS "School users student_grades select" ON student_grades;
+DROP POLICY IF EXISTS "School users student_grades write" ON student_grades;
+CREATE POLICY "School users student_grades select" ON student_grades FOR SELECT TO authenticated USING (
+  (student_id IN (SELECT id FROM students WHERE school_id = my_school_id()) AND is_staff_role())
+  OR student_id IN (SELECT my_student_ids())
+);
+CREATE POLICY "School users student_grades write" ON student_grades FOR ALL TO authenticated USING (
+  student_id IN (SELECT id FROM students WHERE school_id = my_school_id()) AND is_staff_role()
+) WITH CHECK (student_id IN (SELECT id FROM students WHERE school_id = my_school_id()) AND is_staff_role());
 
 -- ============================================
 -- 55. STUDENT TRANSFERS
@@ -1528,7 +1570,14 @@ CREATE TABLE IF NOT EXISTS term_archives (
 );
 ALTER TABLE term_archives ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "School users term_archives all" ON term_archives;
-CREATE POLICY "School users term_archives all" ON term_archives FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+DROP POLICY IF EXISTS "School users term_archives select" ON term_archives;
+DROP POLICY IF EXISTS "School users term_archives write" ON term_archives;
+CREATE POLICY "School users term_archives select" ON term_archives FOR SELECT TO authenticated USING (
+  school_id = my_school_id() AND is_staff_role()
+);
+CREATE POLICY "School users term_archives write" ON term_archives FOR ALL TO authenticated USING (
+  school_id = my_school_id() AND is_staff_role()
+) WITH CHECK (school_id = my_school_id() AND is_staff_role());
 
 -- ============================================
 -- 60. TIMETABLE SLOTS
@@ -1899,12 +1948,14 @@ WITH CHECK (student_id IN (SELECT id FROM students WHERE school_id = my_school_i
 
 -- SELECT
 DROP POLICY IF EXISTS "School users students select" ON "students";
+DROP POLICY IF EXISTS students_select ON "students";
 CREATE POLICY "School users students select"
 ON "students"
 FOR SELECT
 TO authenticated
 USING (
-  school_id = my_school_id()
+  (school_id = my_school_id() AND is_staff_role())
+  OR id IN (SELECT my_student_ids())
 );
 
 -- INSERT (create students too)
@@ -1914,20 +1965,21 @@ ON "students"
 FOR INSERT
 TO authenticated
 WITH CHECK (
-  school_id = my_school_id()
+  school_id = my_school_id() AND is_staff_role()
 );
 
 -- UPDATE
 DROP POLICY IF EXISTS "School users students update" ON "students";
+DROP POLICY IF EXISTS students_update ON "students";
 CREATE POLICY "School users students update"
 ON "students"
 FOR UPDATE
 TO authenticated
 USING (
-  school_id = my_school_id()
+  school_id = my_school_id() AND is_staff_role()
 )
 WITH CHECK (
-  school_id = my_school_id()
+  school_id = my_school_id() AND is_staff_role()
 );
 
 -- DELETE
@@ -1937,7 +1989,7 @@ ON "students"
 FOR DELETE
 TO authenticated
 USING (
-  school_id = my_school_id()
+  school_id = my_school_id() AND is_staff_role()
 );
 
 -- =========================

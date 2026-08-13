@@ -6,7 +6,7 @@ describe("Global Data Quality — Multi-Tenant", () => {
   describe("1. Class Assignment", () => {
     it("migration assigns orphaned students to a default class", () => {
       const migration = require("fs").readFileSync(
-        require("path").join(process.cwd(), "supabase/migrations/20260621_assign_missing_classes.sql"),
+        require("path").join(process.cwd(), "supabase/migrations/202611010008_assign_missing_classes.sql"),
         "utf8",
       );
       expect(migration).toMatch(/UPDATE\s+students\s+SET\s+class_id/i);
@@ -51,9 +51,7 @@ describe("Global Data Quality — Multi-Tenant", () => {
     });
 
     it("resolveSelectedChild returns first child when none selected", () => {
-      const children = [
-        { id: "c1", first_name: "A", last_name: "B", class_name: "P.1" },
-      ];
+      const children = [{ id: "c1", first_name: "A", last_name: "B", class_name: "P.1" }];
       expect(resolveSelectedChild(children, null)?.id).toBe("c1");
       expect(resolveSelectedChild(children, "missing")).toBeNull();
       expect(resolveSelectedChild([], "c1")).toBeNull();
@@ -142,19 +140,13 @@ describe("Global Data Quality — Multi-Tenant", () => {
 
   describe("5. Seed Scripts", () => {
     it("client-side seed script generates fee payments for demo students", () => {
-      const seed = require("fs").readFileSync(
-        require("path").join(process.cwd(), "src/lib/seed-demo.ts"),
-        "utf8",
-      );
+      const seed = require("fs").readFileSync(require("path").join(process.cwd(), "src/lib/seed-demo.ts"), "utf8");
       expect(seed).toContain("fee_payments");
       expect(seed).toContain("student_fee_terms");
     });
 
     it("CLI seed script generates fee payments for demo students", () => {
-      const seed = require("fs").readFileSync(
-        require("path").join(process.cwd(), "scripts/seed-demo.ts"),
-        "utf8",
-      );
+      const seed = require("fs").readFileSync(require("path").join(process.cwd(), "scripts/seed-demo.ts"), "utf8");
       expect(seed).toContain("fee_payments");
     });
   });

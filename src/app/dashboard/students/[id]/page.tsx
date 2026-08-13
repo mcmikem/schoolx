@@ -117,6 +117,9 @@ function useStudentData(studentId: string, isDemo: boolean, isConstrainedNetwork
             .from("grades")
             .select("subject_id, score, term, subjects(name)")
             .eq("student_id", studentId)
+            .eq("assessment_type", "exam")
+            .order("term", { ascending: true })
+            .order("created_at", { ascending: true })
             .limit(isConstrainedNetwork ? 24 : 120),
         ]);
         if (cancelled) return;

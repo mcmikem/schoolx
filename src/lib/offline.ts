@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 
 const DB_NAME = "omuto.org-db";
-const DB_VERSION = 7;
+const DB_VERSION = 8;
 
 interface OfflineRecord {
   id?: string;
@@ -53,6 +53,7 @@ class OfflineDB {
           "classes",
           "subjects",
           "attendance",
+          "period_attendance",
           "grades",
           "fee_payments",
           "fee_structure",
@@ -99,6 +100,15 @@ class OfflineDB {
                 });
                 store.createIndex("date", "date", { unique: false });
                 store.createIndex("class_id", "class_id", { unique: false });
+              }
+
+              if (storeName === "period_attendance") {
+                store.createIndex("student_id", "student_id", {
+                  unique: false,
+                });
+                store.createIndex("date", "date", { unique: false });
+                store.createIndex("class_id", "class_id", { unique: false });
+                store.createIndex("period", "period", { unique: false });
               }
 
               if (storeName === "grades") {

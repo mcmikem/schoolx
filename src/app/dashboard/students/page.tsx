@@ -313,15 +313,10 @@ export default function StudentHubPage() {
       }
 
       const result: { data: { student_id: string; status: string; remarks: string | null }[] | null; error: unknown } =
-        await withTimeout(
-          supabase
-            .from("attendance")
-            .select("student_id, status, remarks")
-            .eq("school_id", school.id)
-            .eq("date", today),
-          10000,
-          { data: null, error: null } as any,
-        );
+        await withTimeout(supabase.from("attendance").select("student_id, status, remarks").eq("date", today), 10000, {
+          data: null,
+          error: null,
+        } as any);
 
       if (result.error) {
         setAttendanceStatusMap({});

@@ -316,8 +316,9 @@ export default function AttendancePage() {
           15000,
           timeoutFallback(),
         );
+        const timedOut = attResult?.status === 408 || attResult?.success === false || attResult?.data == null;
         const error = attResult?.error;
-        if (error) throw error;
+        if (error || timedOut) throw new Error(error?.message || "Attendance save timed out");
         await offlineDB.cacheFromServer("attendance", records as unknown as Record<string, unknown>[]);
         if (school?.id && user?.id) {
           await logAuditEventWithOfflineSupport(
