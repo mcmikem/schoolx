@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { supabaseClientOptions } from "@/lib/api-utils";
 
 const startTime = Date.now();
 
@@ -25,9 +26,13 @@ export async function GET(request: NextRequest) {
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (supabaseUrl && serviceKey && !supabaseUrl.includes("your-supabase")) {
-      const supabase = createClient(supabaseUrl, serviceKey, {
-        auth: { autoRefreshToken: false, persistSession: false },
-      });
+      const supabase = createClient(
+        supabaseUrl,
+        serviceKey,
+        supabaseClientOptions({
+          auth: { autoRefreshToken: false, persistSession: false },
+        }),
+      );
 
       const { error: readError, count } = await supabase
         .from("users")
@@ -41,10 +46,7 @@ export async function GET(request: NextRequest) {
         .insert({ key: "__health_check__", created_at: new Date().toISOString() });
 
       if (!writeError) {
-        await supabase
-          .from("rate_limit_log")
-          .delete()
-          .eq("key", "__health_check__");
+        await supabase.from("rate_limit_log").delete().eq("key", "__health_check__");
       }
 
       checks.database = {

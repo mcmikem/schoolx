@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { apiSuccess, apiError, handleApiError } from "@/lib/api-utils";
+import { apiSuccess, apiError, handleApiError, supabaseClientOptions } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -22,9 +22,13 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
+    const supabaseAdmin = createClient(
+      supabaseUrl,
+      supabaseServiceKey,
+      supabaseClientOptions({
+        auth: { autoRefreshToken: false, persistSession: false },
+      }),
+    );
 
     let userId: string | null = null;
     const authHeader = request.headers.get("authorization")?.replace("Bearer ", "");

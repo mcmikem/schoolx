@@ -1,52 +1,57 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js'
-import { normalizeAuthPhone, sanitizeString } from '@/lib/validation'
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { normalizeAuthPhone, sanitizeString } from "@/lib/validation";
+import { supabaseClientOptions } from "@/lib/api-utils";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 export function createSupabaseAdminClient() {
   if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error('Server configuration error')
+    throw new Error("Server configuration error");
   }
 
-  return createClient(supabaseUrl, supabaseServiceKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  })
+  return createClient(
+    supabaseUrl,
+    supabaseServiceKey,
+    supabaseClientOptions({
+      auth: { autoRefreshToken: false, persistSession: false },
+    }),
+  );
 }
 
 export function normalizeProvisioningPhone(phone: string) {
-  const normalizedPhone = normalizeAuthPhone(phone)
+  const normalizedPhone = normalizeAuthPhone(phone);
 
   if (normalizedPhone.length < 10 || normalizedPhone.length > 15) {
-    throw new Error('Invalid phone number')
+    throw new Error("Invalid phone number");
   }
 
-  return normalizedPhone
+  return normalizedPhone;
 }
 
 export function sanitizeProvisioningName(fullName: string) {
-  const sanitizedName = sanitizeString(fullName)
+  const sanitizedName = sanitizeString(fullName);
 
   if (sanitizedName.length < 2) {
-    throw new Error('Name must be at least 2 characters')
+    throw new Error("Name must be at least 2 characters");
   }
 
-  return sanitizedName
+  return sanitizedName;
 }
 
 export function buildProvisioningEmail(phone: string) {
-  return `${phone}@omuto.org`
+  return `${phone}@omuto.org`;
 }
 
 interface CreateManagedUserAccountInput {
-  supabaseAdmin: SupabaseClient
-  fullName: string
-  phone: string
-  password: string
-  role: string
-  schoolId?: string | null
-  email?: string | null
-  isActive?: boolean
+  supabaseAdmin: SupabaseClient;
+  fullName: string;
+  phone: string;
+  password: string;
+  role: string;
+  schoolId?: string | null;
+  email?: string | null;
+  isActive?: boolean;
 }
 
 export async function createManagedUserAccount({
@@ -60,40 +65,39 @@ export async function createManagedUserAccount({
   isActive = true,
 }: CreateManagedUserAccountInput) {
   if (password.length < 6) {
-    throw new Error('Password must be at least 6 characters')
+    throw new Error("Password must be at least 6 characters");
   }
 
-  const sanitizedName = sanitizeProvisioningName(fullName)
-  const sanitizedPhone = normalizeProvisioningPhone(phone)
+  const sanitizedName = sanitizeProvisioningName(fullName);
+  const sanitizedPhone = normalizeProvisioningPhone(phone);
 
   const { data: existingUser } = await supabaseAdmin
-    .from('users')
-    .select('id')
-    .eq('phone', sanitizedPhone)
-    .maybeSingle()
+    .from("users")
+    .select("id")
+    .eq("phone", sanitizedPhone)
+    .maybeSingle();
 
   if (existingUser) {
-    throw new Error('This phone number already exists')
+    throw new Error("This phone number already exists");
   }
 
-  const authEmail = buildProvisioningEmail(sanitizedPhone)
-  const { data: authData, error: authError } =
-    await supabaseAdmin.auth.admin.createUser({
-      email: authEmail,
-      password,
-      email_confirm: true,
-      user_metadata: {
-        full_name: sanitizedName,
-        phone: sanitizedPhone,
-        role,
-      },
-    })
+  const authEmail = buildProvisioningEmail(sanitizedPhone);
+  const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+    email: authEmail,
+    password,
+    email_confirm: true,
+    user_metadata: {
+      full_name: sanitizedName,
+      phone: sanitizedPhone,
+      role,
+    },
+  });
 
   if (authError || !authData.user?.id) {
-    throw authError || new Error('Failed to create auth user')
+    throw authError || new Error("Failed to create auth user");
   }
 
-  const { error: userError } = await supabaseAdmin.from('users').insert({
+  const { error: userError } = await supabaseAdmin.from("users").insert({
     auth_id: authData.user.id,
     school_id: schoolId,
     full_name: sanitizedName,
@@ -101,24 +105,21 @@ export async function createManagedUserAccount({
     email,
     role,
     is_active: isActive,
-  })
+  });
 
   if (userError) {
-    await supabaseAdmin.auth.admin.deleteUser(authData.user.id)
-    throw userError
+    await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+    throw userError;
   }
 
   return {
     userId: authData.user.id,
     phone: sanitizedPhone,
     authEmail,
-  }
+  };
 }
 
-export async function deleteManagedUserAccount(
-  supabaseAdmin: SupabaseClient,
-  authUserId: string,
-) {
-  await supabaseAdmin.from('users').delete().eq('auth_id', authUserId)
-  await supabaseAdmin.auth.admin.deleteUser(authUserId)
+export async function deleteManagedUserAccount(supabaseAdmin: SupabaseClient, authUserId: string) {
+  await supabaseAdmin.from("users").delete().eq("auth_id", authUserId);
+  await supabaseAdmin.auth.admin.deleteUser(authUserId);
 }

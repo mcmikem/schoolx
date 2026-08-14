@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { createMobileMoneyPaymentLink, verifyMobileMoneyPayment } from "@/lib/payments/mobile-money";
-import { requireUserWithSchool, rateLimit } from "@/lib/api-utils";
+import { requireUserWithSchool, rateLimit, supabaseClientOptions } from "@/lib/api-utils";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { normalizeAuthPhone } from "@/lib/validation";
 import { logger } from "@/lib/logger";
@@ -14,7 +14,7 @@ function serviceRoleClient() {
   if (!url || !key) {
     throw new Error("Server configuration error");
   }
-  return createClient(url, key, { auth: { persistSession: false } });
+  return createClient(url, key, supabaseClientOptions({ auth: { persistSession: false } }));
 }
 
 export async function POST(request: NextRequest) {

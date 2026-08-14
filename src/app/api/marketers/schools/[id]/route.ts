@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { apiSuccess, apiError, handleApiError, requireAuthenticatedUser } from "@/lib/api-utils";
+import { apiSuccess, apiError, handleApiError, requireAuthenticatedUser, supabaseClientOptions } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -14,9 +14,13 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const auth = await requireAuthenticatedUser(request);
     if (!auth.ok) return auth.response;
 
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
+    const supabaseAdmin = createClient(
+      supabaseUrl,
+      supabaseServiceKey,
+      supabaseClientOptions({
+        auth: { autoRefreshToken: false, persistSession: false },
+      }),
+    );
 
     const { data: profile } = await supabaseAdmin
       .from("users")

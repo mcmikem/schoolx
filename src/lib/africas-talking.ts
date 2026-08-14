@@ -1,4 +1,5 @@
 import { logger } from "@/lib/logger";
+import { supabaseClientOptions } from "@/lib/supabase-client";
 
 export interface AfricasTalkingSMSResult {
   success: boolean;
@@ -180,9 +181,13 @@ export async function checkSmsDailyLimit(schoolId: string, requestedCount: numbe
   }
 
   try {
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
+    const supabase = createClient(
+      supabaseUrl,
+      supabaseServiceKey,
+      supabaseClientOptions({
+        auth: { autoRefreshToken: false, persistSession: false },
+      }),
+    );
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -219,9 +224,13 @@ export async function checkSmsQuota(
   }
 
   try {
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
+    const supabase = createClient(
+      supabaseUrl,
+      supabaseServiceKey,
+      supabaseClientOptions({
+        auth: { autoRefreshToken: false, persistSession: false },
+      }),
+    );
 
     const now = new Date();
     const month = now.toLocaleString("en-US", { month: "short" }).toLowerCase();
@@ -256,9 +265,13 @@ export async function incrementSmsUsage(schoolId: string, success: boolean): Pro
   if (!supabaseUrl || !supabaseServiceKey) return;
 
   try {
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
+    const supabase = createClient(
+      supabaseUrl,
+      supabaseServiceKey,
+      supabaseClientOptions({
+        auth: { autoRefreshToken: false, persistSession: false },
+      }),
+    );
 
     const now = new Date();
     const month = now.toLocaleString("en-US", { month: "short" }).toLowerCase();

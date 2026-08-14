@@ -6,6 +6,7 @@ import {
   requireUserWithSchool,
   assertSchoolScopeOrDeny,
   assertUserRoleOrDeny,
+  supabaseClientOptions,
 } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
 
@@ -40,9 +41,13 @@ export async function POST(request: NextRequest) {
       return apiError("Password must be at least 6 characters", 400);
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
+    const supabase = createClient(
+      supabaseUrl,
+      supabaseServiceKey,
+      supabaseClientOptions({
+        auth: { autoRefreshToken: false, persistSession: false },
+      }),
+    );
 
     // Get user data to find auth_id
     const { data: userData, error: userError } = await supabase

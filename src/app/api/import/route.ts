@@ -8,6 +8,7 @@ import {
   assertSchoolScopeOrDeny,
   assertUserRoleOrDeny,
   withSecurity,
+  supabaseClientOptions,
 } from "@/lib/api-utils";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -50,8 +51,8 @@ async function handlePost(request: NextRequest) {
     if (!roleCheck.ok) return roleCheck.response;
 
     const supabase = supabaseServiceKey
-      ? createClient(supabaseUrl, supabaseServiceKey)
-      : createClient(supabaseUrl, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+      ? createClient(supabaseUrl, supabaseServiceKey, supabaseClientOptions())
+      : createClient(supabaseUrl, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, supabaseClientOptions());
 
     const results = {
       success: 0,
@@ -60,14 +61,9 @@ async function handlePost(request: NextRequest) {
     };
 
     // Get all classes for this school to map class names to IDs
-    const { data: classes } = await supabase
-      .from("classes")
-      .select("id, name")
-      .eq("school_id", scope.schoolId);
+    const { data: classes } = await supabase.from("classes").select("id, name").eq("school_id", scope.schoolId);
 
-    const classMap = new Map(
-      classes?.map((c) => [c.name.toLowerCase(), c.id]) || [],
-    );
+    const classMap = new Map(classes?.map((c) => [c.name.toLowerCase(), c.id]) || []);
 
     // Get current count for generating student numbers
     const { count } = await supabase
@@ -82,33 +78,25 @@ async function handlePost(request: NextRequest) {
         // Find class ID
         const classId = classMap.get(student.class_name?.toLowerCase());
         if (!classId) {
-          results.errors.push(
-            `${student.first_name} ${student.last_name}: Class "${student.class_name}" not found`,
-          );
+          results.errors.push(`${student.first_name} ${student.last_name}: Class "${student.class_name}" not found`);
           results.failed++;
           continue;
         }
 
         // Generate student number if not provided
         studentCount++;
-        const studentNumber =
-          student.student_number ||
-          `STU${String(studentCount).padStart(5, "0")}`;
+        const studentNumber = student.student_number || `STU${String(studentCount).padStart(5, "0")}`;
 
         // Validate gender
         const gender =
-          student.gender?.toUpperCase() === "M" ||
-          student.gender?.toUpperCase() === "MALE"
+          student.gender?.toUpperCase() === "M" || student.gender?.toUpperCase() === "MALE"
             ? "M"
-            : student.gender?.toUpperCase() === "F" ||
-                student.gender?.toUpperCase() === "FEMALE"
+            : student.gender?.toUpperCase() === "F" || student.gender?.toUpperCase() === "FEMALE"
               ? "F"
               : null;
 
         if (!gender) {
-          results.errors.push(
-            `${student.first_name} ${student.last_name}: Invalid gender "${student.gender}"`,
-          );
+          results.errors.push(`${student.first_name} ${student.last_name}: Invalid gender "${student.gender}"`);
           results.failed++;
           continue;
         }
@@ -129,17 +117,13 @@ async function handlePost(request: NextRequest) {
         });
 
         if (error) {
-          results.errors.push(
-            `${student.first_name} ${student.last_name}: Import failed`,
-          );
+          results.errors.push(`${student.first_name} ${student.last_name}: Import failed`);
           results.failed++;
         } else {
           results.success++;
         }
       } catch (e: unknown) {
-        results.errors.push(
-          `${student.first_name} ${student.last_name}: Import failed`,
-        );
+        results.errors.push(`${student.first_name} ${student.last_name}: Import failed`);
         results.failed++;
       }
     }

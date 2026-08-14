@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { logger } from "@/lib/logger";
-import { rateLimit } from "@/lib/api-utils";
+import { rateLimit, supabaseClientOptions } from "@/lib/api-utils";
 import { getNextGradeWorkflowStatusActions, GradeWorkflowStatus } from "@/lib/operations";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -22,12 +22,19 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
   }
 
-  const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-    auth: { persistSession: false },
-  });
+  const supabaseAdmin = createClient(
+    supabaseUrl,
+    supabaseServiceKey,
+    supabaseClientOptions({
+      auth: { persistSession: false },
+    }),
+  );
 
   // Verify the token and get the auth user
-  const { data: { user: authUser }, error: authError } = await supabaseAdmin.auth.getUser(authHeader);
+  const {
+    data: { user: authUser },
+    error: authError,
+  } = await supabaseAdmin.auth.getUser(authHeader);
   if (authError || !authUser) {
     return NextResponse.json({ error: "Invalid token" }, { status: 401 });
   }
@@ -65,15 +72,18 @@ export async function POST(request: NextRequest) {
     if (fetchError) throw fetchError;
 
     // Default to 'draft' if no grades found or status is null
-    const currentStatus = (existingGrades?.[0]?.status || 'draft') as GradeWorkflowStatus;
+    const currentStatus = (existingGrades?.[0]?.status || "draft") as GradeWorkflowStatus;
 
     // 2. Validate transition
     const allowedActions = getNextGradeWorkflowStatusActions(currentStatus, userData.role);
-    
+
     if (!allowedActions.includes(next_status)) {
-      return NextResponse.json({ 
-        error: `Invalid transition from ${currentStatus} to ${next_status} for role ${userData.role}` 
-      }, { status: 403 });
+      return NextResponse.json(
+        {
+          error: `Invalid transition from ${currentStatus} to ${next_status} for role ${userData.role}`,
+        },
+        { status: 403 },
+      );
     }
 
     // 3. Perform update
@@ -106,7 +116,6 @@ export async function POST(request: NextRequest) {
     if (updateError) throw updateError;
 
     return NextResponse.json({ success: true, status: next_status });
-
   } catch (err) {
     logger.error("[API grades/workflow] Error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

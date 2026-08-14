@@ -16,7 +16,7 @@
 // ============================================================================
 import { NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { apiSuccess, apiError, handleApiError, rateLimit } from "@/lib/api-utils";
+import { apiSuccess, apiError, handleApiError, rateLimit, supabaseClientOptions } from "@/lib/api-utils";
 import { PRIMARY_TEMPLATE, SECONDARY_TEMPLATE } from "@/lib/curriculum-templates";
 import { normalizePlanType } from "@/lib/payments/subscription-client";
 import { buildUgandaAcademicTerms, buildUgandaCalendarEvents } from "@/lib/uganda-school-calendar";
@@ -229,12 +229,16 @@ export async function POST(request: NextRequest) {
     }
 
     logger.debug("[Register] Step 4: Creating Supabase admin client");
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    });
+    const supabaseAdmin = createClient(
+      supabaseUrl,
+      supabaseServiceKey,
+      supabaseClientOptions({
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }),
+    );
 
     // 1. Check if phone number already exists
     logger.debug("[Register] Step 5: Checking existing user in DB");

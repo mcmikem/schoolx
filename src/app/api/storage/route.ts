@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { apiError, requireUserWithSchool } from "@/lib/api-utils";
+import { apiError, requireUserWithSchool, supabaseClientOptions } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -139,9 +139,13 @@ export async function POST(request: NextRequest) {
     const file = formData.get("file") as File | null;
     const path = (formData.get("path") as string) || "";
 
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
+    const supabaseAdmin = createClient(
+      supabaseUrl,
+      supabaseServiceKey,
+      supabaseClientOptions({
+        auth: { autoRefreshToken: false, persistSession: false },
+      }),
+    );
 
     if (!file) {
       await ensureBucketExists(supabaseAdmin, "school-logos");
@@ -221,9 +225,13 @@ export async function GET(request: NextRequest) {
       return apiError("Server configuration error", 500);
     }
 
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
+    const supabaseAdmin = createClient(
+      supabaseUrl,
+      supabaseServiceKey,
+      supabaseClientOptions({
+        auth: { autoRefreshToken: false, persistSession: false },
+      }),
+    );
 
     const { data: buckets } = await supabaseAdmin.storage.listBuckets();
     const bucketNames = new Set((buckets || []).map((bucket) => bucket.name));

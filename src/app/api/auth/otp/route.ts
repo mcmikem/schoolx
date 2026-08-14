@@ -14,7 +14,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { logger } from "@/lib/logger";
-import { rateLimitAsync } from "@/lib/api-utils";
+import { rateLimitAsync, supabaseClientOptions } from "@/lib/api-utils";
 import { sendAfricasTalkingSMSWithRetry, formatUgandaPhone } from "@/lib/africas-talking";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
@@ -44,9 +44,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Phone number required" }, { status: 400 });
     }
 
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { persistSession: false },
-    });
+    const supabaseAdmin = createClient(
+      supabaseUrl,
+      supabaseServiceKey,
+      supabaseClientOptions({
+        auth: { persistSession: false },
+      }),
+    );
 
     // Find parent user by phone
     const normalizedPhone = phone.replace(/[^0-9+]/g, "");

@@ -1,6 +1,13 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { apiSuccess, apiError, handleApiError, requireAuthenticatedUser, withRateLimit } from "@/lib/api-utils";
+import {
+  apiSuccess,
+  apiError,
+  handleApiError,
+  requireAuthenticatedUser,
+  withRateLimit,
+  supabaseClientOptions,
+} from "@/lib/api-utils";
 import { PRIMARY_TEMPLATE, SECONDARY_TEMPLATE } from "@/lib/curriculum-templates";
 import { normalizePlanType } from "@/lib/payments/subscription-client";
 import { buildUgandaAcademicTerms, buildUgandaCalendarEvents } from "@/lib/uganda-school-calendar";
@@ -48,9 +55,13 @@ export const POST = withRateLimit(
         return apiError("Server configuration error", 500);
       }
 
-      const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-        auth: { autoRefreshToken: false, persistSession: false },
-      });
+      const supabaseAdmin = createClient(
+        supabaseUrl,
+        supabaseServiceKey,
+        supabaseClientOptions({
+          auth: { autoRefreshToken: false, persistSession: false },
+        }),
+      );
 
       // Get marketer profile
       const { data: profile } = await withTimeout(

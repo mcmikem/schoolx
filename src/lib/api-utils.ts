@@ -88,9 +88,13 @@ async function rateLimitViaSupabase(
   if (!supabaseUrl || !serviceKey) return null;
 
   try {
-    const sb = createClient(supabaseUrl, serviceKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
+    const sb = createClient(
+      supabaseUrl,
+      serviceKey,
+      supabaseClientOptions({
+        auth: { autoRefreshToken: false, persistSession: false },
+      }),
+    );
 
     const now = new Date();
     const windowStart = new Date(Date.now() - windowMs);
@@ -532,20 +536,8 @@ export function requireCronSecretOrDeny(request: NextRequest): { ok: true } | { 
   return { ok: true };
 }
 
-function createFetchWithTimeout(defaultTimeout = 30000) {
-  return (input: RequestInfo | URL, init?: RequestInit) => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), defaultTimeout);
-    const signal = init?.signal;
-    if (signal) {
-      signal.addEventListener("abort", () => {
-        clearTimeout(timeoutId);
-        controller.abort();
-      });
-    }
-    return fetch(input, { ...init, signal: controller.signal }).finally(() => clearTimeout(timeoutId));
-  };
-}
+import { createFetchWithTimeout, supabaseClientOptions, SUPABASE_DEFAULT_TIMEOUT_MS } from "@/lib/supabase-client";
+export { createFetchWithTimeout, supabaseClientOptions, SUPABASE_DEFAULT_TIMEOUT_MS };
 
 export function createServiceRoleClientOrThrow() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;

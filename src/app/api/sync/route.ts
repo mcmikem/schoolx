@@ -8,6 +8,7 @@ import {
   requireUserWithSchool,
   assertSchoolScopeOrDeny,
   assertUserRoleOrDeny,
+  supabaseClientOptions,
 } from "@/lib/api-utils";
 import type { Database } from "@/lib/supabase";
 import { SYNC_VALID_TABLES, SYNC_MAX_ITEMS, isValidSyncData } from "@/lib/server/sync-validation";
@@ -255,12 +256,16 @@ async function handleSyncPost(request: NextRequest) {
     const key = supabaseServiceKey;
     if (!key) return apiError("Server configuration error: SUPABASE_SERVICE_ROLE_KEY not set", 500);
 
-    const supabase: SupabaseClient<Database> = createClient(supabaseUrl, key, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    });
+    const supabase: SupabaseClient<Database> = createClient(
+      supabaseUrl,
+      key,
+      supabaseClientOptions({
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        },
+      }),
+    );
 
     let successCount = 0;
     let failedCount = 0;

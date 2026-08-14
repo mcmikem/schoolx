@@ -7,6 +7,7 @@ import {
   handleApiError,
   requireCronSecretOrDeny,
   requireDevelopmentRouteOrDeny,
+  supabaseClientOptions,
 } from "@/lib/api-utils";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -21,15 +22,16 @@ export async function POST(request: NextRequest) {
     if (!cron.ok) return cron.response;
 
     if (!supabaseServiceKey) {
-      return apiError(
-        "SUPABASE_SERVICE_ROLE_KEY not set. Add it to .env.local",
-        400,
-      );
+      return apiError("SUPABASE_SERVICE_ROLE_KEY not set. Add it to .env.local", 400);
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
+    const supabase = createClient(
+      supabaseUrl,
+      supabaseServiceKey,
+      supabaseClientOptions({
+        auth: { autoRefreshToken: false, persistSession: false },
+      }),
+    );
 
     const results: Record<string, string> = {};
 

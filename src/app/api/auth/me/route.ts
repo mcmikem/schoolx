@@ -14,7 +14,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 import { logger } from "@/lib/logger";
-import { rateLimit } from "@/lib/api-utils";
+import { rateLimit, supabaseClientOptions } from "@/lib/api-utils";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -23,10 +23,14 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const isUsableServiceKey = (key?: string): key is string => Boolean(key && key.length > 20 && !key.startsWith("your-"));
 
 function makeUserScopedClient(authHeader: string): SupabaseClient {
-  return createClient(supabaseUrl!, supabaseAnonKey!, {
-    auth: { persistSession: false },
-    global: { headers: { Authorization: `Bearer ${authHeader}` } },
-  });
+  return createClient(
+    supabaseUrl!,
+    supabaseAnonKey!,
+    supabaseClientOptions({
+      auth: { persistSession: false },
+      global: { headers: { Authorization: `Bearer ${authHeader}` } },
+    }),
+  );
 }
 
 export async function GET(request: NextRequest) {
@@ -47,9 +51,13 @@ export async function GET(request: NextRequest) {
   let authUser = null;
   let client: SupabaseClient;
   if (isUsableServiceKey(supabaseServiceKey)) {
-    const supabaseAdmin = createClient(supabaseUrl!, supabaseServiceKey, {
-      auth: { persistSession: false },
-    });
+    const supabaseAdmin = createClient(
+      supabaseUrl!,
+      supabaseServiceKey,
+      supabaseClientOptions({
+        auth: { persistSession: false },
+      }),
+    );
     const { data, error } = await supabaseAdmin.auth.getUser(authHeader);
     if (!error && data.user) {
       authUser = data.user;

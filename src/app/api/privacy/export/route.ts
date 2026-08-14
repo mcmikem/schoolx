@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { logger } from "@/lib/logger";
+import { supabaseClientOptions } from "@/lib/api-utils";
 
 export async function GET(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
@@ -10,9 +11,13 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-    auth: { persistSession: false },
-  });
+  const supabaseAdmin = createClient(
+    supabaseUrl,
+    supabaseServiceKey,
+    supabaseClientOptions({
+      auth: { persistSession: false },
+    }),
+  );
 
   const token = authHeader.slice(7);
   const {

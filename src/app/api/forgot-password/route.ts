@@ -8,6 +8,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { logger } from "@/lib/logger";
+import { supabaseClientOptions } from "@/lib/api-utils";
 
 // In-memory rate limiter — does not persist across serverless instances.
 // For production, replace with Redis or Supabase-based rate limiting.
@@ -15,9 +16,7 @@ const resetAttempts = new Map<string, { count: number; resetAt: number }>();
 
 export async function POST(request: NextRequest) {
   try {
-    const ip =
-      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-      "unknown";
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
     const now = Date.now();
     const window = 15 * 60 * 1000; // 15 minutes
     const limit = 3;
@@ -47,9 +46,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
+    const supabase = createClient(
+      supabaseUrl,
+      supabaseServiceKey,
+      supabaseClientOptions({
+        auth: { autoRefreshToken: false, persistSession: false },
+      }),
+    );
 
     // Look up the email derived from the phone number
     const email = `${phone}@omuto.org`;

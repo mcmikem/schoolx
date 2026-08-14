@@ -4,7 +4,7 @@ import { normalizeAuthPhone } from "@/lib/validation";
 import { buildAuthEmailFromPhone } from "@/lib/auth-login";
 import { logger } from "@/lib/logger";
 import { sendParentPortalCredentials, isWhatsAppConfigured } from "@/lib/whatsapp";
-import { requireUserWithSchool, assertSchoolScopeOrDeny, apiError } from "@/lib/api-utils";
+import { requireUserWithSchool, assertSchoolScopeOrDeny, apiError, supabaseClientOptions } from "@/lib/api-utils";
 import { randomBytes } from "crypto";
 
 const supabaseUrl: string = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
@@ -27,9 +27,13 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey!, {
-    auth: { persistSession: false },
-  });
+  const supabaseAdmin = createClient(
+    supabaseUrl,
+    supabaseServiceKey!,
+    supabaseClientOptions({
+      auth: { persistSession: false },
+    }),
+  );
 
   let studentId: string | undefined;
   let schoolId: string | undefined;

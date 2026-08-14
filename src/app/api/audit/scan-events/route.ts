@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { assertApiAccessOrDeny, requireUserWithSchool } from "@/lib/api-utils";
+import { assertApiAccessOrDeny, requireUserWithSchool, supabaseClientOptions } from "@/lib/api-utils";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
@@ -51,7 +51,18 @@ function clampInt(value: string | null, fallback: number, min: number, max: numb
   return Math.min(max, Math.max(min, parsed));
 }
 
-function applyFilters(query: any, filters: { decision?: string; entityType?: string; reasonCode?: string; scannerId?: string; operatorId?: string; dateFrom?: string; dateTo?: string; }) {
+function applyFilters(
+  query: any,
+  filters: {
+    decision?: string;
+    entityType?: string;
+    reasonCode?: string;
+    scannerId?: string;
+    operatorId?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  },
+) {
   if (filters.decision && filters.decision !== "all") {
     query = query.eq("decision", filters.decision);
   }
@@ -80,11 +91,7 @@ function uniqueStrings(values: Array<string | null | undefined>) {
   return Array.from(new Set(values.filter((value): value is string => Boolean(value && value.trim()))));
 }
 
-function formatTargetLabel(
-  row: ScanEventRow,
-  studentMap: Map<string, string>,
-  userMap: Map<string, string>,
-) {
+function formatTargetLabel(row: ScanEventRow, studentMap: Map<string, string>, userMap: Map<string, string>) {
   if (!row.target_id) return "Unknown target";
 
   if (row.entity_type === "student_meal") {
@@ -138,10 +145,7 @@ function buildCsv(events: EnrichedScanEventRow[]) {
     event.source || "",
   ]);
 
-  return [
-    headers.map(escapeCsvValue).join(","),
-    ...rows.map((row) => row.map(escapeCsvValue).join(",")),
-  ].join("\n");
+  return [headers.map(escapeCsvValue).join(","), ...rows.map((row) => row.map(escapeCsvValue).join(","))].join("\n");
 }
 
 export async function GET(request: NextRequest) {
@@ -190,16 +194,17 @@ export async function GET(request: NextRequest) {
   }
 
   if (!supabaseUrl || !supabaseServiceKey) {
-    return NextResponse.json(
-      { error: "Scan events service configuration is missing" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Scan events service configuration is missing" }, { status: 500 });
   }
 
   const schoolId = auth.context.schoolId;
-  const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-    auth: { persistSession: false },
-  });
+  const supabase = createClient(
+    supabaseUrl,
+    supabaseServiceKey,
+    supabaseClientOptions({
+      auth: { persistSession: false },
+    }),
+  );
 
   const params = request.nextUrl.searchParams;
   const format = params.get("format") || "json";
@@ -222,18 +227,17 @@ export async function GET(request: NextRequest) {
     supabase.from("scan_event_logs").select("id", { count: "exact", head: true }),
     countFilters,
   );
-  const allowedQuery = applyFilters(
-    supabase.from("scan_event_logs").select("id", { count: "exact", head: true }),
-    { ...countFilters, decision: "allowed" },
-  );
-  const blockedQuery = applyFilters(
-    supabase.from("scan_event_logs").select("id", { count: "exact", head: true }),
-    { ...countFilters, decision: "blocked" },
-  );
-  const invalidQuery = applyFilters(
-    supabase.from("scan_event_logs").select("id", { count: "exact", head: true }),
-    { ...countFilters },
-  ).eq("signature_valid", false);
+  const allowedQuery = applyFilters(supabase.from("scan_event_logs").select("id", { count: "exact", head: true }), {
+    ...countFilters,
+    decision: "allowed",
+  });
+  const blockedQuery = applyFilters(supabase.from("scan_event_logs").select("id", { count: "exact", head: true }), {
+    ...countFilters,
+    decision: "blocked",
+  });
+  const invalidQuery = applyFilters(supabase.from("scan_event_logs").select("id", { count: "exact", head: true }), {
+    ...countFilters,
+  }).eq("signature_valid", false);
 
   const eventsQuery = applyFilters(
     supabase
@@ -255,15 +259,12 @@ export async function GET(request: NextRequest) {
     eventsQuery.eq("school_id", schoolId),
   ]);
 
-    if (eventsResult.error) {
-      if (process.env.NODE_ENV === "development") return emptyResponse;
-      return NextResponse.json(
-        { error: "Internal server error" },
-        { status: 500 },
-      );
-    }
+  if (eventsResult.error) {
+    if (process.env.NODE_ENV === "development") return emptyResponse;
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
 
-    const rows = (eventsResult.data || []) as ScanEventRow[];
+  const rows = (eventsResult.data || []) as ScanEventRow[];
   const operatorIds = uniqueStrings(rows.map((row) => row.operator_user_id));
   const studentIds = uniqueStrings(
     rows.filter((row) => row.entity_type === "student_meal").map((row) => row.target_id),
@@ -275,17 +276,31 @@ export async function GET(request: NextRequest) {
   const [operatorsResult, studentsResult, staffTargetsResult] = await Promise.all([
     operatorIds.length
       ? supabase.from("users").select("id, full_name, role").eq("school_id", schoolId).in("id", operatorIds)
-      : Promise.resolve({ data: [] as Array<{ id: string; full_name: string | null; role: string | null }>, error: null }),
+      : Promise.resolve({
+          data: [] as Array<{ id: string; full_name: string | null; role: string | null }>,
+          error: null,
+        }),
     studentIds.length
       ? supabase
           .from("students")
           .select("id, first_name, last_name, student_number")
           .eq("school_id", schoolId)
           .in("id", studentIds)
-      : Promise.resolve({ data: [] as Array<{ id: string; first_name: string | null; last_name: string | null; student_number: string | null }>, error: null }),
+      : Promise.resolve({
+          data: [] as Array<{
+            id: string;
+            first_name: string | null;
+            last_name: string | null;
+            student_number: string | null;
+          }>,
+          error: null,
+        }),
     staffTargetIds.length
       ? supabase.from("users").select("id, full_name, role").eq("school_id", schoolId).in("id", staffTargetIds)
-      : Promise.resolve({ data: [] as Array<{ id: string; full_name: string | null; role: string | null }>, error: null }),
+      : Promise.resolve({
+          data: [] as Array<{ id: string; full_name: string | null; role: string | null }>,
+          error: null,
+        }),
   ]);
 
   if (operatorsResult.error) {
@@ -302,10 +317,7 @@ export async function GET(request: NextRequest) {
   }
 
   const operatorMap = new Map(
-    (operatorsResult.data || []).map((user) => [
-      user.id,
-      user.full_name?.trim() || user.role || user.id,
-    ]),
+    (operatorsResult.data || []).map((user) => [user.id, user.full_name?.trim() || user.role || user.id]),
   );
   const studentMap = new Map(
     (studentsResult.data || []).map((student) => [
@@ -316,10 +328,7 @@ export async function GET(request: NextRequest) {
     ]),
   );
   const staffTargetMap = new Map(
-    (staffTargetsResult.data || []).map((user) => [
-      user.id,
-      user.full_name?.trim() || user.role || user.id,
-    ]),
+    (staffTargetsResult.data || []).map((user) => [user.id, user.full_name?.trim() || user.role || user.id]),
   );
 
   const events: EnrichedScanEventRow[] = rows.map((row) => ({

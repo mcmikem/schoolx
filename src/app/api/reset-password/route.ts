@@ -7,7 +7,7 @@
 // ============================================================================
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { apiSuccess, apiError } from "@/lib/api-utils";
+import { apiSuccess, apiError, supabaseClientOptions } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
 
 // In-memory rate limiter — does not persist across serverless instances.
@@ -56,9 +56,13 @@ export async function POST(request: NextRequest) {
       return apiError("Password must contain at least one uppercase letter and one number", 400);
     }
 
-    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { autoRefreshToken: false, persistSession: false },
-    });
+    const supabase = createClient(
+      supabaseUrl,
+      supabaseServiceKey,
+      supabaseClientOptions({
+        auth: { autoRefreshToken: false, persistSession: false },
+      }),
+    );
 
     const tokenMatches = await supabase
       .from("password_reset_tokens")
