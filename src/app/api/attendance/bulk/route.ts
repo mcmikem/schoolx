@@ -96,11 +96,23 @@ export async function POST(request: NextRequest) {
       return apiError("No active students found in this class", 400);
     }
 
+    // Build the date list using LOCAL calendar arithmetic on the YYYY-MM-DD
+    // strings the client sends. `new Date(str).toISOString()` would convert to
+    // UTC, which can shift a day for schools ahead of UTC (e.g. Uganda) and
+    // makes the bulk-marker disagree with the attendance page's local dates.
+    function addDays(dateStr: string, days: number): string {
+      const [y, m, d] = dateStr.split("-").map(Number);
+      const dt = new Date(y, m - 1, d + days);
+      return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+    }
+
     const dates: string[] = [];
-    const start = new Date(date_from);
-    const end = new Date(date_to);
-    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-      dates.push(d.toISOString().split("T")[0]);
+    let cur = date_from;
+    let guard = 0;
+    while (cur <= date_to && guard < 400) {
+      dates.push(cur);
+      cur = addDays(cur, 1);
+      guard++;
     }
 
     const records = [];

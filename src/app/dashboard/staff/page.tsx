@@ -104,7 +104,10 @@ export default function StaffHubPage() {
   const toast = useToast();
   const { stats } = useDashboardStats(school?.id);
   const [activeMainTab, setActiveMainTab] = useState("directory");
-  const attendanceRate = stats?.totalStudents > 0 ? Math.round((stats.presentToday / stats.totalStudents) * 100) : 0;
+  const attendanceRate =
+    stats?.presentToday > 0 && stats.totalStudents > 0
+      ? Math.round((stats.presentToday / stats.totalStudents) * 100)
+      : 0;
 
   const mainTabs = [
     { id: "directory", label: "Directory", icon: "groups" },

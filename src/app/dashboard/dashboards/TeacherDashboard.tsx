@@ -52,7 +52,10 @@ function TeacherDashboardContent() {
   const mySubjects = subjects;
   const needsSetup = classes.length === 0 || subjects.length === 0;
   const attendanceRate = useMemo(
-    () => (stats?.totalStudents > 0 ? Math.round((stats.presentToday / stats.totalStudents) * 100) : 0),
+    () =>
+      stats?.presentToday > 0 && stats.totalStudents > 0
+        ? Math.round((stats.presentToday / stats.totalStudents) * 100)
+        : 0,
     [stats?.totalStudents, stats?.presentToday],
   );
   const todayLabel = currentDate.toLocaleDateString("en-UG", {
@@ -63,7 +66,7 @@ function TeacherDashboardContent() {
   const classesWithNoStudents = myClasses.filter(
     (cls) => students.filter((s) => s.class_id === cls.id).length === 0,
   ).length;
-  const attendancePending = stats?.presentToday === 0 && myClasses.length > 0;
+  const attendancePending = !statsLoading && stats?.presentToday === 0 && myClasses.length > 0;
 
   const todayActions = [
     {
@@ -189,7 +192,11 @@ function TeacherDashboardContent() {
               {!attendancePending ? "Done" : "Pending"}
             </p>
             <p className="text-[10px] text-[#7f91aa] mt-0.5">
-              {stats.presentToday > 0 ? `${stats.presentToday} present today` : "Not taken yet"}
+              {stats.presentToday > 0
+                ? `${stats.presentToday} present today`
+                : stats.presentToday < 0
+                  ? "Checking…"
+                  : "Not taken yet"}
             </p>
           </div>
           <div className="rounded-2xl border border-[#eef2f8] bg-white p-4">

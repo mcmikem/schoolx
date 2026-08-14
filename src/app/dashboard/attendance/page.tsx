@@ -401,7 +401,7 @@ export default function AttendancePage() {
       toast.success(`Marked ${json.data.students_count} students as ${status} over ${json.data.dates_count} day(s)`);
       notifyDashboardStatsChanged(school?.id);
       if (date >= bulkDateFrom && date <= bulkDateTo) {
-        Object.keys(attendance).forEach((sid) => markAttendance(sid, status));
+        students.forEach((student) => markAttendance(student.id, status));
       }
     } catch (err) {
       logger.warn("Failed to bulk mark attendance:", err);

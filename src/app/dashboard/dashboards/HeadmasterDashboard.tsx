@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
 import { useDashboardStats, useStudents, useFeeStructure, useClasses } from "@/lib/hooks";
 import { useDashboardExtraData } from "@/lib/hooks/useDashboardExtraData";
-import { useEffect, useMemo } from "react";
+import { useMemo } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { TopLoadingBar, StuckLoadingOverlay } from "@/components/ui/Skeleton";

@@ -103,9 +103,7 @@ function InspectionReportContent() {
   const totalFeesExpected = useMemo(() => {
     if (!students.length || !feeStructure.length) return 0;
     return students.reduce((total, student) => {
-      const classFees = feeStructure.filter(
-        (f) => !f.class_id || f.class_id === student.class_id,
-      );
+      const classFees = feeStructure.filter((f) => !f.class_id || f.class_id === student.class_id);
       return total + classFees.reduce((sum, f) => sum + Number(f.amount || 0), 0);
     }, 0);
   }, [students, feeStructure]);
@@ -116,27 +114,15 @@ function InspectionReportContent() {
   );
 
   const collectionRate = useMemo(
-    () => totalFeesExpected > 0 ? Math.round((totalFeesCollected / totalFeesExpected) * 100) : 0,
+    () => (totalFeesExpected > 0 ? Math.round((totalFeesCollected / totalFeesExpected) * 100) : 0),
     [totalFeesExpected, totalFeesCollected],
   );
 
-  const maleStudents = useMemo(
-    () => students.filter((s) => s.gender === "M").length,
-    [students],
-  );
-  const femaleStudents = useMemo(
-    () => students.filter((s) => s.gender === "F").length,
-    [students],
-  );
+  const maleStudents = useMemo(() => students.filter((s) => s.gender === "M").length, [students]);
+  const femaleStudents = useMemo(() => students.filter((s) => s.gender === "F").length, [students]);
 
-  const maleStaff = useMemo(
-    () => staff.filter((s) => (s as Record<string, unknown>).gender === "M").length,
-    [staff],
-  );
-  const femaleStaff = useMemo(
-    () => staff.filter((s) => (s as Record<string, unknown>).gender === "F").length,
-    [staff],
-  );
+  const maleStaff = useMemo(() => staff.filter((s) => (s as Record<string, unknown>).gender === "M").length, [staff]);
+  const femaleStaff = useMemo(() => staff.filter((s) => (s as Record<string, unknown>).gender === "F").length, [staff]);
 
   const byClass: ByClassEntry[] = useMemo(() => {
     return classes.map((cls) => {
@@ -390,38 +376,55 @@ function InspectionReportContent() {
     window.print();
   };
 
-  const readinessItems = useMemo(() => [
-    {
-      label: "Student records",
-      status: (students.length > 0 ? "ok" : "missing") as "ok" | "missing" | "pending",
-      link: "/dashboard/students?action=add",
-      detail: students.length > 0 ? `${students.length} enrolled` : "No students enrolled yet",
-    },
-    {
-      label: "Attendance taken today",
-      status: (stats.presentToday > 0 ? "ok" : "pending") as "ok" | "missing" | "pending",
-      link: "/dashboard/attendance",
-      detail: stats.presentToday > 0 ? `${stats.presentToday} present` : "Not taken yet",
-    },
-    {
-      label: "Fee collection",
-      status: (collectionRate >= 60 ? "ok" : "pending") as "ok" | "missing" | "pending",
-      link: "/dashboard/fees",
-      detail: collectionRate >= 60 ? `${collectionRate}% collected` : `${collectionRate}% collected \u2014 below 60% target`,
-    },
-    {
-      label: "Pending approvals",
-      status: (pendingExpenses + pendingLeave === 0 ? "ok" : "pending") as "ok" | "missing" | "pending",
-      link: "/dashboard/expense-approvals",
-      detail: pendingExpenses + pendingLeave === 0 ? "None" : `${pendingExpenses + pendingLeave} item${pendingExpenses + pendingLeave > 1 ? "s" : ""} waiting`,
-    },
-    {
-      label: "Classes with low attendance",
-      status: (lowAttendanceClasses === 0 ? "ok" : "pending") as "ok" | "missing" | "pending",
-      link: "/dashboard/attendance",
-      detail: lowAttendanceClasses === 0 ? "All classes on track" : `${lowAttendanceClasses} class${lowAttendanceClasses > 1 ? "es" : ""} below 70%`,
-    },
-  ], [students, stats, collectionRate, pendingExpenses, pendingLeave, lowAttendanceClasses]);
+  const readinessItems = useMemo(
+    () => [
+      {
+        label: "Student records",
+        status: (students.length > 0 ? "ok" : "missing") as "ok" | "missing" | "pending",
+        link: "/dashboard/students?action=add",
+        detail: students.length > 0 ? `${students.length} enrolled` : "No students enrolled yet",
+      },
+      {
+        label: "Attendance taken today",
+        status: (stats.presentToday > 0 ? "ok" : "pending") as "ok" | "missing" | "pending",
+        link: "/dashboard/attendance",
+        detail:
+          stats.presentToday > 0
+            ? `${stats.presentToday} present`
+            : stats.presentToday < 0
+              ? "Checking…"
+              : "Not taken yet",
+      },
+      {
+        label: "Fee collection",
+        status: (collectionRate >= 60 ? "ok" : "pending") as "ok" | "missing" | "pending",
+        link: "/dashboard/fees",
+        detail:
+          collectionRate >= 60
+            ? `${collectionRate}% collected`
+            : `${collectionRate}% collected \u2014 below 60% target`,
+      },
+      {
+        label: "Pending approvals",
+        status: (pendingExpenses + pendingLeave === 0 ? "ok" : "pending") as "ok" | "missing" | "pending",
+        link: "/dashboard/expense-approvals",
+        detail:
+          pendingExpenses + pendingLeave === 0
+            ? "None"
+            : `${pendingExpenses + pendingLeave} item${pendingExpenses + pendingLeave > 1 ? "s" : ""} waiting`,
+      },
+      {
+        label: "Classes with low attendance",
+        status: (lowAttendanceClasses === 0 ? "ok" : "pending") as "ok" | "missing" | "pending",
+        link: "/dashboard/attendance",
+        detail:
+          lowAttendanceClasses === 0
+            ? "All classes on track"
+            : `${lowAttendanceClasses} class${lowAttendanceClasses > 1 ? "es" : ""} below 70%`,
+      },
+    ],
+    [students, stats, collectionRate, pendingExpenses, pendingLeave, lowAttendanceClasses],
+  );
 
   const isLoading = loadingExtra;
 
@@ -433,44 +436,28 @@ function InspectionReportContent() {
           subtitle="Comprehensive report for Ministry of Education school inspection"
         />
 
-        <SchoolReadinessGuide
-          title="Before Inspection"
-          items={readinessItems}
-        />
+        <SchoolReadinessGuide title="Before Inspection" items={readinessItems} />
 
         <Card className="mb-6">
           <CardBody>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
-                <label className="block text-sm font-medium text-[var(--on-surface)] mb-1">
-                  Academic Year
-                </label>
+                <label className="block text-sm font-medium text-[var(--on-surface)] mb-1">Academic Year</label>
                 <input value={academicYear} disabled className="input w-full" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-[var(--on-surface)] mb-1">
-                  Term
-                </label>
+                <label className="block text-sm font-medium text-[var(--on-surface)] mb-1">Term</label>
                 <input value={`Term ${currentTerm}`} disabled className="input w-full" />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">&nbsp;</label>
-                <Button
-                  onClick={generateReport}
-                  disabled={reportData !== null}
-                  className="w-full"
-                >
+                <Button onClick={generateReport} disabled={reportData !== null} className="w-full">
                   Generate Report
                 </Button>
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">&nbsp;</label>
-                <Button
-                  onClick={generateReport}
-                  disabled={reportData !== null}
-                  variant="secondary"
-                  className="w-full"
-                >
+                <Button onClick={generateReport} disabled={reportData !== null} variant="secondary" className="w-full">
                   Regenerate
                 </Button>
               </div>
@@ -548,7 +535,9 @@ function InspectionReportContent() {
                   </div>
                   <div>
                     <div className="text-sm text-[var(--t3)]">Type / Ownership</div>
-                    <div className="font-medium text-[var(--t1)]">{reportData.school.type} · {reportData.school.ownership}</div>
+                    <div className="font-medium text-[var(--t1)]">
+                      {reportData.school.type} · {reportData.school.ownership}
+                    </div>
                   </div>
                 </div>
               </CardBody>
@@ -560,21 +549,30 @@ function InspectionReportContent() {
                 <CardBody>
                   <div className="text-2xl font-bold text-[var(--t1)]">{reportData.enrollment.total}</div>
                   <div className="text-sm text-[var(--t3)]">Total Students</div>
-                  <div className="text-xs text-[var(--t4)]">{reportData.enrollment.male}B · {reportData.enrollment.female}G</div>
+                  <div className="text-xs text-[var(--t4)]">
+                    {reportData.enrollment.male}B · {reportData.enrollment.female}G
+                  </div>
                 </CardBody>
               </Card>
               <Card className="text-center">
                 <CardBody>
-                  <div className={`text-2xl font-bold ${reportData.attendance.overallRate >= 80 ? "text-green-600" : "text-amber-600"}`}>
+                  <div
+                    className={`text-2xl font-bold ${reportData.attendance.overallRate >= 80 ? "text-green-600" : "text-amber-600"}`}
+                  >
                     {reportData.attendance.overallRate}%
                   </div>
                   <div className="text-sm text-[var(--t3)]">Attendance Rate</div>
-                  <div className="text-xs text-[var(--t4)]">{reportData.attendance.classesBelow70} class{reportData.attendance.classesBelow70 !== 1 ? "es" : ""} below 70%</div>
+                  <div className="text-xs text-[var(--t4)]">
+                    {reportData.attendance.classesBelow70} class{reportData.attendance.classesBelow70 !== 1 ? "es" : ""}{" "}
+                    below 70%
+                  </div>
                 </CardBody>
               </Card>
               <Card className="text-center">
                 <CardBody>
-                  <div className={`text-2xl font-bold ${reportData.fees.rate >= 60 ? "text-green-600" : "text-red-600"}`}>
+                  <div
+                    className={`text-2xl font-bold ${reportData.fees.rate >= 60 ? "text-green-600" : "text-red-600"}`}
+                  >
                     {reportData.fees.rate}%
                   </div>
                   <div className="text-sm text-[var(--t3)]">Fee Collection</div>
@@ -664,7 +662,9 @@ function InspectionReportContent() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-[var(--t3)]">Overdue Students</span>
-                      <span className={`font-medium ${reportData.fees.overdueCount > 0 ? "text-red-600" : "text-green-600"}`}>
+                      <span
+                        className={`font-medium ${reportData.fees.overdueCount > 0 ? "text-red-600" : "text-green-600"}`}
+                      >
                         {reportData.fees.overdueCount}
                       </span>
                     </div>
@@ -705,20 +705,26 @@ function InspectionReportContent() {
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-[var(--t3)]">On Duty Today</span>
-                      <span className={`font-medium ${reportData.staff.onDutyToday > 0 ? "text-green-600" : "text-amber-600"}`}>
+                      <span
+                        className={`font-medium ${reportData.staff.onDutyToday > 0 ? "text-green-600" : "text-amber-600"}`}
+                      >
                         {reportData.staff.onDutyToday}
                       </span>
                     </div>
                     <hr className="border-[var(--border)]" />
                     <div className="flex justify-between">
                       <span className="text-sm text-[var(--t3)]">Pending Expense Approvals</span>
-                      <span className={`font-medium ${reportData.pending.expenses > 0 ? "text-red-600" : "text-green-600"}`}>
+                      <span
+                        className={`font-medium ${reportData.pending.expenses > 0 ? "text-red-600" : "text-green-600"}`}
+                      >
                         {reportData.pending.expenses}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-sm text-[var(--t3)]">Pending Leave Requests</span>
-                      <span className={`font-medium ${reportData.pending.leave > 0 ? "text-amber-600" : "text-green-600"}`}>
+                      <span
+                        className={`font-medium ${reportData.pending.leave > 0 ? "text-amber-600" : "text-green-600"}`}
+                      >
                         {reportData.pending.leave}
                       </span>
                     </div>
