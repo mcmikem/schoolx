@@ -4,7 +4,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
 import { useDashboardStats, useStudents, useFeeStructure, useClasses } from "@/lib/hooks";
 import { useDashboardExtraData } from "@/lib/hooks/useDashboardExtraData";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { TopLoadingBar, StuckLoadingOverlay } from "@/components/ui/Skeleton";
@@ -22,7 +22,6 @@ function HeadmasterDashboardContent() {
   const { students = [] } = useStudents(school?.id);
   const { feeStructure = [] } = useFeeStructure(school?.id);
   const { classes = [] } = useClasses(school?.id);
-  const [loadingTimedOut, setLoadingTimedOut] = useState(false);
 
   const {
     pendingExpenses,
@@ -100,7 +99,7 @@ function HeadmasterDashboardContent() {
 
   const tasks = useMemo(() => {
     const items = [];
-    if (stats.presentToday === 0 && classes.length > 0) {
+    if (!statsLoading && stats.presentToday === 0 && classes.length > 0) {
       items.push({
         id: "attendance",
         label: "Attendance not taken for today",
@@ -151,22 +150,19 @@ function HeadmasterDashboardContent() {
       });
     }
     return items;
-  }, [stats.presentToday, classes.length, overdueFeeCount, lowAttendanceClasses, pendingLeave, pendingExpenses]);
+  }, [
+    statsLoading,
+    stats.presentToday,
+    classes.length,
+    overdueFeeCount,
+    lowAttendanceClasses,
+    pendingLeave,
+    pendingExpenses,
+  ]);
 
   const isDataLoading = statsLoading || loadingExtra;
 
-  useEffect(() => {
-    if (!isDataLoading) {
-      setLoadingTimedOut(false);
-      return;
-    }
-    const timer = window.setTimeout(() => {
-      setLoadingTimedOut(true);
-    }, 3000);
-    return () => window.clearTimeout(timer);
-  }, [isDataLoading]);
-
-  if ((!school?.id || isDataLoading) && !loadingTimedOut) {
+  if (!school?.id) {
     return (
       <div className="min-h-screen bg-[var(--bg)] flex flex-col">
         <TopLoadingBar />
@@ -181,10 +177,11 @@ function HeadmasterDashboardContent() {
     );
   }
 
-  const isFirstRun = school?.id && stats.totalStudents === 0 && classes.length === 0 && !isDataLoading;
+  const isFirstRun = school?.id && !isDataLoading && stats.totalStudents === 0 && classes.length === 0;
 
   return (
     <div className="content overflow-x-hidden">
+      {isDataLoading && <TopLoadingBar />}
       {timedOut ? (
         <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 mb-4 flex items-start gap-2">
           <span className="material-symbols-outlined text-amber-600 mt-0.5" aria-hidden>
@@ -236,7 +233,7 @@ function HeadmasterDashboardContent() {
               </p>
             }
             bottomCenter={
-              stats.totalStudents > 0 ? (
+              !statsLoading && stats.totalStudents > 0 ? (
                 <div className="flex items-center gap-2 text-xs text-[#42638d]">
                   <MaterialIcon icon="groups" className="text-base" />
                   <span className="font-semibold">{stats.totalStudents} students enrolled</span>
@@ -244,7 +241,7 @@ function HeadmasterDashboardContent() {
               ) : undefined
             }
             bottomRight={
-              stats.presentToday > 0 ? (
+              !statsLoading && stats.presentToday > 0 ? (
                 <div className="flex items-center gap-1.5 rounded-full bg-[#1f8a70]/10 px-3 py-1">
                   <span className="h-1.5 w-1.5 rounded-full bg-[#1f8a70]" />
                   <span className="text-[11px] font-bold text-[#1f8a70]">{attendanceRate}% attendance today</span>
@@ -266,10 +263,12 @@ function HeadmasterDashboardContent() {
                       </div>
                       <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#7f91aa]">Students</p>
                     </div>
-                    <p className="mt-2 text-3xl font-bold text-[#17325f] font-['Sora']">{stats.totalStudents}</p>
+                    <p className="mt-2 text-3xl font-bold text-[#17325f] font-['Sora']">
+                      {statsLoading ? "—" : stats.totalStudents}
+                    </p>
                     <p className="mt-0.5 text-xs text-[#7f91aa]">
-                      <span className="font-semibold text-[#17325f]">{boysCount}B</span> ·{" "}
-                      <span className="font-semibold text-[#17325f]">{girlsCount}G</span>
+                      <span className="font-semibold text-[#17325f]">{statsLoading ? "—" : `${boysCount}B`}</span> ·{" "}
+                      <span className="font-semibold text-[#17325f]">{statsLoading ? "—" : `${girlsCount}G`}</span>
                     </p>
                   </div>
 
@@ -285,11 +284,13 @@ function HeadmasterDashboardContent() {
                     <p
                       className={`mt-2 text-3xl font-bold font-['Sora'] ${stats.presentToday > 0 ? (attendanceRate >= 80 ? "text-[#1f8a70]" : "text-[#b45309]") : "text-[#7f91aa]"}`}
                     >
-                      {stats.presentToday > 0 ? `${attendanceRate}%` : "--"}
+                      {statsLoading ? "—" : stats.presentToday > 0 ? `${attendanceRate}%` : "—"}
                     </p>
                     <p className="mt-0.5 text-xs text-[#7f91aa]">
-                      {stats.presentToday > 0 ? (
+                      {!statsLoading && stats.presentToday > 0 ? (
                         <span className="font-semibold">{stats.presentToday} present today</span>
+                      ) : !statsLoading && stats.presentToday < 0 ? (
+                        "Checking…"
                       ) : (
                         "Not taken yet"
                       )}
@@ -308,11 +309,13 @@ function HeadmasterDashboardContent() {
                     <p
                       className={`mt-2 text-3xl font-bold font-['Sora'] ${totalExpected > 0 ? (collectionRate >= 70 ? "text-[#1f8a70]" : "text-[#c2472b]") : "text-[#7f91aa]"}`}
                     >
-                      {totalExpected > 0 ? `${collectionRate}%` : "--"}
+                      {statsLoading ? "—" : totalExpected > 0 ? `${collectionRate}%` : "—"}
                     </p>
                     <p className="mt-0.5 text-xs text-[#7f91aa]">
-                      {overdueFeeCount > 0 ? (
+                      {!loadingExtra && overdueFeeCount > 0 ? (
                         <span className="font-semibold text-[#c2472b]">{overdueFeeCount} overdue</span>
+                      ) : loadingExtra ? (
+                        "…"
                       ) : (
                         "On track"
                       )}

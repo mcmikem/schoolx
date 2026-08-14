@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
-import { getQuerySchoolId, withTimeout } from "./utils";
+import { getQuerySchoolId, withTimeout, notifyDashboardStatsChanged, getLocalDateString } from "./utils";
 import type { PostgrestSingleResponse } from "@supabase/supabase-js";
 import { triggerAutomationEvent } from "../automation-engine";
 import { DEMO_ATTENDANCE, DemoAttendance } from "@/lib/demo-data";
@@ -32,7 +32,7 @@ export function useAttendance(classId?: string, date?: string) {
   }, [isDemo]);
 
   const markAttendance = async (studentId: string, status: string, recordedBy?: string) => {
-    const currentDate = date || new Date().toISOString().split("T")[0];
+    const currentDate = date || getLocalDateString();
     if (isDemo) {
       const newRecord = {
         student_id: studentId,
@@ -126,6 +126,7 @@ export function useAttendance(classId?: string, date?: string) {
         }
         return [...prev, data];
       });
+      notifyDashboardStatsChanged(school?.id);
       if (school?.id && user?.id) {
         if (previousRecord) {
           await logRecordChangeWithOfflineSupport(

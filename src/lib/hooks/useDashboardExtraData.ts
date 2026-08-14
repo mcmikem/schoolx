@@ -1,12 +1,12 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { isDemoSchool } from "@/lib/demo-utils";
 import { logger } from "@/lib/logger";
 import { offlineDB } from "@/lib/offline";
-import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
+import { withTimeout, timeoutFallback, getLocalDateString } from "@/lib/hooks/utils";
 
 // Stale-while-revalidate dashboard data backed by React Query + the canonical
 // OfflineDB cache:
@@ -107,8 +107,9 @@ function computePayload(
   fallback?: DashboardPayload | null,
 ): Promise<DashboardPayload> {
   return (async () => {
-    const today = new Date().toISOString().split("T")[0];
     const now = new Date();
+    // Local date — must match how attendance is marked in the UI.
+    const today = getLocalDateString(now);
     const dayOfWeek = now.getDay();
     const monday = new Date(now);
     monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
@@ -235,7 +236,9 @@ function computePayload(
 
     if (hasAttendanceMarkedToday) {
       attendanceRes.data?.forEach((a) => {
-        const classId = studentClassMap[a.student_id];
+        // Prefer the class_id stamped on the attendance row itself; fall back
+        // to the (possibly paginated) student list for legacy rows without it.
+        const classId = a.class_id || studentClassMap[a.student_id];
         if (!classId) return;
         if (!attendanceByClass[classId]) {
           attendanceByClass[classId] = { present: 0, total: 0 };
@@ -383,6 +386,7 @@ export function useDashboardExtraData(
   academicYear: string | undefined,
 ): DashboardExtraData {
   const { isDemo } = useAuth();
+  const queryClient = useQueryClient();
   const isDemoSchoolId = isDemoSchool(schoolId);
   const enabled = !!schoolId && !isDemo && !isDemoSchoolId;
   const cacheKey = schoolId ? cacheKeyFor(schoolId, currentTerm, academicYear) : "";
@@ -440,6 +444,16 @@ export function useDashboardExtraData(
     setIsStale(false);
     writeDashboardCache(cacheKey, query.data);
   }, [enabled, cacheKey, query.data]);
+
+  // Refresh immediately when attendance/fees change elsewhere in the app so the
+  // "Attendance not taken for today" / low-attendance tasks stay in sync.
+  useEffect(() => {
+    if (!enabled) return;
+    const invalidate = () =>
+      void queryClient.invalidateQueries({ queryKey: ["dashboard-extra", schoolId], refetchType: "all" });
+    window.addEventListener("dashboard-stats:refresh", invalidate);
+    return () => window.removeEventListener("dashboard-stats:refresh", invalidate);
+  }, [enabled, schoolId, queryClient]);
 
   useEffect(() => {
     if (!enabled) return;

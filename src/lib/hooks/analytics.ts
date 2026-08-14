@@ -1,218 +1,340 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
-import type { DashboardStats } from "@/types";
-import { getQuerySchoolId, withTimeout } from "./utils";
+import {
+  getQuerySchoolId,
+  withTimeout,
+  getLocalDateString,
+  isDashboardStatsDirty,
+  clearDashboardStatsDirty,
+} from "./utils";
 import { isDemoSchool } from "@/lib/demo-utils";
+import { offlineDB } from "@/lib/offline";
 import { logger } from "@/lib/logger";
 
-export function useDashboardStats(schoolId?: string) {
-  const [stats, setStats] = useState({
-    totalStudents: 0,
-    maleStudents: 0,
-    femaleStudents: 0,
-    presentToday: 0,
-    feesCollected: 0,
-    feesBalance: 0,
-    totalClasses: 0,
-    totalTeachers: 0,
+interface DashboardStats {
+  totalStudents: number;
+  maleStudents: number;
+  femaleStudents: number;
+  /** Present count for today. -1 means "unknown" (query timed out); the UI must
+   *  show "--" rather than a misleading 0, and must NOT flag "attendance not
+   *  taken yet" until a successful query confirms it really is 0. */
+  presentToday: number;
+  feesCollected: number;
+  feesBalance: number;
+  totalClasses: number;
+  totalTeachers: number;
+}
+
+const EMPTY_STATS: DashboardStats = {
+  totalStudents: 0,
+  maleStudents: 0,
+  femaleStudents: 0,
+  presentToday: -1,
+  feesCollected: 0,
+  feesBalance: 0,
+  totalClasses: 0,
+  totalTeachers: 0,
+};
+
+const DEMO_STATS: DashboardStats = {
+  totalStudents: 847,
+  maleStudents: 423,
+  femaleStudents: 424,
+  presentToday: 798,
+  feesCollected: 45000000,
+  feesBalance: 12500000,
+  totalClasses: 12,
+  totalTeachers: 24,
+};
+
+// Cached stats are considered "fresh" for this long. While fresh, revisits
+// render instantly from the IndexedDB cache and no background re-fetch runs —
+// this is what stops the dashboard from reloading the whole board every time
+// the tab regains focus or the user navigates back. In-app mutations (saving
+// attendance/fees) force an immediate refresh via `dashboard-stats:refresh`,
+// so a generous TTL is safe and keeps revisits fast on 3G.
+const STATS_TTL = 5 * 60 * 1000;
+
+const STATS_CACHE_PREFIX = "dashboard-stats:";
+
+interface CachedStats {
+  stats: DashboardStats;
+  savedAt: number;
+}
+
+async function readCachedStats(cacheKey: string): Promise<CachedStats | null> {
+  try {
+    const cached = (await offlineDB.get("dashboard_cache", cacheKey)) as { payload?: CachedStats } | null;
+    const payload = cached?.payload;
+    if (!payload || typeof payload.savedAt !== "number" || !payload.stats) return null;
+    return payload;
+  } catch {
+    return null;
+  }
+}
+
+async function writeCachedStats(cacheKey: string, stats: DashboardStats): Promise<void> {
+  try {
+    await offlineDB.cacheFromServer("dashboard_cache", [
+      { id: cacheKey, payload: { stats, savedAt: Date.now() } } as unknown as Record<string, unknown>,
+    ]);
+  } catch (err) {
+    logger.error("Failed to cache dashboard stats:", err);
+  }
+}
+
+async function computeStats(schoolId: string): Promise<DashboardStats> {
+  // Local date — must match the date the attendance UI marks with. Using UTC
+  // via toISOString() would shift a day for schools ahead of UTC (e.g. Uganda).
+  const today = getLocalDateString();
+
+  // All six feed-queries run in parallel so the wall-clock time is bounded by
+  // the slowest single query, not their sum — this is the single biggest
+  // latency win on slow 3G links.
+  const [activeStudents, presentCount, classCount, teacherCount, feeStructure, totalCollected] = await Promise.all([
+    withTimeout(
+      supabase
+        .from("students")
+        .select("id, gender, class_id")
+        .eq("school_id", schoolId)
+        .eq("status", "active")
+        .then((r) => {
+          if (r.error) throw r.error;
+          return r.data || [];
+        }),
+      15000,
+      [] as Array<{ id: string; gender: string | null; class_id: string | null }>,
+    ),
+    // presentToday is counted directly on the attendance table. RLS already
+    // scopes rows to this school's classes, so there is no need to first fetch
+    // every student id and pass a huge IN(...) list (which could time out or
+    // exceed URL length limits on large schools, silently reporting 0 present).
+    // A timed-out count returns -1 ("unknown") so the dashboard never claims
+    // attendance wasn't taken when the server was just slow.
+    withTimeout(
+      supabase
+        .from("attendance")
+        .select("id", { count: "exact", head: true })
+        .eq("date", today)
+        .eq("status", "present")
+        .then((r) => {
+          if (r.error) throw r.error;
+          return r.count ?? 0;
+        }),
+      15000,
+      -1,
+    ),
+    withTimeout(
+      supabase
+        .from("classes")
+        .select("id", { count: "exact", head: true })
+        .eq("school_id", schoolId)
+        .then((r) => r.count),
+      15000,
+      0,
+    ),
+    withTimeout(
+      supabase
+        .from("users")
+        .select("id", { count: "exact", head: true })
+        .eq("school_id", schoolId)
+        .eq("role", "teacher")
+        .then((r) => r.count),
+      15000,
+      0,
+    ),
+    withTimeout(
+      supabase
+        .from("fee_structure")
+        .select("amount, class_id")
+        .eq("school_id", schoolId)
+        .then((r) => {
+          if (r.error) throw r.error;
+          return r.data || [];
+        }),
+      15000,
+      [] as Array<{ amount: number | null; class_id: string | null }>,
+    ),
+    withTimeout(
+      supabase
+        .from("fee_payments")
+        .select("amount_paid, students!inner(school_id)")
+        .eq("students.school_id", schoolId)
+        .then((r) => {
+          if (r.error) throw r.error;
+          return (r.data || []).reduce((sum: number, row: { amount_paid?: number | null }) => {
+            return sum + Number(row.amount_paid || 0);
+          }, 0);
+        }),
+      15000,
+      0,
+    ),
+  ]);
+
+  const totalStudents = activeStudents.length;
+  const maleStudents = activeStudents.filter((s) => s.gender === "M").length;
+  const femaleStudents = activeStudents.filter((s) => s.gender === "F").length;
+
+  const studentsByClass: Record<string, number> = {};
+  activeStudents.forEach((s) => {
+    if (s.class_id) studentsByClass[s.class_id] = (studentsByClass[s.class_id] || 0) + 1;
   });
+
+  const totalExpected = (feeStructure || []).reduce((sum, f) => {
+    const count = f.class_id ? studentsByClass[f.class_id] || 0 : totalStudents;
+    return sum + Number(f.amount || 0) * count;
+  }, 0);
+
+  return {
+    totalStudents,
+    maleStudents,
+    femaleStudents,
+    presentToday: presentCount,
+    feesCollected: totalCollected,
+    feesBalance: Math.max(0, totalExpected - totalCollected),
+    totalClasses: classCount || 0,
+    totalTeachers: teacherCount || 0,
+  };
+}
+
+/**
+ * Dashboard headline stats with stale-while-revalidate behaviour:
+ *  1. Seeds instantly from the IndexedDB cache (no full-screen spinner on
+ *     revisits — data is "held" and remembered across refreshes).
+ *  2. Revalidates in the background at most once per STATS_TTL.
+ *  3. `refetch({ force: true })`/the `dashboard-stats:refresh` window event
+ *     (fired after attendance/fees are saved) refresh immediately.
+ */
+export function useDashboardStats(schoolId?: string) {
+  const [stats, setStats] = useState<DashboardStats>(EMPTY_STATS);
   const [loading, setLoading] = useState(true);
   const { isDemo } = useAuth();
+  const cacheKey = schoolId ? `${STATS_CACHE_PREFIX}${schoolId}` : "";
+  const inFlightRef = useRef(false);
 
-  async function fetchStats() {
+  const fetchStats = useCallback(
+    async (opts?: { force?: boolean }) => {
+      if (!schoolId) {
+        setLoading(false);
+        return;
+      }
+
+      if (isDemo || isDemoSchool(schoolId)) {
+        setStats(DEMO_STATS);
+        setLoading(false);
+        return;
+      }
+
+      if (inFlightRef.current) return;
+
+      const querySchoolId = getQuerySchoolId(schoolId, isDemo);
+      if (!querySchoolId) {
+        setLoading(false);
+        return;
+      }
+
+      if (!opts?.force) {
+        const cached = await readCachedStats(cacheKey);
+        if (cached && Date.now() - cached.savedAt < STATS_TTL) {
+          // Still fresh — nothing to do; keep whatever is already shown.
+          setLoading(false);
+          return;
+        }
+      }
+
+      inFlightRef.current = true;
+      try {
+        const next = await computeStats(querySchoolId);
+        // A timed-out presentToday (-1) must not be cached (it would overwrite a
+        // last-known-good snapshot) and must not downgrade the currently shown
+        // value to "unknown". The UI keeps the previous value and shows "--".
+        const presentKnown = next.presentToday >= 0;
+        if (presentKnown) {
+          setStats(next);
+          await writeCachedStats(cacheKey, next);
+        } else {
+          setStats((prev) => ({ ...next, presentToday: prev.presentToday }));
+        }
+      } catch (err) {
+        logger.error("Error fetching stats:", err);
+      } finally {
+        inFlightRef.current = false;
+        setLoading(false);
+      }
+    },
+    [schoolId, isDemo, cacheKey],
+  );
+
+  // Seed from cache on mount, then revalidate in the background.
+  useEffect(() => {
     if (!schoolId) {
       setLoading(false);
       return;
     }
 
     if (isDemo || isDemoSchool(schoolId)) {
-      setStats({
-        totalStudents: 847,
-        maleStudents: 423,
-        femaleStudents: 424,
-        presentToday: 798,
-        feesCollected: 45000000,
-        feesBalance: 12500000,
-        totalClasses: 12,
-        totalTeachers: 24,
-      });
+      setStats(DEMO_STATS);
       setLoading(false);
       return;
     }
 
-    const querySchoolId = getQuerySchoolId(schoolId, isDemo);
-    try {
-      const today = new Date().toISOString().split("T")[0];
-
-      const studentIds = await withTimeout(
-        supabase
-          .from("students")
-          .select("id")
-          .eq("school_id", querySchoolId)
-          .eq("status", "active")
-          .then((r) => r.data?.map((s: { id: string }) => s.id) || []),
-        20000,
-        [] as string[],
-      );
-
-      const presentCountPromise = studentIds.length
-        ? withTimeout(
-            supabase
-              .from("attendance")
-              .select("id", { count: "exact", head: true })
-              .in("student_id", studentIds)
-              .eq("date", today)
-              .eq("status", "present")
-              .then((r) => r.count),
-            20000,
-            0,
-          )
-        : Promise.resolve(0);
-
-      const paymentsPromise = studentIds.length
-        ? withTimeout(
-            supabase
-              .from("fee_payments")
-              .select("amount_paid")
-              .in("student_id", studentIds)
-              .then((r) => r.data || []),
-            20000,
-            [] as Array<{ amount_paid: number | null }>,
-          )
-        : Promise.resolve([] as Array<{ amount_paid: number | null }>);
-
-      const [
-        studentCount,
-        classCount,
-        teacherCount,
-        presentCount,
-        payments,
-        feeStructure,
-        maleCount,
-        femaleCount,
-        studentClasses,
-      ] = await Promise.all([
-        withTimeout(
-          supabase
-            .from("students")
-            .select("id", { count: "exact", head: true })
-            .eq("school_id", querySchoolId)
-            .eq("status", "active")
-            .then((r) => r.count),
-          20000,
-          0,
-        ),
-        withTimeout(
-          supabase
-            .from("classes")
-            .select("id", { count: "exact", head: true })
-            .eq("school_id", querySchoolId)
-            .then((r) => r.count),
-          20000,
-          0,
-        ),
-        withTimeout(
-          supabase
-            .from("users")
-            .select("id", { count: "exact", head: true })
-            .eq("school_id", querySchoolId)
-            .eq("role", "teacher")
-            .then((r) => r.count),
-          20000,
-          0,
-        ),
-        presentCountPromise,
-        paymentsPromise,
-        withTimeout(
-          supabase
-            .from("fee_structure")
-            .select("amount, class_id")
-            .eq("school_id", querySchoolId)
-            .then((r) => r.data),
-          20000,
-          [],
-        ),
-        withTimeout(
-          supabase
-            .from("students")
-            .select("id", { count: "exact", head: true })
-            .eq("school_id", querySchoolId)
-            .eq("status", "active")
-            .eq("gender", "M")
-            .then((r) => r.count),
-          20000,
-          0,
-        ),
-        withTimeout(
-          supabase
-            .from("students")
-            .select("id", { count: "exact", head: true })
-            .eq("school_id", querySchoolId)
-            .eq("status", "active")
-            .eq("gender", "F")
-            .then((r) => r.count),
-          20000,
-          0,
-        ),
-        withTimeout(
-          supabase
-            .from("students")
-            .select("class_id")
-            .eq("school_id", querySchoolId)
-            .eq("status", "active")
-            .then((r) => r.data || []),
-          20000,
-          [],
-        ),
-      ]);
-      const totalCollected = (payments || []).reduce((sum: number, p: any) => sum + Number(p.amount_paid || 0), 0);
-
-      const classCounts: Record<string, number> = {};
-      ((studentClasses as Array<{ class_id: string | null }>) || []).forEach((s) => {
-        if (s.class_id) classCounts[s.class_id] = (classCounts[s.class_id] || 0) + 1;
+    let cancelled = false;
+    readCachedStats(cacheKey).then((cached) => {
+      if (cancelled) return;
+      const lastSaved = cached?.savedAt || 0;
+      if (cached) {
+        setStats(cached.stats);
+        setLoading(false);
+      }
+      // Force a refresh when attendance/fees were saved while this page was
+      // unmounted (e.g. bulk-marked attendance, then navigated here).
+      const dirty = isDashboardStatsDirty(schoolId, lastSaved);
+      fetchStats({ force: dirty }).then(() => {
+        if (dirty) clearDashboardStatsDirty(schoolId);
       });
-      const totalExpected = (feeStructure || []).reduce((sum: number, f: any) => {
-        const count = f.class_id ? classCounts[f.class_id] || 0 : studentCount || 0;
-        return sum + Number(f.amount || 0) * count;
-      }, 0);
-      setStats({
-        totalStudents: studentCount || 0,
-        maleStudents: maleCount || 0,
-        femaleStudents: femaleCount || 0,
-        presentToday: presentCount || 0,
-        feesCollected: totalCollected,
-        feesBalance: Math.max(0, totalExpected - totalCollected),
-        totalClasses: classCount || 0,
-        totalTeachers: teacherCount || 0,
-      });
-    } catch (err) {
-      logger.error("Error fetching stats:", err);
-    } finally {
-      setLoading(false);
-    }
-  }
+    });
 
-  useEffect(() => {
-    fetchStats();
-  }, [schoolId, isDemo]); // eslint-disable-line react-hooks/exhaustive-deps
+    return () => {
+      cancelled = true;
+    };
+  }, [schoolId, isDemo, cacheKey, fetchStats]);
 
+  // Revalidate on focus/visibility ONLY when the cached stats have gone stale.
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const handleVisibility = () => {
-      if (document.visibilityState === "visible") fetchStats();
+
+    const maybeRevalidate = () => {
+      readCachedStats(cacheKey).then((cached) => {
+        if (!cached || Date.now() - cached.savedAt >= STATS_TTL) void fetchStats();
+      });
     };
-    const handleFocus = () => fetchStats();
+
+    const handleVisibility = () => {
+      if (document.visibilityState === "visible") maybeRevalidate();
+    };
+    const handleFocus = () => maybeRevalidate();
+
     document.addEventListener("visibilitychange", handleVisibility);
     window.addEventListener("focus", handleFocus);
     return () => {
       document.removeEventListener("visibilitychange", handleVisibility);
       window.removeEventListener("focus", handleFocus);
     };
-  }, [schoolId, isDemo]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [cacheKey, fetchStats]);
 
-  return { stats, loading, refetch: fetchStats };
+  // Refresh immediately when attendance/fees change elsewhere in the app.
+  useEffect(() => {
+    const handleRefresh = () => {
+      void fetchStats({ force: true });
+      if (schoolId) clearDashboardStatsDirty(schoolId);
+    };
+    window.addEventListener("dashboard-stats:refresh", handleRefresh);
+    return () => window.removeEventListener("dashboard-stats:refresh", handleRefresh);
+  }, [fetchStats, schoolId]);
+
+  return { stats, loading, refetch: () => fetchStats({ force: true }) };
 }
 
 export function useAnalytics(schoolId?: string) {

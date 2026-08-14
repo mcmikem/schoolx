@@ -22,7 +22,7 @@ import { PageGuidance } from "@/components/PageGuidance";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { normalizeAttendanceInput, validateAttendanceInput } from "@/lib/validation";
 import type { Student } from "@/types";
-import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
+import { withTimeout, timeoutFallback, notifyDashboardStatsChanged, getLocalDateString } from "@/lib/hooks/utils";
 import { getAutomationStatus, toggleAutomation } from "@/lib/sms-automation";
 
 const STATUS_CYCLE = ["absent", "present", "late", "excused"] as const;
@@ -87,10 +87,10 @@ export default function AttendancePage() {
   const [bulkDateFrom, setBulkDateFrom] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() - 6);
-    return d.toISOString().split("T")[0];
+    return getLocalDateString(d);
   });
   const [bulkDateTo, setBulkDateTo] = useState(() => {
-    return new Date().toISOString().split("T")[0];
+    return getLocalDateString();
   });
   const [bulkProgress, setBulkProgress] = useState<{
     running: boolean;
@@ -335,6 +335,7 @@ export default function AttendancePage() {
           );
         }
         toast.success("Attendance saved");
+        notifyDashboardStatsChanged(school?.id);
         await loadOfflineCount();
       } catch (err) {
         logger.warn("Failed to save attendance, saving offline:", err);
@@ -398,6 +399,7 @@ export default function AttendancePage() {
       }
       setBulkSummary(json.data);
       toast.success(`Marked ${json.data.students_count} students as ${status} over ${json.data.dates_count} day(s)`);
+      notifyDashboardStatsChanged(school?.id);
       if (date >= bulkDateFrom && date <= bulkDateTo) {
         Object.keys(attendance).forEach((sid) => markAttendance(sid, status));
       }
@@ -457,7 +459,7 @@ export default function AttendancePage() {
     try {
       const yesterday = new Date();
       yesterday.setDate(yesterday.getDate() - 1);
-      const yesterdayStr = yesterday.toISOString().split("T")[0];
+      const yesterdayStr = getLocalDateString(yesterday);
 
       const { data } = await withTimeout(
         supabase.from("attendance").select("student_id, status").eq("class_id", selectedClass).eq("date", yesterdayStr),

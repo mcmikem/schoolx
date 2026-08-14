@@ -37,7 +37,10 @@ function DeanDashboardContent() {
   const greeting =
     currentDate.getHours() < 12 ? "Good Morning" : currentDate.getHours() < 17 ? "Good Afternoon" : "Good Evening";
 
-  const attendanceRate = stats?.totalStudents > 0 ? Math.round((stats.presentToday / stats.totalStudents) * 100) : 0;
+  const attendanceRate =
+    stats?.presentToday > 0 && stats.totalStudents > 0
+      ? Math.round((stats.presentToday / stats.totalStudents) * 100)
+      : 0;
 
   const getStudentCountForClass = (classId: string) => {
     return students.filter((s) => s.class_id === classId).length;
@@ -51,7 +54,7 @@ function DeanDashboardContent() {
 
   const tasks = useMemo(() => {
     const items = [];
-    if (stats?.presentToday === 0 && classes.length > 0) {
+    if (!statsLoading && stats?.presentToday === 0 && classes.length > 0) {
       items.push({
         id: "attendance",
         label: "Attendance not taken for today",
@@ -62,7 +65,7 @@ function DeanDashboardContent() {
       });
     }
     return items;
-  }, [stats?.presentToday, classes.length]);
+  }, [statsLoading, stats?.presentToday, classes.length]);
 
   const quickLinks = [
     { href: "/dashboard/grades", label: "Grades", icon: "edit_note", color: "text-[#17325f]" },
@@ -149,7 +152,13 @@ function DeanDashboardContent() {
               >
                 {stats?.presentToday > 0 ? `${attendanceRate}%` : "--"}
               </p>
-              <p className="mt-0.5 text-xs text-[#7f91aa]">{stats?.presentToday || 0} present</p>
+              <p className="mt-0.5 text-xs text-[#7f91aa]">
+                {stats?.presentToday > 0
+                  ? `${stats.presentToday} present`
+                  : stats?.presentToday < 0
+                    ? "Checking…"
+                    : "0 present"}
+              </p>
             </div>
 
             <div className="group rounded-2xl bg-white border border-[#eef2f8] p-4 transition-all hover:shadow-md hover:-translate-y-0.5">

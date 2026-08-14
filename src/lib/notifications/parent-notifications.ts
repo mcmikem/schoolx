@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { logger } from "@/lib/logger";
+import { supabaseClientOptions } from "@/lib/api-utils";
 
 let supabaseAdminClient: any = null;
 
@@ -14,9 +15,13 @@ function getSupabaseAdminClient() {
     return null;
   }
 
-  supabaseAdminClient = createClient(supabaseUrl, supabaseServiceKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+  supabaseAdminClient = createClient(
+    supabaseUrl,
+    supabaseServiceKey,
+    supabaseClientOptions({
+      auth: { persistSession: false, autoRefreshToken: false },
+    }),
+  );
   return supabaseAdminClient;
 }
 

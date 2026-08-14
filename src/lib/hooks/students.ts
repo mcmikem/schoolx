@@ -8,6 +8,7 @@ import type { Student, CreateStudentInput, Class } from "@/types";
 import { getQuerySchoolId, withTimeout } from "./utils";
 import type { PostgrestSingleResponse } from "@supabase/supabase-js";
 import { getCachedData, setCachedData, invalidateCache } from "./queryCache";
+import { offlineDB } from "@/lib/offline";
 import {
   getErrorMessage,
   normalizeStudentInput,
@@ -699,6 +700,30 @@ export function useStudents(schoolId?: string, options?: { limit?: number; offse
     }
   };
 
+  // Seed instantly from the persistent IndexedDB cache so revisits reflect the
+  // previous data while the network fetch revalidates in the background. We only
+  // read here (never overwrite) — the shared cache is populated by the full
+  // select hooks so a reference refresh can't degrade the stored records.
+  useEffect(() => {
+    if (isDemo || isDemoSchool(schoolId) || !schoolId) return;
+    const querySchoolId = getQuerySchoolId(schoolId, isDemo);
+    if (!querySchoolId) return;
+    let cancelled = false;
+    offlineDB.getAllFromCache("students", { school_id: querySchoolId }).then((cached) => {
+      if (cancelled || cached.length === 0) return;
+      const sorted = [...(cached as unknown as StudentWithClass[])].sort(
+        (a, b) => new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime(),
+      );
+      const slice = sorted.slice(0, limit);
+      setStudents(slice);
+      lastResolvedStudentsRef.current = slice;
+      setLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [schoolId, isDemo, limit]);
+
   useEffect(() => {
     fetchStudents();
     hasInitialized.current = true;
@@ -814,8 +839,20 @@ export function useClasses(schoolId?: string) {
       if (error) throw error;
 
       setClasses((data as unknown as Class[]) || []);
+      await offlineDB.cacheFromServer("classes", (data as unknown as Record<string, unknown>[]) || []);
     } catch (err) {
       logger.warn("Classes fetch error:", err);
+      // Keep the last-known-good data instead of blanking the page when the
+      // network is slow/unreliable (3G) — surface the cached copy instead.
+      try {
+        const cached = await offlineDB.getAllFromCache("classes", { school_id: querySchoolId });
+        if (cached.length > 0) {
+          setClasses(cached as unknown as Class[]);
+          return;
+        }
+      } catch {
+        // ignore cache read failure
+      }
       setClasses([]);
       toast?.error("Failed to load classes");
     } finally {
@@ -926,6 +963,24 @@ export function useClasses(schoolId?: string) {
       throw err;
     }
   };
+
+  // Seed instantly from the persistent IndexedDB cache so revisits don't wait
+  // on the network; the fetch effect above then revalidates in the background.
+  useEffect(() => {
+    if (isDemo || isDemoSchool(schoolId) || !schoolId) return;
+    const querySchoolId = getQuerySchoolId(schoolId, isDemo);
+    if (!querySchoolId) return;
+    let cancelled = false;
+    offlineDB.getAllFromCache("classes", { school_id: querySchoolId }).then((cached) => {
+      if (cancelled || cached.length === 0) return;
+      const sorted = [...(cached as unknown as Class[])].sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+      setClasses(sorted);
+      setLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [schoolId, isDemo]);
 
   useEffect(() => {
     fetchClasses();
