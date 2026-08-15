@@ -8,28 +8,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { logger } from "@/lib/logger";
-import { supabaseClientOptions } from "@/lib/api-utils";
-
-// In-memory rate limiter — does not persist across serverless instances.
-// For production, replace with Redis or Supabase-based rate limiting.
-const resetAttempts = new Map<string, { count: number; resetAt: number }>();
+import { rateLimitAsync, supabaseClientOptions } from "@/lib/api-utils";
 
 export async function POST(request: NextRequest) {
   try {
-    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
-    const now = Date.now();
-    const window = 15 * 60 * 1000; // 15 minutes
-    const limit = 3;
-
-    const entry = resetAttempts.get(ip);
-    if (entry && now < entry.resetAt) {
-      if (entry.count >= limit) {
-        // Return 200 to avoid enumeration — don't reveal rate limiting to caller
-        return NextResponse.json({ ok: true });
-      }
-      entry.count++;
-    } else {
-      resetAttempts.set(ip, { count: 1, resetAt: now + window });
+    const rateCheck = await rateLimitAsync(request, 3, 15 * 60 * 1000);
+    if (!rateCheck.success) {
+      return NextResponse.json({ ok: true });
     }
 
     const body = await request.json();

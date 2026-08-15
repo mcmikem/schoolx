@@ -35,6 +35,8 @@ const recommended = [
   "SCAN_QR_SIGNING_SECRET",
   "CRON_SECRET",
   "GEMINI_API_KEY",
+  "SENTRY_DSN",
+  "NEXT_PUBLIC_SENTRY_DSN",
 ];
 
 const optionalFlags = [

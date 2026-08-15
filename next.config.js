@@ -1,6 +1,18 @@
 const path = require("path");
 const { withSentryConfig } = require("@sentry/nextjs");
 
+if (
+  process.env.VERCEL === "1" &&
+  process.env.NODE_ENV === "production" &&
+  process.env.NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES === "true" &&
+  process.env.ALLOW_DEMO_IN_PRODUCTION !== "true"
+) {
+  throw new Error(
+    "NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES is enabled in a production build. " +
+      "Demo/test routes must be disabled in production. Set ALLOW_DEMO_IN_PRODUCTION=true only for staging builds.",
+  );
+}
+
 const withBundleAnalyzer = process.env.ANALYZE === "true"
   ? require("@next/bundle-analyzer")({ enabled: true })
   : (config) => config;
