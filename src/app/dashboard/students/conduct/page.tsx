@@ -4,6 +4,7 @@ import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
+import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import { useToast } from "@/components/Toast";
 import { useStudents } from "@/lib/hooks";
 import MaterialIcon from "@/components/MaterialIcon";
@@ -100,17 +101,21 @@ export default function ConductManagementPage() {
             ? -Math.abs(form.points)
             : 0;
 
-      const { error } = await supabase.from("behavior_logs").insert({
-        school_id: school!.id,
-        student_id: form.studentId,
-        date: form.date,
-        incident_type: form.incidentType,
-        category: form.category.trim(),
-        description: form.description.trim(),
-        action_taken: form.actionTaken.trim() || null,
-        points: pts,
-        recorded_by: user?.id,
-      });
+      const { error } = await withTimeout(
+        supabase.from("behavior_logs").insert({
+          school_id: school!.id,
+          student_id: form.studentId,
+          date: form.date,
+          incident_type: form.incidentType,
+          category: form.category.trim(),
+          description: form.description.trim(),
+          action_taken: form.actionTaken.trim() || null,
+          points: pts,
+          recorded_by: user?.id,
+        }),
+        15000,
+        timeoutFallback(),
+      );
       if (error) throw error;
       toast.success("Conduct record logged");
       setShowModal(false);

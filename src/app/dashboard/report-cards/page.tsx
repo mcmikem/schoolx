@@ -121,6 +121,7 @@ export default function ReportCardsPage() {
     errors: number;
   }>({ current: 0, total: 0, currentClass: "", studentsProcessed: 0, errors: 0 });
   const [searchQuery, setSearchQuery] = useState("");
+  const [urlStudentIds, setUrlStudentIds] = useState<string[]>([]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -128,17 +129,25 @@ export default function ReportCardsPage() {
     if (classId && classes.some((c) => c.id === classId)) {
       setSelectedClass(classId);
     }
+    const studentsParam = params.get("students");
+    if (studentsParam) {
+      setUrlStudentIds(studentsParam.split(",").filter(Boolean));
+    }
   }, [classes]);
 
   const filteredStudents = useMemo(() => {
     if (!selectedClass) return [];
     let list = classStudents.filter((s) => s.class_id === selectedClass);
+    if (urlStudentIds.length > 0) {
+      const idSet = new Set(urlStudentIds);
+      list = list.filter((s) => idSet.has(s.id));
+    }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       list = list.filter((s) => `${s.first_name} ${s.last_name}`.toLowerCase().includes(q));
     }
     return list;
-  }, [classStudents, selectedClass, searchQuery]);
+  }, [classStudents, selectedClass, searchQuery, urlStudentIds]);
 
   const selectedClassObj = classes.find((c) => c.id === selectedClass);
   const selectedClassName = selectedClassObj

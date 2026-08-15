@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
 import { supabase } from "@/lib/supabase";
+import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import { useToast } from "@/components/Toast";
 import { useStudents, useClasses } from "@/lib/hooks";
 import { Button } from "@/components/ui";
@@ -31,12 +32,8 @@ export default function GraduationPage() {
 
   useEffect(() => {
     if (!students.length || !classes.length) return;
-    const finalClassIds = classes
-      .filter((c) => FINAL_LEVELS.includes(c.level))
-      .map((c) => c.id);
-    const eligible = students.filter(
-      (s) => s.status === "active" && finalClassIds.includes(s.class_id),
-    );
+    const finalClassIds = classes.filter((c) => FINAL_LEVELS.includes(c.level)).map((c) => c.id);
+    const eligible = students.filter((s) => s.status === "active" && finalClassIds.includes(s.class_id));
     setEligibleStudents(eligible);
   }, [students, classes]);
 
@@ -78,32 +75,33 @@ export default function GraduationPage() {
           continue;
         }
 
-        const { error: updateError } = await supabase
-          .from("students")
-          .update({ status: "completed" })
-          .eq("id", studentId);
+        const { error: updateError } = await withTimeout(
+          supabase.from("students").update({ status: "completed" }).eq("id", studentId),
+          15000,
+          timeoutFallback(),
+        );
         if (updateError) throw updateError;
 
-        await supabase.from("student_promotions").insert({
-          school_id: school.id,
-          student_id: studentId,
-          academic_year: academicYear,
-          promoted_by: userId,
-          promoted_at: new Date().toISOString(),
-          notes: "graduation",
-        });
+        await withTimeout(
+          supabase.from("student_promotions").insert({
+            school_id: school.id,
+            student_id: studentId,
+            academic_year: academicYear,
+            promoted_by: userId,
+            promoted_at: new Date().toISOString(),
+            notes: "graduation",
+          }),
+          15000,
+          timeoutFallback(),
+        );
         completed++;
       }
 
       toast.success(`${completed} student(s) marked as completed`);
-      setEligibleStudents((prev) =>
-        prev.filter((s) => !selectedIds.has(s.id)),
-      );
+      setEligibleStudents((prev) => prev.filter((s) => !selectedIds.has(s.id)));
       setSelectedIds(new Set());
     } catch (err: unknown) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to process graduation",
-      );
+      toast.error(err instanceof Error ? err.message : "Failed to process graduation");
     } finally {
       setProcessing(false);
     }
@@ -183,9 +181,7 @@ export default function GraduationPage() {
           <CardHeader>
             <CardTitle>
               Students Eligible for Graduation
-              <span className="ml-2 text-sm font-normal text-[var(--t3)]">
-                ({eligibleStudents.length} students)
-              </span>
+              <span className="ml-2 text-sm font-normal text-[var(--t3)]">({eligibleStudents.length} students)</span>
             </CardTitle>
           </CardHeader>
           <CardBody>
@@ -203,20 +199,13 @@ export default function GraduationPage() {
                   <label className="flex items-center gap-2 cursor-pointer">
                     <input
                       type="checkbox"
-                      checked={
-                        selectedIds.size === eligibleStudents.length &&
-                        eligibleStudents.length > 0
-                      }
+                      checked={selectedIds.size === eligibleStudents.length && eligibleStudents.length > 0}
                       onChange={toggleAll}
                       className="w-4 h-4"
                     />
-                    <span className="text-sm font-medium">
-                      Select All ({eligibleStudents.length} students)
-                    </span>
+                    <span className="text-sm font-medium">Select All ({eligibleStudents.length} students)</span>
                   </label>
-                  <span className="text-sm text-[var(--t3)]">
-                    {selectedIds.size} selected
-                  </span>
+                  <span className="text-sm text-[var(--t3)]">{selectedIds.size} selected</span>
                 </div>
 
                 <div className="table-wrapper">
@@ -245,17 +234,13 @@ export default function GraduationPage() {
                           <td className="font-medium">
                             {student.first_name} {student.last_name}
                           </td>
-                          <td className="text-sm font-mono">
-                            {student.student_number || "-"}
-                          </td>
+                          <td className="text-sm font-mono">{student.student_number || "-"}</td>
                           <td>
                             <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-800">
                               {student.classes?.name || "N/A"}
                             </span>
                           </td>
-                          <td className="text-sm">
-                            {student.gender === "M" ? "Male" : "Female"}
-                          </td>
+                          <td className="text-sm">{student.gender === "M" ? "Male" : "Female"}</td>
                           <td>
                             <button
                               onClick={() => generateCertificate(student)}
@@ -272,15 +257,9 @@ export default function GraduationPage() {
                 </div>
 
                 <div className="flex justify-end mt-6">
-                  <Button
-                    onClick={handleGraduate}
-                    disabled={processing || selectedIds.size === 0}
-                    loading={processing}
-                  >
+                  <Button onClick={handleGraduate} disabled={processing || selectedIds.size === 0} loading={processing}>
                     <MaterialIcon icon="check_circle" style={{ fontSize: 18 }} />
-                    {processing
-                      ? "Processing..."
-                      : `Mark ${selectedIds.size} as Completed`}
+                    {processing ? "Processing..." : `Mark ${selectedIds.size} as Completed`}
                   </Button>
                 </div>
               </>
@@ -301,8 +280,7 @@ export default function GraduationPage() {
               {showCertificate.first_name} {showCertificate.last_name}
             </div>
             <p className="text-sm text-[var(--t3)] mb-4">
-              {showCertificate.classes?.name} ·{" "}
-              {showCertificate.student_number || "N/A"}
+              {showCertificate.classes?.name} · {showCertificate.student_number || "N/A"}
             </p>
             <Button onClick={printCertificate}>
               <MaterialIcon icon="print" style={{ fontSize: 18 }} />

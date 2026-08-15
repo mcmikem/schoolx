@@ -282,10 +282,10 @@ export default function AttendancePage() {
     return list;
   }, [students, attendance, filterStatus, searchQuery]);
 
-  const saveAttendance = async () => {
+  const saveAttendance = async (attendanceOverride?: Record<string, string>) => {
     if (!selectedClass || !user?.id) return;
 
-    const records = Object.entries(attendance).map(([studentId, status]) =>
+    const records = Object.entries(attendanceOverride ?? attendance).map(([studentId, status]) =>
       normalizeAttendanceInput({
         student_id: studentId,
         class_id: selectedClass,
@@ -312,7 +312,10 @@ export default function AttendancePage() {
     if (isOnline) {
       try {
         const attResult = await withTimeout(
-          supabase.from("attendance").upsert(records as any, { onConflict: "student_id,date,period_number" }),
+          supabase
+            .from("attendance")
+            .upsert(records as any, { onConflict: "student_id,date,period_number" })
+            .select("id"),
           15000,
           timeoutFallback(),
         );
@@ -540,7 +543,7 @@ export default function AttendancePage() {
                   </Button>
                 )}
                 <Button
-                  onClick={saveAttendance}
+                  onClick={() => saveAttendance()}
                   disabled={saving || !selectedClass || !hasAttendanceRecords}
                   loading={saving}
                   variant="primary"
@@ -1011,7 +1014,7 @@ export default function AttendancePage() {
 
                 <div className="fixed bottom-[calc(64px+env(safe-area-inset-bottom,0px))] left-0 right-0 md:relative md:bottom-auto p-4 md:p-0 bg-surface/95 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none border-t border-outline-variant md:border-0 z-10">
                   <Button
-                    onClick={saveAttendance}
+                    onClick={() => saveAttendance()}
                     disabled={saving}
                     loading={saving}
                     icon={<MaterialIcon icon="save" />}
@@ -1172,7 +1175,7 @@ export default function AttendancePage() {
 
                 <div className="fixed bottom-[calc(64px+env(safe-area-inset-bottom,0px))] left-0 right-0 md:relative md:bottom-auto p-4 md:p-0 bg-surface/95 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none border-t border-outline-variant md:border-0 z-10">
                   <Button
-                    onClick={saveAttendance}
+                    onClick={() => saveAttendance()}
                     disabled={saving || Object.keys(attendance).length === 0}
                     loading={saving}
                     icon={<MaterialIcon icon="save" />}
@@ -1293,9 +1296,13 @@ export default function AttendancePage() {
           isOpen={confirmMarkAll}
           onClose={() => setConfirmMarkAll(false)}
           onConfirm={async () => {
+            const allPresent: Record<string, string> = {};
+            students.forEach((s) => {
+              allPresent[s.id] = "present";
+            });
             markAll("present");
             setConfirmMarkAll(false);
-            await saveAttendance();
+            await saveAttendance(allPresent);
           }}
           title="Mark All Present"
           message={`Mark all ${students.length} students as present and save?`}

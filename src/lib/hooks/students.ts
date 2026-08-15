@@ -49,7 +49,7 @@ const STUDENT_SELECT_FIELDS = `
   dropout_reason, dropout_date, repeating, last_attendance_date,
   consecutive_absent_days, created_at, house_id, previous_school, district_origin,
   sub_county, parish, village, boarding_status, games_house, is_class_monitor,
-  prefect_role, student_council_role,
+  prefect_role, student_council_role, opening_balance, nin,
   classes(id, name, level, stream)
 `;
 

@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import { DEMO_ATTENDANCE } from "@/lib/demo-data";
 import { logger } from "@/lib/logger";
 import type { StudentWithClass } from "@/lib/hooks/students";
@@ -52,28 +53,23 @@ export function useStudentDropouts(
     try {
       if (isDemo) {
         const activeStudents = students.filter((s) => s.status === "active");
-        const demoRiskList: AtRiskStudent[] = activeStudents
-          .slice(0, 4)
-          .map((student, index) => ({
-            id: student.id,
-            first_name: student.first_name,
-            last_name: student.last_name,
-            gender: student.gender,
-            student_number: student.student_number || "",
-            class_id: student.class_id,
-            class_name: student.classes?.name || "-",
-            parent_name: student.parent_name || "",
-            parent_phone: student.parent_phone || "",
-            consecutive_absent:
-              index === 0 ? 32 : index === 1 ? 21 : index === 2 ? 16 : 14,
-            last_attendance_date:
-              index === 0
-                ? null
-                : DEMO_ATTENDANCE.find(
-                    (r) => r.student_id === student.id && r.status !== "absent",
-                  )?.date || null,
-            risk_level: "at_risk",
-          }));
+        const demoRiskList: AtRiskStudent[] = activeStudents.slice(0, 4).map((student, index) => ({
+          id: student.id,
+          first_name: student.first_name,
+          last_name: student.last_name,
+          gender: student.gender,
+          student_number: student.student_number || "",
+          class_id: student.class_id,
+          class_name: student.classes?.name || "-",
+          parent_name: student.parent_name || "",
+          parent_phone: student.parent_phone || "",
+          consecutive_absent: index === 0 ? 32 : index === 1 ? 21 : index === 2 ? 16 : 14,
+          last_attendance_date:
+            index === 0
+              ? null
+              : DEMO_ATTENDANCE.find((r) => r.student_id === student.id && r.status !== "absent")?.date || null,
+          risk_level: "at_risk",
+        }));
         setAtRiskStudents(demoRiskList);
         return;
       }
@@ -160,9 +156,7 @@ export function useStudentDropouts(
           });
         }
       }
-      setAtRiskStudents(
-        atRiskList.sort((a, b) => b.consecutive_absent - a.consecutive_absent),
-      );
+      setAtRiskStudents(atRiskList.sort((a, b) => b.consecutive_absent - a.consecutive_absent));
     } catch (err) {
       logger.error("Error computing at-risk students:", err);
     } finally {
@@ -208,16 +202,20 @@ export function useStudentDropouts(
       const smsSent = apiData.status === "sent";
       const usedFallback = apiData.status === "fallback";
 
-      await supabase.from("messages").insert({
-        school_id: schoolId,
-        recipient_type: "individual",
-        phone: student.parent_phone,
-        message,
-        status: smsSent ? "sent" : "failed",
-        sent_by: user?.id,
-        sent_at: new Date().toISOString(),
-        student_id: student.id,
-      });
+      await withTimeout(
+        supabase.from("messages").insert({
+          school_id: schoolId,
+          recipient_type: "individual",
+          phone: student.parent_phone,
+          message,
+          status: smsSent ? "sent" : "failed",
+          sent_by: user?.id,
+          sent_at: new Date().toISOString(),
+          recipient_id: student.id,
+        }),
+        15000,
+        timeoutFallback(),
+      );
 
       if (smsSent) {
         toast.success(`SMS sent to ${student.parent_phone}`);
@@ -273,22 +271,24 @@ export function useStudentDropouts(
         dropout_date: new Date().toISOString().split("T")[0],
       });
       if (!isDemo && student) {
-        await supabase.from("dropout_interventions").insert({
-          school_id: schoolId,
-          student_id: showDropoutModal,
-          student_name: `${student.first_name} ${student.last_name}`,
-          reason: dropoutReason,
-          action_taken: dropoutActionTaken || "Marked as dropout",
-        });
+        await withTimeout(
+          supabase.from("dropout_interventions").insert({
+            school_id: schoolId,
+            student_id: showDropoutModal,
+            student_name: `${student.first_name} ${student.last_name}`,
+            reason: dropoutReason,
+            action_taken: dropoutActionTaken || "Marked as dropout",
+          }),
+          15000,
+          timeoutFallback(),
+        );
       }
       toast.success("Student marked as dropout");
       setShowDropoutModal(null);
       setDropoutReason("");
       setDropoutActionTaken("");
       if (isDemo) {
-        setAtRiskStudents((prev) =>
-          prev.filter((s) => s.id !== showDropoutModal),
-        );
+        setAtRiskStudents((prev) => prev.filter((s) => s.id !== showDropoutModal));
       } else {
         fetchAtRiskStudents();
         fetchInterventionHistory();
@@ -299,16 +299,10 @@ export function useStudentDropouts(
   };
 
   const filteredAtRisk =
-    dropoutClassFilter === "all"
-      ? atRiskStudents
-      : atRiskStudents.filter((s) => s.class_id === dropoutClassFilter);
+    dropoutClassFilter === "all" ? atRiskStudents : atRiskStudents.filter((s) => s.class_id === dropoutClassFilter);
 
-  const atRiskCount = atRiskStudents.filter(
-    (s) => s.risk_level === "at_risk",
-  ).length;
-  const likelyDropoutCount = atRiskStudents.filter(
-    (s) => s.risk_level === "likely_dropout",
-  ).length;
+  const atRiskCount = atRiskStudents.filter((s) => s.risk_level === "at_risk").length;
+  const likelyDropoutCount = atRiskStudents.filter((s) => s.risk_level === "likely_dropout").length;
 
   return {
     atRiskStudents,

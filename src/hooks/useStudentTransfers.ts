@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
+import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import { DEMO_CLASSES } from "@/lib/demo-data";
 import { logger } from "@/lib/logger";
 import type { StudentWithClass } from "@/lib/hooks/students";
@@ -81,14 +82,8 @@ export function useStudentTransfers(
     transfer_date: getLocalDateString(),
   });
 
-  const activeStudents = useMemo(
-    () => students.filter((s) => s.status === "active"),
-    [students],
-  );
-  const transferredIn = useMemo(
-    () => students.filter((s) => s.status === "active" && s.transfer_from),
-    [students],
-  );
+  const activeStudents = useMemo(() => students.filter((s) => s.status === "active"), [students]);
+  const transferredIn = useMemo(() => students.filter((s) => s.status === "active" && s.transfer_from), [students]);
 
   const fetchTransferHistory = useCallback(async () => {
     if (!schoolId) return;
@@ -102,29 +97,26 @@ export function useStudentTransfers(
             student_id: student.id,
             transfer_to: student.transfer_to || "Unknown",
             reason: student.transfer_reason || "",
-            transfer_date:
-              student.dropout_date || student.created_at?.split("T")[0] || "",
+            transfer_date: student.dropout_date || student.created_at?.split("T")[0] || "",
             student_name: `${student.first_name} ${student.last_name}`,
-            class_name:
-              student.classes?.name ||
-              DEMO_CLASSES.find((c) => c.id === student.class_id)?.name ||
-              "-",
+            class_name: student.classes?.name || DEMO_CLASSES.find((c) => c.id === student.class_id)?.name || "-",
             student_number: student.student_number || "",
             gender: student.gender || "",
-            admission_date:
-              student.admission_date || student.created_at?.split("T")[0] || "",
+            admission_date: student.admission_date || student.created_at?.split("T")[0] || "",
           }));
         setTransferHistory(records);
         return;
       }
       const { data, error } = await supabase
         .from("student_transfers")
-        .select("*, students!student_id(first_name, last_name, student_number, gender, admission_date, created_at, classes(name))")
+        .select(
+          "*, students!student_id(first_name, last_name, student_number, gender, admission_date, created_at, classes(name))",
+        )
         .eq("school_id", schoolId)
         .order("created_at", { ascending: false });
       if (error) throw error;
       const records: TransferOutRecord[] = (data || []).map((t: any) => {
-        const s = t.students || {} as any;
+        const s = t.students || ({} as any);
         return {
           id: t.id,
           student_id: t.student_id,
@@ -171,15 +163,22 @@ export function useStudentTransfers(
         transfer_reason: transferInForm.reason,
       });
       if (!isDemo) {
-        await supabase.from("student_transfers").insert({
-          student_id: typeof newStudentId === "object" && "id" in (newStudentId || {}) ? (newStudentId as any).id : newStudentId,
-          school_id: schoolId,
-          transfer_type: "in",
-          previous_school: transferInForm.previous_school,
-          reason: transferInForm.reason,
-          transfer_date: new Date().toISOString().split("T")[0],
-          status: "completed",
-        });
+        await withTimeout(
+          supabase.from("student_transfers").insert({
+            student_id:
+              typeof newStudentId === "object" && "id" in (newStudentId || {})
+                ? (newStudentId as any).id
+                : newStudentId,
+            school_id: schoolId,
+            transfer_type: "in",
+            previous_school: transferInForm.previous_school,
+            reason: transferInForm.reason,
+            transfer_date: new Date().toISOString().split("T")[0],
+            status: "completed",
+          }),
+          15000,
+          timeoutFallback(),
+        );
       }
       toast.success("Transfer-in student added successfully");
       setShowTransferInModal(false);
@@ -196,8 +195,7 @@ export function useStudentTransfers(
         parent_phone2: "",
       });
     } catch (err: unknown) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Failed to add transfer student";
+      const errorMessage = err instanceof Error ? err.message : "Failed to add transfer student";
       toast.error(errorMessage);
     } finally {
       setTransferSaving(false);
@@ -221,15 +219,19 @@ export function useStudentTransfers(
         dropout_date: transferOutForm.transfer_date,
       });
       if (!isDemo) {
-        await supabase.from("student_transfers").insert({
-          student_id: transferOutForm.student_id,
-          school_id: schoolId,
-          transfer_type: "out",
-          next_school: transferOutForm.transfer_to,
-          reason: transferOutForm.reason,
-          transfer_date: transferOutForm.transfer_date,
-          status: "completed",
-        });
+        await withTimeout(
+          supabase.from("student_transfers").insert({
+            student_id: transferOutForm.student_id,
+            school_id: schoolId,
+            transfer_type: "out",
+            next_school: transferOutForm.transfer_to,
+            reason: transferOutForm.reason,
+            transfer_date: transferOutForm.transfer_date,
+            status: "completed",
+          }),
+          15000,
+          timeoutFallback(),
+        );
       }
       const record: TransferOutRecord = {
         id: transferOutForm.student_id,
@@ -241,15 +243,11 @@ export function useStudentTransfers(
         class_name: student.classes?.name || "-",
         student_number: student.student_number || "",
         gender: student.gender || "",
-        admission_date:
-          student.admission_date || student.created_at?.split("T")[0] || "",
+        admission_date: student.admission_date || student.created_at?.split("T")[0] || "",
       };
       setPrintData(record);
       if (isDemo) {
-        setTransferHistory((prev) => [
-          record,
-          ...prev.filter((entry) => entry.student_id !== record.student_id),
-        ]);
+        setTransferHistory((prev) => [record, ...prev.filter((entry) => entry.student_id !== record.student_id)]);
       }
       toast.success("Student transferred out successfully");
       setShowTransferOutModal(false);
@@ -261,8 +259,7 @@ export function useStudentTransfers(
       });
       if (!isDemo) fetchTransferHistory();
     } catch (err: unknown) {
-      const errorMessage =
-        err instanceof Error ? err.message : "Transfer failed";
+      const errorMessage = err instanceof Error ? err.message : "Transfer failed";
       toast.error(errorMessage);
     } finally {
       setTransferSaving(false);

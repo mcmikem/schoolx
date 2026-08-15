@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
-  computeSubjectTotal,
   computePLEAggregate,
   computeUCEDivision,
   computeUACEResult,
   getGradeLabel,
   generateAutoComment,
 } from "@/lib/automation";
+import { getUNEBGrade } from "@/lib/grading";
 import { logger } from "@/lib/logger";
 import { requireCronSecretOrDeny, createServiceRoleClientOrThrow, requireExistingSchoolOrDeny } from "@/lib/api-utils";
 
@@ -61,24 +61,21 @@ export async function POST(request: NextRequest) {
     const [{ data: allGrades, error: gradesError }, { data: allAttendance, error: attendanceError }] =
       await Promise.all([
         supabase
-          .from("student_grades")
+          .from("grades")
           .select(
             `
           id,
           student_id,
           subject_id,
-          ca1,
-          ca2,
-          ca3,
-          ca4,
-          project,
-          exam_score,
+          assessment_type,
+          score,
           subjects (name)
         `,
           )
           .in("student_id", studentIds)
           .eq("academic_year", currentYear)
-          .eq("term", currentTerm),
+          .eq("term", currentTerm)
+          .in("assessment_type", ["ca1", "ca2", "ca3", "ca4", "project", "exam"]),
         supabase
           .from("attendance")
           .select("student_id, status, date")
@@ -149,30 +146,39 @@ export async function POST(request: NextRequest) {
         const subjectResults: any[] = [];
         const subjectScores: number[] = [];
 
+        // Group grade rows per subject (grades are stored one row per assessment_type)
+        const subjectGroups = new Map<string, any[]>();
         for (const grade of grades as any[]) {
-          const ca1 = grade.ca1 || 0;
-          const ca2 = grade.ca2 || 0;
-          const ca3 = grade.ca3 || 0;
-          const ca4 = grade.ca4 || 0;
-          const project = grade.project || 0;
-          const exam = grade.exam_score || 0;
+          if (!subjectGroups.has(grade.subject_id)) {
+            subjectGroups.set(grade.subject_id, []);
+          }
+          subjectGroups.get(grade.subject_id)!.push(grade);
+        }
 
-          const {
-            totalCA,
-            finalScore,
-            grade: letterGrade,
-            gradeLabel,
-          } = computeSubjectTotal(ca1, ca2, ca3, ca4, project, exam);
+        for (const [subjectId, rows] of subjectGroups) {
+          const valueFor = (type: string) => Number(rows.find((r: any) => r.assessment_type === type)?.score ?? 0);
+
+          const ca1 = valueFor("ca1");
+          const ca2 = valueFor("ca2");
+          const ca3 = valueFor("ca3");
+          const ca4 = valueFor("ca4");
+          const project = valueFor("project");
+          const exam = valueFor("exam");
+
+          const totalCA = (ca1 + ca2 + ca3 + ca4 + project) / 5;
+          const finalScore = Math.round(totalCA * 0.25 + exam * 0.75);
+          const grade = getUNEBGrade(finalScore);
+          const gradeLabel = getGradeLabel(finalScore);
 
           const comment = generateAutoComment(
             finalScore,
-            grade.subjects?.name || "Subject",
+            rows[0]?.subjects?.name || "Subject",
             `${student.first_name} ${student.last_name}`,
           );
 
           subjectResults.push({
-            subjectId: grade.subject_id,
-            subjectName: grade.subjects?.name || "Unknown",
+            subjectId,
+            subjectName: rows[0]?.subjects?.name || "Unknown",
             ca1,
             ca2,
             ca3,
@@ -181,7 +187,7 @@ export async function POST(request: NextRequest) {
             exam,
             totalCA,
             finalScore,
-            grade: letterGrade,
+            grade,
             gradeLabel,
             comment,
           });

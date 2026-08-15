@@ -2,7 +2,13 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
-import { getQuerySchoolId, withTimeout, notifyDashboardStatsChanged, getLocalDateString } from "./utils";
+import {
+  getQuerySchoolId,
+  withTimeout,
+  timeoutFallback,
+  notifyDashboardStatsChanged,
+  getLocalDateString,
+} from "./utils";
 import type { PostgrestSingleResponse } from "@supabase/supabase-js";
 import { triggerAutomationEvent } from "../automation-engine";
 import { DEMO_ATTENDANCE, DemoAttendance } from "@/lib/demo-data";
@@ -455,9 +461,11 @@ export function usePeriodAttendance(classId?: string, date?: string, period?: st
       await offlineDB.save("period_attendance", payload as unknown as Record<string, unknown>);
     } else {
       try {
-        const { error: upsertError } = await supabase
-          .from("period_attendance")
-          .upsert(payload, { onConflict: "student_id,date,period" });
+        const { error: upsertError } = await withTimeout(
+          supabase.from("period_attendance").upsert(payload, { onConflict: "student_id,date,period" }),
+          15000,
+          timeoutFallback(),
+        );
         if (upsertError) throw upsertError;
         await offlineDB.cacheFromServer("period_attendance", [payload as unknown as Record<string, unknown>]);
       } catch {
@@ -572,9 +580,11 @@ export function useDormAttendance(dormId?: string, date?: string, checkType?: st
       await offlineDB.save("dorm_attendance", payload as unknown as Record<string, unknown>);
     } else {
       try {
-        const { error: upsertError } = await supabase
-          .from("dorm_attendance")
-          .upsert(payload, { onConflict: "student_id,dorm_id,date,check_type" });
+        const { error: upsertError } = await withTimeout(
+          supabase.from("dorm_attendance").upsert(payload, { onConflict: "student_id,dorm_id,date,check_type" }),
+          15000,
+          timeoutFallback(),
+        );
         if (upsertError) throw upsertError;
         await offlineDB.cacheFromServer("dorm_attendance", [payload as unknown as Record<string, unknown>]);
       } catch {

@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
+import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import { DEMO_CLASSES } from "@/lib/demo-data";
 import type { StudentWithClass } from "@/lib/hooks/students";
 import type { CreateStudentInput } from "@/types";
@@ -202,9 +203,7 @@ export function useStudentPromotion(
       toast.error("No students selected");
       return;
     }
-    const promoteStudents = selectedArray.filter(
-      (id) => studentActions[id]?.action === "promote",
-    );
+    const promoteStudents = selectedArray.filter((id) => studentActions[id]?.action === "promote");
     if (promoteStudents.length > 0 && !toClass) {
       toast.error("Please select a target class for promoted students");
       return;
@@ -244,51 +243,61 @@ export function useStudentPromotion(
         }
 
         if (action === "promote") {
-          const { error: updateError } = await supabase
-            .from("students")
-            .update({ class_id: toClass, repeating: false })
-            .eq("id", studentId);
+          const { error: updateError } = await withTimeout(
+            supabase.from("students").update({ class_id: toClass, repeating: false }).eq("id", studentId),
+            15000,
+            timeoutFallback(),
+          );
 
           if (updateError) {
             throw new Error(`Failed to promote student: ${updateError.message}`);
           }
 
-          const { error: insertError } = await supabase.from("student_promotions").insert({
-            school_id: schoolId,
-            student_id: studentId,
-            from_class_id: fromClass,
-            to_class_id: toClass,
-            academic_year: academicYear,
-            promotion_type: "promoted",
-            promoted_by: user_id,
-            promoted_at: new Date().toISOString(),
-          });
+          const { error: insertError } = await withTimeout(
+            supabase.from("student_promotions").insert({
+              school_id: schoolId,
+              student_id: studentId,
+              from_class_id: fromClass,
+              to_class_id: toClass,
+              academic_year: academicYear,
+              promotion_type: "promoted",
+              promoted_by: user_id,
+              promoted_at: new Date().toISOString(),
+            }),
+            15000,
+            timeoutFallback(),
+          );
 
           if (insertError) {
             throw new Error(`Failed to save promotion record: ${insertError.message}`);
           }
           promoted++;
         } else if (action === "repeat") {
-          const { error: updateError } = await supabase
-            .from("students")
-            .update({ repeating: true })
-            .eq("id", studentId);
+          const { error: updateError } = await withTimeout(
+            supabase.from("students").update({ repeating: true }).eq("id", studentId),
+            15000,
+            timeoutFallback(),
+          );
 
           if (updateError) {
             throw new Error(`Failed to mark student as repeating: ${updateError.message}`);
           }
 
-          const { error: insertError } = await supabase.from("student_promotions").insert({
-            school_id: schoolId,
-            student_id: studentId,
-            from_class_id: fromClass,
-            to_class_id: fromClass,
-            academic_year: academicYear,
-            promotion_type: "repeating",
-            notes: "Repeating class",
-            promoted_by: user_id,
-            promoted_at: new Date().toISOString(),
-          });
+          const { error: insertError } = await withTimeout(
+            supabase.from("student_promotions").insert({
+              school_id: schoolId,
+              student_id: studentId,
+              from_class_id: fromClass,
+              to_class_id: fromClass,
+              academic_year: academicYear,
+              promotion_type: "repeating",
+              notes: "Repeating class",
+              promoted_by: user_id,
+              promoted_at: new Date().toISOString(),
+            }),
+            15000,
+            timeoutFallback(),
+          );
 
           if (insertError) {
             throw new Error(`Failed to save repeating record: ${insertError.message}`);
@@ -296,26 +305,31 @@ export function useStudentPromotion(
           repeating++;
         } else if (action === "demote") {
           const targetClass = actionData.targetClassId || fromClass;
-          const { error: updateError } = await supabase
-            .from("students")
-            .update({ class_id: targetClass, repeating: false })
-            .eq("id", studentId);
+          const { error: updateError } = await withTimeout(
+            supabase.from("students").update({ class_id: targetClass, repeating: false }).eq("id", studentId),
+            15000,
+            timeoutFallback(),
+          );
 
           if (updateError) {
             throw new Error(`Failed to demote student: ${updateError.message}`);
           }
 
-          const { error: insertError } = await supabase.from("student_promotions").insert({
-            school_id: schoolId,
-            student_id: studentId,
-            from_class_id: fromClass,
-            to_class_id: targetClass,
-            academic_year: academicYear,
-            promotion_type: "demoted",
-            notes: actionData.reason || "Demoted",
-            promoted_by: user_id,
-            promoted_at: new Date().toISOString(),
-          });
+          const { error: insertError } = await withTimeout(
+            supabase.from("student_promotions").insert({
+              school_id: schoolId,
+              student_id: studentId,
+              from_class_id: fromClass,
+              to_class_id: targetClass,
+              academic_year: academicYear,
+              promotion_type: "demoted",
+              notes: actionData.reason || "Demoted",
+              promoted_by: user_id,
+              promoted_at: new Date().toISOString(),
+            }),
+            15000,
+            timeoutFallback(),
+          );
 
           if (insertError) {
             throw new Error(`Failed to save demotion record: ${insertError.message}`);
@@ -345,17 +359,11 @@ export function useStudentPromotion(
     if (!currentClass) return [];
     const levelNum = parseInt(currentClass.level.replace(/\D/g, ""));
     if (currentClass.level === "P.7" || currentClass.level.includes("P7"))
-      return promotionClasses.filter(
-        (c) => c.level.includes("S.1") || c.level.includes("S1"),
-      );
+      return promotionClasses.filter((c) => c.level.includes("S.1") || c.level.includes("S1"));
     if (currentClass.level === "S.4" || currentClass.level.includes("S4"))
-      return promotionClasses.filter(
-        (c) => c.level.includes("S.5") || c.level.includes("S5"),
-      );
+      return promotionClasses.filter((c) => c.level.includes("S.5") || c.level.includes("S5"));
     const nextLevel = levelNum + 1;
-    return promotionClasses.filter(
-      (c) => parseInt(c.level.replace(/\D/g, "")) === nextLevel,
-    );
+    return promotionClasses.filter((c) => parseInt(c.level.replace(/\D/g, "")) === nextLevel);
   };
 
   const getPrevClassOptions = () => {
@@ -365,9 +373,7 @@ export function useStudentPromotion(
     const levelNum = parseInt(currentClass.level.replace(/\D/g, ""));
     if (levelNum <= 1) return [];
     const prevLevel = levelNum - 1;
-    return promotionClasses.filter(
-      (c) => parseInt(c.level.replace(/\D/g, "")) === prevLevel,
-    );
+    return promotionClasses.filter((c) => parseInt(c.level.replace(/\D/g, "")) === prevLevel);
   };
 
   const actionCounts = {
@@ -393,9 +399,7 @@ export function useStudentPromotion(
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Auto-promotion failed");
       setAutoPromoteResult(data);
-      toast.success(
-        `Auto-promotion complete: ${data.summary.promoted} promoted, ${data.summary.retained} retained`,
-      );
+      toast.success(`Auto-promotion complete: ${data.summary.promoted} promoted, ${data.summary.retained} retained`);
       fetchPromotionHistory();
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Auto-promotion failed");

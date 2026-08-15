@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
 import { supabase } from "@/lib/supabase";
+import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
@@ -115,17 +116,16 @@ export default function StaffAttendancePage() {
         staff_id: staffId,
         date,
         status,
-        time_in:
-          status === "present" || status === "late"
-            ? getLocalTimeValue()
-            : null,
+        time_in: status === "present" || status === "late" ? getLocalTimeValue() : null,
         time_out: null,
         recorded_by: user.id,
       }));
 
-      const { error } = await supabase
-        .from("staff_attendance")
-        .upsert(records, { onConflict: "staff_id,date" });
+      const { error } = await withTimeout(
+        supabase.from("staff_attendance").upsert(records, { onConflict: "staff_id,date" }),
+        15000,
+        timeoutFallback(),
+      );
 
       if (error) throw error;
       toast.success("Staff attendance saved");
@@ -136,15 +136,9 @@ export default function StaffAttendancePage() {
     }
   };
 
-  const presentCount = Object.values(attendance).filter(
-    (s) => s === "present",
-  ).length;
-  const absentCount = Object.values(attendance).filter(
-    (s) => s === "absent",
-  ).length;
-  const lateCount = Object.values(attendance).filter(
-    (s) => s === "late",
-  ).length;
+  const presentCount = Object.values(attendance).filter((s) => s === "present").length;
+  const absentCount = Object.values(attendance).filter((s) => s === "absent").length;
+  const lateCount = Object.values(attendance).filter((s) => s === "late").length;
 
   const statusOptions = [
     {
@@ -173,140 +167,113 @@ export default function StaffAttendancePage() {
     },
   ];
 
-  const getStatusClasses = (option: {
-    status: string;
-    color: string;
-    active: boolean;
-  }) => {
+  const getStatusClasses = (option: { status: string; color: string; active: boolean }) => {
     return (prev: Record<string, string>, memberId: string) => {
       const isActive = prev[memberId] === option.status;
-      return isActive
-        ? option.color
-        : "bg-white text-[#5c6670] border-[#e8eaed] hover:border-[#c4c6cf]";
+      return isActive ? option.color : "bg-white text-[#5c6670] border-[#e8eaed] hover:border-[#c4c6cf]";
     };
   };
 
   return (
     <PageErrorBoundary>
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
-      <PageHeader
-        title="Staff Attendance"
-        subtitle="Track daily staff attendance"
-      />
+      <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+        <PageHeader title="Staff Attendance" subtitle="Track daily staff attendance" />
 
-      <Card>
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="input sm:w-48"
-            aria-label="Attendance date"
-          />
-          <div className="flex gap-2">
-            <Link href="/dashboard/staff-attendance/scan">
-              <Button variant="primary" size="sm">
-                <MaterialIcon icon="qr_code_scanner" className="text-lg" />
-                Open Scan Terminal
+        <Card>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="input sm:w-48"
+              aria-label="Attendance date"
+            />
+            <div className="flex gap-2">
+              <Link href="/dashboard/staff-attendance/scan">
+                <Button variant="primary" size="sm">
+                  <MaterialIcon icon="qr_code_scanner" className="text-lg" />
+                  Open Scan Terminal
+                </Button>
+              </Link>
+              <Button variant="secondary" size="sm" onClick={() => markAll("present")}>
+                <MaterialIcon icon="check_circle" className="text-lg" />
+                Mark All Present
               </Button>
-            </Link>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => markAll("present")}
-            >
-              <MaterialIcon icon="check_circle" className="text-lg" />
-              Mark All Present
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => markAll("absent")}
-            >
-              <MaterialIcon icon="cancel" className="text-lg" />
-              Mark All Absent
-            </Button>
+              <Button variant="secondary" size="sm" onClick={() => markAll("absent")}>
+                <MaterialIcon icon="cancel" className="text-lg" />
+                Mark All Absent
+              </Button>
+            </div>
           </div>
-        </div>
-      </Card>
+        </Card>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="text-center">
-          <div className="text-2xl font-bold text-[#006e1c]">
-            {presentCount}
-          </div>
-          <div className="text-sm text-[#5c6670] mt-1">Present</div>
-        </Card>
-        <Card className="text-center">
-          <div className="text-2xl font-bold text-[#ba1a1a]">{absentCount}</div>
-          <div className="text-sm text-[#5c6670] mt-1">Absent</div>
-        </Card>
-        <Card className="text-center">
-          <div className="text-2xl font-bold text-[#b86e00]">{lateCount}</div>
-          <div className="text-sm text-[#5c6670] mt-1">Late</div>
-        </Card>
-      </div>
-
-      {loading ? (
-        <div className="space-y-3">
-          {[1, 2, 3, 4].map((i) => (
-            <TableSkeleton key={i} rows={1} />
-          ))}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Card className="text-center">
+            <div className="text-2xl font-bold text-[#006e1c]">{presentCount}</div>
+            <div className="text-sm text-[#5c6670] mt-1">Present</div>
+          </Card>
+          <Card className="text-center">
+            <div className="text-2xl font-bold text-[#ba1a1a]">{absentCount}</div>
+            <div className="text-sm text-[#5c6670] mt-1">Absent</div>
+          </Card>
+          <Card className="text-center">
+            <div className="text-2xl font-bold text-[#b86e00]">{lateCount}</div>
+            <div className="text-sm text-[#5c6670] mt-1">Late</div>
+          </Card>
         </div>
-      ) : staff.length === 0 ? (
-        <EmptyState
-          icon="groups"
-          title="No staff members"
-          description="Add staff members first"
-        />
-      ) : (
-        <>
+
+        {loading ? (
           <div className="space-y-3">
-            {staff.map((member) => (
-              <Card key={member.id}>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <PersonInitials name={member.full_name} size={40} />
-                    <div>
-                      <div className="font-medium text-[#191c1d]">
-                        {member.full_name}
-                      </div>
-                      <div className="text-xs text-[#5c6670] capitalize">
-                        {member.role}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex gap-2">
-                    {statusOptions.map((option) => (
-                      <button
-                        key={option.status}
-                        onClick={() => markAttendance(member.id, option.status)}
-                        className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
-                          attendance[member.id] === option.status
-                            ? option.color
-                            : "bg-white text-[#5c6670] border-[#e8eaed] hover:border-[#c4c6cf]"
-                        }`}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </Card>
+            {[1, 2, 3, 4].map((i) => (
+              <TableSkeleton key={i} rows={1} />
             ))}
           </div>
+        ) : staff.length === 0 ? (
+          <EmptyState icon="groups" title="No staff members" description="Add staff members first" />
+        ) : (
+          <>
+            <div className="space-y-3">
+              {staff.map((member) => (
+                <Card key={member.id}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <PersonInitials name={member.full_name} size={40} />
+                      <div>
+                        <div className="font-medium text-[#191c1d]">{member.full_name}</div>
+                        <div className="text-xs text-[#5c6670] capitalize">{member.role}</div>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      {statusOptions.map((option) => (
+                        <button
+                          key={option.status}
+                          onClick={() => markAttendance(member.id, option.status)}
+                          className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
+                            attendance[member.id] === option.status
+                              ? option.color
+                              : "bg-white text-[#5c6670] border-[#e8eaed] hover:border-[#c4c6cf]"
+                          }`}
+                        >
+                          {option.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
 
-          <Button
-            onClick={saveAttendance}
-            disabled={saving || Object.keys(attendance).length === 0}
-            className="w-full"
-          >
-            <MaterialIcon icon="save" className="text-lg" />
-            {saving ? "Saving..." : "Save Attendance"}
-          </Button>
-        </>
-      )}
-    </div>
+            <Button
+              onClick={saveAttendance}
+              disabled={saving || Object.keys(attendance).length === 0}
+              className="w-full"
+            >
+              <MaterialIcon icon="save" className="text-lg" />
+              {saving ? "Saving..." : "Save Attendance"}
+            </Button>
+          </>
+        )}
+      </div>
     </PageErrorBoundary>
   );
 }

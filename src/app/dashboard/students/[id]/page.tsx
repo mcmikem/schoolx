@@ -38,7 +38,7 @@ import {
 import { useStudent, useClasses } from "@/lib/hooks";
 import { SendSMSModal } from "@/components/SendSMSModal";
 import { useToast } from "@/components/Toast";
-import { withTimeout } from "@/lib/hooks/utils";
+import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -598,13 +598,17 @@ export default function StudentProfilePage() {
       if (guardianData) setGuardians(guardianData);
 
       if (student && !student.parent_name && !student.parent_phone) {
-        await supabase
-          .from("students")
-          .update({
-            parent_name: guardianForm.name,
-            parent_phone: guardianForm.phone,
-          })
-          .eq("id", studentId);
+        await withTimeout(
+          supabase
+            .from("students")
+            .update({
+              parent_name: guardianForm.name,
+              parent_phone: guardianForm.phone,
+            })
+            .eq("id", studentId),
+          15000,
+          timeoutFallback(),
+        );
         refetch();
       }
 
@@ -622,7 +626,11 @@ export default function StudentProfilePage() {
   const handleSetPrimaryGuardian = async (guardian: any) => {
     const name = guardian.users?.full_name || guardianForm.name;
     const phone = guardian.users?.phone || guardianForm.phone;
-    await supabase.from("students").update({ parent_name: name, parent_phone: phone }).eq("id", studentId);
+    await withTimeout(
+      supabase.from("students").update({ parent_name: name, parent_phone: phone }).eq("id", studentId),
+      15000,
+      timeoutFallback(),
+    );
     refetch();
     toast.success("Primary guardian updated");
   };

@@ -29,20 +29,12 @@ export default function MOESReportsPage() {
         .select("*, classes(level, name)")
         .eq("school_id", school?.id);
 
-      const { data: staff } = await supabase
-        .from("users")
-        .select("*")
-        .eq("school_id", school?.id);
+      const { data: staff } = await supabase.from("users").select("*").eq("school_id", school?.id);
 
-      const { data: classes } = await supabase
-        .from("classes")
-        .select("*")
-        .eq("school_id", school?.id);
+      const { data: classes } = await supabase.from("classes").select("*").eq("school_id", school?.id);
 
-      const maleStudents =
-        students?.filter((s) => s.gender === "M").length || 0;
-      const femaleStudents =
-        students?.filter((s) => s.gender === "F").length || 0;
+      const maleStudents = students?.filter((s) => s.gender === "M").length || 0;
+      const femaleStudents = students?.filter((s) => s.gender === "F").length || 0;
       const totalStudents = maleStudents + femaleStudents;
 
       const maleStaff = staff?.filter((s) => s.gender === "M").length || 0;
@@ -71,8 +63,7 @@ export default function MOESReportsPage() {
         },
         byClass:
           classes?.map((c) => {
-            const classStudents =
-              students?.filter((s) => s.class_id === c.id) || [];
+            const classStudents = students?.filter((s) => s.class_id === c.id) || [];
             return {
               class: c.name,
               level: c.level,
@@ -159,155 +150,113 @@ export default function MOESReportsPage() {
 
   return (
     <PageErrorBoundary>
-    <div className="p-4 sm:p-6 lg:p-8">
-      <PageHeader
-        title="MOES EMIS Reports"
-        subtitle="Generate reports for Ministry of Education & Sports"
-      />
+      <div className="p-4 sm:p-6 lg:p-8">
+        <PageHeader title="MOES EMIS Reports" subtitle="Generate reports for Ministry of Education & Sports" />
 
-      <Card className="mb-6">
-        <CardBody>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-[var(--on-surface)] mb-1">
-                Report Type
-              </label>
-              <select
-                value={activeTab}
-                onChange={(e) => setActiveTab(e.target.value)}
-                className="input"
-              >
-                <option value="headcount">Student Headcount</option>
-                <option value="staff">Staff Returns</option>
-                <option value="facility">Facility Inventory</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-[var(--on-surface)] mb-1">
-                Academic Year
-              </label>
-              <input value={academicYear} disabled className="input" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">&nbsp;</label>
-              <Button
-                onClick={generateReport}
-                disabled={loading}
-                className="w-full"
-              >
-                {loading ? "Generating..." : "Generate Report"}
-              </Button>
-            </div>
-          </div>
-        </CardBody>
-      </Card>
-
-      {reportData && (
-        <>
-          <Card className="mb-4">
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle>Report Preview</CardTitle>
-              <div className="flex gap-2">
-                <Button
-                  onClick={exportToExcel}
-                  disabled={exporting}
-                  size="sm"
-                  variant="secondary"
-                  icon={
-                    <MaterialIcon icon="download" style={{ fontSize: 16 }} />
-                  }
-                >
-                  Export Excel
-                </Button>
-                <Button
-                  onClick={exportToJSON}
-                  size="sm"
-                  variant="secondary"
-                  icon={<MaterialIcon icon="code" style={{ fontSize: 16 }} />}
-                >
-                  Export JSON
+        <Card className="mb-6">
+          <CardBody>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-[var(--on-surface)] mb-1">Report Type</label>
+                <select value={activeTab} onChange={(e) => setActiveTab(e.target.value)} className="input">
+                  <option value="headcount">Student Headcount</option>
+                  <option value="staff">Staff Returns</option>
+                  <option value="facility">Facility Inventory</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-[var(--on-surface)] mb-1">Academic Year</label>
+                <input value={academicYear} disabled className="input" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">&nbsp;</label>
+                <Button onClick={generateReport} disabled={loading} className="w-full">
+                  {loading ? "Generating..." : "Generate Report"}
                 </Button>
               </div>
-            </CardHeader>
-            <CardBody>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div className="text-center p-4 bg-[var(--surface-container-low)] rounded-lg">
-                  <div className="text-2xl font-bold text-[var(--t1)]">
-                    {reportData.summary.totalStudents}
-                  </div>
-                  <div className="text-sm text-[var(--t3)]">Total Students</div>
-                </div>
-                <div className="text-center p-4 bg-[var(--surface-container-low)] rounded-lg">
-                  <div className="text-2xl font-bold text-blue-600">
-                    {reportData.summary.maleStudents}
-                  </div>
-                  <div className="text-sm text-[var(--t3)]">Male</div>
-                </div>
-                <div className="text-center p-4 bg-[var(--surface-container-low)] rounded-lg">
-                  <div className="text-2xl font-bold text-pink-600">
-                    {reportData.summary.femaleStudents}
-                  </div>
-                  <div className="text-sm text-[var(--t3)]">Female</div>
-                </div>
-                <div className="text-center p-4 bg-[var(--surface-container-low)] rounded-lg">
-                  <div className="text-2xl font-bold text-green-600">
-                    {reportData.summary.totalClasses}
-                  </div>
-                  <div className="text-sm text-[var(--t3)]">Classes</div>
-                </div>
-              </div>
+            </div>
+          </CardBody>
+        </Card>
 
-              <h3 className="font-bold mb-3">Students by Class</h3>
-              <Card className="overflow-hidden">
-                <CardBody className="p-0">
-                  <div className="table-wrapper">
-                    <table className="table">
-                      <thead>
-                        <tr>
-                          <th>Class</th>
-                          <th>Level</th>
-                          <th>Male</th>
-                          <th>Female</th>
-                          <th>Total</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {reportData.byClass.map((c: any, idx: number) => (
-                          <tr key={idx}>
-                            <td>{c.class}</td>
-                            <td>{c.level}</td>
-                            <td>{c.male}</td>
-                            <td>{c.female}</td>
-                            <td className="font-bold">{c.total}</td>
+        {reportData && (
+          <>
+            <Card className="mb-4">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Report Preview</CardTitle>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={exportToExcel}
+                    disabled={exporting}
+                    size="sm"
+                    variant="secondary"
+                    icon={<MaterialIcon icon="download" style={{ fontSize: 16 }} />}
+                  >
+                    Export Excel
+                  </Button>
+                  <Button
+                    onClick={exportToJSON}
+                    size="sm"
+                    variant="secondary"
+                    icon={<MaterialIcon icon="code" style={{ fontSize: 16 }} />}
+                  >
+                    Export JSON
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardBody>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                  <div className="text-center p-4 bg-[var(--surface-container-low)] rounded-lg">
+                    <div className="text-2xl font-bold text-[var(--t1)]">{reportData.summary.totalStudents}</div>
+                    <div className="text-sm text-[var(--t3)]">Total Students</div>
+                  </div>
+                  <div className="text-center p-4 bg-[var(--surface-container-low)] rounded-lg">
+                    <div className="text-2xl font-bold text-blue-600">{reportData.summary.maleStudents}</div>
+                    <div className="text-sm text-[var(--t3)]">Male</div>
+                  </div>
+                  <div className="text-center p-4 bg-[var(--surface-container-low)] rounded-lg">
+                    <div className="text-2xl font-bold text-pink-600">{reportData.summary.femaleStudents}</div>
+                    <div className="text-sm text-[var(--t3)]">Female</div>
+                  </div>
+                  <div className="text-center p-4 bg-[var(--surface-container-low)] rounded-lg">
+                    <div className="text-2xl font-bold text-green-600">{reportData.summary.totalClasses}</div>
+                    <div className="text-sm text-[var(--t3)]">Classes</div>
+                  </div>
+                </div>
+
+                <h3 className="font-bold mb-3">Students by Class</h3>
+                <Card className="overflow-hidden">
+                  <CardBody className="p-0">
+                    <div className="table-wrapper">
+                      <table className="table">
+                        <thead>
+                          <tr>
+                            <th>Class</th>
+                            <th>Level</th>
+                            <th>Male</th>
+                            <th>Female</th>
+                            <th>Total</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </CardBody>
-              </Card>
-            </CardBody>
-          </Card>
-
-          <Card>
-            <CardBody>
-              <h3 className="font-bold mb-3">
-                Submit to District Education Officer
-              </h3>
-              <p className="text-sm text-[var(--t3)] mb-4">
-                This report can be submitted to your District Education Officer
-                (DEO) for official records.
-              </p>
-              <Button
-                icon={<MaterialIcon icon="send" style={{ fontSize: 18 }} />}
-              >
-                Submit Report to DEO
-              </Button>
-            </CardBody>
-          </Card>
-        </>
-      )}
-    </div>
+                        </thead>
+                        <tbody>
+                          {reportData.byClass.map((c: any, idx: number) => (
+                            <tr key={idx}>
+                              <td>{c.class}</td>
+                              <td>{c.level}</td>
+                              <td>{c.male}</td>
+                              <td>{c.female}</td>
+                              <td className="font-bold">{c.total}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </CardBody>
+                </Card>
+              </CardBody>
+            </Card>
+          </>
+        )}
+      </div>
     </PageErrorBoundary>
   );
 }

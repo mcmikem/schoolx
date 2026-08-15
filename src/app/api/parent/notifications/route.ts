@@ -24,10 +24,16 @@ export async function GET(request: NextRequest) {
     const unreadOnly = searchParams.get("unread") === "true";
     const limit = parseInt(searchParams.get("limit") || "20");
 
+    const { data: profile } = await supabase.from("users").select("id").eq("auth_id", user.id).maybeSingle();
+
+    if (!profile) {
+      return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+    }
+
     let query = supabase
       .from("parent_notifications")
       .select("*")
-      .eq("parent_id", user.id)
+      .eq("parent_id", profile.id)
       .order("created_at", { ascending: false })
       .limit(limit);
 
@@ -66,11 +72,17 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const { notification_id, mark_all_read } = body;
 
+    const { data: profile } = await supabase.from("users").select("id").eq("auth_id", user.id).maybeSingle();
+
+    if (!profile) {
+      return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+    }
+
     if (mark_all_read) {
       const { error } = await supabase
         .from("parent_notifications")
         .update({ is_read: true, read_at: new Date().toISOString() })
-        .eq("parent_id", user.id)
+        .eq("parent_id", profile.id)
         .eq("is_read", false);
 
       if (error) {
@@ -87,7 +99,7 @@ export async function PATCH(request: NextRequest) {
         .from("parent_notifications")
         .update({ is_read: true, read_at: new Date().toISOString() })
         .eq("id", notification_id)
-        .eq("parent_id", user.id);
+        .eq("parent_id", profile.id);
 
       if (error) {
         if (error.code === "42P01") {

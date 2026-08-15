@@ -61,7 +61,9 @@ export default function BatchReportsPage() {
       return;
     }
     toast.success(`Opening ${selected.length} report card${selected.length > 1 ? "s" : ""} for the current term`);
-    router.push(`/dashboard/report-cards?class=${encodeURIComponent(selectedClass)}`);
+    router.push(
+      `/dashboard/report-cards?class=${encodeURIComponent(selectedClass)}&students=${encodeURIComponent(selected.join(","))}`,
+    );
   };
 
   return (
