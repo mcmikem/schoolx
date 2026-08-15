@@ -1,7 +1,8 @@
 "use client";
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
-import { withTimeout } from "@/lib/hooks/utils";
+import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
+import { offlineDB } from "@/lib/offline";
 import MaterialIcon from "@/components/MaterialIcon";
 
 const DAYS_HEADER = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -14,7 +15,7 @@ function localISODate(date: Date): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
-export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string, userId?: string }) {
+export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string; userId?: string }) {
   const [calendarEvents, setCalendarEvents] = useState<
     Array<{ id: string; title: string; start_date: string; event_type: string }>
   >([]);
@@ -26,25 +27,52 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
   const [newEventDate, setNewEventDate] = useState("");
   const dayInputRef = useRef<HTMLInputElement>(null);
   const seedCalendarAttemptedRef = useRef(false);
+  const fetchedForSchoolRef = useRef<string | null>(null);
+
+  const refreshEvents = useCallback(async () => {
+    if (!schoolId) return;
+    const { data, error } = await withTimeout(
+      supabase
+        .from("events")
+        .select("id, school_id, title, start_date, event_type")
+        .eq("school_id", schoolId)
+        .order("start_date"),
+      15000,
+      timeoutFallback(),
+    );
+    if (!error && data) {
+      setCalendarEvents(data as any);
+      await offlineDB.cacheFromServer("events", data as any);
+    }
+  }, [schoolId]);
+
+  // Seed instantly from the persistent IndexedDB cache so revisits render the
+  // calendar without waiting on the network; the fetch effect below revalidates
+  // in the background.
+  useEffect(() => {
+    if (!schoolId) return;
+    let cancelled = false;
+    offlineDB.getAllFromCache("events", { school_id: schoolId }).then((cached) => {
+      if (cancelled || cached.length === 0) return;
+      setCalendarEvents(cached as any);
+      setEventsLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [schoolId]);
 
   useEffect(() => {
     if (!schoolId) return;
+    if (fetchedForSchoolRef.current === schoolId) return;
+    fetchedForSchoolRef.current = schoolId;
     const fetchEvents = async () => {
       setEventsLoading(true);
-      const monthStart = localISODate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1));
-      const monthEnd = localISODate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 2, 0));
-      const { data, error } = await supabase
-        .from("events")
-        .select("id, title, start_date, event_type")
-        .eq("school_id", schoolId)
-        .gte("start_date", monthStart)
-        .lte("start_date", monthEnd)
-        .order("start_date");
-      if (!error && data) setCalendarEvents(data as any);
+      await refreshEvents();
       setEventsLoading(false);
     };
     fetchEvents();
-  }, [schoolId, viewDate]);
+  }, [schoolId, refreshEvents]);
 
   useEffect(() => {
     if (!schoolId || eventsLoading) return;
@@ -54,26 +82,14 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
     const seedCalendar = async () => {
       const { buildUgandaCalendarEvents } = await import("@/lib/uganda-school-calendar");
       const defaultEvents = buildUgandaCalendarEvents(schoolId, new Date().getFullYear().toString());
-      const { error } = await withTimeout(
-        supabase.from("events").insert(defaultEvents),
-        15000,
-        { data: null, error: { message: "Calendar seed timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
-      );
-      if (!error) {
-        const monthStart = localISODate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1));
-        const monthEnd = localISODate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 2, 0));
-        const { data } = await supabase
-          .from("events")
-          .select("id, title, start_date, event_type")
-          .eq("school_id", schoolId)
-          .gte("start_date", monthStart)
-          .lte("start_date", monthEnd)
-          .order("start_date");
-        if (data) setCalendarEvents(data as any);
-      }
+      const { error } = await withTimeout(supabase.from("events").insert(defaultEvents), 15000, {
+        data: null,
+        error: { message: "Calendar seed timed out", name: "TimeoutError", details: "", hint: "", code: "" },
+      } as any);
+      if (!error) await refreshEvents();
     };
     seedCalendar();
-  }, [schoolId, calendarEvents.length, eventsLoading, viewDate]);
+  }, [schoolId, calendarEvents.length, eventsLoading, refreshEvents]);
 
   const addCalendarEvent = async () => {
     if (!schoolId || !newEventTitle.trim() || !newEventDate) return;
@@ -87,19 +103,13 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
         created_by: userId,
       }),
       15000,
-      { data: null, error: { message: "Event creation timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as any,
+      {
+        data: null,
+        error: { message: "Event creation timed out", name: "TimeoutError", details: "", hint: "", code: "" },
+      } as any,
     );
     if (!error) {
-      const monthStart = localISODate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1));
-      const monthEnd = localISODate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 2, 0));
-      const { data } = await supabase
-        .from("events")
-        .select("id, title, start_date, event_type")
-        .eq("school_id", schoolId)
-        .gte("start_date", monthStart)
-        .lte("start_date", monthEnd)
-        .order("start_date");
-      if (data) setCalendarEvents(data as any);
+      await refreshEvents();
       setNewEventTitle("");
       setNewEventDate("");
       setShowAddEvent(false);
@@ -108,14 +118,28 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
 
   const todayIso = localISODate(new Date());
 
+  // Window around the visible month (previous, current, next) so month
+  // navigation filters the full cached list instead of re-fetching from the
+  // server every time.
+  const visibleRange = useMemo(() => {
+    const y = viewDate.getFullYear();
+    const m = viewDate.getMonth();
+    return {
+      start: localISODate(new Date(y, m - 1, 1)),
+      end: localISODate(new Date(y, m + 2, 0)),
+    };
+  }, [viewDate]);
+
   const academicEvents = useMemo(() => {
-    return calendarEvents.map((e) => ({
-      id: e.id,
-      title: e.title,
-      date: e.start_date,
-      kind: e.event_type || "event",
-    }));
-  }, [calendarEvents]);
+    return calendarEvents
+      .filter((e) => e.start_date >= visibleRange.start && e.start_date <= visibleRange.end)
+      .map((e) => ({
+        id: e.id,
+        title: e.title,
+        date: e.start_date,
+        kind: e.event_type || "event",
+      }));
+  }, [calendarEvents, visibleRange]);
 
   const calendarYear = viewDate.getFullYear();
   const calendarMonth = viewDate.getMonth();
@@ -218,9 +242,7 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
               {cell.hasEvent && (
                 <span
                   className={`absolute bottom-1 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full ${
-                    cell.iso === selectedDate
-                      ? "bg-white"
-                      : "bg-[#2d69a4]"
+                    cell.iso === selectedDate ? "bg-white" : "bg-[#2d69a4]"
                   }`}
                 />
               )}
@@ -245,9 +267,7 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
               key={event.id}
               className="flex items-center justify-between rounded-[12px] bg-white px-3 py-2 shadow-sm"
             >
-              <p className="truncate text-sm font-semibold text-[#17325f]">
-                {event.title}
-              </p>
+              <p className="truncate text-sm font-semibold text-[#17325f]">{event.title}</p>
               <span className="shrink-0 rounded-full bg-[#edf4ff] px-2 py-0.5 text-[9px] font-semibold uppercase text-[#42638d]">
                 {event.kind}
               </span>
