@@ -1,4 +1,4 @@
-import { getNavigationForRole, NavGroup } from "../lib/navigation";
+import { getNavigationForRole, sortNavGroupsByPriority } from "../lib/navigation";
 
 describe("Navigation", () => {
   describe("getNavigationForRole", () => {
@@ -12,28 +12,20 @@ describe("Navigation", () => {
     test("returns navigation for teacher", () => {
       const nav = getNavigationForRole("teacher");
       expect(nav).toBeDefined();
-      expect(
-        nav.some((g) => g.items.some((i) => i.href === "/dashboard/grades")),
-      ).toBe(true);
+      expect(nav.some((g) => g.items.some((i) => i.href === "/dashboard/grades"))).toBe(true);
     });
 
     test("returns navigation for bursar", () => {
       const nav = getNavigationForRole("bursar");
       expect(nav).toBeDefined();
-      expect(
-        nav.some((g) => g.items.some((i) => i.href === "/dashboard/fees")),
-      ).toBe(true);
+      expect(nav.some((g) => g.items.some((i) => i.href === "/dashboard/fees"))).toBe(true);
     });
 
     test("returns navigation for dean_of_studies", () => {
       // Role is 'dean_of_studies', not 'dean_of_students' — fixing name drift
       const nav = getNavigationForRole("dean_of_studies");
       expect(nav).toBeDefined();
-      expect(
-        nav.some((g) =>
-          g.items.some((i) => i.href === "/dashboard/attendance"),
-        ),
-      ).toBe(true);
+      expect(nav.some((g) => g.items.some((i) => i.href === "/dashboard/attendance"))).toBe(true);
     });
 
     test("returns teacher as default for unknown role", () => {
@@ -76,6 +68,34 @@ describe("Navigation", () => {
       const allHrefs = nav.flatMap((g) => g.items.map((i) => i.href));
       expect(allHrefs).toContain("/dashboard/dorm");
       expect(allHrefs).toContain("/dashboard/dorm-attendance");
+    });
+  });
+
+  describe("sortNavGroupsByPriority", () => {
+    test("keeps default groups before deprioritized groups", () => {
+      const groups = [
+        { label: "School Office", priority: 1, items: [] },
+        { label: "Today", items: [] },
+        { label: "Other Tools", priority: 1, items: [] },
+      ];
+      const sorted = sortNavGroupsByPriority(groups);
+      expect(sorted.map((g) => g.label)).toEqual(["Today", "School Office", "Other Tools"]);
+    });
+
+    test("is stable within the same priority", () => {
+      const groups = [
+        { label: "A", items: [] },
+        { label: "B", items: [] },
+        { label: "C", items: [] },
+      ];
+      expect(sortNavGroupsByPriority(groups).map((g) => g.label)).toEqual(["A", "B", "C"]);
+    });
+
+    test("does not mutate the input", () => {
+      const groups = [{ label: "X", priority: 1, items: [] }];
+      const sorted = sortNavGroupsByPriority(groups);
+      expect(sorted).not.toBe(groups);
+      expect(groups[0].label).toBe("X");
     });
   });
 

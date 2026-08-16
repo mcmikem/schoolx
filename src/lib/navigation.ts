@@ -859,3 +859,10 @@ export function getNavigationForRole(role: string): readonly NavGroup[] {
   }
   return navigationByRole.teacher;
 }
+
+// Stable priority sort: groups marked priority > 0 (e.g. "Other Tools") are
+// pushed below everyday groups regardless of their position in the config.
+// Groups already defined first stay first — priority only ever demotes.
+export function sortNavGroupsByPriority(groups: readonly NavGroup[]): NavGroup[] {
+  return [...groups].sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0));
+}

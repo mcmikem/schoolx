@@ -11,6 +11,7 @@ import { withTimeout } from "@/lib/hooks/utils";
 import { calculateUgandaPayrollTaxes } from "@/lib/operations";
 import { useToast } from "@/components/Toast";
 import PersonInitials from "@/components/ui/PersonInitials";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 const GRADES = [
   "Scale 1 – UGX 400k",
@@ -214,114 +215,116 @@ export default function PayrollPage() {
   return (
     <PageErrorBoundary>
       <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
-        <div className="flex justify-between items-end flex-wrap gap-4">
-          <div>
-            <h1 className="text-3xl font-black text-slate-800 tracking-tight">Payroll Hub</h1>
-            <p className="text-slate-500 font-medium">
+        <PageHeader
+          title="Payroll Hub"
+          subtitle={
+            <>
               Smart Salary Manager for <span className="font-bold text-slate-700">{month}</span>
-            </p>
-          </div>
-          <div className="flex gap-3">
-            <button
-              onClick={handleCalculateAll}
-              disabled={staff.length === 0 || processing}
-              className="flex items-center gap-2 px-5 py-3 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-600/20 hover:scale-105 transition-all disabled:opacity-40 disabled:scale-100"
-            >
-              <MaterialIcon icon="auto_awesome" />
-              Calculate All
-            </button>
-            <button
-              onClick={() => setConfirmOpen(true)}
-              disabled={staff.length === 0 || processing}
-              className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl font-bold shadow-lg shadow-emerald-600/20 hover:scale-105 transition-all disabled:opacity-40 disabled:scale-100"
-            >
-              {processing ? (
-                <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <MaterialIcon icon="account_balance" />
-              )}
-              Run Payroll
-            </button>
-          </div>
-
-          {/* Confirmation dialog */}
-          {confirmOpen && (
-            <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto bg-black/50 p-3 sm:p-4">
-              <div className="bg-white rounded-2xl p-6 w-full max-w-sm max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl">
-                <h3 className="text-lg font-bold text-slate-800 mb-2">Run payroll for {month}?</h3>
-                <p className="text-sm text-slate-500 mb-1">
-                  {staff.length} staff members &bull; Gross:{" "}
-                  <span className="font-semibold text-slate-700">UGX {totals.gross.toLocaleString()}</span> &bull; Net:{" "}
-                  <span className="font-semibold text-slate-700">UGX {totals.net.toLocaleString()}</span>
-                </p>
-                <p className="text-xs text-amber-600 bg-amber-50 rounded-xl p-3 mt-3">
-                  This will calculate PAYE tax and create payroll records for all staff. The records will appear in
-                  Payroll History.
-                </p>
-                <div className="flex gap-3 mt-5">
-                  <button
-                    onClick={() => setConfirmOpen(false)}
-                    className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleRunPayroll}
-                    className="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition"
-                  >
-                    Confirm & Run
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Progress modal */}
-          {progress.open && (
-            <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto bg-black/50 p-3 sm:p-4">
-              <div className="bg-white rounded-2xl p-6 w-full max-w-sm max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl">
-                <h3 className="text-lg font-bold text-slate-800 mb-4">
-                  {progress.error ? "Payroll Error" : "Processing Payroll..."}
-                </h3>
-                {progress.error ? (
-                  <div className="bg-rose-50 rounded-xl p-4 text-sm text-rose-700 font-medium">{progress.error}</div>
+            </>
+          }
+          actions={
+            <div className="flex gap-3">
+              <button
+                onClick={handleCalculateAll}
+                disabled={staff.length === 0 || processing}
+                className="flex items-center gap-2 px-5 py-3 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-600/20 hover:scale-105 transition-all disabled:opacity-40 disabled:scale-100"
+              >
+                <MaterialIcon icon="auto_awesome" />
+                Calculate All
+              </button>
+              <button
+                onClick={() => setConfirmOpen(true)}
+                disabled={staff.length === 0 || processing}
+                className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl font-bold shadow-lg shadow-emerald-600/20 hover:scale-105 transition-all disabled:opacity-40 disabled:scale-100"
+              >
+                {processing ? (
+                  <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
-                  <div className="space-y-3">
-                    <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
-                      <div
-                        className="bg-emerald-600 h-2.5 rounded-full transition-all duration-300"
-                        style={{ width: `${progress.total > 0 ? (progress.processed / progress.total) * 100 : 0}%` }}
-                      />
-                    </div>
-                    <p className="text-sm text-slate-500">
-                      {progress.processed} of {progress.total} staff processed
-                    </p>
-                    <div className="bg-slate-50 rounded-xl p-3 space-y-1 text-sm">
-                      <p className="flex justify-between">
-                        <span className="text-slate-500">Gross total</span>
-                        <span className="font-bold text-slate-800">UGX {progress.totalGross.toLocaleString()}</span>
-                      </p>
-                      <p className="flex justify-between">
-                        <span className="text-slate-500">Total tax (PAYE+NSSF)</span>
-                        <span className="font-bold text-rose-600">UGX {progress.totalTax.toLocaleString()}</span>
-                      </p>
-                      <p className="flex justify-between">
-                        <span className="text-slate-500">Net total</span>
-                        <span className="font-bold text-emerald-600">UGX {progress.totalNet.toLocaleString()}</span>
-                      </p>
-                    </div>
-                  </div>
+                  <MaterialIcon icon="account_balance" />
                 )}
+                Run Payroll
+              </button>
+            </div>
+          }
+        />
+
+        {/* Confirmation dialog */}
+        {confirmOpen && (
+          <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto bg-black/50 p-3 sm:p-4">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-sm max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl">
+              <h3 className="text-lg font-bold text-slate-800 mb-2">Run payroll for {month}?</h3>
+              <p className="text-sm text-slate-500 mb-1">
+                {staff.length} staff members &bull; Gross:{" "}
+                <span className="font-semibold text-slate-700">UGX {totals.gross.toLocaleString()}</span> &bull; Net:{" "}
+                <span className="font-semibold text-slate-700">UGX {totals.net.toLocaleString()}</span>
+              </p>
+              <p className="text-xs text-amber-600 bg-amber-50 rounded-xl p-3 mt-3">
+                This will calculate PAYE tax and create payroll records for all staff. The records will appear in
+                Payroll History.
+              </p>
+              <div className="flex gap-3 mt-5">
                 <button
-                  onClick={() => setProgress((p) => ({ ...p, open: false }))}
-                  className="w-full mt-4 py-2.5 rounded-xl bg-slate-100 text-sm font-semibold text-slate-600 hover:bg-slate-200 transition"
+                  onClick={() => setConfirmOpen(false)}
+                  className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition"
                 >
-                  {progress.error ? "Dismiss" : "Close"}
+                  Cancel
+                </button>
+                <button
+                  onClick={handleRunPayroll}
+                  className="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition"
+                >
+                  Confirm & Run
                 </button>
               </div>
             </div>
-          )}
-        </div>
+          </div>
+        )}
+
+        {/* Progress modal */}
+        {progress.open && (
+          <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto bg-black/50 p-3 sm:p-4">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-sm max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl">
+              <h3 className="text-lg font-bold text-slate-800 mb-4">
+                {progress.error ? "Payroll Error" : "Processing Payroll..."}
+              </h3>
+              {progress.error ? (
+                <div className="bg-rose-50 rounded-xl p-4 text-sm text-rose-700 font-medium">{progress.error}</div>
+              ) : (
+                <div className="space-y-3">
+                  <div className="w-full bg-slate-100 rounded-full h-2.5 overflow-hidden">
+                    <div
+                      className="bg-emerald-600 h-2.5 rounded-full transition-all duration-300"
+                      style={{ width: `${progress.total > 0 ? (progress.processed / progress.total) * 100 : 0}%` }}
+                    />
+                  </div>
+                  <p className="text-sm text-slate-500">
+                    {progress.processed} of {progress.total} staff processed
+                  </p>
+                  <div className="bg-slate-50 rounded-xl p-3 space-y-1 text-sm">
+                    <p className="flex justify-between">
+                      <span className="text-slate-500">Gross total</span>
+                      <span className="font-bold text-slate-800">UGX {progress.totalGross.toLocaleString()}</span>
+                    </p>
+                    <p className="flex justify-between">
+                      <span className="text-slate-500">Total tax (PAYE+NSSF)</span>
+                      <span className="font-bold text-rose-600">UGX {progress.totalTax.toLocaleString()}</span>
+                    </p>
+                    <p className="flex justify-between">
+                      <span className="text-slate-500">Net total</span>
+                      <span className="font-bold text-emerald-600">UGX {progress.totalNet.toLocaleString()}</span>
+                    </p>
+                  </div>
+                </div>
+              )}
+              <button
+                onClick={() => setProgress((p) => ({ ...p, open: false }))}
+                className="w-full mt-4 py-2.5 rounded-xl bg-slate-100 text-sm font-semibold text-slate-600 hover:bg-slate-200 transition"
+              >
+                {progress.error ? "Dismiss" : "Close"}
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Summary Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

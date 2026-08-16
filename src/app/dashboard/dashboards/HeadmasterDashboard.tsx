@@ -29,6 +29,8 @@ function HeadmasterDashboardContent() {
     pendingLeave,
     overdueFeeCount,
     lowAttendanceClasses,
+    atRiskStudents,
+    dropoutRiskCount,
     loading: loadingExtra,
     timedOut,
   } = useDashboardExtraData(school?.id, students, feeStructure, currentTerm, academicYear);
@@ -130,6 +132,26 @@ function HeadmasterDashboardContent() {
         cta: "View",
       });
     }
+    if (dropoutRiskCount > 0) {
+      items.push({
+        id: "dropout-risk",
+        label: `${dropoutRiskCount} student${dropoutRiskCount > 1 ? "s" : ""} at risk of dropping out`,
+        icon: "priority_high",
+        priority: "urgent" as const,
+        href: "/dashboard/attendance",
+        cta: "Check",
+      });
+    }
+    if (atRiskStudents.length > 0) {
+      items.push({
+        id: "at-risk-academics",
+        label: `${atRiskStudents.length} student${atRiskStudents.length > 1 ? "s" : ""} with failing grades`,
+        icon: "school",
+        priority: "attention" as const,
+        href: "/dashboard/grades",
+        cta: "View",
+      });
+    }
     if (pendingLeave > 0) {
       items.push({
         id: "leave",
@@ -157,6 +179,8 @@ function HeadmasterDashboardContent() {
     classes.length,
     overdueFeeCount,
     lowAttendanceClasses,
+    atRiskStudents,
+    dropoutRiskCount,
     pendingLeave,
     pendingExpenses,
   ]);

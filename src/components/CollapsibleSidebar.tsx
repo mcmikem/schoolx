@@ -1,91 +1,90 @@
-'use client'
-import { useState, useEffect } from 'react'
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
-import MaterialIcon from '@/components/MaterialIcon'
-import { NavGroup } from '@/lib/navigation'
-import { cn } from '@/lib/utils'
+"use client";
+import { useState, useEffect, useMemo } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import MaterialIcon from "@/components/MaterialIcon";
+import { NavGroup, sortNavGroupsByPriority } from "@/lib/navigation";
+import { cn } from "@/lib/utils";
 
 interface CollapsibleSidebarProps {
-  groups: readonly NavGroup[]
-  onNavigate?: () => void
-  compact?: boolean
+  groups: readonly NavGroup[];
+  onNavigate?: () => void;
+  compact?: boolean;
 }
 
 export default function CollapsibleSidebar({ groups, onNavigate, compact = false }: CollapsibleSidebarProps) {
-  const pathname = usePathname()
-  const path = pathname ?? ''
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({})
-  const [query, setQuery] = useState('')
-  const [recentPages, setRecentPages] = useState<Array<{ href: string; label: string; icon: string }>>([])
+  const pathname = usePathname();
+  const path = pathname ?? "";
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  const [query, setQuery] = useState("");
+  const [recentPages, setRecentPages] = useState<Array<{ href: string; label: string; icon: string }>>([]);
+
+  const sortedGroups = useMemo(() => sortNavGroupsByPriority(groups), [groups]);
 
   useEffect(() => {
-    const initial: Record<string, boolean> = {}
-    groups.forEach((group) => {
-      const hasActive = group.items.some(item =>
-        item.href === '/dashboard'
-          ? path === '/dashboard'
-          : path === item.href || path.startsWith(item.href + '/')
-      )
-      initial[group.label] = hasActive || group.defaultOpen || false
-    })
-    setOpenGroups(initial)
-  }, [groups, path])
+    const initial: Record<string, boolean> = {};
+    sortedGroups.forEach((group) => {
+      const hasActive = group.items.some((item) =>
+        item.href === "/dashboard" ? path === "/dashboard" : path === item.href || path.startsWith(item.href + "/"),
+      );
+      initial[group.label] = hasActive || group.defaultOpen || false;
+    });
+    setOpenGroups(initial);
+  }, [sortedGroups, path]);
 
   const toggleGroup = (label: string) => {
-    setOpenGroups(prev => ({ ...prev, [label]: !prev[label] }))
-  }
+    setOpenGroups((prev) => ({ ...prev, [label]: !prev[label] }));
+  };
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem('assemble_recent_pages')
-      if (saved) setRecentPages(JSON.parse(saved))
+      const saved = localStorage.getItem("assemble_recent_pages");
+      if (saved) setRecentPages(JSON.parse(saved));
     } catch {
       // Ignore localStorage parsing issues
     }
-  }, [])
+  }, []);
 
-  const normalizedQuery = query.trim().toLowerCase()
+  const normalizedQuery = query.trim().toLowerCase();
 
   const filteredGroups = normalizedQuery
-    ? groups
-        .map(group => ({
+    ? sortedGroups
+        .map((group) => ({
           ...group,
-          items: group.items.filter(item =>
-            item.label.toLowerCase().includes(normalizedQuery) ||
-            group.label.toLowerCase().includes(normalizedQuery)
+          items: group.items.filter(
+            (item) =>
+              item.label.toLowerCase().includes(normalizedQuery) || group.label.toLowerCase().includes(normalizedQuery),
           ),
         }))
-        .filter(group => group.items.length > 0)
-    : groups
+        .filter((group) => group.items.length > 0)
+    : sortedGroups;
 
   // Find the single most-specific active href across ALL groups so that
   // e.g. /dashboard/analytics/dna doesn't also light up /dashboard and /dashboard/analytics
   // Special case: /dashboard must match exactly (never via startsWith) to avoid
   // lighting up on every dashboard sub-page.
-  const activeHref = groups
-    .flatMap(g => g.items)
-    .filter(item =>
-      item.href === '/dashboard'
-        ? path === '/dashboard'
-        : path === item.href || path.startsWith(item.href + '/')
-    )
-    .sort((a, b) => b.href.length - a.href.length)[0]?.href ?? null
+  const activeHref =
+    sortedGroups
+      .flatMap((g) => g.items)
+      .filter((item) =>
+        item.href === "/dashboard" ? path === "/dashboard" : path === item.href || path.startsWith(item.href + "/"),
+      )
+      .sort((a, b) => b.href.length - a.href.length)[0]?.href ?? null;
 
   const trackRecentPage = (href: string, label: string, icon: string) => {
-    const updated = [{ href, label, icon }, ...recentPages.filter(p => p.href !== href)].slice(0, 4)
-    setRecentPages(updated)
-    localStorage.setItem('skoolmate_recent_pages', JSON.stringify(updated))
-  }
+    const updated = [{ href, label, icon }, ...recentPages.filter((p) => p.href !== href)].slice(0, 4);
+    setRecentPages(updated);
+    localStorage.setItem("skoolmate_recent_pages", JSON.stringify(updated));
+  };
 
   if (compact) {
     return (
       <nav className="sidebar-nav overflow-y-auto flex-1 px-2 py-3" role="navigation" aria-label="Main navigation">
         <div className="space-y-2">
-          {groups.map((group) => {
-            const groupIcon = group.icon || group.items[0]?.icon || 'dashboard'
-            const groupHref = group.items[0]?.href || '/dashboard'
-            const hasActive = group.items.some(item => item.href === activeHref)
+          {sortedGroups.map((group) => {
+            const groupIcon = group.icon || group.items[0]?.icon || "dashboard";
+            const groupHref = group.items[0]?.href || "/dashboard";
+            const hasActive = group.items.some((item) => item.href === activeHref);
 
             return (
               <Link
@@ -93,28 +92,28 @@ export default function CollapsibleSidebar({ groups, onNavigate, compact = false
                 href={groupHref}
                 title={group.label}
                 onClick={() => {
-                  const firstItem = group.items[0]
+                  const firstItem = group.items[0];
                   if (firstItem) {
-                    trackRecentPage(firstItem.href, firstItem.label, firstItem.icon)
+                    trackRecentPage(firstItem.href, firstItem.label, firstItem.icon);
                   }
-                  onNavigate?.()
+                  onNavigate?.();
                 }}
                 className={cn(
                   "mx-auto flex h-11 w-11 items-center justify-center rounded-xl border transition-all",
                   hasActive
                     ? "border-[var(--primary)] bg-[var(--primary)] text-white shadow-[0_10px_20px_rgba(0,92,230,0.18)]"
-                    : "border-[var(--border)] bg-white text-[var(--t3)] hover:bg-[var(--surface-container-low)] hover:text-[var(--t2)]"
+                    : "border-[var(--border)] bg-white text-[var(--t3)] hover:bg-[var(--surface-container-low)] hover:text-[var(--t2)]",
                 )}
                 aria-label={group.label}
-                aria-current={hasActive ? 'page' : undefined}
+                aria-current={hasActive ? "page" : undefined}
               >
                 <MaterialIcon icon={groupIcon} className="text-[18px]" />
               </Link>
-            )
+            );
           })}
         </div>
       </nav>
-    )
+    );
   }
 
   return (
@@ -134,7 +133,9 @@ export default function CollapsibleSidebar({ groups, onNavigate, compact = false
 
       {recentPages.length > 0 && !normalizedQuery && (
         <div className="px-2 pb-2">
-          <div className="text-[10px] uppercase tracking-wider font-bold text-[var(--t4)] mb-1.5">Continue where you left off</div>
+          <div className="text-[10px] uppercase tracking-wider font-bold text-[var(--t4)] mb-1.5">
+            Continue where you left off
+          </div>
           <div className="space-y-1">
             {recentPages.map((item) => (
               <Link
@@ -154,8 +155,8 @@ export default function CollapsibleSidebar({ groups, onNavigate, compact = false
 
       <div className="space-y-1">
         {filteredGroups.map((group) => {
-          const isOpen = openGroups[group.label]
-          const hasActive = group.items.some(item => item.href === activeHref)
+          const isOpen = openGroups[group.label];
+          const hasActive = group.items.some((item) => item.href === activeHref);
 
           return (
             <div key={group.label} className="sidebar-group">
@@ -164,86 +165,90 @@ export default function CollapsibleSidebar({ groups, onNavigate, compact = false
                 title={group.label}
                 className={cn(
                   "flex items-center w-full px-3 py-2.5 text-[10px] font-extrabold uppercase tracking-widest transition-colors duration-150 outline-none rounded-lg",
-                  hasActive || isOpen ? "text-[var(--primary)]" : "text-[var(--t4)] hover:text-[var(--t2)] hover:bg-[var(--surface-container-low)]"
+                  hasActive || isOpen
+                    ? "text-[var(--primary)]"
+                    : "text-[var(--t4)] hover:text-[var(--t2)] hover:bg-[var(--surface-container-low)]",
                 )}
                 aria-expanded={isOpen}
               >
-                {group.icon && (
-                  <MaterialIcon icon={group.icon} className="text-[16px] mr-2" />
-                )}
+                {group.icon && <MaterialIcon icon={group.icon} className="text-[16px] mr-2" />}
                 <span className="flex-1 text-left">{group.label}</span>
-                <span className={cn(
-                  "material-symbols-outlined text-[16px] transition-transform duration-200",
-                  isOpen && "rotate-180"
-                )}>
+                <span
+                  className={cn(
+                    "material-symbols-outlined text-[16px] transition-transform duration-200",
+                    isOpen && "rotate-180",
+                  )}
+                >
                   expand_more
                 </span>
               </button>
-              
+
               {isOpen && (
                 <div className="mt-1 ml-2 space-y-1 border-l border-[var(--border)] pl-2.5">
                   {group.items.map((item) => {
-                    const isActive = item.href === activeHref
+                    const isActive = item.href === activeHref;
                     return (
                       <Link
                         key={item.href}
                         href={item.href}
                         title={item.label}
                         onClick={() => {
-                          trackRecentPage(item.href, item.label, item.icon)
-                          onNavigate?.()
+                          trackRecentPage(item.href, item.label, item.icon);
+                          onNavigate?.();
                         }}
                         className={cn(
                           "flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] transition-all min-h-[36px] group relative tap-effect",
-                          isActive 
-                            ? "bg-[var(--primary)] text-white font-semibold shadow-[0_10px_20px_rgba(0,92,230,0.18)]" 
-                            : "text-[var(--t2)] hover:bg-[var(--surface-container-low)] hover:text-[var(--t1)]"
+                          isActive
+                            ? "bg-[var(--primary)] text-white font-semibold shadow-[0_10px_20px_rgba(0,92,230,0.18)]"
+                            : "text-[var(--t2)] hover:bg-[var(--surface-container-low)] hover:text-[var(--t1)]",
                         )}
-                        aria-current={isActive ? 'page' : undefined}
+                        aria-current={isActive ? "page" : undefined}
                       >
-                        {isActive && (
-                           <div className="absolute left-0 w-1 h-4 bg-white rounded-r-full" />
-                        )}
-                        <MaterialIcon 
-                          icon={item.icon} 
+                        {isActive && <div className="absolute left-0 w-1 h-4 bg-white rounded-r-full" />}
+                        <MaterialIcon
+                          icon={item.icon}
                           className={cn(
                             "text-[17px]",
-                            isActive ? "text-white" : "text-[var(--t3)] group-hover:text-[var(--t2)]"
-                          )} 
+                            isActive ? "text-white" : "text-[var(--t3)] group-hover:text-[var(--t2)]",
+                          )}
                         />
                         <span className="flex-1 truncate">{item.label}</span>
                         {item.badge && (
-                          <span className={cn(
-                            "text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider",
-                            item.badge === 'New' 
-                              ? "bg-[var(--green-soft)] text-[var(--green)]" 
-                              : "bg-[var(--amber-soft)] text-[var(--amber)]"
-                          )}>
+                          <span
+                            className={cn(
+                              "text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider",
+                              item.badge === "New"
+                                ? "bg-[var(--green-soft)] text-[var(--green)]"
+                                : "bg-[var(--amber-soft)] text-[var(--amber)]",
+                            )}
+                          >
                             {item.badge}
                           </span>
                         )}
                       </Link>
-                    )
+                    );
                   })}
                 </div>
               )}
             </div>
-          )
+          );
         })}
         {filteredGroups.length === 0 && normalizedQuery && (
           <div className="px-3 py-3 text-[12px] text-[var(--t3)]">
             No results for “{query}”.
-            <Link href="/dashboard" onClick={onNavigate} className="block mt-2 text-[var(--navy)] no-underline font-semibold">
+            <Link
+              href="/dashboard"
+              onClick={onNavigate}
+              className="block mt-2 text-[var(--navy)] no-underline font-semibold"
+            >
               Go to dashboard home
             </Link>
           </div>
         )}
         {filteredGroups.length === 0 && !normalizedQuery && (
-          <div className="px-3 py-3 text-[12px] text-[var(--t3)]">
-            Preparing your navigation...
-          </div>
+          <div className="px-3 py-3 text-[12px] text-[var(--t3)]">Preparing your navigation...</div>
         )}
       </div>
     </nav>
-  )
+  );
 }
