@@ -13,6 +13,7 @@ import OwlMascot from "@/components/brand/OwlMascot";
 import SchoolCalendar from "@/components/dashboard/SchoolCalendar";
 import TaskManager from "@/components/dashboard/TaskManager";
 import CollapsibleSection from "@/components/ui/CollapsibleSection";
+import SetupChecklist from "@/components/onboarding/SetupChecklist";
 
 function HeadmasterDashboardContent() {
   const { school, user } = useAuth();
@@ -222,6 +223,9 @@ function HeadmasterDashboardContent() {
         </div>
       ) : (
         <>
+          <div className="mb-5">
+            <SetupChecklist autoHide />
+          </div>
           <SchoolHero
             school={school}
             greeting={greeting}

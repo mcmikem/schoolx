@@ -82,6 +82,9 @@ next-env.d.ts
 tsconfig.tsbuildinfo
 .env*.local
 
+# Test coverage output
+coverage/
+
 # Large binary assets / design moodboards (not part of the app)
 behance_img_*
 public/downloads/*.apk

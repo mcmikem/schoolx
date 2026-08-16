@@ -1,14 +1,14 @@
 "use client";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card as UICard } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
-import { TableSkeleton } from "@/components/ui/Skeleton";
-import { EmptyState } from "@/components/EmptyState";
+import { parseDelimitedText, parseStudentRows, type ValidatedStudentRow } from "@/lib/import/students";
+import { logger } from "@/lib/logger";
 
 interface ImportResult {
   success: number;
@@ -16,72 +16,117 @@ interface ImportResult {
   errors: string[];
 }
 
+type AddMethod = "upload" | "paste" | "sheets";
+
+function formatCell(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  if (value instanceof Date) return value.toISOString().split("T")[0];
+  return String(value);
+}
+
 export default function ImportPage() {
   const { user } = useAuth();
   const toast = useToast();
 
-  const [activeTab, setActiveTab] = useState<"students" | "fees" | "grades" | "ai_paste" | "magic">("students");
-
-  const [file, setFile] = useState<File | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [method, setMethod] = useState<AddMethod>("upload");
+  const [fileName, setFileName] = useState<string>("");
 
   const [rawText, setRawText] = useState("");
+  const [sheetsUrl, setSheetsUrl] = useState("");
   const [analyzing, setAnalyzing] = useState(false);
+  const [sheetsLoading, setSheetsLoading] = useState(false);
 
-  const [preview, setPreview] = useState<any[]>([]);
-  const [mappedData, setMappedData] = useState<any[]>([]);
+  const [validatedRows, setValidatedRows] = useState<ValidatedStudentRow[]>([]);
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const validCount = validatedRows.filter((r) => r.isValid).length;
+  const invalidCount = validatedRows.length - validCount;
+
+  const startPreview = useCallback(
+    (rawRows: Array<Record<string, unknown>>) => {
+      const parsed = parseStudentRows(rawRows);
+      if (parsed.length === 0) {
+        toast.error("No student rows found. Check that the first row has column headers.");
+        return;
+      }
+      setValidatedRows(parsed);
+      setResult(null);
+    },
+    [toast],
+  );
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (!selectedFile) return;
 
-    setFile(selectedFile);
+    setFileName(selectedFile.name);
     setResult(null);
-    setRawText("");
+    setValidatedRows([]);
+
+    const extension = selectedFile.name.split(".").pop()?.toLowerCase() || "";
 
     try {
-      const ExcelJS = (await import("exceljs")).default;
-      const arrayBuffer = await selectedFile.arrayBuffer();
-      const workbook = new ExcelJS.Workbook();
-      await workbook.xlsx.load(arrayBuffer);
-      const worksheet = workbook.worksheets[0];
-      if (!worksheet) throw new Error("No worksheet found");
-
-      const headers: string[] = [];
-      const allStudents: any[] = [];
-      worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
-        if (rowNumber === 1) {
-          row.eachCell({ includeEmpty: false }, (cell, colNumber) => {
-            headers[colNumber - 1] = String(cell.value);
-          });
-        } else {
-          const obj: any = {};
-          row.eachCell({ includeEmpty: false }, (cell, colNumber) => {
-            obj[headers[colNumber - 1]] = cell.value;
-          });
-          allStudents.push(obj);
+      if (extension === "docx") {
+        const mammoth = (await import("mammoth")).default;
+        const arrayBuffer = await selectedFile.arrayBuffer();
+        const { value: text } = await mammoth.extractRawText({ arrayBuffer });
+        if (!text.trim()) {
+          toast.error("That Word document appears to be empty");
+          return;
         }
-      });
+        const rows = parseDelimitedText(text);
+        if (rows.length === 0) {
+          setRawText(text);
+          setMethod("paste");
+          toast.info("No table detected — pasted the document text so AI can read it");
+          return;
+        }
+        startPreview(rows);
+      } else if (extension === "xlsx" || extension === "xls") {
+        const ExcelJS = (await import("exceljs")).default;
+        const arrayBuffer = await selectedFile.arrayBuffer();
+        const workbook = new ExcelJS.Workbook();
+        await workbook.xlsx.load(arrayBuffer);
+        const worksheet = workbook.worksheets[0];
+        if (!worksheet) throw new Error("No worksheet found");
 
-      const mapped = allStudents.map((row: any) => ({
-        first_name: row["First Name"] || row["first_name"] || "",
-        last_name: row["Last Name"] || row["last_name"] || "",
-        gender: row["Gender"] || row["gender"] || "",
-        date_of_birth: row["Date of Birth"] || row["date_of_birth"] || row["DOB"] || "",
-        parent_name: row["Parent Name"] || row["parent_name"] || row["Parent/Guardian Name"] || "",
-        parent_phone: row["Parent Phone"] || row["parent_phone"] || row["Phone"] || "",
-        parent_phone2: row["Parent Phone 2"] || row["parent_phone2"] || row["Phone 2"] || "",
-        class_name: row["Class"] || row["class_name"] || "",
-        student_number: row["Student Number"] || row["student_number"] || row["ID"] || "",
-        ple_index_number: row["PLE Index"] || row["ple_index_number"] || row["PLE"] || "",
-      }));
-
-      setMappedData(mapped);
-      setPreview(mapped.slice(0, 10));
+        const headers: string[] = [];
+        const rawRows: Array<Record<string, unknown>> = [];
+        worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+          if (rowNumber === 1) {
+            row.eachCell({ includeEmpty: false }, (cell, colNumber) => {
+              headers[colNumber - 1] = String(cell.value ?? "");
+            });
+          } else {
+            const obj: Record<string, unknown> = {};
+            row.eachCell({ includeEmpty: false }, (cell, colNumber) => {
+              obj[headers[colNumber - 1]] = formatCell(cell.value);
+            });
+            if (Object.keys(obj).length > 0) rawRows.push(obj);
+          }
+        });
+        startPreview(rawRows);
+      } else if (extension === "csv" || extension === "txt") {
+        const text = await selectedFile.text();
+        const rows = parseDelimitedText(text);
+        if (rows.length === 0) {
+          setRawText(text);
+          setMethod("paste");
+          toast.info("Could not find a table — pasted the text so AI can read it");
+          return;
+        }
+        startPreview(rows);
+      } else {
+        toast.error("Unsupported file type. Use Word (.docx), Excel (.xlsx/.xls) or CSV.");
+      }
     } catch (err) {
-      toast.error("Failed to read file");
+      logger.warn("readFile failed:", err);
+      toast.error("Failed to read that file. Try a different one.");
+    } finally {
+      e.target.value = "";
     }
   };
 
@@ -90,28 +135,24 @@ export default function ImportPage() {
       toast.error("Please paste some text first");
       return;
     }
-
     setAnalyzing(true);
     setResult(null);
-    setFile(null);
-
     try {
       const response = await fetch("/api/parse-import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ rawText }),
       });
-
       const data = await response.json();
-
       if (!response.ok) {
         throw new Error(data.error || "Failed to parse text");
       }
-
       const students = data.data?.students || [];
-      setMappedData(students);
-      setPreview(students.slice(0, 10));
-      toast.success(`Successfully extracted ${students.length} students`);
+      if (students.length === 0) {
+        throw new Error("No students were found in that text");
+      }
+      startPreview(students);
+      toast.success(`Found ${students.length} students`);
     } catch (error: any) {
       toast.error(error.message || "Analysis failed");
     } finally {
@@ -119,308 +160,346 @@ export default function ImportPage() {
     }
   };
 
-  const handleImport = async () => {
-    if (mappedData.length === 0) return;
+  const handleSheetsImport = async () => {
+    if (!sheetsUrl.trim()) {
+      toast.error("Please paste a Google Sheets URL");
+      return;
+    }
+    setSheetsLoading(true);
+    setResult(null);
+    try {
+      const response = await fetch("/api/import-sheets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: sheetsUrl }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to import sheet");
+      }
+      startPreview(data.data?.rows || []);
+      toast.success("Sheet loaded successfully");
+    } catch (error: any) {
+      toast.error(error.message || "Sheet import failed");
+    } finally {
+      setSheetsLoading(false);
+    }
+  };
 
+  const handleImport = async () => {
+    if (validCount === 0) return;
     setImporting(true);
     try {
       if (!user?.school_id) {
         throw new Error("No school associated with your account");
       }
-
+      const students = validatedRows.filter((r) => r.isValid).map((r) => r.data);
       const response = await fetch("/api/import", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          students: mappedData,
-          schoolId: user.school_id,
-        }),
+        body: JSON.stringify({ students, schoolId: user.school_id }),
       });
-
       const importResult = await response.json();
+      if (!response.ok) {
+        throw new Error(importResult.error || "Import failed");
+      }
       setResult(importResult);
-
       if (importResult.success > 0) {
         toast.success(`Imported ${importResult.success} students`);
       }
     } catch (error: any) {
-      setResult({ success: 0, failed: 0, errors: [error.message] });
+      setResult({ success: 0, failed: validCount, errors: [error.message] });
       toast.error(error.message || "Import failed");
     } finally {
       setImporting(false);
     }
   };
 
-  const downloadTemplate = async () => {
-    const ExcelJS = (await import("exceljs")).default;
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet("Students");
-    worksheet.columns = [
-      { header: "First Name", key: "firstName", width: 15 },
-      { header: "Last Name", key: "lastName", width: 15 },
-      { header: "Gender", key: "gender", width: 10 },
-      { header: "Date of Birth", key: "dob", width: 15 },
-      { header: "Parent Name", key: "parentName", width: 20 },
-      { header: "Parent Phone", key: "parentPhone", width: 15 },
-      { header: "Parent Phone 2", key: "parentPhone2", width: 15 },
-      { header: "Class", key: "class", width: 10 },
-      { header: "Student Number", key: "studentNumber", width: 15 },
-      { header: "PLE Index", key: "pleIndex", width: 15 },
-    ];
-    worksheet.addRow({
-      firstName: "Sarah",
-      lastName: "Nakato",
-      gender: "F",
-      dob: "2015-03-15",
-      parentName: "James Nakato",
-      parentPhone: "0701234567",
-      parentPhone2: "0702345678",
-      class: "P.5",
-      studentNumber: "",
-      pleIndex: "",
-    });
-
-    const buffer = await workbook.xlsx.writeBuffer();
-    const blob = new Blob([buffer], {
-      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "SkoolMateOS_Student_Template.xlsx";
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success("Template downloaded");
+  const downloadTemplate = async (format: "xlsx" | "docx") => {
+    try {
+      if (format === "xlsx") {
+        const ExcelJS = (await import("exceljs")).default;
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet("Students");
+        worksheet.columns = [
+          { header: "First Name", key: "firstName", width: 15 },
+          { header: "Last Name", key: "lastName", width: 15 },
+          { header: "Gender", key: "gender", width: 10 },
+          { header: "Date of Birth", key: "dob", width: 15 },
+          { header: "Class", key: "class", width: 10 },
+          { header: "Parent Name", key: "parentName", width: 20 },
+          { header: "Parent Phone", key: "parentPhone", width: 15 },
+          { header: "Student Number", key: "studentNumber", width: 15 },
+        ];
+        worksheet.addRow({
+          firstName: "Sarah",
+          lastName: "Nakato",
+          gender: "F",
+          dob: "2015-03-15",
+          class: "P.5",
+          parentName: "James Nakato",
+          parentPhone: "0701234567",
+          studentNumber: "",
+        });
+        worksheet.addRow({
+          firstName: "John",
+          lastName: "Mukasa",
+          gender: "M",
+          dob: "2014-06-20",
+          class: "P.5",
+          parentName: "Betty Mukasa",
+          parentPhone: "0702345678",
+          studentNumber: "",
+        });
+        const buffer = await workbook.xlsx.writeBuffer();
+        const blob = new Blob([buffer], {
+          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "SkoolMateOS_Student_Template.xlsx";
+        a.click();
+        URL.revokeObjectURL(url);
+      } else {
+        const response = await fetch("/api/import-template", { method: "GET" });
+        if (!response.ok) {
+          const body = await response.json().catch(() => null);
+          throw new Error(body?.error || "Template download failed");
+        }
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "SkoolMateOS_Student_Template.docx";
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+      toast.success("Template downloaded");
+    } catch (err: any) {
+      toast.error(err.message || "Template download failed");
+    }
   };
+
+  const reset = () => {
+    setValidatedRows([]);
+    setResult(null);
+    setFileName("");
+    setRawText("");
+    setSheetsUrl("");
+  };
+
+  const methodCard = (m: AddMethod, icon: string, title: string, description: string) => (
+    <button
+      onClick={() => {
+        setMethod(m);
+        reset();
+      }}
+      className={`flex flex-col items-center gap-2 p-5 rounded-2xl border-2 text-center transition-all cursor-pointer ${
+        method === m
+          ? "border-[var(--primary)] bg-[var(--primary-soft)] shadow-sm"
+          : "border-[var(--border)] bg-[var(--surface)] hover:border-[var(--primary)]/50"
+      }`}
+    >
+      <div className="w-12 h-12 rounded-xl bg-[var(--navy-soft)] flex items-center justify-center">
+        <MaterialIcon icon={icon} className="text-2xl text-[var(--primary)]" />
+      </div>
+      <span className="font-semibold text-sm text-[var(--on-surface)]">{title}</span>
+      <span className="text-xs text-[var(--t3)]">{description}</span>
+    </button>
+  );
 
   return (
     <PageErrorBoundary>
       <div className="p-4 sm:p-6 lg:p-8 max-w-5xl mx-auto">
-        <PageHeader title="Import Students" subtitle="Add students using AI smart paste or file upload" />
+        <PageHeader
+          title="Import Students"
+          subtitle="Add students without typing — upload a Word or Excel file, paste a list, or link Google Sheets."
+        />
 
-        <UICard className="mb-6 p-2 overflow-x-auto">
-          <div className="flex gap-2 min-w-max">
-            <button
-              onClick={() => {
-                setActiveTab("students");
-                setPreview([]);
-                setMappedData([]);
-              }}
-              className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-medium transition-all ${
-                activeTab === "students"
-                  ? "bg-[var(--primary)] text-[var(--on-primary)] shadow-md"
-                  : "text-[var(--t3)] hover:bg-[var(--surface-container)]"
-              }`}
-            >
-              <MaterialIcon icon="group" className="text-lg" />
-              Students
-            </button>
-            <button
-              onClick={() => {
-                setActiveTab("fees");
-                setPreview([]);
-                setMappedData([]);
-              }}
-              className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-medium transition-all ${
-                activeTab === "fees"
-                  ? "bg-[var(--primary)] text-[var(--on-primary)] shadow-md"
-                  : "text-[var(--t3)] hover:bg-[var(--surface-container)]"
-              }`}
-            >
-              <MaterialIcon icon="payments" className="text-lg" />
-              Fee Balances
-            </button>
-            <button
-              onClick={() => {
-                setActiveTab("grades");
-                setPreview([]);
-                setMappedData([]);
-              }}
-              className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-medium transition-all ${
-                activeTab === "grades"
-                  ? "bg-[var(--primary)] text-[var(--on-primary)] shadow-md"
-                  : "text-[var(--t3)] hover:bg-[var(--surface-container)]"
-              }`}
-            >
-              <MaterialIcon icon="menu_book" className="text-lg" />
-              Grades
-            </button>
-            <button
-              onClick={() => {
-                setActiveTab("ai_paste");
-                setPreview([]);
-                setMappedData([]);
-              }}
-              className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-medium transition-all ${
-                activeTab === "ai_paste"
-                  ? "bg-[var(--primary)] text-[var(--on-primary)] shadow-md"
-                  : "text-[var(--t3)] hover:bg-[var(--surface-container)]"
-              }`}
-            >
-              <MaterialIcon icon="smart_toy" className="text-lg" />
-              AI Smart Paste
-            </button>
-            <button
-              onClick={() => {
-                setActiveTab("magic");
-                setPreview([]);
-                setMappedData([]);
-              }}
-              className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-medium transition-all ${
-                activeTab === "magic"
-                  ? "bg-[var(--primary)] text-[var(--on-primary)] shadow-md"
-                  : "text-[var(--t3)] hover:bg-[var(--surface-container)]"
-              }`}
-            >
-              <MaterialIcon icon="auto_awesome" className="text-lg" />
-              Magic Photo (AI)
-            </button>
-          </div>
-        </UICard>
-
-        {activeTab === "magic" && (
-          <UICard className="p-8 text-center border-dashed border-2 border-[var(--primary)] bg-[var(--surface-container-low)] mb-6">
-            <div className="max-w-md mx-auto">
-              <div className="w-20 h-20 rounded-full bg-[var(--primary-soft)] flex items-center justify-center mx-auto mb-6">
-                <MaterialIcon icon="auto_awesome" className="text-4xl text-[var(--primary)] animate-pulse" />
-              </div>
-              <h3 className="text-xl font-bold text-[var(--t1)] mb-2">Magic Student Upload</h3>
-              <p className="text-sm text-[var(--t3)] mb-8">
-                No time to type? Take a clear photo of your handwritten student register. Our AI will read the names and
-                clean them up for you.
+        {validatedRows.length === 0 && result === null && (
+          <>
+            <UICard className="mb-6 p-6">
+              <h2 className="font-semibold text-[var(--on-surface)] mb-1">Step 1 — Get a template (optional)</h2>
+              <p className="text-sm text-[var(--t3)] mb-4">
+                Already have a student list? Skip this and go to Step 2. Otherwise download a template to fill in.
               </p>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Button variant="secondary" className="h-16 flex flex-col gap-1 items-center justify-center">
-                  <MaterialIcon icon="photo_camera" />
-                  <span className="text-xs">Take Photo</span>
-                </Button>
-                <Button variant="secondary" className="h-16 flex flex-col gap-1 items-center justify-center">
-                  <MaterialIcon icon="image" />
-                  <span className="text-xs">Choose Gallery</span>
-                </Button>
-              </div>
-
-              <div className="mt-8 p-4 bg-[var(--surface)] rounded-xl border border-[var(--border)] text-left">
-                <div className="flex items-center gap-2 mb-2">
-                  <MaterialIcon icon="info" className="text-blue-500 text-sm" />
-                  <span className="text-xs font-bold text-[var(--t2)] lowercase">How it works:</span>
-                </div>
-                <ul className="text-[11px] text-[var(--t4)] space-y-1.5 list-disc pl-4">
-                  <li>AI will fix typos like &quot;mUKASA jOHN&quot; to &quot;John Mukasa&quot;.</li>
-                  <li>It detects genders and classes from headers automatically.</li>
-                  <li>Works best with clear daylight photos of handwritten lists.</li>
-                </ul>
-              </div>
-            </div>
-          </UICard>
-        )}
-
-        {activeTab === "ai_paste" ? (
-          <UICard className="mb-6 p-6">
-            <div className="mb-4">
-              <h2 className="font-semibold text-[var(--on-surface)] flex items-center gap-2">
-                <MaterialIcon icon="auto_awesome" className="text-[var(--primary)]" />
-                Paste Data Automatically
-              </h2>
-              <p className="text-sm text-[var(--t3)] mt-1">
-                Copied a messy table from Excel, Word, or an email? Paste it here and our AI will automatically
-                structure it into valid student records.
-              </p>
-            </div>
-            <textarea
-              value={rawText}
-              onChange={(e) => setRawText(e.target.value)}
-              className="w-full h-48 p-4 bg-[var(--surface-container)] border border-[var(--border)] rounded-xl focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] outline-none resize-none mb-4"
-              placeholder="John Doe M P.3 0701234567\nJane Smith Female S.4 0771234567..."
-            />
-            <Button onClick={handleAIAnalysis} disabled={analyzing || !rawText.trim()} loading={analyzing}>
-              <MaterialIcon icon="psychology" className="text-lg" />
-              {analyzing ? "Analyzing with AI..." : "Analyze Data"}
-            </Button>
-          </UICard>
-        ) : (
-          <div className="space-y-6">
-            <UICard className="p-6">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <h2 className="font-semibold text-[var(--on-surface)]">Download Template</h2>
-                  <p className="text-sm text-[var(--t3)] mt-1">
-                    Use our template for best results when importing students
-                  </p>
-                </div>
-                <Button onClick={downloadTemplate} variant="secondary">
+              <div className="flex flex-wrap gap-3">
+                <Button onClick={() => downloadTemplate("xlsx")} variant="secondary">
                   <MaterialIcon icon="download" className="text-lg" />
-                  Template
+                  Excel Template
+                </Button>
+                <Button onClick={() => downloadTemplate("docx")} variant="secondary">
+                  <MaterialIcon icon="download" className="text-lg" />
+                  Word Template
                 </Button>
               </div>
             </UICard>
 
-            <div
-              onClick={() => fileInputRef.current?.click()}
-              className="bg-[var(--surface)] rounded-xl border-2 border-dashed border-[var(--border)] hover:border-[var(--primary)] cursor-pointer transition-all p-8 text-center"
-            >
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".xlsx,.xls,.csv"
-                onChange={handleFileSelect}
-                className="hidden"
-              />
-              <div className="w-16 h-16 bg-[var(--navy-soft)] rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <MaterialIcon icon="upload_file" className="text-3xl text-[var(--primary)]" />
+            <UICard className="mb-6 p-6">
+              <h2 className="font-semibold text-[var(--on-surface)] mb-1">Step 2 — Add your students</h2>
+              <p className="text-sm text-[var(--t3)] mb-4">Choose the way that works best for you.</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                {methodCard("upload", "upload_file", "Upload a file", "Word, Excel or CSV")}
+                {methodCard("paste", "smart_toy", "Paste a list", "AI reads messy text for you")}
+                {methodCard("sheets", "table_chart", "Google Sheets", "Paste a shared link")}
               </div>
-              <p className="text-[var(--on-surface)] font-medium mb-2">
-                {file ? file.name : "Click to upload or drag and drop"}
-              </p>
-              <p className="text-sm text-[var(--t3)]">Excel or CSV file</p>
-            </div>
-          </div>
+
+              <div className="mt-6">
+                {method === "upload" && (
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="bg-[var(--surface)] rounded-xl border-2 border-dashed border-[var(--border)] hover:border-[var(--primary)] cursor-pointer transition-all p-8 text-center"
+                  >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept=".xlsx,.xls,.csv,.docx,.txt"
+                      onChange={handleFileSelect}
+                      className="hidden"
+                    />
+                    <div className="w-16 h-16 bg-[var(--navy-soft)] rounded-2xl flex items-center justify-center mx-auto mb-4">
+                      <MaterialIcon icon="upload_file" className="text-3xl text-[var(--primary)]" />
+                    </div>
+                    <p className="text-[var(--on-surface)] font-medium mb-2">
+                      {fileName || "Click to upload or drag and drop"}
+                    </p>
+                    <p className="text-sm text-[var(--t3)]">Word (.docx) · Excel (.xlsx, .xls) · CSV · Text</p>
+                  </div>
+                )}
+
+                {method === "paste" && (
+                  <div>
+                    <p className="text-sm text-[var(--t3)] mb-3">
+                      Copied a list from Word, an email, or an old spreadsheet? Paste it here and the AI will turn it
+                      into students.
+                    </p>
+                    <textarea
+                      value={rawText}
+                      onChange={(e) => setRawText(e.target.value)}
+                      className="w-full h-44 p-4 bg-[var(--surface-container)] border border-[var(--border)] rounded-xl focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] outline-none resize-none mb-4"
+                      placeholder={"Example:\nJohn Mukasa  M  P.5  0701234567\nSarah Nakato  F  P.4  0702345678"}
+                    />
+                    <Button onClick={handleAIAnalysis} disabled={analyzing || !rawText.trim()} loading={analyzing}>
+                      <MaterialIcon icon="psychology" className="text-lg" />
+                      {analyzing ? "Reading with AI..." : "Read my list"}
+                    </Button>
+                  </div>
+                )}
+
+                {method === "sheets" && (
+                  <div>
+                    <p className="text-sm text-[var(--t3)] mb-3">
+                      Share your Google Sheet with "Anyone with the link can view", then paste its link here.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <input
+                        type="url"
+                        placeholder="https://docs.google.com/spreadsheets/d/..."
+                        value={sheetsUrl}
+                        onChange={(e) => setSheetsUrl(e.target.value)}
+                        className="flex-1 px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]"
+                      />
+                      <Button
+                        onClick={handleSheetsImport}
+                        disabled={sheetsLoading || !sheetsUrl.trim()}
+                        loading={sheetsLoading}
+                      >
+                        <MaterialIcon icon="table_chart" className="text-lg" />
+                        {sheetsLoading ? "Loading..." : "Load Sheet"}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </UICard>
+          </>
         )}
 
-        {preview.length > 0 && (
-          <UICard className="mb-6 mt-6 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-semibold text-[var(--on-surface)]">Review Data Preview</h2>
-              <span className="px-3 py-1 bg-[var(--navy-soft)] text-[var(--navy)] text-sm font-medium rounded-lg">
-                {mappedData.length} records ready
-              </span>
+        {validatedRows.length > 0 && result === null && (
+          <UICard className="mb-6 p-6">
+            <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center mb-4">
+              <div>
+                <h2 className="font-semibold text-[var(--on-surface)]">Review your students</h2>
+                <p className="text-sm text-[var(--t3)] mt-1">
+                  <strong className="text-[var(--on-surface)]">{validCount}</strong> ready
+                  {invalidCount > 0 && (
+                    <>
+                      {" "}
+                      · <strong className="text-[var(--red)]">{invalidCount} need fixing</strong> (will be skipped)
+                    </>
+                  )}
+                </p>
+              </div>
+              <Button variant="ghost" onClick={reset}>
+                <MaterialIcon icon="arrow_back" className="text-lg" />
+                Start over
+              </Button>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full">
+
+            <div className="overflow-x-auto rounded-xl border border-[var(--border)]">
+              <table className="w-full text-sm">
                 <thead className="bg-[var(--surface-container)]">
                   <tr>
-                    <th className="text-left p-3 text-sm font-semibold text-[var(--on-surface)]">First Name</th>
-                    <th className="text-left p-3 text-sm font-semibold text-[var(--on-surface)]">Last Name</th>
+                    <th className="text-left p-3 text-sm font-semibold text-[var(--on-surface)]">Name</th>
                     <th className="text-left p-3 text-sm font-semibold text-[var(--on-surface)]">Gender</th>
                     <th className="text-left p-3 text-sm font-semibold text-[var(--on-surface)]">Class</th>
                     <th className="text-left p-3 text-sm font-semibold text-[var(--on-surface)]">Parent Phone</th>
+                    <th className="text-left p-3 text-sm font-semibold text-[var(--on-surface)]">Status</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {preview.map((row: any, i) => (
-                    <tr key={i} className="border-t border-[var(--border)]">
-                      <td className="p-3 font-medium text-[var(--on-surface)]">{row.first_name || ""}</td>
-                      <td className="p-3 font-medium text-[var(--on-surface)]">{row.last_name || ""}</td>
-                      <td className="p-3 text-[var(--t3)]">{row.gender || ""}</td>
-                      <td className="p-3 text-[var(--t3)] font-medium">{row.class_name || ""}</td>
-                      <td className="p-3 text-[var(--t3)]">{row.parent_phone || ""}</td>
+                  {validatedRows.slice(0, 50).map((row, i) => (
+                    <tr
+                      key={i}
+                      className={`border-t border-[var(--border)] ${row.isValid ? "" : "bg-[var(--red-soft)]/40"}`}
+                    >
+                      <td className="p-3 font-medium text-[var(--on-surface)]">
+                        {row.data.first_name} {row.data.last_name || ""}
+                      </td>
+                      <td className="p-3 text-[var(--t3)]">{row.data.gender}</td>
+                      <td className="p-3 text-[var(--t3)]">{row.data.class_name || "—"}</td>
+                      <td className="p-3 text-[var(--t3)]">{row.data.parent_phone || "—"}</td>
+                      <td className="p-3">
+                        {row.isValid ? (
+                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100">
+                            <MaterialIcon icon="check_circle" className="text-sm" /> Ready
+                          </span>
+                        ) : (
+                          <span className="inline-flex flex-wrap gap-1">
+                            {row.errors.map((err, errIdx) => (
+                              <span
+                                key={errIdx}
+                                className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide text-[var(--red)] bg-[var(--red-soft)] border border-[var(--red)]/20"
+                              >
+                                {err}
+                              </span>
+                            ))}
+                          </span>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              {validatedRows.length > 50 && (
+                <p className="p-3 text-sm text-[var(--t3)] italic border-t border-[var(--border)]">
+                  ... plus {validatedRows.length - 50} more rows
+                </p>
+              )}
             </div>
-            <p className="text-sm text-[var(--t3)] mt-4">
-              Showing first {preview.length} of {mappedData.length} rows to import.
-            </p>
-          </UICard>
-        )}
 
-        {mappedData.length > 0 && (
-          <Button onClick={handleImport} disabled={importing} loading={importing} className="w-full mb-6" size="lg">
-            <MaterialIcon icon="database" className="text-xl" />
-            {importing ? "Saving to Database..." : `Confirm & Import ${mappedData.length} Students`}
-          </Button>
+            <Button
+              onClick={handleImport}
+              disabled={importing || validCount === 0}
+              loading={importing}
+              size="lg"
+              className="w-full mt-6"
+            >
+              <MaterialIcon icon="database" className="text-xl" />
+              {importing ? "Saving to Database..." : `Confirm & Import ${validCount} Students`}
+            </Button>
+          </UICard>
         )}
 
         {result && (
@@ -429,23 +508,27 @@ export default function ImportPage() {
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div className="text-center p-4 bg-[var(--green-soft)] rounded-xl">
                 <div className="text-2xl font-bold text-[var(--green)]">{result.success}</div>
-                <div className="text-sm text-[var(--t3)]">Successful Inserts</div>
+                <div className="text-sm text-[var(--t3)]">Successful</div>
               </div>
               <div className="text-center p-4 bg-[var(--red-soft)] rounded-xl">
                 <div className="text-2xl font-bold text-[var(--red)]">{result.failed}</div>
-                <div className="text-sm text-[var(--t3)]">Failed Inserts</div>
+                <div className="text-sm text-[var(--t3)]">Failed</div>
               </div>
             </div>
             {result.errors.length > 0 && (
-              <div className="p-4 bg-[var(--red-soft)] rounded-xl">
-                <p className="text-sm font-medium text-[var(--red)] mb-2">Errors details (check class names exist):</p>
+              <div className="p-4 bg-[var(--red-soft)] rounded-xl mb-4">
+                <p className="text-sm font-medium text-[var(--red)] mb-2">Errors:</p>
                 <ul className="text-sm text-[var(--t3)] space-y-1 max-h-40 overflow-y-auto">
-                  {result.errors.map((err, i) => (
+                  {result.errors.slice(0, 20).map((err, i) => (
                     <li key={i}>{err}</li>
                   ))}
                 </ul>
               </div>
             )}
+            <Button variant="secondary" onClick={reset} className="w-full">
+              <MaterialIcon icon="add" className="text-lg" />
+              Import more students
+            </Button>
           </UICard>
         )}
       </div>

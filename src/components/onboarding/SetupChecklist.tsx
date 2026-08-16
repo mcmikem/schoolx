@@ -19,9 +19,10 @@ interface ChecklistItem {
 interface Props {
   onComplete?: (key: string) => void;
   showAll?: boolean;
+  autoHide?: boolean;
 }
 
-export default function SetupChecklist({ onComplete, showAll = false }: Props) {
+export default function SetupChecklist({ onComplete, showAll = false, autoHide = false }: Props) {
   const router = useRouter();
   const { school, user } = useAuth();
   const [items, setItems] = useState<ChecklistItem[]>([]);
@@ -29,6 +30,17 @@ export default function SetupChecklist({ onComplete, showAll = false }: Props) {
 
   const fetchChecklist = useCallback(async () => {
     if (!school?.id) return;
+    try {
+      const res = await fetch("/api/setup-progress", { method: "GET" });
+      const body = await res.json();
+      if (res.ok && body.success && Array.isArray(body.data?.items)) {
+        setItems(body.data.items);
+        setLoading(false);
+        return;
+      }
+    } catch {
+      // fall through to direct Supabase fetch below
+    }
     const { data, error } = await supabase
       .from("setup_checklist")
       .select("*")
@@ -50,12 +62,10 @@ export default function SetupChecklist({ onComplete, showAll = false }: Props) {
           { item_key: "grading_config", item_label: "Grading System" },
         ];
 
-        const { error: createError } = await supabase
-          .from("setup_checklist")
-          .upsert(
-            defaultItems.map((item) => ({ ...item, school_id: school.id })),
-            { onConflict: "school_id,item_key" },
-          );
+        const { error: createError } = await supabase.from("setup_checklist").upsert(
+          defaultItems.map((item) => ({ ...item, school_id: school.id })),
+          { onConflict: "school_id,item_key" },
+        );
 
         if (!createError) {
           const { data: refreshed } = await supabase
@@ -101,11 +111,7 @@ export default function SetupChecklist({ onComplete, showAll = false }: Props) {
 
     if (!error) {
       setItems(
-        items.map((item) =>
-          item.id === id
-            ? { ...item, skipped: true, skipped_at: new Date().toISOString() }
-            : item,
-        ),
+        items.map((item) => (item.id === id ? { ...item, skipped: true, skipped_at: new Date().toISOString() } : item)),
       );
     }
   };
@@ -142,33 +148,25 @@ export default function SetupChecklist({ onComplete, showAll = false }: Props) {
     fetchChecklist();
   }, [fetchChecklist]);
 
-  const incompleteItems = items.filter(
-    (item) => !item.is_completed && !item.skipped,
-  );
+  const incompleteItems = items.filter((item) => !item.is_completed && !item.skipped);
   const completedCount = items.filter((item) => item.is_completed).length;
-  const progress =
-    items.length > 0 ? Math.round((completedCount / items.length) * 100) : 0;
+  const progress = items.length > 0 ? Math.round((completedCount / items.length) * 100) : 0;
 
-  if (loading)
-    return (
-      <div className="p-4 text-center text-slate-500">Loading checklist...</div>
-    );
+  if (loading) return <div className="p-4 text-center text-slate-500">Loading checklist...</div>;
+
+  if (autoHide && progress === 100) return null;
 
   return (
     <Card>
       <CardBody>
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h3 className="text-lg font-semibold text-[var(--on-surface)]">
-              School Setup Checklist
-            </h3>
+            <h3 className="text-lg font-semibold text-[var(--on-surface)]">School Setup Checklist</h3>
             <p className="text-sm text-[var(--t3)]">
               {completedCount} of {items.length} completed
             </p>
           </div>
-          <div className="text-3xl font-bold text-[var(--primary)]">
-            {progress}%
-          </div>
+          <div className="text-3xl font-bold text-[var(--primary)]">{progress}%</div>
         </div>
 
         {/* Progress Bar */}
@@ -195,22 +193,12 @@ export default function SetupChecklist({ onComplete, showAll = false }: Props) {
               <div className="flex items-center gap-3">
                 <div
                   className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                    item.is_completed
-                      ? "bg-green-100"
-                      : "bg-[var(--primary-soft)]"
+                    item.is_completed ? "bg-green-100" : "bg-[var(--primary-soft)]"
                   }`}
                 >
                   <MaterialIcon
-                    icon={
-                      item.is_completed
-                        ? "check_circle"
-                        : getItemIcon(item.item_key)
-                    }
-                    className={
-                      item.is_completed
-                        ? "text-green-600"
-                        : "text-[var(--primary)]"
-                    }
+                    icon={item.is_completed ? "check_circle" : getItemIcon(item.item_key)}
+                    className={item.is_completed ? "text-green-600" : "text-[var(--primary)]"}
                   />
                 </div>
                 <div>
@@ -221,8 +209,7 @@ export default function SetupChecklist({ onComplete, showAll = false }: Props) {
                   </p>
                   {item.completed_at && (
                     <p className="text-xs text-green-600">
-                      Completed{" "}
-                      {new Date(item.completed_at).toLocaleDateString()}
+                      Completed {new Date(item.completed_at).toLocaleDateString()}
                     </p>
                   )}
                 </div>
@@ -230,28 +217,17 @@ export default function SetupChecklist({ onComplete, showAll = false }: Props) {
 
               {!item.is_completed && !item.skipped && (
                 <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => markSkipped(item.id)}
-                  >
+                  <Button size="sm" variant="ghost" onClick={() => markSkipped(item.id)}>
                     Skip
                   </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => router.push(getItemRoute(item.item_key))}
-                  >
+                  <Button size="sm" onClick={() => router.push(getItemRoute(item.item_key))}>
                     Setup
                   </Button>
                 </div>
               )}
 
               {item.is_completed && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => router.push(getItemRoute(item.item_key))}
-                >
+                <Button size="sm" variant="ghost" onClick={() => router.push(getItemRoute(item.item_key))}>
                   View
                 </Button>
               )}

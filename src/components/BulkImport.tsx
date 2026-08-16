@@ -4,24 +4,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useClasses } from "@/lib/hooks";
 import { supabase } from "@/lib/supabase";
 import { withTimeout } from "@/lib/hooks/utils";
-
-interface StudentRow {
-  student_number?: string;
-  first_name: string;
-  last_name: string;
-  gender: "M" | "F" | string;
-  date_of_birth?: string;
-  parent_name?: string;
-  parent_phone?: string;
-  class_id?: string;
-  status?: string;
-}
-
-interface ValidatedRow {
-  data: StudentRow;
-  isValid: boolean;
-  errors: string[];
-}
+import { parseDelimitedText, parseStudentRows, type ValidatedStudentRow } from "@/lib/import/students";
 
 interface ImportResult {
   success: number;
@@ -35,7 +18,7 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [step, setStep] = useState<"upload" | "preview" | "importing" | "complete">("upload");
-  const [validatedRows, setValidatedRows] = useState<ValidatedRow[]>([]);
+  const [validatedRows, setValidatedRows] = useState<ValidatedStudentRow[]>([]);
   const [error, setError] = useState<string>("");
   const [selectedClass, setSelectedClass] = useState<string>("");
   const [result, setResult] = useState<ImportResult | null>(null);
@@ -43,88 +26,12 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
   const [sheetsUrl, setSheetsUrl] = useState("");
   const [sheetsLoading, setSheetsLoading] = useState(false);
 
-  const parseCSV = (text: string): ValidatedRow[] => {
-    const lines = text.trim().split("\n");
-    if (lines.length < 2) throw new Error("CSV file must have at least a header row and one data row");
-
-    const headers = lines[0]
-      .toLowerCase()
-      .split(",")
-      .map((h) => h.trim().replace(/['"]/g, ""));
-    const requiredFields = ["first_name", "last_name", "gender"];
-
-    // Check if required headers even exist in the document
-    const missingHeaders = requiredFields.filter((f) => !headers.includes(f));
-    if (missingHeaders.length > 0) {
-      throw new Error(`CSV is missing required columns: ${missingHeaders.join(", ")}`);
+  const parseCSV = (text: string): ValidatedStudentRow[] => {
+    const rows = parseDelimitedText(text);
+    if (rows.length === 0) {
+      throw new Error("No data rows found in file. Check that the first row has column headers.");
     }
-
-    const processedRows: ValidatedRow[] = [];
-
-    for (let i = 1; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (!line) continue;
-      // Handle commas inside quotes properly (basic CSV parsing)
-      const values = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map((v) => v.trim().replace(/^['"]|['"]$/g, ""));
-      if (values.length === 0 || values.every((v) => !v)) continue;
-
-      const student: any = {};
-      headers.forEach((header, idx) => {
-        student[header] = values[idx] || "";
-      });
-
-      const rowErrors: string[] = [];
-      let isValid = true;
-
-      // Validate required fields
-      if (!student.first_name) {
-        rowErrors.push("Missing first_name");
-        isValid = false;
-      }
-      if (!student.last_name) {
-        rowErrors.push("Missing last_name");
-        isValid = false;
-      }
-
-      const rawGender = student.gender?.toString().toUpperCase();
-      let normalizedGender = rawGender;
-      if (!rawGender) {
-        rowErrors.push("Missing gender");
-        isValid = false;
-      } else if (rawGender !== "M" && rawGender !== "F" && rawGender !== "MALE" && rawGender !== "FEMALE") {
-        rowErrors.push(`Invalid gender '${rawGender}'`);
-        isValid = false;
-      } else {
-        normalizedGender = (rawGender === "MALE" ? "M" : rawGender === "FEMALE" ? "F" : rawGender) as "M" | "F";
-      }
-
-      // Format mobile numbers to ensure they look okay (basic validation)
-      let phone = student.parent_phone || student.guardian_phone || student.phone || "";
-      if (phone && phone.length < 9) {
-        rowErrors.push("Phone number looks too short");
-        isValid = false;
-      }
-
-      processedRows.push({
-        data: {
-          student_number: student.student_number || "",
-          first_name: student.first_name || "",
-          last_name: student.last_name || "",
-          gender: normalizedGender,
-          date_of_birth: student.date_of_birth || student.dob || "",
-          parent_name: student.parent_name || student.guardian_name || "",
-          parent_phone: phone,
-        },
-        isValid,
-        errors: rowErrors,
-      });
-    }
-
-    if (processedRows.length === 0) {
-      throw new Error("No valid data rows found in file.");
-    }
-
-    return processedRows;
+    return parseStudentRows(rows);
   };
 
   const processFile = (file: File) => {
