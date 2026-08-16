@@ -14,12 +14,32 @@ interface ChecklistItem {
   is_completed: boolean;
   completed_at: string | null;
   skipped: boolean;
+  sort_order?: number | null;
 }
 
 interface Props {
   onComplete?: (key: string) => void;
   showAll?: boolean;
   autoHide?: boolean;
+}
+
+const DEFAULT_ITEMS: Array<{ item_key: string; item_label: string }> = [
+  { item_key: "school_details", item_label: "School details" },
+  { item_key: "academic_term", item_label: "Set current academic term" },
+  { item_key: "classes", item_label: "Add classes" },
+  { item_key: "subjects", item_label: "Add subjects" },
+  { item_key: "teachers", item_label: "Add teachers" },
+  { item_key: "students", item_label: "Add students" },
+  { item_key: "attendance", item_label: "Record first attendance" },
+  { item_key: "first_payment", item_label: "Collect first payment" },
+];
+
+const ITEM_ORDER: Record<string, number> = Object.fromEntries(DEFAULT_ITEMS.map((item, i) => [item.item_key, i]));
+
+function sortItems<T extends { item_key: string; sort_order?: number | null }>(list: T[]): T[] {
+  return [...list].sort(
+    (a, b) => (a.sort_order ?? ITEM_ORDER[a.item_key] ?? 999) - (b.sort_order ?? ITEM_ORDER[b.item_key] ?? 999),
+  );
 }
 
 export default function SetupChecklist({ onComplete, showAll = false, autoHide = false }: Props) {
@@ -45,39 +65,34 @@ export default function SetupChecklist({ onComplete, showAll = false, autoHide =
       .from("setup_checklist")
       .select("*")
       .eq("school_id", school.id)
-      .order("item_key");
+      .order("sort_order");
 
-    if (!error && data) {
-      setItems(data);
-      // If no items exist, create defaults
-      if (data.length === 0) {
-        const defaultItems = [
-          { item_key: "academic_calendar", item_label: "Academic Calendar" },
-          { item_key: "class_structure", item_label: "Class & Stream Setup" },
-          { item_key: "fee_structure", item_label: "Fee Structure" },
-          { item_key: "staff_accounts", item_label: "Staff Accounts" },
-          { item_key: "student_import", item_label: "Import Students" },
-          { item_key: "sms_templates", item_label: "SMS Templates" },
-          { item_key: "payment_methods", item_label: "Payment Methods" },
-          { item_key: "grading_config", item_label: "Grading System" },
-        ];
-
-        const { error: createError } = await supabase.from("setup_checklist").upsert(
-          defaultItems.map((item) => ({ ...item, school_id: school.id })),
-          { onConflict: "school_id,item_key" },
-        );
-
-        if (!createError) {
-          const { data: refreshed } = await supabase
-            .from("setup_checklist")
-            .select("*")
-            .eq("school_id", school.id)
-            .order("item_key");
-
-          setItems(refreshed || []);
-        }
-      }
+    if (!error && data && data.length > 0) {
+      setItems(sortItems(data));
+      setLoading(false);
+      return;
     }
+
+    // No rows yet (or the read failed) — always show the guided steps. Attempt
+    // to persist so the server route can pick them up next time.
+    const fallbackItems = DEFAULT_ITEMS.map((item, i) => ({
+      id: `default-${i}`,
+      school_id: school.id,
+      ...item,
+      is_completed: false,
+      completed_at: null,
+      skipped: false,
+      sort_order: i,
+    }));
+    setItems(fallbackItems);
+
+    if (data?.length === 0) {
+      await supabase.from("setup_checklist").upsert(
+        DEFAULT_ITEMS.map((item, i) => ({ ...item, school_id: school.id, sort_order: i })),
+        { onConflict: "school_id,item_key" },
+      );
+    }
+
     setLoading(false);
   }, [school?.id]);
 
@@ -118,28 +133,28 @@ export default function SetupChecklist({ onComplete, showAll = false, autoHide =
 
   const getItemIcon = (key: string): string => {
     const icons: Record<string, string> = {
-      academic_calendar: "calendar_month",
-      class_structure: "school",
-      fee_structure: "payments",
-      staff_accounts: "people",
-      student_import: "upload_file",
-      sms_templates: "sms",
-      payment_methods: "account_balance_wallet",
-      grading_config: "grade",
+      school_details: "apartment",
+      academic_term: "calendar_month",
+      classes: "school",
+      subjects: "menu_book",
+      teachers: "people",
+      students: "upload_file",
+      attendance: "fact_check",
+      first_payment: "payments",
     };
     return icons[key] || "check_circle";
   };
 
   const getItemRoute = (key: string): string => {
     const routes: Record<string, string> = {
-      academic_calendar: "/dashboard/settings?tab=config",
-      class_structure: "/dashboard/settings?tab=config",
-      fee_structure: "/dashboard/fees",
-      staff_accounts: "/dashboard/settings?tab=users",
-      student_import: "/dashboard/import",
-      sms_templates: "/dashboard/messages",
-      payment_methods: "/dashboard/billing",
-      grading_config: "/dashboard/grades?tab=settings",
+      school_details: "/dashboard/settings",
+      academic_term: "/dashboard/academic-terms",
+      classes: "/dashboard/classes",
+      subjects: "/dashboard/subjects",
+      teachers: "/dashboard/staff",
+      students: "/dashboard/import",
+      attendance: "/dashboard/attendance",
+      first_payment: "/dashboard/fees",
     };
     return routes[key] || "/dashboard";
   };

@@ -1187,6 +1187,9 @@ CREATE TABLE IF NOT EXISTS setup_checklist (
     item_label TEXT NOT NULL,
     is_completed BOOLEAN DEFAULT FALSE,
     completed_at TIMESTAMPTZ,
+    skipped BOOLEAN DEFAULT FALSE,
+    skipped_at TIMESTAMPTZ,
+    sort_order INTEGER,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(school_id, item_key)
 );

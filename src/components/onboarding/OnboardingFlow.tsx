@@ -678,18 +678,18 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
       ]);
 
       const checklistItems = [
-        { item_key: "academic_calendar", item_label: "Academic Calendar" },
-        { item_key: "class_structure", item_label: "Class & Stream Setup" },
-        { item_key: "fee_structure", item_label: "Fee Structure" },
-        { item_key: "staff_accounts", item_label: "Staff Accounts" },
-        { item_key: "student_import", item_label: "Import Students" },
-        { item_key: "sms_templates", item_label: "SMS Templates" },
-        { item_key: "payment_methods", item_label: "Payment Methods" },
-        { item_key: "grading_config", item_label: "Grading System" },
+        { item_key: "school_details", item_label: "School details" },
+        { item_key: "academic_term", item_label: "Set current academic term" },
+        { item_key: "classes", item_label: "Add classes" },
+        { item_key: "subjects", item_label: "Add subjects" },
+        { item_key: "teachers", item_label: "Add teachers" },
+        { item_key: "students", item_label: "Add students" },
+        { item_key: "attendance", item_label: "Record first attendance" },
+        { item_key: "first_payment", item_label: "Collect first payment" },
       ];
 
       const { error: checklistError } = await supabase.from("setup_checklist").upsert(
-        checklistItems.map((item) => ({ ...item, school_id: school!.id })),
+        checklistItems.map((item, i) => ({ ...item, school_id: school!.id, sort_order: i })),
         { onConflict: "school_id,item_key" },
       );
 

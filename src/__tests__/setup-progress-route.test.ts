@@ -30,12 +30,15 @@ jest.mock("@/lib/api-utils", () => ({
 interface MockConfig {
   counts?: Record<string, number>;
   items?: Array<Record<string, unknown>>;
+  school?: Record<string, unknown> | null;
+  studentIds?: Array<{ id: string }>;
   upsertError?: unknown;
 }
 
 function buildMockClient(config: MockConfig = {}) {
   const upsertCalls: Array<Array<Record<string, unknown>>> = [];
   const updateCalls: Array<Record<string, unknown>> = [];
+  const countQueries: string[] = [];
 
   const from = jest.fn((table: string) => {
     const builder: Record<string, any> = {};
@@ -44,6 +47,7 @@ function buildMockClient(config: MockConfig = {}) {
     builder.select = jest.fn((cols: unknown, opts?: unknown) => {
       if (opts && typeof opts === "object" && (opts as { count?: unknown }).count) {
         builder.isCount = true;
+        countQueries.push(table);
       }
       return builder;
     });
@@ -52,7 +56,9 @@ function buildMockClient(config: MockConfig = {}) {
       return builder;
     });
     builder.is = jest.fn(() => builder);
+    builder.in = jest.fn(() => builder);
     builder.order = jest.fn(() => builder);
+    builder.maybeSingle = jest.fn(() => builder);
     builder.update = jest.fn((payload: Record<string, unknown>) => {
       updateCalls.push({ table, payload, builder });
       return builder;
@@ -67,6 +73,10 @@ function buildMockClient(config: MockConfig = {}) {
         value = { data: null, error: null, count: config.counts?.[table] ?? 0 };
       } else if (table === "setup_checklist") {
         value = { data: config.items ?? [], error: null };
+      } else if (table === "schools") {
+        value = { data: config.school ?? null, error: null };
+      } else if (table === "students") {
+        value = { data: config.studentIds ?? [], error: null };
       } else {
         value = { data: null, error: null };
       }
@@ -76,42 +86,102 @@ function buildMockClient(config: MockConfig = {}) {
   });
 
   mockCreateServiceRoleClientOrThrow.mockReturnValue({ from });
-  return { from, upsertCalls, updateCalls };
+  return { from, upsertCalls, updateCalls, countQueries };
 }
 
 function makeRequest(): NextRequest {
   return new Request("http://localhost/api/setup-progress", { method: "GET" }) as unknown as NextRequest;
 }
 
-const DONE_ITEMS = [
+const PLAN_ITEMS = [
   {
     id: "1",
     school_id: "school-1",
-    item_key: "class_structure",
-    item_label: "Class & Stream Setup",
-    is_completed: true,
-    completed_at: new Date().toISOString(),
+    item_key: "school_details",
+    item_label: "School details",
+    is_completed: false,
+    completed_at: null,
     skipped: false,
+    sort_order: 0,
   },
   {
     id: "2",
     school_id: "school-1",
-    item_key: "student_import",
-    item_label: "Import Students",
+    item_key: "academic_term",
+    item_label: "Set current academic term",
     is_completed: false,
     completed_at: null,
     skipped: false,
+    sort_order: 1,
   },
   {
     id: "3",
     school_id: "school-1",
-    item_key: "academic_calendar",
-    item_label: "Academic Calendar",
+    item_key: "classes",
+    item_label: "Add classes",
     is_completed: false,
     completed_at: null,
     skipped: false,
+    sort_order: 2,
+  },
+  {
+    id: "4",
+    school_id: "school-1",
+    item_key: "subjects",
+    item_label: "Add subjects",
+    is_completed: false,
+    completed_at: null,
+    skipped: false,
+    sort_order: 3,
+  },
+  {
+    id: "5",
+    school_id: "school-1",
+    item_key: "teachers",
+    item_label: "Add teachers",
+    is_completed: false,
+    completed_at: null,
+    skipped: false,
+    sort_order: 4,
+  },
+  {
+    id: "6",
+    school_id: "school-1",
+    item_key: "students",
+    item_label: "Add students",
+    is_completed: false,
+    completed_at: null,
+    skipped: false,
+    sort_order: 5,
+  },
+  {
+    id: "7",
+    school_id: "school-1",
+    item_key: "attendance",
+    item_label: "Record first attendance",
+    is_completed: false,
+    completed_at: null,
+    skipped: false,
+    sort_order: 6,
+  },
+  {
+    id: "8",
+    school_id: "school-1",
+    item_key: "first_payment",
+    item_label: "Collect first payment",
+    is_completed: false,
+    completed_at: null,
+    skipped: false,
+    sort_order: 7,
   },
 ];
+
+const COMPLETE_SCHOOL = {
+  name: "Lakeview Primary",
+  email: "info@lakeview.ac.ug",
+  phone: "0700123456",
+  logo_url: "https://example.com/logo.png",
+};
 
 describe("setup-progress route", () => {
   beforeEach(() => {
@@ -137,19 +207,21 @@ describe("setup-progress route", () => {
     expect(res.status).toBe(403);
   });
 
-  it("ensures default items, auto-completes from data, and returns progress", async () => {
+  it("ensures plan items, auto-completes from data, returns counts + school completeness", async () => {
     mockRequireUserWithSchool.mockResolvedValue({ ok: true, context: { schoolId: "school-1" } });
     const client = buildMockClient({
       counts: {
         classes: 4,
-        students: 12,
-        academic_terms: 0,
-        fee_structure: 0,
-        staff: 0,
-        sms_templates: 0,
-        grading_schemes: 0,
+        subjects: 9,
+        staff: 6,
+        students: 120,
+        fee_payments: 15,
+        academic_terms: 1,
+        attendance: 0,
       },
-      items: DONE_ITEMS,
+      school: COMPLETE_SCHOOL,
+      studentIds: [{ id: "stu-1" }, { id: "stu-2" }],
+      items: PLAN_ITEMS,
     });
 
     const { GET } = await import("../app/api/setup-progress/route");
@@ -158,23 +230,75 @@ describe("setup-progress route", () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.success).toBe(true);
-    expect(body.data.total).toBe(3);
-    expect(body.data.completed).toBe(1);
-    expect(body.data.progress).toBe(33);
-    expect(body.data.counts.class_structure).toBe(4);
+    expect(body.data.total).toBe(8);
+    // Mock rows are all incomplete; auto-completion is written to the DB but
+    // the response reflects stored items, so nothing counts as done here.
+    expect(body.data.completed).toBe(0);
+    expect(body.data.progress).toBe(0);
+    expect(body.data.has_term).toBe(true);
+    expect(body.data.school_complete).toBe(true);
+    expect(body.data.counts.classes).toBe(4);
+    expect(body.data.counts.students).toBe(120);
+    expect(body.data.counts.attendance).toBe(0);
+    expect(body.data.school).toEqual({
+      has_name: true,
+      has_email: true,
+      has_phone: true,
+      has_logo: true,
+    });
 
-    // Default checklist rows were ensured via upsert
+    // Items returned in plan display order
+    const keys = body.data.items.map((i: { item_key: string }) => i.item_key);
+    expect(keys).toEqual([
+      "school_details",
+      "academic_term",
+      "classes",
+      "subjects",
+      "teachers",
+      "students",
+      "attendance",
+      "first_payment",
+    ]);
+
+    // Default checklist rows were ensured via upsert (8 plan items)
     expect(client.upsertCalls.length).toBe(1);
     expect(client.upsertCalls[0].length).toBe(8);
+    expect(client.upsertCalls[0].map((i) => i.item_key)).toContain("school_details");
+    expect(client.upsertCalls[0].map((i) => i.item_key)).toContain("first_payment");
 
-    // class_structure and student_import auto-completed (classes & students present)
+    // attendance counted via student IDs (no school_id column)
+    expect(client.countQueries).toContain("attendance");
+
+    // Auto-completion updates target setup_checklist rows by item_key
     const updatedItemKeys = client.updateCalls
       .map((c) => (c.builder as { eqCalls: Array<{ column: string; value: unknown }> }).eqCalls)
       .flat()
       .filter((e) => e.column === "item_key")
       .map((e) => e.value);
-    expect(updatedItemKeys).toContain("class_structure");
-    expect(updatedItemKeys).toContain("student_import");
-    expect(updatedItemKeys).not.toContain("academic_calendar");
+    expect(updatedItemKeys).toContain("classes");
+    expect(updatedItemKeys).toContain("students");
+    expect(updatedItemKeys).toContain("first_payment");
+    // term is current (count 1) and school complete -> also auto-completed
+    expect(updatedItemKeys).toContain("academic_term");
+    expect(updatedItemKeys).toContain("school_details");
+    // no attendance rows -> not completed
+    expect(updatedItemKeys).not.toContain("attendance");
+  });
+
+  it("flags an incomplete school (placeholder name, no phone/logo)", async () => {
+    mockRequireUserWithSchool.mockResolvedValue({ ok: true, context: { schoolId: "school-1" } });
+    buildMockClient({
+      counts: {},
+      school: { name: "My School", email: "info@example.com", phone: "", logo_url: null },
+      items: PLAN_ITEMS,
+    });
+
+    const { GET } = await import("../app/api/setup-progress/route");
+    const res = await GET(makeRequest());
+    const body = await res.json();
+    expect(body.data.school_complete).toBe(false);
+    expect(body.data.school.has_name).toBe(false);
+    expect(body.data.school.has_phone).toBe(false);
+    expect(body.data.school.has_logo).toBe(false);
   });
 });
