@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import "./globals-ux.css";
 import "./mobile-responsive.css";
+import "./globals-dark-hex.css";
 import Providers from "./providers";
 import MobileInit from "./mobile-init";
 import DebugPing from "@/components/DebugPing";
@@ -62,7 +63,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         {process.env.NEXT_PUBLIC_SUPABASE_URL && (
           <>
@@ -72,6 +73,26 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         )}
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
         <link rel="icon" href="/icons/icon-512x512.png" type="image/png" />
+        <Script
+          id="theme-init"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `(function () {
+  try {
+    var theme = 'light';
+    var stored = null;
+    try { stored = localStorage.getItem('skoolmate-theme'); } catch (e) {}
+    if (stored === 'dark' || stored === 'light') {
+      theme = stored;
+    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      theme = 'dark';
+    }
+    document.documentElement.setAttribute('data-theme', theme);
+    window.__skoolmateTheme = theme;
+  } catch (e) {}
+})();`,
+          }}
+        />
         <Script
           id="lite-mode"
           strategy="beforeInteractive"
@@ -127,7 +148,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         )}
         <a
           href="#main-content"
-          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-[var(--navy)] focus:text-white focus:rounded-lg"
+          className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-[var(--navy)] focus:text-[var(--on-primary)] focus:rounded-lg"
         >
           Skip to main content
         </a>

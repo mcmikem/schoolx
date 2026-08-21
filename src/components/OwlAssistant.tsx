@@ -3,7 +3,14 @@ import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
 import MaterialIcon from "@/components/MaterialIcon";
 import { usePathname } from "next/navigation";
-import { DEFAULT_WHATSAPP_ENV } from "@/lib/support-contact";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth-context";
+import {
+  DEFAULT_WHATSAPP_ENV,
+  generateSupportWhatsAppLink,
+  generateSupportSmsLink,
+  PLATFORM_SUPPORT_PHONE_DISPLAY,
+} from "@/lib/support-contact";
 
 interface Message {
   role: "user" | "assistant";
@@ -11,7 +18,7 @@ interface Message {
   time: string;
 }
 
-// ─── Built-in knowledge base ─────────────────────────────────────────────────
+// ─── Built-in knowledge base (offline fallback when the AI can't be reached) ─
 const KNOWLEDGE: { keywords: string[]; answer: string }[] = [
   {
     keywords: ["fee", "fees", "payment", "pay", "invoice", "balance"],
@@ -31,7 +38,7 @@ const KNOWLEDGE: { keywords: string[]; answer: string }[] = [
   {
     keywords: ["ncdc", "curriculum", "syllabus", "topics", "scheme"],
     answer:
-      "📚 **NCDC Curriculum** in SkoolMate:\n\n• Go to **Syllabus** → select class, subject, and term\n• Click **NCDC Topics** to auto-load the national curriculum topics\n• Mark topics as Not Started / In Progress / Completed\n• **Scheme of Work** generates weekly lesson breakdowns\n• Covers P1–P7 (primary) and S1–S6 (secondary) curriculum\n\nSkoolMate is fully aligned with the 2025 NCDC revised curriculum for Ugandan schools.",
+      "📚 **NCDC Curriculum** in SkoolMate:\n\n• Go to **Syllabus** → select class, subject, and term\n• Click **NCDC Topics** to auto-load the national curriculum topics\n• Mark topics as Not Started / In Progress / Completed\n• **Scheme of Work** generates weekly lesson breakdowns\n• Covers P1–P7 (primary) and S1–S6 (secondary) curriculum\n\nSkoolMate is fully aligned with the NCDC revised curriculum for Ugandan schools.",
   },
   {
     keywords: ["timetable", "schedule", "period", "lesson", "slot"],
@@ -41,7 +48,7 @@ const KNOWLEDGE: { keywords: string[]; answer: string }[] = [
   {
     keywords: ["sms", "message", "text", "bulk", "notify", "whatsapp"],
     answer:
-      "📱 **SMS & Communication** in SkoolMate:\n\n• Go to **Messages** to send individual or bulk SMS\n• **Automation** tab: auto-send on absences, fee reminders, etc.\n• **Templates** tab: create reusable SMS templates\n• **Notices** tab: post school announcements\n• Powered by Africa's Talking (works on all Uganda networks)\n\nMTN and Airtel Uganda are both supported via mobile money and SMS gateways.",
+      "📱 **Messages & WhatsApp** in SkoolMate:\n\n• Go to **Messages** to send individual or bulk SMS\n• **Automation** tab: auto-send on absences, fee reminders, etc.\n• **Templates** tab: create reusable SMS templates\n• **Notices** tab: post school announcements\n• Where SMS fails, the app falls back to **WhatsApp** automatically\n\nMTN and Airtel Uganda are both supported.",
   },
   {
     keywords: ["student", "enroll", "admission", "register", "transfer"],
@@ -71,27 +78,21 @@ const KNOWLEDGE: { keywords: string[]; answer: string }[] = [
   {
     keywords: ["login", "password", "reset", "access", "account"],
     answer:
-      "🔐 **Account & Access**:\n\n• Login at the main page with your email and password\n• Forgot password → click 'Forgot Password' on login\n• Contact your school admin to reset your password\n• Super admins manage all school accounts from the admin panel\n\nNeed urgent help? WhatsApp the team using the button below.",
+      "🔐 **Account & Access**:\n\n• Login at the main page with your email and password\n• Forgot password → click **Forgot Password** on login\n• Contact your school admin to reset your password\n• Super admins manage all school accounts from the admin panel\n\nNeed urgent help? WhatsApp the team using the green button above.",
   },
   {
     keywords: ["setup", "settings", "configure", "onboarding", "first time"],
     answer:
-      "⚙️ **School Setup** in SkoolMate:\n\n1. **Setup Wizard** guides you through initial configuration\n2. Add **Classes**, **Subjects**, and **Timetable Slots** in Settings\n3. Import **Students** and **Staff** via CSV templates\n4. Configure **Fee Structure** for your term\n5. Enable SMS by adding your Africa's Talking API key\n\nDownload import templates from the **Import** section.",
+      "⚙️ **School Setup** in SkoolMate:\n\n1. The **Setup Wizard** guides you through initial configuration\n2. Add **Classes**, **Subjects**, and **Timetable Slots** in Settings\n3. Import **Students** and **Staff** via CSV templates\n4. Configure **Fee Structure** for your term\n5. Enable SMS by adding your Africa's Talking API key\n\nStuck? Use the green WhatsApp button above for a free guided setup call.",
   },
   {
     keywords: ["mtn", "airtel", "mobile money", "subscription", "plan", "billing", "upgrade"],
     answer:
-      "💳 **Subscription & Billing**:\n\n• Plans available: Starter, Growth, Enterprise\n• Pay via MTN MoMo or Airtel Money\n• Go to your school's billing section to upgrade\n• MTN MoMo: You'll receive a USSD prompt on your phone — enter your PIN to confirm\n• Airtel Money: You'll receive an Airtel prompt on your phone — enter your PIN to confirm\n\nContact the team if payment isn't processing.",
+      "💳 **Subscription & Billing**:\n\n• Plans available: Starter, Growth, Enterprise\n• Pay via MTN MoMo or Airtel Money\n• Go to your school's billing section to upgrade\n• MTN MoMo: you'll receive a USSD prompt on your phone — enter your PIN to confirm\n• Airtel Money: you'll receive an Airtel prompt — enter your PIN to confirm\n\nIf payment isn't processing, WhatsApp the team with the green button above.",
   },
   {
-    keywords: ["holiday", "public", "midterm", "term", "academic calendar", "eot", "end of term"],
-    answer:
-      "📅 **Academic Calendar** in Uganda:\n\n**2026 Uganda School Terms:**\n• Term 1: Jan 13 – Apr 3 (Midterm: Feb 14–16)\n• Term 2: May 11 – Aug 14 (Midterm: Jun 26–28)\n• Term 3: Sep 7 – Dec 5 (Midterm: Oct 19–21)\n\n**Public Holidays 2026:**\n• Jan 26 — Liberation Day\n• Feb 16 — Archbishop Janani Luwum Day\n• Mar 8 — International Women's Day\n• Apr 3 — Good Friday\n• May 1 — Labour Day\n• Jun 3 — Martyr's Day\n• Jun 9 — National Heroes Day\n• Oct 9 — Independence Day\n• Dec 25-26 — Christmas\n\nManage these in **Timetable → Term Calendar** tab.",
-  },
-  {
-    keywords: ["help", "support", "contact", "issue", "problem", "bug"],
-    answer:
-      "🆘 **Getting Help**:\n\n• This assistant can answer most questions about SkoolMate\n• For urgent issues, WhatsApp the support team (button below)\n• Email: support@omuto.org\n• For NCDC curriculum questions, visit the official NCDC Uganda website at ncdc.go.ug\n\nWe typically respond within a few hours during school days.",
+    keywords: ["help", "support", "contact", "issue", "problem", "bug", "stuck", "confused"],
+    answer: `🆘 **Need help?**\n\n• Ask me here — I can guide you through any feature\n• For urgent issues, tap the green **WhatsApp** button — it opens a pre-filled message to our team\n• WhatsApp is our fastest channel: **${PLATFORM_SUPPORT_PHONE_DISPLAY}**\n• SMS works too, but WhatsApp gets a faster reply\n\nWe typically respond within a few hours on school days.`,
   },
   {
     keywords: ["discipline", "behavior", "behaviour", "incident", "misconduct", "punishment"],
@@ -111,7 +112,7 @@ const KNOWLEDGE: { keywords: string[]; answer: string }[] = [
   {
     keywords: ["hostel", "boarding", "dormitory", "dorm", "bed", "boarding fee"],
     answer:
-      "🛏️ **Boarding & Hostel** in SkoolMate:\n\n• Mark students as **Day** or **Boarding** in their profile\n• Use **Dorm Attendance** for nightly boarder check-ins\n• Boarding fees can be added separately in Fee Structure\n• Bulk SMS can be sent to all boarding parents at once\n• Track which students are on school premises overnight\n\nFor full boarding management, contact the SkoolMate team to enable the Boarding module.",
+      "🛏️ **Boarding & Hostel** in SkoolMate:\n\n• Mark students as **Day** or **Boarding** in their profile\n• Use **Dorm Attendance** for nightly boarder check-ins\n• Boarding fees can be added separately in Fee Structure\n• Bulk SMS can be sent to all boarding parents at once\n• Track which students are on school premises overnight\n\nFor full boarding management, contact the SkoolMate team via WhatsApp.",
   },
   {
     keywords: ["budget", "expense", "expenditure", "finance", "spending", "approve", "approval"],
@@ -141,15 +142,13 @@ const KNOWLEDGE: { keywords: string[]; answer: string }[] = [
   {
     keywords: ["district", "subcounty", "location", "region", "uganda"],
     answer:
-      "📍 **Location & District Settings**:\n\n• Your school's district, subcounty, and parish are set during registration\n• Update them in **Settings → School Profile**\n• Location data is used in MoES reports and for regional analytics\n• SkoolMate covers all 146 districts of Uganda\n\nIf your school is in a new district (e.g., from a recent split), contact support to update the district list.",
+      "📍 **Location & District Settings**:\n\n• Your school's district, subcounty, and parish are set during registration\n• Update them in **Settings → School Profile**\n• Location data is used in MoES reports and for regional analytics\n• SkoolMate covers all districts of Uganda\n\nIf your school is in a new district (e.g., from a recent split), contact support to update the district list.",
   },
 ];
 
 function getResponse(input: string): string {
   const lower = input.toLowerCase();
-  const match = KNOWLEDGE.find((entry) =>
-    entry.keywords.some((kw) => lower.includes(kw)),
-  );
+  const match = KNOWLEDGE.find((entry) => entry.keywords.some((kw) => lower.includes(kw)));
   if (match) return match.answer;
 
   // Page-specific hints
@@ -166,7 +165,7 @@ function getResponse(input: string): string {
     return "📤 To import data, go to the **Import** section in the sidebar. Download the CSV template, fill it in, then upload. Students and Staff can be bulk-imported this way.";
   }
 
-  return "I'm not sure about that specific question. Try asking about: **fees, attendance, grades, NCDC, timetable, SMS, students, staff, reports, UNEB, discipline, health, library, or setup**.\n\nOr click the WhatsApp button below to talk directly to the SkoolMate team!";
+  return "I'm not sure about that specific question. Try asking about: **fees, attendance, grades, NCDC, timetable, SMS, students, staff, reports, UNEB, discipline, health, library, or setup**.\n\nOr tap the green WhatsApp button below to talk directly to the SkoolMate team!";
 }
 
 function formatMessage(text: string) {
@@ -191,17 +190,14 @@ function formatMessage(text: string) {
   ));
 }
 
-const WHATSAPP_NUMBER = DEFAULT_WHATSAPP_ENV;
-const WHATSAPP_MESSAGE = encodeURIComponent(
-  "Hello SkoolMate team! I need help with the school management system.",
-);
-
 export default function OwlAssistant() {
+  const { school, user } = useAuth();
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      text: "Hi! I'm **Owly**, your SkoolMate assistant.\n\nI can help with **school management**, the **SkoolMate app**, **NCDC Uganda curriculum**, fees, attendance, reports, and more.\n\nWhat can I help you with today?",
+      text: "Hi! I'm **Owly**, your SkoolMate assistant.\n\nI can help with **school management**, the **SkoolMate app**, **NCDC Uganda curriculum**, fees, attendance, reports, and more. I remember what we've talked about in this session.\n\nWhat can I help you with today?",
       time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     },
   ]);
@@ -209,7 +205,15 @@ export default function OwlAssistant() {
   const [typing, setTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const pathname = usePathname();
+
+  // Needs a human via WhatsApp (primary) or SMS (secondary, cheaper channel).
+  const schoolPhone = (school as { support_phone?: string } | null)?.support_phone || DEFAULT_WHATSAPP_ENV;
+  const contactCtx = {
+    phone: schoolPhone,
+    schoolName: school?.name,
+    role: user?.role ?? undefined,
+    page: pathname ?? undefined,
+  };
 
   useEffect(() => {
     if (open && messagesEndRef.current) {
@@ -223,80 +227,92 @@ export default function OwlAssistant() {
     }
   }, [open]);
 
-  const sendMessage = async () => {
-    const text = input.trim();
+  const submitMessage = async (raw: string) => {
+    const text = raw.trim();
     if (!text) return;
 
-    const now = new Date().toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    const now = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const historyTurns = messages.slice(-10).map((m) => ({
+      role: m.role,
+      text: m.text.slice(0, 1500),
+    }));
+
     setMessages((prev) => [...prev, { role: "user", text, time: now }]);
     setInput("");
     setTyping(true);
 
-    try {
-      const res = await fetch("/api/ai/chat/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: text }),
-      });
-      const data = await res.json();
-      const responseText = data.response || getResponse(text);
-
+    const reply = (responseText: string) => {
       setMessages((prev) => [
         ...prev,
         {
           role: "assistant",
           text: responseText,
-          time: new Date().toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
+          time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         },
       ]);
-    } catch {
-      // Fallback to keyword matching if AI fails
-      const fallback = getResponse(text);
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          text: fallback,
-          time: new Date().toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          }),
-        },
-      ]);
-    } finally {
       setTyping(false);
+    };
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const token = session?.access_token || "";
+
+      const res = await fetch("/api/ai/chat/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          message: text.slice(0, 1500),
+          history: historyTurns,
+          context: {
+            role: user?.role ?? undefined,
+            schoolName: school?.name ?? undefined,
+            page: pathname ?? undefined,
+          },
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        reply(data.response || getResponse(text));
+      } else {
+        // AI unavailable / API error — fall back to the built-in guide
+        reply(getResponse(text));
+      }
+    } catch {
+      // Offline or network failure — fall back to the built-in guide
+      reply(getResponse(text));
     }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      sendMessage();
+      submitMessage(input);
     }
   };
 
-  // Page-specific quick hints
+  // Page-specific quick hints (page-aware guidance)
   const getPageHints = () => {
     const path = pathname || "";
-    if (path.includes("fees")) return ["How do I record a payment?", "Set up a payment plan"];
-    if (path.includes("attendance")) return ["How does offline attendance work?", "Mark a student absent"];
-    if (path.includes("grades")) return ["Lock grades after entering", "How does grading work?"];
-    if (path.includes("syllabus")) return ["Load NCDC topics", "Mark a topic complete"];
-    if (path.includes("timetable")) return ["Add a lesson slot", "View term calendar"];
-    if (path.includes("staff")) return ["Add a new staff member", "Process payroll"];
-    if (path.includes("students")) return ["Import students from CSV", "Transfer a student"];
-    return ["How to use SkoolMate?", "NCDC curriculum help", "Subscription & billing"];
+    if (path.includes("fees")) return ["How do I record a payment?", "How do I set up a payment plan?"];
+    if (path.includes("attendance")) return ["How does offline attendance work?", "How do I mark a student absent?"];
+    if (path.includes("grades")) return ["How do I lock grades?", "How does NCDC grading work?"];
+    if (path.includes("syllabus")) return ["How do I load NCDC topics?", "How do I mark a topic complete?"];
+    if (path.includes("timetable")) return ["How do I add a lesson slot?", "How do I view the term calendar?"];
+    if (path.includes("staff")) return ["How do I add a staff member?", "How do I process payroll?"];
+    if (path.includes("students")) return ["How do I import students from CSV?", "How do I transfer a student?"];
+    if (path.includes("messages")) return ["How do I send bulk SMS?", "How do I automate fee reminders?"];
+    return ["How do I get started?", "Where is the setup wizard?", "How do I get help?"];
   };
 
   return (
     <>
-      {/* ── Floating Owly button — owl sits in circle, head transcends above ── */}
+      {/* ── Floating Owly button ── */}
       <button
         onClick={() => setOpen((v) => !v)}
         className="fixed z-[9990] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--green)] bottom-[90px] right-4 sm:bottom-6 sm:right-6"
@@ -305,7 +321,6 @@ export default function OwlAssistant() {
         title="Owly — SkoolMate Assistant"
       >
         {open ? (
-          /* When open: show a simple close circle */
           <div
             className="w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-transform hover:scale-105 active:scale-95"
             style={{ background: "linear-gradient(135deg, #0b1c39 0%, #17325f 100%)" }}
@@ -313,8 +328,10 @@ export default function OwlAssistant() {
             <MaterialIcon icon="close" className="text-white text-2xl" />
           </div>
         ) : (
-          /* When closed: show SchoolMate logo icon */
-          <div className="relative transition-transform hover:scale-105 active:scale-95" style={{ width: 64, height: 64 }}>
+          <div
+            className="relative transition-transform hover:scale-105 active:scale-95"
+            style={{ width: 64, height: 64 }}
+          >
             <Image
               src="/SkoolMate logos/SchoolMate icon.svg"
               alt="SkoolMate"
@@ -323,7 +340,6 @@ export default function OwlAssistant() {
               loading="eager"
               className="rounded-2xl"
             />
-            {/* Online pulse dot */}
             <span
               className="absolute top-0 right-0 w-3.5 h-3.5 rounded-full bg-green-400 border-2 border-white animate-pulse"
               aria-hidden
@@ -332,7 +348,7 @@ export default function OwlAssistant() {
         )}
       </button>
 
-      {/* ── Chat panel ───────────────────────────────────────────────────────── */}
+      {/* ── Chat panel ── */}
       {open && (
         <div
           className="fixed z-[9989] w-full max-w-[360px] rounded-2xl shadow-2xl flex flex-col overflow-hidden bottom-[172px] right-4 sm:bottom-[100px] sm:right-6"
@@ -361,32 +377,27 @@ export default function OwlAssistant() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-white font-bold text-sm leading-tight">Owly Assistant</p>
-              <p className="text-white/70 text-xs">SkoolMate · NCDC · School Mgmt</p>
+              <p className="text-white/70 text-xs">SkoolMate OS · School Management</p>
             </div>
-            {WHATSAPP_NUMBER && (
-              <a
-                href={`https://wa.me/${WHATSAPP_NUMBER}?text=${WHATSAPP_MESSAGE}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 px-2.5 py-1.5 bg-[#25D366] hover:bg-[#20b858] rounded-full text-white text-xs font-semibold transition-colors shrink-0"
-                title="WhatsApp Support Team"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-white">
-                  <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-                </svg>
-                Team
-              </a>
-            )}
+            <a
+              href={generateSupportWhatsAppLink(contactCtx)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1 px-2.5 py-1.5 bg-[#25D366] hover:bg-[#20b858] rounded-full text-white text-xs font-semibold transition-colors shrink-0"
+              title="WhatsApp Support Team"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-white">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+              </svg>
+              Team
+            </a>
           </div>
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto p-3 space-y-3" style={{ minHeight: 200 }}>
             {messages.map((msg, i) => (
-              <div
-                key={i}
-                className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-              >
+              <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                 {msg.role === "assistant" && (
                   <div className="w-8 h-8 rounded-full bg-[#0b1c39]/10 flex items-center justify-center shrink-0 mr-2 mt-1 overflow-hidden">
                     <Image
@@ -409,7 +420,9 @@ export default function OwlAssistant() {
                   >
                     {formatMessage(msg.text)}
                   </div>
-                  <p className={`text-[10px] text-[var(--t4,#9ca3af)] mt-0.5 ${msg.role === "user" ? "text-right" : "text-left"}`}>
+                  <p
+                    className={`text-[10px] text-[var(--t4,#9ca3af)] mt-0.5 ${msg.role === "user" ? "text-right" : "text-left"}`}
+                  >
                     {msg.time}
                   </p>
                 </div>
@@ -429,9 +442,18 @@ export default function OwlAssistant() {
                 </div>
                 <div className="bg-[var(--surface-container-low,#f4f4f5)] px-3 py-2.5 rounded-2xl rounded-tl-sm">
                   <span className="flex gap-1 items-center">
-                    <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                    <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                    <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                    <span
+                      className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"
+                      style={{ animationDelay: "0ms" }}
+                    />
+                    <span
+                      className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"
+                      style={{ animationDelay: "150ms" }}
+                    />
+                    <span
+                      className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"
+                      style={{ animationDelay: "300ms" }}
+                    />
                   </span>
                 </div>
               </div>
@@ -445,27 +467,7 @@ export default function OwlAssistant() {
               {getPageHints().map((hint, i) => (
                 <button
                   key={i}
-                  onClick={() => {
-                    setInput(hint);
-                    setTimeout(() => {
-                      setInput("");
-                      const now = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-                      setMessages((prev) => [...prev, { role: "user", text: hint, time: now }]);
-                      setTyping(true);
-                      setTimeout(() => {
-                        const response = getResponse(hint);
-                        setMessages((prev) => [
-                          ...prev,
-                          {
-                            role: "assistant",
-                            text: response,
-                            time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-                          },
-                        ]);
-                        setTyping(false);
-                      }, 700);
-                    }, 50);
-                  }}
+                  onClick={() => submitMessage(hint)}
                   className="px-2.5 py-1 bg-[#0b1c39]/5 text-[#0b1c39] text-xs rounded-full border border-[#0b1c39]/10 hover:bg-[#0b1c39]/10 transition-colors"
                 >
                   {hint}
@@ -485,7 +487,7 @@ export default function OwlAssistant() {
               className="flex-1 px-3 py-2 rounded-xl text-sm bg-[var(--bg,#f9fafb)] border border-[var(--border,#e5e7eb)] outline-none focus:ring-2 focus:ring-[#0b1c39]/20 text-[var(--t1,#111)]"
             />
             <button
-              onClick={sendMessage}
+              onClick={() => submitMessage(input)}
               disabled={!input.trim() || typing}
               className="w-9 h-9 rounded-xl bg-[#0b1c39] hover:bg-[#17325f] disabled:opacity-40 flex items-center justify-center text-white transition-colors shrink-0"
             >
@@ -493,11 +495,26 @@ export default function OwlAssistant() {
             </button>
           </div>
 
-          {/* Footer branding */}
-          <div className="px-3 py-1.5 bg-[var(--surface-container-low,#f9fafb)] text-center">
-            <p className="text-[9px] text-[var(--t4,#9ca3af)]">
-              Powered by <span className="font-semibold">Omuto Foundation</span> · NCDC Uganda 2025
+          {/* Footer: honest contact info. WhatsApp first, SMS secondary */}
+          <div className="px-3 py-2 bg-[var(--surface-container-low,#f9fafb)] flex items-center justify-between gap-2">
+            <p className="text-[10px] text-[var(--t4,#9ca3af)]">
+              Need a human?{" "}
+              <a
+                href={generateSupportWhatsAppLink(contactCtx)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold text-[#128C7E] underline"
+              >
+                WhatsApp {PLATFORM_SUPPORT_PHONE_DISPLAY}
+              </a>
             </p>
+            <a
+              href={generateSupportSmsLink(contactCtx)}
+              className="text-[10px] text-[var(--t4,#9ca3af)] underline"
+              title="SMS support (secondary)"
+            >
+              SMS instead
+            </a>
           </div>
         </div>
       )}

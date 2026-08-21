@@ -13,6 +13,7 @@ export const SYNC_VALID_TABLES = [
   "messages",
   "events",
   "timetable",
+  "canteen_sales",
 ];
 
 export const SYNC_VALID_ACTIONS = ["create", "update", "delete"] as const;

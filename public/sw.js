@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'skoolmate-v12';
+const CACHE_VERSION = 'skoolmate-v13';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
@@ -13,6 +13,21 @@ const PAGES_TO_CACHE = [
   '/fonts/material-symbols-outlined.woff2',
 ];
 
+// App-shell routes worth having available offline. Cached at install with a
+// guarded fetch that skips redirects, so a logged-out install never stores the
+// /login redirect in place of a dashboard. Logged-in installs get these cached.
+const APP_SHELL_ROUTES = [
+  '/',
+  '/dashboard/',
+  '/dashboard/attendance/',
+  '/dashboard/grades/',
+  '/dashboard/fees/',
+  '/dashboard/students/',
+  '/dashboard/store/pos/',
+  '/dashboard/sync-center/',
+  '/onboarding/',
+];
+
 function isNavigationRequest(request) {
   return request.mode === 'navigate' || (request.destination === 'document');
 }
@@ -24,6 +39,20 @@ self.addEventListener('install', (event) => {
         // Use individual adds so one failing URL doesn't abort the whole install
         return Promise.allSettled(PAGES_TO_CACHE.map((url) => cache.add(url)));
       }),
+      caches.open(PAGE_CACHE).then((cache) =>
+        Promise.all(
+          APP_SHELL_ROUTES.map((url) =>
+            fetch(url, { credentials: 'same-origin' })
+              .then((res) => {
+                if (res.ok && !res.redirected) {
+                  return cache.put(url, res);
+                }
+                return undefined;
+              })
+              .catch(() => undefined)
+          )
+        )
+      ),
       self.skipWaiting(),
     ])
   );
@@ -183,7 +212,7 @@ async function processSyncQueue() {
   try {
     const clients = await self.clients.matchAll();
     clients.forEach((client) => {
-      client.postMessage({ type: 'SYNC_NOW' });
+      client.postMessage({ type: 'SYNC_REQUESTED' });
     });
 
     const registration = await self.registration;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useId } from "react";
+import { isValidElement, useId } from "react";
 import { RingSpinner } from "@/components/loaders";
 export { Modal, ModalFooter } from "./Modal";
 
@@ -21,8 +21,9 @@ function extractButtonLabel(children: React.ReactNode): string {
       if (text) return text;
     }
   }
-  if (children && typeof children === "object" && "props" in children) {
-    return extractButtonLabel((children as any).props?.children);
+  if (isValidElement(children)) {
+    const props = children.props as { children?: React.ReactNode };
+    return extractButtonLabel(props.children);
   }
   return "";
 }

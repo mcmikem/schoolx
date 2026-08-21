@@ -51,12 +51,7 @@ export default function SkoolMateLogo({
           <span
             className={cn(s.text, "font-bold leading-tight")}
             style={{
-              color:
-                variant === "white"
-                  ? "#ffffff"
-                  : variant === "dark"
-                    ? "#000000"
-                    : "#001F3F",
+              color: variant === "white" ? "#ffffff" : variant === "dark" ? "var(--t1)" : "var(--t1)",
               fontFamily: "Montserrat, sans-serif",
               letterSpacing: "0.05em",
             }}
@@ -64,7 +59,7 @@ export default function SkoolMateLogo({
             SKOOLMATE OS
           </span>
           {size !== "sm" && (
-            <span className="text-[10px] text-outline font-medium tracking-wider uppercase leading-tight">
+            <span className="text-[10px] text-[var(--t3)] font-medium tracking-wider uppercase leading-tight">
               Your Digital School Partner
             </span>
           )}

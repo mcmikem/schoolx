@@ -1,16 +1,16 @@
-'use client'
-import { useState, useEffect, useCallback } from 'react'
-import { logger } from './logger'
-import { offlineDB } from './offline'
+"use client";
+import { useState, useEffect, useCallback } from "react";
+import { logger } from "./logger";
+import { offlineDB } from "./offline";
 
 interface SyncStatus {
-  isOnline: boolean
-  pendingCount: number
-  isSyncing: boolean
-  lastSynced: Date | null
-  lastSyncedPerTable: Record<string, Date>
-  isFromCache: boolean
-  syncErrors: string[]
+  isOnline: boolean;
+  pendingCount: number;
+  isSyncing: boolean;
+  lastSynced: Date | null;
+  lastSyncedPerTable: Record<string, Date>;
+  isFromCache: boolean;
+  syncErrors: string[];
 }
 
 export function useSyncStatus() {
@@ -21,116 +21,128 @@ export function useSyncStatus() {
     lastSynced: null,
     lastSyncedPerTable: {},
     isFromCache: false,
-    syncErrors: []
-  })
+    syncErrors: [],
+  });
 
   const checkPending = useCallback(async () => {
     try {
-      const pending = await offlineDB.getPendingSync()
-      const allSynced = await offlineDB.getAllLastSynced()
+      const pending = await offlineDB.getPendingSync();
+      const allSynced = await offlineDB.getAllLastSynced();
 
-      const perTable: Record<string, Date> = {}
+      const perTable: Record<string, Date> = {};
       for (const [table, ts] of Object.entries(allSynced)) {
-        perTable[table] = new Date(ts)
+        perTable[table] = new Date(ts);
       }
 
       // Global last synced = most recent table sync
-      const timestamps = Object.values(allSynced)
-      const latestGlobal = timestamps.length > 0 ? new Date(Math.max(...timestamps)) : null
+      const timestamps = Object.values(allSynced);
+      const latestGlobal = timestamps.length > 0 ? new Date(Math.max(...timestamps)) : null;
 
-      setStatus(prev => ({
+      setStatus((prev) => ({
         ...prev,
         pendingCount: pending.length,
         lastSynced: latestGlobal,
-        lastSyncedPerTable: perTable
-      }))
+        lastSyncedPerTable: perTable,
+      }));
     } catch (e) {
-      logger.error('Error checking pending:', e)
+      logger.error("Error checking pending:", e);
     }
-  }, [])
+  }, []);
 
   const syncNow = useCallback(async () => {
-    if (!status.isOnline || status.isSyncing) return
+    if (!status.isOnline || status.isSyncing) return;
 
-    setStatus(prev => ({ ...prev, isSyncing: true, syncErrors: [] }))
+    setStatus((prev) => ({ ...prev, isSyncing: true, syncErrors: [] }));
     try {
-      const result = await offlineDB.syncToServer()
-      await checkPending()
-      setStatus(prev => ({
+      const result = await offlineDB.syncToServer();
+      await checkPending();
+      setStatus((prev) => ({
         ...prev,
         isSyncing: false,
         lastSynced: result.failed === 0 ? new Date() : prev.lastSynced,
-        syncErrors: result.errors
-      }))
-      return result
+        syncErrors: result.errors,
+      }));
+      return result;
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Sync failed'
-      setStatus(prev => ({
+      const msg = e instanceof Error ? e.message : "Sync failed";
+      setStatus((prev) => ({
         ...prev,
         isSyncing: false,
-        syncErrors: [...prev.syncErrors, msg]
-      }))
-      throw e
+        syncErrors: [...prev.syncErrors, msg],
+      }));
+      throw e;
     }
-  }, [status.isOnline, status.isSyncing, checkPending])
+  }, [status.isOnline, status.isSyncing, checkPending]);
 
-  const refreshAll = useCallback(async (tables?: string[]) => {
-    const tablesToSync = tables || [
-      'students', 'classes', 'subjects', 'attendance', 'grades',
-      'fee_payments', 'fee_structure', 'messages', 'events', 'timetable'
-    ]
+  const refreshAll = useCallback(
+    async (tables?: string[]) => {
+      const tablesToSync = tables || [
+        "students",
+        "classes",
+        "subjects",
+        "attendance",
+        "grades",
+        "fee_payments",
+        "fee_structure",
+        "messages",
+        "events",
+        "timetable",
+        "canteen_sales",
+      ];
 
-    setStatus(prev => ({ ...prev, isSyncing: true, syncErrors: [] }))
-    try {
-      const result = await offlineDB.refreshAll(tablesToSync)
-      await checkPending()
-      setStatus(prev => ({
-        ...prev,
-        isSyncing: false,
-        lastSynced: new Date(),
-        syncErrors: result.errors
-      }))
-      return result
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Refresh failed'
-      setStatus(prev => ({
-        ...prev,
-        isSyncing: false,
-        syncErrors: [...prev.syncErrors, msg]
-      }))
-      throw e
-    }
-  }, [checkPending])
+      setStatus((prev) => ({ ...prev, isSyncing: true, syncErrors: [] }));
+      try {
+        const result = await offlineDB.refreshAll(tablesToSync);
+        await checkPending();
+        setStatus((prev) => ({
+          ...prev,
+          isSyncing: false,
+          lastSynced: new Date(),
+          syncErrors: result.errors,
+        }));
+        return result;
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : "Refresh failed";
+        setStatus((prev) => ({
+          ...prev,
+          isSyncing: false,
+          syncErrors: [...prev.syncErrors, msg],
+        }));
+        throw e;
+      }
+    },
+    [checkPending],
+  );
 
   const setIsFromCache = useCallback((value: boolean) => {
-    setStatus(prev => ({ ...prev, isFromCache: value }))
-  }, [])
+    setStatus((prev) => ({ ...prev, isFromCache: value }));
+  }, []);
 
   useEffect(() => {
-    const handleOnline = () => setStatus(prev => ({ ...prev, isOnline: true }))
-    const handleOffline = () => setStatus(prev => ({ ...prev, isOnline: false }))
+    const handleOnline = () => setStatus((prev) => ({ ...prev, isOnline: true }));
+    const handleOffline = () => setStatus((prev) => ({ ...prev, isOnline: false }));
 
-    window.addEventListener('online', handleOnline)
-    window.addEventListener('offline', handleOffline)
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
 
-    setStatus(prev => ({ ...prev, isOnline: navigator.onLine }))
+    setStatus((prev) => ({ ...prev, isOnline: navigator.onLine }));
 
-    checkPending()
+    checkPending();
 
-    const interval = setInterval(checkPending, 30000)
+    const interval = setInterval(checkPending, 30000);
 
     return () => {
-      window.removeEventListener('online', handleOnline)
-      window.removeEventListener('offline', handleOffline)
-      clearInterval(interval)
-    }
-  }, [checkPending])
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+      clearInterval(interval);
+    };
+  }, [checkPending]);
 
   return {
     ...status,
     syncNow,
     checkPending,
     refreshAll,
-    setIsFromCache
-  }
+    setIsFromCache,
+  };
 }

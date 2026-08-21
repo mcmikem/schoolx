@@ -35,6 +35,7 @@ export const OfflineIndicator = memo(function OfflineIndicator() {
             "fee_structure",
             "fee_adjustments",
             "messages",
+            "canteen_sales",
           ]);
         }
       } else {
@@ -48,6 +49,7 @@ export const OfflineIndicator = memo(function OfflineIndicator() {
           "fee_structure",
           "fee_adjustments",
           "messages",
+          "canteen_sales",
         ]);
       }
     } catch {

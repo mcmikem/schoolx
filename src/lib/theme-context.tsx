@@ -3,10 +3,28 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 
 type Theme = "light" | "dark";
 
+const STORAGE_KEY = "skoolmate-theme";
+
 interface ThemeContextType {
   theme: Theme;
   toggleTheme: () => void;
   setTheme: (theme: Theme) => void;
+}
+
+// Mirrors the inline bootstrap script in src/app/layout.tsx so the initial
+// React state matches what was painted before hydration (no flicker).
+function getInitialTheme(): Theme {
+  if (typeof window === "undefined") return "light";
+  const fromWindow = (window as unknown as { __skoolmateTheme?: Theme }).__skoolmateTheme;
+  if (fromWindow === "dark" || fromWindow === "light") return fromWindow;
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored === "dark" || stored === "light") return stored;
+  } catch {
+    // ignore storage access failures (private mode, blocked storage)
+  }
+  if (window.matchMedia?.("(prefers-color-scheme: dark)").matches) return "dark";
+  return "light";
 }
 
 const ThemeContext = createContext<ThemeContextType>({
@@ -16,14 +34,14 @@ const ThemeContext = createContext<ThemeContextType>({
 });
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>("light");
+  const [theme, setThemeState] = useState<Theme>(getInitialTheme);
+
+  // Gate the value until after mount so the server-rendered (light) markup
+  // hydrates without a mismatch; the real theme takes over on first paint.
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    // Dark mode is temporarily disabled — always force light so the app never
-    // picks up the OS dark preference or a previously saved dark theme.
-    applyTheme("light");
   }, []);
 
   const applyTheme = (t: Theme) => {
@@ -31,22 +49,26 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   };
 
   const setTheme = (t: Theme) => {
-    void t;
-    setThemeState("light");
-    localStorage.setItem("skoolmate-theme", "light");
-    applyTheme("light");
+    setThemeState(t);
+    try {
+      localStorage.setItem(STORAGE_KEY, t);
+    } catch {
+      // ignore storage write failures
+    }
+    if (typeof document !== "undefined") {
+      applyTheme(t);
+    }
   };
 
   const toggleTheme = () => {
-    const newTheme = theme === "light" ? "dark" : "light";
-    setTheme(newTheme);
+    setTheme(theme === "light" ? "dark" : "light");
   };
 
-  if (!mounted) {
-    return <>{children}</>;
-  }
+  const value: ThemeContextType = mounted
+    ? { theme, toggleTheme, setTheme }
+    : { theme: "light", toggleTheme: () => {}, setTheme: () => {} };
 
-  return <ThemeContext.Provider value={{ theme, toggleTheme, setTheme }}>{children}</ThemeContext.Provider>;
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
 export function useTheme() {

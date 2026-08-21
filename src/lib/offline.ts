@@ -14,6 +14,7 @@ interface OfflineRecord {
   timestamp: number;
   synced: boolean;
   attempts: number;
+  reason?: string;
 }
 
 const MAX_RETRY_ATTEMPTS = 3;
@@ -67,6 +68,7 @@ class OfflineDB {
           "lesson_plans",
           "canteen_orders",
           "canteen_items",
+          "canteen_sales",
           "inventory",
           "behavior_logs",
           "counseling_sessions",
@@ -166,7 +168,10 @@ class OfflineDB {
         attempts: 0,
       });
 
-      transaction.oncomplete = () => resolve(record);
+      transaction.oncomplete = () => {
+        this.queueSync().catch(() => {});
+        resolve(record);
+      };
       transaction.onerror = () => reject(transaction.error);
     });
   }
@@ -229,7 +234,10 @@ class OfflineDB {
         attempts: 0,
       });
 
-      transaction.oncomplete = () => resolve();
+      transaction.oncomplete = () => {
+        this.queueSync().catch(() => {});
+        resolve();
+      };
       transaction.onerror = () => reject(transaction.error);
     });
   }
@@ -400,6 +408,31 @@ class OfflineDB {
     });
   }
 
+  // Keep a conflicted item visible instead of silently dropping it: cap its
+  // retries so it surfaces in Sync Center with the reason, and the local copy
+  // stays in cache so the user can review before deciding to discard it.
+  async markConflicted(id: number, reason: string): Promise<void> {
+    const db = await this.ensureDb();
+
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(["sync_queue"], "readwrite");
+      const store = transaction.objectStore("sync_queue");
+      const request = store.get(id);
+
+      request.onsuccess = () => {
+        const item = request.result;
+        if (item) {
+          item.synced = false;
+          item.attempts = MAX_RETRY_ATTEMPTS;
+          item.reason = reason;
+          store.put(item);
+        }
+        resolve();
+      };
+      request.onerror = () => reject(request.error);
+    });
+  }
+
   // Remove a sync queue item
   async removeSyncItem(id: number): Promise<void> {
     const db = await this.ensureDb();
@@ -428,6 +461,22 @@ class OfflineDB {
     });
   }
 
+  // Ask the browser to fire a background-sync event once the device reconnects.
+  // Fire-and-forget: if Background Sync is unavailable the existing online/10s
+  // poll in OfflineIndicator still covers the queue.
+  private async queueSync(): Promise<void> {
+    try {
+      if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;
+      const reg = await navigator.serviceWorker.ready;
+      const syncManager = (reg as unknown as { sync?: { register(tag: string): Promise<void> } }).sync;
+      if (syncManager) {
+        await syncManager.register("sync-queue");
+      }
+    } catch {
+      // Background Sync not supported / registration failed — safe to ignore.
+    }
+  }
+
   // Check if online
   isOnline(): boolean {
     return typeof navigator !== "undefined" ? navigator.onLine : true;
@@ -447,7 +496,8 @@ class OfflineDB {
         localUpdatedAt &&
         item.action !== "delete" &&
         item.table !== "attendance" &&
-        item.table !== "grades"
+        item.table !== "grades" &&
+        item.table !== "canteen_sales"
       ) {
         const { data: serverRow } = await supabase.from(item.table).select("updated_at").eq("id", rowId).maybeSingle();
 
@@ -478,6 +528,39 @@ class OfflineDB {
           onConflict: "student_id,subject_id,assessment_type,term,academic_year",
         });
         if (error) throw error;
+      } else if (item.table === "canteen_sales") {
+        const data = { ...(item.data as Record<string, unknown>) };
+        // Columns the canteen_sales table doesn't have / client-only flags
+        delete data.updated_at;
+        delete data.pending_wallet_deduction;
+        const rowId = data.id as string | undefined;
+
+        // Sale ids are client-generated; guard against double-insert when a
+        // previous attempt inserted the row but failed on the wallet step.
+        if (rowId) {
+          const { data: existing } = await supabase.from("canteen_sales").select("id").eq("id", rowId).maybeSingle();
+          if (!existing) {
+            const { error } = await supabase.from("canteen_sales").insert(data);
+            if (error) throw error;
+          }
+        } else {
+          const { error } = await supabase.from("canteen_sales").insert(data);
+          if (error) throw error;
+        }
+
+        const pendingWallet = (item.data as Record<string, unknown>).pending_wallet_deduction as
+          | { student_id?: string; amount?: number }
+          | undefined;
+        if (pendingWallet?.student_id && pendingWallet.amount != null) {
+          const { error } = await supabase.rpc("deduct_student_wallet", {
+            p_student_id: pendingWallet.student_id,
+            p_amount: pendingWallet.amount,
+            p_description: "Purchase at Canteen (synced from offline)",
+            p_ref: rowId || null,
+          });
+          if (error) throw error;
+        }
+        return { status: "synced" };
       } else if (item.action === "update") {
         const { id, ...updateData } = item.data as Record<string, unknown> & {
           id: string;
@@ -513,8 +596,11 @@ class OfflineDB {
         await this.markSynced(itemId);
         success++;
       } else if (result.status === "conflict") {
-        await this.markSynced(itemId);
-        errors.push(`Conflict resolved with server-wins policy: ${result.reason}`);
+        await this.markConflicted(itemId, result.reason || "server copy is newer");
+        errors.push(
+          `Conflict on ${item.table} (id: ${item.data?.id}): the server has a newer version. ` +
+            `Your offline change was kept locally and NOT overwritten — review it in Sync Center before deciding.`,
+        );
       } else {
         await this.incrementAttempts(itemId);
         const newAttempts = (item.attempts || 0) + 1;

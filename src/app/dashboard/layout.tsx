@@ -26,6 +26,7 @@ import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 const OwlAssistant = dynamic(() => import("@/components/OwlAssistant"), { ssr: false });
 const CommandPalette = dynamic(() => import("@/components/CommandPalette"), { ssr: false });
 const BugReportButton = dynamic(() => import("@/components/BugReportButton"), { ssr: false });
+const WhatsAppHelpFab = dynamic(() => import("@/components/WhatsAppHelpFab"), { ssr: false });
 import RoleBasedWalkthrough from "@/components/RoleBasedWalkthrough";
 import OnboardingTour from "@/components/OnboardingTour";
 import { supabase } from "@/lib/supabase";
@@ -444,6 +445,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       {/* Onboarding tour — overlay is now click-through, no longer blocks the dashboard */}
       {onboardingCompleted && !isDemo && <OnboardingTour />}
       <OwlAssistant />
+      <WhatsAppHelpFab />
       <BugReportButton />
       <PWAInstallPrompt />
       <CommandPalette />

@@ -94,7 +94,7 @@ export default function OnboardingTour() {
         localStorage.setItem(`omuto_tour_seen_${user?.id || "demo"}`, "true");
       }
       setIsActive(false);
-      toast.success("Tour completed! You can always restart it from the help menu.");
+      toast.success("Tour completed! Tap the Owly assistant (bottom-right) any time you need help.");
     }
   }, [currentStep, isActive, user?.id, toast]);
 

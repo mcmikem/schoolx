@@ -412,8 +412,8 @@ button {
 
   --t1: #e8ecf1;
   --t2: #9aa5b4;
-  --t3: #6b7785;
-  --t4: #4a5568;
+  --t3: #7f8a9b;
+  --t4: #8a94a6;
 
   /* Brand palette (lightened for dark backgrounds) */
   --navy: #9db9f2;
@@ -649,6 +649,148 @@ button {
     -webkit-text-fill-color: var(--on-surface);
     -webkit-box-shadow: 0 0 0 1000px var(--surface) inset;
     caret-color: var(--on-surface);
+  }
+
+  /* ── Extended dark-mode transfer ─────────────────────────────
+     Hardcoded Tailwind tints, dark chips and accent text that don't
+     have dark: variants get remapped here so pages keep readable
+     contrast when the theme flips. */
+
+  /* Remaining white opacities */
+  [data-theme="dark"] .bg-white\/30 { background-color: rgba(26, 33, 41, 0.3); }
+  [data-theme="dark"] .bg-white\/40 { background-color: rgba(26, 33, 41, 0.4); }
+  [data-theme="dark"] .bg-white\/50 { background-color: rgba(26, 33, 41, 0.5); }
+  [data-theme="dark"] .bg-white\/60 { background-color: rgba(26, 33, 41, 0.6); }
+  [data-theme="dark"] .bg-white\/70 { background-color: rgba(26, 33, 41, 0.7); }
+
+  /* Dark chips/labels that read as near-black blocks on dark surfaces */
+  [data-theme="dark"] .bg-slate-700,
+  [data-theme="dark"] .bg-gray-700 { background-color: var(--surface-container-highest); }
+  [data-theme="dark"] .bg-slate-800,
+  [data-theme="dark"] .bg-gray-800 { background-color: var(--surface-container-high); }
+  [data-theme="dark"] .bg-slate-900,
+  [data-theme="dark"] .bg-gray-900 { background-color: var(--surface-container); }
+  [data-theme="dark"] .hover\:bg-slate-700:hover,
+  [data-theme="dark"] .hover\:bg-gray-700:hover { background-color: var(--surface-container-highest); }
+  [data-theme="dark"] .hover\:bg-slate-800:hover,
+  [data-theme="dark"] .hover\:bg-gray-800:hover { background-color: var(--surface-container-high); }
+  [data-theme="dark"] .hover\:bg-slate-900:hover,
+  [data-theme="dark"] .hover\:bg-gray-900:hover { background-color: var(--surface-container); }
+
+  [data-theme="dark"] .text-black { color: var(--t1); }
+  [data-theme="dark"] .hover\:text-black:hover { color: var(--t1); }
+  [data-theme="dark"] .hover\:bg-white:hover { background-color: var(--surface-container-low); }
+
+  /* 50-shade tinted backgrounds */
+  [data-theme="dark"] .bg-emerald-50,
+  [data-theme="dark"] .bg-green-50 { background-color: #0d2c29; }
+  [data-theme="dark"] .bg-teal-50 { background-color: #0e2e2b; }
+  [data-theme="dark"] .bg-red-50,
+  [data-theme="dark"] .bg-rose-50,
+  [data-theme="dark"] .bg-pink-50 { background-color: #331a1a; }
+  [data-theme="dark"] .bg-amber-50,
+  [data-theme="dark"] .bg-yellow-50,
+  [data-theme="dark"] .bg-orange-50 { background-color: #33260f; }
+  [data-theme="dark"] .bg-blue-50,
+  [data-theme="dark"] .bg-sky-50,
+  [data-theme="dark"] .bg-cyan-50,
+  [data-theme="dark"] .bg-indigo-50,
+  [data-theme="dark"] .bg-violet-50 { background-color: #16233a; }
+  [data-theme="dark"] .bg-purple-50,
+  [data-theme="dark"] .bg-fuchsia-50 { background-color: #241a33; }
+  [data-theme="dark"] .bg-lime-50 { background-color: #1b2e12; }
+
+  /* 100-shade tinted backgrounds */
+  [data-theme="dark"] .bg-emerald-100,
+  [data-theme="dark"] .bg-green-100 { background-color: #0f3d38; }
+  [data-theme="dark"] .bg-teal-100 { background-color: #0f453f; }
+  [data-theme="dark"] .bg-red-100,
+  [data-theme="dark"] .bg-rose-100,
+  [data-theme="dark"] .bg-pink-100 { background-color: #4a2222; }
+  [data-theme="dark"] .bg-amber-100,
+  [data-theme="dark"] .bg-yellow-100,
+  [data-theme="dark"] .bg-orange-100 { background-color: #4a3413; }
+  [data-theme="dark"] .bg-blue-100,
+  [data-theme="dark"] .bg-sky-100,
+  [data-theme="dark"] .bg-cyan-100,
+  [data-theme="dark"] .bg-indigo-100,
+  [data-theme="dark"] .bg-violet-100 { background-color: #1d3050; }
+  [data-theme="dark"] .bg-purple-100,
+  [data-theme="dark"] .bg-fuchsia-100 { background-color: #33244a; }
+  [data-theme="dark"] .bg-lime-100 { background-color: #243d18; }
+
+  /* 200-shade tinted backgrounds & borders */
+  [data-theme="dark"] .bg-emerald-200,
+  [data-theme="dark"] .bg-green-200,
+  [data-theme="dark"] .border-emerald-200,
+  [data-theme="dark"] .border-green-200 { background-color: #143b37; border-color: #1a463d; }
+  [data-theme="dark"] .bg-teal-200,
+  [data-theme="dark"] .border-teal-200 { background-color: #14403a; border-color: #1a4a44; }
+  [data-theme="dark"] .bg-red-200,
+  [data-theme="dark"] .bg-rose-200,
+  [data-theme="dark"] .bg-pink-200,
+  [data-theme="dark"] .border-red-200,
+  [data-theme="dark"] .border-rose-200,
+  [data-theme="dark"] .border-pink-200 { background-color: #46201f; border-color: #5a2a2a; }
+  [data-theme="dark"] .bg-amber-200,
+  [data-theme="dark"] .bg-yellow-200,
+  [data-theme="dark"] .bg-orange-200,
+  [data-theme="dark"] .border-amber-200,
+  [data-theme="dark"] .border-yellow-200,
+  [data-theme="dark"] .border-orange-200 { background-color: #463116; border-color: #5a4116; }
+  [data-theme="dark"] .bg-blue-200,
+  [data-theme="dark"] .bg-sky-200,
+  [data-theme="dark"] .bg-cyan-200,
+  [data-theme="dark"] .bg-indigo-200,
+  [data-theme="dark"] .bg-violet-200,
+  [data-theme="dark"] .border-blue-200,
+  [data-theme="dark"] .border-sky-200,
+  [data-theme="dark"] .border-cyan-200,
+  [data-theme="dark"] .border-indigo-200,
+  [data-theme="dark"] .border-violet-200 { background-color: #1c2c4a; border-color: #27426e; }
+  [data-theme="dark"] .bg-purple-200,
+  [data-theme="dark"] .bg-fuchsia-200,
+  [data-theme="dark"] .border-purple-200,
+  [data-theme="dark"] .border-fuchsia-200 { background-color: #33214a; border-color: #452f5c; }
+
+  /* Accent text (600+) -> light accents for dark backgrounds */
+  [data-theme="dark"] .text-emerald-600, [data-theme="dark"] .text-emerald-700,
+  [data-theme="dark"] .text-emerald-800, [data-theme="dark"] .text-emerald-900,
+  [data-theme="dark"] .text-green-600, [data-theme="dark"] .text-green-700,
+  [data-theme="dark"] .text-green-800, [data-theme="dark"] .text-green-900 { color: #6ee7b7; }
+  [data-theme="dark"] .text-teal-600, [data-theme="dark"] .text-teal-700,
+  [data-theme="dark"] .text-teal-800 { color: #5eead4; }
+  [data-theme="dark"] .text-red-600, [data-theme="dark"] .text-red-700,
+  [data-theme="dark"] .text-red-800, [data-theme="dark"] .text-red-900,
+  [data-theme="dark"] .text-rose-600, [data-theme="dark"] .text-rose-700,
+  [data-theme="dark"] .text-rose-800,
+  [data-theme="dark"] .text-pink-600, [data-theme="dark"] .text-pink-700 { color: #fda4af; }
+  [data-theme="dark"] .text-amber-600, [data-theme="dark"] .text-amber-700,
+  [data-theme="dark"] .text-amber-800,
+  [data-theme="dark"] .text-yellow-600, [data-theme="dark"] .text-yellow-700,
+  [data-theme="dark"] .text-yellow-800,
+  [data-theme="dark"] .text-orange-600, [data-theme="dark"] .text-orange-700,
+  [data-theme="dark"] .text-orange-800 { color: #fcd34d; }
+  [data-theme="dark"] .text-blue-600, [data-theme="dark"] .text-blue-700,
+  [data-theme="dark"] .text-blue-800, [data-theme="dark"] .text-blue-900,
+  [data-theme="dark"] .text-indigo-600, [data-theme="dark"] .text-indigo-700,
+  [data-theme="dark"] .text-indigo-800,
+  [data-theme="dark"] .text-violet-600, [data-theme="dark"] .text-violet-700,
+  [data-theme="dark"] .text-violet-800,
+  [data-theme="dark"] .text-sky-600, [data-theme="dark"] .text-sky-700,
+  [data-theme="dark"] .text-cyan-600, [data-theme="dark"] .text-cyan-700 { color: #93c5fd; }
+  [data-theme="dark"] .text-purple-600, [data-theme="dark"] .text-purple-700,
+  [data-theme="dark"] .text-fuchsia-600, [data-theme="dark"] .text-fuchsia-700 { color: #d8b4fe; }
+  [data-theme="dark"] .text-lime-600, [data-theme="dark"] .text-lime-700 { color: #bef264; }
+
+  /* Solid-filled primary/navy elements flip to light fills on dark, so white
+     text on them becomes unreadable. Key the text off --on-primary (dark in
+     dark mode) for every bg-primary / bg-[var(--primary)] / bg-[var(--navy)]
+     solid fill paired with white text. */
+  [data-theme="dark"] [class*="bg-primary"][class*="text-white"],
+  [data-theme="dark"] [class*="bg-[var(--primary)]"][class*="text-white"],
+  [data-theme="dark"] [class*="bg-[var(--navy)]"][class*="text-white"] {
+    color: var(--on-primary);
   }
 }
 

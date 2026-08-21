@@ -12,6 +12,7 @@ import { supabase } from "@/lib/supabase";
 import { isValidEmail, normalizeAuthPhone } from "@/lib/validation";
 import { DEMO_MODE_ENABLED } from "@/lib/auth-context-types";
 import { saveDemoStorage } from "@/lib/auth-demo";
+import { generateSupportWhatsAppLink, PLATFORM_SUPPORT_PHONE_DISPLAY } from "@/lib/support-contact";
 
 // Regression compatibility anchors:
 // otpMode
@@ -547,6 +548,19 @@ export default function LoginPage() {
               >
                 Book a free walkthrough
               </a>
+            </span>
+            <br />
+            <span>
+              Stuck signing in?{" "}
+              <a
+                href={generateSupportWhatsAppLink({ topic: "I have trouble logging in to SkoolMate OS." })}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-medium text-slate-900 hover:underline"
+              >
+                WhatsApp us at {PLATFORM_SUPPORT_PHONE_DISPLAY}
+              </a>{" "}
+              — one tap, pre-filled message.
             </span>
           </p>
         </div>

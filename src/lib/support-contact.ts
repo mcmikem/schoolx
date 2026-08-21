@@ -7,13 +7,10 @@ export const PLATFORM_SUPPORT_PHONE_DISPLAY = "+256 727 790 003";
 
 export const PLATFORM_SUPPORT_WHATSAPP_URL = `https://wa.me/${PLATFORM_SUPPORT_PHONE}`;
 
-export const DEFAULT_WHATSAPP_ENV =
-  process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || PLATFORM_SUPPORT_PHONE;
+export const DEFAULT_WHATSAPP_ENV = process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || PLATFORM_SUPPORT_PHONE;
 
 export function getSupportWhatsAppUrl(phone?: string | null): string {
-  const formatted = phone
-    ? phone.replace(/[^0-9]/g, "")
-    : DEFAULT_WHATSAPP_ENV.replace(/[^0-9]/g, "");
+  const formatted = phone ? phone.replace(/[^0-9]/g, "") : DEFAULT_WHATSAPP_ENV.replace(/[^0-9]/g, "");
   const waPhone = formatPhoneRaw(formatted);
   return `https://wa.me/${waPhone}`;
 }
@@ -52,6 +49,40 @@ export function generatePaymentWhatsAppLink(params: {
   const formatted = phone.replace(/[^0-9]/g, "");
   const waPhone = formatPhoneRaw(formatted);
   return `https://wa.me/${waPhone}?text=${encodeURIComponent(message)}`;
+}
+
+// Build a support ticket message. WhatsApp first, SMS as the cheap secondary path.
+function buildSupportMessage(params: { schoolName?: string; role?: string; page?: string; topic?: string }): string {
+  const lines = ["Hello SkoolMate team, I need help with SkoolMate OS."];
+  if (params.schoolName) lines.push(`School: ${params.schoolName}`);
+  if (params.role) lines.push(`My role: ${params.role}`);
+  if (params.page) lines.push(`Page: ${params.page}`);
+  if (params.topic) lines.push(`Question: ${params.topic}`);
+  lines.push("", "Please assist. Thank you!");
+  return lines.join("\n");
+}
+
+export function generateSupportWhatsAppLink(params: {
+  phone?: string | null;
+  schoolName?: string;
+  role?: string;
+  page?: string;
+  topic?: string;
+}): string {
+  const phone = (params.phone || DEFAULT_WHATSAPP_ENV).replace(/[^0-9]/g, "");
+  return `https://wa.me/${formatPhoneRaw(phone)}?text=${encodeURIComponent(buildSupportMessage(params))}`;
+}
+
+// SMS is the secondary channel — used when WhatsApp is unavailable.
+export function generateSupportSmsLink(params: {
+  phone?: string | null;
+  schoolName?: string;
+  role?: string;
+  page?: string;
+  topic?: string;
+}): string {
+  const phone = (params.phone || DEFAULT_WHATSAPP_ENV).replace(/[^0-9]/g, "");
+  return `sms:+${formatPhoneRaw(phone)}?body=${encodeURIComponent(buildSupportMessage(params))}`;
 }
 
 // Helper to build a NextResponse JSON with WhatsApp contact info included

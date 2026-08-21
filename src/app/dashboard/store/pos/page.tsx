@@ -131,7 +131,9 @@ export default function CanteenPOSPage() {
 
     try {
       const saleRecord = {
-        id: isOnline ? undefined : crypto.randomUUID(), // Let Supabase gen ID if online, IDB if offline
+        // Let Supabase gen the id online; offlineDB.save() generates one when
+        // offline and queues it as a create for the sync handler.
+        id: undefined,
         school_id: school.id,
         student_id: student?.id || null,
         total_amount: total,

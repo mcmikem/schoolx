@@ -856,6 +856,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   "messages",
                   "events",
                   "timetable",
+                  "canteen_sales",
                 ])
                 .catch((err) => logger.warn("[auth] Background offlineDB refresh failed", err));
             })
