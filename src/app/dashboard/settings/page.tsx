@@ -1209,8 +1209,8 @@ export default function SettingsPage() {
                         billingMode === "full_suite" ||
                         Boolean(
                           entitlement &&
-                            ["active", "trial"].includes(entitlement.status) &&
-                            new Date(entitlement.ends_at).getTime() > Date.now(),
+                            ["active", "trial", "lifetime"].includes(entitlement.status) &&
+                            (entitlement.ends_at === null || new Date(entitlement.ends_at).getTime() > Date.now()),
                         );
                       const isRequestedModule = searchParams?.get("module") === module.module_key;
 
