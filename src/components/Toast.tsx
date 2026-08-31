@@ -79,7 +79,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
       {/* Toast Container */}
       <div
-        className="fixed bottom-[calc(10px+env(safe-area-inset-bottom))] left-1/2 z-[100] flex -translate-x-1/2 flex-col gap-3 px-4 sm:bottom-4 sm:left-auto sm:right-4 sm:translate-x-0 sm:px-0 max-w-[min(96vw,420px)] w-full"
+        className="fixed bottom-[calc(10px+env(safe-area-inset-bottom))] left-1/2 z-[60] flex -translate-x-1/2 flex-col gap-3 px-4 sm:bottom-4 sm:left-auto sm:right-4 sm:translate-x-0 sm:px-0 max-w-[min(96vw,420px)] w-full"
         role="status"
         aria-live="polite"
       >

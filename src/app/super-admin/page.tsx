@@ -103,7 +103,7 @@ export default function SuperAdminPage() {
   const loadData = useCallback(async () => {
     setDataLoading(true);
     try {
-      const res = await fetch("/api/super-admin/data");
+      const res = await fetch("/api/super-admin/data/");
       const body = await parseApiResponse(res);
       if (!res.ok || !body.success) {
         throw new Error(typeof body.error === "string" ? body.error : `HTTP ${res.status}`);

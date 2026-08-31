@@ -391,7 +391,7 @@ export function useStudentPromotion(
     setAutoPromoting(true);
     setAutoPromoteResult(null);
     try {
-      const res = await fetch("/api/automation/auto-promote", {
+      const res = await fetch("/api/automation/auto-promote/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ schoolId, academicYear: year }),

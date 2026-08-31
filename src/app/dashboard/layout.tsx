@@ -11,9 +11,15 @@ import TrialBanner from "@/components/dashboard/TrialBanner";
 import SidebarShell from "@/components/dashboard/SidebarShell";
 import TopBar from "@/components/dashboard/TopBar";
 import MobileBottomNav from "@/components/dashboard/MobileBottomNav";
-import OnboardingFlow from "@/components/onboarding/OnboardingFlow";
-import PostOnboardingSetup from "@/components/onboarding/PostOnboardingSetup";
-import GoLiveGate from "@/components/GoLiveGate";
+const OnboardingFlow = dynamic(() => import("@/components/onboarding/OnboardingFlow"), {
+  ssr: false,
+  loading: () => null,
+});
+const PostOnboardingSetup = dynamic(() => import("@/components/onboarding/PostOnboardingSetup"), {
+  ssr: false,
+  loading: () => null,
+});
+const GoLiveGate = dynamic(() => import("@/components/GoLiveGate"), { ssr: false, loading: () => null });
 import { useAccessControl, getPageTitle } from "@/components/dashboard/AccessControlGuard";
 import { usePathname, useRouter } from "next/navigation";
 import { SidebarProvider, useSidebar } from "@/contexts/SidebarContext";
@@ -24,7 +30,7 @@ import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 const OwlAssistant = dynamic(() => import("@/components/OwlAssistant"), { ssr: false });
-const CommandPalette = dynamic(() => import("@/components/CommandPalette"), { ssr: false });
+// CommandPalette removed — GlobalSearch is now the single search system (see src/components/GlobalSearch.tsx)
 const BugReportButton = dynamic(() => import("@/components/BugReportButton"), { ssr: false });
 const WhatsAppHelpFab = dynamic(() => import("@/components/WhatsAppHelpFab"), { ssr: false });
 import RoleBasedWalkthrough from "@/components/RoleBasedWalkthrough";
@@ -78,22 +84,47 @@ function buildBreadcrumbs(pathname: string, pageTitle: string): { label: string;
   const items: { label: string; href?: string; icon?: string }[] = [
     { label: "Dashboard", href: "/dashboard", icon: "dashboard" },
   ];
-  if (!pathname || pathname === "/dashboard") return items;
-  const parts = pathname.replace("/dashboard/", "").split("/");
+  if (!pathname || pathname === "/dashboard" || pathname === "/dashboard/") return items;
+  const trimmed = pathname.replace(/^\/dashboard\/?/, "");
+  if (!trimmed) return items;
+  const parts = trimmed.split("/").filter(Boolean);
   const sectionKey = parts[0];
   const section = SECTION_LABELS[sectionKey];
+  // Always link the section
   if (section) {
     const sectionHref = `/dashboard/${sectionKey}`;
     if (parts.length === 1) {
       items.push({ label: section.label, icon: section.icon });
-    } else {
-      items.push({ label: section.label, href: sectionHref, icon: section.icon });
-      items.push({ label: pageTitle });
+      return items;
     }
+    items.push({ label: section.label, href: sectionHref, icon: section.icon });
+    // Build intermediate crumbs for nested routes like /students/[id]/admission-package
+    let acc = sectionHref;
+    for (let i = 1; i < parts.length - 1; i++) {
+      acc += `/${parts[i]}`;
+      const label = parts[i].replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+      // For UUID-like ids, show trimmed id
+      const display = /^[0-9a-f-]{8,}$/i.test(label) ? `${label.slice(0, 8)}…` : label;
+      items.push({ label: display, href: acc });
+    }
+    // Last segment is the page title (from getPageTitle) but fallback to prettified segment
+    const lastLabel =
+      pageTitle && pageTitle !== "Dashboard"
+        ? pageTitle
+        : parts[parts.length - 1].replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+    items.push({ label: lastLabel });
   } else {
-    items.push({ label: pageTitle });
+    // Fallback: build up to 3 levels generically
+    let acc = "/dashboard";
+    for (let i = 0; i < parts.length; i++) {
+      acc += `/${parts[i]}`;
+      const isLast = i === parts.length - 1;
+      const label =
+        isLast && pageTitle ? pageTitle : parts[i].replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+      items.push({ label, href: isLast ? undefined : acc });
+    }
   }
-  return items;
+  return items.slice(0, 6);
 }
 
 function SessionTimeoutWarning({ remainingTime, onExtend }: { remainingTime: number; onExtend: () => void }) {
@@ -105,7 +136,7 @@ function SessionTimeoutWarning({ remainingTime, onExtend }: { remainingTime: num
       role="alertdialog"
       aria-modal="true"
       aria-label="Session timeout warning"
-      className="fixed inset-0 z-[9998] flex items-start sm:items-center justify-center overflow-y-auto bg-black/50 p-3 sm:p-4"
+      className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto bg-black/50 p-3 sm:p-4"
     >
       <div className="bg-[var(--surface)] rounded-[var(--r)] shadow-[var(--sh3)] p-6 max-w-sm w-full max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto text-center">
         <div className="flex justify-center mb-3">
@@ -448,7 +479,6 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       <WhatsAppHelpFab />
       <BugReportButton />
       <PWAInstallPrompt />
-      <CommandPalette />
     </ErrorBoundary>
   );
 }

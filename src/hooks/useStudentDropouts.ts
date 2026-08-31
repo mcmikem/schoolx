@@ -181,7 +181,7 @@ export function useStudentDropouts(
         return;
       }
 
-      const response = await fetch("/api/sms", {
+      const response = await fetch("/api/sms/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

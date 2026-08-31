@@ -47,9 +47,7 @@ export default function StudentLookupPage() {
             admission_number: student.student_number,
             gender: student.gender,
             classes: {
-              name:
-                DEMO_CLASSES.find((classItem) => classItem.id === student.class_id)
-                  ?.name || "-",
+              name: DEMO_CLASSES.find((classItem) => classItem.id === student.class_id)?.name || "-",
             },
             parent_phone: student.parent_phone,
             parent_name: student.parent_name,
@@ -67,9 +65,7 @@ export default function StudentLookupPage() {
           "id, first_name, last_name, admission_number, gender, classes(name), parent_phone, parent_name, fee_balance",
         )
         .eq("school_id", school.id)
-        .or(
-          `first_name.ilike.%${q}%,last_name.ilike.%${q}%,admission_number.ilike.%${q}%`,
-        )
+        .or(`first_name.ilike.%${q}%,last_name.ilike.%${q}%,admission_number.ilike.%${q}%`)
         .limit(20);
       if (error) {
         toast.error("Search failed");
@@ -103,7 +99,7 @@ export default function StudentLookupPage() {
     }
 
     setSending(true);
-    const res = await fetch("/api/sms", {
+    const res = await fetch("/api/sms/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -129,171 +125,134 @@ export default function StudentLookupPage() {
 
   return (
     <PageErrorBoundary>
-    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
-      <PageHeader
-        title="Student Lookup"
-        subtitle="Search and find student information"
-      />
+      <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
+        <PageHeader title="Student Lookup" subtitle="Search and find student information" />
 
-      <div className="mt-6 mb-4">
-        <label
-          htmlFor="student-search"
-          className="text-sm font-medium mb-1 block"
-        >
-          Student Search
-        </label>
-        <div className="relative max-w-md">
-          <input
-            id="student-search"
-            type="text"
-            placeholder="Search by name or admission number..."
-            value={search}
-            onChange={(e) => handleSearch(e.target.value)}
-            className="input w-full pr-10"
-          />
-          {loading && (
-            <span className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-[var(--primary)]/30 border-t-[var(--primary)] rounded-full animate-spin" />
-          )}
-        </div>
-      </div>
-
-      {search.length >= 2 && students.length === 0 && !loading && (
-        <div className="text-center py-12 text-[var(--on-surface-variant)]">
-          <MaterialIcon icon="search_off" className="text-4xl mb-2" />
-          <p className="font-medium">No students found for "{search}"</p>
-        </div>
-      )}
-
-      {students.length > 0 && (
-        <div className="overflow-x-auto rounded-3xl border border-[var(--border)] bg-[var(--surface)]">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="border-b border-[var(--border)]">
-                {[
-                  "Student",
-                  "Adm. No",
-                  "Class",
-                  "Parent",
-                  "Fee Balance",
-                  "Actions",
-                ].map((h) => (
-                  <th
-                    key={h}
-                    className="px-5 py-3 text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]"
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--border)]">
-              {students.map((s) => (
-                <tr
-                  key={s.id}
-                  className="hover:bg-[var(--surface-container-low)] transition-colors"
-                >
-                  <td className="px-5 py-4 font-bold text-[var(--on-surface)]">
-                    {s.first_name} {s.last_name}
-                  </td>
-                  <td className="px-5 py-4 font-mono text-sm text-[var(--on-surface-variant)]">
-                    {s.admission_number}
-                  </td>
-                  <td className="px-5 py-4 text-sm text-[var(--on-surface-variant)]">
-                    {s.classes?.name || "—"}
-                  </td>
-                  <td className="px-5 py-4 text-sm text-[var(--on-surface-variant)]">
-                    {s.parent_name || "—"}
-                  </td>
-                  <td className="px-5 py-4">
-                    {s.fee_balance > 0 ? (
-                      <span className="text-red-600 font-bold text-sm">
-                        UGX {s.fee_balance?.toLocaleString()}
-                      </span>
-                    ) : (
-                      <span className="text-emerald-600 font-bold text-sm">
-                        Cleared
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-5 py-4">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleSMSParent(s)}
-                    >
-                      <MaterialIcon icon="sms" style={{ fontSize: 16 }} /> SMS
-                      Parent
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {showModal && selectedStudent && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
-          <div className="bg-[var(--surface)] rounded-3xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl p-8 space-y-5">
-            <div className="flex justify-between items-center">
-              <h2 className="text-xl font-black text-[var(--on-surface)]">
-                SMS Parent of {selectedStudent.first_name} {selectedStudent.last_name}
-              </h2>
-              <button
-                onClick={() => setShowModal(false)}
-                className="p-2 hover:bg-[var(--surface-container)] rounded-xl"
-              >
-                <MaterialIcon icon="close" />
-              </button>
-            </div>
-            <div className="p-3 bg-[var(--surface-container)] rounded-2xl">
-              <p className="font-bold text-[var(--on-surface)]">
-                {selectedStudent.first_name} {selectedStudent.last_name}
-              </p>
-              <p className="text-xs text-[var(--on-surface-variant)]">
-                Parent: {selectedStudent.parent_name} ·{" "}
-                {selectedStudent.parent_phone}
-              </p>
-            </div>
-            <Button variant="ghost" size="sm" onClick={handleFeeReminder}>
-              Use Fee Reminder Template
-            </Button>
-            <div>
-              <label
-                htmlFor="student-lookup-message"
-                className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2"
-              >
-                Message
-              </label>
-              <textarea
-                id="student-lookup-message"
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-                rows={4}
-                placeholder="Type your message..."
-                className="w-full px-4 py-3 bg-[var(--surface-container)] border border-[var(--border)] rounded-2xl text-sm outline-none resize-none"
-              />
-              <p className="text-[10px] text-[var(--on-surface-variant)] mt-1">
-                {message.length} characters
-              </p>
-            </div>
-            <div className="flex gap-3">
-              <Button variant="ghost" onClick={() => setShowModal(false)} className="flex-1">
-                Cancel
-              </Button>
-              <Button
-                onClick={sendSMS}
-                disabled={!message || sending}
-                className="flex-1"
-                loading={sending}
-              >
-                Send SMS
-              </Button>
-            </div>
+        <div className="mt-6 mb-4">
+          <label htmlFor="student-search" className="text-sm font-medium mb-1 block">
+            Student Search
+          </label>
+          <div className="relative max-w-md">
+            <input
+              id="student-search"
+              type="text"
+              placeholder="Search by name or admission number..."
+              value={search}
+              onChange={(e) => handleSearch(e.target.value)}
+              className="input w-full pr-10"
+            />
+            {loading && (
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-[var(--primary)]/30 border-t-[var(--primary)] rounded-full animate-spin" />
+            )}
           </div>
         </div>
-      )}
-    </div>
+
+        {search.length >= 2 && students.length === 0 && !loading && (
+          <div className="text-center py-12 text-[var(--on-surface-variant)]">
+            <MaterialIcon icon="search_off" className="text-4xl mb-2" />
+            <p className="font-medium">No students found for "{search}"</p>
+          </div>
+        )}
+
+        {students.length > 0 && (
+          <div className="overflow-x-auto rounded-3xl border border-[var(--border)] bg-[var(--surface)]">
+            <table className="w-full text-left">
+              <thead>
+                <tr className="border-b border-[var(--border)]">
+                  {["Student", "Adm. No", "Class", "Parent", "Fee Balance", "Actions"].map((h) => (
+                    <th
+                      key={h}
+                      className="px-5 py-3 text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]"
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--border)]">
+                {students.map((s) => (
+                  <tr key={s.id} className="hover:bg-[var(--surface-container-low)] transition-colors">
+                    <td className="px-5 py-4 font-bold text-[var(--on-surface)]">
+                      {s.first_name} {s.last_name}
+                    </td>
+                    <td className="px-5 py-4 font-mono text-sm text-[var(--on-surface-variant)]">
+                      {s.admission_number}
+                    </td>
+                    <td className="px-5 py-4 text-sm text-[var(--on-surface-variant)]">{s.classes?.name || "—"}</td>
+                    <td className="px-5 py-4 text-sm text-[var(--on-surface-variant)]">{s.parent_name || "—"}</td>
+                    <td className="px-5 py-4">
+                      {s.fee_balance > 0 ? (
+                        <span className="text-red-600 font-bold text-sm">UGX {s.fee_balance?.toLocaleString()}</span>
+                      ) : (
+                        <span className="text-emerald-600 font-bold text-sm">Cleared</span>
+                      )}
+                    </td>
+                    <td className="px-5 py-4">
+                      <Button size="sm" variant="ghost" onClick={() => handleSMSParent(s)}>
+                        <MaterialIcon icon="sms" style={{ fontSize: 16 }} /> SMS Parent
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {showModal && selectedStudent && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
+            <div className="bg-[var(--surface)] rounded-3xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl p-8 space-y-5">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-black text-[var(--on-surface)]">
+                  SMS Parent of {selectedStudent.first_name} {selectedStudent.last_name}
+                </h2>
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="p-2 hover:bg-[var(--surface-container)] rounded-xl"
+                >
+                  <MaterialIcon icon="close" />
+                </button>
+              </div>
+              <div className="p-3 bg-[var(--surface-container)] rounded-2xl">
+                <p className="font-bold text-[var(--on-surface)]">
+                  {selectedStudent.first_name} {selectedStudent.last_name}
+                </p>
+                <p className="text-xs text-[var(--on-surface-variant)]">
+                  Parent: {selectedStudent.parent_name} · {selectedStudent.parent_phone}
+                </p>
+              </div>
+              <Button variant="ghost" size="sm" onClick={handleFeeReminder}>
+                Use Fee Reminder Template
+              </Button>
+              <div>
+                <label
+                  htmlFor="student-lookup-message"
+                  className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2"
+                >
+                  Message
+                </label>
+                <textarea
+                  id="student-lookup-message"
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  rows={4}
+                  placeholder="Type your message..."
+                  className="w-full px-4 py-3 bg-[var(--surface-container)] border border-[var(--border)] rounded-2xl text-sm outline-none resize-none"
+                />
+                <p className="text-[10px] text-[var(--on-surface-variant)] mt-1">{message.length} characters</p>
+              </div>
+              <div className="flex gap-3">
+                <Button variant="ghost" onClick={() => setShowModal(false)} className="flex-1">
+                  Cancel
+                </Button>
+                <Button onClick={sendSMS} disabled={!message || sending} className="flex-1" loading={sending}>
+                  Send SMS
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </PageErrorBoundary>
   );
 }

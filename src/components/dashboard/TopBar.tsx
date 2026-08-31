@@ -105,12 +105,8 @@ function NotificationsPanel({
   return (
     <div className="absolute top-full right-0 mt-2 bg-white border border-[var(--border)] rounded-[20px] shadow-[var(--sh3)] min-w-[300px] max-w-[360px] z-100 overflow-hidden">
       <div className="px-4 py-3 border-b border-[var(--border)] flex items-center justify-between">
-        <span className="text-[13px] font-semibold text-[var(--t1)]">
-          Notifications
-        </span>
-        <span className="text-[11px] text-[var(--t3)]">
-          {notifications.length} items
-        </span>
+        <span className="text-[13px] font-semibold text-[var(--t1)]">Notifications</span>
+        <span className="text-[11px] text-[var(--t3)]">{notifications.length} items</span>
       </div>
       <div className="max-h-[320px] overflow-y-auto">
         {notifications.length === 0 && (
@@ -148,7 +144,7 @@ function NotificationsPanel({
           return (
             <div
               key={n.id}
-              className={`flex gap-3 px-4 py-3.5 border-b border-[var(--border)] hover:bg-[var(--surface-container-low)] transition-colors ${!n.read ? "bg-[var(--primary-50)]" : ""}`}
+              className={`flex gap-3 px-4 py-3.5 border-b border-[var(--border)] hover:bg-[var(--surface-container-low)] transition-colors ${!n.read ? "bg-[var(--on-primary)]" : ""}`}
               onClick={() => {
                 if (!n.read) onDismiss(n.id);
                 if (n.link) notifRouter.push(n.link);
@@ -158,20 +154,13 @@ function NotificationsPanel({
                 className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
                 style={{ background: `${color}20` }}
               >
-                <MaterialIcon
-                  icon={icon}
-                  style={{ fontSize: 15, color: color }}
-                />
+                <MaterialIcon icon={icon} style={{ fontSize: 15, color: color }} />
               </div>
               <div className="flex-1 min-w-0 cursor-pointer">
-                <div
-                  className={`text-[12px] text-[var(--t1)] ${!n.read ? "font-bold" : "font-semibold"}`}
-                >
+                <div className={`text-[12px] text-[var(--t1)] ${!n.read ? "font-bold" : "font-semibold"}`}>
                   {n.title}
                 </div>
-                <div className="text-[11px] text-[var(--t3)] mt-0.5 truncate">
-                  {n.message}
-                </div>
+                <div className="text-[11px] text-[var(--t3)] mt-0.5 truncate">{n.message}</div>
                 <div className="text-[10px] text-[var(--t4)] mt-1">
                   {new Date(n.created_at).toLocaleTimeString("en-US", {
                     hour: "2-digit",
@@ -201,7 +190,7 @@ function NotificationsPanel({
             notifications.forEach((n) => !n.read && onDismiss(n.id));
             onClose();
           }}
-          className="w-full block px-4 py-[10px] text-center text-[12px] text-[var(--primary)] font-medium border-t border-[var(--border)] no-underline hover:bg-[var(--bg)] transition-colors"
+          className="w-full block px-4 py-[10px] text-center text-[12px] text-[var(--primary)] font-medium border-t border-[var(--border)] bg-[var(--surface-container-low)] transition-colors no-underline hover:bg-[var(--bg)]"
         >
           Mark all as read
         </button>
@@ -210,15 +199,7 @@ function NotificationsPanel({
   );
 }
 
-function UserMenu({
-  open,
-  onClose,
-  onSignOut,
-}: {
-  open: boolean;
-  onClose: () => void;
-  onSignOut: () => void;
-}) {
+function UserMenu({ open, onClose, onSignOut }: { open: boolean; onClose: () => void; onSignOut: () => void }) {
   const { user, school } = useAuth();
   const schoolName = school?.name || "School";
 
@@ -246,13 +227,7 @@ function UserMenu({
   );
 }
 
-export default function TopBar({
-  pageTitle,
-  onSignOut,
-}: {
-  pageTitle: string;
-  onSignOut: () => void;
-}) {
+export default function TopBar({ pageTitle, onSignOut }: { pageTitle: string; onSignOut: () => void }) {
   const router = useRouter();
   const { user, school } = useAuth();
   const { theme, toggleTheme } = useTheme();
@@ -261,9 +236,7 @@ export default function TopBar({
   const path = pathname ?? "";
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
-  const [isOnline, setIsOnline] = useState(
-    typeof navigator !== "undefined" ? navigator.onLine : true,
-  );
+  const [isOnline, setIsOnline] = useState(typeof navigator !== "undefined" ? navigator.onLine : true);
   const { isOpen, open: openSidebar, close: closeSidebar } = useSidebar();
   const userMenuRef = useRef<HTMLDivElement | null>(null);
   const notifPanelRef = useRef<HTMLDivElement | null>(null);
@@ -283,16 +256,10 @@ export default function TopBar({
     }
 
     function handlePointerDown(event: MouseEvent) {
-      if (
-        userMenuRef.current &&
-        !userMenuRef.current.contains(event.target as Node)
-      ) {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
         setUserMenuOpen(false);
       }
-      if (
-        notifPanelRef.current &&
-        !notifPanelRef.current.contains(event.target as Node)
-      ) {
+      if (notifPanelRef.current && !notifPanelRef.current.contains(event.target as Node)) {
         setNotifOpen(false);
       }
     }
@@ -322,7 +289,7 @@ export default function TopBar({
   return (
     <header
       data-testid="dashboard-header"
-      className="topbar h-[56px] flex items-center px-3 sm:px-5 lg:px-6 gap-2 sm:gap-3 sticky top-0 z-50 flex-shrink-0 border-b border-[var(--border)]"
+      className="topbar h-[56px] flex items-center px-3 sm:px-5 lg:px-6 gap-2 sm:gap-3 sticky top-0 z-30 flex-shrink-0 border-b border-[var(--border)] bg-[var(--surface)] shadow-[var(--sh1)]"
     >
       {/* Hamburger — all screen sizes (collapsible sidebar) */}
       <button
@@ -335,10 +302,7 @@ export default function TopBar({
         aria-expanded={isOpen}
         aria-controls="dashboard-sidebar"
       >
-        <MaterialIcon
-          icon="menu"
-          style={{ fontSize: 22, color: "var(--t1)" }}
-        />
+        <MaterialIcon icon="menu" style={{ fontSize: 22, color: "var(--t1)" }} />
       </button>
 
       {/* School logo + Page title */}
@@ -369,17 +333,12 @@ export default function TopBar({
       </div>
 
       {/* Search — desktop inline, mobile icon */}
-      <div className="search-bar hidden sm:flex items-center gap-2 bg-white border border-[var(--border)] rounded-[16px] px-3 py-2 text-[13px] text-[var(--t3)] min-w-[220px] lg:min-w-[280px] cursor-text shadow-[var(--sh1)]">
+      <div className="search-bar hidden sm:flex items-center gap-2 bg-[var(--surface)] border border-[var(--border)] rounded-[16px] px-3 py-2 text-[13px] text-[var(--t3)] min-w-[220px] lg:min-w-[280px] cursor-text shadow-[var(--sh1)]">
         <GlobalSearch />
       </div>
       <button
-        onClick={() => {
-          const trigger = document.querySelector(
-            "[data-globalsearch-trigger]",
-          ) as HTMLButtonElement | null;
-          trigger?.click();
-        }}
-        className="sm:hidden bg-transparent border-none cursor-pointer p-1.5 w-9 h-9 flex items-center justify-center rounded-lg text-[var(--t2)] hover:bg-[var(--bg)] transition-colors"
+        onClick={() => window.dispatchEvent(new Event("open-global-search"))}
+        className="sm:hidden bg-transparent border-none cursor-pointer p-1.5 w-9 h-9 flex items-center justify-center rounded-lg text-[var(--t2)] hover:bg-[var(--surface-container-low)] transition-colors"
         aria-label="Search"
       >
         <MaterialIcon icon="search" style={{ fontSize: 20 }} />
@@ -392,9 +351,7 @@ export default function TopBar({
           className="w-10 h-10 rounded-[14px] border border-[var(--border)] bg-white flex items-center justify-center"
           title={isOnline ? "Connected" : "Offline"}
         >
-          <div
-            className={`w-3 h-3 rounded-full ${isOnline ? "bg-green-500" : "bg-red-500"}`}
-          />
+          <div className={`w-3 h-3 rounded-full ${isOnline ? "bg-green-500" : "bg-red-500"}`} />
         </div>
 
         <div ref={notifPanelRef} className="notif-panel relative">
@@ -408,10 +365,7 @@ export default function TopBar({
             aria-expanded={notifOpen}
             aria-haspopup="dialog"
           >
-            <MaterialIcon
-              icon="notifications"
-              style={{ fontSize: 18, color: "var(--t2)" }}
-            />
+            <MaterialIcon icon="notifications" style={{ fontSize: 18, color: "var(--t2)" }} />
             {unreadCount > 0 && (
               <div className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] rounded-full bg-[var(--red)] text-white text-[10px] font-bold flex items-center justify-center px-1 border-2 border-white shadow-sm">
                 {unreadCount > 99 ? "99+" : unreadCount}
@@ -455,11 +409,7 @@ export default function TopBar({
               {user?.full_name?.split(" ")[0] || "User"}
             </span>
           </button>
-          <UserMenu
-            open={userMenuOpen}
-            onClose={() => setUserMenuOpen(false)}
-            onSignOut={onSignOut}
-          />
+          <UserMenu open={userMenuOpen} onClose={() => setUserMenuOpen(false)} onSignOut={onSignOut} />
         </div>
       </div>
     </header>

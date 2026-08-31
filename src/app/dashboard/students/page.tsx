@@ -30,6 +30,7 @@ import { supabase } from "@/lib/supabase";
 import { withTimeout } from "@/lib/hooks/utils";
 import { DEMO_ATTENDANCE } from "@/lib/demo-data";
 import { logger } from "@/lib/logger";
+import { useUrlSyncedFilters } from "@/lib/hooks/useUrlSyncedFilters";
 
 type StudentWorkspaceTab = "registry" | "transfers" | "dropouts" | "promotion";
 
@@ -149,16 +150,19 @@ export default function StudentHubPage() {
   const fetchPromotionStudents = promotion.fetchPromotionStudents;
   const promotionFromClass = promotion.fromClass;
 
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedClass, setSelectedClass] = useState("all");
+  const urlFilters = useUrlSyncedFilters();
+  const [searchTerm, setSearchTerm] = useState(() => urlFilters.get("q") ?? "");
+  const [selectedClass, setSelectedClass] = useState(() => urlFilters.get("class") ?? "all");
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showBulkImportModal, setShowBulkImportModal] = useState(false);
   const [editingStudent, setEditingStudent] = useState<EditingStudent | null>(null);
-  const [filterGender, setFilterGender] = useState<"all" | "M" | "F">("all");
-  const [filterStatus, setFilterStatus] = useState<string>("all");
-  const [filterPosition, setFilterPosition] = useState<string>("all");
-  const [filterDefaulters, setFilterDefaulters] = useState(false);
+  const [filterGender, setFilterGender] = useState<"all" | "M" | "F">(
+    () => (urlFilters.get("gender") as "all" | "M" | "F") ?? "all",
+  );
+  const [filterStatus, setFilterStatus] = useState<string>(() => urlFilters.get("status") ?? "all");
+  const [filterPosition, setFilterPosition] = useState<string>(() => urlFilters.get("position") ?? "all");
+  const [filterDefaulters, setFilterDefaulters] = useState(() => urlFilters.get("defaulters") === "1");
   const [sortBy, setSortBy] = useState<"name" | "number" | "class">("name");
   const [houseMap, setHouseMap] = useState<Record<string, HouseMeta>>({});
 
@@ -403,6 +407,49 @@ export default function StudentHubPage() {
   const paginatedStudents =
     pageSize === -1 ? filtered : filtered.slice((currentPage - 1) * pageSize, currentPage * pageSize);
   const totalPages = pageSize === -1 ? 1 : Math.max(1, Math.ceil(filtered.length / pageSize));
+
+  // Sync filters to URL (debounced for search)
+  useEffect(() => {
+    const params: Record<string, string | null> = {};
+    if (searchTerm) params.q = searchTerm;
+    if (selectedClass !== "all") params.class = selectedClass;
+    if (filterGender !== "all") params.gender = filterGender;
+    if (filterStatus !== "all") params.status = filterStatus;
+    if (filterPosition !== "all") params.position = filterPosition;
+    if (filterDefaulters) params.defaulters = "1";
+    // batch write without page reset handled by hook
+    urlFilters.setMany({
+      q: searchTerm || null,
+      class: selectedClass !== "all" ? selectedClass : null,
+      gender: filterGender !== "all" ? filterGender : null,
+      status: filterStatus !== "all" ? filterStatus : null,
+      position: filterPosition !== "all" ? filterPosition : null,
+      defaulters: filterDefaulters ? "1" : null,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm, selectedClass, filterGender, filterStatus, filterPosition, filterDefaulters]);
+
+  // Sync page to URL
+  useEffect(() => {
+    const pageParam = urlFilters.get("page");
+    const urlPage = pageParam ? Number(pageParam) : 1;
+    if (urlPage !== currentPage) {
+      // initialize from URL on mount
+      if (pageParam) setCurrentPage(urlPage);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (currentPage > 1) urlFilters.set("page", String(currentPage));
+    else {
+      const params = new URLSearchParams(urlFilters.searchParams?.toString() || "");
+      if (params.has("page")) {
+        params.delete("page");
+        const qs = params.toString();
+        router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+      }
+    }
+  }, [currentPage]);
 
   useEffect(() => {
     setCurrentPage(1);

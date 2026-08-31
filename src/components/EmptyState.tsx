@@ -1,31 +1,40 @@
-'use client'
-import { memo } from 'react'
-import MaterialIcon from '@/components/MaterialIcon'
-import { Button } from './ui/index'
-import EmptyStateGuide from '@/components/EmptyStateGuide'
+"use client";
+import { memo } from "react";
+import MaterialIcon from "@/components/MaterialIcon";
+import { Button } from "./ui/index";
+import EmptyStateGuide from "@/components/EmptyStateGuide";
+import OwlMascot from "@/components/brand/OwlMascot";
 
 interface EmptyStateProps {
-  icon?: string
-  title: string
-  description?: string
+  icon?: string;
+  title: string;
+  description?: string;
   action?: {
-    label: string
-    onClick: () => void
-  }
+    label: string;
+    onClick: () => void;
+  };
   secondaryAction?: {
-    label: string
-    onClick: () => void
-  }
-  className?: string
-  module?: string
+    label: string;
+    onClick: () => void;
+  };
+  className?: string;
+  module?: string;
 }
 
-export const EmptyState = memo(function EmptyState({ icon, title, description, action, secondaryAction, className = '', module }: EmptyStateProps) {
+export const EmptyState = memo(function EmptyState({
+  icon,
+  title,
+  description,
+  action,
+  secondaryAction,
+  className = "",
+  module,
+}: EmptyStateProps) {
   if (module) {
-    return <EmptyStateGuide module={module as any} />
+    return <EmptyStateGuide module={module as any} />;
   }
   return (
-    <div 
+    <div
       className={`flex flex-col items-center justify-center py-20 px-8 text-center rounded-[var(--r2)] bg-motif-fade border border-dashed border-[var(--border)] transition-all animate-fade-in ${className}`}
       role="status"
       aria-label={title}
@@ -34,7 +43,13 @@ export const EmptyState = memo(function EmptyState({ icon, title, description, a
         <div className="relative mb-6">
           <div className="absolute -inset-4 bg-[var(--navy-soft)] rounded-full blur-2xl opacity-50 animate-pulse" />
           <div className="relative w-20 h-20 bg-white rounded-3xl shadow-xl flex items-center justify-center border border-[var(--border)] group hover:scale-110 transition-transform">
-             <MaterialIcon icon={icon} className="text-4xl text-[var(--navy)] group-hover:rotate-12 transition-transform" />
+            <MaterialIcon
+              icon={icon}
+              className="text-4xl text-[var(--navy)] group-hover:rotate-12 transition-transform"
+            />
+          </div>
+          <div className="absolute -bottom-2 -right-2 hidden sm:block">
+            <OwlMascot size={28} animated />
           </div>
         </div>
       )}
@@ -44,25 +59,19 @@ export const EmptyState = memo(function EmptyState({ icon, title, description, a
       )}
       <div className="flex gap-4">
         {action && (
-          <button
-            onClick={action.onClick}
-            className="btn btn-primary shadow-lg shadow-navy/20 tap-effect"
-          >
+          <button onClick={action.onClick} className="btn btn-primary shadow-lg shadow-navy/20 tap-effect">
             {action.label}
           </button>
         )}
         {secondaryAction && (
-          <button
-            onClick={secondaryAction.onClick}
-            className="btn btn-ghost hover:bg-[var(--bg)] tap-effect"
-          >
+          <button onClick={secondaryAction.onClick} className="btn btn-ghost hover:bg-[var(--bg)] tap-effect">
             {secondaryAction.label}
           </button>
         )}
       </div>
     </div>
-  )
-})
+  );
+});
 
 export function NoStudents({ onAdd }: { onAdd: () => void }) {
   return (
@@ -70,9 +79,9 @@ export function NoStudents({ onAdd }: { onAdd: () => void }) {
       icon="group"
       title="No students enrolled yet"
       description="Start by adding students to your school. You can add them one by one or import from a spreadsheet."
-      action={{ label: 'Add Student', onClick: onAdd }}
+      action={{ label: "Add Student", onClick: onAdd }}
     />
-  )
+  );
 }
 
 export function NoClasses({ onAdd }: { onAdd: () => void }) {
@@ -81,9 +90,9 @@ export function NoClasses({ onAdd }: { onAdd: () => void }) {
       icon="school"
       title="No classes created"
       description="Create your first class to start managing attendance, grades, and timetables."
-      action={{ label: 'Create Class', onClick: onAdd }}
+      action={{ label: "Create Class", onClick: onAdd }}
     />
-  )
+  );
 }
 
 export function NoPayments({ onAdd }: { onAdd: () => void }) {
@@ -92,38 +101,28 @@ export function NoPayments({ onAdd }: { onAdd: () => void }) {
       icon="payments"
       title="No payments recorded"
       description="Record fee payments to track school finances and generate receipts."
-      action={{ label: 'Record Payment', onClick: onAdd }}
+      action={{ label: "Record Payment", onClick: onAdd }}
     />
-  )
+  );
 }
 
-export function NoData({ title = 'No data available', description }: { title?: string; description?: string }) {
-  return (
-    <EmptyState
-      icon="inbox"
-      title={title}
-      description={description}
-    />
-  )
+export function NoData({ title = "No data available", description }: { title?: string; description?: string }) {
+  return <EmptyState icon="inbox" title={title} description={description} />;
 }
 
 export function SearchEmpty({ query }: { query: string }) {
   return (
-    <EmptyState
-      icon="search"
-      title="No results found"
-      description={`We couldn't find anything matching "${query}"`}
-    />
-  )
+    <EmptyState icon="search" title="No results found" description={`We couldn't find anything matching "${query}"`} />
+  );
 }
 
-export function ErrorState({ onRetry, message = 'Something went wrong' }: { onRetry?: () => void; message?: string }) {
+export function ErrorState({ onRetry, message = "Something went wrong" }: { onRetry?: () => void; message?: string }) {
   return (
     <EmptyState
       icon="error_outline"
       title={message}
       description="Please try again or contact support if the problem persists."
-      action={onRetry ? { label: 'Try Again', onClick: onRetry } : undefined}
+      action={onRetry ? { label: "Try Again", onClick: onRetry } : undefined}
     />
-  )
+  );
 }

@@ -138,7 +138,7 @@ export default function ImportPage() {
     setAnalyzing(true);
     setResult(null);
     try {
-      const response = await fetch("/api/parse-import", {
+      const response = await fetch("/api/parse-import/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ rawText }),
@@ -168,7 +168,7 @@ export default function ImportPage() {
     setSheetsLoading(true);
     setResult(null);
     try {
-      const response = await fetch("/api/import-sheets", {
+      const response = await fetch("/api/import-sheets/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: sheetsUrl }),
@@ -194,7 +194,7 @@ export default function ImportPage() {
         throw new Error("No school associated with your account");
       }
       const students = validatedRows.filter((r) => r.isValid).map((r) => r.data);
-      const response = await fetch("/api/import", {
+      const response = await fetch("/api/import/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ students, schoolId: user.school_id }),
@@ -262,7 +262,7 @@ export default function ImportPage() {
         a.click();
         URL.revokeObjectURL(url);
       } else {
-        const response = await fetch("/api/import-template", { method: "GET" });
+        const response = await fetch("/api/import-template/", { method: "GET" });
         if (!response.ok) {
           const body = await response.json().catch(() => null);
           throw new Error(body?.error || "Template download failed");

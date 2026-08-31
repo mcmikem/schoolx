@@ -1,6 +1,7 @@
 "use client";
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { useUrlSyncedFilters } from "@/lib/hooks/useUrlSyncedFilters";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
 
@@ -12,6 +13,8 @@ import { useClasses, useFeeAdjustments, useFeePayments, useFeeStructure } from "
 import { useOfflineStudents, useOfflineFees } from "@/lib/offline-hooks";
 import { useToast } from "@/components/Toast";
 import { useFormDraft } from "@/lib/useAutoSave";
+import { FilterBar } from "@/components/ui/FilterBar";
+import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import { PAYMENT_METHODS } from "@/lib/constants";
 import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
@@ -76,8 +79,14 @@ export default function FinanceHubPage() {
   const { academicYear, currentTerm } = useAcademic();
   const toast = useToast();
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const urlFilters = useUrlSyncedFilters();
 
-  const [paymentsPage, setPaymentsPage] = useState(1);
+  const [paymentsPage, setPaymentsPage] = useState(() => {
+    const p = urlFilters.get("page");
+    return p ? Math.max(1, parseInt(p, 10) || 1) : 1;
+  });
   const itemsPerPage = 50;
 
   const { data: students, loading: studentsLoading, error: studentsError } = useOfflineStudents(school?.id);
@@ -102,7 +111,7 @@ export default function FinanceHubPage() {
   const receiptRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  const [tab, setTab] = useState<FinanceTab>("balances");
+  const [tab, setTab] = useState<FinanceTab>(() => (urlFilters.get("tab") as FinanceTab) || "balances");
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
@@ -115,9 +124,11 @@ export default function FinanceHubPage() {
   const [deleting, setDeleting] = useState(false);
   const undo = useUndo();
   const [selectedStudent, setSelectedStudent] = useState<StudentBalance | null>(null);
-  const [selectedClass, setSelectedClass] = useState("all");
-  const [statusFilter, setStatusFilter] = useState<"all" | "unpaid" | "partial" | "paid" | "written_off">("all");
-  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedClass, setSelectedClass] = useState(() => urlFilters.get("class") || "all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "unpaid" | "partial" | "paid" | "written_off">(
+    () => (urlFilters.get("status") as "all" | "unpaid" | "partial" | "paid" | "written_off") || "all",
+  );
+  const [searchTerm, setSearchTerm] = useState(() => urlFilters.get("q") || "");
   const [saving, setSaving] = useState(false);
   const [sendingReminders, setSendingReminders] = useState(false);
   const [balanceSubTab, setBalanceSubTab] = useState("balances");
@@ -203,7 +214,10 @@ export default function FinanceHubPage() {
     start_date: new Date().toISOString().split("T")[0],
   });
 
-  const [feePage, setFeePage] = useState(1);
+  const [feePage, setFeePage] = useState(() => {
+    const fp = urlFilters.get("feePage");
+    return fp ? Math.max(1, parseInt(fp, 10) || 1) : 1;
+  });
   const feesPerPage = 10;
   const feeOffset = (feePage - 1) * feesPerPage;
   const feeTotalPages = Math.max(1, Math.ceil(feeStructure.length / feesPerPage));
@@ -220,8 +234,8 @@ export default function FinanceHubPage() {
 
   const paginatedFeeStructure = feeStructure.slice(feeOffset, feeOffset + feesPerPage);
 
-  const [invoiceClassFilter, setInvoiceClassFilter] = useState("all");
-  const [cashbookDateFilter, setCashbookDateFilter] = useState("today");
+  const [invoiceClassFilter, setInvoiceClassFilter] = useState(() => urlFilters.get("invoiceClass") || "all");
+  const [cashbookDateFilter, setCashbookDateFilter] = useState(() => urlFilters.get("cashbookDate") || "today");
 
   useEffect(() => {
     const requestedTab = searchParams?.get("tab");
@@ -234,6 +248,45 @@ export default function FinanceHubPage() {
       setTab(requestedTab);
     }
   }, [searchParams]);
+
+  // URL-synced filters (debounced search)
+  useEffect(() => {
+    urlFilters.setMany({
+      tab: tab !== "balances" ? tab : null,
+      q: searchTerm || null,
+      class: selectedClass !== "all" ? selectedClass : null,
+      status: statusFilter !== "all" ? statusFilter : null,
+      invoiceClass: invoiceClassFilter !== "all" ? invoiceClassFilter : null,
+      cashbookDate: cashbookDateFilter !== "today" ? cashbookDateFilter : null,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, searchTerm, selectedClass, statusFilter, invoiceClassFilter, cashbookDateFilter]);
+
+  useEffect(() => {
+    if (paymentsPage > 1) urlFilters.set("page", String(paymentsPage));
+    else {
+      const params = new URLSearchParams(urlFilters.searchParams?.toString() || "");
+      if (params.has("page")) {
+        params.delete("page");
+        const qs = params.toString();
+        router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paymentsPage]);
+
+  useEffect(() => {
+    if (feePage > 1) urlFilters.set("feePage", String(feePage));
+    else {
+      const params = new URLSearchParams(urlFilters.searchParams?.toString() || "");
+      if (params.has("feePage")) {
+        params.delete("feePage");
+        const qs = params.toString();
+        router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [feePage]);
 
   const formatCurrency = (amount: number) => `UGX ${amount.toLocaleString()}`;
 
@@ -941,7 +994,13 @@ export default function FinanceHubPage() {
       academic_year: academicYear,
     };
     try {
-      const { data: plan, error } = await supabase.from("payment_plans").insert(planData).select().single();
+      const planRes = await withTimeout(
+        supabase.from("payment_plans").insert(planData).select().single(),
+        15000,
+        timeoutFallback(),
+      );
+      const plan = planRes.data as { id: string };
+      const error = planRes.error;
       if (error) throw error;
 
       const installmentData = [];
@@ -956,7 +1015,6 @@ export default function FinanceHubPage() {
         });
       }
 
-      const { withTimeout, timeoutFallback } = await import("@/lib/hooks/utils");
       const installmentResult = await withTimeout(
         supabase.from("payment_plan_installments").insert(installmentData),
         15000,
@@ -1360,6 +1418,53 @@ export default function FinanceHubPage() {
                 </div>
               </div>
             </div>
+            {(searchTerm || selectedClass !== "all" || statusFilter !== "all") && (
+              <div className="flex flex-wrap items-center gap-2 mb-4">
+                {searchTerm && (
+                  <span className="inline-flex items-center gap-1.5 pl-3 pr-1 py-1 rounded-full bg-[var(--primary-50)] border border-[var(--primary-200)] text-xs font-medium text-[var(--primary-700)]">
+                    Search: “{searchTerm}”{" "}
+                    <button
+                      onClick={() => setSearchTerm("")}
+                      className="w-5 h-5 rounded-full bg-white/70 hover:bg-white flex items-center justify-center"
+                    >
+                      <MaterialIcon icon="close" className="text-[14px]" />
+                    </button>
+                  </span>
+                )}
+                {selectedClass !== "all" && (
+                  <span className="inline-flex items-center gap-1.5 pl-3 pr-1 py-1 rounded-full bg-[var(--primary-50)] border border-[var(--primary-200)] text-xs font-medium text-[var(--primary-700)]">
+                    Class: {classes.find((c) => c.id === selectedClass)?.name || selectedClass}{" "}
+                    <button
+                      onClick={() => setSelectedClass("all")}
+                      className="w-5 h-5 rounded-full bg-white/70 hover:bg-white flex items-center justify-center"
+                    >
+                      <MaterialIcon icon="close" className="text-[14px]" />
+                    </button>
+                  </span>
+                )}
+                {statusFilter !== "all" && (
+                  <span className="inline-flex items-center gap-1.5 pl-3 pr-1 py-1 rounded-full bg-[var(--primary-50)] border border-[var(--primary-200)] text-xs font-medium text-[var(--primary-700)]">
+                    Status: {statusFilter}{" "}
+                    <button
+                      onClick={() => setStatusFilter("all")}
+                      className="w-5 h-5 rounded-full bg-white/70 hover:bg-white flex items-center justify-center"
+                    >
+                      <MaterialIcon icon="close" className="text-[14px]" />
+                    </button>
+                  </span>
+                )}
+                <button
+                  onClick={() => {
+                    setSearchTerm("");
+                    setSelectedClass("all");
+                    setStatusFilter("all");
+                  }}
+                  className="text-xs font-semibold text-[var(--primary)] hover:underline ml-1"
+                >
+                  Clear all
+                </button>
+              </div>
+            )}
 
             <Tabs
               tabs={[

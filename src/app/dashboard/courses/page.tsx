@@ -4,6 +4,7 @@ import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
+import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -189,7 +190,8 @@ export default function CoursesPage() {
           throw error;
         }
       } else {
-        const { error } = await supabase.from("courses").insert(payload);
+        const res = await withTimeout(supabase.from("courses").insert(payload), 15000, timeoutFallback());
+        const error = res?.error;
         if (error) {
           if (error.code === "42P01") courseTableExists.current = false;
           throw error;

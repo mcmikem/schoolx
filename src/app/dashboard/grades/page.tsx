@@ -160,9 +160,13 @@ async function syncStudentGrades(params: {
     .maybeSingle();
 
   if (existing) {
-    await supabase.from("student_grades").update(studentGradePayload).eq("id", existing.id);
+    await withTimeout(
+      supabase.from("student_grades").update(studentGradePayload).eq("id", existing.id),
+      15000,
+      timeoutFallback(),
+    );
   } else {
-    await supabase.from("student_grades").insert(studentGradePayload);
+    await withTimeout(supabase.from("student_grades").insert(studentGradePayload), 15000, timeoutFallback());
   }
 }
 

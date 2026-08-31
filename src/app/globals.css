@@ -301,43 +301,44 @@ button {
   transform: scale(0.97);
 }
 
-/* Parent portal semantic tokens — keep themed surfaces/text in sync with dark mode */
+/* Parent portal semantic tokens — aliased to core where possible to reduce drift
+   WCAG AA: --portal-muted darkened to 4.5:1 on white, --portal-ink-soft tuned likewise */
 :root {
-  --portal-ink: #17325f;
-  --portal-ink-soft: #60748f;
-  --portal-muted: #7f91aa;
-  --portal-muted-strong: #7c92ae;
-  --portal-border: #e5ecf4;
-  --portal-border-strong: #c5d7f3;
-  --portal-surface: #f8fbff;
-  --portal-surface-alt: #f8fafc;
-  --portal-surface-tint: #f0f6ff;
-  --portal-surface-blue: #eef4ff;
-  --portal-surface-blue-2: #e5effb;
-  --portal-surface-gray: #f6f9fc;
-  --portal-surface-gray-2: #f7faff;
-  --portal-surface-gray-3: #d7e2ef;
-  --portal-success: #1f8a70;
-  --portal-success-soft: #e1f3ee;
+  --portal-ink: var(--t1);
+  --portal-ink-soft: #5a6d89;
+  --portal-muted: #60748f;
+  --portal-muted-strong: #5a6e8c;
+  --portal-border: var(--border);
+  --portal-border-strong: var(--border2);
+  --portal-surface: var(--surface-bright);
+  --portal-surface-alt: var(--surface-container-lowest);
+  --portal-surface-tint: var(--surface-container-low);
+  --portal-surface-blue: var(--primary-50);
+  --portal-surface-blue-2: var(--primary-100);
+  --portal-surface-gray: var(--surface-container-lowest);
+  --portal-surface-gray-2: var(--surface-bright);
+  --portal-surface-gray-3: var(--surface-container);
+  --portal-success: var(--green);
+  --portal-success-soft: var(--green-soft);
   --portal-success-soft-2: #d7ebe5;
   --portal-success-faint: #f3fbf8;
   --portal-success-border: #d7efe3;
-  --portal-danger: #c2472b;
-  --portal-danger-soft: #ffefe8;
+  --portal-danger: var(--red);
+  --portal-danger-soft: var(--red-soft);
   --portal-danger-border: #f4d2c5;
-  --portal-warning: #ae580c;
-  --portal-warning-soft: #fff8eb;
+  --portal-warning: var(--amber);
+  --portal-warning-soft: var(--amber-soft);
   --portal-warning-soft-2: #fff7ed;
   --portal-warning-border: #fce4c0;
-  --portal-primary: #005ce6;
-  --portal-primary-deep: #0047c2;
+  --portal-primary: var(--primary);
+  --portal-primary-deep: var(--primary-600);
 }
 
 [data-theme="dark"] {
   --portal-ink: #e8ecf1;
-  --portal-ink-soft: #9aa5b4;
-  --portal-muted: #6b7785;
-  --portal-muted-strong: #8a97a8;
+  --portal-ink-soft: #a8b4c0;
+  --portal-muted: #8a97a8;
+  --portal-muted-strong: #9aa8bb;
   --portal-border: #2d3640;
   --portal-border-strong: #3d4a58;
   --portal-surface: #1a2129;
@@ -364,21 +365,21 @@ button {
   --portal-primary-deep: #7ca8f2;
 }
 
-/* Marketing / landing page tokens — brand navy + green identity */
+/* Marketing / landing page tokens — brand navy + green identity (surfaces aliased to core) */
 :root {
-  --brand-ink: #17325f;
+  --brand-ink: var(--t1);
   --brand-navy: #0f1f3d;
   --brand-navy-deep: #0d1930;
   --brand-green: #2e9448;
   --brand-green-soft: #eaf4ed;
   --brand-green-soft-2: #dff3e5;
-  --brand-border: #d7e4fb;
-  --brand-surface: #f8fbff;
-  --brand-surface-tint: #eef5ff;
-  --brand-surface-blue: #f5f9ff;
-  --brand-surface-blue-soft: #d6e4ff;
-  --brand-surface-muted: #f2f6fe;
-  --brand-surface-cool: #f7f9fc;
+  --brand-border: var(--border);
+  --brand-surface: var(--surface-bright);
+  --brand-surface-tint: var(--primary-50);
+  --brand-surface-blue: var(--surface-bright);
+  --brand-surface-blue-soft: var(--primary-100);
+  --brand-surface-muted: var(--surface-container-low);
+  --brand-surface-cool: var(--surface-container);
   --brand-whatsapp: #25d366;
   --brand-accent: #d97706;
 }
@@ -909,9 +910,16 @@ button {
   animation: pupil-look 5s ease-in-out infinite reverse;
 }
 
-/* Page Atmospheric Transitions */
+/* Page Atmospheric Transitions — view-transition aware */
 main#main-content {
+  view-transition-name: main-content;
   animation: pageEnter 0.5s var(--ease) forwards;
+}
+@supports (view-transition-name: root) {
+  ::view-transition-old(main-content) { animation: 180ms cubic-bezier(0.4,0,0.2,1) both fade-out; }
+  ::view-transition-new(main-content) { animation: 240ms cubic-bezier(0.4,0,0.2,1) both fade-in; }
+  @keyframes fade-in { from { opacity:0; transform: translateY(4px); } to { opacity:1; transform:translateY(0);} }
+  @keyframes fade-out { from { opacity:1 } to { opacity:0 } }
 }
 
 @keyframes pageEnter {
@@ -934,7 +942,6 @@ table tr {
 
 .table-hover-premium tr:hover {
   background: var(--surface-container-low) !important;
-  transform: translateX(4px);
 }
 
 @layer base {
@@ -987,8 +994,10 @@ table tr {
   }
 
   .ph-title {
-    @apply text-lg sm:text-xl md:text-2xl font-extrabold text-[var(--t1)] tracking-tight leading-none truncate;
+    @apply font-extrabold text-[var(--t1)] tracking-tight leading-none truncate;
     font-family: "Sora", sans-serif;
+    font-size: clamp(1.125rem, 2.5vw, 1.5rem);
+    text-wrap: balance;
   }
 
   .ph-sub {
@@ -1055,6 +1064,7 @@ table tr {
 
   .stat-grid {
     @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-2;
+    container-type: inline-size;
   }
 
   .stat-card {
@@ -1065,13 +1075,6 @@ table tr {
       0 4px 12px rgba(15, 23, 42, 0.04);
   }
 
-  .stat-card:hover {
-    transform: translateY(-2px);
-    box-shadow:
-      0 4px 16px rgba(15, 23, 42, 0.1),
-      0 12px 32px rgba(15, 23, 42, 0.07);
-    @apply border-[var(--border2)];
-  }
   .stat-card:hover {
     transform: translateY(-2px);
     box-shadow:
@@ -1227,6 +1230,11 @@ table tr {
   /* Focus Items Grid (replaces grid-cols-1 md:grid-cols-3) */
   .focus-grid {
     @apply grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6;
+    container-type: inline-size;
+  }
+  @container (max-width: 320px) {
+    .stat-val { font-size: 22px !important; }
+    .focus-grid { grid-template-columns: 1fr !important; }
   }
 
   /* -- UTILITIES -- */
@@ -1662,7 +1670,8 @@ table tr {
   background: var(--surface);
 }
 
-/* Sidebar: slides in/out on all screen sizes */
+/* Sidebar: slides in/out on all screen sizes
+   z-layer: 40 (sidebar), 41 (overlay), 50 (modal), 60 (toast) — prevents stacking war */
 .sidebar {
   display: flex !important;
   position: fixed !important;
@@ -1670,16 +1679,18 @@ table tr {
   left: 0 !important;
   bottom: 0 !important;
   width: var(--sidebar-width) !important;
-  z-index: 9999 !important;
+  z-index: 40 !important;
   transform: translateX(-105%);
   pointer-events: none;
   opacity: 0;
-  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease;
+  visibility: hidden;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, visibility 0.25s;
 }
 .sidebar.open {
   transform: translateX(0);
   pointer-events: auto;
   opacity: 1;
+  visibility: visible;
 }
 
 /* Desktop: sidebar overlays content, no backdrop overlay */
@@ -1722,7 +1733,7 @@ table tr {
     inset: 0;
     background: rgba(0, 18, 41, 0.28);
     backdrop-filter: blur(6px);
-    z-index: 9998;
+    z-index: 39;
   }
   .nav-item {
     padding: 12px 14px !important;
@@ -1737,9 +1748,6 @@ table tr {
   .topbar {
     padding: 0 12px !important;
     gap: 8px !important;
-  }
-  .search-bar {
-    display: none !important;
   }
 }
 
@@ -1760,9 +1768,6 @@ table tr {
   }
   .sidebar-close-btn {
     display: flex !important;
-  }
-  .search-bar {
-    display: none !important;
   }
 }
 
@@ -2000,8 +2005,11 @@ h6,
 .lite .sidebar,
 .lite .mobile-bottom-nav,
 .lite .sidebar-overlay.visible {
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
+  backdrop-filter: blur(6px) saturate(120%) !important;
+  -webkit-backdrop-filter: blur(6px) saturate(120%) !important;
+}
+@media (prefers-reduced-transparency: reduce) {
+  .glass-premium, .portal-glass, .parent-portal-shell .card { backdrop-filter: blur(4px) saturate(100%) !important; }
 }
 
 .lite .portal-glass,

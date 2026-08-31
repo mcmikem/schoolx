@@ -234,6 +234,10 @@ export function normalizeStudentInput(input: Record<string, any>): Record<string
     .toUpperCase();
   const gender =
     rawGender === "M" || rawGender === "MALE" ? "M" : rawGender === "F" || rawGender === "FEMALE" ? "F" : "";
+  if (!gender) {
+    // Fail fast with clear message instead of cryptic DB CHECK violation
+    throw new Error("Gender must be Male or Female (M/F)");
+  }
   return {
     first_name: String(input.first_name || "").trim(),
     last_name: String(input.last_name || "").trim(),
@@ -321,8 +325,13 @@ export function normalizeStudentUpdateInput(input: Record<string, any>): Record<
     const rawGender = String(input.gender || "")
       .trim()
       .toUpperCase();
-    out.gender =
-      rawGender === "M" || rawGender === "MALE" ? "M" : rawGender === "F" || rawGender === "FEMALE" ? "F" : "";
+    if (rawGender === "M" || rawGender === "MALE") out.gender = "M";
+    else if (rawGender === "F" || rawGender === "FEMALE") out.gender = "F";
+    else if (rawGender === "") {
+      // empty string explicitly means clear — omit to avoid CHECK violation; caller should validate
+    } else {
+      throw new Error("Gender must be Male or Female (M/F)");
+    }
   }
 
   if (input.date_of_birth !== undefined) out.date_of_birth = input.date_of_birth || null;

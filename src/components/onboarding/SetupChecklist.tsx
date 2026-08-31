@@ -51,7 +51,7 @@ export default function SetupChecklist({ onComplete, showAll = false, autoHide =
   const fetchChecklist = useCallback(async () => {
     if (!school?.id) return;
     try {
-      const res = await fetch("/api/setup-progress", { method: "GET" });
+      const res = await fetch("/api/setup-progress/", { method: "GET" });
       const body = await res.json();
       if (res.ok && body.success && Array.isArray(body.data?.items)) {
         setItems(body.data.items);

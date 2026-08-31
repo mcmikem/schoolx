@@ -53,12 +53,7 @@ interface SendSMSModalProps {
   onSent?: () => void;
 }
 
-export function SendSMSModal({
-  student,
-  isOpen,
-  onClose,
-  onSent,
-}: SendSMSModalProps) {
+export function SendSMSModal({ student, isOpen, onClose, onSent }: SendSMSModalProps) {
   const { school, user, isDemo } = useAuth();
   const toast = useToast();
   const [message, setMessage] = useState("");
@@ -66,9 +61,7 @@ export function SendSMSModal({
   const [selectedTemplate, setSelectedTemplate] = useState<number | null>(null);
   const [templateVars, setTemplateVars] = useState<Record<string, string>>({});
   const [showPreview, setShowPreview] = useState(false);
-  const [deliveryStatus, setDeliveryStatus] = useState<
-    "idle" | "sent" | "delivered" | "failed"
-  >("idle");
+  const [deliveryStatus, setDeliveryStatus] = useState<"idle" | "sent" | "delivered" | "failed">("idle");
   const [lastMessageId, setLastMessageId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -80,20 +73,11 @@ export function SendSMSModal({
   }, [isOpen]);
 
   useEffect(() => {
-    if (
-      !lastMessageId ||
-      deliveryStatus === "delivered" ||
-      deliveryStatus === "failed"
-    )
-      return;
+    if (!lastMessageId || deliveryStatus === "delivered" || deliveryStatus === "failed") return;
 
     const poll = setInterval(async () => {
       try {
-        const { data } = await supabase
-          .from("messages")
-          .select("status")
-          .eq("id", lastMessageId)
-          .single();
+        const { data } = await supabase.from("messages").select("status").eq("id", lastMessageId).single();
         if (data?.status === "delivered") {
           setDeliveryStatus("delivered");
           clearInterval(poll);
@@ -117,8 +101,7 @@ export function SendSMSModal({
   };
 
   const handleSend = async () => {
-    if (!message.trim() || !student.parent_phone || !school?.id || !user?.id)
-      return;
+    if (!message.trim() || !student.parent_phone || !school?.id || !user?.id) return;
 
     setSending(true);
     setDeliveryStatus("sent");
@@ -133,7 +116,7 @@ export function SendSMSModal({
         return;
       }
 
-      const response = await fetch("/api/sms", {
+      const response = await fetch("/api/sms/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -212,19 +195,13 @@ export function SendSMSModal({
             <h2 className="text-lg font-semibold text-[#191c1d]">
               SMS Parent of {student.first_name} {student.last_name}
             </h2>
-            <button
-              onClick={onClose}
-              className="p-2 text-[#5c6670] hover:text-[#191c1d]"
-            >
+            <button onClick={onClose} className="p-2 text-[#5c6670] hover:text-[#191c1d]">
               <MaterialIcon icon="close" className="text-xl" />
             </button>
           </div>
           {student.parent_phone && (
             <p className="text-sm text-[#5c6670] mt-1">
-              <MaterialIcon
-                icon="phone"
-                className="text-sm align-text-bottom mr-1"
-              />
+              <MaterialIcon icon="phone" className="text-sm align-text-bottom mr-1" />
               {student.parent_phone}
             </p>
           )}
@@ -233,13 +210,8 @@ export function SendSMSModal({
         <div className="p-6 space-y-4">
           {!student.parent_phone ? (
             <div className="text-center py-4">
-              <MaterialIcon
-                icon="phone_disabled"
-                className="text-3xl text-[#c62828] mb-2"
-              />
-              <p className="text-sm text-[#c62828]">
-                No parent phone number on record
-              </p>
+              <MaterialIcon icon="phone_disabled" className="text-3xl text-[#c62828] mb-2" />
+              <p className="text-sm text-[#c62828]">No parent phone number on record</p>
             </div>
           ) : (
             <>
@@ -270,9 +242,7 @@ export function SendSMSModal({
               {/* Preview Toggle */}
               {message.length > 0 && (
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium text-[#191c1d]">
-                    Message Preview
-                  </label>
+                  <label className="text-sm font-medium text-[#191c1d]">Message Preview</label>
                   <button
                     onClick={() => setShowPreview(!showPreview)}
                     className={`relative w-10 h-5 rounded-full transition-colors ${showPreview ? "bg-[#002045]" : "bg-[#c4c6cf]"}`}
@@ -290,9 +260,7 @@ export function SendSMSModal({
                   <div className="w-[220px] bg-[#1a1a2e] rounded-[24px] p-3 shadow-xl">
                     <div className="w-[16px] h-[16px] bg-[#333] rounded-full mx-auto mb-3" />
                     <div className="bg-[#0b4f6c] rounded-xl rounded-tl-none p-2.5 max-w-[180px]">
-                      <p className="text-white text-[11px] leading-relaxed break-words">
-                        {message}
-                      </p>
+                      <p className="text-white text-[11px] leading-relaxed break-words">{message}</p>
                       <p className="text-[#a0d2db] text-[9px] text-right mt-1">
                         {new Date().toLocaleTimeString([], {
                           hour: "2-digit",
@@ -301,9 +269,7 @@ export function SendSMSModal({
                       </p>
                     </div>
                     <div className="text-center mt-2">
-                      <span className="text-[#555] text-[9px]">
-                        {student.parent_phone}
-                      </span>
+                      <span className="text-[#555] text-[9px]">{student.parent_phone}</span>
                     </div>
                   </div>
                 </div>
@@ -311,9 +277,7 @@ export function SendSMSModal({
 
               {/* Quick Templates */}
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">
-                  Quick Templates
-                </label>
+                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Quick Templates</label>
                 <div className="grid grid-cols-2 gap-2">
                   {QUICK_TEMPLATES.map((tmpl, i) => (
                     <button
@@ -337,9 +301,7 @@ export function SendSMSModal({
                         }
                         className={`text-lg mb-1 ${selectedTemplate === i ? "text-[#002045]" : "text-[#5c6670]"}`}
                       />
-                      <div
-                        className={`font-medium ${selectedTemplate === i ? "text-[#002045]" : "text-[#5c6670]"}`}
-                      >
+                      <div className={`font-medium ${selectedTemplate === i ? "text-[#002045]" : "text-[#5c6670]"}`}>
                         {tmpl.label}
                       </div>
                     </button>
@@ -350,14 +312,10 @@ export function SendSMSModal({
               {/* Template Variables */}
               {selectedTemplate !== null && (
                 <div className="grid grid-cols-2 gap-2">
-                  {QUICK_TEMPLATES[selectedTemplate].category ===
-                    "fee_reminder" && (
+                  {QUICK_TEMPLATES[selectedTemplate].category === "fee_reminder" && (
                     <>
                       <div>
-                        <label
-                          htmlFor="sms-template-amount"
-                          className="text-xs font-medium text-[#5c6670] mb-1 block"
-                        >
+                        <label htmlFor="sms-template-amount" className="text-xs font-medium text-[#5c6670] mb-1 block">
                           Amount
                         </label>
                         <input
@@ -371,21 +329,13 @@ export function SendSMSModal({
                               amount: e.target.value,
                             };
                             setTemplateVars(newVars);
-                            setMessage(
-                              QUICK_TEMPLATES[selectedTemplate].build(
-                                student,
-                                newVars,
-                              ),
-                            );
+                            setMessage(QUICK_TEMPLATES[selectedTemplate].build(student, newVars));
                           }}
                           className="input text-sm"
                         />
                       </div>
                       <div>
-                        <label
-                          htmlFor="sms-template-date"
-                          className="text-xs font-medium text-[#5c6670] mb-1 block"
-                        >
+                        <label htmlFor="sms-template-date" className="text-xs font-medium text-[#5c6670] mb-1 block">
                           Due Date
                         </label>
                         <input
@@ -398,58 +348,37 @@ export function SendSMSModal({
                               date: e.target.value,
                             };
                             setTemplateVars(newVars);
-                            setMessage(
-                              QUICK_TEMPLATES[selectedTemplate].build(
-                                student,
-                                newVars,
-                              ),
-                            );
+                            setMessage(QUICK_TEMPLATES[selectedTemplate].build(student, newVars));
                           }}
                           className="input text-sm"
                         />
                       </div>
                     </>
                   )}
-                  {QUICK_TEMPLATES[selectedTemplate].category ===
-                    "attendance" && (
+                  {QUICK_TEMPLATES[selectedTemplate].category === "attendance" && (
                     <div>
-                      <label
-                        htmlFor="sms-attendance-date"
-                        className="text-xs font-medium text-[#5c6670] mb-1 block"
-                      >
+                      <label htmlFor="sms-attendance-date" className="text-xs font-medium text-[#5c6670] mb-1 block">
                         Date
                       </label>
                       <input
                         id="sms-attendance-date"
                         type="date"
-                        value={
-                          templateVars.date ||
-                          new Date().toISOString().split("T")[0]
-                        }
+                        value={templateVars.date || new Date().toISOString().split("T")[0]}
                         onChange={(e) => {
                           const newVars = {
                             ...templateVars,
                             date: e.target.value,
                           };
                           setTemplateVars(newVars);
-                          setMessage(
-                            QUICK_TEMPLATES[selectedTemplate].build(
-                              student,
-                              newVars,
-                            ),
-                          );
+                          setMessage(QUICK_TEMPLATES[selectedTemplate].build(student, newVars));
                         }}
                         className="input text-sm"
                       />
                     </div>
                   )}
-                  {QUICK_TEMPLATES[selectedTemplate].category ===
-                    "discipline" && (
+                  {QUICK_TEMPLATES[selectedTemplate].category === "discipline" && (
                     <div className="col-span-2">
-                      <label
-                        htmlFor="sms-incident"
-                        className="text-xs font-medium text-[#5c6670] mb-1 block"
-                      >
+                      <label htmlFor="sms-incident" className="text-xs font-medium text-[#5c6670] mb-1 block">
                         Incident
                       </label>
                       <input
@@ -463,25 +392,16 @@ export function SendSMSModal({
                             incident: e.target.value,
                           };
                           setTemplateVars(newVars);
-                          setMessage(
-                            QUICK_TEMPLATES[selectedTemplate].build(
-                              student,
-                              newVars,
-                            ),
-                          );
+                          setMessage(QUICK_TEMPLATES[selectedTemplate].build(student, newVars));
                         }}
                         className="input text-sm"
                       />
                     </div>
                   )}
-                  {QUICK_TEMPLATES[selectedTemplate].category ===
-                    "performance" && (
+                  {QUICK_TEMPLATES[selectedTemplate].category === "performance" && (
                     <>
                       <div>
-                        <label
-                          htmlFor="sms-marks"
-                          className="text-xs font-medium text-[#5c6670] mb-1 block"
-                        >
+                        <label htmlFor="sms-marks" className="text-xs font-medium text-[#5c6670] mb-1 block">
                           Marks
                         </label>
                         <input
@@ -495,21 +415,13 @@ export function SendSMSModal({
                               marks: e.target.value,
                             };
                             setTemplateVars(newVars);
-                            setMessage(
-                              QUICK_TEMPLATES[selectedTemplate].build(
-                                student,
-                                newVars,
-                              ),
-                            );
+                            setMessage(QUICK_TEMPLATES[selectedTemplate].build(student, newVars));
                           }}
                           className="input text-sm"
                         />
                       </div>
                       <div>
-                        <label
-                          htmlFor="sms-subject"
-                          className="text-xs font-medium text-[#5c6670] mb-1 block"
-                        >
+                        <label htmlFor="sms-subject" className="text-xs font-medium text-[#5c6670] mb-1 block">
                           Subject
                         </label>
                         <input
@@ -523,21 +435,13 @@ export function SendSMSModal({
                               subject: e.target.value,
                             };
                             setTemplateVars(newVars);
-                            setMessage(
-                              QUICK_TEMPLATES[selectedTemplate].build(
-                                student,
-                                newVars,
-                              ),
-                            );
+                            setMessage(QUICK_TEMPLATES[selectedTemplate].build(student, newVars));
                           }}
                           className="input text-sm"
                         />
                       </div>
                       <div className="col-span-2">
-                        <label
-                          htmlFor="sms-advice"
-                          className="text-xs font-medium text-[#5c6670] mb-1 block"
-                        >
+                        <label htmlFor="sms-advice" className="text-xs font-medium text-[#5c6670] mb-1 block">
                           Advice
                         </label>
                         <input
@@ -551,12 +455,7 @@ export function SendSMSModal({
                               advice: e.target.value,
                             };
                             setTemplateVars(newVars);
-                            setMessage(
-                              QUICK_TEMPLATES[selectedTemplate].build(
-                                student,
-                                newVars,
-                              ),
-                            );
+                            setMessage(QUICK_TEMPLATES[selectedTemplate].build(student, newVars));
                           }}
                           className="input text-sm"
                         />
@@ -568,10 +467,7 @@ export function SendSMSModal({
 
               {/* Message */}
               <div>
-                <label
-                  htmlFor="sms-message"
-                  className="text-sm font-medium text-[#191c1d] mb-2 block"
-                >
+                <label htmlFor="sms-message" className="text-sm font-medium text-[#191c1d] mb-2 block">
                   Message
                 </label>
                 <textarea
@@ -585,9 +481,7 @@ export function SendSMSModal({
                   className="input min-h-[100px] resize-none"
                 />
                 <div className="flex items-center justify-between mt-1">
-                  <p
-                    className={`text-xs ${message.length > 160 ? "text-[#c62828]" : "text-[#5c6670]"}`}
-                  >
+                  <p className={`text-xs ${message.length > 160 ? "text-[#c62828]" : "text-[#5c6670]"}`}>
                     {message.length}/160 characters
                   </p>
                   {message.length > 0 && (
@@ -598,10 +492,7 @@ export function SendSMSModal({
                       </span>
                       <span className="text-[#c4c6cf]">•</span>
                       <span className="text-[#191c1d] font-semibold">
-                        Est. cost: UGX{" "}
-                        {(
-                          Math.ceil(message.length / 160) * 25
-                        ).toLocaleString()}
+                        Est. cost: UGX {(Math.ceil(message.length / 160) * 25).toLocaleString()}
                       </span>
                     </div>
                   )}
@@ -612,11 +503,7 @@ export function SendSMSModal({
                 <button onClick={onClose} className="btn btn-secondary flex-1">
                   Cancel
                 </button>
-                <button
-                  onClick={handleSend}
-                  disabled={sending || !message.trim()}
-                  className="btn btn-primary flex-1"
-                >
+                <button onClick={handleSend} disabled={sending || !message.trim()} className="btn btn-primary flex-1">
                   <MaterialIcon icon="send" className="text-lg" />
                   {sending ? "Sending..." : "Send SMS"}
                 </button>

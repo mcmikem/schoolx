@@ -179,7 +179,7 @@ describe("Production Hardening Regression Tests", () => {
         "utf8",
       );
       expect(smsAutomation).toContain("sendAfricasTalkingSMS");
-      expect(smsAutomation).not.toContain("fetch('/api/sms'");
+      expect(smsAutomation).not.toContain("fetch('/api/sms/'");
     });
 
     it("should iterate over schools in cron job", () => {

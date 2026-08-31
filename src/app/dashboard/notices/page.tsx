@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/index";
 import { DEMO_NOTICES } from "@/lib/demo-data";
 import { getErrorMessage } from "@/lib/validation";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 
 export default function NoticesPage() {
   const { user, school, isDemo } = useAuth();
@@ -33,16 +34,18 @@ export default function NoticesPage() {
     send_sms: false,
   });
 
-  const postValidationError = !form.title.trim() || !form.content.trim()
-    ? "Add both title and content to post this notice."
-    : form.title.trim().length > 200
-      ? "Title must be 200 characters or fewer."
-      : "";
-  const editValidationError = !editForm.title.trim() || !editForm.content.trim()
-    ? "Add both title and content to save changes."
-    : editForm.title.trim().length > 200
-      ? "Title must be 200 characters or fewer."
-      : "";
+  const postValidationError =
+    !form.title.trim() || !form.content.trim()
+      ? "Add both title and content to post this notice."
+      : form.title.trim().length > 200
+        ? "Title must be 200 characters or fewer."
+        : "";
+  const editValidationError =
+    !editForm.title.trim() || !editForm.content.trim()
+      ? "Add both title and content to save changes."
+      : editForm.title.trim().length > 200
+        ? "Title must be 200 characters or fewer."
+        : "";
   // Note: send_sms is stored but SMS dispatch requires Africa's Talking
   // credentials configured in production (AFRICAS_TALKING_API_KEY).
 
@@ -104,7 +107,11 @@ export default function NoticesPage() {
 
   const handleEdit = (notice: any) => {
     setEditingNotice(notice);
-    setEditForm({ title: notice.title, content: notice.content, category: notice.type || notice.category || "General" });
+    setEditForm({
+      title: notice.title,
+      content: notice.content,
+      category: notice.type || notice.category || "General",
+    });
   };
 
   const handleEditSave = async (e: React.FormEvent) => {
@@ -117,14 +124,29 @@ export default function NoticesPage() {
     setEditSaving(true);
     try {
       if (isDemo) {
-        setNotices(prev => prev.map(n => n.id === editingNotice.id ? { ...n, title: editForm.title.trim(), content: editForm.content.trim(), type: editForm.category, category: editForm.category } : n));
+        setNotices((prev) =>
+          prev.map((n) =>
+            n.id === editingNotice.id
+              ? {
+                  ...n,
+                  title: editForm.title.trim(),
+                  content: editForm.content.trim(),
+                  type: editForm.category,
+                  category: editForm.category,
+                }
+              : n,
+          ),
+        );
       } else {
-        const { error } = await supabase.from("notices").update({
-          title: editForm.title.trim(),
-          content: editForm.content.trim(),
-          type: editForm.category,
-          priority: editForm.category === "Emergency" ? "high" : "normal",
-        }).eq("id", editingNotice.id);
+        const { error } = await supabase
+          .from("notices")
+          .update({
+            title: editForm.title.trim(),
+            content: editForm.content.trim(),
+            type: editForm.category,
+            priority: editForm.category === "Emergency" ? "high" : "normal",
+          })
+          .eq("id", editingNotice.id);
         if (error) throw error;
         await fetchNotices();
       }
@@ -163,18 +185,21 @@ export default function NoticesPage() {
           ...previous,
         ]);
       } else {
-        const { error } = await supabase.from("notices").insert({
-          school_id: school!.id,
-          title: form.title.trim(),
-          content: form.content.trim(),
-          type: form.category,
-          priority: form.category === "Emergency" ? "high" : "normal",
-          published_by: user?.id,
-          publish_date: new Date().toISOString(),
-          is_published: true,
-          // send_sms: form.send_sms — requires Africa's Talking in production
-        });
-        if (error) throw error;
+        const result = await withTimeout(
+          supabase.from("notices").insert({
+            school_id: school!.id,
+            title: form.title.trim(),
+            content: form.content.trim(),
+            type: form.category,
+            priority: form.category === "Emergency" ? "high" : "normal",
+            published_by: user?.id,
+            publish_date: new Date().toISOString(),
+            is_published: true,
+          }),
+          15000,
+          timeoutFallback(),
+        );
+        if (result?.error) throw result.error;
         await fetchNotices();
       }
       setShowPostModal(false);
@@ -189,198 +214,195 @@ export default function NoticesPage() {
 
   return (
     <PageErrorBoundary>
-    <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
-      <PageHeader
-        title="Notices"
-        subtitle="Post and manage school notices"
-        actions={
-          <Button onClick={() => setShowPostModal(true)}>
-            <MaterialIcon icon="add" />
-            Post Notice
-          </Button>
-        }
-      />
-      <p className="mt-2 mb-6 text-sm text-[var(--t3)]">
-        Share updates by category so staff and families can scan urgent notices quickly.
-      </p>
+      <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto">
+        <PageHeader
+          title="Notices"
+          subtitle="Post and manage school notices"
+          actions={
+            <Button onClick={() => setShowPostModal(true)}>
+              <MaterialIcon icon="add" />
+              Post Notice
+            </Button>
+          }
+        />
+        <p className="mt-2 mb-6 text-sm text-[var(--t3)]">
+          Share updates by category so staff and families can scan urgent notices quickly.
+        </p>
 
-      {loading ? (
-        <div className="text-center py-12 text-gray-400">
-          Loading notices...
-        </div>
-      ) : notices.length === 0 ? (
-        <div className="text-center py-12 text-gray-400">
-          <MaterialIcon icon="campaign" className="text-4xl mx-auto mb-2" />
-          <p>No notices posted yet</p>
-          <Button className="mt-4" onClick={() => setShowPostModal(true)}>
-            <MaterialIcon icon="add" />
-            Post Notice
-          </Button>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          {notices.map((notice) => (
-            <Card key={notice.id}>
-              <CardBody>
-                <h2 className="text-lg font-semibold">{notice.title}</h2>
-                <p className="text-sm text-gray-500 mt-1">{notice.content}</p>
-                <div className="flex items-center gap-2 mt-2">
-                  <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 capitalize">
-                    {notice.type || notice.category || "General"}
-                  </span>
-                  {notice.priority === "high" && (
-                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-600">
-                      Urgent
+        {loading ? (
+          <div className="text-center py-12 text-gray-400">Loading notices...</div>
+        ) : notices.length === 0 ? (
+          <div className="text-center py-12 text-gray-400">
+            <MaterialIcon icon="campaign" className="text-4xl mx-auto mb-2" />
+            <p>No notices posted yet</p>
+            <Button className="mt-4" onClick={() => setShowPostModal(true)}>
+              <MaterialIcon icon="add" />
+              Post Notice
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {notices.map((notice) => (
+              <Card key={notice.id}>
+                <CardBody>
+                  <h2 className="text-lg font-semibold">{notice.title}</h2>
+                  <p className="text-sm text-gray-500 mt-1">{notice.content}</p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600 capitalize">
+                      {notice.type || notice.category || "General"}
                     </span>
-                  )}
-                  <span className="text-xs text-gray-400">
-                    {new Date(notice.created_at).toLocaleDateString()}
-                  </span>
-                </div>
-                <div className="flex justify-end mt-3 gap-2">
-                  <button
-                    onClick={() => handleEdit(notice)}
-                    className="text-xs text-blue-500 hover:text-blue-700 flex items-center gap-1"
-                    title="Edit notice"
-                  >
-                    <MaterialIcon icon="edit" className="text-sm" />
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(notice.id)}
-                    disabled={deletingId === notice.id}
-                    className="text-xs text-red-500 hover:text-red-700 disabled:opacity-50 flex items-center gap-1"
-                    title="Delete notice"
-                  >
-                    <MaterialIcon icon="delete" className="text-sm" />
-                    {deletingId === notice.id ? "Deleting..." : "Delete"}
-                  </button>
-                </div>
-              </CardBody>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {editingNotice && (
-        <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
-            <h2 className="text-xl font-semibold mb-4">Edit Notice</h2>
-            <form onSubmit={handleEditSave}>
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Title</label>
-                  <input type="text" value={editForm.title} onChange={e => setEditForm({ ...editForm, title: e.target.value })} className="input w-full" maxLength={200} required />
-                </div>
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Category</label>
-                  <select value={editForm.category} onChange={e => setEditForm({ ...editForm, category: e.target.value })} className="input w-full">
-                    <option value="General">General</option>
-                    <option value="Academic">Academic</option>
-                    <option value="Event">Event</option>
-                    <option value="Emergency">Emergency</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-sm font-medium mb-1 block">Content</label>
-                  <textarea value={editForm.content} onChange={e => setEditForm({ ...editForm, content: e.target.value })} className="input w-full min-h-[120px]" required />
-                </div>
-                <div className="flex gap-3">
-                  <Button type="button" variant="secondary" onClick={() => setEditingNotice(null)} className="flex-1">Cancel</Button>
-                  <Button type="submit" disabled={editSaving || Boolean(editValidationError)} className="flex-1">{editSaving ? "Saving..." : "Save Changes"}</Button>
-                </div>
-                {editValidationError && (
-                  <p className="text-sm text-[var(--t3)]">{editValidationError}</p>
-                )}
-              </div>
-            </form>
+                    {notice.priority === "high" && (
+                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-600">
+                        Urgent
+                      </span>
+                    )}
+                    <span className="text-xs text-gray-400">{new Date(notice.created_at).toLocaleDateString()}</span>
+                  </div>
+                  <div className="flex justify-end mt-3 gap-2">
+                    <button
+                      onClick={() => handleEdit(notice)}
+                      className="text-xs text-blue-500 hover:text-blue-700 flex items-center gap-1"
+                      title="Edit notice"
+                    >
+                      <MaterialIcon icon="edit" className="text-sm" />
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDelete(notice.id)}
+                      disabled={deletingId === notice.id}
+                      className="text-xs text-red-500 hover:text-red-700 disabled:opacity-50 flex items-center gap-1"
+                      title="Delete notice"
+                    >
+                      <MaterialIcon icon="delete" className="text-sm" />
+                      {deletingId === notice.id ? "Deleting..." : "Delete"}
+                    </button>
+                  </div>
+                </CardBody>
+              </Card>
+            ))}
           </div>
-        </div>
-      )}
+        )}
 
-      {showPostModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
-            <h2 className="text-xl font-semibold mb-4">Post Notice</h2>
-            <form onSubmit={handlePost}>
-              <div className="space-y-4">
-                <div>
-                  <label
-                    className="text-sm font-medium mb-1 block"
-                    htmlFor="title"
-                  >
-                    Title
-                  </label>
-                  <input
-                    id="title"
-                    type="text"
-                    value={form.title}
-                    onChange={(e) =>
-                      setForm({ ...form, title: e.target.value })
-                    }
-                    className="input w-full"
-                    required
-                  />
+        {editingNotice && (
+          <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
+              <h2 className="text-xl font-semibold mb-4">Edit Notice</h2>
+              <form onSubmit={handleEditSave}>
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Title</label>
+                    <input
+                      type="text"
+                      value={editForm.title}
+                      onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
+                      className="input w-full"
+                      maxLength={200}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Category</label>
+                    <select
+                      value={editForm.category}
+                      onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
+                      className="input w-full"
+                    >
+                      <option value="General">General</option>
+                      <option value="Academic">Academic</option>
+                      <option value="Event">Event</option>
+                      <option value="Emergency">Emergency</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-1 block">Content</label>
+                    <textarea
+                      value={editForm.content}
+                      onChange={(e) => setEditForm({ ...editForm, content: e.target.value })}
+                      className="input w-full min-h-[120px]"
+                      required
+                    />
+                  </div>
+                  <div className="flex gap-3">
+                    <Button type="button" variant="secondary" onClick={() => setEditingNotice(null)} className="flex-1">
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={editSaving || Boolean(editValidationError)} className="flex-1">
+                      {editSaving ? "Saving..." : "Save Changes"}
+                    </Button>
+                  </div>
+                  {editValidationError && <p className="text-sm text-[var(--t3)]">{editValidationError}</p>}
                 </div>
-                <div>
-                  <label
-                    className="text-sm font-medium mb-1 block"
-                    htmlFor="category"
-                  >
-                    Category
-                  </label>
-                  <select
-                    id="category"
-                    value={form.category}
-                    onChange={(e) =>
-                      setForm({ ...form, category: e.target.value })
-                    }
-                    className="input w-full"
-                  >
-                    <option value="General">General</option>
-                    <option value="Academic">Academic</option>
-                    <option value="Event">Event</option>
-                    <option value="Emergency">Emergency</option>
-                  </select>
-                </div>
-                <div>
-                  <label
-                    className="text-sm font-medium mb-1 block"
-                    htmlFor="content"
-                  >
-                    Content
-                  </label>
-                  <textarea
-                    id="content"
-                    value={form.content}
-                    onChange={(e) =>
-                      setForm({ ...form, content: e.target.value })
-                    }
-                    className="input w-full min-h-[120px]"
-                    required
-                  />
-                </div>
-                <div className="flex gap-3">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => setShowPostModal(false)}
-                    className="flex-1"
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit" disabled={posting || Boolean(postValidationError)} className="flex-1">
-                    {posting ? "Posting..." : "Post Notice"}
-                  </Button>
-                </div>
-                {postValidationError && (
-                  <p className="text-sm text-[var(--t3)]">{postValidationError}</p>
-                )}
-              </div>
-            </form>
+              </form>
+            </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {showPostModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
+              <h2 className="text-xl font-semibold mb-4">Post Notice</h2>
+              <form onSubmit={handlePost}>
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium mb-1 block" htmlFor="title">
+                      Title
+                    </label>
+                    <input
+                      id="title"
+                      type="text"
+                      value={form.title}
+                      onChange={(e) => setForm({ ...form, title: e.target.value })}
+                      className="input w-full"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-1 block" htmlFor="category">
+                      Category
+                    </label>
+                    <select
+                      id="category"
+                      value={form.category}
+                      onChange={(e) => setForm({ ...form, category: e.target.value })}
+                      className="input w-full"
+                    >
+                      <option value="General">General</option>
+                      <option value="Academic">Academic</option>
+                      <option value="Event">Event</option>
+                      <option value="Emergency">Emergency</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-1 block" htmlFor="content">
+                      Content
+                    </label>
+                    <textarea
+                      id="content"
+                      value={form.content}
+                      onChange={(e) => setForm({ ...form, content: e.target.value })}
+                      className="input w-full min-h-[120px]"
+                      required
+                    />
+                  </div>
+                  <div className="flex gap-3">
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => setShowPostModal(false)}
+                      className="flex-1"
+                    >
+                      Cancel
+                    </Button>
+                    <Button type="submit" disabled={posting || Boolean(postValidationError)} className="flex-1">
+                      {posting ? "Posting..." : "Post Notice"}
+                    </Button>
+                  </div>
+                  {postValidationError && <p className="text-sm text-[var(--t3)]">{postValidationError}</p>}
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
       </div>
 
       <ConfirmDialog

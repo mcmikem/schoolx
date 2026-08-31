@@ -8,6 +8,7 @@ import { useClasses, useSubjects } from "@/lib/hooks";
 import { useToast } from "@/components/Toast";
 import { useFormDraft } from "@/lib/useAutoSave";
 import { supabase } from "@/lib/supabase";
+import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import MaterialIcon from "@/components/MaterialIcon";
 import { Tabs } from "@/components/ui/Tabs";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -121,18 +122,23 @@ export default function HomeworkPage() {
     }
 
     try {
-      const { error } = await supabase.from("homework").insert({
-        school_id: school.id,
-        title: newHomework.title.trim(),
-        description: newHomework.description.trim(),
-        subject_id: newHomework.subject_id,
-        class_id: newHomework.class_id,
-        due_date: newHomework.due_date,
-        marks: newHomework.marks,
-        created_by: user.id,
-        academic_year: academicYear,
-        term: currentTerm,
-      });
+      const res = await withTimeout(
+        supabase.from("homework").insert({
+          school_id: school.id,
+          title: newHomework.title.trim(),
+          description: newHomework.description.trim(),
+          subject_id: newHomework.subject_id,
+          class_id: newHomework.class_id,
+          due_date: newHomework.due_date,
+          marks: newHomework.marks,
+          created_by: user.id,
+          academic_year: academicYear,
+          term: currentTerm,
+        }),
+        15000,
+        timeoutFallback(),
+      );
+      const error = res?.error;
 
       if (error) throw error;
       toast.success("Homework assigned");

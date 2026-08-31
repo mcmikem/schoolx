@@ -195,52 +195,43 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
 
       setLoading(true);
       const searchTerm = `%${searchQuery}%`;
-      const [studentsRes, staffRes, paymentsRes, messagesRes] =
-        await Promise.all([
-          supabase
-            .from("students")
-            .select("id, first_name, last_name, student_number, class_id")
-            .eq("school_id", schoolId)
-            .or(
-              `first_name.ilike.${searchTerm},last_name.ilike.${searchTerm},student_number.ilike.${searchTerm}`,
-            )
-            .limit(5),
-          supabase
-            .from("staff")
-            .select("id, first_name, last_name, employee_number, role")
-            .eq("school_id", schoolId)
-            .or(
-              `first_name.ilike.${searchTerm},last_name.ilike.${searchTerm},employee_number.ilike.${searchTerm}`,
-            )
-            .limit(5),
-          supabase
-            .from("fee_payments")
-            .select(
-              "id, payment_reference, amount_paid, payment_date, student_id, students(first_name, last_name)",
-            )
-            .eq("school_id", schoolId)
-            .ilike("payment_reference", searchTerm)
-            .order("payment_date", { ascending: false })
-            .limit(3),
-          supabase
-            .from("messages")
-            .select("id, message, phone, created_at")
-            .eq("school_id", schoolId)
-            .ilike("message", searchTerm)
-            .order("created_at", { ascending: false })
-            .limit(3),
-        ]);
+      const [studentsRes, staffRes, paymentsRes, messagesRes] = await Promise.all([
+        supabase
+          .from("students")
+          .select("id, first_name, last_name, student_number, class_id")
+          .eq("school_id", schoolId)
+          .or(`first_name.ilike.${searchTerm},last_name.ilike.${searchTerm},student_number.ilike.${searchTerm}`)
+          .limit(5),
+        supabase
+          .from("staff")
+          .select("id, first_name, last_name, employee_number, role")
+          .eq("school_id", schoolId)
+          .or(`first_name.ilike.${searchTerm},last_name.ilike.${searchTerm},employee_number.ilike.${searchTerm}`)
+          .limit(5),
+        supabase
+          .from("fee_payments")
+          .select("id, payment_reference, amount_paid, payment_date, student_id, students(first_name, last_name)")
+          .eq("school_id", schoolId)
+          .ilike("payment_reference", searchTerm)
+          .order("payment_date", { ascending: false })
+          .limit(3),
+        supabase
+          .from("messages")
+          .select("id, message, phone, created_at")
+          .eq("school_id", schoolId)
+          .ilike("message", searchTerm)
+          .order("created_at", { ascending: false })
+          .limit(3),
+      ]);
 
-      const studentResults: SearchResult[] = (studentsRes.data || []).map(
-        (s) => ({
-          type: "student",
-          id: s.id,
-          title: `${s.first_name} ${s.last_name}`,
-          subtitle: s.student_number || "Student",
-          icon: "person",
-          href: `/dashboard/students/${s.id}`,
-        }),
-      );
+      const studentResults: SearchResult[] = (studentsRes.data || []).map((s) => ({
+        type: "student",
+        id: s.id,
+        title: `${s.first_name} ${s.last_name}`,
+        subtitle: s.student_number || "Student",
+        icon: "person",
+        href: `/dashboard/students/${s.id}`,
+      }));
 
       const staffResults: SearchResult[] = (staffRes.data || []).map((s) => ({
         type: "staff",
@@ -251,46 +242,30 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
         href: `/dashboard/staff`,
       }));
 
-      const paymentResults: SearchResult[] = (paymentsRes.data || []).map(
-        (p) => {
-          const student = Array.isArray(p.students)
-            ? p.students[0]
-            : p.students;
-          return {
-            type: "payment",
-            id: p.id,
-            title: `Payment ${p.payment_reference || p.id.slice(0, 8)}`,
-            subtitle: `${student?.first_name || "Unknown"} ${student?.last_name || ""} - UGX ${Number(p.amount_paid).toLocaleString()}`,
-            icon: "receipt_long",
-            href: `/dashboard/fees`,
-          };
-        },
-      );
+      const paymentResults: SearchResult[] = (paymentsRes.data || []).map((p) => {
+        const student = Array.isArray(p.students) ? p.students[0] : p.students;
+        return {
+          type: "payment",
+          id: p.id,
+          title: `Payment ${p.payment_reference || p.id.slice(0, 8)}`,
+          subtitle: `${student?.first_name || "Unknown"} ${student?.last_name || ""} - UGX ${Number(p.amount_paid).toLocaleString()}`,
+          icon: "receipt_long",
+          href: `/dashboard/fees`,
+        };
+      });
 
-      const messageResults: SearchResult[] = (messagesRes.data || []).map(
-        (m) => ({
-          type: "message",
-          id: m.id,
-          title: m.message.slice(0, 60) + (m.message.length > 60 ? "..." : ""),
-          subtitle: `To: ${m.phone}`,
-          icon: "chat",
-          href: `/dashboard/messages`,
-        }),
-      );
+      const messageResults: SearchResult[] = (messagesRes.data || []).map((m) => ({
+        type: "message",
+        id: m.id,
+        title: m.message.slice(0, 60) + (m.message.length > 60 ? "..." : ""),
+        subtitle: `To: ${m.phone}`,
+        icon: "chat",
+        href: `/dashboard/messages`,
+      }));
 
-      const pageResults = pages
-        .filter((p) =>
-          p.title.toLowerCase().includes(searchQuery.toLowerCase()),
-        )
-        .slice(0, 5);
+      const pageResults = pages.filter((p) => p.title.toLowerCase().includes(searchQuery.toLowerCase())).slice(0, 5);
 
-      setResults([
-        ...studentResults,
-        ...staffResults,
-        ...paymentResults,
-        ...messageResults,
-        ...pageResults,
-      ]);
+      setResults([...studentResults, ...staffResults, ...paymentResults, ...messageResults, ...pageResults]);
       setLoading(false);
     },
     [schoolId, pages],
@@ -318,8 +293,13 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
         setIsOpen(false);
       }
     };
+    const handleExternalOpen = () => setIsOpen(true);
     window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener("open-global-search" as unknown as keyof WindowEventMap, handleExternalOpen);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("open-global-search" as unknown as keyof WindowEventMap, handleExternalOpen);
+    };
   }, []);
 
   useEffect(() => {
@@ -338,9 +318,7 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
   }, [isOpen]);
 
   useEffect(() => {
-    setSelectedIndex((idx) =>
-      results.length === 0 ? 0 : Math.min(idx, results.length - 1),
-    );
+    setSelectedIndex((idx) => (results.length === 0 ? 0 : Math.min(idx, results.length - 1)));
   }, [results]);
 
   const handleSelect = (result: SearchResult) => {
@@ -365,20 +343,14 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
       e.preventDefault();
       if (results.length === 0) return;
       setSelectedIndex((i) => Math.max(i - 1, 0));
-    } else if (
-      e.key === "Enter" &&
-      results.length > 0 &&
-      results[selectedIndex]
-    ) {
+    } else if (e.key === "Enter" && results.length > 0 && results[selectedIndex]) {
       handleSelect(results[selectedIndex]);
     }
   };
 
   useEffect(() => {
     if (resultsRef.current) {
-      const selected = resultsRef.current.querySelector(
-        `[data-index="${selectedIndex}"]`,
-      );
+      const selected = resultsRef.current.querySelector(`[data-index="${selectedIndex}"]`);
       selected?.scrollIntoView({ block: "nearest" });
     }
   }, [selectedIndex]);
@@ -418,10 +390,7 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
             aria-label="Search"
           >
             <div className="flex items-center gap-3 border-b border-[var(--border)] px-4 py-3">
-              <MaterialIcon
-                icon="search"
-                className="text-xl text-[var(--t3)]"
-              />
+              <MaterialIcon icon="search" className="text-xl text-[var(--t3)]" />
               <input
                 ref={inputRef}
                 type="text"
@@ -434,12 +403,7 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
                 placeholder="Search students, staff, or pages..."
                 className="flex-1 border-0 bg-transparent text-base text-[var(--on-surface)] outline-none placeholder:text-[var(--t4)]"
               />
-              {loading && (
-                <MaterialIcon
-                  icon="hourglass_empty"
-                  className="animate-spin text-[var(--t3)]"
-                />
-              )}
+              {loading && <MaterialIcon icon="hourglass_empty" className="animate-spin text-[var(--t3)]" />}
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
@@ -452,9 +416,7 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
 
             <div ref={resultsRef} className="max-h-[60vh] overflow-y-auto">
               {results.length === 0 && query.length >= 2 && !loading && (
-                <div className="px-4 py-8 text-center text-[var(--t3)]">
-                  No results found for &quot;{query}&quot;
-                </div>
+                <div className="px-4 py-8 text-center text-[var(--t3)]">No results found for &quot;{query}&quot;</div>
               )}
 
               {results.length > 0 && (
@@ -476,19 +438,10 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
                         className={`text-xl ${index === selectedIndex ? "text-[var(--primary)]" : "text-[var(--t3)]"}`}
                       />
                       <div className="min-w-0 flex-1">
-                        <div className="truncate font-medium">
-                          {result.title}
-                        </div>
-                        {result.subtitle && (
-                          <div className="truncate text-sm text-[var(--t3)]">
-                            {result.subtitle}
-                          </div>
-                        )}
+                        <div className="truncate font-medium">{result.title}</div>
+                        {result.subtitle && <div className="truncate text-sm text-[var(--t3)]">{result.subtitle}</div>}
                       </div>
-                      <MaterialIcon
-                        icon="arrow_forward"
-                        className="text-lg text-[var(--t3)]"
-                      />
+                      <MaterialIcon icon="arrow_forward" className="text-lg text-[var(--t3)]" />
                     </button>
                   ))}
                 </div>
@@ -499,9 +452,7 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
                   {recentSearches.length > 0 ? (
                     <>
                       <div className="mb-3 flex items-center justify-between">
-                        <h3 className="text-sm font-semibold text-[var(--t1)]">
-                          Recent Searches
-                        </h3>
+                        <h3 className="text-sm font-semibold text-[var(--t1)]">Recent Searches</h3>
                         <button
                           type="button"
                           onClick={clearRecentSearches}
@@ -518,13 +469,8 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
                             onClick={() => handleRecentSearchClick(search)}
                             className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors hover:bg-[var(--surface-container-low)] focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--primary)]/20"
                           >
-                            <MaterialIcon
-                              icon="history"
-                              className="text-[var(--t3)]"
-                            />
-                            <span className="truncate text-sm text-[var(--t1)]">
-                              {search}
-                            </span>
+                            <MaterialIcon icon="history" className="text-[var(--t3)]" />
+                            <span className="truncate text-sm text-[var(--t1)]">{search}</span>
                           </button>
                         ))}
                       </div>
@@ -533,10 +479,7 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
                     <div className="text-center text-[var(--t3)]">
                       <MaterialIcon icon="keyboard" className="mb-2 text-3xl" />
                       <p>Type at least 2 characters to search</p>
-                      <p className="mt-1 text-sm">
-                        Search students by name or number, staff, or navigate to
-                        pages
-                      </p>
+                      <p className="mt-1 text-sm">Search students by name or number, staff, or navigate to pages</p>
                     </div>
                   )}
                 </div>
@@ -565,9 +508,7 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
                 </span>
               </div>
               {recentSearches.length > 0 && (
-                <span className="text-[11px] text-[var(--t4)]">
-                  {recentSearches.length} recent
-                </span>
+                <span className="text-[11px] text-[var(--t4)]">{recentSearches.length} recent</span>
               )}
             </div>
           </div>

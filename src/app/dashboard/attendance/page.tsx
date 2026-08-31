@@ -1,6 +1,8 @@
 "use client";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
+import { useUrlSyncedFilters } from "@/lib/hooks/useUrlSyncedFilters";
 import { useAuth } from "@/lib/auth-context";
 import { useClasses } from "@/lib/hooks";
 import { useOfflineStudents, useOfflineAttendance } from "@/lib/offline-hooks";
@@ -66,11 +68,18 @@ export default function AttendancePage() {
   const toast = useToast();
   const isOnline = useOnlineStatus();
   const { classes, loading: classesLoading } = useClasses(school?.id);
-  const [selectedClass, setSelectedClass] = useState<string | null>(null);
-  const [date, setDate] = useState(() => {
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
-  });
+  const urlFilters = useUrlSyncedFilters();
+  const router = useRouter();
+  const pathname = usePathname();
+  const [selectedClass, setSelectedClass] = useState<string | null>(() => urlFilters.get("class"));
+  const [date, setDate] = useState(
+    () =>
+      urlFilters.get("date") ||
+      (() => {
+        const now = new Date();
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+      })(),
+  );
   const [attendance, setAttendance] = useState<Record<string, string>>({});
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(false);
@@ -105,9 +114,14 @@ export default function AttendancePage() {
   } | null>(null);
   const [showQuickAbsentModal, setShowQuickAbsentModal] = useState(false);
   const [selectedAbsentIds, setSelectedAbsentIds] = useState<Set<string>>(new Set());
-  const [filterStatus, setFilterStatus] = useState<"all" | AttendanceStatus>("all");
-  const [searchQuery, setSearchQuery] = useState("");
-  const [attendPage, setAttendPage] = useState(1);
+  const [filterStatus, setFilterStatus] = useState<"all" | AttendanceStatus>(
+    () => (urlFilters.get("status") as "all" | AttendanceStatus) || "all",
+  );
+  const [searchQuery, setSearchQuery] = useState(() => urlFilters.get("q") || "");
+  const [attendPage, setAttendPage] = useState(() => {
+    const p = urlFilters.get("page");
+    return p ? Math.max(1, parseInt(p, 10) || 1) : 1;
+  });
   const attendPerPage = 20;
   const attendOffset = (attendPage - 1) * attendPerPage;
   const attendTotalPages = Math.max(1, Math.ceil(students.length / attendPerPage));
@@ -131,6 +145,30 @@ export default function AttendancePage() {
       setAttendPage(1);
     }
   }, [students.length, attendPage, attendPerPage]);
+
+  // URL-synced filters
+  useEffect(() => {
+    urlFilters.setMany({
+      class: selectedClass || null,
+      date: date || null,
+      q: searchQuery || null,
+      status: filterStatus !== "all" ? filterStatus : null,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedClass, date, searchQuery, filterStatus]);
+
+  useEffect(() => {
+    if (attendPage > 1) urlFilters.set("page", String(attendPage));
+    else {
+      const params = new URLSearchParams(urlFilters.searchParams?.toString() || "");
+      if (params.has("page")) {
+        params.delete("page");
+        const qs = params.toString();
+        router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attendPage]);
 
   const paginatedStudents = students.slice(attendOffset, attendOffset + attendPerPage);
 
@@ -946,6 +984,52 @@ export default function AttendancePage() {
                     </button>
                   ))}
                 </div>
+                {(searchQuery || filterStatus !== "all" || selectedClass) && (
+                  <div className="flex flex-wrap items-center gap-2">
+                    {searchQuery && (
+                      <span className="inline-flex items-center gap-1.5 pl-3 pr-1 py-1 rounded-full bg-[var(--primary-50)] border border-[var(--primary-200)] text-xs font-medium text-[var(--primary-700)]">
+                        Search: “{searchQuery}”{" "}
+                        <button
+                          onClick={() => setSearchQuery("")}
+                          className="w-5 h-5 rounded-full bg-white/70 hover:bg-white flex items-center justify-center"
+                        >
+                          <MaterialIcon icon="close" className="text-[14px]" />
+                        </button>
+                      </span>
+                    )}
+                    {selectedClass && (
+                      <span className="inline-flex items-center gap-1.5 pl-3 pr-1 py-1 rounded-full bg-[var(--primary-50)] border border-[var(--primary-200)] text-xs font-medium text-[var(--primary-700)]">
+                        Class: {filteredClasses.find((c) => c.id === selectedClass)?.name || selectedClass}{" "}
+                        <button
+                          onClick={() => setSelectedClass(null)}
+                          className="w-5 h-5 rounded-full bg-white/70 hover:bg-white flex items-center justify-center"
+                        >
+                          <MaterialIcon icon="close" className="text-[14px]" />
+                        </button>
+                      </span>
+                    )}
+                    {filterStatus !== "all" && (
+                      <span className="inline-flex items-center gap-1.5 pl-3 pr-1 py-1 rounded-full bg-[var(--primary-50)] border border-[var(--primary-200)] text-xs font-medium text-[var(--primary-700)]">
+                        Status: {filterStatus}{" "}
+                        <button
+                          onClick={() => setFilterStatus("all")}
+                          className="w-5 h-5 rounded-full bg-white/70 hover:bg-white flex items-center justify-center"
+                        >
+                          <MaterialIcon icon="close" className="text-[14px]" />
+                        </button>
+                      </span>
+                    )}
+                    <button
+                      onClick={() => {
+                        setSearchQuery("");
+                        setFilterStatus("all");
+                      }}
+                      className="text-xs font-semibold text-[var(--primary)] hover:underline ml-1"
+                    >
+                      Clear filters
+                    </button>
+                  </div>
+                )}
 
                 <div className="space-y-2">
                   {filteredStudents.map((student) => {

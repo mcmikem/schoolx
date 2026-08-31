@@ -38,7 +38,8 @@ export default function CollapsibleSidebar({ groups, onNavigate, compact = false
 
   useEffect(() => {
     try {
-      const saved = localStorage.getItem("assemble_recent_pages");
+      // Support both legacy and current keys during migration
+      const saved = localStorage.getItem("skoolmate_recent_pages") ?? localStorage.getItem("assemble_recent_pages");
       if (saved) setRecentPages(JSON.parse(saved));
     } catch {
       // Ignore localStorage parsing issues

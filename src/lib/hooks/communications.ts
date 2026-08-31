@@ -34,9 +34,7 @@ export function useMessages(schoolId?: string) {
         setLoading(true);
         const { data, error } = await supabase
           .from("messages")
-          .select(
-            "id, school_id, recipient_type, recipient_id, phone, message, status, sent_by, sent_at, created_at",
-          )
+          .select("id, school_id, recipient_type, recipient_id, phone, message, status, sent_by, sent_at, created_at")
           .eq("school_id", querySchoolId)
           .order("created_at", { ascending: false })
           .limit(50);
@@ -75,9 +73,7 @@ export function useEvents(schoolId?: string) {
         setLoading(true);
         const { data, error } = await supabase
           .from("events")
-          .select(
-            "id, school_id, title, description, event_type, start_date, end_date, created_by, created_at",
-          )
+          .select("id, school_id, title, description, event_type, start_date, end_date, created_by, created_at")
           .eq("school_id", querySchoolId)
           .order("start_date", { ascending: true });
         if (error) throw error;
@@ -180,16 +176,17 @@ export function useSMSTriggers(schoolId?: string) {
 
   const toggleTrigger = async (id: string, isActive: boolean) => {
     if (isDemo) {
-      setTriggers((prev) =>
-        prev.map((t) => (t.id === id ? { ...t, is_active: isActive } : t)),
-      );
+      setTriggers((prev) => prev.map((t) => (t.id === id ? { ...t, is_active: isActive } : t)));
       return { success: true };
     }
     try {
-      const { error } = await withTimeout(supabase
-        .from("sms_triggers")
-        .update({ is_active: isActive })
-        .eq("id", id), 15000, { error: { message: "Trigger toggle timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as unknown as PostgrestSingleResponse<never>);
+      const { error } = await withTimeout(
+        supabase.from("sms_triggers").update({ is_active: isActive }).eq("id", id),
+        15000,
+        {
+          error: { message: "Trigger toggle timed out", name: "TimeoutError", details: "", hint: "", code: "" },
+        } as unknown as PostgrestSingleResponse<never>,
+      );
       if (error) throw error;
       return { success: true };
     } catch (err: any) {
@@ -212,7 +209,7 @@ export function useSMSTriggers(schoolId?: string) {
     }
 
     try {
-      const response = await fetch("/api/automation/sms/run", {
+      const response = await fetch("/api/automation/sms/run/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -275,19 +272,24 @@ export function useSMSTriggers(schoolId?: string) {
     }
 
     try {
-      const { data, error } = await withTimeout(supabase
-        .from("sms_triggers")
-        .insert({
-          school_id: schoolId,
-          name: input.name.trim(),
-          event_type: input.event_type,
-          threshold_days: input.threshold_days,
-          is_active: input.is_active ?? true,
-        })
-        .select(
-          "id, school_id, name, event_type, threshold_days, template_id, is_active, last_run_at, created_at",
-        )
-        .single(), 15000, { data: null, error: { message: "Trigger creation timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as unknown as PostgrestSingleResponse<never>);
+      const { data, error } = await withTimeout(
+        supabase
+          .from("sms_triggers")
+          .insert({
+            school_id: schoolId,
+            name: input.name.trim(),
+            event_type: input.event_type,
+            threshold_days: input.threshold_days,
+            is_active: input.is_active ?? true,
+          })
+          .select("id, school_id, name, event_type, threshold_days, template_id, is_active, last_run_at, created_at")
+          .single(),
+        15000,
+        {
+          data: null,
+          error: { message: "Trigger creation timed out", name: "TimeoutError", details: "", hint: "", code: "" },
+        } as unknown as PostgrestSingleResponse<never>,
+      );
 
       if (error) throw error;
       setTriggers((prev) => [...prev, data]);
@@ -297,10 +299,7 @@ export function useSMSTriggers(schoolId?: string) {
     }
   };
 
-  const updateTrigger = async (
-    id: string,
-    input: { name: string; threshold_days: number; is_active: boolean },
-  ) => {
+  const updateTrigger = async (id: string, input: { name: string; threshold_days: number; is_active: boolean }) => {
     if (!input.name.trim()) {
       return { success: false, error: "Rule name is required" };
     }
@@ -309,21 +308,24 @@ export function useSMSTriggers(schoolId?: string) {
     }
 
     if (isDemo) {
-      setTriggers((prev) =>
-        prev.map((t) => (t.id === id ? { ...t, ...input, name: input.name.trim() } : t)),
-      );
+      setTriggers((prev) => prev.map((t) => (t.id === id ? { ...t, ...input, name: input.name.trim() } : t)));
       return { success: true };
     }
 
     try {
-      const { data, error } = await withTimeout(supabase
-        .from("sms_triggers")
-        .update({ ...input, name: input.name.trim() })
-        .eq("id", id)
-        .select(
-          "id, school_id, name, event_type, threshold_days, template_id, is_active, last_run_at, created_at",
-        )
-        .single(), 15000, { data: null, error: { message: "Trigger update timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as unknown as PostgrestSingleResponse<never>);
+      const { data, error } = await withTimeout(
+        supabase
+          .from("sms_triggers")
+          .update({ ...input, name: input.name.trim() })
+          .eq("id", id)
+          .select("id, school_id, name, event_type, threshold_days, template_id, is_active, last_run_at, created_at")
+          .single(),
+        15000,
+        {
+          data: null,
+          error: { message: "Trigger update timed out", name: "TimeoutError", details: "", hint: "", code: "" },
+        } as unknown as PostgrestSingleResponse<never>,
+      );
 
       if (error) throw error;
       setTriggers((prev) => prev.map((t) => (t.id === id ? data : t)));
@@ -367,17 +369,11 @@ export function useSMSTriggers(schoolId?: string) {
         setLoading(true);
         const { data, error } = await supabase
           .from("sms_triggers")
-          .select(
-            "id, school_id, name, event_type, threshold_days, template_id, is_active, last_run_at, created_at",
-          )
+          .select("id, school_id, name, event_type, threshold_days, template_id, is_active, last_run_at, created_at")
           .eq("school_id", schoolId);
         if (error) {
           // Table doesn't exist yet or RLS denied — show empty state
-          if (
-            error.code === "42P01" ||
-            error.code === "42501" ||
-            error.code === "PGRST116"
-          ) {
+          if (error.code === "42P01" || error.code === "42501" || error.code === "PGRST116") {
             setTriggers([]);
             return;
           }
@@ -385,10 +381,7 @@ export function useSMSTriggers(schoolId?: string) {
         }
         setTriggers(data || []);
       } catch (err) {
-        logger.error(
-          "Error fetching SMS triggers:",
-          err instanceof Error ? err.message : "unknown",
-        );
+        logger.error("Error fetching SMS triggers:", err instanceof Error ? err.message : "unknown");
       } finally {
         setLoading(false);
       }

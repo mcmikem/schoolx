@@ -8,6 +8,7 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { useToast } from "@/components/Toast";
 import { getErrorMessage } from "@/lib/validation";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 
 const CATEGORIES = ["All", "Textbooks", "Fiction", "Science", "History", "Reference", "Religious"];
 const BLANK_FORM = { title: "", author: "", isbn: "", category: "Textbooks", total_copies: "1" };
@@ -103,16 +104,20 @@ export default function LibraryPage() {
             .maybeSingle();
           if (dup) throw new Error("A book with this ISBN already exists");
         }
-        const { error } = await supabase.from("library_books").insert({
-          school_id: school.id,
-          title: form.title.trim(),
-          author: form.author.trim(),
-          isbn: form.isbn.trim(),
-          category: form.category,
-          total_copies: totalCopies,
-          available_copies: totalCopies,
-        });
-        if (error) throw error;
+        const result = await withTimeout(
+          supabase.from("library_books").insert({
+            school_id: school.id,
+            title: form.title.trim(),
+            author: form.author.trim(),
+            isbn: form.isbn.trim(),
+            category: form.category,
+            total_copies: totalCopies,
+            available_copies: totalCopies,
+          }),
+          15000,
+          timeoutFallback(),
+        );
+        if (result?.error) throw result.error;
         toast.success("Book added to catalogue");
       }
 

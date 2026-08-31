@@ -267,7 +267,7 @@ function ParentDashboardContent() {
       setUnreadCount(1);
       return;
     }
-    fetch("/api/parent/notifications?limit=10")
+    fetch("/api/parent/notifications/?limit=10")
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {

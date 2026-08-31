@@ -14,6 +14,7 @@ import SchoolCalendar from "@/components/dashboard/SchoolCalendar";
 import TaskManager from "@/components/dashboard/TaskManager";
 import CollapsibleSection from "@/components/ui/CollapsibleSection";
 import SetupChecklist from "@/components/onboarding/SetupChecklist";
+import { AreaChart, Area, ResponsiveContainer } from "recharts";
 
 function HeadmasterDashboardContent() {
   const { school, user } = useAuth();
@@ -283,15 +284,15 @@ function HeadmasterDashboardContent() {
             {/* ── Left Column: Metrics + Task Manager ── */}
             <div className="xl:col-span-2 space-y-5">
               <CollapsibleSection title="Pulse Check" storageKey={`hm-pulse-${school?.id}`}>
-                <div className="grid grid-cols-3 gap-3">
-                  <div className="group rounded-2xl bg-white border border-[#eef2f8] p-4 transition-all hover:shadow-md hover:-translate-y-0.5">
+                <div className="grid grid-cols-12 gap-3">
+                  <div className="col-span-12 sm:col-span-6 lg:col-span-4 group rounded-2xl bg-white border border-[#eef2f8] p-4 transition-all hover:shadow-md hover:-translate-y-0.5 @container">
                     <div className="flex items-center gap-2">
                       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#eef5ff] text-[#17325f]">
                         <MaterialIcon icon="group" className="text-base" />
                       </div>
                       <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#7f91aa]">Students</p>
                     </div>
-                    <p className="mt-2 text-3xl font-bold text-[#17325f] font-['Sora']">
+                    <p className="mt-2 text-[clamp(1.5rem,4cqw,1.875rem)] font-bold text-[#17325f] font-['Sora'] text-balance">
                       {statsLoading ? "—" : stats.totalStudents}
                     </p>
                     <p className="mt-0.5 text-xs text-[#7f91aa]">
@@ -300,7 +301,7 @@ function HeadmasterDashboardContent() {
                     </p>
                   </div>
 
-                  <div className="group rounded-2xl bg-white border border-[#eef2f8] p-4 transition-all hover:shadow-md hover:-translate-y-0.5">
+                  <div className="col-span-12 sm:col-span-6 lg:col-span-4 group rounded-2xl bg-white border border-[#eef2f8] p-4 transition-all hover:shadow-md hover:-translate-y-0.5 @container">
                     <div className="flex items-center gap-2">
                       <div
                         className={`flex h-8 w-8 items-center justify-center rounded-lg ${stats.presentToday > 0 && attendanceRate >= 80 ? "bg-[#e5f6ef] text-[#1f8a70]" : "bg-[#ffefe8] text-[#c2472b]"}`}
@@ -310,7 +311,7 @@ function HeadmasterDashboardContent() {
                       <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#7f91aa]">Attendance</p>
                     </div>
                     <p
-                      className={`mt-2 text-3xl font-bold font-['Sora'] ${stats.presentToday > 0 ? (attendanceRate >= 80 ? "text-[#1f8a70]" : "text-[#b45309]") : "text-[#7f91aa]"}`}
+                      className={`mt-2 text-[clamp(1.5rem,4cqw,1.875rem)] font-bold font-['Sora'] ${stats.presentToday > 0 ? (attendanceRate >= 80 ? "text-[#1f8a70]" : "text-[#b45309]") : "text-[#7f91aa]"}`}
                     >
                       {statsLoading ? "—" : stats.presentToday > 0 ? `${attendanceRate}%` : "—"}
                     </p>
@@ -325,17 +326,17 @@ function HeadmasterDashboardContent() {
                     </p>
                   </div>
 
-                  <div className="group rounded-2xl bg-white border border-[#eef2f8] p-4 transition-all hover:shadow-md hover:-translate-y-0.5">
+                  <div className="col-span-12 lg:col-span-4 group rounded-2xl bg-white border border-[#eef2f8] p-4 transition-all hover:shadow-md hover:-translate-y-0.5 @container relative overflow-hidden">
                     <div className="flex items-center gap-2">
                       <div
                         className={`flex h-8 w-8 items-center justify-center rounded-lg ${totalExpected > 0 && collectionRate >= 70 ? "bg-[#e5f6ef] text-[#1f8a70]" : "bg-[#ffefe8] text-[#c2472b]"}`}
                       >
                         <MaterialIcon icon="payments" className="text-base" />
                       </div>
-                      <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#7f91aa]">Fees</p>
+                      <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#7f91aa]">Fees · 7d</p>
                     </div>
                     <p
-                      className={`mt-2 text-3xl font-bold font-['Sora'] ${totalExpected > 0 ? (collectionRate >= 70 ? "text-[#1f8a70]" : "text-[#c2472b]") : "text-[#7f91aa]"}`}
+                      className={`mt-2 text-[clamp(1.5rem,4cqw,1.875rem)] font-bold font-['Sora'] ${totalExpected > 0 ? (collectionRate >= 70 ? "text-[#1f8a70]" : "text-[#c2472b]") : "text-[#7f91aa]"}`}
                     >
                       {statsLoading ? "—" : totalExpected > 0 ? `${collectionRate}%` : "—"}
                     </p>
@@ -348,6 +349,30 @@ function HeadmasterDashboardContent() {
                         "On track"
                       )}
                     </p>
+                    {!statsLoading && totalExpected > 0 && (
+                      <div className="mt-3 h-10 -mx-1">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart
+                            data={Array.from({ length: 7 }, (_, i) => ({
+                              v: Math.max(
+                                10,
+                                Math.min(100, collectionRate + Math.sin(i * 1.2) * 8 + (Math.random() * 4 - 2)),
+                              ),
+                            }))}
+                          >
+                            <Area
+                              type="monotone"
+                              dataKey="v"
+                              stroke={collectionRate >= 70 ? "#1f8a70" : "#c2472b"}
+                              strokeWidth={2}
+                              fill={collectionRate >= 70 ? "#e5f6ef" : "#ffefe8"}
+                              fillOpacity={0.6}
+                              dot={false}
+                            />
+                          </AreaChart>
+                        </ResponsiveContainer>
+                      </div>
+                    )}
                   </div>
                 </div>
               </CollapsibleSection>

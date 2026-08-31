@@ -24,12 +24,10 @@ export default function MobileBottomNav() {
   const canUseFees = role ? canAccess(role, "fees") : false;
   const canUseMessages = role ? canAccess(role, "messages") : false;
 
-  const isActive = (path: string) =>
-    pathname === path || pathname?.startsWith(path + "/");
+  const isActive = (path: string) => pathname === path || pathname?.startsWith(path + "/");
 
   const quickStep = useMemo<QuickStep>(() => {
-    if (!role)
-      return { label: "Open Dashboard", href: "/dashboard", icon: "dashboard" };
+    if (!role) return { label: "Open Dashboard", href: "/dashboard", icon: "dashboard" };
 
     if (!pathname)
       return canUseStudents
@@ -62,12 +60,7 @@ export default function MobileBottomNav() {
   return (
     <div className="mobile-bottom-nav">
       {/* Home */}
-      <NavItem
-        href="/dashboard"
-        icon="home"
-        label="Home"
-        active={pathname === "/dashboard"}
-      />
+      <NavItem href="/dashboard" icon="home" label="Home" active={pathname === "/dashboard"} />
       {/* Attend */}
       {canUseAttendance && (
         <NavItem
@@ -83,24 +76,29 @@ export default function MobileBottomNav() {
         href={quickStep.href}
         className="mobile-nav-fab"
         aria-label={quickStep.label}
+        onClick={() => {
+          try {
+            navigator.vibrate?.(10);
+          } catch {}
+        }}
       >
         <MaterialIcon icon={quickStep.icon} style={{ fontSize: 24 }} />
       </Link>
 
       {/* Fees */}
       {canUseFees && (
-        <NavItem
-          href="/dashboard/fees"
-          icon="payments"
-          label="Fees"
-          active={isActive("/dashboard/fees")}
-        />
+        <NavItem href="/dashboard/fees" icon="payments" label="Fees" active={isActive("/dashboard/fees")} />
       )}
       {/* More */}
       <button
         type="button"
         className={`mobile-nav-item`}
-        onClick={() => openSidebar()}
+        onClick={() => {
+          try {
+            navigator.vibrate?.(10);
+          } catch {}
+          openSidebar();
+        }}
         aria-label="Open more pages"
       >
         <MaterialIcon icon="apps" style={{ fontSize: 22 }} />
@@ -110,17 +108,7 @@ export default function MobileBottomNav() {
   );
 }
 
-function NavItem({
-  href,
-  icon,
-  label,
-  active,
-}: {
-  href: string;
-  icon: string;
-  label: string;
-  active: boolean;
-}) {
+function NavItem({ href, icon, label, active }: { href: string; icon: string; label: string; active: boolean }) {
   return (
     <Link
       href={href}
@@ -133,4 +121,3 @@ function NavItem({
     </Link>
   );
 }
-

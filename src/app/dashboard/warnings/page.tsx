@@ -197,7 +197,7 @@ export default function EarlyWarningsPage() {
         return;
       }
 
-      const response = await fetch("/api/sms", {
+      const response = await fetch("/api/sms/", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phones, message, schoolId: school?.id }),

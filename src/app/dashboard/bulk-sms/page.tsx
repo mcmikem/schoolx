@@ -363,7 +363,7 @@ export default function SMSCenterPage() {
       }
 
       const isBulk = recipients.length > 1;
-      const res = await fetch("/api/sms", {
+      const res = await fetch("/api/sms/", {
         method: isBulk ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(

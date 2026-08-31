@@ -3,6 +3,7 @@
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 
 // @deprecated — Fee Terms is legacy. The primary fee system uses fee_structure + fee_payments
 // (see /dashboard/fees). This page is kept for backward compatibility and read-only reference.
@@ -116,21 +117,34 @@ export default function FeeTermsPage() {
     let termId: string;
 
     if (editingTerm) {
-      const { error } = await supabase.from("fee_terms").update(termPayload).eq("id", editingTerm.id);
+      const updRes = await withTimeout(
+        supabase.from("fee_terms").update(termPayload).eq("id", editingTerm.id),
+        15000,
+        timeoutFallback(),
+      );
+      const error = updRes?.error;
       if (error) {
         toast.error("Failed to update fee term");
         return;
       }
       termId = editingTerm.id;
       // Delete existing lines and recreate
-      await supabase.from("fee_term_lines").delete().eq("term_id", editingTerm.id);
+      await withTimeout(
+        supabase.from("fee_term_lines").delete().eq("term_id", editingTerm.id),
+        15000,
+        timeoutFallback(),
+      );
     } else {
-      const { data, error } = await supabase.from("fee_terms").insert(termPayload).select().single();
-      if (error) {
+      const termRes = await withTimeout(
+        supabase.from("fee_terms").insert(termPayload).select().single(),
+        15000,
+        timeoutFallback(),
+      );
+      if (termRes.error) {
         toast.error("Failed to create fee term");
         return;
       }
-      termId = data.id;
+      termId = (termRes.data as { id: string }).id;
     }
 
     // Create installment lines
@@ -142,7 +156,8 @@ export default function FeeTermsPage() {
       is_optional: line.is_optional,
     }));
 
-    const { error: linesError } = await supabase.from("fee_term_lines").insert(linesPayload);
+    const linesRes = await withTimeout(supabase.from("fee_term_lines").insert(linesPayload), 15000, timeoutFallback());
+    const linesError = linesRes?.error;
     if (linesError) {
       toast.error("Failed to create installments");
     } else {

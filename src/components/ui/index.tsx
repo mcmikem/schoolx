@@ -78,7 +78,7 @@ interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   endAdornment?: React.ReactNode;
 }
 
-export function Input({ label, error, className = "", endAdornment, id: idProp, ...props }: InputProps) {
+export function Input({ label, error, className = "", endAdornment, id: idProp, required, ...props }: InputProps) {
   const generatedId = useId();
   const inputId = idProp ?? generatedId;
   const paddingRight = endAdornment ? "pr-12" : "";
@@ -97,6 +97,8 @@ export function Input({ label, error, className = "", endAdornment, id: idProp, 
             id={inputId}
             aria-invalid={Boolean(error)}
             aria-describedby={error ? `${inputId}-error` : undefined}
+            aria-required={required ? true : undefined}
+            required={required}
             className={fieldClass}
             {...props}
           />
@@ -109,12 +111,14 @@ export function Input({ label, error, className = "", endAdornment, id: idProp, 
           id={inputId}
           aria-invalid={Boolean(error)}
           aria-describedby={error ? `${inputId}-error` : undefined}
+          aria-required={required ? true : undefined}
+          required={required}
           className={fieldClass}
           {...props}
         />
       )}
       {error && (
-        <p id={`${inputId}-error`} className="text-sm text-[var(--error)]">
+        <p id={`${inputId}-error`} role="alert" className="text-sm text-[var(--error)]">
           {error}
         </p>
       )}
@@ -128,7 +132,7 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   options: { value: string; label: string }[];
 }
 
-export function Select({ label, options, className = "", error, ...props }: SelectProps) {
+export function Select({ label, options, className = "", error, required, ...props }: SelectProps) {
   const id = useId();
   return (
     <div className="space-y-1">
@@ -141,6 +145,8 @@ export function Select({ label, options, className = "", error, ...props }: Sele
         id={id}
         aria-invalid={Boolean(error)}
         aria-describedby={error ? `${id}-error` : undefined}
+        aria-required={required ? true : undefined}
+        required={required}
         className={`w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] transition-colors ${className} text-base`}
         {...props}
       >
@@ -167,7 +173,7 @@ interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement
   error?: string;
 }
 
-export function Textarea({ label, error, className = "", id: idProp, ...props }: TextareaProps) {
+export function Textarea({ label, error, className = "", id: idProp, required, ...props }: TextareaProps) {
   const generatedId = useId();
   const textareaId = idProp ?? generatedId;
 
@@ -182,11 +188,13 @@ export function Textarea({ label, error, className = "", id: idProp, ...props }:
         id={textareaId}
         aria-invalid={Boolean(error)}
         aria-describedby={error ? `${textareaId}-error` : undefined}
+        aria-required={required ? true : undefined}
+        required={required}
         className={`w-full min-h-[140px] resize-vertical px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] transition-colors ${error ? "border-[var(--error)]" : ""} ${className} text-base`}
         {...props}
       />
       {error && (
-        <p id={`${textareaId}-error`} className="text-sm text-[var(--error)]">
+        <p id={`${textareaId}-error`} role="alert" className="text-sm text-[var(--error)]">
           {error}
         </p>
       )}

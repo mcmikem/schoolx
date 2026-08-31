@@ -4,6 +4,7 @@ import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
+import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
 import { cardClassName } from "@/lib/utils";
@@ -64,16 +65,21 @@ export default function AssetsPage() {
   const saveAsset = async () => {
     if (!form.name || !school?.id) return;
     setSaving(true);
-    const { error } = await supabase.from("assets").insert({
-      school_id: school.id,
-      name: form.name,
-      category: form.category,
-      location: form.location,
-      quantity: parseInt(form.quantity) || 1,
-      condition: form.condition,
-      purchase_date: form.purchase_date || null,
-      notes: form.notes || null,
-    });
+    const res = await withTimeout(
+      supabase.from("assets").insert({
+        school_id: school.id,
+        name: form.name,
+        category: form.category,
+        location: form.location,
+        quantity: parseInt(form.quantity) || 1,
+        condition: form.condition,
+        purchase_date: form.purchase_date || null,
+        notes: form.notes || null,
+      }),
+      15000,
+      timeoutFallback(),
+    );
+    const error = res?.error;
     if (error) toast.error("Failed to save asset: " + error.message);
     else {
       toast.success("Asset registered successfully");

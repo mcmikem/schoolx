@@ -145,7 +145,7 @@ export async function postAdminAction(payload: Record<string, unknown>): Promise
   const timeoutId = setTimeout(() => controller.abort(), ADMIN_ACTION_TIMEOUT_MS);
 
   try {
-    return await fetch("/api/super-admin/actions", {
+    return await fetch("/api/super-admin/actions/", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),

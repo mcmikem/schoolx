@@ -4,6 +4,7 @@ import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
+import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import { useToast } from "@/components/Toast";
 import { DEMO_CLASSES, DEMO_STUDENTS } from "@/lib/demo-data";
 import MaterialIcon from "@/components/MaterialIcon";
@@ -185,14 +186,19 @@ export default function DropoutTrackingPage() {
     }
 
     setSaving(true);
-    const { error } = await supabase.from("dropout_interventions").insert({
-      school_id: school.id,
-      student_id: selectedStudent.id,
-      student_name: selectedStudent.name,
-      reason,
-      action_taken: actionTaken,
-      logged_at: new Date().toISOString(),
-    });
+    const res = await withTimeout(
+      supabase.from("dropout_interventions").insert({
+        school_id: school.id,
+        student_id: selectedStudent.id,
+        student_name: selectedStudent.name,
+        reason,
+        action_taken: actionTaken,
+        logged_at: new Date().toISOString(),
+      }),
+      15000,
+      timeoutFallback(),
+    );
+    const error = res?.error;
     if (error) toast.error("Failed to log intervention");
     else {
       toast.success("Intervention logged successfully");

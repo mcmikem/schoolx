@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
@@ -10,6 +11,8 @@ import SkoolMateLogo from "@/components/SkoolMateLogo";
 import MaterialIcon from "@/components/MaterialIcon";
 import OwlStage from "@/components/brand/OwlStage";
 import OwlMascot from "@/components/brand/OwlMascot";
+import { z } from "zod";
+import { useAutoSave } from "@/lib/hooks/useAutoSave";
 
 import { PLANS, normalizePlanType } from "@/lib/payments/subscription-client";
 import { getDistrictOptions, getParishOptions, getSubcountyOptions } from "@/lib/uganda-admin";
@@ -26,6 +29,36 @@ import { logger } from "@/lib/logger";
 import { getErrorMessage } from "@/lib/validation";
 import { APP_NAME } from "@/lib/app-name";
 import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
+
+// ── Zod schemas for per-field validation (replaces manual String.trim checks)
+const schoolDetailsSchema = z.object({
+  name: z.string().min(2, "School name must be at least 2 characters").max(120),
+  motto: z.string().max(160).optional(),
+  ownership: z.string().min(1),
+  phone: z
+    .string()
+    .regex(/^\+?256\d{9}$|^\d{10}$/, "Enter a valid Ugandan phone (e.g. 0771234567)")
+    .optional()
+    .or(z.literal("")),
+  email: z.string().email("Enter a valid email").optional().or(z.literal("")),
+  uneb_center_number: z.string().regex(/^\d*$/, "UNEB center must be digits").max(12).optional().or(z.literal("")),
+  district: z.string().min(1, "Select district"),
+  subcounty: z.string().optional(),
+  parish: z.string().optional(),
+  address: z.string().optional(),
+});
+const brandingSchema = z.object({
+  primary_color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid color"),
+  accent_color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Invalid color"),
+  logo_url: z.string().url().optional().or(z.literal("")),
+});
+const feeDraftSchema = z.object({
+  name: z.string().min(1, "Fee name required"),
+  amount: z.string().refine((v) => Number(v) > 0 && Number(v) <= 100_000_000, "Amount must be 1-100M"),
+  category: z.string().min(1),
+  class_id: z.string().optional(),
+  term: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+});
 
 interface StepConfig {
   title: string;
@@ -60,6 +93,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   const currentYear = new Date().getFullYear().toString();
   const schoolType = (school?.school_type as SchoolSetupType) || "primary";
@@ -180,6 +214,70 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
   const [featureStage, setFeatureStage] = useState<"core" | "academic" | "finance" | "full">(
     (school?.feature_stage as "core" | "academic" | "finance" | "full") || "core",
   );
+
+  // ── Draft persist (survives refresh, per-school) — placed before TOTAL_STEPS so uses literal 5
+  const draftKey = `onboarding_${school?.id || "anon"}_v2`;
+  const draftData = {
+    schoolDetails,
+    branding,
+    localSchoolType,
+    selectedSubjects,
+    customSubjects,
+    terms,
+    fees,
+    gradingPrefs,
+    reportBrand,
+    featureStage,
+    step,
+  };
+  const { loadFromStorage, clearDraft } = useAutoSave({
+    data: draftData,
+    storageKey: draftKey,
+    interval: 5000,
+    enabled: !!school?.id && step < 5,
+  });
+  useEffect(() => {
+    const saved = loadFromStorage() as typeof draftData | null;
+    if (saved && saved.schoolDetails?.name) {
+      try {
+        setSchoolDetails(saved.schoolDetails);
+        if (saved.branding) setBranding(saved.branding);
+        if (saved.localSchoolType) setLocalSchoolType(saved.localSchoolType as SchoolSetupType);
+        if (Array.isArray(saved.selectedSubjects)) setSelectedSubjects(saved.selectedSubjects);
+        if (Array.isArray(saved.customSubjects)) setCustomSubjects(saved.customSubjects);
+        if (Array.isArray(saved.terms)) setTerms(saved.terms);
+        if (Array.isArray(saved.fees)) setFees(saved.fees as FeeDraft[]);
+        if (saved.gradingPrefs) setGradingPrefs(saved.gradingPrefs);
+        if (saved.reportBrand) setReportBrand(saved.reportBrand);
+        if (saved.featureStage) setFeatureStage(saved.featureStage as typeof featureStage);
+        if (typeof saved.step === "number" && saved.step >= 1 && saved.step <= 5) setStep(saved.step);
+      } catch {}
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [school?.id]);
+
+  const validateCurrentStep = useCallback((): boolean => {
+    const errs: Record<string, string> = {};
+    if (step === 1) {
+      const r1 = schoolDetailsSchema.safeParse(schoolDetails);
+      if (!r1.success) r1.error.issues.forEach((i) => (errs[i.path.join(".")] = i.message));
+      const r2 = brandingSchema.safeParse(branding);
+      if (!r2.success) r2.error.issues.forEach((i) => (errs[`branding.${i.path.join(".")}`] = i.message));
+    }
+    if (step === 2) {
+      fees.forEach((f, idx) => {
+        const r = feeDraftSchema.safeParse(f);
+        if (!r.success) r.error.issues.forEach((i) => (errs[`fees.${idx}.${i.path.join(".")}`] = i.message));
+      });
+    }
+    setValidationErrors(errs);
+    if (Object.keys(errs).length) {
+      const first = Object.values(errs)[0];
+      toast.error(first);
+      return false;
+    }
+    return true;
+  }, [step, schoolDetails, branding, fees, toast]);
 
   const selectedPlan = PLANS[normalizePlanType(school?.subscription_plan || "free")];
 
@@ -921,6 +1019,9 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
       }
 
       await refreshSchool();
+      try {
+        clearDraft();
+      } catch {}
       setLoading(false);
       onComplete();
       if (failedSeeding.length > 0) {
@@ -938,6 +1039,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
   };
 
   const handleNext = (nextStep: number) => {
+    if (!validateCurrentStep()) return;
     markStepComplete(step);
     setStep(nextStep);
   };
@@ -947,6 +1049,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
   };
 
   const handleGenericNext = async () => {
+    if (!validateCurrentStep()) return;
     if (step === 2) {
       if (await saveTerms()) {
         markStepComplete(2);
@@ -962,6 +1065,13 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
     } else {
       handleNext(step + 1);
     }
+  };
+
+  const finishOnboarding = () => {
+    try {
+      clearDraft();
+    } catch {}
+    onComplete();
   };
 
   if (!school) return null;
@@ -1121,11 +1231,15 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
 
                   <div className="space-y-4 mb-6">
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">School Name</label>
+                      <label className="block text-sm font-semibold text-slate-700 mb-2">
+                        School Name <span className="text-red-500">*</span>
+                      </label>
                       <Input
                         value={schoolDetails.name}
                         onChange={(e) => setSchoolDetails({ ...schoolDetails, name: e.target.value })}
                         placeholder="St. Mary&apos;s Primary School"
+                        error={validationErrors["name"]}
+                        required
                       />
                     </div>
 

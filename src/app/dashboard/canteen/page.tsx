@@ -9,6 +9,7 @@ import { useToast } from "@/components/Toast";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody, CardHeader } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
+import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 
 interface CanteenItem {
   id: string;
@@ -80,17 +81,20 @@ export default function CanteenPage() {
     }
 
     try {
-      const { error } = await supabase.from("canteen_items").insert({
-        school_id: school.id,
-        name: newItem.name,
-        category: newItem.category,
-        price: parsedPrice,
-        stock: parseInt(newItem.stock) || 0,
-        unit: newItem.unit,
-        is_active: true,
-      });
-
-      if (error) throw error;
+      const result = await withTimeout(
+        supabase.from("canteen_items").insert({
+          school_id: school.id,
+          name: newItem.name,
+          category: newItem.category,
+          price: parsedPrice,
+          stock: parseInt(newItem.stock) || 0,
+          unit: newItem.unit,
+          is_active: true,
+        }),
+        15000,
+        timeoutFallback(),
+      );
+      if (result?.error) throw result.error;
       toast.success("Item added to canteen");
       setShowAddItem(false);
       setNewItem({

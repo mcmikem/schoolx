@@ -71,6 +71,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <link rel="preconnect" href={process.env.NEXT_PUBLIC_SUPABASE_URL} />
           </>
         )}
+        <link rel="preload" href="/fonts/dm-sans-latin.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+        <link rel="preload" href="/fonts/sora-latin.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
         <link rel="icon" href="/icons/icon-512x512.png" type="image/png" />
         <Script
@@ -101,7 +103,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   try {
     var mem = navigator.deviceMemory || 0;
     var cores = navigator.hardwareConcurrency || 0;
-    if ((mem && mem <= 3) || (cores && cores <= 4)) {
+    var saveData = (navigator.connection && navigator.connection.saveData) || false;
+    var prefersReducedData = false;
+    try { prefersReducedData = window.matchMedia('(prefers-reduced-data: reduce)').matches; } catch(e){}
+    if ((mem && mem <= 3) || (cores && cores <= 4) || saveData || prefersReducedData) {
       document.documentElement.classList.add('lite');
     }
   } catch (e) {}

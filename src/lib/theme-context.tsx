@@ -46,6 +46,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const applyTheme = (t: Theme) => {
     document.documentElement.setAttribute("data-theme", t);
+    // Sync PWA theme-color meta for mobile browser chrome
+    try {
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute("content", t === "dark" ? "#0f1419" : "#001F3F");
+    } catch {}
   };
 
   const setTheme = (t: Theme) => {

@@ -49,6 +49,7 @@ const nextConfig = {
   },
   experimental: {
     optimizePackageImports: ["lucide-react", "date-fns", "recharts"],
+    viewTransition: true,
   },
   images: {
     remotePatterns: [

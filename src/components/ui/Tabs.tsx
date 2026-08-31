@@ -17,7 +17,7 @@ interface TabsProps {
 }
 
 export function Tabs({ tabs, activeTab, onChange, className = "" }: TabsProps) {
-  const id = useId();
+  const uid = useId();
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const handleKeyDown = (e: React.KeyboardEvent, index: number) => {
@@ -49,8 +49,8 @@ export function Tabs({ tabs, activeTab, onChange, className = "" }: TabsProps) {
             tabRefs.current[i] = el;
           }}
           aria-selected={activeTab === tab.id}
-          aria-controls={`panel-${id}`}
-          id={`tab-${tab.id}`}
+          aria-controls={`panel-${uid}-${tab.id}`}
+          id={`tab-${uid}-${tab.id}`}
           tabIndex={activeTab === tab.id ? 0 : -1}
           onClick={() => onChange(tab.id)}
           onKeyDown={(e) => handleKeyDown(e, i)}
@@ -87,14 +87,16 @@ interface TabPanelProps {
   id?: string;
 }
 
-export function TabPanel({ children, activeTab, tabId, id }: TabPanelProps) {
-  const panelId = id || `panel-${tabId}`;
+export function TabPanel({ children, activeTab, tabId, id: customId }: TabPanelProps) {
+  // Note: when used with Tabs, pass id={`panel-${uid}-${tabId}`} to keep aria-controls ↔ panel id in sync.
+  // Fallback preserves backward compatibility for standalone usage.
+  const panelId = customId || `panel-${tabId}`;
 
   return (
     <div
       role="tabpanel"
       id={panelId}
-      aria-labelledby={`tab-${tabId}`}
+      aria-labelledby={panelId.replace(/^panel-/, "tab-")}
       hidden={activeTab !== tabId}
       className={activeTab === tabId ? "block" : "hidden"}
     >

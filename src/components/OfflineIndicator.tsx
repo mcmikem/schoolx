@@ -144,7 +144,7 @@ export const OfflineIndicator = memo(function OfflineIndicator() {
         bottom: 20,
         left: "50%",
         transform: "translateX(-50%)",
-        zIndex: 99999,
+        zIndex: 45,
         display: "flex",
         flexDirection: "column",
         alignItems: "center",

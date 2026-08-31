@@ -200,4 +200,25 @@
 [data-theme="dark"] .from-transparent { --tw-gradient-from: transparent; }
 [data-theme="dark"] .to-transparent { --tw-gradient-to: transparent; }
 [data-theme="dark"] .via-transparent { --tw-gradient-via: transparent; }
+/* Extended coverage for previously uncovered hexes (audit 2026-08-28) */
+[data-theme="dark"] [class*="bg-[#001F3F]"] { background-color: var(--surface-container); }
+[data-theme="dark"] [class*="bg-[#002045]"] { background-color: var(--surface-container); }
+[data-theme="dark"] [class*="bg-[#059669]"] { background-color: #0d2c29; }
+[data-theme="dark"] [class*="bg-[#0b1c39]"] { background-color: var(--surface-container-high); }
+[data-theme="dark"] [class*="bg-[#0b4f6c]"] { background-color: var(--surface-container-high); }
+[data-theme="dark"] [class*="bg-[#0d1930]"] { background-color: var(--surface); }
+[data-theme="dark"] [class*="bg-[#0f1f3d]"] { background-color: var(--surface); }
+[data-theme="dark"] [class*="bg-[#10b981]"] { background-color: #0d2c29; }
+[data-theme="dark"] [class*="bg-[#163f59]"] { background-color: var(--surface-container-high); }
+[data-theme="dark"] [class*="bg-[#17325F]"] { background-color: var(--surface-container); }
+[data-theme="dark"] [class*="bg-[#17325f]"] { background-color: var(--surface-container); }
+[data-theme="dark"] [class*="bg-[#1f8a70]"] { background-color: #0d2c29; }
+[data-theme="dark"] [class*="bg-[#25D366]"] { background-color: #0d2c29; }
+[data-theme="dark"] [class*="bg-[#42638d]"] { background-color: var(--surface-container-high); }
+[data-theme="dark"] [class*="bg-[#7c3aed]"] { background-color: #241a33; }
+[data-theme="dark"] [class*="bg-[#B86B0C]"] { background-color: #33260f; }
+[data-theme="dark"] [class*="bg-[#c2472b]"] { background-color: #331a1a; }
+[data-theme="dark"] [class*="bg-[#dc2626]"] { background-color: #331a1a; }
+[data-theme="dark"] [class*="bg-[#f59e0b]"] { background-color: #33260f; }
+[data-theme="dark"] [class*="bg-[#f3e8ff]"] { background-color: var(--surface-container-low); }
 }

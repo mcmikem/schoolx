@@ -29,9 +29,7 @@ export default function ReportsPage() {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedClass, setSelectedClass] = useState("");
-  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(
-    null,
-  );
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [reportData, setReportData] = useState<ReportCardType | null>(null);
   const [loadingReport, setLoadingReport] = useState(false);
 
@@ -62,9 +60,7 @@ export default function ReportsPage() {
 
   const filteredStudents = students.filter((s) => {
     const matchesSearch =
-      `${s.first_name} ${s.last_name}`
-        .toLowerCase()
-        .includes(searchTerm.toLowerCase()) ||
+      `${s.first_name} ${s.last_name}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
       s.student_number?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesClass = selectedClass === "" || s.class_id === selectedClass;
     return matchesSearch && matchesClass;
@@ -77,7 +73,7 @@ export default function ReportsPage() {
         const student = students.find((s) => s.id === studentId);
         if (!student) return;
 
-        const response = await fetch("/api/reports", {
+        const response = await fetch("/api/reports/", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -95,10 +91,7 @@ export default function ReportsPage() {
 
         const { data } = await response.json();
 
-        const subjectGrades: Record<
-          string,
-          { name: string; code: string; scores: Record<string, number> }
-        > = {};
+        const subjectGrades: Record<string, { name: string; code: string; scores: Record<string, number> }> = {};
         data.subjects?.forEach((s: any) => {
           if (!subjectGrades[s.name]) {
             subjectGrades[s.name] = {
@@ -128,8 +121,7 @@ export default function ReportsPage() {
           student: {
             first_name: data.student?.first_name || student.first_name,
             last_name: data.student?.last_name || student.last_name,
-            student_number:
-              data.student?.student_number || student.student_number || "N/A",
+            student_number: data.student?.student_number || student.student_number || "N/A",
             gender: data.student?.gender || student.gender,
             photo_url: data.student?.photo_url || student.photo_url,
             classes: data.student?.classes || student.classes,
@@ -138,8 +130,7 @@ export default function ReportsPage() {
             name: data.school?.name || school?.name || APP_NAME,
             district: data.school?.district || school?.district || "Uganda",
             logo_url: data.school?.logo_url || school?.logo_url,
-            uneab_center_number:
-              data.school?.uneab_center_number || school?.uneb_center_number,
+            uneab_center_number: data.school?.uneab_center_number || school?.uneb_center_number,
             primary_color: data.school?.primary_color || school?.primary_color,
             accent_color: data.school?.accent_color || school?.accent_color,
             school_motto: data.school?.school_motto,
@@ -148,12 +139,9 @@ export default function ReportsPage() {
             report_footer_text: data.school?.report_footer_text,
             report_header: data.school?.report_header,
             report_footer: data.school?.report_footer,
-            signature_headteacher_url:
-              data.school?.signature_headteacher_url ||
-              school?.signature_headteacher_url,
+            signature_headteacher_url: data.school?.signature_headteacher_url || school?.signature_headteacher_url,
             signature_class_teacher_url:
-              data.school?.signature_class_teacher_url ||
-              school?.signature_class_teacher_url,
+              data.school?.signature_class_teacher_url || school?.signature_class_teacher_url,
           },
           term: data.term || currentTerm,
           academicYear: data.academicYear || academicYear,
@@ -188,7 +176,7 @@ export default function ReportsPage() {
       const reports = [];
 
       for (const student of filteredStudents) {
-        const response = await fetch("/api/reports", {
+        const response = await fetch("/api/reports/", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -308,10 +296,10 @@ export default function ReportsPage() {
 
       printWindow.document.open();
       printWindow.document.title = `Bulk Report Cards - ${school?.name || "School"}`;
-      document.querySelectorAll('link[rel="stylesheet"], style').forEach(el => {
+      document.querySelectorAll('link[rel="stylesheet"], style').forEach((el) => {
         printWindow.document.head.appendChild(el.cloneNode(true));
       });
-      printWindow.document.head.insertAdjacentHTML('beforeend', `<style>${bulkPrintStyles}</style>`);
+      printWindow.document.head.insertAdjacentHTML("beforeend", `<style>${bulkPrintStyles}</style>`);
       printWindow.document.body.innerHTML = bulkPrintContent;
       printWindow.document.close();
       printWindow.focus();
@@ -327,7 +315,7 @@ export default function ReportsPage() {
   const handleGenerateReport = useCallback(
     async (studentId: string) => {
       try {
-        const response = await fetch("/api/reports", {
+        const response = await fetch("/api/reports/", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -345,10 +333,7 @@ export default function ReportsPage() {
 
         const { data } = await response.json();
 
-        const subjectGrades: Record<
-          string,
-          { name: string; code: string; scores: Record<string, number> }
-        > = {};
+        const subjectGrades: Record<string, { name: string; code: string; scores: Record<string, number> }> = {};
         data.subjects?.forEach((s: any) => {
           if (!subjectGrades[s.name]) {
             subjectGrades[s.name] = {
@@ -411,8 +396,7 @@ export default function ReportsPage() {
         const { default: autoTable } = await import("jspdf-autotable");
 
         const doc = new jsPDF();
-        const primaryColor =
-          data.school?.primary_color || school?.primary_color || "#002045";
+        const primaryColor = data.school?.primary_color || school?.primary_color || "#002045";
 
         const hexToRgb = (hex: string) => {
           const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
@@ -433,9 +417,7 @@ export default function ReportsPage() {
         if (reportDataForPDF.school.logo_url) {
           try {
             const logoData = await toDataUrl(reportDataForPDF.school.logo_url);
-            const logoFormat = logoData.startsWith("data:image/jpeg")
-              ? "JPEG"
-              : "PNG";
+            const logoFormat = logoData.startsWith("data:image/jpeg") ? "JPEG" : "PNG";
             doc.addImage(logoData, logoFormat, 14, 6, 18, 18);
           } catch {
             // Continue PDF generation if logo cannot be loaded.
@@ -459,21 +441,9 @@ export default function ReportsPage() {
         doc.setFontSize(10);
         doc.setFont("helvetica", "normal");
         const studentY = 50;
-        doc.text(
-          `Name: ${reportDataForPDF.student.first_name} ${reportDataForPDF.student.last_name}`,
-          14,
-          studentY,
-        );
-        doc.text(
-          `Class: ${reportDataForPDF.student.classes?.name || "N/A"}`,
-          120,
-          studentY,
-        );
-        doc.text(
-          `Student No: ${reportDataForPDF.student.student_number}`,
-          14,
-          studentY + 7,
-        );
+        doc.text(`Name: ${reportDataForPDF.student.first_name} ${reportDataForPDF.student.last_name}`, 14, studentY);
+        doc.text(`Class: ${reportDataForPDF.student.classes?.name || "N/A"}`, 120, studentY);
+        doc.text(`Student No: ${reportDataForPDF.student.student_number}`, 14, studentY + 7);
 
         const tableData = reportDataForPDF.subjects.map((s: any) => [
           s.name,
@@ -494,17 +464,9 @@ export default function ReportsPage() {
         const summaryY = (doc as any).lastAutoTable.finalY + 10;
         doc.setFontSize(11);
         doc.setFont("helvetica", "bold");
-        doc.text(
-          `Overall Average: ${reportDataForPDF.overall.average}%`,
-          14,
-          summaryY,
-        );
+        doc.text(`Overall Average: ${reportDataForPDF.overall.average}%`, 14, summaryY);
         doc.text(`Grade: ${reportDataForPDF.overall.grade}`, 80, summaryY);
-        doc.text(
-          `Division: ${reportDataForPDF.overall.division}`,
-          140,
-          summaryY,
-        );
+        doc.text(`Division: ${reportDataForPDF.overall.division}`, 140, summaryY);
 
         if (reportDataForPDF.school.report_footer_text) {
           doc.setFontSize(8);
@@ -548,48 +510,24 @@ export default function ReportsPage() {
 
         <div className="dashboard-soft-grid">
           <div className="dashboard-kpi-card">
-            <div className="text-[11px] font-black uppercase tracking-[0.24em] text-[var(--t3)]">
-              Students
-            </div>
-            <div className="text-3xl font-extrabold text-[var(--t1)] mt-2">
-              {filteredStudents.length}
-            </div>
-            <div className="text-sm text-[var(--t3)] mt-2">
-              Available for reporting
-            </div>
+            <div className="text-[11px] font-black uppercase tracking-[0.24em] text-[var(--t3)]">Students</div>
+            <div className="text-3xl font-extrabold text-[var(--t1)] mt-2">{filteredStudents.length}</div>
+            <div className="text-sm text-[var(--t3)] mt-2">Available for reporting</div>
           </div>
           <div className="dashboard-kpi-card">
-            <div className="text-[11px] font-black uppercase tracking-[0.24em] text-[var(--t3)]">
-              Classes
-            </div>
-            <div className="text-3xl font-extrabold text-[var(--t1)] mt-2">
-              {classes.length}
-            </div>
-            <div className="text-sm text-[var(--t3)] mt-2">
-              Selectable report groups
-            </div>
+            <div className="text-[11px] font-black uppercase tracking-[0.24em] text-[var(--t3)]">Classes</div>
+            <div className="text-3xl font-extrabold text-[var(--t1)] mt-2">{classes.length}</div>
+            <div className="text-sm text-[var(--t3)] mt-2">Selectable report groups</div>
           </div>
           <div className="dashboard-kpi-card">
-            <div className="text-[11px] font-black uppercase tracking-[0.24em] text-[var(--t3)]">
-              Current term
-            </div>
-            <div className="text-3xl font-extrabold text-[var(--t1)] mt-2">
-              {currentTerm}
-            </div>
-            <div className="text-sm text-[var(--t3)] mt-2">
-              {academicYear} academic cycle
-            </div>
+            <div className="text-[11px] font-black uppercase tracking-[0.24em] text-[var(--t3)]">Current term</div>
+            <div className="text-3xl font-extrabold text-[var(--t1)] mt-2">{currentTerm}</div>
+            <div className="text-sm text-[var(--t3)] mt-2">{academicYear} academic cycle</div>
           </div>
           <div className="dashboard-kpi-card">
-            <div className="text-[11px] font-black uppercase tracking-[0.24em] text-[var(--t3)]">
-              Report status
-            </div>
-            <div className="text-3xl font-extrabold text-[var(--t1)] mt-2">
-              {selectedStudentId ? "Ready" : "Idle"}
-            </div>
-            <div className="text-sm text-[var(--t3)] mt-2">
-              Select a learner to preview
-            </div>
+            <div className="text-[11px] font-black uppercase tracking-[0.24em] text-[var(--t3)]">Report status</div>
+            <div className="text-3xl font-extrabold text-[var(--t1)] mt-2">{selectedStudentId ? "Ready" : "Idle"}</div>
+            <div className="text-sm text-[var(--t3)] mt-2">Select a learner to preview</div>
           </div>
         </div>
 
@@ -604,11 +542,7 @@ export default function ReportsPage() {
                 className="input"
               />
             </div>
-            <select
-              value={selectedClass}
-              onChange={(e) => setSelectedClass(e.target.value)}
-              className="input sm:w-48"
-            >
+            <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="input sm:w-48">
               <option value="">All Classes</option>
               {classes.length > 0 ? (
                 classes.map((c) => (
@@ -625,9 +559,7 @@ export default function ReportsPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <Card className="p-6">
-            <h2 className="text-lg font-semibold text-[var(--t1)] mb-4">
-              Select Student
-            </h2>
+            <h2 className="text-lg font-semibold text-[var(--t1)] mb-4">Select Student</h2>
             {studentsLoading ? (
               <div className="space-y-3">
                 {[1, 2, 3, 4].map((i) => (
@@ -672,10 +604,7 @@ export default function ReportsPage() {
                             className="w-full h-full object-cover"
                           />
                         ) : (
-                          <PersonInitials
-                            name={`${student.first_name} ${student.last_name}`}
-                            size={40}
-                          />
+                          <PersonInitials name={`${student.first_name} ${student.last_name}`} size={40} />
                         )}
                       </div>
                       <div className="flex-1">

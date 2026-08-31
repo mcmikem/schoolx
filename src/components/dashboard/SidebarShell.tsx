@@ -31,9 +31,7 @@ function filterGroupsByFeatureStage(
 
   const canAccessRoute = (href: string): boolean => {
     if (!typedRole) return false;
-    const routeKey = Object.keys(roleBasedRoutes).find((key) =>
-      href.startsWith(key),
-    );
+    const routeKey = Object.keys(roleBasedRoutes).find((key) => href.startsWith(key));
     if (!routeKey) return true;
     const baseAllowed = canAccess(typedRole, roleBasedRoutes[routeKey]);
     return resolveRouteAccess(typedRole, href, baseAllowed, overrides);
@@ -60,25 +58,18 @@ function SyncStatus() {
         className="w-[7px] h-[7px] rounded-full"
         style={{
           background: isOnline ? "var(--green)" : "var(--red)",
-          animation:
-            isOnline && !isSyncing ? "blink 2.5s ease-in-out infinite" : "none",
+          animation: isOnline && !isSyncing ? "blink 2.5s ease-in-out infinite" : "none",
         }}
       />
       {isOnline ? (isSyncing ? "Syncing..." : "System Active") : "Offline"}
       {pendingCount > 0 && (
-        <span className="ml-auto text-[10px] text-[var(--amber)] font-[DM Mono]">
-          {pendingCount} pending
-        </span>
+        <span className="ml-auto text-[10px] text-[var(--amber)] font-[DM Mono]">{pendingCount} pending</span>
       )}
     </div>
   );
 }
 
-export default function SidebarShell({
-  onNavigate,
-}: {
-  onNavigate?: () => void;
-}) {
+export default function SidebarShell({ onNavigate }: { onNavigate?: () => void }) {
   const { user, school } = useAuth();
   const { currentTerm } = useAcademic();
   const { isOpen, close } = useSidebar();
@@ -109,7 +100,7 @@ export default function SidebarShell({
   const schoolName = school?.name || "My School";
 
   const sidebarClasses = [
-    "sidebar bg-[var(--surface)] border-r border-[var(--border)] flex flex-col fixed top-0 left-0 bottom-0 z-100 shadow-[var(--sh2)]",
+    "sidebar bg-[var(--surface)] border-r border-[var(--border)] flex flex-col fixed top-0 left-0 bottom-0 z-40 shadow-[var(--sh2)]",
     isVisible ? "open" : "",
     isDesktop ? "desktop-rail" : "",
     isDesktop && showExpanded ? "rail-expanded" : "",
@@ -119,6 +110,9 @@ export default function SidebarShell({
     <aside
       id="dashboard-sidebar"
       className={sidebarClasses}
+      aria-hidden={!isVisible}
+      // @ts-expect-error inert is valid but not yet in React types for this TS version
+      inert={!isVisible ? "" : undefined}
       onMouseEnter={() => {
         if (isDesktop) setIsHovered(true);
       }}
@@ -165,10 +159,7 @@ export default function SidebarShell({
               className="w-8 h-8 rounded-lg border-none bg-white/10 hover:bg-white/20 cursor-pointer items-center justify-center transition-colors flex"
               aria-label="Close sidebar"
             >
-              <MaterialIcon
-                icon="close"
-                style={{ fontSize: 18, color: "rgba(255,255,255,0.8)" }}
-              />
+              <MaterialIcon icon="close" style={{ fontSize: 18, color: "rgba(255,255,255,0.8)" }} />
             </button>
           )}
           {isDesktop && (
@@ -187,11 +178,7 @@ export default function SidebarShell({
         </div>
       </div>
 
-      <CollapsibleSidebar
-        groups={navigationGroups}
-        onNavigate={onNavigate}
-        compact={isDesktop && !showExpanded}
-      />
+      <CollapsibleSidebar groups={navigationGroups} onNavigate={onNavigate} compact={isDesktop && !showExpanded} />
 
       {showExpanded && (
         <div className="px-4 py-3 border-t border-[var(--border)] space-y-2">
