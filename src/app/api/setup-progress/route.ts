@@ -94,8 +94,16 @@ async function handleGet(request: NextRequest) {
   counts.attendance = attendanceQuery.count ?? 0;
 
   // Map item_key -> done based on real data.
+  // Additionally, if a school already has students enrolled, consider school
+  // details complete even if the name is still the default "My School" — this
+  // handles the case where onboarding was completed functionally but the UI
+  // name hasn't been updated yet.
+  const studentCount = counts.students > 0 ? counts.students : 0;
+  const detailsCompleteForPopulatedSchool =
+    studentCount > 0 && schoolName !== "" && schoolName.toLowerCase() !== "my school" ? true : schoolComplete;
+
   const detected: Record<string, boolean> = {
-    school_details: schoolComplete,
+    school_details: detailsCompleteForPopulatedSchool,
     academic_term: hasTerm,
     classes: counts.classes > 0,
     subjects: counts.subjects > 0,
@@ -114,6 +122,30 @@ async function handleGet(request: NextRequest) {
         .eq("school_id", schoolId)
         .eq("item_key", key)
         .is("is_completed", false);
+    }
+  }
+
+  // Carry over any existing completion state from prior rows so schools that
+  // had items marked complete before the 202611010013 migration are not reset.
+  const { data: existing } = await supabase
+    .from("setup_checklist")
+    .select("item_key, is_completed")
+    .eq("school_id", schoolId);
+
+  if (existing && existing.length > 0) {
+    const alreadyCompleted = existing.filter((row: { item_key: string; is_completed: boolean }) => row.is_completed);
+    if (alreadyCompleted.length > 0) {
+      // Update any auto-completed items; keep previously completed items as-is.
+      for (const [key, done] of Object.entries(detected)) {
+        if (!done) {
+          await supabase
+            .from("setup_checklist")
+            .update({ is_completed: true, completed_at: new Date().toISOString() })
+            .eq("school_id", schoolId)
+            .eq("item_key", key)
+            .eq("is_completed", false);
+        }
+      }
     }
   }
 

@@ -179,7 +179,7 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
   }, [academicEvents, selectedDate]);
 
   return (
-    <div className="overflow-hidden rounded-[30px] border border-[#d7e3f2] bg-white/82 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.07)]">
+    <div className="overflow-hidden rounded-[24px] border border-[#d7e3f2] bg-white/82 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.07)]">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#7f91aa]">School calendar</p>

@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
 import { useStudents, useClasses, useSubjects, useDashboardStats } from "@/lib/hooks";
 import { useState, useEffect, useMemo } from "react";
+import { formatNumber } from "@/lib/utils";
 import MaterialIcon from "@/components/MaterialIcon";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import SchoolCalendar from "@/components/dashboard/SchoolCalendar";
@@ -132,9 +133,9 @@ function DeanDashboardContent() {
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#eef5ff] text-[#17325f]">
                   <MaterialIcon icon="group" className="text-base" />
                 </div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#7f91aa]">Students</p>
+                <p className="text-[12px] font-bold uppercase tracking-[0.12em] text-[var(--t4)]">Students</p>
               </div>
-              <p className="mt-2 text-2xl font-bold text-[#17325f] font-['Sora']">{stats.totalStudents}</p>
+              <p className="mt-2 text-2xl font-bold text-[#17325f]">{formatNumber(stats.totalStudents)}</p>
               <p className="mt-0.5 text-xs text-[#7f91aa]">{classes.length} classes</p>
             </div>
 
@@ -145,10 +146,10 @@ function DeanDashboardContent() {
                 >
                   <MaterialIcon icon="how_to_reg" className="text-base" />
                 </div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[#7f91aa]">Attendance</p>
+                <p className="text-[12px] font-bold uppercase tracking-[0.12em] text-[var(--t4)]">Attendance</p>
               </div>
               <p
-                className={`mt-2 text-2xl font-bold font-['Sora'] ${stats?.presentToday > 0 ? (attendanceRate >= 80 ? "text-[#1f8a70]" : "text-[#b45309]") : "text-[#7f91aa]"}`}
+                className={`mt-2 text-2xl font-bold ${stats?.presentToday > 0 ? (attendanceRate >= 80 ? "text-[#1f8a70]" : "text-[#b45309]") : "text-[#7f91aa]"}`}
               >
                 {stats?.presentToday > 0 ? `${attendanceRate}%` : "--"}
               </p>

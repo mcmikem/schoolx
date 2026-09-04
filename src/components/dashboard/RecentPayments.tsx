@@ -23,7 +23,7 @@ export default function RecentPayments({
   if (payments.length === 0) return null;
 
   return (
-    <div className="rounded-[20px] bg-white border border-[#e5ecf4] p-5 mb-6">
+    <div className="rounded-[24px] bg-white border border-[#e5ecf4] p-5 mb-6">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between mb-2 focus:outline-none focus:ring-2 focus:ring-[#17325f] rounded"
@@ -57,7 +57,7 @@ export default function RecentPayments({
               <div
                 key={p.id}
                 role="listitem"
-                className="flex items-center gap-3 rounded-[14px] bg-[#f6f9fc] px-3 py-2.5"
+                className="flex items-center gap-3 rounded-[18px] bg-[#f6f9fc] px-3 py-2.5"
               >
                 <div
                   className="h-8 w-8 rounded-lg bg-white border border-[#eaedf2] flex items-center justify-center text-xs font-bold text-[#17325f] shrink-0"

@@ -7,3 +7,7 @@ export function cn(...inputs: ClassValue[]) {
 
 export const cardClassName =
   "rounded-[24px] border border-[var(--border)] bg-white text-[var(--on-surface)] shadow-[var(--sh1)]";
+
+export function formatNumber(value: number): string {
+  return new Intl.NumberFormat("en-US").format(value);
+}

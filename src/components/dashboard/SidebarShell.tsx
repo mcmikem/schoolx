@@ -143,7 +143,7 @@ export default function SidebarShell({ onNavigate }: { onNavigate?: () => void }
           </div>
           {showExpanded && (
             <div className="flex-1 min-w-0">
-              <div className="font-['Sora'] text-[14px] font-bold text-white tracking-[-.15px] leading-tight truncate">
+              <div className="text-[14px] font-bold text-white tracking-[-.15px] leading-tight truncate">
                 {schoolName}
               </div>
               <div className="text-[11px] text-white/55 mt-0.5 flex items-center gap-1.5">
