@@ -60,10 +60,10 @@ const StatCard = memo(function StatCard({
   if (isPremium) {
     const cardClass = `stat-card ${
       variant === "premium-teal"
-        ? "card-gradient-teal animate-float-gentle"
+        ? "card-gradient-teal"
         : variant === "premium-navy"
-          ? "card-gradient-navy animate-float-gentle"
-          : "card-gradient-amber animate-float-gentle"
+          ? "card-gradient-navy"
+          : "card-gradient-amber"
     }`;
     return (
       <div className={`${cardClass} shadow-[0_22px_48px_rgba(15,23,42,0.07)]`}>

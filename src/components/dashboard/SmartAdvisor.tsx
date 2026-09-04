@@ -76,12 +76,7 @@ export default function SmartAdvisor({
       );
     }
 
-    if (
-      role === "bursar" &&
-      collectionRate > 0 &&
-      collectionRate < 100 &&
-      stats?.totalFeesExpected
-    ) {
+    if (role === "bursar" && collectionRate > 0 && collectionRate < 100 && stats?.totalFeesExpected) {
       list.push(
         `Revenue Goal: Target of UGX ${(stats.totalFeesExpected - stats.totalFeesCollected).toLocaleString()} remains for term budget completion.`,
       );
@@ -95,20 +90,13 @@ export default function SmartAdvisor({
 
     // Add a generic "smart" tip if list is short
     if (list.length < 2) {
-      list.push(
-        "Tip: Use the 'Bulk SMS' tool to announce upcoming school events instantly.",
-      );
+      list.push("Tip: Use the 'Bulk SMS' tool to announce upcoming school events instantly.");
     }
 
     // Rollover reminder
-    const isEndOfTerm =
-      new Date().getMonth() === 3 ||
-      new Date().getMonth() === 7 ||
-      new Date().getMonth() === 11;
+    const isEndOfTerm = new Date().getMonth() === 3 || new Date().getMonth() === 7 || new Date().getMonth() === 11;
     if (isEndOfTerm && role === "headmaster") {
-      list.push(
-        "End of Term: Time to check all names are correct and print the term report cards.",
-      );
+      list.push("End of Term: Time to check all names are correct and print the term report cards.");
     }
 
     if (performanceAlerts.length > 0) {
@@ -128,7 +116,7 @@ export default function SmartAdvisor({
       {/* Floating toggle button */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="fixed bottom-20 right-6 z-40 p-3 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-lg hover:shadow-xl transition-all hover:scale-105 animate-float-gentle"
+        className="fixed bottom-20 right-6 z-40 p-3 rounded-full bg-[var(--primary)] text-white shadow-[var(--sh2)] transition-colors hover:bg-[var(--primary-600)]"
         title="Daily School Advisor"
       >
         <MaterialIcon icon="auto_awesome" style={{ fontSize: 24 }} />
@@ -136,27 +124,17 @@ export default function SmartAdvisor({
 
       {/* Slide-out panel */}
       {isExpanded && (
-        <div
-          className="fixed inset-0 z-50 flex justify-end bg-black/30"
-          onClick={() => setIsExpanded(false)}
-        >
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/30" onClick={() => setIsExpanded(false)}>
           <div
             className="w-full max-w-md bg-[var(--surface)] h-full shadow-2xl overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-4 border-b border-[var(--border)] bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-between sticky top-0">
               <div className="flex items-center gap-2">
-                <MaterialIcon style={{ fontSize: 20 }}>
-                  auto_awesome
-                </MaterialIcon>
-                <span className="text-sm font-semibold">
-                  Daily School Advisor
-                </span>
+                <MaterialIcon style={{ fontSize: 20 }}>auto_awesome</MaterialIcon>
+                <span className="text-sm font-semibold">Daily School Advisor</span>
               </div>
-              <button
-                onClick={() => setIsExpanded(false)}
-                className="p-2 hover:bg-white/20 rounded-lg"
-              >
+              <button onClick={() => setIsExpanded(false)} className="p-2 hover:bg-white/20 rounded-lg">
                 <MaterialIcon style={{ fontSize: 20 }}>close</MaterialIcon>
               </button>
             </div>
@@ -166,9 +144,7 @@ export default function SmartAdvisor({
                   key={i}
                   className="p-4 rounded-xl bg-gradient-to-br from-amber-50 to-orange-50 border border-amber/20"
                 >
-                  <p className="text-sm font-medium text-[var(--t1)] leading-relaxed">
-                    {insight}
-                  </p>
+                  <p className="text-sm font-medium text-[var(--t1)] leading-relaxed">{insight}</p>
                 </div>
               ))}
             </div>

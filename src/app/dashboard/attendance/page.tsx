@@ -27,7 +27,7 @@ import type { Student } from "@/types";
 import { withTimeout, timeoutFallback, notifyDashboardStatsChanged, getLocalDateString } from "@/lib/hooks/utils";
 import { getAutomationStatus, toggleAutomation } from "@/lib/sms-automation";
 
-const STATUS_CYCLE = ["absent", "present", "late", "excused"] as const;
+const STATUS_CYCLE = ["present", "absent", "late", "excused"] as const;
 type AttendanceStatus = (typeof STATUS_CYCLE)[number];
 
 const STATUS_CONFIG: Record<AttendanceStatus, { color: string; bg: string; label: string; icon: string }> = {
@@ -58,7 +58,8 @@ const STATUS_CONFIG: Record<AttendanceStatus, { color: string; bg: string; label
 };
 
 function cycleStatus(current: string | undefined): AttendanceStatus {
-  if (!current) return "present";
+  // First tap on an unmarked student marks Away — the most common action.
+  if (!current) return "absent";
   const idx = STATUS_CYCLE.indexOf(current as AttendanceStatus);
   return STATUS_CYCLE[(idx + 1) % STATUS_CYCLE.length];
 }
@@ -253,6 +254,7 @@ export default function AttendancePage() {
 
   const markAttendance = (studentId: string, status: string) => {
     setAttendance((prev) => ({ ...prev, [studentId]: status }));
+    setAllMarked(false);
   };
 
   const handleTapStatus = (studentId: string) => {
@@ -272,8 +274,9 @@ export default function AttendancePage() {
 
   const handleMarkAllPresent = () => {
     if (allMarked) {
-      markAll("absent");
-      toast.info("Reset all to absent");
+      setAttendance({});
+      setAllMarked(false);
+      toast.info("Marks cleared");
     } else {
       setConfirmMarkAll(true);
     }
@@ -293,6 +296,7 @@ export default function AttendancePage() {
     });
     toast.success(`${selectedAbsentIds.size} student(s) marked absent`);
     setSelectedAbsentIds(new Set());
+    setAllMarked(false);
     setShowQuickAbsentModal(false);
   };
 
@@ -323,7 +327,15 @@ export default function AttendancePage() {
   const saveAttendance = async (attendanceOverride?: Record<string, string>) => {
     if (!selectedClass || !user?.id) return;
 
-    const records = Object.entries(attendanceOverride ?? attendance).map(([studentId, status]) =>
+    const source = attendanceOverride ?? attendance;
+    // Call Out Names promises "everyone starts as In School": unmarked
+    // students are recorded present so a save is never silently partial.
+    const effective: Record<string, string> =
+      rollCallMode && !attendanceOverride
+        ? Object.fromEntries(students.map((s) => [s.id, source[s.id] ?? "present"]))
+        : source;
+
+    const records = Object.entries(effective).map(([studentId, status]) =>
       normalizeAttendanceInput({
         student_id: studentId,
         class_id: selectedClass,
@@ -456,7 +468,10 @@ export default function AttendancePage() {
   const absentCount = Object.values(attendance).filter((s) => s === "absent").length;
   const lateCount = Object.values(attendance).filter((s) => s === "late").length;
   const excusedCount = Object.values(attendance).filter((s) => s === "excused").length;
-  const hasAttendanceRecords = Object.keys(attendance).length > 0;
+  // In Call Out Names mode unmarked students save as present — reflect that in the UI.
+  const unmarkedCount = students.filter((s) => !(s.id in attendance)).length;
+  const effectivePresentCount = rollCallMode ? presentCount + unmarkedCount : presentCount;
+  const hasAttendanceRecords = rollCallMode ? students.length > 0 : Object.keys(attendance).length > 0;
   const saveDisabledReason = !selectedClass
     ? "Select a class to enable Save Changes."
     : !hasAttendanceRecords
@@ -565,7 +580,6 @@ export default function AttendancePage() {
         <PageHeader
           title="Attendance Center"
           subtitle={`Marking records for ${selectedClassName?.name || "Academic Classes"}`}
-          variant="premium"
           actions={
             <div className="flex flex-col items-start sm:items-end gap-1">
               <div className="flex items-center gap-2">
@@ -830,59 +844,35 @@ export default function AttendancePage() {
           </>
         ) : (
           <>
-            <div className="dashboard-soft-grid">
-              <div
-                className="bg-surface-container-lowest rounded-xl border border-outline-variant p-3 text-center"
-                style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
-              >
-                <div className="text-2xl md:text-3xl font-bold text-secondary">{presentCount}</div>
-                <div className="text-xs md:text-sm text-on-surface-variant mt-1">In School</div>
+            <details className="rounded-xl border border-outline-variant bg-surface-container-lowest px-4 py-3">
+              <summary className="cursor-pointer text-[13px] font-bold text-on-surface-variant select-none">
+                How marking works
+              </summary>
+              <div className="pt-2">
+                <PageGuidance
+                  title="How to Use Attendance"
+                  tips={[
+                    {
+                      icon: "school",
+                      text: "Select a class from the dropdown above",
+                    },
+                    { icon: "event", text: "Choose the date (defaults to today)" },
+                    {
+                      icon: "touch_app",
+                      text: "Tap once for Away, again for Late, again for Excused",
+                    },
+                    {
+                      icon: "toggle_on",
+                      text: "Call Out Names Mode: everyone starts as In School, tap only those Away",
+                    },
+                    {
+                      icon: "save",
+                      text: "Click Save when done - unmarked students are recorded as In School",
+                    },
+                  ]}
+                />
               </div>
-              <div
-                className="bg-surface-container-lowest rounded-xl border border-outline-variant p-3 text-center"
-                style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
-              >
-                <div className="text-2xl md:text-3xl font-bold text-error">{absentCount}</div>
-                <div className="text-xs md:text-sm text-on-surface-variant mt-1">Away</div>
-              </div>
-              <div
-                className="bg-surface-container-lowest rounded-xl border border-outline-variant p-3 text-center"
-                style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
-              >
-                <div className="text-2xl md:text-3xl font-bold text-tertiary">{lateCount}</div>
-                <div className="text-xs md:text-sm text-on-surface-variant mt-1">Late</div>
-              </div>
-              <div
-                className="bg-surface-container-lowest rounded-xl border border-outline-variant p-3 text-center"
-                style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
-              >
-                <div className="text-2xl md:text-3xl font-bold text-[#7c3aed]">{excusedCount}</div>
-                <div className="text-xs md:text-sm text-on-surface-variant mt-1">Excused</div>
-              </div>
-            </div>
-
-            <PageGuidance
-              title="How to Use Attendance"
-              tips={[
-                {
-                  icon: "school",
-                  text: "Select a class from the dropdown above",
-                },
-                { icon: "event", text: "Choose the date (defaults to today)" },
-                {
-                  icon: "touch_app",
-                  text: "Tap a student to change: In School → Away → Late",
-                },
-                {
-                  icon: "toggle_on",
-                  text: "Call Out Names Mode: starts all as In School, tap to mark Away",
-                },
-                {
-                  icon: "save",
-                  text: "Click Save when done - attendance is recorded for that date",
-                },
-              ]}
-            />
+            </details>
 
             <div className="dashboard-toolbar">
               <div className="flex items-center justify-between">
@@ -1105,7 +1095,7 @@ export default function AttendancePage() {
                     className="w-full"
                     size="lg"
                   >
-                    Save: {presentCount} present, {absentCount} away, {lateCount} late, {excusedCount} excused
+                    Save: {effectivePresentCount} present, {absentCount} away, {lateCount} late, {excusedCount} excused
                   </Button>
                 </div>
               </>
