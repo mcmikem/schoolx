@@ -61,6 +61,21 @@ export default function SetupChecklist({ onComplete, showAll = false, autoHide =
     } catch {
       // fall through to direct Supabase fetch below
     }
+    // Best-effort: purge legacy pre-migration keys so the fallback never
+    // resurrects stale steps when the API path is unreachable.
+    try {
+      await supabase
+        .from("setup_checklist")
+        .delete()
+        .eq("school_id", school.id)
+        .not(
+          "item_key",
+          "in",
+          "(school_details,academic_term,classes,subjects,teachers,students,attendance,first_payment)",
+        );
+    } catch {
+      // ignore — the select below still works
+    }
     const { data, error } = await supabase
       .from("setup_checklist")
       .select("*")
@@ -167,9 +182,20 @@ export default function SetupChecklist({ onComplete, showAll = false, autoHide =
   const completedCount = items.filter((item) => item.is_completed).length;
   const progress = items.length > 0 ? Math.round((completedCount / items.length) * 100) : 0;
 
+  // The checklist is onboarding guidance: on dashboard surfaces it only shows
+  // for newly registered schools. (The settings page renders with showAll and
+  // no autoHide, so it stays reachable when explicitly opened.)
+  const NEW_SCHOOL_DAYS = 30;
+  const schoolAgeDays = (() => {
+    const created = (school as { created_at?: string } | null)?.created_at;
+    if (!created) return 0;
+    const ms = Date.now() - new Date(created).getTime();
+    return Number.isNaN(ms) ? 0 : ms / 86400000;
+  })();
+
   if (loading) return <div className="p-4 text-center text-slate-500">Loading checklist...</div>;
 
-  if (autoHide && progress === 100) return null;
+  if (autoHide && (progress === 100 || schoolAgeDays > NEW_SCHOOL_DAYS)) return null;
 
   return (
     <Card>

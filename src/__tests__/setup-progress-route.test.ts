@@ -38,6 +38,7 @@ interface MockConfig {
 function buildMockClient(config: MockConfig = {}) {
   const upsertCalls: Array<Array<Record<string, unknown>>> = [];
   const updateCalls: Array<Record<string, unknown>> = [];
+  const deleteCalls: Array<{ table: string; builder: unknown }> = [];
   const countQueries: string[] = [];
 
   const from = jest.fn((table: string) => {
@@ -57,6 +58,11 @@ function buildMockClient(config: MockConfig = {}) {
     });
     builder.is = jest.fn(() => builder);
     builder.in = jest.fn(() => builder);
+    builder.not = jest.fn(() => builder);
+    builder.delete = jest.fn(() => {
+      deleteCalls.push({ table, builder });
+      return builder;
+    });
     builder.order = jest.fn(() => builder);
     builder.maybeSingle = jest.fn(() => builder);
     builder.update = jest.fn((payload: Record<string, unknown>) => {
@@ -86,7 +92,7 @@ function buildMockClient(config: MockConfig = {}) {
   });
 
   mockCreateServiceRoleClientOrThrow.mockReturnValue({ from });
-  return { from, upsertCalls, updateCalls, countQueries };
+  return { from, upsertCalls, updateCalls, deleteCalls, countQueries };
 }
 
 function makeRequest(): NextRequest {
@@ -265,6 +271,10 @@ describe("setup-progress route", () => {
     expect(client.upsertCalls[0].length).toBe(8);
     expect(client.upsertCalls[0].map((i) => i.item_key)).toContain("school_details");
     expect(client.upsertCalls[0].map((i) => i.item_key)).toContain("first_payment");
+
+    // Legacy pre-migration keys are purged for the school
+    expect(client.deleteCalls.length).toBe(1);
+    expect(client.deleteCalls[0].table).toBe("setup_checklist");
 
     // attendance counted via student IDs (no school_id column)
     expect(client.countQueries).toContain("attendance");

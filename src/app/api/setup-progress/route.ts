@@ -43,6 +43,18 @@ async function handleGet(request: NextRequest) {
     DEFAULT_ITEMS.map((item) => ({ ...item, school_id: schoolId })),
     { onConflict: "school_id,item_key" },
   );
+  // Self-heal: drop legacy item keys from the pre-migration set so schools
+  // whose DB never ran the swap migration don't see stale/duplicate steps.
+  // (The upsert above guarantees the current 8 exist, so this only removes.)
+  await supabase
+    .from("setup_checklist")
+    .delete()
+    .eq("school_id", schoolId)
+    .not(
+      "item_key",
+      "in",
+      "(school_details,academic_term,classes,subjects,teachers,students,attendance,first_payment)",
+    );
   // School completeness: name isn't the placeholder, and email/phone/logo present.
   const { data: school } = await supabase
     .from("schools")
@@ -125,29 +137,8 @@ async function handleGet(request: NextRequest) {
     }
   }
 
-  // Carry over any existing completion state from prior rows so schools that
-  // had items marked complete before the 202611010013 migration are not reset.
-  const { data: existing } = await supabase
-    .from("setup_checklist")
-    .select("item_key, is_completed")
-    .eq("school_id", schoolId);
-
-  if (existing && existing.length > 0) {
-    const alreadyCompleted = existing.filter((row: { item_key: string; is_completed: boolean }) => row.is_completed);
-    if (alreadyCompleted.length > 0) {
-      // Update any auto-completed items; keep previously completed items as-is.
-      for (const [key, done] of Object.entries(detected)) {
-        if (!done) {
-          await supabase
-            .from("setup_checklist")
-            .update({ is_completed: true, completed_at: new Date().toISOString() })
-            .eq("school_id", schoolId)
-            .eq("item_key", key)
-            .eq("is_completed", false);
-        }
-      }
-    }
-  }
+  // NOTE: previously completed rows are never reset here — the loop above
+  // only flips false -> true, so manual completion state always survives.
 
   const { data: items } = await supabase.from("setup_checklist").select("*").eq("school_id", schoolId);
 
