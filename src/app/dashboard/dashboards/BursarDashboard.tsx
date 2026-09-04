@@ -10,6 +10,8 @@ import SchoolCalendar from "@/components/dashboard/SchoolCalendar";
 import TaskManager from "@/components/dashboard/TaskManager";
 
 import StatCard from "@/components/dashboard/StatCard";
+import WeeklyCollections from "@/components/dashboard/WeeklyCollections";
+import CollectionDonut from "@/components/dashboard/CollectionDonut";
 import DashboardInsights from "@/components/dashboard/DashboardInsights";
 import EcosystemPulse from "@/components/dashboard/EcosystemPulse";
 import TopDefaulters from "@/components/dashboard/TopDefaulters";
@@ -306,6 +308,16 @@ function BursarDashboardContent() {
               href="/dashboard/reports"
               hrefLabel="Open reports"
             />
+          </div>
+
+          {/* ── Analytics row (Donezo bento: weekly bars + progress donut) ── */}
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
+            <div className="lg:col-span-3">
+              <WeeklyCollections payments={payments} />
+            </div>
+            <div className="lg:col-span-2">
+              <CollectionDonut collected={totalFeesCollected} expected={totalFeesExpected} />
+            </div>
           </div>
 
           <CollapsibleSection

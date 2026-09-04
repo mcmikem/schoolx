@@ -1080,6 +1080,57 @@ table tr {
     text-decoration: none;
   }
 
+  /* Panel header row (Donezo card titles + action, e.g. Project / + New) */
+  .panel-head {
+    @apply flex items-center justify-between gap-2 mb-4;
+  }
+  .panel-title {
+    @apply font-bold text-[15px] text-[var(--t1)] tracking-tight;
+    font-family: "Sora", sans-serif;
+  }
+
+  /* Weekly bars (Donezo Project Analytics treatment: pill bars, striped empties) */
+  .weekbar-col {
+    @apply flex-1 flex flex-col justify-end items-center gap-1.5 min-w-0 h-full;
+  }
+  .weekbar {
+    @apply w-full rounded-full transition-all duration-300;
+    max-width: 44px;
+    min-height: 12px;
+  }
+  .weekbar-solid {
+    background: linear-gradient(180deg, var(--primary-400) 0%, var(--primary-600) 100%);
+  }
+  .weekbar-max {
+    background: linear-gradient(180deg, var(--green) 0%, var(--primary-700) 100%);
+  }
+  .weekbar-empty {
+    background: repeating-linear-gradient(
+      -45deg,
+      var(--surface-container-high) 0 4px,
+      var(--surface-container-low) 4px 8px
+    );
+    border: 1px solid var(--border);
+  }
+  .weekbar-day {
+    @apply text-[10px] font-bold uppercase text-[var(--t4)];
+  }
+  .weekbar-val {
+    @apply text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[var(--green-soft)] text-[var(--green)] whitespace-nowrap h-5 flex items-center;
+    font-family: "DM Sans", sans-serif;
+  }
+
+  /* Donut legend (Donezo Project Progress dots) */
+  .donut-legend {
+    @apply flex items-center justify-center gap-4 mt-3 flex-wrap;
+  }
+  .donut-legend-item {
+    @apply inline-flex items-center gap-1.5 text-[11px] font-semibold text-[var(--t3)];
+  }
+  .donut-dot {
+    @apply w-2.5 h-2.5 rounded-full flex-shrink-0;
+  }
+
   .card {
     @apply bg-[var(--surface)] border border-[var(--border)] rounded-[22px] shadow-[var(--sh1)] overflow-hidden;
     @apply px-4 py-4 sm:px-5 sm:py-5;

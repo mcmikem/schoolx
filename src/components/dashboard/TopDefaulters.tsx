@@ -48,7 +48,7 @@ export default function TopDefaulters({
   const topDebtors = debtors.slice(0, 5);
 
   return (
-    <div className="rounded-[20px] bg-white border border-[#e5ecf4] p-5 mb-6">
+    <div className="rounded-[24px] bg-white border border-[#e5ecf4] p-5 mb-6">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between mb-2 focus:outline-none focus:ring-2 focus:ring-[#17325f] rounded"
@@ -72,7 +72,7 @@ export default function TopDefaulters({
             <div
               key={student.id}
               role="listitem"
-              className="flex items-center gap-3 rounded-[14px] bg-[#fcfcfd] border border-[#eaedf2] px-3 py-2.5"
+              className="flex items-center gap-3 rounded-[18px] bg-[#fcfcfd] border border-[#eaedf2] px-3 py-2.5"
             >
               <div
                 className="h-9 w-9 rounded-full bg-[#ffefe8] flex items-center justify-center text-sm font-bold text-[#c2472b] shrink-0"
@@ -115,10 +115,7 @@ export default function TopDefaulters({
             </div>
           ))}
           <div className="pt-2 text-center">
-            <Link
-              href="/dashboard/fees"
-              className="text-xs font-bold text-[#42638d] hover:underline focus:outline-none focus:ring-2 focus:ring-[#17325f] rounded"
-            >
+            <Link href="/dashboard/fees" className="card-action-pill">
               View all {debtors.length} debtors →
             </Link>
           </div>
