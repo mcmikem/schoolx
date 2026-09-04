@@ -1040,6 +1040,46 @@ table tr {
     @apply bg-[var(--green)] text-white shadow-[0_1px_4px_rgba(13,148,136,0.25)] hover:shadow-[0_3px_10px_rgba(13,148,136,0.3)];
   }
 
+  /* Donezo-inspired pill CTA + card header action (e.g. + New, + Add Member).
+     Uses brand tokens — no hardcoded greens. */
+  .btn-pill {
+    @apply inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full text-[13px] font-semibold cursor-pointer transition-all duration-[var(--dur)] ease-[var(--ease)] tracking-tight whitespace-nowrap active:scale-[0.98];
+    font-family: "DM Sans", sans-serif;
+  }
+
+  .card-action-pill {
+    @apply inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-bold border border-[var(--border)] bg-[var(--surface)] text-[var(--t2)] transition-all hover:bg-[var(--surface-container-low)] hover:border-[var(--border2)] hover:text-[var(--t1)] active:scale-[0.97] cursor-pointer whitespace-nowrap;
+    font-family: "DM Sans", sans-serif;
+    text-decoration: none;
+  }
+
+  /* Circular icon button (topbar mail/bell/theme) + kbd hint for search */
+  .icon-btn-circle {
+    @apply w-10 h-10 rounded-full border border-[var(--border)] bg-white flex items-center justify-center cursor-pointer relative transition-colors hover:bg-[var(--surface-container-low)];
+  }
+
+  .search-kbd {
+    @apply hidden sm:inline-flex items-center justify-center px-1.5 py-0.5 rounded-md text-[10px] font-bold text-[var(--t4)] bg-[var(--surface-container-low)] border border-[var(--border)] ml-auto flex-shrink-0;
+    font-family: "DM Sans", sans-serif;
+  }
+
+  /* Sidebar section label + count badge (MENU / GENERAL grouping) */
+  .sidebar-section-label {
+    @apply text-[10px] uppercase tracking-widest font-extrabold text-[var(--t4)] px-3 pt-4 pb-1.5;
+    font-family: "DM Sans", sans-serif;
+  }
+
+  .sidebar-count-badge {
+    @apply ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[var(--t1)] text-white uppercase tracking-wider flex-shrink-0;
+    font-family: "DM Mono", monospace;
+  }
+
+  /* Stat card external-link arrow (Donezo ↗ affordance) */
+  .stat-link-arrow {
+    @apply w-7 h-7 rounded-full border border-[var(--border)] flex items-center justify-center text-[var(--t3)] transition-all hover:bg-[var(--t1)] hover:text-white hover:border-[var(--t1)] flex-shrink-0;
+    text-decoration: none;
+  }
+
   .card {
     @apply bg-[var(--surface)] border border-[var(--border)] rounded-[22px] shadow-[var(--sh1)] overflow-hidden;
     @apply px-4 py-4 sm:px-5 sm:py-5;

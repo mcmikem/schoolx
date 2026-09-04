@@ -259,32 +259,53 @@ function BursarDashboardContent() {
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
         {/* ── Left Column ── */}
         <div className="xl:col-span-2 space-y-5">
-          {/* Fee metrics */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            <div className="group rounded-2xl bg-white border border-[#eef2f8] p-4 transition-all hover:shadow-md hover:-translate-y-0.5">
-              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#7f91aa]">Expected</p>
-              <p className="mt-1 text-xl font-bold text-[#17325f]">UGX {formatCurrency(totalFeesExpected)}</p>
-            </div>
-            <div className="group rounded-2xl bg-white border border-[#eef2f8] p-4 transition-all hover:shadow-md hover:-translate-y-0.5">
-              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#7f91aa]">Collected</p>
-              <p className="mt-1 text-xl font-bold text-[#1f8a70]">UGX {formatCurrency(totalFeesCollected)}</p>
-            </div>
-            <div className="group rounded-2xl bg-white border border-[#eef2f8] p-4 transition-all hover:shadow-md hover:-translate-y-0.5">
-              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#7f91aa]">Arrears</p>
-              <p className={`mt-1 text-xl font-bold ${totalArrears > 0 ? "text-[#c2472b]" : "text-[#1f8a70]"}`}>
-                UGX {formatCurrency(totalArrears)}
-              </p>
-            </div>
-            <div className="group rounded-2xl bg-white border border-[#eef2f8] p-4 transition-all hover:shadow-md hover:-translate-y-0.5">
-              <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#7f91aa]">Rate</p>
-              <p
-                className={`mt-1 text-xl font-bold ${
-                  collectionRate >= 70 ? "text-[#1f8a70]" : collectionRate >= 40 ? "text-[#b45309]" : "text-[#c2472b]"
-                }`}
-              >
-                {collectionRate}%
-              </p>
-            </div>
+          {/* Fee metrics — shared StatCard with Donezo featured + ↗ affordance */}
+          <div className="stat-grid !mb-0">
+            <StatCard
+              label="Expected"
+              value={`UGX ${formatCurrency(totalFeesExpected)}`}
+              subValue={`${students.length} students`}
+              icon="account_balance"
+              accentColor="navy"
+              loading={dataLoading}
+              href="/dashboard/fees"
+              hrefLabel="Open fees"
+            />
+            <StatCard
+              label="Collected"
+              value={`UGX ${formatCurrency(totalFeesCollected)}`}
+              icon="payments"
+              accentColor="green"
+              loading={dataLoading}
+              variant="premium-teal"
+              href="/dashboard/fees"
+              hrefLabel="Open fees"
+              trend={{
+                value: Math.abs(collectionTrend),
+                direction: collectionTrend > 0 ? "up" : collectionTrend < 0 ? "down" : "neutral",
+                label: "vs last month",
+              }}
+            />
+            <StatCard
+              label="Arrears"
+              value={`UGX ${formatCurrency(totalArrears)}`}
+              subValue={`${overdueCount} in arrears`}
+              icon="warning"
+              accentColor={totalArrears > 0 ? "red" : "green"}
+              loading={dataLoading}
+              href="/dashboard/fees?tab=defaulters"
+              hrefLabel="Open defaulters"
+            />
+            <StatCard
+              label="Collection rate"
+              value={`${collectionRate}%`}
+              subValue={collectionRate >= 70 ? "On track" : "Needs follow-up"}
+              icon="percent"
+              accentColor={collectionRate >= 70 ? "green" : collectionRate >= 40 ? "amber" : "red"}
+              loading={dataLoading}
+              href="/dashboard/reports"
+              hrefLabel="Open reports"
+            />
           </div>
 
           <CollapsibleSection

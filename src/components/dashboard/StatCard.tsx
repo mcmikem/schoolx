@@ -1,5 +1,6 @@
 "use client";
 import { memo } from "react";
+import Link from "next/link";
 import MaterialIcon from "@/components/MaterialIcon";
 
 const ACCENT_STYLES: Record<string, { solid: string; soft: string }> = {
@@ -27,6 +28,8 @@ interface StatCardProps {
   accentColor: string;
   loading?: boolean;
   variant?: "standard" | "compact" | "premium-teal" | "premium-navy" | "premium-amber";
+  href?: string;
+  hrefLabel?: string;
   trend?: {
     value: number;
     direction: "up" | "down" | "neutral";
@@ -42,6 +45,8 @@ const StatCard = memo(function StatCard({
   accentColor,
   loading,
   variant = "standard",
+  href,
+  hrefLabel,
   trend,
 }: StatCardProps) {
   const isPremium = variant.startsWith("premium");
@@ -49,11 +54,7 @@ const StatCard = memo(function StatCard({
   const shadowRgb = ACCENT_SHADOW[accentColor] || ACCENT_SHADOW.navy;
 
   const trendIcon =
-    trend?.direction === "up"
-      ? "trending_up"
-      : trend?.direction === "down"
-        ? "trending_down"
-        : "trending_flat";
+    trend?.direction === "up" ? "trending_up" : trend?.direction === "down" ? "trending_down" : "trending_flat";
 
   // ── Premium variants (unchanged) ──────────────────────────────────────────
   if (isPremium) {
@@ -69,8 +70,19 @@ const StatCard = memo(function StatCard({
         <div className="stat-inner !p-6">
           <div className="stat-meta">
             <div className="stat-label !text-white/80">{label}</div>
-            <div className="stat-icon-box bg-white/20 text-white">
-              <MaterialIcon icon={icon} />
+            <div className="flex items-center gap-2">
+              <div className="stat-icon-box bg-white/20 text-white">
+                <MaterialIcon icon={icon} />
+              </div>
+              {href && !loading && (
+                <Link
+                  href={href}
+                  aria-label={hrefLabel || `Open ${label}`}
+                  className="w-7 h-7 rounded-full border border-white/30 flex items-center justify-center text-white/80 transition-all hover:bg-white hover:text-[var(--t1)] hover:border-white flex-shrink-0 no-underline"
+                >
+                  <MaterialIcon icon="arrow_outward" style={{ fontSize: 15 }} />
+                </Link>
+              )}
             </div>
           </div>
           <div className="stat-val !text-white">{loading ? "..." : value}</div>
@@ -78,16 +90,13 @@ const StatCard = memo(function StatCard({
             <div className="flex items-center gap-1 mt-2 text-[12px] font-bold text-white/80">
               <MaterialIcon icon={trendIcon} style={{ fontSize: 16 }} />
               <span>
-                {trend.direction === "up" ? "↑" : trend.direction === "down" ? "↓" : "→"}{" "}
-                {trend.value}%
+                {trend.direction === "up" ? "↑" : trend.direction === "down" ? "↓" : "→"} {trend.value}%
               </span>
               <span className="text-white/60 ml-1">{trend.label}</span>
             </div>
           )}
           {subValue && !trend && (
-            <div className="text-[12px] font-medium mt-2 uppercase tracking-wider text-white/80">
-              {subValue}
-            </div>
+            <div className="text-[12px] font-medium mt-2 uppercase tracking-wider text-white/80">{subValue}</div>
           )}
         </div>
       </div>
@@ -115,21 +124,37 @@ const StatCard = memo(function StatCard({
             <MaterialIcon icon={icon} style={{ fontSize: 20 }} />
           </div>
 
-          {/* Trend badge (top-right) */}
-          {trend && (
-            <div
-              className={`flex items-center gap-0.5 text-[11px] font-bold px-2 py-1 rounded-full ${
-                trend.direction === "up"
-                  ? "bg-[var(--green-soft)] text-[var(--green)]"
-                  : trend.direction === "down"
-                    ? "bg-[var(--red-soft)] text-[var(--red)]"
-                    : "bg-[var(--navy-soft)] text-[var(--t3)]"
-              }`}
-            >
-              <MaterialIcon icon={trendIcon} style={{ fontSize: 13 }} />
-              {trend.value}%
-            </div>
-          )}
+          {/* Trend badge + link arrow (top-right, Donezo affordance) */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {trend && (
+              <div
+                className={`flex items-center gap-0.5 text-[11px] font-bold px-2 py-1 rounded-full ${
+                  trend.direction === "up"
+                    ? "bg-[var(--green-soft)] text-[var(--green)]"
+                    : trend.direction === "down"
+                      ? "bg-[var(--red-soft)] text-[var(--red)]"
+                      : "bg-[var(--navy-soft)] text-[var(--t3)]"
+                }`}
+              >
+                <MaterialIcon icon={trendIcon} style={{ fontSize: 13 }} />
+                {trend.value}%
+              </div>
+            )}
+            {href && !loading ? (
+              <Link href={href} aria-label={hrefLabel || `Open ${label}`} className="stat-link-arrow">
+                <MaterialIcon icon="arrow_outward" style={{ fontSize: 15 }} />
+              </Link>
+            ) : (
+              !trend && (
+                <span
+                  className="stat-link-arrow opacity-0 group-hover:opacity-100 pointer-events-none"
+                  aria-hidden="true"
+                >
+                  <MaterialIcon icon="arrow_outward" style={{ fontSize: 15 }} />
+                </span>
+              )
+            )}
+          </div>
         </div>
 
         {/* Hero number */}
@@ -137,11 +162,7 @@ const StatCard = memo(function StatCard({
           className="text-[30px] sm:text-[32px] font-semibold tracking-[-0.04em] leading-none text-[var(--t1)]"
           style={{ fontFamily: "'Sora', sans-serif" }}
         >
-          {loading ? (
-            <span className="inline-block h-8 w-20 rounded-lg bg-[var(--border)] animate-pulse" />
-          ) : (
-            value
-          )}
+          {loading ? <span className="inline-block h-8 w-20 rounded-lg bg-[var(--border)] animate-pulse" /> : value}
         </div>
 
         <div
@@ -152,14 +173,10 @@ const StatCard = memo(function StatCard({
         </div>
 
         {/* Sub value */}
-        {subValue && !loading && (
-          <div className="text-[12px] font-medium mt-1.5 text-[var(--t3)]">{subValue}</div>
-        )}
+        {subValue && !loading && <div className="text-[12px] font-medium mt-1.5 text-[var(--t3)]">{subValue}</div>}
 
         {/* Trend sub-label */}
-        {trend && !loading && (
-          <div className="text-[11px] text-[var(--t4)] mt-1.5 font-medium">{trend.label}</div>
-        )}
+        {trend && !loading && <div className="text-[11px] text-[var(--t4)] mt-1.5 font-medium">{trend.label}</div>}
       </div>
 
       <div

@@ -206,7 +206,7 @@ function UserMenu({ open, onClose, onSignOut }: { open: boolean; onClose: () => 
   if (!open) return null;
 
   return (
-    <div className="absolute top-full right-0 mt-2 bg-white border border-[var(--border)] rounded-[18px] shadow-[var(--sh3)] min-w-[180px] z-100 overflow-hidden">
+    <div className="absolute top-full right-0 mt-2 bg-white border border-[var(--border)] rounded-[20px] shadow-[var(--sh3)] min-w-[180px] z-100 overflow-hidden">
       <Link
         href="/dashboard/settings"
         onClick={onClose}
@@ -322,7 +322,7 @@ export default function TopBar({ pageTitle, onSignOut }: { pageTitle: string; on
           </div>
         )}
         <div className="min-w-0">
-          <div className="font-['Sora'] text-[15px] sm:text-[17px] font-bold text-[var(--t1)] tracking-[-.2px] truncate leading-tight">
+          <div className="text-[15px] sm:text-[17px] font-bold text-[var(--t1)] tracking-[-.2px] truncate leading-tight">
             {pageTitle}
           </div>
           <div className="text-[11px] text-[var(--t3)] truncate leading-tight mt-0.5 hidden sm:block">
@@ -332,9 +332,12 @@ export default function TopBar({ pageTitle, onSignOut }: { pageTitle: string; on
         </div>
       </div>
 
-      {/* Search — desktop inline, mobile icon */}
-      <div className="search-bar hidden sm:flex items-center gap-2 bg-[var(--surface)] border border-[var(--border)] rounded-[16px] px-3 py-2 text-[13px] text-[var(--t3)] min-w-[220px] lg:min-w-[280px] cursor-text shadow-[var(--sh1)]">
+      {/* Search — desktop inline pill with kbd hint, mobile icon */}
+      <div className="search-bar hidden sm:flex items-center gap-2 bg-[var(--surface)] border border-[var(--border)] rounded-full px-3 py-2 text-[13px] text-[var(--t3)] min-w-[220px] lg:min-w-[280px] cursor-text shadow-[var(--sh1)]">
         <GlobalSearch />
+        <kbd className="search-kbd" aria-hidden="true">
+          ⌘K
+        </kbd>
       </div>
       <button
         onClick={() => window.dispatchEvent(new Event("open-global-search"))}
@@ -347,10 +350,7 @@ export default function TopBar({ pageTitle, onSignOut }: { pageTitle: string; on
       {/* Right actions */}
       <div className="flex items-center gap-1.5">
         {/* Sync status indicator */}
-        <div
-          className="w-10 h-10 rounded-[14px] border border-[var(--border)] bg-white flex items-center justify-center"
-          title={isOnline ? "Connected" : "Offline"}
-        >
+        <div className="icon-btn-circle !bg-white" title={isOnline ? "Connected" : "Offline"}>
           <div className={`w-3 h-3 rounded-full ${isOnline ? "bg-green-500" : "bg-red-500"}`} />
         </div>
 
@@ -360,7 +360,7 @@ export default function TopBar({ pageTitle, onSignOut }: { pageTitle: string; on
               setNotifOpen((current) => !current);
               setUserMenuOpen(false);
             }}
-            className="w-10 h-10 rounded-[14px] border border-[var(--border)] bg-white flex items-center justify-center cursor-pointer relative hover:bg-[var(--surface-container-low)] transition-colors"
+            className="icon-btn-circle !bg-white"
             aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
             aria-expanded={notifOpen}
             aria-haspopup="dialog"
@@ -382,7 +382,7 @@ export default function TopBar({ pageTitle, onSignOut }: { pageTitle: string; on
 
         <button
           onClick={toggleTheme}
-          className="hidden sm:flex w-10 h-10 rounded-[14px] border border-[var(--border)] bg-white items-center justify-center cursor-pointer hover:bg-[var(--surface-container-low)] transition-colors"
+          className="icon-btn-circle hidden sm:flex !bg-white"
           aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
         >
           <MaterialIcon
@@ -402,7 +402,7 @@ export default function TopBar({ pageTitle, onSignOut }: { pageTitle: string; on
             aria-expanded={userMenuOpen}
             aria-haspopup="menu"
           >
-            <div className="w-8 h-8 rounded-full bg-[var(--primary)] flex items-center justify-center text-[11px] font-bold text-[var(--on-primary)] font-['Sora'] shadow-[0_6px_14px_rgba(0,92,230,0.2)]">
+            <div className="w-8 h-8 rounded-full bg-[var(--primary)] flex items-center justify-center text-[11px] font-bold text-[var(--on-primary)] shadow-[0_6px_14px_rgba(0,92,230,0.2)]">
               {user?.full_name?.charAt(0) || "U"}
             </div>
             <span className="hidden sm:block text-[13px] font-medium text-[var(--t1)] max-w-[100px] truncate">

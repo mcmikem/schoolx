@@ -174,6 +174,9 @@ export default function CollapsibleSidebar({ groups, onNavigate, compact = false
               >
                 {group.icon && <MaterialIcon icon={group.icon} className="text-[16px] mr-2" />}
                 <span className="flex-1 text-left">{group.label}</span>
+                <span className="sidebar-count-badge" aria-label={`${group.items.length} pages`}>
+                  {group.items.length}
+                </span>
                 <span
                   className={cn(
                     "material-symbols-outlined text-[16px] transition-transform duration-200",
