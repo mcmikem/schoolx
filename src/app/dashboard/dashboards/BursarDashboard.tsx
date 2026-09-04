@@ -20,6 +20,7 @@ import CollapsibleSection from "@/components/ui/CollapsibleSection";
 import SchoolHero from "@/components/dashboard/SchoolHero";
 import { TopLoadingBar, StuckLoadingOverlay } from "@/components/ui/Skeleton";
 import OwlMascot from "@/components/brand/OwlMascot";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 function BursarDashboardContent() {
   const { school, user, isDemo } = useAuth();
@@ -226,6 +227,21 @@ function BursarDashboardContent() {
 
   return (
     <div className="content overflow-x-hidden">
+      <PageHeader
+        title="Fees overview"
+        subtitle="Collections, arrears and reports at a glance."
+        actions={
+          <>
+            <Link href="/dashboard/fees" className="btn-pill btn-primary">
+              <MaterialIcon icon="add" style={{ fontSize: 16 }} />
+              Record payment
+            </Link>
+            <Link href="/dashboard/reports" className="btn-pill btn-secondary">
+              Reports
+            </Link>
+          </>
+        }
+      />
       <SchoolHero
         school={school}
         greeting={greeting}

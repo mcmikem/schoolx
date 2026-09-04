@@ -8,6 +8,8 @@ import { useMemo } from "react";
 import { formatNumber } from "@/lib/utils";
 import MaterialIcon from "@/components/MaterialIcon";
 import StatCard from "@/components/dashboard/StatCard";
+import UpNextCard from "@/components/dashboard/UpNextCard";
+import TeamPreview from "@/components/dashboard/TeamPreview";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { TopLoadingBar, StuckLoadingOverlay } from "@/components/ui/Skeleton";
 import SchoolHero from "@/components/dashboard/SchoolHero";
@@ -16,6 +18,7 @@ import SchoolCalendar from "@/components/dashboard/SchoolCalendar";
 import TaskManager from "@/components/dashboard/TaskManager";
 import CollapsibleSection from "@/components/ui/CollapsibleSection";
 import SetupChecklist from "@/components/onboarding/SetupChecklist";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 function HeadmasterDashboardContent() {
   const { school, user } = useAuth();
@@ -249,6 +252,21 @@ function HeadmasterDashboardContent() {
         </div>
       ) : (
         <>
+          <PageHeader
+            title="School overview"
+            subtitle="Admissions, attendance, fees and staff — today's pulse."
+            actions={
+              <>
+                <Link href="/dashboard/students?action=add" className="btn-pill btn-primary">
+                  <MaterialIcon icon="add" style={{ fontSize: 16 }} />
+                  Add student
+                </Link>
+                <Link href="/dashboard/attendance" className="btn-pill btn-secondary">
+                  Take attendance
+                </Link>
+              </>
+            }
+          />
           <div className="mb-5">
             <SetupChecklist autoHide />
           </div>
@@ -334,6 +352,8 @@ function HeadmasterDashboardContent() {
                 </div>
               </CollapsibleSection>
 
+              <UpNextCard task={tasks.find((t) => t.priority === "urgent") ?? tasks[0] ?? null} />
+
               <CollapsibleSection
                 title="Task Manager"
                 badge={tasks.length > 0 ? tasks.length : null}
@@ -342,11 +362,48 @@ function HeadmasterDashboardContent() {
               >
                 <TaskManager tasks={tasks} emptyMessage="All caught up! No pending tasks." />
               </CollapsibleSection>
+
+              <TeamPreview schoolId={school?.id} />
             </div>
 
             {/* ── Right Column: Calendar + Quick Actions ── */}
             <div className="space-y-5">
               <SchoolCalendar schoolId={school?.id} userId={user?.id} />
+
+              {tasks.length > 0 && (
+                <div className="card">
+                  <div className="panel-head !mb-1">
+                    <h2 className="panel-title">Needs attention</h2>
+                    <span className="badge badge-red">{tasks.length}</span>
+                  </div>
+                  <div role="list" className="divide-y divide-[var(--bg)]">
+                    {tasks.slice(0, 4).map((t) => (
+                      <Link
+                        key={t.id}
+                        href={t.href}
+                        role="listitem"
+                        className="flex items-center gap-3 py-3 transition-colors hover:opacity-80"
+                      >
+                        <span
+                          className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                            t.priority === "urgent"
+                              ? "bg-[var(--red-soft)] text-[var(--red)]"
+                              : "bg-[var(--amber-soft)] text-[var(--amber)]"
+                          }`}
+                          aria-hidden="true"
+                        >
+                          <MaterialIcon icon={t.icon} style={{ fontSize: 17 }} />
+                        </span>
+                        <span className="flex-1 min-w-0">
+                          <span className="block text-[13px] font-bold text-[var(--t1)] truncate">{t.label}</span>
+                          <span className="block text-[11px] text-[var(--t3)] mt-0.5">{t.cta} now</span>
+                        </span>
+                        <MaterialIcon icon="chevron_right" className="text-[var(--t4)] flex-shrink-0" />
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <CollapsibleSection title="Quick Actions" storageKey={`hm-actions-${school?.id}`}>
                 <div className="grid grid-cols-3 gap-2">

@@ -1,5 +1,6 @@
 "use client";
 import Image from "next/image";
+import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
 import { useSyncStatus } from "@/lib/useSyncStatus";
@@ -89,6 +90,8 @@ export default function SidebarShell({ onNavigate }: { onNavigate?: () => void }
 
   const showExpanded = !isDesktop ? isOpen : isHovered || isPinnedOpen;
   const isVisible = isDesktop || isOpen;
+  const staffRole = user?.role as UserRole | undefined;
+  const canInviteStaff = staffRole ? canAccess(staffRole, "staff") : false;
   const rawGroups = user?.role ? getNavigationForRole(user.role) : [];
   const navigationGroups = filterGroupsByFeatureStage(
     rawGroups,
@@ -179,6 +182,25 @@ export default function SidebarShell({ onNavigate }: { onNavigate?: () => void }
       </div>
 
       <CollapsibleSidebar groups={navigationGroups} onNavigate={onNavigate} compact={isDesktop && !showExpanded} />
+
+      {showExpanded && canInviteStaff && (
+        <div className="px-3 pb-1">
+          <div className="rounded-2xl p-4 text-white bg-[linear-gradient(150deg,#0e2a1e_0%,#14532d_60%,#1f8a70_135%)] shadow-[0_16px_32px_rgba(14,42,30,0.35)]">
+            <p className="text-[13px] font-bold tracking-tight">Bring your team aboard</p>
+            <p className="text-[11px] text-white/70 mt-1 leading-snug">
+              Invite teachers and bursars to run the school together.
+            </p>
+            <Link
+              href="/dashboard/staff"
+              onClick={onNavigate}
+              className="mt-3 flex items-center justify-center gap-1.5 rounded-full bg-white px-3 py-2 text-[12px] font-bold text-[#0e2a1e] no-underline transition-transform hover:scale-[1.02] active:scale-[0.98]"
+            >
+              Invite staff
+              <MaterialIcon icon="arrow_outward" style={{ fontSize: 14 }} />
+            </Link>
+          </div>
+        </div>
+      )}
 
       {showExpanded && (
         <div className="px-4 py-3 border-t border-[var(--border)] space-y-2">

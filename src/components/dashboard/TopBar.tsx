@@ -405,8 +405,15 @@ export default function TopBar({ pageTitle, onSignOut }: { pageTitle: string; on
             <div className="w-8 h-8 rounded-full bg-[var(--primary)] flex items-center justify-center text-[11px] font-bold text-[var(--on-primary)] shadow-[0_6px_14px_rgba(0,92,230,0.2)]">
               {user?.full_name?.charAt(0) || "U"}
             </div>
-            <span className="hidden sm:block text-[13px] font-medium text-[var(--t1)] max-w-[100px] truncate">
-              {user?.full_name?.split(" ")[0] || "User"}
+            <span className="hidden sm:block min-w-0 text-left">
+              <span className="block text-[13px] font-bold text-[var(--t1)] max-w-[100px] truncate leading-tight">
+                {user?.full_name?.split(" ")[0] || "User"}
+              </span>
+              {user?.email && (
+                <span className="block text-[11px] text-[var(--t3)] max-w-[140px] truncate leading-tight mt-px">
+                  {user.email}
+                </span>
+              )}
             </span>
           </button>
           <UserMenu open={userMenuOpen} onClose={() => setUserMenuOpen(false)} onSignOut={onSignOut} />

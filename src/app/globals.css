@@ -1230,6 +1230,9 @@ table tr {
   .badge-navy {
     @apply bg-[var(--navy-soft)] text-[var(--navy)];
   }
+  .badge-amber {
+    @apply bg-[var(--amber-soft)] text-[var(--amber)];
+  }
 
   .main-grid {
     @apply grid grid-cols-1 lg:grid-cols-12 gap-6;
