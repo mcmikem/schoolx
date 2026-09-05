@@ -863,7 +863,7 @@ export default function AttendancePage() {
                     },
                     {
                       icon: "toggle_on",
-                      text: "Call Out Names Mode: everyone starts as In School, tap only those Away",
+                      text: "Call Out Names Mode: the roster starts marked In School — tap only those Away",
                     },
                     {
                       icon: "save",
