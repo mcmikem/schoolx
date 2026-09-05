@@ -1,4 +1,5 @@
 "use client";
+import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
@@ -12,13 +13,11 @@ import UpNextCard from "@/components/dashboard/UpNextCard";
 import TeamPreview from "@/components/dashboard/TeamPreview";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { TopLoadingBar, StuckLoadingOverlay } from "@/components/ui/Skeleton";
-import SchoolHero from "@/components/dashboard/SchoolHero";
 import OwlMascot from "@/components/brand/OwlMascot";
 import SchoolCalendar from "@/components/dashboard/SchoolCalendar";
 import TaskManager from "@/components/dashboard/TaskManager";
 import CollapsibleSection from "@/components/ui/CollapsibleSection";
 import SetupChecklist from "@/components/onboarding/SetupChecklist";
-import { PageHeader } from "@/components/ui/PageHeader";
 
 function HeadmasterDashboardContent() {
   const { school, user } = useAuth();
@@ -252,11 +251,50 @@ function HeadmasterDashboardContent() {
         </div>
       ) : (
         <>
-          <PageHeader
-            title="School overview"
-            subtitle={`${todayDayName}, ${todayFormatted} · Term ${currentTerm}, ${academicYear}`}
-            actions={
-              <>
+          {/* Greeting header — big greeting, prominent school mark, watermark */}
+          <div className="card relative overflow-hidden !p-5 sm:!p-6 mb-6">
+            {school?.logo_url && (
+              <Image
+                src={school.logo_url}
+                alt=""
+                aria-hidden="true"
+                width={224}
+                height={224}
+                className="pointer-events-none absolute -right-10 -bottom-12 h-56 w-56 object-contain opacity-[0.07] select-none"
+                unoptimized
+              />
+            )}
+            <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center">
+              {school?.logo_url ? (
+                <Image
+                  src={school.logo_url}
+                  alt={school?.name || "School"}
+                  width={72}
+                  height={72}
+                  className="h-[72px] w-[72px] rounded-[20px] object-cover ring-1 ring-[var(--border)] shadow-[var(--sh1)] flex-shrink-0"
+                  unoptimized
+                />
+              ) : (
+                <div
+                  className="flex h-[72px] w-[72px] flex-shrink-0 items-center justify-center rounded-[20px] bg-[var(--primary)] text-[26px] font-bold text-[var(--on-primary)] shadow-[var(--sh1)]"
+                  style={{ fontFamily: "'Sora', sans-serif" }}
+                  aria-hidden="true"
+                >
+                  {(school?.name || "S").charAt(0)}
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <h1
+                  className="text-[26px] sm:text-[32px] font-bold text-[var(--t1)] tracking-tight leading-tight truncate"
+                  style={{ fontFamily: "'Sora', sans-serif" }}
+                >
+                  {greeting}, {user?.full_name?.split(" ")[0] || "there"}
+                </h1>
+                <p className="text-[13px] text-[var(--t3)] mt-1 truncate">
+                  {school?.name} · {todayDayName}, {todayFormatted} · Term {currentTerm}, {academicYear}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2.5 flex-shrink-0">
                 <Link href="/dashboard/students?action=add" className="btn-pill btn-primary">
                   <MaterialIcon icon="add" style={{ fontSize: 16 }} />
                   Add student
@@ -264,23 +302,12 @@ function HeadmasterDashboardContent() {
                 <Link href="/dashboard/attendance" className="btn-pill btn-secondary">
                   Take attendance
                 </Link>
-              </>
-            }
-          />
+              </div>
+            </div>
+          </div>
           <div className="mb-5">
             <SetupChecklist autoHide />
           </div>
-          <SchoolHero
-            school={school}
-            greeting={greeting}
-            userName={user?.full_name?.split(" ")[0] || ""}
-            dateLabel={`${todayDayName}, ${todayFormatted}`}
-            rightSection={
-              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--t3)]">
-                Term {currentTerm} · {academicYear}
-              </p>
-            }
-          />
 
           {/* ── Two-Column Layout ── */}
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
