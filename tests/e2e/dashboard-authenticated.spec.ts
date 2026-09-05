@@ -105,14 +105,13 @@ test.describe("Authenticated dashboard flows", () => {
     await expect(page.getByRole("heading", { name: /notices/i })).toBeVisible();
 
     await page.getByRole("button", { name: /post notice/i }).click();
-    await expect(
-      page.getByRole("heading", { name: /post notice/i }),
-    ).toBeVisible();
+    const postDialog = page.getByRole("dialog", { name: /post notice/i });
+    await expect(postDialog).toBeVisible();
 
-    await page.getByLabel(/title/i).fill("Playwright Notice");
-    await page.getByLabel(/category/i).selectOption("Academic");
-    await page.getByLabel(/content/i).fill("Browser test notice body");
-    await page.locator("form").getByRole("button", { name: /^post notice$/i }).click();
+    await postDialog.getByLabel(/title/i).fill("Playwright Notice");
+    await postDialog.getByLabel(/category/i).selectOption("Academic");
+    await postDialog.getByLabel(/content/i).fill("Browser test notice body");
+    await postDialog.getByRole("button", { name: /^post notice$/i }).click();
 
     await expect(
       page.getByRole("heading", { name: /playwright notice/i }),

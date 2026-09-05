@@ -284,14 +284,22 @@ export default function NoticesPage() {
         )}
 
         {editingNotice && (
-          <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
+          <div
+            className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Edit Notice"
+          >
             <div className="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
               <h2 className="text-xl font-semibold mb-4">Edit Notice</h2>
               <form onSubmit={handleEditSave}>
                 <div className="space-y-4">
                   <div>
-                    <label className="text-sm font-medium mb-1 block">Title</label>
+                    <label className="text-sm font-medium mb-1 block" htmlFor="edit-title">
+                      Title
+                    </label>
                     <input
+                      id="edit-title"
                       type="text"
                       value={editForm.title}
                       onChange={(e) => setEditForm({ ...editForm, title: e.target.value })}
@@ -301,8 +309,11 @@ export default function NoticesPage() {
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium mb-1 block">Category</label>
+                    <label className="text-sm font-medium mb-1 block" htmlFor="edit-category">
+                      Category
+                    </label>
                     <select
+                      id="edit-category"
                       value={editForm.category}
                       onChange={(e) => setEditForm({ ...editForm, category: e.target.value })}
                       className="input w-full"
@@ -314,8 +325,11 @@ export default function NoticesPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="text-sm font-medium mb-1 block">Content</label>
+                    <label className="text-sm font-medium mb-1 block" htmlFor="edit-content">
+                      Content
+                    </label>
                     <textarea
+                      id="edit-content"
                       value={editForm.content}
                       onChange={(e) => setEditForm({ ...editForm, content: e.target.value })}
                       className="input w-full min-h-[120px]"
@@ -338,7 +352,12 @@ export default function NoticesPage() {
         )}
 
         {showPostModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
+          <div
+            className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Post Notice"
+          >
             <div className="bg-white rounded-2xl p-6 w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
               <h2 className="text-xl font-semibold mb-4">Post Notice</h2>
               <form onSubmit={handlePost}>
