@@ -3,27 +3,12 @@ import { memo } from "react";
 import Link from "next/link";
 import MaterialIcon from "@/components/MaterialIcon";
 
-const ACCENT_STYLES: Record<string, { solid: string; soft: string }> = {
-  navy: { solid: "var(--navy)", soft: "var(--navy-soft)" },
-  green: { solid: "var(--green)", soft: "var(--green-soft)" },
-  amber: { solid: "var(--amber)", soft: "var(--amber-soft)" },
-  purple: { solid: "#7c3aed", soft: "#f3e8ff" },
-  red: { solid: "#dc2626", soft: "#fef2f2" },
-};
-
-// Accent shadow RGB for colored box-shadows
-const ACCENT_SHADOW: Record<string, string> = {
-  navy: "0,31,63",
-  green: "13,148,136",
-  amber: "180,83,9",
-  purple: "124,58,237",
-  red: "220,38,38",
-};
-
 interface StatCardProps {
   label: string;
   value: string | number;
   subValue?: string;
+  // Retained for API compatibility; the Donezo-style card carries no icon box
+  // or accent bar, so these don't affect rendering.
   icon: string;
   accentColor: string;
   loading?: boolean;
@@ -41,8 +26,6 @@ const StatCard = memo(function StatCard({
   label,
   value,
   subValue,
-  icon,
-  accentColor,
   loading,
   variant = "standard",
   href,
@@ -50,13 +33,11 @@ const StatCard = memo(function StatCard({
   trend,
 }: StatCardProps) {
   const isPremium = variant.startsWith("premium");
-  const accent = ACCENT_STYLES[accentColor] || ACCENT_STYLES.navy;
-  const shadowRgb = ACCENT_SHADOW[accentColor] || ACCENT_SHADOW.navy;
 
   const trendIcon =
     trend?.direction === "up" ? "trending_up" : trend?.direction === "down" ? "trending_down" : "trending_flat";
 
-  // ── Premium variants (unchanged) ──────────────────────────────────────────
+  // ── Featured card (Donezo "Total Projects" pattern: filled, white type) ───
   if (isPremium) {
     const cardClass = `stat-card ${
       variant === "premium-teal"
@@ -69,122 +50,78 @@ const StatCard = memo(function StatCard({
       <div className={`${cardClass} shadow-[0_22px_48px_rgba(15,23,42,0.07)]`}>
         <div className="stat-inner !p-6">
           <div className="stat-meta">
-            <div className="stat-label !text-white/80">{label}</div>
-            <div className="flex items-center gap-2">
-              <div className="stat-icon-box bg-white/20 text-white">
-                <MaterialIcon icon={icon} />
-              </div>
-              {href && !loading && (
-                <Link
-                  href={href}
-                  aria-label={hrefLabel || `Open ${label}`}
-                  className="w-7 h-7 rounded-full border border-white/30 flex items-center justify-center text-white/80 transition-all hover:bg-white hover:text-[var(--t1)] hover:border-white flex-shrink-0 no-underline"
-                >
-                  <MaterialIcon icon="arrow_outward" style={{ fontSize: 15 }} />
-                </Link>
-              )}
+            <div className="stat-label !text-white/80 !normal-case !tracking-normal !text-[13px] !font-medium">
+              {label}
             </div>
+            {href && !loading && (
+              <Link
+                href={href}
+                aria-label={hrefLabel || `Open ${label}`}
+                className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-[var(--t1)] transition-transform hover:scale-105 flex-shrink-0 no-underline"
+              >
+                <MaterialIcon icon="arrow_outward" style={{ fontSize: 16 }} />
+              </Link>
+            )}
           </div>
-          <div className="stat-val !text-white">{loading ? "..." : value}</div>
+          <div className="stat-val !text-white !text-[40px] !font-semibold">{loading ? "..." : value}</div>
           {trend && (
-            <div className="flex items-center gap-1 mt-2 text-[12px] font-bold text-white/80">
-              <MaterialIcon icon={trendIcon} style={{ fontSize: 16 }} />
+            <div className="flex items-center gap-1 mt-2 text-[11px] font-medium text-white/80">
+              <MaterialIcon icon={trendIcon} style={{ fontSize: 13 }} />
               <span>
-                {trend.direction === "up" ? "↑" : trend.direction === "down" ? "↓" : "→"} {trend.value}%
+                {trend.value}% {trend.label}
               </span>
-              <span className="text-white/60 ml-1">{trend.label}</span>
             </div>
           )}
-          {subValue && !trend && (
-            <div className="text-[12px] font-medium mt-2 uppercase tracking-wider text-white/80">{subValue}</div>
-          )}
+          {subValue && !trend && <div className="text-[11px] font-medium mt-2 text-white/70">{subValue}</div>}
         </div>
       </div>
     );
   }
 
-  // ── Standard (redesigned — on-brand, not generic SaaS) ────────────────────
+  // ── Standard card (Donezo anatomy: label + arrow, hero number, footnote) ───
   return (
     <div
-      className="relative bg-white border border-[var(--border)] rounded-[24px] flex flex-col transition-all duration-200 cursor-default group hover:-translate-y-0.5 overflow-hidden"
-      style={{
-        boxShadow: `0 2px 10px rgba(0,0,0,0.03), 0 10px 24px rgba(${shadowRgb},0.07)`,
-      }}
+      className="relative bg-white border border-[var(--border)] rounded-[20px] p-5 flex flex-col transition-all duration-200 cursor-default group hover:-translate-y-0.5 overflow-hidden"
+      style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.05), 0 8px 24px rgba(15,23,42,0.06)" }}
     >
-      <div className="p-5 flex-1 flex flex-col relative z-[1]">
-        <div className="flex items-start justify-between mb-4">
-          <div
-            className="w-11 h-11 rounded-[15px] flex items-center justify-center flex-shrink-0 border transition-transform duration-200 group-hover:scale-105"
-            style={{
-              background: accent.soft,
-              color: accent.solid,
-              borderColor: `${accent.solid}22`,
-            }}
-          >
-            <MaterialIcon icon={icon} style={{ fontSize: 20 }} />
-          </div>
-
-          {/* Trend badge + link arrow (top-right, Donezo affordance) */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {trend && (
-              <div
-                className={`flex items-center gap-0.5 text-[11px] font-bold px-2 py-1 rounded-full ${
-                  trend.direction === "up"
-                    ? "bg-[var(--green-soft)] text-[var(--green)]"
-                    : trend.direction === "down"
-                      ? "bg-[var(--red-soft)] text-[var(--red)]"
-                      : "bg-[var(--navy-soft)] text-[var(--t3)]"
-                }`}
-              >
-                <MaterialIcon icon={trendIcon} style={{ fontSize: 13 }} />
-                {trend.value}%
-              </div>
-            )}
-            {href && !loading ? (
-              <Link href={href} aria-label={hrefLabel || `Open ${label}`} className="stat-link-arrow">
-                <MaterialIcon icon="arrow_outward" style={{ fontSize: 15 }} />
-              </Link>
-            ) : (
-              !trend && (
-                <span
-                  className="stat-link-arrow opacity-0 group-hover:opacity-100 pointer-events-none"
-                  aria-hidden="true"
-                >
-                  <MaterialIcon icon="arrow_outward" style={{ fontSize: 15 }} />
-                </span>
-              )
-            )}
-          </div>
-        </div>
-
-        {/* Hero number */}
-        <div
-          className="text-[30px] sm:text-[32px] font-semibold tracking-[-0.04em] leading-none text-[var(--t1)]"
-          style={{ fontFamily: "'Sora', sans-serif" }}
-        >
-          {loading ? <span className="inline-block h-8 w-20 rounded-lg bg-[var(--border)] animate-pulse" /> : value}
-        </div>
-
-        <div
-          className="text-[10px] font-bold uppercase tracking-[0.18em] mt-2"
-          style={{ color: accent.solid, opacity: 0.9 }}
-        >
-          {label}
-        </div>
-
-        {/* Sub value */}
-        {subValue && !loading && <div className="text-[12px] font-medium mt-1.5 text-[var(--t3)]">{subValue}</div>}
-
-        {/* Trend sub-label */}
-        {trend && !loading && <div className="text-[11px] text-[var(--t4)] mt-1.5 font-medium">{trend.label}</div>}
+      <div className="flex items-start justify-between gap-2">
+        <p className="text-[13px] font-medium text-[var(--t2)] leading-snug">{label}</p>
+        {href && !loading ? (
+          <Link href={href} aria-label={hrefLabel || `Open ${label}`} className="stat-link-arrow">
+            <MaterialIcon icon="arrow_outward" style={{ fontSize: 16 }} />
+          </Link>
+        ) : (
+          <span className="stat-link-arrow opacity-0 group-hover:opacity-100 pointer-events-none" aria-hidden="true">
+            <MaterialIcon icon="arrow_outward" style={{ fontSize: 16 }} />
+          </span>
+        )}
       </div>
 
       <div
-        className="h-[3px] flex-shrink-0"
-        style={{
-          background: `linear-gradient(to right, ${accent.solid} 0%, ${accent.solid}55 55%, transparent 100%)`,
-        }}
-      />
+        className="mt-1 text-[40px] font-semibold tracking-[-0.03em] leading-none text-[var(--t1)]"
+        style={{ fontFamily: "'Sora', sans-serif" }}
+      >
+        {loading ? <span className="inline-block h-10 w-24 rounded-lg bg-[var(--border)] animate-pulse" /> : value}
+      </div>
+
+      <div className="mt-2 min-h-[16px]">
+        {trend && !loading ? (
+          <p
+            className="flex items-center gap-1 text-[11px] font-medium"
+            style={{
+              color:
+                trend.direction === "up" ? "var(--green)" : trend.direction === "down" ? "var(--red)" : "var(--t3)",
+            }}
+          >
+            <MaterialIcon icon={trendIcon} style={{ fontSize: 13 }} />
+            <span className="truncate">
+              {trend.value}% {trend.label}
+            </span>
+          </p>
+        ) : subValue && !loading ? (
+          <p className="text-[11px] font-medium text-[var(--t3)] truncate">{subValue}</p>
+        ) : null}
+      </div>
     </div>
   );
 });

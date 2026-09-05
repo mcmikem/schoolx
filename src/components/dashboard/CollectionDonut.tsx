@@ -9,8 +9,8 @@ function compactCurrency(amount: number) {
   return `${amount}`;
 }
 
-const SIZE = 148;
-const STROKE = 18;
+const SIZE = 180;
+const STROKE = 22;
 const RADIUS = (SIZE - STROKE) / 2;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
@@ -60,7 +60,7 @@ const CollectionDonut = memo(function CollectionDonut({
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
             <span
-              className="text-[32px] font-extrabold tracking-tight leading-none text-[var(--t1)]"
+              className="text-[40px] font-extrabold tracking-tight leading-none text-[var(--t1)]"
               style={{ fontFamily: "'Sora', sans-serif" }}
             >
               {rate}%

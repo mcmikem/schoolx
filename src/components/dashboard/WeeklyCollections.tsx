@@ -52,7 +52,7 @@ const WeeklyCollections = memo(function WeeklyCollections({ payments }: { paymen
       </div>
 
       <div
-        className="flex items-stretch gap-2 h-36"
+        className="flex items-stretch gap-3 h-44"
         role="img"
         aria-label={`Collections Monday to Sunday, total UGX ${total.toLocaleString()}`}
       >

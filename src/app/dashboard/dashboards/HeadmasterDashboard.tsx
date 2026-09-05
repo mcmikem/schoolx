@@ -254,7 +254,7 @@ function HeadmasterDashboardContent() {
         <>
           <PageHeader
             title="School overview"
-            subtitle="Admissions, attendance, fees and staff — today's pulse."
+            subtitle={`${todayDayName}, ${todayFormatted} · Term ${currentTerm}, ${academicYear}`}
             actions={
               <>
                 <Link href="/dashboard/students?action=add" className="btn-pill btn-primary">
@@ -276,25 +276,9 @@ function HeadmasterDashboardContent() {
             userName={user?.full_name?.split(" ")[0] || ""}
             dateLabel={`${todayDayName}, ${todayFormatted}`}
             rightSection={
-              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#42638d]">
+              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--t3)]">
                 Term {currentTerm} · {academicYear}
               </p>
-            }
-            bottomCenter={
-              !statsLoading && stats.totalStudents > 0 ? (
-                <div className="flex items-center gap-2 text-xs text-[#42638d]">
-                  <MaterialIcon icon="groups" className="text-base" />
-                  <span className="font-semibold">{stats.totalStudents} students enrolled</span>
-                </div>
-              ) : undefined
-            }
-            bottomRight={
-              !statsLoading && stats.presentToday > 0 ? (
-                <div className="flex items-center gap-1.5 rounded-full bg-[#1f8a70]/10 px-3 py-1">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[#1f8a70]" />
-                  <span className="text-[11px] font-bold text-[#1f8a70]">{attendanceRate}% attendance today</span>
-                </div>
-              ) : undefined
             }
           />
 
@@ -302,55 +286,53 @@ function HeadmasterDashboardContent() {
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
             {/* ── Left Column: Metrics + Task Manager ── */}
             <div className="xl:col-span-2 space-y-5">
-              <CollapsibleSection title="Pulse Check" storageKey={`hm-pulse-${school?.id}`}>
-                <div className="stat-grid !mb-0">
-                  <StatCard
-                    label="Students"
-                    value={statsLoading ? "—" : formatNumber(stats.totalStudents)}
-                    subValue={`${formatNumber(boysCount)}B · ${formatNumber(girlsCount)}G`}
-                    icon="group"
-                    accentColor="navy"
-                    loading={statsLoading}
-                    variant="premium-navy"
-                    href="/dashboard/students"
-                    hrefLabel="Open students"
-                  />
-                  <StatCard
-                    label="Attendance today"
-                    value={statsLoading ? "—" : `${attendanceRate}%`}
-                    subValue={
-                      statsLoading
-                        ? undefined
-                        : stats.presentToday > 0
-                          ? `${stats.presentToday} present`
-                          : "Not taken yet"
-                    }
-                    icon="how_to_reg"
-                    accentColor={stats.presentToday > 0 ? (attendanceRate >= 80 ? "green" : "amber") : "red"}
-                    loading={statsLoading}
-                    href="/dashboard/attendance"
-                    hrefLabel="Open attendance"
-                  />
-                  <StatCard
-                    label="Fees collected"
-                    value={statsLoading ? "—" : `${collectionRate}%`}
-                    subValue={
-                      statsLoading
-                        ? undefined
-                        : overdueFeeCount > 0
-                          ? `${overdueFeeCount} overdue`
-                          : totalExpected > 0
-                            ? "On track"
-                            : "No fees set"
-                    }
-                    icon="payments"
-                    accentColor={totalExpected > 0 ? (collectionRate >= 70 ? "green" : "amber") : "red"}
-                    loading={statsLoading}
-                    href="/dashboard/fees"
-                    hrefLabel="Open fees"
-                  />
-                </div>
-              </CollapsibleSection>
+              <div className="stat-grid !mb-0">
+                <StatCard
+                  label="Students"
+                  value={statsLoading ? "—" : formatNumber(stats.totalStudents)}
+                  subValue={`${formatNumber(boysCount)}B · ${formatNumber(girlsCount)}G`}
+                  icon="group"
+                  accentColor="navy"
+                  loading={statsLoading}
+                  variant="premium-navy"
+                  href="/dashboard/students"
+                  hrefLabel="Open students"
+                />
+                <StatCard
+                  label="Attendance today"
+                  value={statsLoading ? "—" : `${attendanceRate}%`}
+                  subValue={
+                    statsLoading
+                      ? undefined
+                      : stats.presentToday > 0
+                        ? `${stats.presentToday} present`
+                        : "Not taken yet"
+                  }
+                  icon="how_to_reg"
+                  accentColor={stats.presentToday > 0 ? (attendanceRate >= 80 ? "green" : "amber") : "red"}
+                  loading={statsLoading}
+                  href="/dashboard/attendance"
+                  hrefLabel="Open attendance"
+                />
+                <StatCard
+                  label="Fees collected"
+                  value={statsLoading ? "—" : `${collectionRate}%`}
+                  subValue={
+                    statsLoading
+                      ? undefined
+                      : overdueFeeCount > 0
+                        ? `${overdueFeeCount} overdue`
+                        : totalExpected > 0
+                          ? "On track"
+                          : "No fees set"
+                  }
+                  icon="payments"
+                  accentColor={totalExpected > 0 ? (collectionRate >= 70 ? "green" : "amber") : "red"}
+                  loading={statsLoading}
+                  href="/dashboard/fees"
+                  hrefLabel="Open fees"
+                />
+              </div>
 
               <UpNextCard task={tasks.find((t) => t.priority === "urgent") ?? tasks[0] ?? null} />
 

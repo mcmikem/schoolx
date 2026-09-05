@@ -229,7 +229,7 @@ function BursarDashboardContent() {
     <div className="content overflow-x-hidden">
       <PageHeader
         title="Fees overview"
-        subtitle="Collections, arrears and reports at a glance."
+        subtitle={`${todayLabel} · Term ${currentTerm}, ${academicYear}`}
         actions={
           <>
             <Link href="/dashboard/fees" className="btn-pill btn-primary">
@@ -248,28 +248,9 @@ function BursarDashboardContent() {
         userName={user?.full_name?.split(" ")[0] || ""}
         dateLabel={todayLabel}
         rightSection={
-          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#42638d]">
+          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--t3)]">
             Term {currentTerm} · {academicYear}
           </p>
-        }
-        bottomCenter={
-          <div className="text-xs text-[#42638d]">
-            <span className="font-semibold">{students.length} students enrolled</span>
-          </div>
-        }
-        bottomRight={
-          collectionRate > 0 ? (
-            <div
-              className={`flex items-center gap-1.5 rounded-full px-3 py-1 ${
-                collectionRate >= 70 ? "bg-[#1f8a70]/10" : "bg-[#c2472b]/10"
-              }`}
-            >
-              <span className={`h-1.5 w-1.5 rounded-full ${collectionRate >= 70 ? "bg-[#1f8a70]" : "bg-[#c2472b]"}`} />
-              <span className={`text-[11px] font-bold ${collectionRate >= 70 ? "text-[#1f8a70]" : "text-[#c2472b]"}`}>
-                {collectionRate}% collected
-              </span>
-            </div>
-          ) : undefined
         }
       />
 

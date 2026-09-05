@@ -1076,7 +1076,7 @@ table tr {
 
   /* Stat card external-link arrow (Donezo ↗ affordance) */
   .stat-link-arrow {
-    @apply w-7 h-7 rounded-full border border-[var(--border)] flex items-center justify-center text-[var(--t3)] transition-all hover:bg-[var(--t1)] hover:text-white hover:border-[var(--t1)] flex-shrink-0;
+    @apply w-8 h-8 rounded-full border border-[var(--border)] flex items-center justify-center text-[var(--t3)] transition-all hover:bg-[var(--t1)] hover:text-white hover:border-[var(--t1)] flex-shrink-0;
     text-decoration: none;
   }
 
