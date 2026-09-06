@@ -1,23 +1,23 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import { useAuth } from "@/lib/auth-context";
-import { useAcademic } from "@/lib/academic-context";
-import { useDashboardStats, useStudents, useFeeStructure, useClasses } from "@/lib/hooks";
-import { useDashboardExtraData } from "@/lib/hooks/useDashboardExtraData";
 import { useMemo } from "react";
-import { formatNumber } from "@/lib/utils";
-import MaterialIcon from "@/components/MaterialIcon";
-import StatCard from "@/components/dashboard/StatCard";
-import UpNextCard from "@/components/dashboard/UpNextCard";
-import TeamPreview from "@/components/dashboard/TeamPreview";
-import ErrorBoundary from "@/components/ErrorBoundary";
-import { TopLoadingBar, StuckLoadingOverlay } from "@/components/ui/Skeleton";
 import OwlMascot from "@/components/brand/OwlMascot";
 import SchoolCalendar from "@/components/dashboard/SchoolCalendar";
+import StatCard from "@/components/dashboard/StatCard";
 import TaskManager from "@/components/dashboard/TaskManager";
-import CollapsibleSection from "@/components/ui/CollapsibleSection";
+import TeamPreview from "@/components/dashboard/TeamPreview";
+import UpNextCard from "@/components/dashboard/UpNextCard";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import MaterialIcon from "@/components/MaterialIcon";
 import SetupChecklist from "@/components/onboarding/SetupChecklist";
+import CollapsibleSection from "@/components/ui/CollapsibleSection";
+import { StuckLoadingOverlay, TopLoadingBar } from "@/components/ui/Skeleton";
+import { useAcademic } from "@/lib/academic-context";
+import { useAuth } from "@/lib/auth-context";
+import { useClasses, useDashboardStats, useFeeStructure, useStudents } from "@/lib/hooks";
+import { useDashboardExtraData } from "@/lib/hooks/useDashboardExtraData";
+import { formatNumber } from "@/lib/utils";
 
 function HeadmasterDashboardContent() {
   const { school, user } = useAuth();
@@ -251,8 +251,8 @@ function HeadmasterDashboardContent() {
         </div>
       ) : (
         <>
-          {/* Greeting header — big greeting, prominent school mark, watermark */}
-          <div className="card relative overflow-hidden !p-5 sm:!p-6 mb-6">
+          {/* Keep the identity header compact so today's work stays above the fold. */}
+          <div className="card relative overflow-hidden !p-4 sm:!p-5 mb-4">
             {school?.logo_url && (
               <Image
                 src={school.logo_url}
@@ -269,14 +269,14 @@ function HeadmasterDashboardContent() {
                 <Image
                   src={school.logo_url}
                   alt={school?.name || "School"}
-                  width={72}
-                  height={72}
-                  className="h-[72px] w-[72px] rounded-[20px] object-cover ring-1 ring-[var(--border)] shadow-[var(--sh1)] flex-shrink-0"
+                  width={60}
+                  height={60}
+                  className="h-[60px] w-[60px] rounded-[18px] object-cover ring-1 ring-[var(--border)] shadow-[var(--sh1)] flex-shrink-0"
                   unoptimized
                 />
               ) : (
                 <div
-                  className="flex h-[72px] w-[72px] flex-shrink-0 items-center justify-center rounded-[20px] bg-[var(--primary)] text-[26px] font-bold text-[var(--on-primary)] shadow-[var(--sh1)]"
+                  className="flex h-[60px] w-[60px] flex-shrink-0 items-center justify-center rounded-[18px] bg-[var(--primary)] text-[23px] font-bold text-[var(--on-primary)] shadow-[var(--sh1)]"
                   style={{ fontFamily: "'Sora', sans-serif" }}
                   aria-hidden="true"
                 >
@@ -285,7 +285,7 @@ function HeadmasterDashboardContent() {
               )}
               <div className="flex-1 min-w-0">
                 <h1
-                  className="text-[26px] sm:text-[32px] font-bold text-[var(--t1)] tracking-tight leading-tight truncate"
+                  className="text-[23px] sm:text-[28px] font-bold text-[var(--t1)] tracking-tight leading-tight truncate"
                   style={{ fontFamily: "'Sora', sans-serif" }}
                 >
                   {greeting}, {user?.full_name?.split(" ")[0] || "there"}
@@ -299,9 +299,6 @@ function HeadmasterDashboardContent() {
                   <MaterialIcon icon="add" style={{ fontSize: 16 }} />
                   Add student
                 </Link>
-                <Link href="/dashboard/attendance" className="btn-pill btn-secondary">
-                  Take attendance
-                </Link>
               </div>
             </div>
           </div>
@@ -313,6 +310,8 @@ function HeadmasterDashboardContent() {
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
             {/* ── Left Column: Metrics + Task Manager ── */}
             <div className="xl:col-span-2 space-y-5">
+              <UpNextCard task={tasks.find((t) => t.priority === "urgent") ?? tasks[0] ?? null} />
+
               <div className="stat-grid !mb-0">
                 <StatCard
                   label="Students"
@@ -327,7 +326,7 @@ function HeadmasterDashboardContent() {
                 />
                 <StatCard
                   label="Attendance today"
-                  value={statsLoading ? "—" : `${attendanceRate}%`}
+                  value={statsLoading ? "—" : stats.presentToday > 0 ? `${attendanceRate}%` : "Not recorded"}
                   subValue={
                     statsLoading
                       ? undefined
@@ -343,14 +342,16 @@ function HeadmasterDashboardContent() {
                 />
                 <StatCard
                   label="Fees collected"
-                  value={statsLoading ? "—" : `${collectionRate}%`}
+                  value={statsLoading ? "—" : totalExpected > 0 ? `${collectionRate}%` : "Not set"}
                   subValue={
                     statsLoading
                       ? undefined
                       : overdueFeeCount > 0
                         ? `${overdueFeeCount} overdue`
                         : totalExpected > 0
-                          ? "On track"
+                          ? collectionRate >= 70
+                            ? "On track"
+                            : "Behind target"
                           : "No fees set"
                   }
                   icon="payments"
@@ -361,16 +362,16 @@ function HeadmasterDashboardContent() {
                 />
               </div>
 
-              <UpNextCard task={tasks.find((t) => t.priority === "urgent") ?? tasks[0] ?? null} />
-
-              <CollapsibleSection
-                title="Task Manager"
-                badge={tasks.length > 0 ? tasks.length : null}
-                storageKey={`hm-tasks-${school?.id}`}
-                defaultOpen={tasks.length > 0}
-              >
-                <TaskManager tasks={tasks} emptyMessage="All caught up! No pending tasks." />
-              </CollapsibleSection>
+              {tasks.length > 1 && (
+                <CollapsibleSection
+                  title="All open tasks"
+                  badge={tasks.length}
+                  storageKey={`hm-tasks-${school?.id}`}
+                  defaultOpen
+                >
+                  <TaskManager tasks={tasks.slice(1)} emptyMessage="All caught up! No pending tasks." />
+                </CollapsibleSection>
+              )}
 
               <TeamPreview schoolId={school?.id} />
             </div>
@@ -379,59 +380,27 @@ function HeadmasterDashboardContent() {
             <div className="space-y-5">
               <SchoolCalendar schoolId={school?.id} userId={user?.id} />
 
-              {tasks.length > 0 && (
-                <div className="card">
-                  <div className="panel-head !mb-1">
-                    <h2 className="panel-title">Needs attention</h2>
-                    <span className="badge badge-red">{tasks.length}</span>
-                  </div>
-                  <div role="list" className="divide-y divide-[var(--bg)]">
-                    {tasks.slice(0, 4).map((t) => (
-                      <Link
-                        key={t.id}
-                        href={t.href}
-                        role="listitem"
-                        className="flex items-center gap-3 py-3 transition-colors hover:opacity-80"
-                      >
-                        <span
-                          className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                            t.priority === "urgent"
-                              ? "bg-[var(--red-soft)] text-[var(--red)]"
-                              : "bg-[var(--amber-soft)] text-[var(--amber)]"
-                          }`}
-                          aria-hidden="true"
-                        >
-                          <MaterialIcon icon={t.icon} style={{ fontSize: 17 }} />
-                        </span>
-                        <span className="flex-1 min-w-0">
-                          <span className="block text-[13px] font-bold text-[var(--t1)] truncate">{t.label}</span>
-                          <span className="block text-[11px] text-[var(--t3)] mt-0.5">{t.cta} now</span>
-                        </span>
-                        <MaterialIcon icon="chevron_right" className="text-[var(--t4)] flex-shrink-0" />
-                      </Link>
-                    ))}
-                  </div>
+              <div className="card">
+                <div className="panel-head !mb-3">
+                  <h2 className="panel-title">Common actions</h2>
                 </div>
-              )}
-
-              <CollapsibleSection title="Quick Actions" storageKey={`hm-actions-${school?.id}`}>
                 <div className="grid grid-cols-3 gap-2">
                   {quickActions.map((action) => (
                     <Link
                       key={action.href}
                       href={action.href}
-                      className="group flex flex-col items-center gap-1 rounded-xl border border-[#eef2f8] bg-[#f8fbff] py-3 transition-all hover:border-[#c8dce8] hover:bg-[#edf4ff] hover:shadow-sm active:scale-95"
+                      className="group flex flex-col items-center gap-1 rounded-[20px] border border-[var(--border)] bg-[var(--surface-container-low)] py-3 transition-all hover:border-[var(--primary)]/30 hover:bg-[var(--primary-50)] hover:shadow-[var(--sh1)] active:scale-95"
                     >
-                      <span className="material-symbols-outlined text-lg text-[#42638d] group-hover:text-[#17325f]">
+                      <span className="material-symbols-outlined text-lg text-[var(--t3)] group-hover:text-[var(--primary)]">
                         {action.icon}
                       </span>
-                      <span className="text-sm font-bold text-[#7f91aa] group-hover:text-[#17325f]">
+                      <span className="text-xs font-semibold text-[var(--t2)] group-hover:text-[var(--primary)]">
                         {action.label}
                       </span>
                     </Link>
                   ))}
                 </div>
-              </CollapsibleSection>
+              </div>
             </div>
           </div>
         </>

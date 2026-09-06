@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback, type ReactNode } from "react";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 
 interface CollapsibleSectionProps {
@@ -49,7 +49,7 @@ export default function CollapsibleSection({
 
   return (
     <div
-      className={`rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800 ${className}`}
+      className={`rounded-[var(--r)] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--sh1)] ${className}`}
     >
       <button
         onClick={toggle}
@@ -58,17 +58,14 @@ export default function CollapsibleSection({
         aria-controls={sectionId}
       >
         <div className="flex items-center gap-2 min-w-0">
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">{title}</h3>
+          <h3 className="text-[13px] font-bold text-[var(--t1)] truncate">{title}</h3>
           {badge != null && (
-            <span className="shrink-0 rounded-full bg-primary-100 px-2 py-0.5 text-[10px] font-bold text-primary-700 dark:bg-primary-900/40 dark:text-primary-300">
+            <span className="shrink-0 rounded-full bg-[var(--primary-50)] px-2 py-0.5 text-[10px] font-bold text-[var(--primary)]">
               {badge}
             </span>
           )}
         </div>
-        <MaterialIcon
-          icon={isOpen ? "expand_less" : "expand_more"}
-          className="shrink-0 text-lg text-gray-400 dark:text-gray-500"
-        />
+        <MaterialIcon icon={isOpen ? "expand_less" : "expand_more"} className="shrink-0 text-lg text-[var(--t4)]" />
       </button>
 
       {isOpen && (

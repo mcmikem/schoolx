@@ -1,15 +1,15 @@
 "use client";
 import { ReactNode, useEffect } from "react";
-import { AuthProvider, useAuth } from "@/lib/auth-context";
-import { AcademicProvider } from "@/lib/academic-context";
-import { ThemeProvider } from "@/lib/theme-context";
-import { NotificationsProvider } from "@/lib/notifications";
+import BrandProvider from "@/components/BrandProvider";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { ToastProvider } from "@/components/Toast";
 import { StuckLoadingOverlay } from "@/components/ui/Skeleton";
-import { logger } from "@/lib/logger";
+import { AcademicProvider } from "@/lib/academic-context";
+import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { setupErrorLogging } from "@/lib/error-logger";
-import BrandProvider from "@/components/BrandProvider";
+import { logger } from "@/lib/logger";
+import { NotificationsProvider } from "@/lib/notifications";
+import { ThemeProvider } from "@/lib/theme-context";
 import { ReactQueryProvider } from "./providers/ReactQueryProvider";
 
 function FaviconUpdater() {
@@ -52,6 +52,16 @@ function FaviconUpdater() {
 function ServiceWorkerRegistration({ children }: { children: ReactNode }) {
   useEffect(() => {
     setupErrorLogging();
+    // Keep the PWA worker out of local development. Next.js HMR owns reloads
+    // there, while a stale worker can serve old chunks and trigger update loops.
+    if (process.env.NODE_ENV !== "production") {
+      if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+        navigator.serviceWorker.getRegistrations().then((registrations) => {
+          registrations.forEach((registration) => registration.unregister());
+        });
+      }
+      return;
+    }
     if (typeof window !== "undefined" && "serviceWorker" in navigator) {
       const authRoutePattern = /^\/(login|register|forgot-password)(\/|$)/;
       const shouldForceAuthRouteUpdate = authRoutePattern.test(window.location.pathname);

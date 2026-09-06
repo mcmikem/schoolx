@@ -2,9 +2,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useMemo } from "react";
+import MaterialIcon from "@/components/MaterialIcon";
 import { useSidebar } from "@/contexts/SidebarContext";
 import { useAuth } from "@/lib/auth-context";
-import MaterialIcon from "@/components/MaterialIcon";
 import { canAccess, type UserRole } from "@/lib/roles";
 
 type QuickStep = {
@@ -58,7 +58,7 @@ export default function MobileBottomNav() {
   }, [pathname, role, canUseStudents, canUseAttendance, canUseFees, canUseMessages]);
 
   return (
-    <div className="mobile-bottom-nav">
+    <nav className="mobile-bottom-nav" aria-label="Mobile navigation">
       {/* Home */}
       <NavItem href="/dashboard" icon="home" label="Home" active={pathname === "/dashboard"} />
       {/* Attend */}
@@ -71,10 +71,10 @@ export default function MobileBottomNav() {
         />
       )}
 
-      {/* Centre FAB — floats above the bar */}
+      {/* Role-aware quick action stays in the same rhythm as the other destinations. */}
       <Link
         href={quickStep.href}
-        className="mobile-nav-fab"
+        className="mobile-nav-item mobile-nav-action"
         aria-label={quickStep.label}
         onClick={() => {
           try {
@@ -82,7 +82,8 @@ export default function MobileBottomNav() {
           } catch {}
         }}
       >
-        <MaterialIcon icon={quickStep.icon} style={{ fontSize: 24 }} />
+        <MaterialIcon icon={quickStep.icon} style={{ fontSize: 22 }} />
+        <span>{quickStep.label}</span>
       </Link>
 
       {/* Fees */}
@@ -104,7 +105,7 @@ export default function MobileBottomNav() {
         <MaterialIcon icon="apps" style={{ fontSize: 22 }} />
         <span>More</span>
       </button>
-    </div>
+    </nav>
   );
 }
 

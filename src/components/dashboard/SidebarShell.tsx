@@ -1,20 +1,20 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
-import { useAuth } from "@/lib/auth-context";
-import { useAcademic } from "@/lib/academic-context";
-import { useSyncStatus } from "@/lib/useSyncStatus";
+import { useEffect, useState } from "react";
 import CollapsibleSidebar from "@/components/CollapsibleSidebar";
 import ContactSupport from "@/components/ContactSupport";
-import { getNavigationForRole } from "@/lib/navigation";
-import { canAccess, type UserRole } from "@/lib/roles";
-import { canUseModule, type FeatureStage, type ModuleKey, DEFAULT_FEATURE_STAGE } from "@/lib/featureStages";
 import { MODULE_FOR_ROUTE, roleBasedRoutes } from "@/components/dashboard/AccessControlGuard";
-import { resolveRouteAccess, useRoleRouteOverrides, type RoleRouteOverrides } from "@/lib/role-access-overrides";
 import MaterialIcon from "@/components/MaterialIcon";
 import { useSidebar } from "@/contexts/SidebarContext";
+import { useAcademic } from "@/lib/academic-context";
 import { APP_NAME } from "@/lib/app-name";
-import { useEffect, useState } from "react";
+import { useAuth } from "@/lib/auth-context";
+import { canUseModule, DEFAULT_FEATURE_STAGE, type FeatureStage, type ModuleKey } from "@/lib/featureStages";
+import { getNavigationForRole } from "@/lib/navigation";
+import { type RoleRouteOverrides, resolveRouteAccess, useRoleRouteOverrides } from "@/lib/role-access-overrides";
+import { canAccess, type UserRole } from "@/lib/roles";
+import { useSyncStatus } from "@/lib/useSyncStatus";
 
 const ROUTE_TO_MODULE: Record<string, ModuleKey> = {};
 for (const [route, mod] of Object.entries(MODULE_FOR_ROUTE)) {
@@ -82,7 +82,7 @@ export default function SidebarShell({ onNavigate }: { onNavigate?: () => void }
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const checkDesktop = () => setIsDesktop(window.innerWidth >= 1280);
+    const checkDesktop = () => setIsDesktop(window.innerWidth >= 1024);
     checkDesktop();
     window.addEventListener("resize", checkDesktop);
     return () => window.removeEventListener("resize", checkDesktop);

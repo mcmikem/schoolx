@@ -1,17 +1,17 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
-import { supabase } from "@/lib/supabase";
-import Link from "next/link";
 import Image from "next/image";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useAuth } from "@/lib/auth-context";
-import { useAcademic } from "@/lib/academic-context";
+import { useEffect, useRef, useState } from "react";
 import GlobalSearch from "@/components/GlobalSearch";
 import MaterialIcon from "@/components/MaterialIcon";
-import { useTheme } from "@/lib/theme-context";
-import { useNotifications } from "@/lib/notifications";
 import { useSidebar } from "@/contexts/SidebarContext";
+import { useAcademic } from "@/lib/academic-context";
+import { useAuth } from "@/lib/auth-context";
+import { useNotifications } from "@/lib/notifications";
 import { canAccess, type UserRole } from "@/lib/roles";
+import { supabase } from "@/lib/supabase";
+import { useTheme } from "@/lib/theme-context";
 
 type DashboardNotification = {
   id: string;
@@ -350,7 +350,7 @@ export default function TopBar({ pageTitle, onSignOut }: { pageTitle: string; on
       {/* Right actions */}
       <div className="flex items-center gap-1.5">
         {/* Sync status indicator */}
-        <div className="icon-btn-circle !bg-white" title={isOnline ? "Connected" : "Offline"}>
+        <div className="icon-btn-circle !bg-[var(--surface)]" title={isOnline ? "Connected" : "Offline"}>
           <div className={`w-3 h-3 rounded-full ${isOnline ? "bg-green-500" : "bg-red-500"}`} />
         </div>
 
@@ -360,7 +360,7 @@ export default function TopBar({ pageTitle, onSignOut }: { pageTitle: string; on
               setNotifOpen((current) => !current);
               setUserMenuOpen(false);
             }}
-            className="icon-btn-circle !bg-white"
+            className="icon-btn-circle !bg-[var(--surface)]"
             aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
             aria-expanded={notifOpen}
             aria-haspopup="dialog"
@@ -382,7 +382,7 @@ export default function TopBar({ pageTitle, onSignOut }: { pageTitle: string; on
 
         <button
           onClick={toggleTheme}
-          className="icon-btn-circle hidden sm:flex !bg-white"
+          className="icon-btn-circle hidden sm:flex !bg-[var(--surface)]"
           aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
         >
           <MaterialIcon

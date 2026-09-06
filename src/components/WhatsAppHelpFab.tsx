@@ -23,7 +23,7 @@ export default function WhatsAppHelpFab() {
       rel="noopener noreferrer"
       aria-label="WhatsApp SkoolMate support"
       title="WhatsApp SkoolMate team for help"
-      className="fixed z-[9950] flex items-center justify-center rounded-full shadow-xl hover:scale-105 active:scale-95 transition-transform bottom-[176px] right-4 sm:bottom-[100px] sm:right-6"
+      className="fixed z-[9950] flex items-center justify-center rounded-full shadow-xl hover:scale-105 active:scale-95 transition-transform bottom-[148px] right-4 sm:bottom-6 sm:right-[92px]"
       style={{ width: 48, height: 48, background: "#25D366" }}
     >
       <svg viewBox="0 0 24 24" className="w-6 h-6 fill-white">

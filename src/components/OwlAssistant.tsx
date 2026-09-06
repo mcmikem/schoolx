@@ -1,14 +1,14 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
 import Image from "next/image";
-import MaterialIcon from "@/components/MaterialIcon";
 import { usePathname } from "next/navigation";
-import { supabase } from "@/lib/supabase";
+import { useEffect, useRef, useState } from "react";
+import MaterialIcon from "@/components/MaterialIcon";
 import { useAuth } from "@/lib/auth-context";
+import { supabase } from "@/lib/supabase";
 import {
   DEFAULT_WHATSAPP_ENV,
-  generateSupportWhatsAppLink,
   generateSupportSmsLink,
+  generateSupportWhatsAppLink,
   PLATFORM_SUPPORT_PHONE_DISPLAY,
 } from "@/lib/support-contact";
 
@@ -315,7 +315,7 @@ export default function OwlAssistant() {
       {/* ── Floating Owly button ── */}
       <button
         onClick={() => setOpen((v) => !v)}
-        className="fixed z-[9990] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--green)] bottom-[90px] right-4 sm:bottom-6 sm:right-6"
+        className="fixed z-[9990] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--green)] bottom-[84px] right-4 sm:bottom-6 sm:right-6"
         style={{ width: 64, height: open ? 64 : 78, background: "none", border: "none", cursor: "pointer", padding: 0 }}
         aria-label="Open SkoolMate Assistant"
         title="Owly — SkoolMate Assistant"
@@ -351,7 +351,7 @@ export default function OwlAssistant() {
       {/* ── Chat panel ── */}
       {open && (
         <div
-          className="fixed z-[9989] w-full max-w-[360px] rounded-2xl shadow-2xl flex flex-col overflow-hidden bottom-[172px] right-4 sm:bottom-[100px] sm:right-6"
+          className="fixed z-[9989] w-full max-w-[360px] rounded-2xl shadow-2xl flex flex-col overflow-hidden bottom-[160px] right-4 sm:bottom-[100px] sm:right-6"
           style={{
             background: "var(--surface, #fff)",
             border: "1px solid var(--border, #e5e7eb)",

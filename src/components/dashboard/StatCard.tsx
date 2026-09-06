@@ -1,6 +1,6 @@
 "use client";
-import { memo } from "react";
 import Link from "next/link";
+import { memo } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 
 interface StatCardProps {
@@ -47,7 +47,7 @@ const StatCard = memo(function StatCard({
           : "card-gradient-amber"
     }`;
     return (
-      <div className={`${cardClass} shadow-[0_22px_48px_rgba(15,23,42,0.07)]`}>
+      <div className={`${cardClass} rounded-[var(--r)] shadow-[var(--sh1)]`}>
         <div className="stat-inner !p-6">
           <div className="stat-meta">
             <div className="stat-label !text-white/80 !normal-case !tracking-normal !text-[13px] !font-medium">
@@ -63,7 +63,7 @@ const StatCard = memo(function StatCard({
               </Link>
             )}
           </div>
-          <div className="stat-val !text-white !text-[40px] !font-semibold">{loading ? "..." : value}</div>
+          <div className="stat-val !text-white !text-[32px] !font-semibold">{loading ? "..." : value}</div>
           {trend && (
             <div className="flex items-center gap-1 mt-2 text-[11px] font-medium text-white/80">
               <MaterialIcon icon={trendIcon} style={{ fontSize: 13 }} />
@@ -80,10 +80,7 @@ const StatCard = memo(function StatCard({
 
   // ── Standard card (Donezo anatomy: label + arrow, hero number, footnote) ───
   return (
-    <div
-      className="relative bg-white border border-[var(--border)] rounded-[20px] p-5 flex flex-col transition-all duration-200 cursor-default group hover:-translate-y-0.5 overflow-hidden"
-      style={{ boxShadow: "0 1px 2px rgba(15,23,42,0.05), 0 8px 24px rgba(15,23,42,0.06)" }}
-    >
+    <div className="relative bg-[var(--surface)] border border-[var(--border)] rounded-[var(--r)] p-5 flex flex-col transition-all duration-200 cursor-default group hover:-translate-y-0.5 hover:border-[var(--border2)] shadow-[var(--sh1)] overflow-hidden">
       <div className="flex items-start justify-between gap-2">
         <p className="text-[13px] font-medium text-[var(--t2)] leading-snug">{label}</p>
         {href && !loading ? (
@@ -98,7 +95,7 @@ const StatCard = memo(function StatCard({
       </div>
 
       <div
-        className="mt-1 text-[40px] font-semibold tracking-[-0.03em] leading-none text-[var(--t1)]"
+        className="mt-1 text-[32px] font-semibold tracking-tight leading-none text-[var(--t1)]"
         style={{ fontFamily: "'Sora', sans-serif" }}
       >
         {loading ? <span className="inline-block h-10 w-24 rounded-lg bg-[var(--border)] animate-pulse" /> : value}
