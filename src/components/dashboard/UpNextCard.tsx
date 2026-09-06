@@ -1,6 +1,6 @@
 "use client";
-import { memo } from "react";
 import Link from "next/link";
+import { memo } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 
 export interface UpNextTask {
@@ -14,7 +14,7 @@ export interface UpNextTask {
 /** Donezo "Reminders" pattern: the single most important next action + CTA. */
 const UpNextCard = memo(function UpNextCard({ task }: { task: UpNextTask | null }) {
   return (
-    <div className="card">
+    <div className="card !p-4 sm:!p-5">
       <div className="panel-head !mb-3">
         <h2 className="panel-title">Up next</h2>
         {task &&
@@ -26,16 +26,22 @@ const UpNextCard = memo(function UpNextCard({ task }: { task: UpNextTask | null 
       </div>
 
       {task ? (
-        <>
-          <p className="text-[17px] font-bold text-[var(--t1)] leading-snug tracking-tight">{task.label}</p>
-          <p className="mt-1 text-xs text-[var(--t3)]">
-            {task.priority === "urgent" ? "Needs action today." : "Worth a look when you have a moment."}
-          </p>
-          <Link href={task.href} className="btn-pill btn-primary w-full mt-4" aria-label={`${task.cta}: ${task.label}`}>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-[17px] font-bold text-[var(--t1)] leading-snug tracking-tight">{task.label}</p>
+            <p className="mt-1 text-xs text-[var(--t3)]">
+              {task.priority === "urgent" ? "Needs action today." : "Worth a look when you have a moment."}
+            </p>
+          </div>
+          <Link
+            href={task.href}
+            className="btn-pill btn-primary w-full sm:w-auto sm:min-w-[150px]"
+            aria-label={`${task.cta}: ${task.label}`}
+          >
             <MaterialIcon icon={task.icon} style={{ fontSize: 16 }} />
             {task.cta}
           </Link>
-        </>
+        </div>
       ) : (
         <div className="flex items-center gap-3 py-1">
           <span

@@ -1,9 +1,9 @@
 "use client";
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
-import { supabase } from "@/lib/supabase";
-import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
-import { offlineDB } from "@/lib/offline";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
+import { timeoutFallback, withTimeout } from "@/lib/hooks/utils";
+import { offlineDB } from "@/lib/offline";
+import { supabase } from "@/lib/supabase";
 
 const DAYS_HEADER = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -146,6 +146,12 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
   const monthStartDay = new Date(calendarYear, calendarMonth, 1).getDay();
   const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
 
+  const currentMonthEvents = useMemo(() => {
+    const monthStart = toLocalDate(calendarYear, calendarMonth, 1);
+    const monthEnd = toLocalDate(calendarYear, calendarMonth, daysInMonth);
+    return academicEvents.filter((event) => event.date >= monthStart && event.date <= monthEnd);
+  }, [academicEvents, calendarYear, calendarMonth, daysInMonth]);
+
   const calendarCells = useMemo(() => {
     const cells: Array<{
       day: number;
@@ -179,11 +185,11 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
   }, [academicEvents, selectedDate]);
 
   return (
-    <div className="overflow-hidden rounded-[24px] border border-[#d7e3f2] bg-white/82 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.07)]">
+    <div className="card overflow-hidden">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.22em] text-[#7f91aa]">School calendar</p>
-          <h2 className="mt-2 font-['Sora'] text-2xl font-semibold tracking-[-0.04em] text-[#17325f]">
+          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--t3)]">School calendar</p>
+          <h2 className="mt-2 font-['Sora'] text-xl font-semibold tracking-tight text-[var(--t1)]">
             {viewDate.toLocaleDateString("en-UG", {
               month: "long",
               year: "numeric",
@@ -194,7 +200,7 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
           <button
             type="button"
             onClick={() => navMonth(-1)}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-[#7f91aa] hover:bg-[#edf4ff] hover:text-[#17325f]"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--t3)] hover:bg-[var(--surface-container-low)] hover:text-[var(--primary)]"
             aria-label="Previous month"
           >
             <MaterialIcon icon="chevron_left" className="text-lg" />
@@ -202,14 +208,14 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
           <button
             type="button"
             onClick={() => setViewDate(new Date())}
-            className="rounded-full bg-[#eef5ff] px-3 py-1 text-[10px] font-semibold text-[#42638d] hover:bg-[#dce8f5]"
+            className="rounded-full bg-[var(--primary-50)] px-3 py-1 text-[10px] font-semibold text-[var(--primary)] hover:bg-[var(--primary-100)]"
           >
             Today
           </button>
           <button
             type="button"
             onClick={() => navMonth(1)}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-[#7f91aa] hover:bg-[#edf4ff] hover:text-[#17325f]"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--t3)] hover:bg-[var(--surface-container-low)] hover:text-[var(--primary)]"
             aria-label="Next month"
           >
             <MaterialIcon icon="chevron_right" className="text-lg" />
@@ -217,7 +223,7 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-7 text-center text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.1em] text-[#8ba0bc]">
+      <div className="mt-4 grid grid-cols-7 text-center text-[9px] font-bold uppercase tracking-[0.08em] text-[var(--t2)] sm:text-[10px]">
         {DAYS_HEADER.map((d) => (
           <div key={d}>{d}</div>
         ))}
@@ -232,17 +238,17 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
               onClick={() => setSelectedDate(cell.iso === selectedDate ? null : cell.iso)}
               className={`relative flex items-center justify-center rounded-xl border min-h-[36px] text-center text-[11px] sm:text-xs font-semibold transition-colors ${
                 cell.iso === selectedDate
-                  ? "border-[#17325f] bg-[#17325f] text-white"
+                  ? "border-[var(--primary)] bg-[var(--primary)] text-white"
                   : cell.isToday
-                    ? "border-[#17325f] bg-[#edf4ff] text-[#17325f]"
-                    : "border-[#e7edf5] bg-[#f8fbff] text-[#5e7390]"
-              } hover:border-[#aac1df] hover:bg-[#f0f6ff]`}
+                    ? "border-[var(--primary)] bg-[var(--primary-50)] text-[var(--primary)]"
+                    : "border-[var(--border)] bg-[var(--surface-container-low)] text-[var(--t2)]"
+              } hover:border-[var(--primary)]/40 hover:bg-[var(--primary-50)]`}
             >
               {cell.day}
               {cell.hasEvent && (
                 <span
                   className={`absolute bottom-1 left-1/2 h-1.5 w-1.5 -translate-x-1/2 rounded-full ${
-                    cell.iso === selectedDate ? "bg-white" : "bg-[#2d69a4]"
+                    cell.iso === selectedDate ? "bg-white" : "bg-[var(--primary)]"
                   }`}
                 />
               )}
@@ -254,8 +260,8 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
       </div>
 
       {selectedDate && eventsOnSelected.length > 0 && (
-        <div className="mt-3 space-y-1.5 rounded-[16px] bg-[#f0f6ff] p-3">
-          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[#7f91aa]">
+        <div className="mt-3 space-y-1.5 rounded-[var(--r)] bg-[var(--surface-container-low)] p-3">
+          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--t3)]">
             {new Date(selectedDate).toLocaleDateString("en-UG", {
               weekday: "long",
               day: "numeric",
@@ -265,10 +271,10 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
           {eventsOnSelected.map((event) => (
             <div
               key={event.id}
-              className="flex items-center justify-between rounded-[12px] bg-white px-3 py-2 shadow-sm"
+              className="flex items-center justify-between rounded-[var(--r)] bg-[var(--surface)] px-3 py-2 shadow-[var(--sh1)]"
             >
-              <p className="truncate text-sm font-semibold text-[#17325f]">{event.title}</p>
-              <span className="shrink-0 rounded-full bg-[#edf4ff] px-2 py-0.5 text-[9px] font-semibold uppercase text-[#42638d]">
+              <p className="truncate text-sm font-semibold text-[var(--t1)]">{event.title}</p>
+              <span className="shrink-0 rounded-full bg-[var(--primary-50)] px-2 py-0.5 text-[9px] font-semibold uppercase text-[var(--primary)]">
                 {event.kind}
               </span>
             </div>
@@ -285,21 +291,21 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
               setNewEventDate(selectedDate || todayIso);
             }
           }}
-          className="flex items-center gap-1.5 rounded-full bg-[#17325f] px-4 py-2 text-[11px] font-semibold text-white hover:opacity-90"
+          className="flex items-center gap-1.5 rounded-full bg-[var(--primary)] px-4 py-2 text-[11px] font-semibold text-white hover:bg-[var(--primary-700)]"
         >
           <MaterialIcon icon="add" className="text-[14px]" />
           Add event
         </button>
-        {!showAddEvent && academicEvents.length > 0 && !selectedDate && (
-          <div className="flex items-center gap-2 text-[10px] text-[#8ba0bc]">
-            <span className="inline-block h-2 w-2 rounded-full bg-[#2d69a4]" />
-            {academicEvents.length} event{academicEvents.length > 1 ? "s" : ""} this month
+        {!showAddEvent && currentMonthEvents.length > 0 && !selectedDate && (
+          <div className="flex items-center gap-2 text-[10px] text-[var(--t3)]">
+            <span className="inline-block h-2 w-2 rounded-full bg-[var(--primary)]" />
+            {currentMonthEvents.length} event{currentMonthEvents.length > 1 ? "s" : ""} this month
           </div>
         )}
       </div>
 
       {showAddEvent && (
-        <div className="mt-3 rounded-[16px] border border-[#d7e3f2] bg-[#f8fbff] p-3">
+        <div className="mt-3 rounded-[var(--r)] border border-[var(--border)] bg-[var(--surface-container-low)] p-3">
           <div className="flex flex-col gap-2 sm:flex-row">
             <input
               ref={dayInputRef}
@@ -307,26 +313,26 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
               value={newEventTitle}
               onChange={(e) => setNewEventTitle(e.target.value)}
               placeholder="Event title..."
-              className="min-w-0 flex-1 rounded-xl border border-[#dde6f2] bg-white px-3 py-2 text-sm text-[#17325f] outline-none focus:border-[#aac1df]"
+              className="min-w-0 flex-1 rounded-[var(--r)] border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
             />
             <input
               type="date"
               value={newEventDate}
               onChange={(e) => setNewEventDate(e.target.value)}
-              className="rounded-xl border border-[#dde6f2] bg-white px-3 py-2 text-sm text-[#17325f] outline-none focus:border-[#aac1df]"
+              className="rounded-[var(--r)] border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
             />
             <button
               type="button"
               onClick={addCalendarEvent}
               disabled={!newEventTitle.trim() || !newEventDate}
-              className="rounded-xl bg-[#17325f] px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
+              className="rounded-full bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--primary-700)] disabled:opacity-50"
             >
               Save
             </button>
             <button
               type="button"
               onClick={() => setShowAddEvent(false)}
-              className="rounded-xl border border-[#dde6f2] px-3 py-2 text-sm font-semibold text-[#7f91aa] hover:bg-[#edf4ff]"
+              className="rounded-full border border-[var(--border)] px-3 py-2 text-sm font-semibold text-[var(--t3)] hover:bg-[var(--surface)]"
             >
               Cancel
             </button>
@@ -334,9 +340,9 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
         </div>
       )}
 
-      {!selectedDate && academicEvents.length === 0 && !showAddEvent && (
-        <div className="mt-4 rounded-xl border border-dashed border-[#d7e3f2] bg-white/50 p-4 text-center">
-          <p className="text-xs text-[#8ba0bc]">No events scheduled for this month</p>
+      {!selectedDate && currentMonthEvents.length === 0 && !showAddEvent && (
+        <div className="mt-4 rounded-[var(--r)] border border-dashed border-[var(--border)] bg-[var(--surface-container-low)] p-4 text-center">
+          <p className="text-xs text-[var(--t3)]">No events scheduled for this month</p>
         </div>
       )}
     </div>

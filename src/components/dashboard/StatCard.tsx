@@ -95,7 +95,7 @@ const StatCard = memo(function StatCard({
       </div>
 
       <div
-        className="mt-1 text-[32px] font-semibold tracking-tight leading-none text-[var(--t1)]"
+        className="mt-1 whitespace-nowrap text-[30px] font-semibold tracking-tight leading-none text-[var(--t1)]"
         style={{ fontFamily: "'Sora', sans-serif" }}
       >
         {loading ? <span className="inline-block h-10 w-24 rounded-lg bg-[var(--border)] animate-pulse" /> : value}

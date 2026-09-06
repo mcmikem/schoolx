@@ -302,17 +302,15 @@ function HeadmasterDashboardContent() {
               </div>
             </div>
           </div>
-          <div className="mb-5">
-            <SetupChecklist autoHide />
-          </div>
+          <SetupChecklist autoHide />
 
           {/* ── Two-Column Layout ── */}
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 items-start xl:grid-cols-3 gap-5">
             {/* ── Left Column: Metrics + Task Manager ── */}
             <div className="xl:col-span-2 space-y-5">
               <UpNextCard task={tasks.find((t) => t.priority === "urgent") ?? tasks[0] ?? null} />
 
-              <div className="stat-grid !mb-0">
+              <div className="stat-grid !mb-0 md:!grid-cols-3 lg:!grid-cols-3">
                 <StatCard
                   label="Students"
                   value={statsLoading ? "—" : formatNumber(stats.totalStudents)}
@@ -320,7 +318,6 @@ function HeadmasterDashboardContent() {
                   icon="group"
                   accentColor="navy"
                   loading={statsLoading}
-                  variant="premium-navy"
                   href="/dashboard/students"
                   hrefLabel="Open students"
                 />

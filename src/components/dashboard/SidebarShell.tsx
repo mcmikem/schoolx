@@ -114,8 +114,7 @@ export default function SidebarShell({ onNavigate }: { onNavigate?: () => void }
       id="dashboard-sidebar"
       className={sidebarClasses}
       aria-hidden={!isVisible}
-      // @ts-expect-error inert is valid but not yet in React types for this TS version
-      inert={!isVisible ? "" : undefined}
+      inert={!isVisible ? true : undefined}
       onMouseEnter={() => {
         if (isDesktop) setIsHovered(true);
       }}
