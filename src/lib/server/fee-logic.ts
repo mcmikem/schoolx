@@ -100,3 +100,121 @@ export function generateInvoice(input: InvoiceInput): GeneratedInvoice {
     status,
   };
 }
+
+// ---------------------------------------------------------------------------
+// Oldest-first payment allocation (ROADMAP #35)
+// A bursar records ONE payment; it is split across the student's outstanding
+// fee_structure charges oldest-first (due_date, then academic_year, term).
+// Payments already linked via fee_id reduce that charge; unlinked historic
+// payments reduce the oldest balances first. All math is rounded to 2dp so
+// float dust never creates penny balances.
+// ---------------------------------------------------------------------------
+
+export interface ChargeInput {
+  id: string;
+  name: string;
+  amount: number;
+  due_date: string | null;
+  academic_year: string;
+  term: number;
+}
+
+export interface LedgerPayment {
+  fee_id: string | null;
+  amount_paid: number;
+}
+
+export interface OutstandingItem {
+  feeStructureId: string;
+  name: string;
+  academicYear: string;
+  term: number;
+  dueDate: string | null;
+  balance: number;
+}
+
+export interface Allocation {
+  feeStructureId: string;
+  name: string;
+  amount: number;
+}
+
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
+}
+
+function compareCharges(a: ChargeInput, b: ChargeInput): number {
+  if (a.due_date && b.due_date && a.due_date !== b.due_date) {
+    return a.due_date < b.due_date ? -1 : 1;
+  }
+  if (a.due_date && !b.due_date) return -1;
+  if (!a.due_date && b.due_date) return 1;
+  if (a.academic_year !== b.academic_year) {
+    return a.academic_year < b.academic_year ? -1 : 1;
+  }
+  return a.term - b.term;
+}
+
+/** Net each charge down by linked payments, then absorb unlinked payments
+ *  oldest-first. Returns only items with a positive balance, oldest first. */
+export function buildOutstandingItems(charges: ChargeInput[], payments: LedgerPayment[]): OutstandingItem[] {
+  const paidByFee = new Map<string, number>();
+  let unlinked = 0;
+  for (const p of payments) {
+    const amt = Number(p.amount_paid) || 0;
+    if (amt <= 0) continue;
+    if (p.fee_id) {
+      paidByFee.set(p.fee_id, (paidByFee.get(p.fee_id) || 0) + amt);
+    } else {
+      unlinked += amt;
+    }
+  }
+
+  const items: OutstandingItem[] = [...charges]
+    .sort(compareCharges)
+    .map((c) => ({
+      feeStructureId: c.id,
+      name: c.name,
+      academicYear: c.academic_year,
+      term: c.term,
+      dueDate: c.due_date,
+      balance: round2(Math.max(0, (Number(c.amount) || 0) - (paidByFee.get(c.id) || 0))),
+    }))
+    .filter((i) => i.balance > 0);
+
+  let remaining = round2(unlinked);
+  for (const item of items) {
+    if (remaining <= 0) break;
+    const absorbed = Math.min(item.balance, remaining);
+    item.balance = round2(item.balance - absorbed);
+    remaining = round2(remaining - absorbed);
+  }
+
+  return items.filter((i) => i.balance > 0);
+}
+
+/** Split `amount` across outstanding items oldest-first.
+ *  Returns per-charge allocations plus any unallocated remainder
+ *  (caller decides: reject as overpayment or accept with override). */
+export function allocatePaymentOldestFirst(
+  items: OutstandingItem[],
+  amount: number,
+): { allocations: Allocation[]; unallocated: number; appliedTotal: number } {
+  const allocations: Allocation[] = [];
+  let remaining = round2(Math.max(0, amount));
+  for (const item of items) {
+    if (remaining <= 0) break;
+    if (item.balance <= 0) continue;
+    const take = round2(Math.min(item.balance, remaining));
+    if (take > 0) {
+      allocations.push({ feeStructureId: item.feeStructureId, name: item.name, amount: take });
+      remaining = round2(remaining - take);
+    }
+  }
+  return { allocations, unallocated: remaining, appliedTotal: round2(amount - remaining) };
+}
+
+/** Total outstanding across items (2dp). */
+export function totalOutstanding(items: OutstandingItem[]): number {
+  return round2(items.reduce((sum, i) => sum + i.balance, 0));
+}

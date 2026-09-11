@@ -4,6 +4,7 @@ import { createMobileMoneyPaymentLink, verifyMobileMoneyPayment } from "@/lib/pa
 import { requireUserWithSchool, rateLimit, supabaseClientOptions } from "@/lib/api-utils";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { normalizeAuthPhone } from "@/lib/validation";
+import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import { logger } from "@/lib/logger";
 
 const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
@@ -46,12 +47,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: "Missing required field: childId" }, { status: 400 });
     }
 
-    const { data: link } = await supabase
-      .from("parent_students")
-      .select("student_id, students(school_id)")
-      .eq("parent_id", user.id)
-      .eq("student_id", childId)
-      .maybeSingle();
+    const linkResult = await withTimeout(
+      supabase
+        .from("parent_students")
+        .select("student_id, students(school_id)")
+        .eq("parent_id", user.id)
+        .eq("student_id", childId)
+        .maybeSingle(),
+      15000,
+      timeoutFallback(),
+    );
+
+    if ((linkResult as { status?: number })?.status === 408) {
+      return NextResponse.json({ success: false, error: "Request timed out. Please try again." }, { status: 504 });
+    }
+    const { data: link } = linkResult as unknown as {
+      data: { student_id: string; students: { school_id?: string | null } | null } | null;
+    };
 
     if (!link) {
       return NextResponse.json({ success: false, error: "No linked child found for this account" }, { status: 403 });
@@ -124,25 +136,49 @@ export async function POST(request: NextRequest) {
       const status = await verifyMobileMoneyPayment(reference, provider);
       if (status.status === "completed") {
         const admin = serviceRoleClient();
-        const { data: existing } = await admin
-          .from("fee_payments")
-          .select("id")
-          .eq("payment_reference", reference)
-          .maybeSingle();
+        const existingResult = await withTimeout(
+          admin.from("fee_payments").select("id").eq("payment_reference", reference).maybeSingle(),
+          15000,
+          timeoutFallback(),
+        );
+
+        if ((existingResult as { status?: number })?.status === 408) {
+          return NextResponse.json(
+            { success: false, error: "Confirmation timed out. Check the payments list before retrying." },
+            { status: 504 },
+          );
+        }
+        const { data: existing } = existingResult;
 
         if (!existing) {
           const paidAmount = Number(status.amount || amount || 0);
-          const { error: insertErr } = await admin.from("fee_payments").insert({
-            student_id: childId,
-            school_id: schoolId,
-            amount: paidAmount,
-            amount_paid: paidAmount,
-            payment_date: new Date().toISOString(),
-            payment_method: provider === "airtel" ? "Airtel Money" : "MTN MoMo",
-            payment_reference: reference,
-            transaction_reference: reference,
-            deleted_at: null,
-          });
+          const insertResult = await withTimeout(
+            admin.from("fee_payments").insert({
+              student_id: childId,
+              school_id: schoolId,
+              amount: paidAmount,
+              amount_paid: paidAmount,
+              payment_date: new Date().toISOString(),
+              payment_method: provider === "airtel" ? "Airtel Money" : "MTN MoMo",
+              payment_reference: reference,
+              transaction_reference: reference,
+              deleted_at: null,
+            }),
+            15000,
+            timeoutFallback(),
+          );
+
+          const insertErr = insertResult?.error;
+          if ((insertResult as { status?: number })?.status === 408) {
+            logger.error("[parent/fee-payment] Record payment timed out for reference:", reference);
+            return NextResponse.json(
+              {
+                success: false,
+                error: "Payment was successful but confirmation timed out. Check the payments list before retrying.",
+              },
+              { status: 504 },
+            );
+          }
 
           if (insertErr) {
             logger.error("[parent/fee-payment] Failed to record payment:", insertErr);

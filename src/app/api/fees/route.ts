@@ -10,6 +10,7 @@ import {
   createServiceRoleClientOrThrow,
 } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
+import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import { requireModuleEntitlement } from "@/lib/subscription-guard";
 
 const FEE_MGMT_ROLES = ["super_admin", "school_admin", "admin", "headmaster", "secretary", "bursar"];
@@ -63,7 +64,11 @@ export async function GET(request: NextRequest) {
       query = query.eq("academic_year", academicYear);
     }
 
-    const { data: fees, count, error } = await query.range(offset, offset + limit - 1);
+    const {
+      data: fees,
+      count,
+      error,
+    } = await withTimeout(query.range(offset, offset + limit - 1), 15000, timeoutFallback());
 
     if (error) {
       logger.error("Failed to fetch fee structures:", error);
@@ -130,7 +135,11 @@ export async function POST(request: NextRequest) {
       due_date: feeData.due_date || null,
     };
 
-    const { data, error } = await supabase.from("fee_structure").insert(payload).select("id, name, amount").single();
+    const { data, error } = await withTimeout(
+      supabase.from("fee_structure").insert(payload).select("id, name, amount").single(),
+      15000,
+      timeoutFallback(),
+    );
 
     if (error) {
       if (error.code === "23505") {

@@ -10,6 +10,7 @@ import {
   createServiceRoleClientOrThrow,
 } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
+import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import { requireModuleEntitlement } from "@/lib/subscription-guard";
 
 const STUDENT_MGMT_ROLES = ["super_admin", "school_admin", "admin", "headmaster", "secretary"];
@@ -168,7 +169,11 @@ export async function POST(request: NextRequest) {
       status: studentData.status || "active",
     };
 
-    const { data, error } = await supabase.from("students").insert(payload).select("id, student_number").single();
+    const { data, error } = await withTimeout(
+      supabase.from("students").insert(payload).select("id, student_number").single(),
+      15000,
+      timeoutFallback(),
+    );
 
     if (error) {
       logger.error("[API Students] Insert failed:", error);
