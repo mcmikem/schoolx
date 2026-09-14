@@ -57,6 +57,8 @@ export default function MobileBottomNav() {
     return { label: "Open Dashboard", href: "/dashboard", icon: "dashboard" };
   }, [pathname, role, canUseStudents, canUseAttendance, canUseFees, canUseMessages]);
 
+  const quickActive = isActive(quickStep.href);
+
   return (
     <nav className="mobile-bottom-nav" aria-label="Mobile navigation">
       {/* Home */}
@@ -74,8 +76,10 @@ export default function MobileBottomNav() {
       {/* Role-aware quick action stays in the same rhythm as the other destinations. */}
       <Link
         href={quickStep.href}
-        className="mobile-nav-item mobile-nav-action"
+        className={`mobile-nav-item mobile-nav-action${quickActive ? " active" : ""}`}
         aria-label={quickStep.label}
+        aria-current={quickActive ? "page" : undefined}
+        title={quickStep.label}
         onClick={() => {
           try {
             navigator.vibrate?.(10);
@@ -84,6 +88,7 @@ export default function MobileBottomNav() {
       >
         <MaterialIcon icon={quickStep.icon} style={{ fontSize: 22 }} />
         <span>{quickStep.label}</span>
+        {quickActive && <span className="mobile-nav-dot" aria-hidden />}
       </Link>
 
       {/* Fees */}
@@ -93,7 +98,7 @@ export default function MobileBottomNav() {
       {/* More */}
       <button
         type="button"
-        className={`mobile-nav-item`}
+        className="mobile-nav-item"
         onClick={() => {
           try {
             navigator.vibrate?.(10);
@@ -101,6 +106,7 @@ export default function MobileBottomNav() {
           openSidebar();
         }}
         aria-label="Open more pages"
+        title="More pages"
       >
         <MaterialIcon icon="apps" style={{ fontSize: 22 }} />
         <span>More</span>
@@ -115,6 +121,7 @@ function NavItem({ href, icon, label, active }: { href: string; icon: string; la
       href={href}
       className={`mobile-nav-item${active ? " active" : ""}`}
       aria-current={active ? "page" : undefined}
+      title={label}
     >
       <MaterialIcon icon={icon} style={{ fontSize: 22 }} />
       <span>{label}</span>

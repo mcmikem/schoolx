@@ -1,18 +1,27 @@
 "use client";
 
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
 import { supabase } from "@/lib/supabase";
 import { offlineDB, useOnlineStatus } from "@/lib/offline";
 import { useToast } from "@/components/Toast";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import MaterialIcon from "@/components/MaterialIcon";
 import { format } from "date-fns";
-import Image from "next/image";
 import { logger } from "@/lib/logger";
 import type { Html5Qrcode } from "html5-qrcode";
 import Link from "next/link";
+import {
+  getCartKey,
+  formatQty,
+  parseQtyInput,
+  clampQty,
+  calcChange,
+  validateCashCheckout,
+  validateWalletCheckout,
+} from "@/lib/pos-utils";
 
 interface POSItem {
   id: string;
@@ -21,10 +30,13 @@ interface POSItem {
   category: string;
   image_url?: string;
   stock: number;
+  unit?: string;
+  variant?: string | null;
 }
 
 interface CartItem extends POSItem {
   quantity: number;
+  cartKey: string;
 }
 
 interface ScannedStudent {
@@ -39,6 +51,7 @@ interface ScannedStudent {
 export default function CanteenPOSPage() {
   const { school, user } = useAuth();
   const { academicYear } = useAcademic();
+  void academicYear;
   const toast = useToast();
   const [items, setItems] = useState<POSItem[]>([]);
   const [categories, setCategories] = useState<string[]>(["All"]);
@@ -50,7 +63,13 @@ export default function CanteenPOSPage() {
   const [showScanner, setShowScanner] = useState(false);
   const [manualStudentNum, setManualStudentNum] = useState("");
   const [scannerError, setScannerError] = useState<string | null>(null);
+  const [cashTendered, setCashTendered] = useState("");
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<{ key: string; name: string } | null>(null);
+  const [qtyDrafts, setQtyDrafts] = useState<Record<string, string>>({});
   const scannerRef = useRef<Html5Qrcode | null>(null);
+  const checkoutButtonRef = useRef<HTMLButtonElement | null>(null);
 
   const isOnline = useOnlineStatus();
 
@@ -93,33 +112,176 @@ export default function CanteenPOSPage() {
     fetchInventory();
   }, [school?.id, isOnline, toast]);
 
-  const addToCart = (item: POSItem) => {
-    setCart((prev) => {
-      const existing = prev.find((i) => i.id === item.id);
-      const currentQty = existing?.quantity || 0;
-      if (currentQty >= Math.max(0, Number(item.stock || 0))) {
-        toast.warning(`${item.name} is out of stock`);
-        return prev;
-      }
+  const cartQtyByKey = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const line of cart) map.set(line.cartKey, line.quantity);
+    return map;
+  }, [cart]);
 
-      if (existing) {
-        return prev.map((i) => (i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i));
+  const addToCart = useCallback(
+    (item: POSItem, qty = 1) => {
+      const key = getCartKey(item);
+      setCart((prev) => {
+        const existing = prev.find((i) => i.cartKey === key);
+        const currentQty = existing?.quantity || 0;
+        const nextQty = Math.round((currentQty + qty) * 100) / 100;
+        const capped = clampQty(nextQty, Number(item.stock || 0));
+        if (capped <= currentQty) {
+          toast.warning(`${item.name} is out of stock`);
+          return prev;
+        }
+        if (capped < nextQty) {
+          toast.warning(`Only ${formatQty(capped)} × ${item.name} available`);
+        }
+        if (existing) {
+          return prev.map((i) => (i.cartKey === key ? { ...i, quantity: capped } : i));
+        }
+        return [...prev, { ...item, quantity: capped, cartKey: key }];
+      });
+      setQtyDrafts((prev) => {
+        if (!(key in prev)) return prev;
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    },
+    [toast],
+  );
+
+  const updateQuantity = useCallback(
+    (cartKey: string, nextQty: number) => {
+      const line = cart.find((i) => i.cartKey === cartKey);
+      if (!line) return;
+      if (!Number.isFinite(nextQty) || nextQty <= 0) {
+        setPendingDelete({ key: cartKey, name: line.name });
+        return;
       }
-      return [...prev, { ...item, quantity: 1 }];
+      const capped = clampQty(nextQty, Number(line.stock || 0));
+      if (capped <= 0) {
+        toast.warning(`${line.name} is out of stock`);
+        return;
+      }
+      if (capped < nextQty) {
+        toast.warning(`Only ${formatQty(capped)} × ${line.name} available`);
+      }
+      setCart((prev) => prev.map((i) => (i.cartKey === cartKey ? { ...i, quantity: capped } : i)));
+    },
+    [cart, toast],
+  );
+
+  const commitQtyDraft = useCallback(
+    (cartKey: string, raw: string) => {
+      const parsed = parseQtyInput(raw);
+      setQtyDrafts((prev) => {
+        const next = { ...prev };
+        delete next[cartKey];
+        return next;
+      });
+      if (parsed === null) {
+        toast.error("Enter a valid quantity greater than 0 (decimals allowed, e.g. 1.5)");
+        return;
+      }
+      updateQuantity(cartKey, parsed);
+    },
+    [toast, updateQuantity],
+  );
+
+  const requestRemove = useCallback((cartKey: string, name: string) => {
+    setPendingDelete({ key: cartKey, name });
+  }, []);
+
+  const confirmRemove = useCallback(() => {
+    if (!pendingDelete) return;
+    const key = pendingDelete.key;
+    setCart((prev) => prev.filter((i) => i.cartKey !== key));
+    setQtyDrafts((prev) => {
+      if (!(key in prev)) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
     });
-  };
+    setPendingDelete(null);
+  }, [pendingDelete]);
 
-  const removeFromCart = (id: string) => {
-    setCart((prev) => prev.filter((i) => i.id !== id));
-  };
+  const total = useMemo(() => cart.reduce((sum, item) => sum + item.price * item.quantity, 0), [cart]);
 
-  const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const tenderedValue = useMemo(() => {
+    const trimmed = cashTendered.trim();
+    if (!trimmed) return null;
+    const value = Number(trimmed);
+    return Number.isFinite(value) ? value : null;
+  }, [cashTendered]);
 
-  const handleCheckout = async () => {
+  const changeDue = useMemo(() => {
+    if (paymentMethod !== "cash" || tenderedValue === null) return null;
+    return calcChange(tenderedValue, total);
+  }, [paymentMethod, tenderedValue, total]);
+
+  const walletCheck = useMemo(() => {
+    if (paymentMethod !== "wallet") return { ok: true as const };
+    if (!student) return { ok: false as const, error: "Please scan student ID for wallet payment" };
+    return validateWalletCheckout({ total, balance: student.balance });
+  }, [paymentMethod, student, total]);
+
+  const openConfirm = useCallback(
+    (presetExactCash = false) => {
+      if (cart.length === 0) return;
+      setConfirmError(null);
+      if (paymentMethod === "cash" && presetExactCash) {
+        setCashTendered(String(Math.round(total * 100) / 100));
+      }
+      setShowConfirm(true);
+    },
+    [cart.length, paymentMethod, total],
+  );
+
+  // QuickSale: F2 opens the confirm modal with exact cash prefilled.
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "F2") {
+        event.preventDefault();
+        if (cart.length === 0 || loading || showConfirm || showScanner) return;
+        openConfirm(true);
+      }
+      if (event.key === "Escape" && showConfirm) {
+        setShowConfirm(false);
+        setConfirmError(null);
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [cart.length, loading, showConfirm, showScanner, openConfirm]);
+
+  // Return focus to the checkout button when the confirm modal closes.
+  useEffect(() => {
+    if (!showConfirm) {
+      checkoutButtonRef.current?.focus?.();
+    }
+  }, [showConfirm]);
+
+  const processSale = useCallback(async () => {
     if (cart.length === 0) return;
     if (paymentMethod === "wallet" && !student) {
-      toast.warning("Please scan student ID for wallet payment");
+      const message = "Please scan student ID for wallet payment";
+      setConfirmError(message);
+      toast.warning(message);
       return;
+    }
+    if (paymentMethod === "wallet" && student) {
+      const check = validateWalletCheckout({ total, balance: student.balance });
+      if (!check.ok) {
+        setConfirmError(check.error || "Insufficient wallet balance");
+        toast.error(check.error || "Insufficient wallet balance");
+        return;
+      }
+    }
+    if (paymentMethod === "cash") {
+      const check = validateCashCheckout({ total, tendered: tenderedValue, paymentMethod });
+      if (!check.ok) {
+        setConfirmError(check.error || "Insufficient cash received");
+        toast.error(check.error || "Insufficient cash received");
+        return;
+      }
     }
 
     setLoading(true);
@@ -143,6 +305,7 @@ export default function CanteenPOSPage() {
           name: i.name,
           quantity: i.quantity,
           price: i.price,
+          variant: i.variant ?? null,
         })),
         recorded_by: user?.id,
         created_at: new Date().toISOString(),
@@ -185,13 +348,35 @@ export default function CanteenPOSPage() {
 
       setCart([]);
       setStudent(null);
+      setCashTendered("");
+      setQtyDrafts({});
+      setShowConfirm(false);
+      setConfirmError(null);
       toast.success(isOnline ? "Sale recorded successfully!" : "Sale stored offline — will sync when connected");
     } catch (err: any) {
       toast.error(err.message || "Failed to process sale");
     } finally {
       setLoading(false);
     }
-  };
+  }, [cart, paymentMethod, student, tenderedValue, total, school?.id, user?.id, isOnline, toast]);
+
+  const handleCompleteOrder = useCallback(() => {
+    if (cart.length === 0 || loading) return;
+    if (paymentMethod === "wallet" && !student) {
+      toast.warning("Please scan student ID for wallet payment");
+      return;
+    }
+    openConfirm(false);
+  }, [cart.length, loading, paymentMethod, student, openConfirm, toast]);
+
+  const handleQuickSale = useCallback(() => {
+    if (cart.length === 0 || loading) return;
+    if (paymentMethod === "wallet" && !student) {
+      toast.warning("Please scan student ID for wallet payment");
+      return;
+    }
+    openConfirm(true);
+  }, [cart.length, loading, paymentMethod, student, openConfirm, toast]);
 
   // QR Scanner functions
   const startScanner = async () => {
@@ -290,32 +475,54 @@ export default function CanteenPOSPage() {
     setManualStudentNum("");
   };
 
+  const filteredItems = useMemo(
+    () => items.filter((i) => activeCategory === "All" || i.category === activeCategory),
+    [items, activeCategory],
+  );
+
+  const cashBlocked = paymentMethod === "cash" && tenderedValue !== null && tenderedValue < total && total > 0;
+  const walletBlocked =
+    paymentMethod === "wallet" && !!student && student.balance < total && total > 0 && cart.length > 0;
+
   return (
     <PageErrorBoundary>
       <div className="h-screen flex flex-col bg-slate-50 overflow-hidden">
         {/* POS Header */}
-        <div className="bg-white px-6 py-4 flex justify-between items-center border-b border-slate-100 shrink-0">
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-2xl bg-primary-800 text-white flex items-center justify-center font-black">
+        <div className="bg-white px-3 sm:px-6 py-3 sm:py-4 flex justify-between items-center gap-2 border-b border-slate-100 shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 rounded-2xl bg-primary-800 text-white flex items-center justify-center font-black shrink-0">
               <MaterialIcon icon="store" />
             </div>
-            <div>
-              <h1 className="text-xl font-black text-slate-800 tracking-tight">Canteen POS</h1>
-              <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
+            <div className="min-w-0">
+              <h1 className="text-lg sm:text-xl font-black text-slate-800 tracking-tight truncate">Canteen POS</h1>
+              <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest truncate">
                 {school?.name || "SkoolMate Canteen"}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+            <button
+              type="button"
+              onClick={handleQuickSale}
+              disabled={cart.length === 0 || loading}
+              title="QuickSale — open confirm with exact cash (F2)"
+              aria-label="QuickSale — open confirm with exact cash"
+              className="inline-flex items-center gap-2 rounded-xl bg-primary-800 px-3 py-2 text-xs font-black uppercase tracking-wider text-white shadow-md hover:bg-primary-900 active:scale-95 transition-all disabled:opacity-50 min-h-[44px] touch-manipulation"
+            >
+              <MaterialIcon icon="bolt" style={{ fontSize: 16 }} />
+              <span className="hidden sm:inline">QuickSale</span>
+              <kbd className="hidden md:inline rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-bold">F2</kbd>
+            </button>
             <Link
               href="/dashboard/store/meal-scan"
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-100"
+              aria-label="Open meal scan terminal"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold uppercase tracking-wider text-slate-700 hover:bg-slate-100 min-h-[44px] touch-manipulation"
             >
               <MaterialIcon icon="restaurant" className="text-sm" />
-              Meal Scan Terminal
+              <span className="hidden lg:inline">Meal Scan Terminal</span>
             </Link>
-            <div className="text-right flex items-center gap-4">
+            <div className="text-right hidden md:flex items-center gap-4">
               {!isOnline && (
                 <div className="flex items-center gap-2 text-amber-500 bg-amber-50 px-3 py-1.5 rounded-full border border-amber-100 animate-pulse">
                   <MaterialIcon icon="wifi_off" style={{ fontSize: 16 }} />
@@ -323,30 +530,37 @@ export default function CanteenPOSPage() {
                 </div>
               )}
 
-              <div>
+              <div className="hidden xl:block">
                 <p className="text-xs font-black text-slate-400 uppercase tracking-widest leading-none mb-1">
                   Terminal
                 </p>
                 <p className="text-sm font-bold text-slate-800">Counter 01</p>
               </div>
             </div>
-            <div className="flex items-center gap-3 px-4 py-2 bg-slate-100 rounded-2xl">
+            <div className="hidden sm:flex items-center gap-3 px-4 py-2 bg-slate-100 rounded-2xl">
               <MaterialIcon icon="schedule" className="text-primary-700" />
               <p className="text-xs font-bold text-slate-800">{format(new Date(), "HH:mm")}</p>
             </div>
           </div>
         </div>
 
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
           {/* Left: Inventory Grid */}
-          <div className="flex-1 p-6 flex flex-col gap-6 overflow-hidden">
+          <div className="flex-1 p-4 sm:p-6 flex flex-col gap-4 sm:gap-6 overflow-hidden min-h-0">
             {/* Categories */}
-            <div className="flex gap-3 overflow-x-auto pb-2 custom-scrollbar shrink-0">
+            <div
+              className="flex gap-2 sm:gap-3 overflow-x-auto pb-2 custom-scrollbar shrink-0"
+              role="tablist"
+              aria-label="Product categories"
+            >
               {categories.map((cat) => (
                 <button
                   key={cat}
+                  type="button"
+                  role="tab"
+                  aria-selected={activeCategory === cat}
                   onClick={() => setActiveCategory(cat)}
-                  className={`px-6 py-2.5 rounded-2xl text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap ${
+                  className={`px-4 sm:px-6 py-2.5 rounded-2xl text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap min-h-[44px] touch-manipulation focus-visible:outline-2 focus-visible:outline-primary-800 ${
                     activeCategory === cat
                       ? "bg-primary-800 text-white shadow-lg shadow-primary-800/20"
                       : "bg-white text-slate-500 hover:bg-slate-50 border border-slate-100"
@@ -358,43 +572,81 @@ export default function CanteenPOSPage() {
             </div>
 
             {/* Grid */}
-            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-                {items
-                  .filter((i) => activeCategory === "All" || i.category === activeCategory)
-                  .map((item) => (
+            <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar min-h-0">
+              <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+                {filteredItems.map((item) => {
+                  const key = getCartKey(item);
+                  const inCartQty = cartQtyByKey.get(key) || 0;
+                  const outOfStock = Number(item.stock || 0) <= 0 || inCartQty >= Math.max(0, Number(item.stock || 0));
+                  const variantLabel = item.variant ? String(item.variant) : null;
+                  return (
                     <button
-                      key={item.id}
+                      key={key}
+                      type="button"
                       onClick={() => addToCart(item)}
-                      className="bg-white p-4 rounded-3xl border border-slate-100 hover:border-primary-100 transition-all group flex flex-col items-start text-left relative overflow-hidden active:scale-95"
+                      disabled={Number(item.stock || 0) <= 0}
+                      aria-pressed={inCartQty > 0}
+                      aria-label={`${item.name}${variantLabel ? `, variant ${variantLabel}` : ""}, UGX ${Number(item.price || 0).toLocaleString()}${inCartQty > 0 ? `, ${formatQty(inCartQty)} in cart` : ""}${Number(item.stock || 0) <= 0 ? ", out of stock" : ""}`}
+                      className="bg-white p-4 rounded-3xl border border-slate-100 hover:border-primary-100 transition-all group flex flex-col items-start text-left relative overflow-hidden active:scale-95 min-h-[132px] touch-manipulation focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-800 disabled:opacity-60 disabled:active:scale-100"
                     >
-                      <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-primary-800 mb-4 group-hover:bg-primary-50">
+                      <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-primary-800 mb-3 group-hover:bg-primary-50">
                         <MaterialIcon icon="restaurant" />
                       </div>
-                      <p className="text-sm font-black text-slate-800 leading-tight mb-1">{item.name}</p>
-                      <p className="text-xs font-bold text-primary-700">UGX {item.price.toLocaleString()}</p>
+                      <p className="text-sm font-black text-slate-800 leading-tight mb-1 pr-14">{item.name}</p>
+                      {variantLabel && (
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
+                          {variantLabel}
+                        </p>
+                      )}
+                      {item.unit && <p className="text-[10px] font-bold text-slate-400 mb-1">per {item.unit}</p>}
+                      <p className="text-xs font-bold text-primary-700">
+                        UGX {Number(item.price || 0).toLocaleString()}
+                      </p>
 
                       <div className="absolute top-4 right-4 text-[9px] font-black uppercase text-slate-400 tracking-tighter">
-                        Stock: {item.stock > 0 ? item.stock : "OUT"}
+                        Stock: {Number(item.stock || 0) > 0 ? item.stock : "OUT"}
                       </div>
+                      {inCartQty > 0 && (
+                        <div
+                          className="absolute bottom-3 right-3 rounded-full bg-primary-800 text-white text-[10px] font-black px-2.5 py-1 shadow-md"
+                          aria-hidden="true"
+                        >
+                          {formatQty(inCartQty)} in cart
+                        </div>
+                      )}
+                      {outOfStock && Number(item.stock || 0) > 0 && (
+                        <div
+                          className="absolute bottom-3 right-3 rounded-full bg-amber-100 text-amber-800 text-[10px] font-black px-2.5 py-1"
+                          aria-hidden="true"
+                        >
+                          Max
+                        </div>
+                      )}
                     </button>
-                  ))}
+                  );
+                })}
               </div>
+              {filteredItems.length === 0 && (
+                <div className="py-16 text-center text-sm font-semibold text-slate-400">
+                  No items in this category yet.
+                </div>
+              )}
             </div>
           </div>
 
           {/* Right: Cart & Identity */}
-          <div className="w-full max-w-[400px] bg-white border-l border-slate-100 flex flex-col shrink-0 flex-1 lg:flex-none">
+          <div className="w-full lg:max-w-[400px] bg-white border-t lg:border-t-0 lg:border-l border-slate-100 flex flex-col shrink-0 max-h-[52vh] lg:max-h-none lg:flex-1 xl:flex-none overflow-y-auto lg:overflow-visible">
             {/* Student Verification */}
-            <div className="p-6 border-b border-slate-100">
+            <div className="p-4 sm:p-6 border-b border-slate-100">
               <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">
                 Customer Identity
               </h3>
               {!student ? (
                 <div className="space-y-3">
                   <button
+                    type="button"
                     onClick={startScanner}
-                    className="w-full p-4 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-center space-y-3 hover:bg-slate-50/50 transition-colors cursor-pointer group"
+                    className="w-full p-4 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-center space-y-3 hover:bg-slate-50/50 transition-colors cursor-pointer group min-h-[44px] touch-manipulation focus-visible:outline-2 focus-visible:outline-primary-800"
                   >
                     <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 group-hover:text-primary-800 transition-colors">
                       <MaterialIcon icon="qr_code_scanner" style={{ fontSize: 32 }} />
@@ -411,11 +663,13 @@ export default function CanteenPOSPage() {
                       onChange={(e) => setManualStudentNum(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && handleManualLookup()}
                       placeholder="Or type student number..."
-                      className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      aria-label="Student number"
+                      className="flex-1 px-3 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 min-h-[44px]"
                     />
                     <button
+                      type="button"
                       onClick={handleManualLookup}
-                      className="px-4 py-2 bg-primary-800 text-white text-sm font-bold rounded-xl hover:bg-primary-900 transition-colors"
+                      className="px-4 py-2 bg-primary-800 text-white text-sm font-bold rounded-xl hover:bg-primary-900 transition-colors min-h-[44px] touch-manipulation"
                     >
                       Look up
                     </button>
@@ -438,8 +692,10 @@ export default function CanteenPOSPage() {
                       </p>
                     </div>
                     <button
+                      type="button"
                       onClick={() => setStudent(null)}
-                      className="ml-auto p-1.5 hover:bg-white/20 rounded-lg shrink-0"
+                      aria-label="Clear customer"
+                      className="ml-auto p-2 hover:bg-white/20 rounded-lg shrink-0 min-h-[44px] min-w-[44px] touch-manipulation"
                     >
                       <MaterialIcon icon="close" style={{ fontSize: 16 }} />
                     </button>
@@ -455,39 +711,98 @@ export default function CanteenPOSPage() {
                       </p>
                     </div>
                   </div>
+                  {walletBlocked && (
+                    <p role="alert" className="mt-3 text-xs font-bold text-amber-200">
+                      Insufficient wallet balance for this order.
+                    </p>
+                  )}
                 </div>
               )}
             </div>
 
             {/* Cart Items */}
-            <div className="flex-1 flex flex-col overflow-hidden p-6 gap-4">
+            <div className="flex-1 flex flex-col overflow-hidden p-4 sm:p-6 gap-4 min-h-0">
               <div className="flex justify-between items-center">
                 <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Current Order</h3>
-                <p className="text-[10px] font-bold text-slate-400 italic">{cart.length} items</p>
+                <p className="text-[10px] font-bold text-slate-400 italic">{cart.length} lines</p>
               </div>
 
-              <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-3">
-                {cart.map((item) => (
-                  <div key={item.id} className="flex items-center gap-3 animate-in slide-in-from-right duration-300">
-                    <div className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-primary-800 font-bold text-xs ring-1 ring-slate-100">
-                      {item.quantity}x
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-bold text-slate-800 truncate">{item.name}</p>
-                      <p className="text-[10px] text-slate-400 font-bold tracking-tighter">
-                        UGX {item.price.toLocaleString()}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => removeFromCart(item.id)}
-                      className="p-1.5 text-slate-300 hover:text-red-500 transition-colors"
+              <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-3 min-h-0">
+                {cart.map((item) => {
+                  const draft = qtyDrafts[item.cartKey];
+                  return (
+                    <div
+                      key={item.cartKey}
+                      className="flex items-center gap-2 animate-in slide-in-from-right duration-300"
                     >
-                      <MaterialIcon icon="delete_outline" style={{ fontSize: 18 }} />
-                    </button>
-                  </div>
-                ))}
+                      <div
+                        className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center text-primary-800 font-bold text-xs ring-1 ring-slate-100 shrink-0"
+                        aria-label={`${formatQty(item.quantity)} times ${item.name}`}
+                      >
+                        {formatQty(item.quantity)}x
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-slate-800 truncate">
+                          {item.name}
+                          {item.variant ? ` · ${item.variant}` : ""}
+                        </p>
+                        <p className="text-[10px] text-slate-400 font-bold tracking-tighter">
+                          UGX {Number(item.price || 0).toLocaleString()}
+                        </p>
+                        <div className="mt-1.5 flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => updateQuantity(item.cartKey, Math.round((item.quantity - 1) * 100) / 100)}
+                            aria-label={`Decrease quantity of ${item.name}`}
+                            className="w-9 h-9 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 active:scale-95 touch-manipulation"
+                          >
+                            <MaterialIcon icon="remove" style={{ fontSize: 16 }} />
+                          </button>
+                          <input
+                            type="number"
+                            inputMode="decimal"
+                            step="0.5"
+                            min="0.5"
+                            max={item.stock}
+                            value={draft ?? formatQty(item.quantity)}
+                            aria-label={`Quantity of ${item.name}`}
+                            onFocus={(e) => {
+                              setQtyDrafts((prev) => ({ ...prev, [item.cartKey]: formatQty(item.quantity) }));
+                              requestAnimationFrame(() => e.target.select());
+                            }}
+                            onChange={(e) => setQtyDrafts((prev) => ({ ...prev, [item.cartKey]: e.target.value }))}
+                            onBlur={(e) => commitQtyDraft(item.cartKey, e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                commitQtyDraft(item.cartKey, (e.target as HTMLInputElement).value);
+                              }
+                            }}
+                            className="w-16 px-1 py-1 text-center text-xs font-bold border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 min-h-[36px]"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => updateQuantity(item.cartKey, Math.round((item.quantity + 1) * 100) / 100)}
+                            aria-label={`Increase quantity of ${item.name}`}
+                            className="w-9 h-9 rounded-lg border border-slate-200 flex items-center justify-center text-slate-600 hover:bg-slate-50 active:scale-95 touch-manipulation"
+                          >
+                            <MaterialIcon icon="add" style={{ fontSize: 16 }} />
+                          </button>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => requestRemove(item.cartKey, item.name)}
+                        aria-label={`Remove ${item.name} from cart`}
+                        className="p-2.5 text-slate-300 hover:text-red-500 transition-colors min-h-[44px] min-w-[44px] touch-manipulation"
+                      >
+                        <MaterialIcon icon="delete_outline" style={{ fontSize: 18 }} />
+                      </button>
+                    </div>
+                  );
+                })}
                 {cart.length === 0 && (
-                  <div className="h-full flex flex-col items-center justify-center text-center space-y-2 py-20 opacity-30">
+                  <div className="h-full flex flex-col items-center justify-center text-center space-y-2 py-12 opacity-30">
                     <MaterialIcon icon="shopping_basket" style={{ fontSize: 48 }} />
                     <p className="text-xs font-bold tracking-tight">Cart is empty</p>
                   </div>
@@ -496,48 +811,267 @@ export default function CanteenPOSPage() {
             </div>
 
             {/* Checkout Footer */}
-            <div className="p-6 bg-slate-50/50 space-y-6 shrink-0 border-t border-slate-100">
-              <div className="flex bg-white rounded-2xl p-1 shadow-sm border border-slate-100">
+            <div className="p-4 sm:p-6 bg-slate-50/50 space-y-4 shrink-0 border-t border-slate-100">
+              <div
+                className="flex bg-white rounded-2xl p-1 shadow-sm border border-slate-100"
+                role="group"
+                aria-label="Payment method"
+              >
                 <button
+                  type="button"
                   onClick={() => setPaymentMethod("wallet")}
-                  className={`flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${paymentMethod === "wallet" ? "bg-primary-800 text-white shadow-md" : "text-slate-500 hover:text-slate-800"}`}
+                  aria-pressed={paymentMethod === "wallet"}
+                  className={`flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 min-h-[44px] touch-manipulation ${paymentMethod === "wallet" ? "bg-primary-800 text-white shadow-md" : "text-slate-500 hover:text-slate-800"}`}
                 >
                   <MaterialIcon icon="account_balance_wallet" style={{ fontSize: 16 }} />
                   Wallet
                 </button>
                 <button
+                  type="button"
                   onClick={() => setPaymentMethod("cash")}
-                  className={`flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${paymentMethod === "cash" ? "bg-primary-800 text-white shadow-md" : "text-slate-500 hover:text-slate-800"}`}
+                  aria-pressed={paymentMethod === "cash"}
+                  className={`flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 min-h-[44px] touch-manipulation ${paymentMethod === "cash" ? "bg-primary-800 text-white shadow-md" : "text-slate-500 hover:text-slate-800"}`}
                 >
                   <MaterialIcon icon="payments" style={{ fontSize: 16 }} />
                   Cash
                 </button>
               </div>
 
+              {paymentMethod === "cash" && (
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="pos-cash-tendered"
+                    className="text-[10px] font-black uppercase tracking-widest text-slate-400"
+                  >
+                    Cash received (UGX)
+                  </label>
+                  <input
+                    id="pos-cash-tendered"
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    value={cashTendered}
+                    onChange={(e) => setCashTendered(e.target.value)}
+                    placeholder={`Exact: ${total.toLocaleString()}`}
+                    className="w-full px-3 py-2.5 text-sm font-bold border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500 min-h-[44px]"
+                  />
+                  {tenderedValue !== null && total > 0 && (
+                    <p
+                      role="status"
+                      className={`text-xs font-bold ${changeDue !== null && changeDue < 0 ? "text-red-600" : "text-emerald-600"}`}
+                    >
+                      {changeDue !== null && changeDue < 0
+                        ? `Short by UGX ${Math.abs(changeDue).toLocaleString()} — cannot complete`
+                        : `Change: UGX ${(changeDue || 0).toLocaleString()}`}
+                    </p>
+                  )}
+                </div>
+              )}
+              {walletBlocked && (
+                <p role="alert" className="text-xs font-bold text-red-600">
+                  Wallet balance UGX {student?.balance.toLocaleString()} is below the total UGX {total.toLocaleString()}
+                  .
+                </p>
+              )}
+
               <div className="space-y-2">
                 <div className="flex justify-between items-center px-1">
                   <p className="text-[11px] font-black uppercase text-slate-400 tracking-widest">Grand Total</p>
                   <p className="text-2xl font-black text-slate-800">UGX {total.toLocaleString()}</p>
                 </div>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={handleQuickSale}
+                    disabled={cart.length === 0 || loading}
+                    title="QuickSale (F2): confirm with exact cash"
+                    className="flex-1 py-4 px-2 rounded-2xl font-black uppercase tracking-wider text-xs border-2 border-primary-800 text-primary-800 hover:bg-primary-50 active:scale-[0.98] transition-all disabled:opacity-50 min-h-[52px] touch-manipulation"
+                  >
+                    QuickSale · F2
+                  </button>
+                  <button
+                    ref={checkoutButtonRef}
+                    type="button"
+                    onClick={handleCompleteOrder}
+                    disabled={cart.length === 0 || loading || cashBlocked || walletBlocked}
+                    className="flex-[2] py-4 bg-primary-800 text-white rounded-2xl font-black uppercase tracking-[2px] shadow-xl shadow-primary-800/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:scale-100 flex items-center justify-center gap-3 min-h-[52px] touch-manipulation"
+                  >
+                    {loading ? (
+                      <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <MaterialIcon icon="bolt" />
+                        Complete Order
+                      </>
+                    )}
+                  </button>
+                </div>
+                {(cashBlocked || walletBlocked) && (
+                  <p role="alert" className="text-[11px] font-bold text-red-600 text-center">
+                    {cashBlocked ? "Add enough cash to complete this order." : "Top up the wallet or switch to Cash."}
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Confirm sale modal — returns to cart on cancel */}
+      {showConfirm && (
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
+          <div
+            className="absolute inset-0 bg-black/60"
+            onClick={() => {
+              setShowConfirm(false);
+              setConfirmError(null);
+            }}
+            aria-hidden="true"
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="pos-confirm-title"
+            className="relative w-full max-w-md max-h-[calc(100vh-1.5rem)] overflow-y-auto my-auto bg-white rounded-3xl shadow-2xl border border-slate-100"
+          >
+            <div className="p-5 sm:p-6 space-y-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <h2 id="pos-confirm-title" className="text-lg font-black text-slate-800">
+                    Confirm sale
+                  </h2>
+                  <p className="text-xs text-slate-500 font-medium">Review the order before recording it.</p>
+                </div>
                 <button
-                  onClick={handleCheckout}
-                  disabled={cart.length === 0 || loading}
-                  className="w-full py-4 bg-primary-800 text-white rounded-2xl font-black uppercase tracking-[2px] shadow-xl shadow-primary-800/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:scale-100 flex items-center justify-center gap-3"
+                  type="button"
+                  onClick={() => {
+                    setShowConfirm(false);
+                    setConfirmError(null);
+                  }}
+                  aria-label="Back to cart"
+                  className="p-2.5 hover:bg-slate-100 rounded-xl min-h-[44px] min-w-[44px] touch-manipulation"
+                >
+                  <MaterialIcon icon="close" className="text-slate-500" />
+                </button>
+              </div>
+
+              <div className="max-h-48 overflow-y-auto space-y-2 pr-1">
+                {cart.map((line) => (
+                  <div key={line.cartKey} className="flex justify-between gap-3 text-sm">
+                    <p className="font-bold text-slate-700 truncate">
+                      {formatQty(line.quantity)}× {line.name}
+                      {line.variant ? ` · ${line.variant}` : ""}
+                    </p>
+                    <p className="font-black text-slate-800 shrink-0">
+                      UGX {(line.price * line.quantity).toLocaleString()}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="rounded-2xl bg-slate-50 p-4 space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="font-bold text-slate-500">Payment</span>
+                  <span className="font-black uppercase text-slate-800">{paymentMethod}</span>
+                </div>
+                {student && (
+                  <div className="flex justify-between">
+                    <span className="font-bold text-slate-500">Customer</span>
+                    <span className="font-bold text-slate-800 truncate ml-4">
+                      {student.first_name} {student.last_name}
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between text-base">
+                  <span className="font-black text-slate-500 uppercase">Total</span>
+                  <span className="font-black text-slate-900">UGX {total.toLocaleString()}</span>
+                </div>
+                {paymentMethod === "cash" ? (
+                  <>
+                    <label
+                      htmlFor="pos-confirm-tendered"
+                      className="block text-[10px] font-black uppercase tracking-widest text-slate-400 pt-1"
+                    >
+                      Cash received (UGX)
+                    </label>
+                    <input
+                      id="pos-confirm-tendered"
+                      type="number"
+                      inputMode="numeric"
+                      min={0}
+                      value={cashTendered}
+                      onChange={(e) => {
+                        setCashTendered(e.target.value);
+                        setConfirmError(null);
+                      }}
+                      className="w-full px-3 py-2.5 text-sm font-bold border border-slate-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 min-h-[44px]"
+                    />
+                    <div className="flex justify-between">
+                      <span className="font-bold text-slate-500">Change due</span>
+                      <span
+                        role="status"
+                        className={`font-black ${(changeDue ?? 0) < 0 ? "text-red-600" : "text-emerald-600"}`}
+                      >
+                        UGX {(changeDue ?? 0).toLocaleString()}
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex justify-between">
+                    <span className="font-bold text-slate-500">Wallet balance</span>
+                    <span className="font-black text-slate-800">UGX {(student?.balance || 0).toLocaleString()}</span>
+                  </div>
+                )}
+              </div>
+
+              {confirmError && (
+                <p
+                  role="alert"
+                  className="text-sm font-bold text-red-600 rounded-xl bg-red-50 border border-red-100 px-3 py-2"
+                >
+                  {confirmError}
+                </p>
+              )}
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowConfirm(false);
+                    setConfirmError(null);
+                  }}
+                  className="flex-1 py-3 rounded-2xl border-2 border-slate-200 font-black uppercase text-xs tracking-wider text-slate-600 hover:bg-slate-50 active:scale-[0.98] min-h-[48px] touch-manipulation"
+                >
+                  Back to cart
+                </button>
+                <button
+                  type="button"
+                  onClick={processSale}
+                  disabled={loading || cashBlocked || walletBlocked}
+                  className="flex-[2] py-3 rounded-2xl bg-primary-800 text-white font-black uppercase text-xs tracking-wider shadow-lg hover:bg-primary-900 active:scale-[0.98] disabled:opacity-50 min-h-[48px] touch-manipulation flex items-center justify-center gap-2"
                 >
                   {loading ? (
                     <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   ) : (
-                    <>
-                      <MaterialIcon icon="bolt" />
-                      Complete Order
-                    </>
+                    "Confirm & record"
                   )}
                 </button>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      )}
+
+      <ConfirmDialog
+        isOpen={!!pendingDelete}
+        onClose={() => setPendingDelete(null)}
+        onConfirm={confirmRemove}
+        title="Remove from cart?"
+        message={pendingDelete ? `Remove ${pendingDelete.name} from this order? This cannot be undone.` : ""}
+        confirmLabel="Remove"
+        cancelLabel="Keep"
+        variant="danger"
+      />
 
       {/* QR Scanner Modal */}
       {showScanner && (
@@ -545,7 +1079,12 @@ export default function CanteenPOSPage() {
           <div className="bg-white rounded-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
             <div className="flex items-center justify-between p-4 border-b border-slate-100">
               <h3 className="text-lg font-bold text-slate-800">Scan Student ID</h3>
-              <button onClick={stopScanner} className="p-2 hover:bg-slate-100 rounded-lg">
+              <button
+                type="button"
+                onClick={stopScanner}
+                aria-label="Close scanner"
+                className="p-2.5 hover:bg-slate-100 rounded-lg min-h-[44px] min-w-[44px] touch-manipulation"
+              >
                 <MaterialIcon icon="close" className="text-slate-500" />
               </button>
             </div>

@@ -8,13 +8,7 @@ interface PageHeaderProps {
   variant?: "standard" | "premium";
 }
 
-export function PageHeader({
-  title,
-  subtitle,
-  actions,
-  children,
-  variant = "standard",
-}: PageHeaderProps) {
+export function PageHeader({ title, subtitle, actions, children, variant = "standard" }: PageHeaderProps) {
   if (variant === "premium") {
     return (
       <div className="relative overflow-hidden rounded-[var(--r2)] border border-[var(--border)] bg-[linear-gradient(135deg,rgba(255,255,255,0.96)_0%,rgba(240,247,255,0.98)_54%,rgba(236,253,245,0.92)_100%)] p-5 sm:p-6 mb-8 shadow-[var(--sh2)] motif-kente-border">
@@ -30,13 +24,9 @@ export function PageHeader({
                 School command center
               </span>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-heading text-[var(--t1)] tracking-tight leading-tight">
-              {title}
-            </h1>
+            <h1 className="text-2xl sm:text-3xl font-heading text-[var(--t1)] tracking-tight leading-tight">{title}</h1>
             {subtitle && (
-              <p className="text-sm sm:text-[15px] font-medium text-[var(--t3)] mt-2 max-w-3xl">
-                {subtitle}
-              </p>
+              <p className="text-sm sm:text-[15px] font-medium text-[var(--t3)] mt-2 max-w-3xl">{subtitle}</p>
             )}
           </div>
           {actions && (
@@ -53,14 +43,10 @@ export function PageHeader({
   return (
     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-heading text-[var(--t1)] tracking-tight leading-tight">
-          {title}
-        </h1>
-        {subtitle && (
-          <p className="text-sm text-[var(--t3)] mt-1">{subtitle}</p>
-        )}
+        <h1 className="text-2xl sm:text-3xl font-heading text-[var(--t1)] tracking-tight leading-tight">{title}</h1>
+        {subtitle && <p className="text-sm text-[var(--t3)] mt-1">{subtitle}</p>}
       </div>
-      {actions && <div className="flex items-center gap-3">{actions}</div>}
+      {actions && <div className="flex items-center gap-2 sm:gap-3 flex-wrap">{actions}</div>}
       {children}
     </div>
   );
@@ -73,20 +59,13 @@ interface PageSectionProps {
   className?: string;
 }
 
-export function PageSection({
-  title,
-  description,
-  children,
-  className = "",
-}: PageSectionProps) {
+export function PageSection({ title, description, children, className = "" }: PageSectionProps) {
   return (
     <div className={className}>
       {title && (
         <div className="mb-4">
           <h2 className="text-base font-semibold text-[var(--t1)]">{title}</h2>
-          {description && (
-            <p className="text-sm text-[var(--t3)] mt-0.5">{description}</p>
-          )}
+          {description && <p className="text-sm text-[var(--t3)] mt-0.5">{description}</p>}
         </div>
       )}
       {children}

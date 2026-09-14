@@ -323,16 +323,30 @@ function HeadmasterDashboardContent() {
                 />
                 <StatCard
                   label="Attendance today"
-                  value={statsLoading ? "—" : stats.presentToday > 0 ? `${attendanceRate}%` : "Not recorded"}
+                  value={
+                    statsLoading || stats.presentToday < 0
+                      ? "—"
+                      : stats.presentToday > 0
+                        ? `${attendanceRate}%`
+                        : "Not recorded"
+                  }
                   subValue={
-                    statsLoading
-                      ? undefined
+                    statsLoading || stats.presentToday < 0
+                      ? "Updating…"
                       : stats.presentToday > 0
                         ? `${stats.presentToday} present`
                         : "Not taken yet"
                   }
                   icon="how_to_reg"
-                  accentColor={stats.presentToday > 0 ? (attendanceRate >= 80 ? "green" : "amber") : "red"}
+                  accentColor={
+                    statsLoading || stats.presentToday < 0
+                      ? "amber"
+                      : stats.presentToday > 0
+                        ? attendanceRate >= 80
+                          ? "green"
+                          : "amber"
+                        : "red"
+                  }
                   loading={statsLoading}
                   href="/dashboard/attendance"
                   hrefLabel="Open attendance"

@@ -103,7 +103,7 @@ function NotificationsPanel({
   if (!open) return null;
 
   return (
-    <div className="absolute top-full right-0 mt-2 bg-white border border-[var(--border)] rounded-[20px] shadow-[var(--sh3)] min-w-[300px] max-w-[360px] z-100 overflow-hidden">
+    <div className="absolute top-full right-0 mt-2 bg-[var(--surface)] border border-[var(--border)] rounded-[20px] shadow-[var(--sh3)] min-w-[300px] max-w-[min(360px,calc(100vw-2rem))] z-50 overflow-hidden isolate">
       <div className="px-4 py-3 border-b border-[var(--border)] flex items-center justify-between">
         <span className="text-[13px] font-semibold text-[var(--t1)]">Notifications</span>
         <span className="text-[11px] text-[var(--t3)]">{notifications.length} items</span>
@@ -143,8 +143,17 @@ function NotificationsPanel({
 
           return (
             <div
+              role="button"
+              tabIndex={0}
               key={n.id}
-              className={`flex gap-3 px-4 py-3.5 border-b border-[var(--border)] hover:bg-[var(--surface-container-low)] transition-colors ${!n.read ? "bg-[var(--on-primary)]" : ""}`}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  if (!n.read) onDismiss(n.id);
+                  if (n.link) notifRouter.push(n.link);
+                }
+              }}
+              className={`w-full text-left flex gap-3 px-4 py-3.5 border-b border-[var(--border)] hover:bg-[var(--surface-container-low)] transition-colors cursor-pointer ${!n.read ? "bg-[var(--on-primary)]" : ""}`}
               onClick={() => {
                 if (!n.read) onDismiss(n.id);
                 if (n.link) notifRouter.push(n.link);
@@ -206,7 +215,13 @@ function UserMenu({ open, onClose, onSignOut }: { open: boolean; onClose: () => 
   if (!open) return null;
 
   return (
-    <div className="absolute top-full right-0 mt-2 bg-white border border-[var(--border)] rounded-[20px] shadow-[var(--sh3)] min-w-[180px] z-100 overflow-hidden">
+    <div className="absolute top-full right-0 mt-2 bg-[var(--surface)] border border-[var(--border)] rounded-[20px] shadow-[var(--sh3)] min-w-[240px] max-w-[min(300px,calc(100vw-2rem))] z-50 overflow-hidden isolate">
+      <div className="px-4 py-3 border-b border-[var(--border)]">
+        <div className="text-[13px] font-bold text-[var(--t1)] truncate" title={schoolName}>
+          {schoolName}
+        </div>
+        <div className="text-[11px] text-[var(--t3)] truncate">{user?.role?.replace("_", " ") || "User"}</div>
+      </div>
       <Link
         href="/dashboard/settings"
         onClick={onClose}
@@ -291,13 +306,13 @@ export default function TopBar({ pageTitle, onSignOut }: { pageTitle: string; on
       data-testid="dashboard-header"
       className="topbar h-[56px] flex items-center px-3 sm:px-5 lg:px-6 gap-2 sm:gap-3 sticky top-0 z-30 flex-shrink-0 border-b border-[var(--border)] bg-[var(--surface)] shadow-[var(--sh1)]"
     >
-      {/* Hamburger — all screen sizes (collapsible sidebar) */}
+      {/* Hamburger — below desktop rail breakpoint (sidebar overlays under lg) */}
       <button
         onClick={() => {
           if (isOpen) closeSidebar();
           else openSidebar();
         }}
-        className="bg-transparent border-none cursor-pointer p-1.5 w-9 h-9 flex items-center justify-center rounded-lg hover:bg-[var(--bg)] transition-colors shrink-0 xl:hidden"
+        className="bg-transparent border-none cursor-pointer p-1.5 w-9 h-9 flex items-center justify-center rounded-lg hover:bg-[var(--bg)] transition-colors shrink-0 lg:hidden"
         aria-label="Toggle sidebar"
         aria-expanded={isOpen}
         aria-controls="dashboard-sidebar"
@@ -332,25 +347,30 @@ export default function TopBar({ pageTitle, onSignOut }: { pageTitle: string; on
         </div>
       </div>
 
-      {/* Search — desktop inline pill with kbd hint, mobile icon */}
-      <div className="search-bar hidden sm:flex items-center gap-2 bg-[var(--surface)] border border-[var(--border)] rounded-full px-3 py-2 text-[13px] text-[var(--t3)] min-w-[220px] lg:min-w-[280px] cursor-text shadow-[var(--sh1)]">
+      {/* Search — desktop inline pill with kbd hint, mobile/tablet icon only to avoid crowding */}
+      <div className="search-bar hidden lg:flex items-center gap-2 bg-[var(--surface)] border border-[var(--border)] rounded-full px-3 py-2 text-[13px] text-[var(--t3)] min-w-[200px] xl:min-w-[280px] max-w-[320px] flex-1 cursor-text shadow-[var(--sh1)]">
         <GlobalSearch />
-        <kbd className="search-kbd" aria-hidden="true">
-          ⌘K
+        <kbd className="search-kbd" aria-hidden="true" suppressHydrationWarning>
+          {typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘K" : "Ctrl K"}
         </kbd>
       </div>
       <button
         onClick={() => window.dispatchEvent(new Event("open-global-search"))}
-        className="sm:hidden bg-transparent border-none cursor-pointer p-1.5 w-9 h-9 flex items-center justify-center rounded-lg text-[var(--t2)] hover:bg-[var(--surface-container-low)] transition-colors"
+        className="lg:hidden bg-transparent border-none cursor-pointer p-1.5 w-9 h-9 flex items-center justify-center rounded-lg text-[var(--t2)] hover:bg-[var(--surface-container-low)] transition-colors shrink-0"
         aria-label="Search"
       >
         <MaterialIcon icon="search" style={{ fontSize: 20 }} />
       </button>
 
       {/* Right actions */}
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
         {/* Sync status indicator */}
-        <div className="icon-btn-circle !bg-[var(--surface)]" title={isOnline ? "Connected" : "Offline"}>
+        <div
+          className="icon-btn-circle bg-[var(--surface)] shrink-0"
+          title={isOnline ? "Connected" : "Offline"}
+          role="status"
+          aria-label={isOnline ? "Connected" : "Offline"}
+        >
           <div className={`w-3 h-3 rounded-full ${isOnline ? "bg-green-500" : "bg-red-500"}`} />
         </div>
 
@@ -360,7 +380,7 @@ export default function TopBar({ pageTitle, onSignOut }: { pageTitle: string; on
               setNotifOpen((current) => !current);
               setUserMenuOpen(false);
             }}
-            className="icon-btn-circle !bg-[var(--surface)]"
+            className="icon-btn-circle bg-[var(--surface)]"
             aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
             aria-expanded={notifOpen}
             aria-haspopup="dialog"
@@ -382,7 +402,7 @@ export default function TopBar({ pageTitle, onSignOut }: { pageTitle: string; on
 
         <button
           onClick={toggleTheme}
-          className="icon-btn-circle hidden sm:flex !bg-[var(--surface)]"
+          className="icon-btn-circle hidden sm:flex bg-[var(--surface)]"
           aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
         >
           <MaterialIcon
@@ -393,7 +413,7 @@ export default function TopBar({ pageTitle, onSignOut }: { pageTitle: string; on
 
         <div ref={userMenuRef} className="relative">
           <button
-            className="user-menu flex items-center gap-2 py-1 pr-2.5 pl-1 bg-white border border-[var(--border)] rounded-full cursor-pointer transition-colors hover:bg-[var(--surface-container-low)] shadow-[var(--sh1)]"
+            className="user-menu flex items-center gap-2 py-1 pr-2.5 pl-1 bg-[var(--surface)] border border-[var(--border)] rounded-full cursor-pointer transition-colors hover:bg-[var(--surface-container-low)] shadow-[var(--sh1)]"
             onClick={() => {
               setUserMenuOpen((current) => !current);
               setNotifOpen(false);
@@ -406,11 +426,14 @@ export default function TopBar({ pageTitle, onSignOut }: { pageTitle: string; on
               {user?.full_name?.charAt(0) || "U"}
             </div>
             <span className="hidden sm:block min-w-0 text-left">
-              <span className="block text-[13px] font-bold text-[var(--t1)] max-w-[100px] truncate leading-tight">
+              <span className="block text-[13px] font-bold text-[var(--t1)] max-w-[80px] lg:max-w-[100px] truncate leading-tight">
                 {user?.full_name?.split(" ")[0] || "User"}
               </span>
               {user?.email && (
-                <span className="block text-[11px] text-[var(--t3)] max-w-[140px] truncate leading-tight mt-px">
+                <span
+                  className="hidden lg:block text-[11px] text-[var(--t3)] max-w-[180px] truncate leading-tight mt-px"
+                  title={user.email}
+                >
                   {user.email}
                 </span>
               )}
