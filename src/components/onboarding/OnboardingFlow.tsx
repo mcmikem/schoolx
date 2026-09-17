@@ -2045,20 +2045,36 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                   {step === TOTAL_STEPS - 1 ? "Review & Launch" : "Next"}
                 </Button>
               </div>
+              <button
+                type="button"
+                onClick={() => setStep(TOTAL_STEPS)}
+                className="w-full mt-2 text-center text-xs text-slate-500 underline-offset-2 hover:underline"
+              >
+                Skip for now — finish in dashboard
+              </button>
             </div>
           )}
 
           {/* Desktop bottom nav for steps 2-10 */}
           {step < TOTAL_STEPS && (
-            <div className="hidden md:flex gap-3 px-8 pb-8 pt-4">
-              {step > 1 && (
-                <Button variant="secondary" onClick={() => handleBack(step - 1)}>
-                  Back
+            <div className="hidden md:flex flex-col gap-2 px-8 pb-8 pt-4">
+              <div className="flex gap-3">
+                {step > 1 && (
+                  <Button variant="secondary" onClick={() => handleBack(step - 1)}>
+                    Back
+                  </Button>
+                )}
+                <Button variant="primary" loading={saving} onClick={handleGenericNext}>
+                  {step === TOTAL_STEPS - 1 ? "Review & Launch" : "Next Step"}
                 </Button>
-              )}
-              <Button variant="primary" loading={saving} onClick={handleGenericNext}>
-                {step === TOTAL_STEPS - 1 ? "Review & Launch" : "Next Step"}
-              </Button>
+              </div>
+              <button
+                type="button"
+                onClick={() => setStep(TOTAL_STEPS)}
+                className="self-start text-xs text-slate-500 underline-offset-2 hover:underline"
+              >
+                Skip for now — finish in dashboard
+              </button>
             </div>
           )}
         </div>

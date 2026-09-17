@@ -50,13 +50,19 @@ export default function LoginPage() {
   const [otpCode, setOtpCode] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
-  const [failedAttempts, setFailedAttempts] = useState(0);
   const [lockoutUntil, setLockoutUntil] = useState<number | null>(null);
+  const [failedAttempts, setFailedAttempts] = useState(0);
   const [showSlowMessage, setShowSlowMessage] = useState(false);
   const [waitingForProfile, setWaitingForProfile] = useState(false);
 
   const userRef = useRef(user);
   const submitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Guards against double submits (double-click / Enter) in the gap before
+  // the button disables. Without this the duplicate call hits the auth
+  // sign-in lock and flashes a bogus "Invalid login details" error just
+  // before the real attempt succeeds and redirects.
+  const submitInFlightRef = useRef(false);
+  const attemptsRef = useRef(0);
 
   const isLockedOut = lockoutUntil !== null && Date.now() < lockoutUntil;
 
@@ -112,28 +118,19 @@ export default function LoginPage() {
     router.replace(destination);
   }, [authInitialized, user, router]);
 
-  // Detect when auth succeeds (signInWithPassword works) but profile fetch
-  // fails silently (e.g. /api/auth/me/ errors). The user would otherwise end
-  // up stranded on the login page with no feedback. With the degraded-login
-  // fallback in auth-context this should rarely fire, but keep the toast as a
-  // final safety net.
-  useEffect(() => {
-    if (!waitingForProfile) return;
-    if (!authInitialized) return;
-    if (!user) {
-      toast.error("Signed in but failed to load your account. Please wait a moment and refresh the page to try again.");
-      setWaitingForProfile(false);
-    }
-  }, [authInitialized, user, waitingForProfile, toast]);
-
-  // Safety timeout: if the profile never loads, show a fallback error.
+  // Safety timeout: if the profile never loads after a successful sign-in,
+  // show a fallback error and release the form so the user can retry.
+  // NOTE: there is deliberately no immediate error here — a null user is the
+  // normal state while the profile fetch is still in flight, and erroring
+  // instantly flashed a failure toast right before login succeeded.
   useEffect(() => {
     if (!waitingForProfile) return;
     const timer = setTimeout(() => {
-      if (waitingForProfile) {
-        toast.error("Account is taking too long to load. Please refresh the page and try again.");
-        setWaitingForProfile(false);
-      }
+      toast.error("Account is taking too long to load. Please refresh the page to try again.");
+      setWaitingForProfile(false);
+      setLoading(false);
+      setShowSlowMessage(false);
+      submitInFlightRef.current = false;
     }, 12000);
     return () => clearTimeout(timer);
   }, [waitingForProfile, toast]);
@@ -241,6 +238,12 @@ export default function LoginPage() {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
+    // Drop duplicate submits while one is already running (double-click or
+    // Enter pressed before the button disables). The duplicate would hit the
+    // auth sign-in lock and show "Invalid login details" just before the
+    // real attempt succeeds — exactly the confusing flash users reported.
+    if (submitInFlightRef.current) return;
+
     if (isLockedOut) {
       const remaining = Math.ceil((lockoutUntil! - Date.now()) / 1000 / 60);
       toast.error(`Too many attempts. Please try again in ${remaining} minutes.`);
@@ -279,6 +282,7 @@ export default function LoginPage() {
     }
 
     const normalized = raw.includes("@") ? raw.toLowerCase() : normalizeAuthPhone(raw);
+    submitInFlightRef.current = true;
     setLoading(true);
 
     submitTimerRef.current = setTimeout(() => {
@@ -314,7 +318,16 @@ export default function LoginPage() {
       setShowSlowMessage(false);
 
       if (error) {
-        const newAttempts = failedAttempts + 1;
+        const rawMsg = typeof error === "string" ? error : error?.message || "";
+        // A duplicate submit that slipped past the guard hit the auth
+        // sign-in lock. Stay silent — the original attempt is still running
+        // and owns the loading UI. Toasting here is what flashed
+        // "Invalid login details" right before a successful login.
+        if (rawMsg === "Login already in progress") {
+          return;
+        }
+        attemptsRef.current += 1;
+        const newAttempts = attemptsRef.current;
         setFailedAttempts(newAttempts);
 
         if (newAttempts >= MAX_FAILED_ATTEMPTS) {
@@ -322,13 +335,15 @@ export default function LoginPage() {
           setLockoutUntil(lockoutTime);
           toast.error(`Too many attempts. Please try again in 5 minutes.`);
         } else {
-          const msg = typeof error === "string" ? error : error?.message || "Invalid login details";
+          const msg = rawMsg || "Invalid login details";
           toast.error(process.env.NODE_ENV === "development" ? `Login failed: ${msg}` : "Invalid login details");
         }
+        submitInFlightRef.current = false;
         setLoading(false);
         return;
       }
 
+      attemptsRef.current = 0;
       setFailedAttempts(0);
       setLockoutUntil(null);
       // Keep loading state active while we wait for the profile fetch
@@ -339,6 +354,7 @@ export default function LoginPage() {
     } catch (error) {
       if (submitTimerRef.current) clearTimeout(submitTimerRef.current);
       setShowSlowMessage(false);
+      submitInFlightRef.current = false;
       setLoading(false);
       const msg = error instanceof Error ? error.message : "Login failed";
       toast.error(msg);
@@ -451,30 +467,42 @@ export default function LoginPage() {
 
             {!authInitialized && (
               <div className="mb-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600 text-center">
-                Checking your session...
+                Checking your session… if this takes more than a few seconds,{" "}
+                <button
+                  type="button"
+                  onClick={() => window.location.reload()}
+                  className="font-semibold underline hover:text-slate-900"
+                >
+                  refresh to retry
+                </button>
+                .
+              </div>
+            )}
+            {waitingForProfile && (
+              <div
+                role="status"
+                className="mb-2 rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs text-blue-800 text-center"
+              >
+                Signed in — loading your account… if this stalls,{" "}
+                <button
+                  type="button"
+                  onClick={() => window.location.reload()}
+                  className="font-semibold underline hover:text-blue-900"
+                >
+                  refresh
+                </button>{" "}
+                to continue.
               </div>
             )}
             <Button
               type="submit"
               variant="primary"
               className="w-full"
-              loading={loading || otpLoading || !authInitialized}
-              disabled={!authInitialized}
-              icon={
-                !loading && !otpLoading && authInitialized ? (
-                  <MaterialIcon icon="login" className="text-lg" />
-                ) : undefined
-              }
+              loading={loading || otpLoading}
+              disabled={loading || otpLoading}
+              icon={!loading && !otpLoading ? <MaterialIcon icon="login" className="text-lg" /> : undefined}
             >
-              {!authInitialized
-                ? "Initializing..."
-                : otpMode
-                  ? otpSent
-                    ? "Verify OTP"
-                    : "Send OTP"
-                  : loading
-                    ? "Signing in..."
-                    : "Sign In"}
+              {otpMode ? (otpSent ? "Verify OTP" : "Send OTP") : loading ? "Signing in..." : "Sign In"}
             </Button>
 
             <div className="flex flex-col items-center gap-2">

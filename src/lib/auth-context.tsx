@@ -182,6 +182,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (res.status === 404) {
             logger.error("[Auth] User profile not found in database for auth_id:", authId);
             // Profile doesn't exist even though auth succeeded — sign out fully.
+            // (Generic fetch failures fall through to degraded login below;
+            // 404 is the genuinely-missing case, so clear the orphaned session
+            // rather than stranding the user in a degraded empty dashboard.)
             await supabase.auth.signOut();
             clearAuthState();
             return null;
