@@ -14,7 +14,7 @@ import { useOfflineStudents, useOfflineFees } from "@/lib/offline-hooks";
 import { useToast } from "@/components/Toast";
 import { useFormDraft } from "@/lib/useAutoSave";
 import { FilterBar } from "@/components/ui/FilterBar";
-import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
+import { withTimeout, timeoutFallback, getLocalDateString } from "@/lib/hooks/utils";
 import { PAYMENT_METHODS } from "@/lib/constants";
 import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
@@ -460,29 +460,31 @@ export default function FinanceHubPage() {
   }, [studentBalances, payments]);
 
   const invoices = useMemo(() => {
+    // Single source of truth: reuse studentBalanceMap (calculateStudentFeePosition
+    // with adjustments + opening_balance). The old inline formula ignored both
+    // and disagreed with the balances tab / printed invoice.
+    // NOTE: `payments` here is the paginated cashbook slice — invoice totals are
+    // only exact when the full ledger is loaded. Balances tab is authoritative.
     return students.map((student) => {
       const studentFeeItems = feeStructure.filter((f) => !f.class_id || f.class_id === student.class_id);
       const feeItems = studentFeeItems.map((f) => ({
         name: f.name,
         amount: Number(f.amount),
       }));
-      const totalAmount = feeItems.reduce((sum, f) => sum + f.amount, 0);
-      const amountPaid = payments
-        .filter((p) => p.student_id === student.id)
-        .reduce((sum, p) => sum + Number(p.amount_paid), 0);
+      const position = studentBalanceMap.get(student.id);
       return {
         student_id: student.id,
         student_name: `${student.first_name} ${student.last_name}`,
         student_number: student.student_number || "",
         class_name: student.classes?.name || "",
         fee_items: feeItems,
-        total_amount: totalAmount,
-        amount_paid: amountPaid,
-        balance: Math.max(0, totalAmount - amountPaid),
+        total_amount: position?.expected ?? feeItems.reduce((sum, f) => sum + f.amount, 0),
+        amount_paid: position?.paid ?? 0,
+        balance: position?.balance ?? 0,
         class_id: student.class_id ?? "",
       };
     });
-  }, [students, feeStructure, payments]);
+  }, [students, feeStructure, studentBalanceMap]);
 
   const filteredInvoices = useMemo(() => {
     if (invoiceClassFilter === "all") return invoices;
@@ -501,19 +503,22 @@ export default function FinanceHubPage() {
   );
 
   const filteredCashbookPayments = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Compare YYYY-MM-DD strings in local time. `new Date(str)` parses as UTC
+    // midnight and shifts a day for EAT (UTC+3), bucketing payments wrong.
+    const todayStr = getLocalDateString();
+    const today = new Date(`${todayStr}T00:00:00`);
     return payments.filter((p) => {
-      const paymentDate = new Date(p.payment_date);
-      paymentDate.setHours(0, 0, 0, 0);
+      const paymentStr = String(p.payment_date || "").slice(0, 10);
+      if (!paymentStr) return cashbookDateFilter === "all";
+      const paymentDate = new Date(`${paymentStr}T00:00:00`);
       if (cashbookDateFilter === "today") {
-        return paymentDate.getTime() === today.getTime();
+        return paymentStr === todayStr;
       } else if (cashbookDateFilter === "week") {
         const weekAgo = new Date(today);
         weekAgo.setDate(weekAgo.getDate() - 7);
         return paymentDate >= weekAgo;
       } else if (cashbookDateFilter === "month") {
-        return paymentDate.getMonth() === today.getMonth() && paymentDate.getFullYear() === today.getFullYear();
+        return paymentStr.slice(0, 7) === todayStr.slice(0, 7);
       }
       return true;
     });

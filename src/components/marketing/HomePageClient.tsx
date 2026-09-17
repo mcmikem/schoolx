@@ -58,6 +58,23 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
+    if (!mobileMenuOpen && !showIosModal) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setMobileMenuOpen(false);
+        setShowIosModal(false);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [mobileMenuOpen, showIosModal]);
+
+  useEffect(() => {
     const isCapacitor = typeof window !== "undefined" && (window as any).Capacitor?.isNative;
     const isStandalone =
       typeof window !== "undefined" &&
@@ -158,9 +175,7 @@ export default function HomePage() {
       return;
     }
     if (/iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase())) {
-      alert(
-        'On iPhone or iPad: Open this page in Safari, tap the Share Button (\u2191) then tap "Add to Home Screen".',
-      );
+      setShowIosModal(true);
       return;
     }
     router.push("/login");
@@ -219,61 +234,77 @@ export default function HomePage() {
 
             {/* Mobile nav dropdown */}
             {mobileMenuOpen && (
-              <div className="md:hidden fixed left-4 right-4 top-[72px] z-50 rounded-[24px] border border-white/70 bg-white/96 shadow-[0_16px_48px_rgba(15,23,42,0.12)] backdrop-blur p-4">
-                <div className="flex flex-col gap-1">
-                  <Link
-                    href="/features"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="w-full text-left px-4 py-3 rounded-[16px] text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
-                  >
-                    Features
-                  </Link>
-                  <Link
-                    href="/pricing"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="w-full text-left px-4 py-3 rounded-[16px] text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
-                  >
-                    Pricing
-                  </Link>
-                  <Link
-                    href="/demo"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="w-full text-left px-4 py-3 rounded-[16px] text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
-                  >
-                    Request Demo
-                  </Link>
-                  <Link
-                    href="/blog"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="w-full text-left px-4 py-3 rounded-[16px] text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
-                  >
-                    Blog
-                  </Link>
-                  <Link
-                    href="/about"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="w-full text-left px-4 py-3 rounded-[16px] text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
-                  >
-                    About
-                  </Link>
-                  <Link
-                    href="/contact"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="w-full text-left px-4 py-3 rounded-[16px] text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
-                  >
-                    Contact
-                  </Link>
-                  <div className="mt-2 pt-3 border-t border-slate-100">
+              <>
+                <button
+                  type="button"
+                  aria-label="Close menu"
+                  onClick={() => setMobileMenuOpen(false)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") setMobileMenuOpen(false);
+                  }}
+                  className="md:hidden fixed inset-0 z-40 bg-black/30 backdrop-blur-[1px]"
+                />
+                <div
+                  role="dialog"
+                  aria-modal="true"
+                  aria-label="Site menu"
+                  className="md:hidden fixed left-4 right-4 top-[72px] z-50 rounded-[24px] border border-white/70 bg-white shadow-[0_16px_48px_rgba(15,23,42,0.12)] backdrop-blur p-4"
+                >
+                  <div className="flex flex-col gap-1">
                     <Link
-                      href="/register"
-                      className="btn btn-primary w-full justify-center py-3 text-sm"
+                      href="/features"
                       onClick={() => setMobileMenuOpen(false)}
+                      className="w-full text-left px-4 py-3 rounded-[16px] text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
                     >
-                      Start free trial
+                      Features
                     </Link>
+                    <Link
+                      href="/pricing"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="w-full text-left px-4 py-3 rounded-[16px] text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
+                    >
+                      Pricing
+                    </Link>
+                    <Link
+                      href="/demo"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="w-full text-left px-4 py-3 rounded-[16px] text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
+                    >
+                      Request Demo
+                    </Link>
+                    <Link
+                      href="/blog"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="w-full text-left px-4 py-3 rounded-[16px] text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
+                    >
+                      Blog
+                    </Link>
+                    <Link
+                      href="/about"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="w-full text-left px-4 py-3 rounded-[16px] text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
+                    >
+                      About
+                    </Link>
+                    <Link
+                      href="/contact"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="w-full text-left px-4 py-3 rounded-[16px] text-sm font-medium text-slate-700 hover:bg-slate-50 transition"
+                    >
+                      Contact
+                    </Link>
+                    <div className="mt-2 pt-3 border-t border-slate-100">
+                      <Link
+                        href="/register"
+                        className="btn btn-primary w-full justify-center py-3 text-sm"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        Start free trial
+                      </Link>
+                    </div>
                   </div>
                 </div>
-              </div>
+              </>
             )}
 
             {/* Hero grid */}
@@ -282,16 +313,15 @@ export default function HomePage() {
                 <div className="mb-6 flex animate-fade-in">
                   <div className="px-4 py-1.5 rounded-full bg-[var(--navy-soft)] border border-[var(--navy)]/10 text-[var(--navy)] text-[10px] uppercase font-bold tracking-widest flex items-center gap-2">
                     <MaterialIcon icon="school" className="text-sm" />
-                    Built for real school operations
+                    Built for real school operations — attendance, fees, reports
                   </div>
                 </div>
-                <div className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-white px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-[var(--primary)] shadow-sm">
-                  <MaterialIcon icon="fact_check" className="text-[18px]" />
-                  Admissions, attendance, fees, reports, and parent follow-up
-                </div>
-                <h1 className="mt-6 font-['Sora'] text-5xl font-semibold tracking-[-0.05em] text-[var(--t1)] sm:text-6xl lg:text-7xl">
-                  <span className="block leading-none overflow-hidden" style={{ minHeight: "1.1em" }}>
-                    <span key={headlineIndex} className="animate-fade-in block leading-none">
+                <h1
+                  className="mt-6 font-['Sora'] text-5xl font-semibold tracking-[-0.05em] text-[var(--t1)] sm:text-6xl lg:text-7xl"
+                  aria-live="polite"
+                >
+                  <span className="block leading-none overflow-hidden" style={{ minHeight: "2.2em" }}>
+                    <span key={headlineIndex} className="animate-fade-in block leading-none motion-reduce:animate-none">
                       {HEADLINES[headlineIndex]}
                     </span>
                   </span>
@@ -342,7 +372,10 @@ export default function HomePage() {
               </div>
 
               <div className="relative hero-stage">
-                <div className="floating-note absolute right-0 top-0 z-20 w-52 rounded-[28px] border border-white/70 bg-white/88 p-4 shadow-[0_24px_60px_rgba(15,23,42,0.14)] backdrop-blur xl:block hidden">
+                <div
+                  className="floating-note pointer-events-none absolute right-0 top-0 z-20 w-52 rounded-[28px] border border-white/70 bg-white/88 p-4 shadow-[0_24px_60px_rgba(15,23,42,0.14)] backdrop-blur xl:block hidden"
+                  aria-hidden="true"
+                >
                   <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">
                     Today at a glance
                   </p>
@@ -365,7 +398,10 @@ export default function HomePage() {
                 <div className="desktop-stage relative z-0 hidden lg:block lg:ml-16">
                   <LaptopMockup />
                 </div>
-                <div className="floating-callout absolute bottom-5 left-3 z-20 rounded-[24px] border border-[var(--brand-border)] bg-white/92 px-4 py-3 shadow-[0_22px_55px_rgba(15,23,42,0.12)] backdrop-blur md:block hidden">
+                <div
+                  className="floating-callout pointer-events-none absolute bottom-5 left-3 z-20 rounded-[24px] border border-[var(--brand-border)] bg-white/92 px-4 py-3 shadow-[0_22px_55px_rgba(15,23,42,0.12)] backdrop-blur md:block hidden"
+                  aria-hidden="true"
+                >
                   <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--primary)]">
                     From registers to reports
                   </p>
@@ -1108,8 +1144,17 @@ export default function HomePage() {
 
         {/* iOS Install Instructions Modal */}
         {showIosModal && (
-          <div className="fixed inset-0 z-50 bg-black/60 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
-            <div className="bg-white rounded-2xl w-full max-w-sm max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto p-6 shadow-2xl">
+          <div
+            className="fixed inset-0 z-50 bg-black/60 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Add to Home Screen instructions"
+            onClick={() => setShowIosModal(false)}
+          >
+            <div
+              className="bg-white rounded-2xl w-full max-w-sm max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto p-6 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
               <h3 className="text-lg font-bold text-slate-800 mb-3">Add to Home Screen</h3>
               <p className="text-sm text-slate-600 mb-4">
                 On iPhone or iPad: Open this page in <strong>Safari</strong>, tap the <strong>Share Button</strong> (the

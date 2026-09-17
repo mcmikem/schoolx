@@ -440,10 +440,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
         <SidebarShell onNavigate={handleNavigate} />
         <SidebarOverlay />
 
-        <main
-          id="main-content"
-          className="main-content mobile-container xl:ml-[var(--sidebar-width)] flex-1 flex flex-col min-h-screen xl:w-[calc(100%-var(--sidebar-width))]"
-        >
+        <main id="main-content" className="main-content mobile-container flex-1 flex flex-col min-h-screen">
           <TopBar pageTitle={pageTitle} onSignOut={handleSignOut} />
           {breadcrumbItems.length > 1 && (
             <div className="dashboard-breadcrumbs px-4 sm:px-6 py-2 border-b border-[var(--border)] bg-[var(--surface)]">

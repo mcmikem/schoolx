@@ -11,12 +11,8 @@
   min-width: 44px;
 }
 
-/* Focus visible states for accessibility */
-:focus-visible {
-  outline: 2px solid var(--navy, #001F3F);
-  outline-offset: 2px;
-  box-shadow: 0 0 0 4px rgba(0, 31, 63, 0.15);
-}
+/* Focus visible states — single source of truth lives in globals.css (:focus-visible
+   with outline + ring). Kept here only as a no-op anchor to avoid drift. */
 
 /* Reduce motion for users who prefer it */
 @media (prefers-reduced-motion: reduce) {
@@ -77,9 +73,31 @@ textarea,
   background: var(--on-surface, #475569);
 }
 
-/* Print styles */
+/* Print styles — hide app chrome so report cards / ID cards print clean */
 @media print {
-  .no-print {
+  .no-print,
+  .topbar,
+  .sidebar,
+  .sidebar-overlay,
+  .mobile-bottom-nav,
+  .dashboard-breadcrumbs,
+  footer {
     display: none !important;
+  }
+  main#main-content {
+    animation: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+  body {
+    background: #fff !important;
+  }
+}
+
+/* Reduced motion — also kill the page-enter blur/translate */
+@media (prefers-reduced-motion: reduce) {
+  main#main-content {
+    animation: none !important;
   }
 }

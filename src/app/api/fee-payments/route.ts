@@ -139,15 +139,52 @@ export async function POST(request: NextRequest) {
     if (!moduleCheck.ok) return moduleCheck.response;
 
     const baseNotes = String(paymentData.notes || "").trim() || null;
+    const idempotencyKey =
+      String(
+        paymentData.idempotency_key || paymentData.idempotencyKey || request.headers.get("idempotency-key") || "",
+      ).trim() || null;
     const common = {
       school_id: schoolId,
       student_id: paymentData.student_id,
       payment_method: paymentData.payment_method,
-      payment_reference: String(paymentData.payment_reference || "").trim() || null,
+      payment_reference: String(paymentData.payment_reference || "").trim() || idempotencyKey,
       paid_by: String(paymentData.paid_by || "").trim() || null,
       payment_date: paymentData.payment_date || new Date().toISOString().split("T")[0],
       recorded_by: auth.context.user.id,
     };
+
+    // Idempotent replay: double-tap / retry after timeout must not create a
+    // second row. If the client sent a reference/key, return the existing row.
+    if (common.payment_reference) {
+      const { data: existing } = await supabase
+        .from("fee_payments")
+        .select("id, student_id, amount_paid, payment_date")
+        .eq("school_id", schoolId)
+        .eq("student_id", paymentData.student_id)
+        .eq("payment_reference", common.payment_reference)
+        .is("deleted_at", null)
+        .maybeSingle();
+      if (existing) {
+        return apiSuccess(existing, "Payment already recorded (duplicate suppressed)", 200);
+      }
+    } else {
+      // No reference: guard against sub-2-minute double submits with identical
+      // student + amount + method by the same recorder.
+      const twoMinAgo = new Date(Date.now() - 2 * 60 * 1000).toISOString();
+      const { data: recent } = await supabase
+        .from("fee_payments")
+        .select("id, student_id, amount_paid, payment_date, created_at")
+        .eq("school_id", schoolId)
+        .eq("student_id", paymentData.student_id)
+        .eq("payment_method", paymentData.payment_method)
+        .gte("created_at", twoMinAgo)
+        .is("deleted_at", null)
+        .limit(10);
+      const dup = (recent || []).find((r) => Number((r as { amount_paid: number }).amount_paid) === parsedAmount);
+      if (dup) {
+        return apiSuccess(dup, "Payment already recorded (duplicate suppressed)", 200);
+      }
+    }
 
     async function insertRows(rows: Record<string, unknown>[]) {
       const result = await withTimeout(
@@ -159,6 +196,22 @@ export async function POST(request: NextRequest) {
         return { timeout: true as const };
       }
       return { timeout: false as const, data: result.data, error: result.error };
+    }
+
+    async function duplicateResponseForConflict() {
+      // Unique index on payment_reference fired: another recorder won the race.
+      // Return their row instead of a 500 so the client doesn't retry.
+      if (!common.payment_reference) return null;
+      const { data: winner } = await supabase
+        .from("fee_payments")
+        .select("id, student_id, amount_paid, payment_date")
+        .eq("school_id", schoolId)
+        .eq("student_id", paymentData.student_id)
+        .eq("payment_reference", common.payment_reference)
+        .is("deleted_at", null)
+        .maybeSingle();
+      if (winner) return apiSuccess(winner, "Payment already recorded (duplicate suppressed)", 200);
+      return null;
     }
 
     // --- Oldest-first allocation + overpayment guard (ROADMAP #35) ---
@@ -275,6 +328,10 @@ export async function POST(request: NextRequest) {
         return apiError("Request timed out recording payment. Check the payments list before retrying.", 504);
       }
       if (inserted.error) {
+        if ((inserted.error as { code?: string }).code === "23505") {
+          const dupResponse = await duplicateResponseForConflict();
+          if (dupResponse) return dupResponse;
+        }
         logger.error("[API FeePayments] Insert failed:", inserted.error);
         return apiError(inserted.error.message, 500);
       }
@@ -308,6 +365,10 @@ export async function POST(request: NextRequest) {
         return apiError("Request timed out recording payment. Check the payments list before retrying.", 504);
       }
       if (inserted.error) {
+        if ((inserted.error as { code?: string }).code === "23505") {
+          const dupResponse = await duplicateResponseForConflict();
+          if (dupResponse) return dupResponse;
+        }
         logger.error("[API FeePayments] Insert failed:", inserted.error);
         return apiError(inserted.error.message, 500);
       }
@@ -327,6 +388,10 @@ export async function POST(request: NextRequest) {
       return apiError("Request timed out recording payment. Check the payments list before retrying.", 504);
     }
     if (inserted.error) {
+      if ((inserted.error as { code?: string }).code === "23505") {
+        const dupResponse = await duplicateResponseForConflict();
+        if (dupResponse) return dupResponse;
+      }
       logger.error("[API FeePayments] Insert failed:", inserted.error);
       return apiError(inserted.error.message, 500);
     }

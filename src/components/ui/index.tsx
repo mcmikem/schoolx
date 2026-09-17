@@ -130,9 +130,18 @@ interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   label?: string;
   error?: string;
   options: { value: string; label: string }[];
+  placeholder?: string;
 }
 
-export function Select({ label, options, className = "", error, required, ...props }: SelectProps) {
+export function Select({
+  label,
+  options,
+  className = "",
+  error,
+  required,
+  placeholder = "Select option",
+  ...props
+}: SelectProps) {
   const id = useId();
   return (
     <div className="space-y-1">
@@ -150,8 +159,8 @@ export function Select({ label, options, className = "", error, required, ...pro
         className={`w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] transition-colors ${className} text-base`}
         {...props}
       >
-        <option value="" disabled hidden>
-          Select option
+        <option value="" disabled>
+          {placeholder}
         </option>
         {options.map((opt) => (
           <option key={opt.value} value={opt.value}>
@@ -190,7 +199,7 @@ export function Textarea({ label, error, className = "", id: idProp, required, .
         aria-describedby={error ? `${textareaId}-error` : undefined}
         aria-required={required ? true : undefined}
         required={required}
-        className={`w-full min-h-[140px] resize-vertical px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] transition-colors ${error ? "border-[var(--error)]" : ""} ${className} text-base`}
+        className={`w-full min-h-[100px] resize-vertical px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] transition-colors ${error ? "border-[var(--error)]" : ""} ${className} text-base`}
         {...props}
       />
       {error && (

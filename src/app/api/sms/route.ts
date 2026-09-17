@@ -74,7 +74,12 @@ async function handlePost(request: NextRequest) {
       return apiError("Phone number is required", 400);
     }
 
-    const formattedPhone = formatUgandaPhone(phone);
+    let formattedPhone: string;
+    try {
+      formattedPhone = formatUgandaPhone(phone);
+    } catch {
+      return apiError("Invalid phone number format", 400);
+    }
     const result = await sendAfricasTalkingSMS(formattedPhone, message, {
       from: "SKOOLMATE",
     });
@@ -189,14 +194,38 @@ async function handlePut(request: NextRequest) {
       return apiError("No valid phone numbers provided", 400);
     }
 
-    const formattedPhones = validPhones.map(formatUgandaPhone);
+    const formattedPhones: string[] = [];
+    const invalidPhones: string[] = [];
+    for (const p of validPhones) {
+      try {
+        formattedPhones.push(formatUgandaPhone(p));
+      } catch {
+        invalidPhones.push(p);
+      }
+    }
+
+    if (formattedPhones.length === 0) {
+      return apiError("No valid phone numbers provided", 400);
+    }
     const results = [];
 
     for (const phone of formattedPhones) {
-      const result = await sendAfricasTalkingSMS(phone, message, {
-        from: "SKOOLMATE",
-      });
-      results.push({ phone, ...result });
+      try {
+        const result = await sendAfricasTalkingSMS(phone, message, {
+          from: "SKOOLMATE",
+        });
+        results.push({ phone, ...result });
+      } catch (err) {
+        // One recipient failure must not kill the whole batch.
+        results.push({
+          phone,
+          success: false,
+          error: err instanceof Error ? err.message : "Send failed",
+        });
+      }
+    }
+    for (const phone of invalidPhones) {
+      results.push({ phone, success: false, error: "Invalid phone number format" });
     }
 
     const successCount = results.filter((r) => r.success).length;

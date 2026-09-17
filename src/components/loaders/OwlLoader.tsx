@@ -30,27 +30,18 @@ export function OwlLoader({
 
   const Wrapper = fullScreen
     ? ({ children }: { children: React.ReactNode }) => (
-        <div
-          className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[var(--bg)] ${className}`}
-        >
+        <div className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[var(--bg)] ${className}`}>
           {children}
         </div>
       )
     : ({ children }: { children: React.ReactNode }) => (
-        <div className={`flex flex-col items-center justify-center ${className}`}>
-          {children}
-        </div>
+        <div className={`flex flex-col items-center justify-center ${className}`}>{children}</div>
       );
 
   return (
     <Wrapper>
       <div className="relative" style={{ width: s, height: s }}>
-        <svg
-          viewBox="0 0 120 120"
-          width={s}
-          height={s}
-          className="animate-owl-float"
-        >
+        <svg viewBox="0 0 120 120" width={s} height={s} className="animate-owl-float">
           <defs>
             <linearGradient id="owlBody" x1="0" y1="0" x2="0" y2="1">
               <stop offset="0%" stopColor="#0f203b" />
@@ -70,15 +61,7 @@ export function OwlLoader({
           </defs>
 
           {/* Shadow */}
-          <ellipse
-            cx="60"
-            cy="108"
-            rx="28"
-            ry="6"
-            fill="#0b1c39"
-            opacity="0.12"
-            className="animate-owl-shadow"
-          />
+          <ellipse cx="60" cy="108" rx="28" ry="6" fill="#0b1c39" opacity="0.12" className="animate-owl-shadow" />
 
           {/* Book (behind owl) */}
           <g className="animate-book-bounce">
@@ -94,22 +77,8 @@ export function OwlLoader({
           <ellipse cx="60" cy="68" rx="22" ry="24" fill="url(#owlBelly)" />
 
           {/* Wings */}
-          <ellipse
-            cx="30"
-            cy="64"
-            rx="10"
-            ry="18"
-            fill="#0b1c39"
-            className="animate-wing-left"
-          />
-          <ellipse
-            cx="90"
-            cy="64"
-            rx="10"
-            ry="18"
-            fill="#0b1c39"
-            className="animate-wing-right"
-          />
+          <ellipse cx="30" cy="64" rx="10" ry="18" fill="#0b1c39" className="animate-wing-left" />
+          <ellipse cx="90" cy="64" rx="10" ry="18" fill="#0b1c39" className="animate-wing-right" />
 
           {/* Eyes container */}
           <g className="animate-owl-blink">
@@ -127,28 +96,16 @@ export function OwlLoader({
           </g>
 
           {/* Beak */}
-          <path
-            d="M 55 58 L 65 58 L 60 68 Z"
-            fill="#c8a857"
-          />
+          <path d="M 55 58 L 65 58 L 60 68 Z" fill="#c8a857" />
 
           {/* Graduation cap — navy body, gold tassel */}
           <g className="animate-cap-wiggle">
             {/* Cap base band */}
             <rect x="42" y="18" width="36" height="7" rx="3" fill="#0b1c39" />
             {/* Cap top (mortarboard) */}
-            <polygon
-              points="38,18 82,18 74,8 46,8"
-              fill="#0f203b"
-            />
+            <polygon points="38,18 82,18 74,8 46,8" fill="#0f203b" />
             {/* Tassel string */}
-            <path
-              d="M 74 13 Q 82 13 84 22"
-              fill="none"
-              stroke="#c8a857"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
+            <path d="M 74 13 Q 82 13 84 22" fill="none" stroke="#c8a857" strokeWidth="2" strokeLinecap="round" />
             {/* Tassel end */}
             <circle cx="84" cy="24" r="3" fill="#c8a857" />
             <circle cx="84" cy="24" r="1.5" fill="#0b1c39" opacity="0.3" />
@@ -171,22 +128,22 @@ export function OwlLoader({
       {text && (
         <div className="mt-6 flex flex-col items-center gap-1">
           <div className="flex items-center gap-2">
-            <span className="text-lg font-semibold text-[#0b1c39] tracking-tight">
-              {text}
-            </span>
+            <span className="text-lg font-semibold text-[#0b1c39] tracking-tight">{text}</span>
             <span className="flex gap-1">
               <span className="h-2 w-2 rounded-full bg-[#0b1c39] animate-typing-dot" />
-              <span className="h-2 w-2 rounded-full bg-[#0b1c39] animate-typing-dot" style={{ animationDelay: "150ms" }} />
-              <span className="h-2 w-2 rounded-full bg-[#0b1c39] animate-typing-dot" style={{ animationDelay: "300ms" }} />
+              <span
+                className="h-2 w-2 rounded-full bg-[#0b1c39] animate-typing-dot"
+                style={{ animationDelay: "150ms" }}
+              />
+              <span
+                className="h-2 w-2 rounded-full bg-[#0b1c39] animate-typing-dot"
+                style={{ animationDelay: "300ms" }}
+              />
             </span>
           </div>
-          {subtext && (
-            <p className="text-sm text-[var(--t3)]">{subtext}</p>
-          )}
+          {subtext && <p className="text-sm text-[var(--t3)]">{subtext}</p>}
         </div>
       )}
     </Wrapper>
   );
 }
-
-export default OwlLoader;

@@ -1500,11 +1500,24 @@ export default function StudentDetailPanel({
               </div>
             </details>
             <div className="sticky bottom-0 -mx-4 mt-2 border-t border-[var(--border)] bg-[var(--surface)]/95 px-4 py-3 backdrop-blur sm:-mx-5 sm:px-5">
+              {(fName || lName || cId) && (
+                <p className="text-xs text-[var(--t3)] mb-2 truncate" aria-live="polite">
+                  {[fName, lName].filter(Boolean).join(" ") || "New student"}
+                  {cId ? ` · ${classes.find((c) => c.id === cId)?.name || "Class selected"}` : ""}
+                  {pName ? ` · ${pName}` : ""}
+                </p>
+              )}
               <div style={{ display: "flex", gap: 10 }}>
-                <Button type="button" variant="ghost" onClick={onClose} style={{ flex: 1 }}>
+                <Button type="button" variant="ghost" onClick={onClose} style={{ flex: 1, minHeight: 48 }}>
                   Cancel
                 </Button>
-                <Button type="submit" variant="primary" disabled={saving} loading={saving} style={{ flex: 1 }}>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  disabled={saving}
+                  loading={saving}
+                  style={{ flex: 2, minHeight: 48 }}
+                >
                   {saving ? (isEdit ? "Updating..." : "Adding...") : isEdit ? "Update Student" : "Add Student"}
                 </Button>
               </div>

@@ -108,11 +108,28 @@ export async function POST(request: NextRequest) {
 
     const dates: string[] = [];
     let cur = date_from;
+    // Cap at 31 days: larger ranges (1000 students x 30 days = 30k rows)
+    // time out and OOM low-end devices. Callers must page month-by-month.
+    const MAX_BULK_DAYS = 31;
     let guard = 0;
-    while (cur <= date_to && guard < 400) {
+    while (cur <= date_to && guard < MAX_BULK_DAYS) {
       dates.push(cur);
       cur = addDays(cur, 1);
       guard++;
+    }
+    if (cur <= date_to) {
+      return apiError(
+        `Date range too large: capped at ${MAX_BULK_DAYS} days per request. Split into smaller ranges.`,
+        400,
+      );
+    }
+
+    const MAX_BULK_RECORDS = 5000;
+    if (students.length * dates.length > MAX_BULK_RECORDS) {
+      return apiError(
+        `Bulk range too large (${students.length} students x ${dates.length} days). Reduce the date range or class size.`,
+        400,
+      );
     }
 
     const records = [];

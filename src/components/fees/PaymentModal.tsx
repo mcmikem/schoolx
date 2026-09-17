@@ -82,10 +82,21 @@ export default function PaymentModal({
 
   const errorBorder = (field: string) =>
     fieldError(field)
-      ? "border-2 border-[var(--red)] bg-[var(--error-container)]"
-      : "border border-[var(--border)] bg-surface-container";
+      ? "border-2 border-[var(--red)] bg-[var(--surface)]"
+      : "border border-[var(--border)] bg-[var(--surface)]";
 
   if (!isOpen) return null;
+
+  const amountNum = Number(newPayment.amount_paid) || 0;
+  const balanceAfter = selectedStudent ? Math.max(0, selectedStudent.balance - amountNum) : null;
+  const presetOptions = selectedStudent
+    ? [
+        { label: "Full", value: selectedStudent.balance },
+        { label: "Half", value: Math.round(selectedStudent.balance / 2) },
+        { label: "50k", value: 50000 },
+        { label: "100k", value: 100000 },
+      ].filter((p) => p.value > 0 && p.value <= selectedStudent.balance)
+    : [];
 
   const handleClose = () => {
     setStep(1);
@@ -113,31 +124,54 @@ export default function PaymentModal({
         className="bg-surface-container-lowest rounded-2xl w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-hidden shadow-xl my-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="p-6 border-b border-outline-variant/10">
+        <div className="p-6 pb-4 border-b border-[var(--border)]">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="font-headline font-bold text-xl text-primary">Record Payment</h2>
-            <button onClick={handleClose} className="p-1 hover:bg-surface-container rounded-lg transition-colors">
+            <h2 className="font-headline font-bold text-xl text-[var(--t1)] tracking-tight">Record Payment</h2>
+            <button
+              onClick={handleClose}
+              aria-label="Close payment dialog"
+              className="w-9 h-9 flex items-center justify-center rounded-full border border-[var(--border)] text-[var(--t3)] transition-colors hover:bg-[var(--surface-container-low)] hover:text-[var(--t1)]"
+            >
               <MaterialIcon icon="close" className="text-onSurface-variant" />
             </button>
           </div>
-          <div className="flex items-center gap-3">
+          {selectedStudent && (
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] px-4 py-3">
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-[var(--t1)] truncate">{selectedStudent.name}</div>
+                <div className="text-xs text-[var(--t3)] tabular-nums">
+                  Owes {formatCurrency(selectedStudent.balance)}
+                  {balanceAfter !== null && amountNum > 0 ? ` → ${formatCurrency(balanceAfter)} left` : ""}
+                </div>
+              </div>
+              <span className="badge badge-red flex-shrink-0">Unpaid</span>
+            </div>
+          )}
+          <div className="flex items-center gap-3 mt-4">
             <div
-              className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold transition-colors ${step >= 1 ? "bg-primary text-white" : "bg-surface-container text-onSurface-variant"}`}
+              className="flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold transition-colors bg-[var(--primary)] text-[var(--on-primary)]"
+              aria-current={step === 1 ? "step" : undefined}
             >
               1
             </div>
             <div
-              className={`flex-1 h-0.5 rounded transition-colors ${step >= 2 ? "bg-primary" : "bg-surface-container"}`}
+              className="flex-1 h-0.5 rounded transition-colors"
+              style={{ background: step >= 2 ? "var(--primary)" : "var(--border)" }}
             />
             <div
-              className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold transition-colors ${step >= 2 ? "bg-primary text-white" : "bg-surface-container text-onSurface-variant"}`}
+              className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold transition-colors ${
+                step >= 2
+                  ? "bg-[var(--primary)] text-[var(--on-primary)]"
+                  : "border border-[var(--border)] text-[var(--t3)]"
+              }`}
+              aria-current={step === 2 ? "step" : undefined}
             >
               2
             </div>
           </div>
-          <div className="flex justify-between mt-1">
-            <span className="text-[11px] text-onSurface-variant">Student & Amount</span>
-            <span className="text-[11px] text-onSurface-variant">Payment Details</span>
+          <div className="flex justify-between mt-1.5">
+            <span className="text-[11px] font-semibold text-[var(--t3)]">Student & Amount</span>
+            <span className="text-[11px] font-semibold text-[var(--t3)]">Payment Details</span>
           </div>
         </div>
         <form
@@ -150,12 +184,12 @@ export default function PaymentModal({
               <div>
                 <label
                   htmlFor="payment-student"
-                  className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2"
+                  className="block text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--t3)] mb-2"
                 >
                   Student
                 </label>
                 {students.length === 0 ? (
-                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-800">
+                  <div className="rounded-xl p-3 text-sm font-medium border border-[var(--amber)] bg-[var(--amber-soft)] text-[var(--t1)]">
                     No students found - add students first
                   </div>
                 ) : (
@@ -165,7 +199,7 @@ export default function PaymentModal({
                       value={newPayment.student_id}
                       onChange={(e) => onPaymentChange({ student_id: e.target.value })}
                       onBlur={() => handleBlur("student_id")}
-                      className={`w-full rounded-xl py-3 px-4 text-sm transition-colors ${errorBorder("student_id")}`}
+                      className={`w-full rounded-xl py-3.5 px-4 text-sm text-[var(--t1)] transition-colors ${errorBorder("student_id")}`}
                       required
                     >
                       <option value="">Select student</option>
@@ -187,7 +221,7 @@ export default function PaymentModal({
               <div>
                 <label
                   htmlFor="payment-amount"
-                  className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2"
+                  className="block text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--t3)] mb-2"
                 >
                   Amount (UGX)
                 </label>
@@ -199,10 +233,28 @@ export default function PaymentModal({
                   value={newPayment.amount_paid}
                   onChange={(e) => onPaymentChange({ amount_paid: e.target.value })}
                   onBlur={() => handleBlur("amount_paid")}
-                  className={`w-full rounded-xl py-3 px-4 text-sm transition-colors ${errorBorder("amount_paid")}`}
+                  className={`w-full rounded-xl py-3.5 px-4 text-[15px] font-semibold tabular-nums transition-colors ${errorBorder("amount_paid")}`}
                   required
                   placeholder="0"
                 />
+                {presetOptions.length > 0 && (
+                  <div className="flex gap-2 mt-2.5 flex-wrap" role="group" aria-label="Quick amounts">
+                    {presetOptions.map((p) => (
+                      <button
+                        key={p.label}
+                        type="button"
+                        onClick={() => onPaymentChange({ amount_paid: String(p.value) })}
+                        className={`min-h-[36px] px-3.5 rounded-full text-xs font-bold border transition-colors active:scale-[0.97] ${
+                          amountNum === p.value
+                            ? "bg-[var(--primary)] text-[var(--on-primary)] border-transparent"
+                            : "bg-[var(--surface)] text-[var(--t2)] border-[var(--border)] hover:border-[var(--border2)] hover:bg-[var(--surface-container-low)]"
+                        }`}
+                      >
+                        {p.label} · {p.value >= 1000 ? `${Math.round(p.value / 1000)}k` : p.value}
+                      </button>
+                    ))}
+                  </div>
+                )}
                 {fieldError("amount_paid") && (
                   <p className="text-xs text-[var(--red)] mt-1 flex items-center gap-1">
                     <MaterialIcon className="text-sm">error</MaterialIcon>
@@ -213,17 +265,17 @@ export default function PaymentModal({
                   newPayment.amount_paid &&
                   Number(newPayment.amount_paid) > 0 &&
                   !fieldError("amount_paid") && (
-                    <p className="text-xs text-[var(--green)] mt-1">
-                      Balance after payment:{" "}
-                      {formatCurrency(Math.max(0, selectedStudent.balance - Number(newPayment.amount_paid)))}
+                    <p className="text-xs font-medium tabular-nums mt-1.5" style={{ color: "var(--green)" }}>
+                      {formatCurrency(Math.max(0, selectedStudent.balance - Number(newPayment.amount_paid)))} left after
+                      this payment
                     </p>
                   )}
               </div>
-              <div className="flex gap-3 pt-4">
+              <div className="flex gap-3 pt-2">
                 <button
                   type="button"
                   onClick={handleClose}
-                  className="flex-1 py-3 bg-surface-container text-on-surface-variant font-semibold rounded-xl"
+                  className="flex-1 min-h-[48px] py-3 bg-[var(--surface-container-low)] border border-[var(--border)] text-[var(--t2)] font-semibold rounded-xl active:scale-[0.98] transition-transform"
                 >
                   Cancel
                 </button>
@@ -231,13 +283,13 @@ export default function PaymentModal({
                   type="button"
                   onClick={handleNext}
                   disabled={students.length === 0 || !step1Valid}
-                  className="flex-1 py-3 bg-primary text-white font-semibold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 min-h-[48px] py-3 bg-[var(--primary)] text-[var(--on-primary)] font-semibold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-transform tabular-nums"
                 >
-                  Next
+                  Next{amountNum > 0 ? ` · ${formatCurrency(amountNum)}` : ""}
                 </button>
               </div>
               {(students.length === 0 || !step1Valid) && nextDisabledReason && (
-                <p className="text-xs text-on-surface-variant text-right">{nextDisabledReason}</p>
+                <p className="text-xs text-[var(--t3)] text-right">{nextDisabledReason}</p>
               )}
             </>
           )}
@@ -245,13 +297,13 @@ export default function PaymentModal({
           {step === 2 && (
             <>
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">
+                <label className="block text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--t3)] mb-2">
                   Method
                 </label>
                 <select
                   value={newPayment.payment_method}
                   onChange={(e) => onPaymentChange({ payment_method: e.target.value })}
-                  className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm"
+                  className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-xl py-3.5 px-4 text-sm text-[var(--t1)]"
                 >
                   <option value="cash">Cash</option>
                   <option value="mobile_money">Mobile Money</option>
@@ -261,29 +313,29 @@ export default function PaymentModal({
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">
+                <label className="block text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--t3)] mb-2">
                   Payment Reference
                 </label>
                 <input
                   type="text"
                   value={newPayment.payment_reference}
                   onChange={(e) => onPaymentChange({ payment_reference: e.target.value })}
-                  className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm"
+                  className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-xl py-3.5 px-4 text-sm text-[var(--t1)]"
                   placeholder="e.g. Receipt number"
                 />
               </div>
               {newPayment.payment_method === "in_kind" && (
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">
+                  <label className="block text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--t3)] mb-2">
                     Description of Goods/Services
                   </label>
                   <textarea
                     value={newPayment.notes}
                     onChange={(e) => onPaymentChange({ notes: e.target.value })}
-                    className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm min-h-20 resize-y"
+                    className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-xl py-3.5 px-4 text-sm min-h-20 resize-y text-[var(--t1)]"
                     placeholder="e.g. 3 bags of maize flour, school uniform supplies"
                   />
-                  <p className="text-xs text-on-surface-variant mt-1">
+                  <p className="text-xs text-[var(--t3)] mt-1">
                     Amount (UGX) represents the fair value of the goods or services provided.
                   </p>
                 </div>
@@ -291,7 +343,7 @@ export default function PaymentModal({
               {newPayment.payment_method === "mobile_money" && (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">
+                    <label className="block text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--t3)] mb-2">
                       MoMo Provider
                     </label>
                     <select
@@ -301,14 +353,14 @@ export default function PaymentModal({
                           momo_provider: e.target.value as "mtn" | "airtel",
                         })
                       }
-                      className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm"
+                      className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-xl py-3.5 px-4 text-sm text-[var(--t1)]"
                     >
                       <option value="mtn">MTN</option>
                       <option value="airtel">Airtel</option>
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">
+                    <label className="block text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--t3)] mb-2">
                       Transaction ID
                     </label>
                     <input
@@ -316,7 +368,7 @@ export default function PaymentModal({
                       value={newPayment.momo_transaction_id}
                       onChange={(e) => onPaymentChange({ momo_transaction_id: e.target.value })}
                       onBlur={() => handleBlur("momo_transaction_id")}
-                      className={`w-full rounded-xl py-3 px-4 text-sm transition-colors ${errorBorder("momo_transaction_id")}`}
+                      className={`w-full rounded-xl py-3.5 px-4 text-sm transition-colors ${errorBorder("momo_transaction_id")}`}
                       placeholder="MoMo transaction ID"
                     />
                     {fieldError("momo_transaction_id") && (
@@ -330,49 +382,47 @@ export default function PaymentModal({
               )}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">
+                  <label className="block text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--t3)] mb-2">
                     Paid By
                   </label>
                   <input
                     type="text"
                     value={newPayment.paid_by}
                     onChange={(e) => onPaymentChange({ paid_by: e.target.value })}
-                    className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm"
+                    className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-xl py-3.5 px-4 text-sm text-[var(--t1)]"
                     placeholder="Name of payer"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">
+                  <label className="block text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--t3)] mb-2">
                     Notes
                   </label>
                   <input
                     type="text"
                     value={newPayment.notes}
                     onChange={(e) => onPaymentChange({ notes: e.target.value })}
-                    className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm"
+                    className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-xl py-3.5 px-4 text-sm text-[var(--t1)]"
                     placeholder="Additional notes"
                   />
                 </div>
               </div>
-              <div className="flex gap-3 pt-4">
+              <div className="flex gap-3 pt-2">
                 <button
                   type="button"
                   onClick={handleBack}
-                  className="flex-1 py-3 bg-surface-container text-on-surface-variant font-semibold rounded-xl"
+                  className="flex-1 min-h-[48px] py-3 bg-[var(--surface-container-low)] border border-[var(--border)] text-[var(--t2)] font-semibold rounded-xl active:scale-[0.98] transition-transform"
                 >
                   Back
                 </button>
                 <button
                   type="submit"
                   disabled={saving || Boolean(submitDisabledReason)}
-                  className="flex-1 py-3 bg-primary text-white font-semibold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-[2] min-h-[48px] py-3 bg-[var(--primary)] text-[var(--on-primary)] font-semibold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-transform tabular-nums"
                 >
-                  {saving ? "Saving..." : "Record Payment"}
+                  {saving ? "Saving..." : amountNum > 0 ? `Pay ${formatCurrency(amountNum)}` : "Record Payment"}
                 </button>
               </div>
-              {submitDisabledReason && (
-                <p className="text-xs text-on-surface-variant text-right">{submitDisabledReason}</p>
-              )}
+              {submitDisabledReason && <p className="text-xs text-[var(--t3)] text-right">{submitDisabledReason}</p>}
             </>
           )}
         </form>

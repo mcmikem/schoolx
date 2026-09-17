@@ -26,7 +26,9 @@ export async function withTimeout<T>(promise: PromiseLike<T>, ms: number, fallba
 
 /** Creates a type-compatible timeout fallback for Supabase withTimeout calls.
  *  The fallback simulates a PostgrestSingleResponse with no data and no error.
- *  Used as a sentinel when queries time out — callers destructure `{ data, error }`. */
+ *  Used as a sentinel when queries time out — callers destructure `{ data, error }`.
+ *  IMPORTANT: a 408 result means UNKNOWN, not empty. Callers must check
+ *  `isTimeoutResult(result)` and show stale/offline UI instead of zero balances. */
 export function timeoutFallback<T = unknown>(): PostgrestSingleResponse<T> {
   return {
     data: null,
@@ -36,6 +38,12 @@ export function timeoutFallback<T = unknown>(): PostgrestSingleResponse<T> {
     statusText: "Timeout",
     success: false,
   } as unknown as PostgrestSingleResponse<T>;
+}
+
+/** True when a withTimeout() call hit its deadline. Data is unknown — never
+ *  render it as an empty list / zero balance. */
+export function isTimeoutResult(result: unknown): boolean {
+  return !!result && typeof result === "object" && (result as { status?: number }).status === 408;
 }
 
 /** Fallback for Supabase Storage operations (returns a different shape than .from().select()) */

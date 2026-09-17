@@ -41,29 +41,14 @@ interface EnhancedFeeTableProps {
 const formatCurrency = (amount: number) => `UGX ${amount.toLocaleString()}`;
 
 function FeeProgressBar({ percentage, amount, total }: { percentage: number; amount: number; total: number }) {
-  const getBarColor = () => {
-    if (percentage >= 100) return "bg-green-500";
-    if (percentage >= 75) return "bg-green-500";
-    if (percentage >= 50) return "bg-amber-500";
-    if (percentage >= 25) return "bg-orange-500";
-    return "bg-red-500";
-  };
-
-  const getBgColor = () => {
-    if (percentage >= 100) return "bg-green-100";
-    if (percentage >= 75) return "bg-green-50";
-    if (percentage >= 50) return "bg-amber-50";
-    if (percentage >= 25) return "bg-orange-50";
-    return "bg-red-50";
-  };
-
-  const getTextColor = () => {
-    if (percentage >= 100) return "text-green-600";
-    if (percentage >= 75) return "text-green-600";
-    if (percentage >= 50) return "text-amber-600";
-    if (percentage >= 25) return "text-orange-600";
-    return "text-red-600";
-  };
+  // Soft system palette (not saturated 500s): quiet track, single confident fill.
+  // Principle: hierarchy — progress supports scanning, it never shouts over the balance.
+  const tone =
+    percentage >= 100 || percentage >= 75
+      ? { fill: "var(--green)", track: "var(--green-soft)", text: "var(--green)" }
+      : percentage >= 50
+        ? { fill: "var(--amber)", track: "var(--amber-soft)", text: "var(--amber)" }
+        : { fill: "var(--red)", track: "var(--red-soft)", text: "var(--red)" };
 
   const shortFormat = (n: number) => {
     if (n >= 1000000) return `UGX ${(n / 1000000).toFixed(1)}M`;
@@ -73,18 +58,18 @@ function FeeProgressBar({ percentage, amount, total }: { percentage: number; amo
 
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between text-xs mb-1">
-        <span className="text-on-surface-variant">
+      <div className="flex items-center justify-between text-xs mb-1.5">
+        <span className="text-[var(--t3)] font-medium tabular-nums">
           {shortFormat(amount)} / {shortFormat(total)}
         </span>
-        <span className={`font-semibold ${getTextColor()}`}>
-          {percentage >= 100 ? "✓ Paid" : `${Math.min(percentage, 99)}%`}
+        <span className="font-bold tabular-nums" style={{ color: tone.text }}>
+          {percentage >= 100 ? "Paid" : `${Math.min(percentage, 99)}%`}
         </span>
       </div>
-      <div className={`h-2 ${getBgColor()} rounded-full overflow-hidden`}>
+      <div className="h-1.5 rounded-full overflow-hidden" style={{ background: tone.track }}>
         <div
-          className={`h-full rounded-full transition-all duration-500 ${getBarColor()}`}
-          style={{ width: `${Math.min(percentage, 100)}%` }}
+          className="h-full rounded-full transition-all duration-500"
+          style={{ width: `${Math.min(percentage, 100)}%`, background: tone.fill }}
         />
       </div>
     </div>
@@ -92,24 +77,17 @@ function FeeProgressBar({ percentage, amount, total }: { percentage: number; amo
 }
 
 function getStatusBadge(status: string | undefined, percentage: number) {
+  // Single badge system (.badge): quick to scan, never steals focus from the balance.
   if (status === "written_off") {
-    return (
-      <span className="px-2 py-0.5 rounded-full bg-slate-200 text-slate-800 text-xs font-bold uppercase">
-        Written Off
-      </span>
-    );
+    return <span className="badge badge-navy">Written off</span>;
   }
   if (percentage >= 100) {
-    return <span className="px-2 py-0.5 rounded-full bg-green-100 text-green-800 text-xs font-bold">✓ Paid</span>;
+    return <span className="badge badge-green">Paid</span>;
   }
   if (percentage === 0) {
-    return <span className="px-2 py-0.5 rounded-full bg-red-100 text-red-800 text-xs font-bold">Unpaid</span>;
+    return <span className="badge badge-red">Unpaid</span>;
   }
-  return (
-    <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 text-xs font-bold">
-      {Math.min(percentage, 99)}%
-    </span>
-  );
+  return <span className="badge badge-amber">{Math.min(percentage, 99)}%</span>;
 }
 
 const ITEMS_PER_PAGE = 20;
@@ -237,12 +215,12 @@ export default function FeeTable({
       )}
 
       {/* Desktop table */}
-      <div className="bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm border border-outline-variant/5 hidden md:block">
+      <div className="bg-surface-container-lowest rounded-2xl overflow-hidden shadow-[var(--sh1)] border border-[var(--border)] hidden md:block">
         <div className="overflow-x-auto table-responsive">
           <table className="w-full border-collapse">
             <thead>
-              <tr className="bg-surface-container-low text-left">
-                <th className="px-6 py-4 w-12">
+              <tr className="bg-[var(--surface-container-low)] text-left">
+                <th className="px-6 py-3.5 w-12">
                   <label className="sr-only">Select all students</label>
                   <input
                     type="checkbox"
@@ -256,7 +234,7 @@ export default function FeeTable({
                   />
                 </th>
                 <th
-                  className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant cursor-pointer select-none hover:text-on-surface-variant/80"
+                  className="px-6 py-3.5 text-[11px] uppercase tracking-[0.12em] font-bold text-[var(--t3)] cursor-pointer select-none hover:text-[var(--t1)]"
                   onClick={() => handleSort("name")}
                 >
                   <span className="flex items-center">
@@ -265,7 +243,7 @@ export default function FeeTable({
                   </span>
                 </th>
                 <th
-                  className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant cursor-pointer select-none hover:text-on-surface-variant/80"
+                  className="px-6 py-3.5 text-[11px] uppercase tracking-[0.12em] font-bold text-[var(--t3)] cursor-pointer select-none hover:text-[var(--t1)]"
                   onClick={() => handleSort("class_name")}
                 >
                   <span className="flex items-center">
@@ -273,29 +251,25 @@ export default function FeeTable({
                     <SortIcon column="class_name" />
                   </span>
                 </th>
-                <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                  Payment Progress
+                <th className="px-6 py-3.5 text-[11px] uppercase tracking-[0.12em] font-bold text-[var(--t3)]">
+                  Progress
                 </th>
-                <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                  Expected
+                <th className="px-6 py-3.5 text-[11px] uppercase tracking-[0.12em] font-bold text-[var(--t3)] text-right">
+                  Paid
                 </th>
-                <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Paid</th>
                 <th
-                  className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant cursor-pointer select-none hover:text-on-surface-variant/80"
+                  className="px-6 py-3.5 text-[11px] uppercase tracking-[0.12em] font-bold text-[var(--t3)] cursor-pointer select-none hover:text-[var(--t1)] text-right"
                   onClick={() => handleSort("balance")}
                 >
-                  <span className="flex items-center">
+                  <span className="flex items-center justify-end">
                     Balance
                     <SortIcon column="balance" />
                   </span>
                 </th>
-                <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                  Status
-                </th>
-                <th className="px-6 py-4"></th>
+                <th className="px-6 py-3.5"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-outline-variant/5">
+            <tbody className="divide-y divide-[var(--border)]/60">
               {paginated.map((student) => {
                 const total = student.expected || 0;
                 const paid = student.paid || 0;
@@ -320,34 +294,44 @@ export default function FeeTable({
                       />
                     </td>
                     <td className="px-6 py-4">
-                      <div className="font-bold text-primary">{student.name}</div>
-                      <div className="text-xs text-on-surface-variant">{student.student_number}</div>
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="font-semibold text-[var(--t1)] text-sm truncate">{student.name}</div>
+                        {getStatusBadge(student.status, percentage)}
+                      </div>
+                      <div className="text-xs text-[var(--t3)] mt-0.5 tabular-nums">
+                        {student.student_number} · {formatCurrency(total)} expected
+                      </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-on-surface-variant">{student.class_name}</td>
-                    <td className="px-6 py-4 min-w-[200px]">
+                    <td className="px-6 py-4 text-sm text-[var(--t2)] whitespace-nowrap">{student.class_name}</td>
+                    <td className="px-6 py-4 min-w-[180px]">
                       <FeeProgressBar percentage={percentage} amount={paid} total={total} />
                     </td>
-                    <td className="px-6 py-4 font-medium">{formatCurrency(total)}</td>
-                    <td className="px-6 py-4 font-bold text-secondary">{formatCurrency(paid)}</td>
-                    <td className={`px-6 py-4 font-bold ${student.balance > 0 ? "text-error" : "text-secondary"}`}>
+                    <td className="px-6 py-4 text-sm font-medium text-[var(--t2)] tabular-nums text-right whitespace-nowrap">
+                      {formatCurrency(paid)}
+                    </td>
+                    <td
+                      className="px-6 py-4 text-sm font-bold tabular-nums text-right whitespace-nowrap"
+                      style={{ color: student.balance > 0 ? "var(--red)" : "var(--green)" }}
+                    >
                       {formatCurrency(student.balance)}
                     </td>
-                    <td className="px-6 py-4">{getStatusBadge(student.status, percentage)}</td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center justify-end gap-1.5">
                         {onRecordPayment && (
                           <button
                             onClick={() => onRecordPayment(student)}
-                            className="p-2 text-[var(--green)] hover:bg-green-50 rounded-lg"
-                            title="Record payment"
+                            className="w-9 h-9 flex items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--primary)] transition-colors hover:bg-[var(--surface-container-low)] hover:border-[var(--border2)]"
+                            title={`Record payment for ${student.name}`}
+                            aria-label={`Record payment for ${student.name}`}
                           >
                             <MaterialIcon icon="payment" className="text-lg" />
                           </button>
                         )}
                         <button
                           onClick={() => onViewReceipt(student)}
-                          className="p-2 text-on-surface-variant hover:bg-surface-container rounded-lg"
-                          title="View receipt"
+                          className="w-9 h-9 flex items-center justify-center rounded-xl border border-transparent text-[var(--t3)] transition-colors hover:bg-[var(--surface-container-low)] hover:text-[var(--t1)] hover:border-[var(--border)]"
+                          title={`View receipt for ${student.name}`}
+                          aria-label={`View receipt for ${student.name}`}
                         >
                           <MaterialIcon icon="visibility" className="text-lg" />
                         </button>
@@ -408,7 +392,7 @@ export default function FeeTable({
         )}
       </div>
 
-      {/* Mobile card layout */}
+      {/* Mobile card layout — hierarchy: who → how much left → progress → act */}
       <div className="md:hidden space-y-3">
         {paginated.map((student) => {
           const total = student.expected || 0;
@@ -418,9 +402,14 @@ export default function FeeTable({
           return (
             <div
               key={student.id}
-              className={`bg-surface-container-lowest rounded-xl p-4 border border-outline-variant/5 ${selectedIds.has(student.id) ? "border-[var(--primary)] bg-[var(--primary)]/5" : ""}`}
+              className={`bg-[var(--surface)] rounded-2xl p-4 border shadow-[var(--sh1)] ${selectedIds.has(student.id) ? "border-[var(--primary)]" : "border-[var(--border)]"}`}
+              style={
+                selectedIds.has(student.id)
+                  ? { background: "color-mix(in srgb, var(--primary) 4%, var(--surface))" }
+                  : undefined
+              }
             >
-              <div className="flex items-start justify-between mb-3">
+              <div className="flex items-start justify-between gap-3 mb-3">
                 <div className="flex items-start gap-3 flex-1 min-w-0">
                   <input
                     type="checkbox"
@@ -429,55 +418,53 @@ export default function FeeTable({
                       toggleOne(student.id);
                       setShowBulkBar(true);
                     }}
-                    className="w-4 h-4 rounded mt-1 flex-shrink-0"
+                    className="w-5 h-5 rounded mt-0.5 flex-shrink-0"
                     aria-label={`Select ${student.name}`}
                   />
                   <div className="min-w-0">
-                    <div className="font-bold text-primary truncate">{student.name}</div>
-                    <div className="text-xs text-on-surface-variant">
-                      {student.student_number} • {student.class_name}
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-semibold text-[var(--t1)] text-[15px] truncate">{student.name}</span>
+                      {getStatusBadge(student.status, percentage)}
+                    </div>
+                    <div className="text-xs text-[var(--t3)] mt-0.5 truncate">
+                      {student.student_number} · {student.class_name}
                     </div>
                   </div>
                 </div>
-                {getStatusBadge(student.status, percentage)}
-              </div>
-
-              <div className="mb-3">
-                <FeeProgressBar percentage={percentage} amount={paid} total={total} />
-              </div>
-
-              <div className="grid grid-cols-3 gap-2 text-center mb-3">
-                <div>
-                  <div className="text-xs text-on-surface-variant">Expected</div>
-                  <div className="text-sm font-bold">{formatCurrency(total)}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-on-surface-variant">Paid</div>
-                  <div className="text-sm font-bold text-secondary">{formatCurrency(paid)}</div>
-                </div>
-                <div>
-                  <div className="text-xs text-on-surface-variant">Balance</div>
-                  <div className={`text-sm font-bold ${student.balance > 0 ? "text-error" : "text-secondary"}`}>
+                <div className="text-right flex-shrink-0">
+                  <div
+                    className="text-[17px] font-bold tabular-nums leading-none"
+                    style={{
+                      fontFamily: "'Sora', sans-serif",
+                      color: student.balance > 0 ? "var(--red)" : "var(--green)",
+                    }}
+                  >
                     {formatCurrency(student.balance)}
                   </div>
+                  <div className="text-[11px] text-[var(--t3)] font-medium mt-1 tabular-nums">left to pay</div>
                 </div>
+              </div>
+
+              <div className="mb-4">
+                <FeeProgressBar percentage={percentage} amount={paid} total={total} />
               </div>
 
               <div className="flex gap-2">
                 {onRecordPayment && (
                   <button
                     onClick={() => onRecordPayment(student)}
-                    className="flex-1 py-2 bg-[var(--green)] text-white text-xs font-bold rounded-lg"
+                    className="flex-1 min-h-[44px] py-2.5 bg-[var(--primary)] text-[var(--on-primary)] text-[13px] font-semibold rounded-xl active:scale-[0.98] transition-transform"
                   >
-                    <MaterialIcon className="text-sm align-text-bottom mr-1">payment</MaterialIcon>
-                    Pay
+                    <MaterialIcon className="text-base align-text-bottom mr-1">payment</MaterialIcon>
+                    Pay {formatCurrency(student.balance)}
                   </button>
                 )}
                 <button
                   onClick={() => onViewReceipt(student)}
-                  className="flex-1 py-2 bg-surface-container text-on-surface-variant text-xs font-bold rounded-lg"
+                  className="min-h-[44px] px-4 py-2.5 bg-[var(--surface-container-low)] text-[var(--t2)] text-[13px] font-semibold rounded-xl border border-[var(--border)] active:scale-[0.98] transition-transform"
+                  aria-label={`View receipt for ${student.name}`}
                 >
-                  <MaterialIcon className="text-sm align-text-bottom mr-1">visibility</MaterialIcon>
+                  <MaterialIcon className="text-base align-text-bottom mr-1">visibility</MaterialIcon>
                   Receipt
                 </button>
               </div>
