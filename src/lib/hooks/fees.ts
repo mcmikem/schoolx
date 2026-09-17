@@ -77,6 +77,56 @@ async function fetchFeePaymentsWithFallback(options: { schoolId: string; page: n
   throw lastError;
 }
 
+const DUPLICATE_WINDOW_MS = 2 * 60 * 1000;
+
+/**
+ * Recent-duplicate guard for the direct-insert payment path (the UI posts
+ * here, not to /api/fee-payments/). A double-tap, Enter-key repeat, or retry
+ * after a client timeout must return the existing row instead of minting a
+ * second payment. Fail-open: any guard error returns null so a real payment
+ * is never blocked.
+ */
+export async function findRecentDuplicatePayment(params: {
+  schoolId: string;
+  studentId: string;
+  amount: number;
+  method: string;
+  online: boolean;
+}): Promise<Record<string, unknown> | null> {
+  const { schoolId, studentId, amount, method, online } = params;
+  try {
+    const since = new Date(Date.now() - DUPLICATE_WINDOW_MS).toISOString();
+    if (!online) {
+      const local = await offlineDB.getAll("fee_payments", { student_id: studentId });
+      return (
+        (local.find(
+          (r) =>
+            Number((r as Record<string, unknown>).amount_paid) === amount &&
+            String((r as Record<string, unknown>).payment_method) === method &&
+            String((r as Record<string, unknown>).created_at || "") >= since,
+        ) as Record<string, unknown> | undefined) ?? null
+      );
+    }
+    const { data } = await withTimeout(
+      supabase
+        .from("fee_payments")
+        .select("id, student_id, amount_paid, payment_method, payment_date, created_at")
+        .eq("school_id", schoolId)
+        .eq("student_id", studentId)
+        .eq("payment_method", method)
+        .gte("created_at", since)
+        .is("deleted_at", null)
+        .limit(10),
+      10000,
+      timeoutFallback(),
+    );
+    const rows = (data ?? []) as unknown as Array<Record<string, unknown>>;
+    return rows.find((r) => Number(r.amount_paid) === amount) ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export function useFeePayments(schoolId?: string, page: number = 1, limit: number = 50) {
   const [payments, setPayments] = useState<FeePayment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -204,6 +254,18 @@ export function useFeePayments(schoolId?: string, page: number = 1, limit: numbe
       if (feeError || !feeStructure) {
         throw new Error("Invalid or missing fee structure. Please create the fee first.");
       }
+    }
+
+    const duplicate = await findRecentDuplicatePayment({
+      schoolId: querySchoolId ?? "",
+      studentId: String(normalizedPayment.student_id),
+      amount: Number(normalizedPayment.amount_paid),
+      method: String(normalizedPayment.payment_method),
+      online: isOnline,
+    });
+    if (duplicate) {
+      logger.warn("[Fees] Duplicate payment suppressed, returning existing row");
+      return duplicate as unknown as FeePayment;
     }
 
     const payload: Record<string, unknown> = {

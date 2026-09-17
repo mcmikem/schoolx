@@ -5,6 +5,8 @@ import {
   parseStudentRows,
   normalizeGender,
   mapRowKeys,
+  buildClassAliasMap,
+  resolveClassId,
 } from "@/lib/import/students";
 
 describe("normalizeHeader", () => {
@@ -132,5 +134,38 @@ describe("parseStudentRows", () => {
 
   it("returns an empty array for non-array input", () => {
     expect(parseStudentRows(null as unknown as Array<Record<string, unknown>>)).toEqual([]);
+  });
+});
+
+describe("buildClassAliasMap / resolveClassId", () => {
+  const map = buildClassAliasMap([
+    { id: "p1", name: "Primary 1" },
+    { id: "s1", name: "S.1" },
+  ]);
+
+  it("matches exact, trimmed and case variants", () => {
+    expect(resolveClassId(map, "Primary 1")).toBe("p1");
+    expect(resolveClassId(map, "  primary 1 ")).toBe("p1");
+    expect(resolveClassId(map, "PRIMARY 1")).toBe("p1");
+    expect(resolveClassId(map, "S.1")).toBe("s1");
+  });
+
+  it("matches P.1 / p1 / Primary1 spelling variants", () => {
+    expect(resolveClassId(map, "P.1")).toBe("p1");
+    expect(resolveClassId(map, "p1")).toBe("p1");
+    expect(resolveClassId(map, "Primary1")).toBe("p1");
+    expect(resolveClassId(map, "primary 1")).toBe("p1");
+  });
+
+  it("matches S.1 / Senior 1 variants both ways", () => {
+    expect(resolveClassId(map, "Senior 1")).toBe("s1");
+    expect(resolveClassId(map, "s1")).toBe("s1");
+    expect(resolveClassId(map, "Secondary 1")).toBe("s1");
+  });
+
+  it("returns undefined for unknown or blank classes", () => {
+    expect(resolveClassId(map, "P.9")).toBeUndefined();
+    expect(resolveClassId(map, "")).toBeUndefined();
+    expect(resolveClassId(map, null)).toBeUndefined();
   });
 });

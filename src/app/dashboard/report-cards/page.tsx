@@ -16,7 +16,7 @@ import { Button } from "@/components/ui/index";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { APP_NAME } from "@/lib/app-name";
-import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
+import { withTimeout, timeoutFallback, isTimeoutResult } from "@/lib/hooks/utils";
 import { calculateSubjectTotal } from "@/lib/grading";
 import {
   calculateFormativeScore,
@@ -122,6 +122,9 @@ export default function ReportCardsPage() {
   }>({ current: 0, total: 0, currentClass: "", studentsProcessed: 0, errors: 0 });
   const [searchQuery, setSearchQuery] = useState("");
   const [urlStudentIds, setUrlStudentIds] = useState<string[]>([]);
+  // True when the shown cards were computed from the on-device cache because
+  // the network was down or timed out — preview + print work, saving waits.
+  const [offlinePreview, setOfflinePreview] = useState(false);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -186,16 +189,61 @@ export default function ReportCardsPage() {
     };
   }, [reports, getStudentFeeBalance]);
 
+  // Grades for one class: live from Supabase, falling back to the on-device
+  // IndexedDB cache when offline or timed out (a timeout means UNKNOWN, not
+  // empty — see isTimeoutResult). Cached rows lack the joined subjects, so
+  // subject names are hydrated from the already-loaded subjects list.
+  const fetchReportGrades = async (
+    classId: string,
+    assessmentTypes: string[],
+  ): Promise<{ rows: any[]; offline: boolean }> => {
+    const { supabase: sb } = await import("@/lib/supabase");
+    try {
+      if (typeof navigator !== "undefined" && !navigator.onLine) throw new Error("offline");
+      const res = await withTimeout(
+        sb
+          .from("grades")
+          .select("*, subjects(id, name)")
+          .eq("class_id", classId)
+          .eq("term", currentTerm)
+          .eq("academic_year", academicYear)
+          .in("assessment_type", assessmentTypes),
+        15000,
+        timeoutFallback(),
+      );
+      if ((res as { error?: unknown })?.error) throw (res as { error: unknown }).error;
+      if (isTimeoutResult(res)) throw new Error("timeout");
+      return { rows: ((res as { data?: unknown }).data as any[]) || [], offline: false };
+    } catch {
+      const { offlineDB } = await import("@/lib/offline");
+      const cached = await offlineDB.getAll("grades", { class_id: classId });
+      const nameById = new Map((subjects as any[]).map((s: any) => [s.id, s.name]));
+      const rows = (cached as Record<string, unknown>[])
+        .filter(
+          (g) =>
+            String(g.term) === String(currentTerm) &&
+            String(g.academic_year) === String(academicYear) &&
+            assessmentTypes.includes(String(g.assessment_type)),
+        )
+        .map((g) => ({
+          ...(g as object),
+          subjects: { id: g.subject_id, name: nameById.get(g.subject_id as string) || "Unknown" },
+        }));
+      return { rows, offline: true };
+    }
+  };
+
   async function generateReportsForClass(
     classId: string,
     className: string,
     students: any[],
-  ): Promise<{ reports: StudentReport[]; missingMarks: boolean }> {
+  ): Promise<{ reports: StudentReport[]; missingMarks: boolean; offline: boolean }> {
     if (reportFormat === "cbc") {
       return generateCBCReports(classId, className, students);
     }
     let gradesData: any[] = [];
     let competencyData: any[] = [];
+    let usedOffline = false;
 
     if (isDemo) {
       gradesData = DEMO_GRADES.filter((grade) => grade.class_id === classId).map((grade) => ({
@@ -203,39 +251,14 @@ export default function ReportCardsPage() {
         subjects: DEMO_SUBJECTS.find((subject) => subject.id === grade.subject_id) || null,
       }));
     } else {
-      const { supabase: sb } = await import("@/lib/supabase");
-
-      const gradesResult = await withTimeout(
-        sb
-          .from("grades")
-          .select("*, subjects(id, name)")
-          .eq("class_id", classId)
-          .eq("term", currentTerm)
-          .eq("academic_year", academicYear)
-          .in("assessment_type", ["ca1", "ca2", "ca3", "ca4", "project", "exam"]),
-        15000,
-        timeoutFallback(),
-      );
-
-      if (gradesResult.error) throw gradesResult.error;
-      gradesData = gradesResult.data || [];
+      const main = await fetchReportGrades(classId, ["ca1", "ca2", "ca3", "ca4", "project", "exam"]);
+      gradesData = main.rows;
+      usedOffline = main.offline;
 
       if (reportFormat !== "numerical") {
-        const compResult = await withTimeout(
-          sb
-            .from("grades")
-            .select("student_id, subject_id, competency_level, competency_notes, subjects(id, name)")
-            .eq("class_id", classId)
-            .eq("term", currentTerm)
-            .eq("academic_year", academicYear)
-            .in("assessment_type", ["competency"]),
-          15000,
-          timeoutFallback(),
-        );
-
-        if (!compResult.error) {
-          competencyData = compResult.data || [];
-        }
+        const comp = await fetchReportGrades(classId, ["competency"]);
+        competencyData = comp.rows;
+        usedOffline = usedOffline || comp.offline;
       }
     }
 
@@ -275,7 +298,7 @@ export default function ReportCardsPage() {
     const numSubjects = subjectList.length || 1;
 
     if (students.length === 0) {
-      return { reports: [], missingMarks: false };
+      return { reports: [], missingMarks: false, offline: usedOffline };
     }
 
     const reportList: StudentReport[] = students.map((student) => {
@@ -346,57 +369,21 @@ export default function ReportCardsPage() {
 
     const missing = reportList.some((r) => r.subjects.some((s: any) => s.isMissing));
 
-    return { reports: reportList, missingMarks: missing };
+    return { reports: reportList, missingMarks: missing, offline: usedOffline };
   }
 
   async function generateCBCReports(
     classId: string,
     className: string,
     students: any[],
-  ): Promise<{ reports: StudentReport[]; missingMarks: boolean }> {
-    if (students.length === 0) return { reports: [], missingMarks: false };
+  ): Promise<{ reports: StudentReport[]; missingMarks: boolean; offline: boolean }> {
+    if (students.length === 0) return { reports: [], missingMarks: false, offline: false };
 
-    const { supabase: sb } = await import("@/lib/supabase");
-
-    const [u1Result, u2Result, eotResult] = await Promise.all([
-      withTimeout(
-        sb
-          .from("grades")
-          .select("*, subjects(id, name)")
-          .eq("class_id", classId)
-          .eq("term", currentTerm)
-          .eq("academic_year", academicYear)
-          .eq("assessment_type", "u1"),
-        15000,
-        timeoutFallback(),
-      ),
-      withTimeout(
-        sb
-          .from("grades")
-          .select("*, subjects(id, name)")
-          .eq("class_id", classId)
-          .eq("term", currentTerm)
-          .eq("academic_year", academicYear)
-          .eq("assessment_type", "u2"),
-        15000,
-        timeoutFallback(),
-      ),
-      withTimeout(
-        sb
-          .from("grades")
-          .select("*, subjects(id, name)")
-          .eq("class_id", classId)
-          .eq("term", currentTerm)
-          .eq("academic_year", academicYear)
-          .eq("assessment_type", "eot"),
-        15000,
-        timeoutFallback(),
-      ),
-    ]);
-
-    const u1Grades = u1Result.data || [];
-    const u2Grades = u2Result.data || [];
-    const eotGrades = eotResult.data || [];
+    // One cached-or-live fetch, split client-side (was 3 round-trips).
+    const fetched = await fetchReportGrades(classId, ["u1", "u2", "eot"]);
+    const u1Grades = fetched.rows.filter((g: any) => g.assessment_type === "u1");
+    const u2Grades = fetched.rows.filter((g: any) => g.assessment_type === "u2");
+    const eotGrades = fetched.rows.filter((g: any) => g.assessment_type === "eot");
 
     const subjectOrder = subjects.map((s: any) => s.name);
 
@@ -498,7 +485,7 @@ export default function ReportCardsPage() {
     });
 
     const missing = reportList.some((r) => r.subjects.some((s: any) => s.isMissing));
-    return { reports: reportList, missingMarks: missing };
+    return { reports: reportList, missingMarks: missing, offline: fetched.offline };
   }
 
   const persistReportCards = async (reportList: StudentReport[], classId: string) => {
@@ -581,11 +568,11 @@ export default function ReportCardsPage() {
     }
 
     try {
-      const { reports: reportList, missingMarks } = await generateReportsForClass(
-        selectedClass,
-        selectedClassName,
-        filteredStudents,
-      );
+      const {
+        reports: reportList,
+        missingMarks,
+        offline,
+      } = await generateReportsForClass(selectedClass, selectedClassName, filteredStudents);
 
       if (reportList.length === 0) {
         toast.error("No students found for the selected class");
@@ -604,6 +591,15 @@ export default function ReportCardsPage() {
       setReports(reportList);
       setComments(initialComments);
       setGenerated(true);
+      setOfflinePreview(offline);
+
+      // Offline preview: cards compute from cached marks and can be printed,
+      // but persisting needs a connection — one row per student would each
+      // burn a 15s timeout. Re-generate when back online to save officially.
+      if (offline) {
+        toast.info("Offline preview from saved marks — print works, official save needs connection.");
+        return;
+      }
 
       const { savedCount, failedNames } = await persistReportCards(reportList, selectedClass);
 
@@ -629,6 +625,7 @@ export default function ReportCardsPage() {
     }
 
     setGeneratingAll(true);
+    setOfflinePreview(false);
     setGenerationProgress({
       current: 0,
       total: classes.length,
@@ -660,7 +657,11 @@ export default function ReportCardsPage() {
       }
 
       try {
-        const { reports: classReports } = await generateReportsForClass(c.id, className, studentsForClass);
+        const { reports: classReports, offline: classOffline } = await generateReportsForClass(
+          c.id,
+          className,
+          studentsForClass,
+        );
 
         allReports.push(...classReports);
         totalStudents += classReports.length;
@@ -669,9 +670,16 @@ export default function ReportCardsPage() {
           studentsProcessed: totalStudents,
         }));
 
-        const { savedCount, failedNames } = await persistReportCards(classReports, c.id);
-        totalSaved += savedCount;
-        totalFailed += failedNames.length;
+        if (classOffline) {
+          // Offline: keep the preview, skip the per-row saves (each would
+          // burn a timeout). Count them as unsaved, not errors.
+          totalFailed += classReports.length;
+          setOfflinePreview(true);
+        } else {
+          const { savedCount, failedNames } = await persistReportCards(classReports, c.id);
+          totalSaved += savedCount;
+          totalFailed += failedNames.length;
+        }
       } catch (err) {
         logger.error(`Error generating reports for class ${className}:`, err);
         totalErrors++;
@@ -1192,6 +1200,19 @@ export default function ReportCardsPage() {
     <PageErrorBoundary>
       <div className="p-4 sm:p-6 lg:p-8">
         <PageHeader title="Report Cards" subtitle="Generate and manage student report cards" actions={actions} />
+
+        {offlinePreview && generated && (
+          <div
+            role="status"
+            className="mb-5 flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+          >
+            <MaterialIcon icon="cloud_off" style={{ fontSize: "20px" }} />
+            <div>
+              <span className="font-semibold">Offline preview.</span> These cards were computed from marks saved on this
+              device — you can print them now. Reconnect and re-generate to save official copies.
+            </div>
+          </div>
+        )}
 
         {generatingAll && (
           <Card className="mb-5">

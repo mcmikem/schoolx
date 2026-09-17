@@ -591,48 +591,67 @@ export default function FinanceHubPage() {
       });
 
       if (!isDemo && school?.id && paymentResult?.id) {
+        // Retry-after-timeout returns the EXISTING payment row (idempotent),
+        // so first check whether it already has a receipt — minting a second
+        // number for one payment breaks the receipt book.
+        const { data: existingReceipt } = await withTimeout(
+          supabase
+            .from("receipts")
+            .select("receipt_number")
+            .eq("school_id", school.id)
+            .eq("payment_id", paymentResult.id)
+            .maybeSingle(),
+          10000,
+          timeoutFallback(),
+        );
+        const existingNumber = (existingReceipt as { receipt_number?: string } | null)?.receipt_number;
+
         // Atomic per-school counter (next_receipt_number): two devices
         // receipting at once must never mint the same RCP number. Falls back
         // to read-max-plus-one on DBs predating the 20260917 migration.
-        let receiptNumber: string | null = null;
-        const { data: rpcNumber } = await withTimeout(
-          supabase.rpc("next_receipt_number", { p_school_id: school.id }),
-          10000,
-          timeoutFallback(),
-        );
-        if (typeof rpcNumber === "string" && rpcNumber) {
-          receiptNumber = rpcNumber;
-        } else {
-          const { data: lastReceipt } = await withTimeout(
-            supabase
-              .from("receipts")
-              .select("receipt_number")
-              .eq("school_id", school.id)
-              .order("created_at", { ascending: false })
-              .limit(1)
-              .maybeSingle(),
+        let receiptNumber: string | null = existingNumber ?? null;
+        if (!receiptNumber) {
+          const { data: rpcNumber } = await withTimeout(
+            supabase.rpc("next_receipt_number", { p_school_id: school.id }),
             10000,
             timeoutFallback(),
           );
+          if (typeof rpcNumber === "string" && rpcNumber) {
+            receiptNumber = rpcNumber;
+          } else {
+            const { data: lastReceipt } = await withTimeout(
+              supabase
+                .from("receipts")
+                .select("receipt_number")
+                .eq("school_id", school.id)
+                .order("created_at", { ascending: false })
+                .limit(1)
+                .maybeSingle(),
+              10000,
+              timeoutFallback(),
+            );
 
-          const lastNum = lastReceipt?.receipt_number
-            ? parseInt(lastReceipt.receipt_number.replace("RCP-", ""), 10) || 0
-            : 0;
-          receiptNumber = `RCP-${String(lastNum + 1).padStart(6, "0")}`;
+            const lastNum = lastReceipt?.receipt_number
+              ? parseInt(lastReceipt.receipt_number.replace("RCP-", ""), 10) || 0
+              : 0;
+            receiptNumber = `RCP-${String(lastNum + 1).padStart(6, "0")}`;
+          }
         }
 
-        await withTimeout(
-          supabase.from("receipts").insert({
-            school_id: school.id,
-            student_id: newPayment.student_id,
-            payment_id: paymentResult.id,
-            receipt_number: receiptNumber,
-            amount: parsedAmount,
-            issued_at: new Date().toISOString(),
-          }),
-          10000,
-          timeoutFallback(),
-        );
+        if (!existingNumber) {
+          await withTimeout(
+            supabase.from("receipts").insert({
+              school_id: school.id,
+              student_id: newPayment.student_id,
+              payment_id: paymentResult.id,
+              receipt_number: receiptNumber,
+              amount: parsedAmount,
+              issued_at: new Date().toISOString(),
+            }),
+            10000,
+            timeoutFallback(),
+          );
+        }
       }
 
       const student = studentBalances.find((s) => s.id === newPayment.student_id);

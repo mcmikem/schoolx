@@ -283,3 +283,49 @@ export function buildEmptyStudentRow(): ParsedStudentRow {
     ple_index_number: "",
   };
 }
+
+// Real CSVs say "P.1", "p1", "Primary 1", "Primary1 " for the same class.
+// Index every class under its normalized key plus common aliases so harmless
+// spelling variants import instead of failing row by row. First class wins
+// on alias collisions.
+export function buildClassAliasMap(classes: Array<{ id: string; name: string }>): Map<string, string> {
+  const map = new Map<string, string>();
+  const addAlias = (key: string, id: string) => {
+    const k = key.trim().toLowerCase();
+    if (k && !map.has(k)) map.set(k, id);
+  };
+  for (const { id, name } of classes) {
+    const raw = String(name || "");
+    const compact = raw
+      .trim()
+      .toLowerCase()
+      .replace(/[\s._-]+/g, "");
+    addAlias(raw, id);
+    addAlias(compact, id);
+    const m = compact.match(/^([a-z]+)(\d+[a-z]?)$/);
+    if (m) {
+      const [, letters, num] = m;
+      if (letters === "p") {
+        addAlias(`primary${num}`, id);
+      } else if (letters === "s") {
+        addAlias(`senior${num}`, id);
+        addAlias(`secondary${num}`, id);
+      } else if (letters.startsWith("primary")) {
+        addAlias(`p${num}`, id);
+        addAlias(`p.${num}`, id);
+      } else if (letters.startsWith("senior") || letters.startsWith("secondary")) {
+        addAlias(`s${num}`, id);
+        addAlias(`s.${num}`, id);
+      }
+    }
+  }
+  return map;
+}
+
+export function resolveClassId(map: Map<string, string>, rawClassName: unknown): string | undefined {
+  const raw = String(rawClassName || "")
+    .trim()
+    .toLowerCase();
+  if (!raw) return undefined;
+  return map.get(raw) ?? map.get(raw.replace(/[\s._-]+/g, ""));
+}

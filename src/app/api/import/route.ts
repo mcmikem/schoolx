@@ -62,10 +62,19 @@ async function handlePost(request: NextRequest) {
       errors: [] as string[],
     };
 
-    // Get all classes for this school to map class names to IDs
+    // Get all classes for this school to map class names to IDs.
+    // Real CSVs say "P.1", "p1", "Primary 1" for the same class — the alias
+    // map (lib/import/students) absorbs those variants instead of failing rows.
     const { data: classes } = await supabase.from("classes").select("id, name").eq("school_id", scope.schoolId);
 
-    const classMap = new Map(classes?.map((c) => [c.name.toLowerCase(), c.id]) || []);
+    const { buildClassAliasMap, resolveClassId } = await import("@/lib/import/students");
+    const classMap = buildClassAliasMap(
+      (classes || []).map((c) => ({
+        id: String((c as { id: string }).id),
+        name: String((c as { name: string }).name || ""),
+      })),
+    );
+    const availableClasses = [...new Set((classes || []).map((c) => String((c as { name: string }).name)))];
 
     // Get current count for generating student numbers
     const { count } = await supabase
@@ -77,10 +86,16 @@ async function handlePost(request: NextRequest) {
 
     for (const student of students as StudentRow[]) {
       try {
-        // Find class ID
-        const classId = classMap.get(student.class_name?.toLowerCase());
+        // Find class ID (aliases cover "P.1" vs "p1" vs "Primary 1")
+        const classId = resolveClassId(classMap, student.class_name);
         if (!classId) {
-          results.errors.push(`${student.first_name} ${student.last_name}: Class "${student.class_name}" not found`);
+          const hint =
+            availableClasses.length > 0
+              ? ` (available: ${availableClasses.slice(0, 8).join(", ")}${availableClasses.length > 8 ? `, +${availableClasses.length - 8} more` : ""})`
+              : "";
+          results.errors.push(
+            `${student.first_name} ${student.last_name}: Class "${student.class_name}" not found${hint}`,
+          );
           results.failed++;
           continue;
         }
