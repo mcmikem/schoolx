@@ -377,6 +377,27 @@ describe("Validation - Payment Input", () => {
         payment_date: "2026-04-10",
       });
     });
+
+    test("preserves allow_overpayment intent flag when set", () => {
+      expect(
+        normalizePaymentInput({
+          student_id: "student-1",
+          amount_paid: 60000,
+          payment_method: "cash",
+          allow_overpayment: true,
+        } as any),
+      ).toMatchObject({ allow_overpayment: true });
+    });
+
+    test("drops allow_overpayment when unset (direct inserts have no such column)", () => {
+      expect(
+        normalizePaymentInput({
+          student_id: "student-1",
+          amount_paid: 60000,
+          payment_method: "cash",
+        }),
+      ).not.toHaveProperty("allow_overpayment");
+    });
   });
 
   describe("validatePaymentInput", () => {

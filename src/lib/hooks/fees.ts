@@ -206,11 +206,22 @@ export function useFeePayments(schoolId?: string, page: number = 1, limit: numbe
       }
     }
 
-    const payload = {
+    const payload: Record<string, unknown> = {
       ...normalizedPayment,
       school_id: querySchoolId,
       recorded_by: user?.id,
     };
+    // allow_overpayment is an intent flag for the API route — fee_payments
+    // has no such column, so strip it before direct inserts (online + offline
+    // sync both target that table). Tag notes instead, mirroring the route.
+    delete payload.allow_overpayment;
+    if (
+      payment.allow_overpayment &&
+      typeof payload.notes === "string" &&
+      !payload.notes.includes("[overpayment accepted]")
+    ) {
+      payload.notes = [payload.notes, "[overpayment accepted]"].filter(Boolean).join(" ");
+    }
     if (!isOnline) {
       const offlineSaved = await offlineDB.save("fee_payments", payload as unknown as Record<string, unknown>);
       const offlinePayment = {

@@ -86,26 +86,32 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
   const handleImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const text = evt.target?.result as string;
-      const lines = text.split("\n").filter(Boolean);
-      if (lines.length < 2) {
-        toast.error("CSV must have a header row and at least one student");
-        return;
-      }
-      const headers = lines[0].split(",").map((h) => h.trim().toLowerCase());
-      const rows = lines.slice(1).map((line) => {
-        const vals = line.split(",").map((v) => v.trim());
-        const row: Record<string, string> = {};
-        headers.forEach((h, i) => {
-          row[h] = vals[i] || "";
+    // PapaParse handles quoted commas ("Doe, Jr."), CRLF and stray spaces —
+    // the previous naive split(",") silently shredded such rows.
+    import("papaparse")
+      .then(({ default: Papa }) => {
+        Papa.parse<Record<string, string>>(file, {
+          header: true,
+          skipEmptyLines: true,
+          transformHeader: (h: string) => h.trim().toLowerCase(),
+          complete: (results) => {
+            const rows = (results.data || []).filter((r) =>
+              Object.values(r).some((v) => String(v ?? "").trim() !== ""),
+            );
+            if (rows.length === 0) {
+              toast.error("CSV must have a header row and at least one student");
+              return;
+            }
+            setImportState({ ...importState, step: "preview", rows });
+          },
+          error: () => {
+            toast.error("Could not read that CSV. Check the file and try again.");
+          },
         });
-        return row;
+      })
+      .catch(() => {
+        toast.error("Could not load the CSV reader. Check your connection and try again.");
       });
-      setImportState({ ...importState, step: "preview", rows });
-    };
-    reader.readAsText(file);
   };
 
   const handleRunImport = async () => {

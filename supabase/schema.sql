@@ -3448,6 +3448,36 @@ AS $$
   SELECT 'RCP-' || LPAD(nextval('receipt_number_seq')::TEXT, 6, '0')
 $$;
 
+-- Per-school atomic receipt numbering (preferred over the global sequence
+-- above: auditors expect per-school sequential books, and INSERT ...
+-- ON CONFLICT DO UPDATE serializes concurrent receipting devices).
+-- Mirrors supabase/migrations/202609170001_receipt_counters.sql.
+CREATE TABLE IF NOT EXISTS receipt_counters (
+  school_id UUID PRIMARY KEY REFERENCES schools(id) ON DELETE CASCADE,
+  last_number INTEGER NOT NULL DEFAULT 0
+);
+ALTER TABLE receipt_counters ENABLE ROW LEVEL SECURITY;
+-- No permissive policies: only the SECURITY DEFINER function below touches it.
+
+CREATE OR REPLACE FUNCTION next_receipt_number(p_school_id UUID)
+RETURNS TEXT
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_num INTEGER;
+BEGIN
+  INSERT INTO receipt_counters AS rc (school_id, last_number)
+  VALUES (p_school_id, 1)
+  ON CONFLICT (school_id) DO UPDATE SET last_number = rc.last_number + 1
+  RETURNING last_number INTO v_num;
+  RETURN 'RCP-' || LPAD(v_num::TEXT, 6, '0');
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION next_receipt_number(UUID) TO authenticated;
+
 CREATE INDEX IF NOT EXISTS idx_receipts_school ON receipts(school_id);
 CREATE INDEX IF NOT EXISTS idx_receipts_student ON receipts(student_id);
 CREATE INDEX IF NOT EXISTS idx_receipts_payment ON receipts(payment_id);

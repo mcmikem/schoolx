@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { requireCronSecretOrDeny, createServiceRoleClientOrThrow, requireExistingSchoolOrDeny } from "@/lib/api-utils";
+import {
+  requireCronSecretOrDeny,
+  createServiceRoleClientOrThrow,
+  requireExistingSchoolOrDeny,
+  requireUserWithSchool,
+  assertSchoolScopeOrDeny,
+  assertUserRoleOrDeny,
+} from "@/lib/api-utils";
 import { requireActiveSubscription } from "@/lib/subscription-guard";
 import { sendAfricasTalkingSMSWithRetry, checkSmsDailyLimit } from "@/lib/africas-talking";
 import { logger } from "@/lib/logger";
@@ -7,15 +14,45 @@ import { logger } from "@/lib/logger";
 // Auto Fee Reminder SMS Scheduler
 // Automatically sends SMS reminders to parents with outstanding fees
 // based on configurable triggers (7, 14, 30 days overdue)
+//
+// Auth: Vercel cron via x-cron-secret header, OR an authenticated staff
+// session (school_admin/admin/headmaster/bursar) scoped to their own school.
+// The dashboard "Auto Fee Reminders" button uses the session path — cron-only
+// auth made every dashboard click fail with 401.
+
+const DASHBOARD_REMINDER_ROLES = ["super_admin", "school_admin", "admin", "headmaster", "bursar"];
 
 export async function POST(request: NextRequest) {
   try {
     const cron = requireCronSecretOrDeny(request);
-    if (!cron.ok) return cron.response;
+    const { schoolId: requestedSchoolId, triggers } = await request.json();
 
-    const { schoolId, triggers } = await request.json();
+    if (!cron.ok) {
+      // Dashboard fallback: authenticated school staff may trigger manually.
+      // Any failure here (no session, bad scope/role, auth backend error)
+      // defers to the cron denial so the security gate behaves exactly as
+      // before for unauthenticated callers.
+      try {
+        const auth = await requireUserWithSchool(request);
+        if (!auth.ok) return cron.response;
+
+        const scope = assertSchoolScopeOrDeny({
+          userSchoolId: auth.context.schoolId,
+          requestedSchoolId,
+        });
+        if (!scope.ok) return scope.response;
+
+        const roleCheck = assertUserRoleOrDeny({
+          userRole: auth.context.user.role,
+          allowedRoles: DASHBOARD_REMINDER_ROLES,
+        });
+        if (!roleCheck.ok) return roleCheck.response;
+      } catch {
+        return cron.response;
+      }
+    }
     const supabase = createServiceRoleClientOrThrow();
-    const school = await requireExistingSchoolOrDeny({ supabase, schoolId });
+    const school = await requireExistingSchoolOrDeny({ supabase, schoolId: requestedSchoolId });
     if (!school.ok) return school.response;
 
     const subCheck = await requireActiveSubscription({

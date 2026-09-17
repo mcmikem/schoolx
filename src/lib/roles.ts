@@ -238,7 +238,9 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = deepFreeze({
     performance: true,
   },
   secretary: {
-    students: false,
+    // Secretaries are the data-entry role in most schools: they type in
+    // students and run CSV imports, but still can't touch fees/grades/payroll.
+    students: true,
     attendance: false,
     grades: false,
     fees: false,
@@ -251,7 +253,7 @@ export const ROLE_PERMISSIONS: Record<UserRole, RolePermissions> = deepFreeze({
     invoicing: false,
     assets: false,
     analytics: false,
-    export: false,
+    export: true,
     boardReport: false,
     autoSMS: true,
     warnings: false,

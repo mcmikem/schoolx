@@ -221,6 +221,9 @@ export function normalizePaymentInput(input: Record<string, unknown>): Record<st
     paid_by: String(input.paid_by || "").trim(),
     notes: String(input.notes || "").trim(),
     payment_date: String(input.payment_date || "").trim(),
+    // Transient intent flag for /api/fee-payments/ (no such DB column —
+    // callers building direct inserts must strip it before writing).
+    ...(input.allow_overpayment === true || input.allow_overpayment === "true" ? { allow_overpayment: true } : {}),
   };
 }
 

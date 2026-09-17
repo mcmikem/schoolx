@@ -268,6 +268,7 @@ export interface CreatePaymentInput {
   payment_reference?: string;
   paid_by?: string;
   notes?: string;
+  allow_overpayment?: boolean;
 }
 
 export interface FeeAdjustment {

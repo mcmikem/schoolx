@@ -178,6 +178,7 @@ export default function FinanceHubPage() {
     momo_transaction_id: string;
     paid_by: string;
     notes: string;
+    allow_overpayment: boolean;
   }>({
     student_id: "",
     amount_paid: "",
@@ -187,6 +188,7 @@ export default function FinanceHubPage() {
     momo_transaction_id: "",
     paid_by: "",
     notes: "",
+    allow_overpayment: false,
   });
 
   const [newAdjustment, setNewAdjustment] = useState<{
@@ -585,26 +587,39 @@ export default function FinanceHubPage() {
         payment_reference: reference || undefined,
         paid_by: newPayment.paid_by || undefined,
         notes: newPayment.notes || undefined,
+        allow_overpayment: newPayment.allow_overpayment || undefined,
       });
 
       if (!isDemo && school?.id && paymentResult?.id) {
-        const { withTimeout, timeoutFallback } = await import("@/lib/hooks/utils");
-        const { data: lastReceipt } = await withTimeout(
-          supabase
-            .from("receipts")
-            .select("receipt_number")
-            .eq("school_id", school.id)
-            .order("created_at", { ascending: false })
-            .limit(1)
-            .maybeSingle(),
+        // Atomic per-school counter (next_receipt_number): two devices
+        // receipting at once must never mint the same RCP number. Falls back
+        // to read-max-plus-one on DBs predating the 20260917 migration.
+        let receiptNumber: string | null = null;
+        const { data: rpcNumber } = await withTimeout(
+          supabase.rpc("next_receipt_number", { p_school_id: school.id }),
           10000,
           timeoutFallback(),
         );
+        if (typeof rpcNumber === "string" && rpcNumber) {
+          receiptNumber = rpcNumber;
+        } else {
+          const { data: lastReceipt } = await withTimeout(
+            supabase
+              .from("receipts")
+              .select("receipt_number")
+              .eq("school_id", school.id)
+              .order("created_at", { ascending: false })
+              .limit(1)
+              .maybeSingle(),
+            10000,
+            timeoutFallback(),
+          );
 
-        const lastNum = lastReceipt?.receipt_number
-          ? parseInt(lastReceipt.receipt_number.replace("RCP-", ""), 10) || 0
-          : 0;
-        const receiptNumber = `RCP-${String(lastNum + 1).padStart(6, "0")}`;
+          const lastNum = lastReceipt?.receipt_number
+            ? parseInt(lastReceipt.receipt_number.replace("RCP-", ""), 10) || 0
+            : 0;
+          receiptNumber = `RCP-${String(lastNum + 1).padStart(6, "0")}`;
+        }
 
         await withTimeout(
           supabase.from("receipts").insert({
@@ -640,6 +655,7 @@ export default function FinanceHubPage() {
         momo_transaction_id: "",
         paid_by: "",
         notes: "",
+        allow_overpayment: false,
       });
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to record payment");
@@ -1217,7 +1233,7 @@ export default function FinanceHubPage() {
     }
     setSendingReminders(true);
     try {
-      const res = await fetch("/api/automation/auto-fee-reminder", {
+      const res = await fetch("/api/automation/auto-fee-reminder/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ schoolId: school.id }),

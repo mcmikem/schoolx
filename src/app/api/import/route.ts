@@ -44,9 +44,11 @@ async function handlePost(request: NextRequest) {
     });
     if (!scope.ok) return scope.response;
 
+    // Bursars and secretaries do the typing in real schools — school scope
+    // is enforced above, so creating rows in their own school is safe.
     const roleCheck = assertUserRoleOrDeny({
       userRole: auth.context.user.role,
-      allowedRoles: ["super_admin", "school_admin"],
+      allowedRoles: ["super_admin", "school_admin", "admin", "headmaster", "bursar", "secretary"],
     });
     if (!roleCheck.ok) return roleCheck.response;
 

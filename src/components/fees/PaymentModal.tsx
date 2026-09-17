@@ -11,6 +11,7 @@ interface PaymentData {
   momo_transaction_id: string;
   paid_by: string;
   notes: string;
+  allow_overpayment: boolean;
 }
 
 interface PaymentModalProps {
@@ -48,7 +49,7 @@ export default function PaymentModal({
     if (!newPayment.amount_paid || Number(newPayment.amount_paid) <= 0) {
       errs.amount_paid = "Amount must be greater than 0";
     }
-    if (selectedStudent && Number(newPayment.amount_paid) > selectedStudent.balance) {
+    if (selectedStudent && Number(newPayment.amount_paid) > selectedStudent.balance && !newPayment.allow_overpayment) {
       errs.amount_paid = `Amount exceeds student balance of ${formatCurrency(selectedStudent.balance)}`;
     }
     if (newPayment.payment_method === "mobile_money" && !newPayment.momo_transaction_id) {
@@ -56,6 +57,10 @@ export default function PaymentModal({
     }
     return errs;
   }, [newPayment, selectedStudent]);
+  const overpaymentAmount =
+    selectedStudent && Number(newPayment.amount_paid) > selectedStudent.balance
+      ? Number(newPayment.amount_paid) - selectedStudent.balance
+      : 0;
 
   const step1Valid = !errors.student_id && !errors.amount_paid;
   const submitDisabledReason = !step1Valid
@@ -260,6 +265,23 @@ export default function PaymentModal({
                     <MaterialIcon className="text-sm">error</MaterialIcon>
                     {fieldError("amount_paid")}
                   </p>
+                )}
+                {overpaymentAmount > 0 && (
+                  <label className="flex items-start gap-2.5 mt-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 cursor-pointer hover:border-[var(--border2)]">
+                    <input
+                      type="checkbox"
+                      checked={!!newPayment.allow_overpayment}
+                      onChange={(e) => onPaymentChange({ allow_overpayment: e.target.checked })}
+                      className="mt-0.5 h-4 w-4 rounded accent-[var(--primary)]"
+                    />
+                    <span className="text-xs text-[var(--t2)]">
+                      <span className="font-semibold text-[var(--t1)]">Record excess as credit</span>
+                      <span className="block text-[var(--t3)] tabular-nums">
+                        {formatCurrency(overpaymentAmount)} over the balance will be kept as a credit on this
+                        student&apos;s account.
+                      </span>
+                    </span>
+                  </label>
                 )}
                 {selectedStudent &&
                   newPayment.amount_paid &&
