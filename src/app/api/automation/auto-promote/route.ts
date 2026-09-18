@@ -1,20 +1,53 @@
 import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
-import { requireCronSecretOrDeny, createServiceRoleClientOrThrow, requireExistingSchoolOrDeny } from "@/lib/api-utils";
+import {
+  requireCronSecretOrDeny,
+  createServiceRoleClientOrThrow,
+  requireExistingSchoolOrDeny,
+  requireUserWithSchool,
+  assertSchoolScopeOrDeny,
+  assertUserRoleOrDeny,
+} from "@/lib/api-utils";
+
+// Promotion is academic work: cron via x-cron-secret, or an authenticated
+// staff session (head/dean/admin) scoped to their own school. The promotion
+// UI posts without a cron secret, so cron-only auth made every click fail.
+const DASHBOARD_PROMOTE_ROLES = ["super_admin", "school_admin", "admin", "headmaster", "dean_of_studies"];
 
 export async function POST(request: NextRequest) {
   try {
     const cron = requireCronSecretOrDeny(request);
-    if (!cron.ok) return cron.response;
+    const { schoolId: requestedSchoolId, academicYear, criteria } = await request.json();
 
-    const { schoolId, academicYear, criteria } = await request.json();
+    if (!cron.ok) {
+      // Any session-auth failure defers to the cron denial so the security
+      // gate behaves exactly as before for unauthenticated callers.
+      try {
+        const auth = await requireUserWithSchool(request);
+        if (!auth.ok) return cron.response;
+
+        const scope = assertSchoolScopeOrDeny({
+          userSchoolId: auth.context.schoolId,
+          requestedSchoolId,
+        });
+        if (!scope.ok) return scope.response;
+
+        const roleCheck = assertUserRoleOrDeny({
+          userRole: auth.context.user.role,
+          allowedRoles: DASHBOARD_PROMOTE_ROLES,
+        });
+        if (!roleCheck.ok) return roleCheck.response;
+      } catch {
+        return cron.response;
+      }
+    }
 
     if (!academicYear) {
       return NextResponse.json({ error: "Missing required parameter: academicYear" }, { status: 400 });
     }
 
     const supabase = createServiceRoleClientOrThrow();
-    const school = await requireExistingSchoolOrDeny({ supabase, schoolId });
+    const school = await requireExistingSchoolOrDeny({ supabase, schoolId: requestedSchoolId });
     if (!school.ok) return school.response;
 
     const promotionCriteria = criteria || {

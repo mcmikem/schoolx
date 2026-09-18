@@ -4,7 +4,7 @@
 import { useState, useEffect } from "react";
 
 const DB_NAME = "omuto.org-db";
-const DB_VERSION = 8;
+const DB_VERSION = 9;
 
 interface OfflineRecord {
   id?: string;
@@ -79,6 +79,7 @@ class OfflineDB {
           "teacher_substitutions",
           "promotion_history",
           "audit_log",
+          "report_cards",
           "dashboard_cache",
           "sync_queue",
           "sync_metadata",
@@ -482,6 +483,16 @@ class OfflineDB {
     return typeof navigator !== "undefined" ? navigator.onLine : true;
   }
 
+  // offlineDB.save() stamps every record with updated_at, but several tables
+  // (attendance, grades, report_cards) have no such column — sending it makes
+  // PostgREST reject the write. Strip client-only keys from sync payloads.
+  // (canteen_sales does its own deletes inline and is left untouched.)
+  private stripSyncKeys(data: Record<string, unknown>): Record<string, unknown> {
+    const { updated_at: _updatedAt, ...rest } = data;
+    void _updatedAt;
+    return rest;
+  }
+
   // Sync a single item to server
   private async syncSingleItem(item: OfflineRecord): Promise<SyncItemResult> {
     try {
@@ -521,12 +532,17 @@ class OfflineDB {
       } else if (item.table === "attendance") {
         const { error } = await supabase
           .from("attendance")
-          .upsert(item.data, { onConflict: "student_id,date,period_number" });
+          .upsert(this.stripSyncKeys(item.data), { onConflict: "student_id,date,period_number" });
         if (error) throw error;
       } else if (item.table === "grades") {
-        const { error } = await supabase.from("grades").upsert(item.data, {
+        const { error } = await supabase.from("grades").upsert(this.stripSyncKeys(item.data), {
           onConflict: "student_id,subject_id,assessment_type,term,academic_year",
         });
+        if (error) throw error;
+      } else if (item.table === "report_cards") {
+        const { error } = await supabase
+          .from("report_cards")
+          .upsert(this.stripSyncKeys(item.data), { onConflict: "student_id,academic_year,term" });
         if (error) throw error;
       } else if (item.table === "canteen_sales") {
         const data = { ...(item.data as Record<string, unknown>) };

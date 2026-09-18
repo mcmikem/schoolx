@@ -488,14 +488,12 @@ export default function ReportCardsPage() {
     return { reports: reportList, missingMarks: missing, offline: fetched.offline };
   }
 
-  const persistReportCards = async (reportList: StudentReport[], classId: string) => {
-    const { supabase: sb } = await import("@/lib/supabase");
-    const best4 = (scores: number[]) => [...scores].sort((a, b) => b - a).slice(0, 4);
-
-    let savedCount = 0;
-    const failedNames: string[] = [];
-
-    for (const rpt of reportList) {
+  const persistReportCards = async (
+    reportList: StudentReport[],
+    classId: string,
+    gradesFromCache = false,
+  ): Promise<{ savedCount: number; failedNames: string[]; queued: boolean }> => {
+    const cardPayloads = reportList.map((rpt) => {
       const subjectsJson = rpt.subjects.map((s) => ({
         name: s.name,
         score: s.score,
@@ -505,9 +503,52 @@ export default function ReportCardsPage() {
         competencyNotes: s.competencyNotes,
         isMissing: s.isMissing,
       }));
-      const rptBest4 = best4(rpt.subjects.map((s) => s.score));
-      const rptAggregate = rptBest4.reduce((a, b) => a + b, 0);
+      const rptBest4 = [...rpt.subjects.map((s) => s.score)].sort((a, b) => b - a).slice(0, 4);
+      return {
+        school_id: school?.id,
+        student_id: rpt.studentId,
+        class_id: classId,
+        academic_year: academicYear,
+        term: currentTerm,
+        subjects: subjectsJson,
+        aggregate: rptBest4.reduce((a, b) => a + b, 0),
+        division: rpt.division,
+        best4: rptBest4,
+        generated_at: new Date().toISOString(),
+        generated_by: user?.full_name || user?.id || "system",
+        _name: rpt.name,
+      };
+    });
 
+    // Offline (or grades served from cache after a timeout): queue cards into
+    // IndexedDB (synced by Sync Center on reconnect) instead of burning a
+    // timeout per row against a dead network.
+    if (gradesFromCache || (typeof navigator !== "undefined" && !navigator.onLine)) {
+      const { offlineDB } = await import("@/lib/offline");
+      let queued = 0;
+      const failedNames: string[] = [];
+      for (const payload of cardPayloads) {
+        try {
+          const { _name, ...row } = payload as Record<string, unknown> & { _name?: string };
+          void _name;
+          await offlineDB.save("report_cards", row);
+          queued++;
+        } catch {
+          failedNames.push(String((payload as { _name?: string })._name || "unknown"));
+        }
+      }
+      return { savedCount: queued, failedNames, queued: true };
+    }
+
+    const { supabase: sb } = await import("@/lib/supabase");
+
+    let savedCount = 0;
+    const failedNames: string[] = [];
+
+    for (let i = 0; i < cardPayloads.length; i++) {
+      const rpt = reportList[i];
+      const { _name, ...cardPayload } = cardPayloads[i] as Record<string, unknown> & { _name?: string };
+      void _name;
       const existingResult = await withTimeout(
         sb
           .from("report_cards")
@@ -520,20 +561,6 @@ export default function ReportCardsPage() {
         timeoutFallback(),
       );
       const existingCard = existingResult.data;
-
-      const cardPayload = {
-        school_id: school?.id,
-        student_id: rpt.studentId,
-        class_id: classId,
-        academic_year: academicYear,
-        term: currentTerm,
-        subjects: subjectsJson,
-        aggregate: rptAggregate,
-        division: rpt.division,
-        best4: rptBest4,
-        generated_at: new Date().toISOString(),
-        generated_by: user?.full_name || user?.id || "system",
-      };
 
       let writeResult: { error?: unknown } | null = null;
       if (existingCard && existingCard.length > 0) {
@@ -554,7 +581,7 @@ export default function ReportCardsPage() {
       }
     }
 
-    return { savedCount, failedNames };
+    return { savedCount, failedNames, queued: false };
   };
 
   const handleGenerate = async () => {
@@ -593,17 +620,13 @@ export default function ReportCardsPage() {
       setGenerated(true);
       setOfflinePreview(offline);
 
-      // Offline preview: cards compute from cached marks and can be printed,
-      // but persisting needs a connection — one row per student would each
-      // burn a 15s timeout. Re-generate when back online to save officially.
-      if (offline) {
-        toast.info("Offline preview from saved marks — print works, official save needs connection.");
-        return;
-      }
+      const { savedCount, failedNames, queued } = await persistReportCards(reportList, selectedClass, offline);
 
-      const { savedCount, failedNames } = await persistReportCards(reportList, selectedClass);
-
-      if (failedNames.length > 0) {
+      if (queued) {
+        toast.info(
+          `Offline — ${savedCount} card${savedCount === 1 ? "" : "s"} queued on this device, will upload on reconnect. Print works now.`,
+        );
+      } else if (failedNames.length > 0) {
         toast.warning(
           `Saved ${savedCount}/${reportList.length} report cards. Failed: ${failedNames.slice(0, 3).join(", ")}${
             failedNames.length > 3 ? ` and ${failedNames.length - 3} more` : ""
@@ -639,6 +662,7 @@ export default function ReportCardsPage() {
     let totalStudents = 0;
     let totalSaved = 0;
     let totalFailed = 0;
+    let totalQueued = 0;
 
     for (let i = 0; i < classes.length; i++) {
       const c = classes[i];
@@ -671,12 +695,14 @@ export default function ReportCardsPage() {
         }));
 
         if (classOffline) {
-          // Offline: keep the preview, skip the per-row saves (each would
-          // burn a timeout). Count them as unsaved, not errors.
-          totalFailed += classReports.length;
+          // Offline: queue into IndexedDB (synced on reconnect), skip the
+          // per-row live saves — each would burn a timeout.
+          const queued = await persistReportCards(classReports, c.id, true);
+          totalQueued += queued.savedCount;
+          totalFailed += queued.failedNames.length;
           setOfflinePreview(true);
         } else {
-          const { savedCount, failedNames } = await persistReportCards(classReports, c.id);
+          const { savedCount, failedNames } = await persistReportCards(classReports, c.id, false);
           totalSaved += savedCount;
           totalFailed += failedNames.length;
         }
@@ -708,7 +734,11 @@ export default function ReportCardsPage() {
       setComments(initialComments);
       setGenerated(true);
 
-      if (totalFailed > 0) {
+      if (totalQueued > 0) {
+        toast.info(
+          `Offline — ${totalQueued} cards queued on this device across ${classes.length} classes, will upload on reconnect. Print works now.`,
+        );
+      } else if (totalFailed > 0) {
         toast.warning(
           `Report cards generated for ${totalSaved} students across ${classes.length} classes. ${totalFailed} could not be saved${
             totalErrors > 0 ? `, and ${totalErrors} class${totalErrors > 1 ? "es" : ""} failed to generate` : ""
