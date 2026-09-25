@@ -965,7 +965,7 @@ table tr {
     color: var(--t1);
     @apply antialiased min-h-screen w-full;
     font-family:
-      "Inter",
+      "DM Sans",
       system-ui,
       -apple-system,
       sans-serif;
@@ -2226,4 +2226,37 @@ h6,
     min-height: 44px;
     min-width: 44px;
   }
+}
+
+/* ── MOTION + LITE-MODE GUARDS ────────────────────────────────────
+   The page-enter blur/slide and glass backdrop-blur look premium on
+   desktops but jank on low-end phones and burn battery. Honor
+   prefers-reduced-motion everywhere, and drop the expensive effects
+   entirely when the lite-mode bootstrap (layout head script) flags the
+   device (html.lite: <=3GB RAM, <=4 cores, or Save-Data). */
+@media (prefers-reduced-motion: reduce) {
+  main#main-content {
+    animation: none;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+html.lite main#main-content {
+  animation: none;
+}
+
+html.lite .glass-premium {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: var(--surface);
+  box-shadow: var(--sh1);
+}
+
+html.lite .bg-motif {
+  background-image: none;
 }

@@ -354,8 +354,10 @@ export async function proxy(request: NextRequest) {
   // If getUser() failed, the JWT might be expired but the refresh token
   // is still valid. Try refreshing before redirecting to login — this
   // prevents kicking users out on slow networks where token refresh is delayed.
+  // Skip the extra round-trip when no auth cookie is present (logged-out
+  // requests would otherwise pay for a doomed refresh on every hit).
   let verifiedUser = authUser;
-  if (!verifiedUser) {
+  if (!verifiedUser && hasAuthSessionCookie(request)) {
     try {
       const { data: refreshData } = await supabase.auth.refreshSession();
       verifiedUser = refreshData.user;
@@ -402,9 +404,21 @@ export async function proxy(request: NextRequest) {
 
   if (user && !user.is_active) {
     await supabase.auth.signOut();
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ error: "Account is inactive" }, { status: 403 });
+    }
     const inactiveUrl = new URL("/login", request.url);
     inactiveUrl.searchParams.set("reason", "inactive");
     return NextResponse.redirect(inactiveUrl);
+  }
+
+  // API routes enforce their own auth/scope checks. Skip the schools +
+  // entitlement module gate here so every API call doesn't pay for 1-2 extra
+  // DB round-trips in middleware; pages still get the full gate below.
+  if (pathname.startsWith("/api/")) {
+    supabaseResponse.headers.set("x-user-id", verifiedUser.id);
+    supabaseResponse.headers.set("x-user-role", user?.role || "");
+    return supabaseResponse;
   }
 
   // Enforce module access: modular mode checks entitlements, full_suite checks feature_stage.

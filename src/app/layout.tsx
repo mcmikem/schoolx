@@ -4,12 +4,9 @@ import "./globals-ux.css";
 import "./mobile-responsive.css";
 import "./globals-dark-hex.css";
 import Providers from "./providers";
-import MobileInit from "./mobile-init";
+import DeferredChrome from "./deferred-chrome";
 import DebugPing from "@/components/DebugPing";
-import { Analytics } from "@/components/Analytics";
-import { AppTracker } from "@/components/AppTracker";
 import Script from "next/script";
-import { Suspense } from "react";
 import { logger } from "@/lib/logger";
 import { APP_NAME } from "@/lib/app-name";
 
@@ -159,15 +156,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </a>
         <Providers>
           {children}
-          <Suspense fallback={null}>
-            <AppTracker />
-          </Suspense>
+          <DeferredChrome />
         </Providers>
         {process.env.NODE_ENV === "development" && <DebugPing />}
-        <Suspense fallback={null}>
-          <Analytics />
-        </Suspense>
-        <MobileInit />
       </body>
     </html>
   );

@@ -33,8 +33,8 @@ const OwlAssistant = dynamic(() => import("@/components/OwlAssistant"), { ssr: f
 // CommandPalette removed — GlobalSearch is now the single search system (see src/components/GlobalSearch.tsx)
 const BugReportButton = dynamic(() => import("@/components/BugReportButton"), { ssr: false });
 const WhatsAppHelpFab = dynamic(() => import("@/components/WhatsAppHelpFab"), { ssr: false });
-import RoleBasedWalkthrough from "@/components/RoleBasedWalkthrough";
-import OnboardingTour from "@/components/OnboardingTour";
+const RoleBasedWalkthrough = dynamic(() => import("@/components/RoleBasedWalkthrough"), { ssr: false });
+const OnboardingTour = dynamic(() => import("@/components/OnboardingTour"), { ssr: false });
 import { supabase } from "@/lib/supabase";
 
 function hasCompletedSetupProgress(value: unknown): boolean {

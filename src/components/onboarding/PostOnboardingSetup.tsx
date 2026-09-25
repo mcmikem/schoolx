@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
@@ -36,7 +36,19 @@ type OptionalStatusMap = Record<string, "completed" | "skipped">;
 export default function PostOnboardingSetup({ onComplete }: Props) {
   const { school, isDemo, refreshSchool } = useAuth();
   const toast = useToast();
-  const [isOpen, setIsOpen] = useState(true);
+  // Start closed: the persisted completion status loads async, and rendering
+  // open immediately flashes all 5 steps as "remaining" on every sign-in —
+  // even for fully configured schools. We open only once the load proves
+  // there is still work left (see checkCompletedItems below).
+  const [isOpen, setIsOpen] = useState(false);
+  const [statusLoaded, setStatusLoaded] = useState(false);
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
+  // Auto-resolve runs once per mount: never nag when everything is done (or
+  // when status can't be verified, e.g. offline). Later user-driven
+  // completions must NOT trigger it — the in-session "All Done!" screen
+  // owns that moment.
+  const autoResolvedRef = useRef(false);
   const [expandedKey, setExpandedKey] = useState<string | null>(OPTIONAL_STEPS[0]?.key ?? null);
   const [completed, setCompleted] = useState<string[]>([]);
   const [optionalStatus, setOptionalStatus] = useState<OptionalStatusMap>({});
@@ -152,6 +164,22 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
 
   const checkCompletedItems = useCallback(async () => {
     if (!school?.id) return;
+    const resolveAutoShow = (allDone: string[] | null) => {
+      if (autoResolvedRef.current) return;
+      autoResolvedRef.current = true;
+      if (allDone === null) {
+        // Status unverifiable (offline/error) — fail closed, don't nag.
+        onCompleteRef.current?.();
+        return;
+      }
+      const remaining = OPTIONAL_STEPS.filter((s) => !allDone.includes(s.key));
+      if (remaining.length === 0) {
+        // Fully configured — unmount without ever opening.
+        onCompleteRef.current?.();
+      } else {
+        setIsOpen(true);
+      }
+    };
     try {
       const [checklistResponse, statusMap] = await Promise.all([
         withTimeout(
@@ -169,7 +197,9 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
       );
 
       setOptionalStatus(statusMap || {});
-      setCompleted(Array.from(new Set([...checklistCompleted, ...persistedDone])));
+      const allDone = Array.from(new Set([...checklistCompleted, ...persistedDone]));
+      setCompleted(allDone);
+      resolveAutoShow(allDone);
       if (school.signature_headteacher_url || school.signature_class_teacher_url) {
         setSignatures((prev) => ({
           ...prev,
@@ -179,6 +209,9 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
       }
     } catch {
       logger.warn("Failed to load completed checklist items");
+      resolveAutoShow(null);
+    } finally {
+      setStatusLoaded(true);
     }
   }, [school?.id, school?.signature_headteacher_url, school?.signature_class_teacher_url]);
 
@@ -479,7 +512,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
     }
   };
 
-  if (!school) return null;
+  if (!school || !statusLoaded) return null;
 
   const incompleteSteps = OPTIONAL_STEPS.filter((s) => !completed.includes(s.key));
   const progress =

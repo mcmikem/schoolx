@@ -48,7 +48,7 @@ const nextConfig = {
     root: __dirname,
   },
   experimental: {
-    optimizePackageImports: ["lucide-react", "date-fns", "recharts"],
+    optimizePackageImports: ["lucide-react", "date-fns", "recharts", "qrcode.react", "react-to-print"],
     viewTransition: true,
   },
   images: {
@@ -98,15 +98,28 @@ const nextConfig = {
   },
 };
 
-module.exports = withBundleAnalyzer(withSentryConfig(nextConfig, {
-  org: process.env.SENTRY_ORG,
-  project: process.env.SENTRY_PROJECT,
-  authToken: process.env.SENTRY_AUTH_TOKEN,
-  silent: true,
-  widenClientFileUpload: true,
-  hideSourceMaps: true,
-  telemetry: false,
-  sourcemaps: {
-    disable: false,
-  },
-}));
+// Only pay for Sentry's client/server wrappers when Sentry is actually
+// configured. Without a DSN (or org/project/token for uploads) the wrapper
+// still adds ~100KB+ to the client bundle and slows every build.
+const hasSentryConfig = Boolean(
+  process.env.SENTRY_DSN ||
+    process.env.NEXT_PUBLIC_SENTRY_DSN ||
+    (process.env.SENTRY_ORG && process.env.SENTRY_PROJECT && process.env.SENTRY_AUTH_TOKEN),
+);
+
+const finalConfig = hasSentryConfig
+  ? withSentryConfig(nextConfig, {
+      org: process.env.SENTRY_ORG,
+      project: process.env.SENTRY_PROJECT,
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+      silent: true,
+      widenClientFileUpload: true,
+      hideSourceMaps: true,
+      telemetry: false,
+      sourcemaps: {
+        disable: false,
+      },
+    })
+  : nextConfig;
+
+module.exports = withBundleAnalyzer(finalConfig);

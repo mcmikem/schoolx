@@ -91,6 +91,42 @@ function getConnectionTimeout(base: number): number {
   return base;
 }
 
+function isSlowConnection(): boolean {
+  if (typeof navigator === "undefined" || !("connection" in navigator)) return false;
+  const conn = (navigator as any).connection as { effectiveType?: string; downlink?: number } | undefined;
+  if (!conn) return false;
+  if (conn.effectiveType && SLOW_CONNECTION_EFFECTIVE_TYPES.has(conn.effectiveType)) return true;
+  if (conn.downlink !== undefined && conn.downlink < 1) return true;
+  return false;
+}
+
+// Remembers which login format (e.g. legacy `0XXX@omuto.org` vs normalized)
+// worked last for an identifier, so repeat logins try it first instead of
+// burning seconds failing the primary format on every single sign-in.
+const LOGIN_FORMAT_KEY_PREFIX = "skoolmate_login_format_v1";
+
+function rememberedFormatKey(identifier: string): string {
+  const trimmed = identifier.trim();
+  const canonical = trimmed.includes("@") ? trimmed.toLowerCase() : buildAuthEmailFromPhone(trimmed);
+  return `${LOGIN_FORMAT_KEY_PREFIX}:${canonical}`;
+}
+
+function getRememberedFormat(identifier: string): string | null {
+  try {
+    return localStorage.getItem(rememberedFormatKey(identifier));
+  } catch {
+    return null;
+  }
+}
+
+function setRememberedFormat(identifier: string, signature: string): void {
+  try {
+    localStorage.setItem(rememberedFormatKey(identifier), signature);
+  } catch {
+    // Ignore storage errors (private mode) — just means no fast-path next time.
+  }
+}
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -772,14 +808,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       signInLock.current = true;
       // Safety: if a request hangs forever (poor internet), auto-release the
-      // lock after 15s so the user can retry without refreshing the page.
+      // lock after 45s so the user can retry without refreshing the page.
+      // Must exceed the worst-case attempt loop (slow-network timeouts), or a
+      // duplicate submit mid-loop would run a second concurrent loop.
       signInLockTimer.current = setTimeout(() => {
         logger.warn("[Auth] signInLock auto-released after timeout");
         signInLock.current = false;
         signInLockTimer.current = null;
-      }, 15000);
+      }, 45000);
 
       const attempts = buildAuthLoginAttempts(phone);
+      // Fast path: try the format that worked last time first. Legacy-format
+      // accounts otherwise burn seconds failing the primary format on EVERY
+      // login before succeeding on a fallback.
+      const remembered = getRememberedFormat(phone);
+      if (remembered) {
+        const hitIndex = attempts.findIndex((a) => `${a.type}:${a.value.toLowerCase()}` === remembered);
+        if (hitIndex > 0) {
+          const [hit] = attempts.splice(hitIndex, 1);
+          attempts.unshift(hit);
+        }
+      }
+      // Slow networks need LONGER per-attempt timeouts, not shorter: a timeout
+      // that fires while the real response is still in flight makes the loop
+      // try wrong fallback formats, fail, toast "invalid login" — and then the
+      // late success still signs the user in seconds later.
+      const attemptTimeoutMs = isSlowConnection() ? 15000 : 8000;
       let lastError: unknown = null;
 
       for (let i = 0; i < attempts.length; i++) {
@@ -804,7 +858,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   }),
             ),
             new Promise<never>((_, reject) =>
-              setTimeout(() => reject(new Error("Login attempt timed out")), getConnectionTimeout(8000)),
+              setTimeout(() => reject(new Error("Login attempt timed out")), attemptTimeoutMs),
             ),
           ]);
 
@@ -866,6 +920,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             .catch((err) => logger.warn("[auth] Dynamic import of offlineDB failed", err));
 
           releaseSignInLock();
+          // Remember the winning format so the next login tries it first.
+          setRememberedFormat(phone, `${attempt.type}:${attempt.value.toLowerCase()}`);
           // Return success — onAuthStateChange handler is the single source of
           // truth for fetching user profile. This avoids race conditions where
           // fetchUserData times out and leaves the user stranded on the login page.
@@ -882,6 +938,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             lastError = attemptError;
           }
         }
+      }
+
+      // Every format failed — but a timed-out attempt can still complete AFTER
+      // the loop moved on (slow networks). If a session exists now, the login
+      // actually worked: report success instead of a bogus "invalid login"
+      // error that contradicts the redirect seconds later.
+      try {
+        const {
+          data: { session },
+        } = await supabase!.auth.getSession();
+        if (session?.user) {
+          releaseSignInLock();
+          return {
+            error: null,
+            role: session.user.user_metadata?.role || "admin",
+          };
+        }
+      } catch {
+        // Session check failed — fall through to the real error below.
       }
 
       releaseSignInLock();
