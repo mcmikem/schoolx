@@ -32,19 +32,33 @@ begin
 end;
 $$;
 
-create trigger if not exists trg_module_catalog_updated_at
-  before update on public.module_catalog
-  for each row execute function public.set_updated_at();
-
-create trigger if not exists trg_school_module_entitlements_updated_at
-  before update on public.school_module_entitlements
-  for each row execute function public.set_updated_at();
+-- PostgreSQL has no "CREATE TRIGGER IF NOT EXISTS" — that is a syntax error,
+-- which is exactly why this migration was never applied. Guard on pg_trigger
+-- instead so re-running is a no-op.
+do $$
+begin
+  if not exists (select 1 from pg_trigger where tgname = 'trg_module_catalog_updated_at') then
+    create trigger trg_module_catalog_updated_at
+      before update on public.module_catalog
+      for each row execute function public.set_updated_at();
+  end if;
+  if not exists (select 1 from pg_trigger where tgname = 'trg_school_module_entitlements_updated_at') then
+    create trigger trg_school_module_entitlements_updated_at
+      before update on public.school_module_entitlements
+      for each row execute function public.set_updated_at();
+  end if;
+end $$;
 
 -- 4. make sure schools row has updated_at
 alter table public.schools add column if not exists updated_at timestamptz default now();
-create trigger if not exists trg_schools_updated_at
-  before update on public.schools
-  for each row execute function public.set_updated_at();
+do $$
+begin
+  if not exists (select 1 from pg_trigger where tgname = 'trg_schools_updated_at') then
+    create trigger trg_schools_updated_at
+      before update on public.schools
+      for each row execute function public.set_updated_at();
+  end if;
+end $$;
 
 -- 5. add rate limit alerts table
 create table if not exists public.rate_limit_alerts (
@@ -58,6 +72,7 @@ create table if not exists public.rate_limit_alerts (
 );
 
 alter table public.rate_limit_alerts enable row level security;
+drop policy if exists "Super admins read rate limit alerts" on public.rate_limit_alerts;
 create policy "Super admins read rate limit alerts" on public.rate_limit_alerts
   for select using (is_school_admin());
 
@@ -95,6 +110,7 @@ create unique index if not exists idx_exchange_rates_active
   where valid_until is null;
 
 alter table public.exchange_rates enable row level security;
+drop policy if exists "Super admins manage exchange rates" on public.exchange_rates;
 create policy "Super admins manage exchange rates" on public.exchange_rates
   for all using (is_school_admin());
 
@@ -117,13 +133,16 @@ create unique index if not exists idx_module_purchases_reference
 delete from public.rate_limit_log where created_at < now() - interval '1 hour';
 
 -- schedule cleanup via pg_cron if available
+-- NOTE: the inner body uses a $cron$ tag. Reusing $$ here would terminate the
+-- enclosing do $$ block early — that is a syntax error, and was the second
+-- reason this migration had never been applied.
 do $$
 begin
   if exists (select 1 from pg_extension where extname = 'pg_cron') then
     perform cron.schedule(
       'purge-rate-limit-log',
       '*/30 * * * *',
-      $$delete from public.rate_limit_log where created_at < now() - interval '1 hour'$$
+      $cron$delete from public.rate_limit_log where created_at < now() - interval '1 hour'$cron$
     );
   end if;
 end $$;
@@ -222,27 +241,3 @@ begin
   return true;
 end;
 $$;
-
--- 14. performance indexes on commonly queried school-scoped tables
-create index if not exists idx_fee_structure_school on public.fee_structure(school_id);
-create index if not exists idx_events_school on public.events(school_id);
-create index if not exists idx_notices_school on public.notices(school_id);
-create index if not exists idx_staff_school on public.staff(school_id);
-create index if not exists idx_messages_school on public.messages(school_id);
-create index if not exists idx_messages_sender on public.messages(sender_id);
-create index if not exists idx_messages_recipient on public.messages(recipient_id);
-create index if not exists idx_parent_students_parent on public.parent_students(parent_id);
-create index if not exists idx_parent_students_student on public.parent_students(student_id);
-create index if not exists idx_fee_payments_school on public.fee_payments(student_id);
-create index if not exists idx_attendance_school on public.attendance(student_id);
-create index if not exists idx_report_cards_school on public.report_cards(student_id);
-create index if not exists idx_timetable_slots_class on public.timetable_slots(class_id);
-create index if not exists idx_sms_logs_school on public.sms_logs(school_id);
-create index if not exists idx_library_books_school on public.library_books(school_id);
-create index if not exists idx_library_checkouts_school on public.library_checkouts(school_id);
-create index if not exists idx_budget_items_school on public.budget_items(school_id);
-create index if not exists idx_payroll_history_school on public.payroll_history(school_id);
-create index if not exists idx_scheme_of_work_school on public.scheme_of_work(school_id);
-create index if not exists idx_canteen_items_school on public.canteen_items(school_id);
-create index if not exists idx_canteen_orders_school on public.canteen_orders(school_id);
-create index if not exists idx_canteen_sales_school on public.canteen_sales(school_id);
