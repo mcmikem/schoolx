@@ -97,6 +97,7 @@ export async function POST(request: NextRequest) {
         "Content-Type": "application/json",
         Authorization: `Bearer ${resendApiKey}`,
       },
+      signal: AbortSignal.timeout(20000),
       body: JSON.stringify({
         from: process.env.EMAIL_FROM || "noreply@omuto.org",
         to: ["os@omuto.org"],

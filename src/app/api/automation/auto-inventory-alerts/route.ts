@@ -215,6 +215,7 @@ async function sendInventoryAlertEmail(
       "Content-Type": "application/json",
       Authorization: `Bearer ${resendApiKey}`,
     },
+    signal: AbortSignal.timeout(20000),
     body: JSON.stringify({
       from: process.env.EMAIL_FROM || "noreply@omuto.org",
       to: [email],

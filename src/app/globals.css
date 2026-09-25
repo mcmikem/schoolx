@@ -2260,3 +2260,77 @@ html.lite .glass-premium {
 html.lite .bg-motif {
   background-image: none;
 }
+
+/* ── LITE MODE: 2GB RAM / 3G ANDROID TARGET ──────────────────────
+   html.lite is set before first paint by the head bootstrap when the
+   device reports <=3GB RAM, <=4 cores, Save-Data, or reduced-data.
+   Every rule here removes work that is invisible to the user but
+   expensive on low-end mobile GPUs and 3G radios. */
+html.lite .backdrop-blur,
+html.lite .backdrop-blur-sm,
+html.lite .backdrop-blur-md,
+html.lite .backdrop-blur-lg,
+html.lite .backdrop-blur-xl,
+html.lite .backdrop-blur-2xl {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Infinite animations force a repaint every frame — the single biggest
+   battery/CPU tax on a 2GB phone. Static states are visually equivalent. */
+html.lite .animate-pulse,
+html.lite .animate-bounce,
+html.lite .animate-spin,
+html.lite .animate-ping,
+html.lite .animate-bounce-slow,
+html.lite .animate-float,
+html.lite .animate-fade-in,
+html.lite .animate-shimmer-wave,
+html.lite .animate-owl-float,
+html.lite .animate-owl-shadow,
+html.lite .animate-owl-blink,
+html.lite .animate-wing-left,
+html.lite .animate-wing-right,
+html.lite .animate-book-bounce,
+html.lite .animate-cap-wiggle,
+html.lite .animate-typing-dot,
+html.lite .animate-pupil-left,
+html.lite .animate-pupil-right,
+html.lite .shimmer,
+html.lite .animate-slideUpBottomSheet,
+html.lite [style*="blink"] {
+  animation: none !important;
+}
+
+/* Skeletons still read as "loading" without the shimmer sweep. */
+html.lite .skeleton,
+html.lite .animate-pulse {
+  opacity: 0.7;
+}
+
+/* Flatten nested shadows on dense lists — each shadowed layer is its own
+   compositing pass on a weak GPU. */
+html.lite .card,
+html.lite .stat-card,
+html.lite .qa-large,
+html.lite .qa-item,
+html.lite .list-row,
+html.lite .today-overview-card,
+html.lite .alert-box,
+html.lite .warn-row,
+html.lite .att-row,
+html.lite .activity-row,
+html.lite .term-row,
+html.lite .mobile-bottom-nav,
+html.lite .icon-btn-circle {
+  box-shadow: none;
+}
+
+/* Long-press selection and tap highlight stay; kill only the 300ms
+   synthetic click delay on older WebView builds. */
+html.lite button,
+html.lite a,
+html.lite [role="button"] {
+  touch-action: manipulation;
+}
+

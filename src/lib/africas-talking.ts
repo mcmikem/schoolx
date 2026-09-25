@@ -100,6 +100,9 @@ export async function sendAfricasTalkingSMS(
         apiKey,
       },
       body,
+      // Never hang a bulk-SMS batch on one stalled gateway call — the retry
+      // wrapper below treats the abort as transient and backs off.
+      signal: AbortSignal.timeout(20000),
     });
 
     const responseText = await response.text();

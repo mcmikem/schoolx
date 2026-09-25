@@ -10,6 +10,10 @@ const transporter: Transporter = createTransport({
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
+  // Bound every phase so a stalled SMTP handshake can't hang an API route.
+  connectionTimeout: 20000,
+  greetingTimeout: 20000,
+  socketTimeout: 30000,
 });
 
 interface EmailOptions {

@@ -1,12 +1,11 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { createBrowserClient } from "@supabase/ssr";
 import { logger } from "@/lib/logger";
+import { supabaseClientOptions } from "@/lib/supabase-client";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const allowMockClient =
-  process.env.NODE_ENV !== "production" ||
-  process.env.ALLOW_SUPABASE_MOCK === "true";
+const allowMockClient = process.env.NODE_ENV !== "production" || process.env.ALLOW_SUPABASE_MOCK === "true";
 const isValidHttpUrl = (value?: string | null) => {
   if (!value || value.includes("your-supabase-url")) return false;
   try {
@@ -24,8 +23,7 @@ const isValidAnonKey = (key?: string) => {
   return sbPublishable || eyJ;
 };
 
-const hasUsableSupabaseConfig =
-  isValidHttpUrl(supabaseUrl) && isValidAnonKey(supabaseAnonKey);
+const hasUsableSupabaseConfig = isValidHttpUrl(supabaseUrl) && isValidAnonKey(supabaseAnonKey);
 const SESSION_COOKIE_LIFETIME = 60 * 60 * 24 * 30; // 30 days
 const REMEMBER_SESSION_KEY = "remember_session";
 
@@ -95,8 +93,7 @@ const createMockQueryBuilder = () => {
     range: () => builder,
     match: () => builder,
     abortSignal: () => builder,
-    then: (resolve: (value: typeof listResult) => unknown) =>
-      Promise.resolve(resolve(listResult)),
+    then: (resolve: (value: typeof listResult) => unknown) => Promise.resolve(resolve(listResult)),
     catch: () => Promise.resolve(listResult),
     finally: () => Promise.resolve(listResult),
     single: async () => itemResult,
@@ -110,8 +107,8 @@ const createMockClient = (): SupabaseClient => {
   if (process.env.NODE_ENV !== "test") {
     logger.warn(
       "[Supabase] WARNING: Using mock Supabase client. " +
-      "Data operations will silently return empty results. " +
-      "Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY for real data.",
+        "Data operations will silently return empty results. " +
+        "Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY for real data.",
     );
   }
   const mock = {
@@ -225,30 +222,30 @@ if (!hasUsableSupabaseConfig && process.env.NODE_ENV === "production") {
 }
 
 const realClient = hasUsableSupabaseConfig
-  ? createBrowserClient(supabaseUrl as string, supabaseAnonKey as string, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        storage: browserAuthStorage,
-      },
-      cookieOptions: {
-        maxAge: SESSION_COOKIE_LIFETIME,
-      },
-      // CRITICAL: Must be false. When true (default), Supabase extracts auth
-      // tokens from URL fragments on every page load. If the URL contains a
-      // stale or corrupted access_token (e.g., from a failed OAuth redirect or
-      // a bookmarked URL), it overwrites the valid session, causing "invalid
-      // credentials" and infinite loading.
-      // detectSessionInUrl is removed - not a valid option in this Supabase version.
-      // Browser-side fragment-based session detection is handled by the client by default.
-      // We rely on cookie-based auth to avoid the stale-token overwrite issue.
-    })
+  ? createBrowserClient(
+      supabaseUrl as string,
+      supabaseAnonKey as string,
+      supabaseClientOptions(
+        {
+          auth: {
+            persistSession: true,
+            autoRefreshToken: true,
+            storage: browserAuthStorage,
+          },
+          cookieOptions: {
+            maxAge: SESSION_COOKIE_LIFETIME,
+          },
+        },
+        // Backstop so direct component queries (bypassing the withTimeout
+        // hooks) abort instead of spinning forever on poor networks. All
+        // uploads use pre-compressed images, so 30s is generous.
+        30000,
+      ),
+    )
   : null;
 
 // Debug output
-export const supabase =
-  realClient ||
-  (allowMockClient ? createMockClient() : createUnavailableClient());
+export const supabase = realClient || (allowMockClient ? createMockClient() : createUnavailableClient());
 
 export type Database = {
   public: {
@@ -269,30 +266,15 @@ export type Database = {
           logo_url: string | null;
           primary_color: string;
           uneab_center_number: string | null;
-          subscription_plan:
-            | "starter"
-            | "growth"
-            | "enterprise"
-            | "lifetime"
-            | "free_trial";
-          subscription_status:
-            | "active"
-            | "expired"
-            | "trial"
-            | "past_due"
-            | "canceled"
-            | "unpaid"
-            | "suspended";
+          subscription_plan: "starter" | "growth" | "enterprise" | "lifetime" | "free_trial";
+          subscription_status: "active" | "expired" | "trial" | "past_due" | "canceled" | "unpaid" | "suspended";
           trial_ends_at: string | null;
           paypal_subscription_id: string | null;
           last_payment_at: string | null;
           last_payment_attempt: string | null;
           created_at: string;
         };
-        Insert: Omit<
-          Database["public"]["Tables"]["schools"]["Row"],
-          "id" | "created_at"
-        >;
+        Insert: Omit<Database["public"]["Tables"]["schools"]["Row"], "id" | "created_at">;
         Update: Partial<Database["public"]["Tables"]["schools"]["Row"]>;
       };
       users: {
@@ -320,10 +302,7 @@ export type Database = {
           is_active: boolean;
           created_at: string;
         };
-        Insert: Omit<
-          Database["public"]["Tables"]["users"]["Row"],
-          "id" | "created_at"
-        >;
+        Insert: Omit<Database["public"]["Tables"]["users"]["Row"], "id" | "created_at">;
         Update: Partial<Database["public"]["Tables"]["users"]["Row"]>;
       };
       students: {
@@ -346,10 +325,7 @@ export type Database = {
           status: "active" | "transferred" | "dropped" | "completed";
           created_at: string;
         };
-        Insert: Omit<
-          Database["public"]["Tables"]["students"]["Row"],
-          "id" | "created_at"
-        >;
+        Insert: Omit<Database["public"]["Tables"]["students"]["Row"], "id" | "created_at">;
         Update: Partial<Database["public"]["Tables"]["students"]["Row"]>;
       };
       classes: {
@@ -364,10 +340,7 @@ export type Database = {
           academic_year: string;
           created_at: string;
         };
-        Insert: Omit<
-          Database["public"]["Tables"]["classes"]["Row"],
-          "id" | "created_at"
-        >;
+        Insert: Omit<Database["public"]["Tables"]["classes"]["Row"], "id" | "created_at">;
         Update: Partial<Database["public"]["Tables"]["classes"]["Row"]>;
       };
       subjects: {
@@ -380,10 +353,7 @@ export type Database = {
           is_compulsory: boolean;
           created_at: string;
         };
-        Insert: Omit<
-          Database["public"]["Tables"]["subjects"]["Row"],
-          "id" | "created_at"
-        >;
+        Insert: Omit<Database["public"]["Tables"]["subjects"]["Row"], "id" | "created_at">;
         Update: Partial<Database["public"]["Tables"]["subjects"]["Row"]>;
       };
       attendance: {
@@ -397,10 +367,7 @@ export type Database = {
           recorded_by: string;
           created_at: string;
         };
-        Insert: Omit<
-          Database["public"]["Tables"]["attendance"]["Row"],
-          "id" | "created_at"
-        >;
+        Insert: Omit<Database["public"]["Tables"]["attendance"]["Row"], "id" | "created_at">;
         Update: Partial<Database["public"]["Tables"]["attendance"]["Row"]>;
       };
       grades: {
@@ -409,14 +376,7 @@ export type Database = {
           student_id: string;
           subject_id: string;
           class_id: string;
-          assessment_type:
-            | "ca1"
-            | "ca2"
-            | "ca3"
-            | "ca4"
-            | "project"
-            | "aoi"
-            | "exam";
+          assessment_type: "ca1" | "ca2" | "ca3" | "ca4" | "project" | "aoi" | "exam";
           score: number;
           max_score: number;
           term: number;
@@ -424,10 +384,7 @@ export type Database = {
           recorded_by: string;
           created_at: string;
         };
-        Insert: Omit<
-          Database["public"]["Tables"]["grades"]["Row"],
-          "id" | "created_at"
-        >;
+        Insert: Omit<Database["public"]["Tables"]["grades"]["Row"], "id" | "created_at">;
         Update: Partial<Database["public"]["Tables"]["grades"]["Row"]>;
       };
       fees: {
@@ -442,10 +399,7 @@ export type Database = {
           due_date: string;
           created_at: string;
         };
-        Insert: Omit<
-          Database["public"]["Tables"]["fees"]["Row"],
-          "id" | "created_at"
-        >;
+        Insert: Omit<Database["public"]["Tables"]["fees"]["Row"], "id" | "created_at">;
         Update: Partial<Database["public"]["Tables"]["fees"]["Row"]>;
       };
       fee_payments: {
@@ -461,10 +415,7 @@ export type Database = {
           payment_date: string;
           created_at: string;
         };
-        Insert: Omit<
-          Database["public"]["Tables"]["fee_payments"]["Row"],
-          "id" | "created_at"
-        >;
+        Insert: Omit<Database["public"]["Tables"]["fee_payments"]["Row"], "id" | "created_at">;
         Update: Partial<Database["public"]["Tables"]["fee_payments"]["Row"]>;
       };
       fee_structure: {
@@ -479,10 +430,7 @@ export type Database = {
           due_date: string | null;
           created_at: string;
         };
-        Insert: Omit<
-          Database["public"]["Tables"]["fee_structure"]["Row"],
-          "id" | "created_at"
-        >;
+        Insert: Omit<Database["public"]["Tables"]["fee_structure"]["Row"], "id" | "created_at">;
         Update: Partial<Database["public"]["Tables"]["fee_structure"]["Row"]>;
       };
     };

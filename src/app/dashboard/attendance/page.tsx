@@ -72,7 +72,20 @@ export default function AttendancePage() {
   const urlFilters = useUrlSyncedFilters();
   const router = useRouter();
   const pathname = usePathname();
-  const [selectedClass, setSelectedClass] = useState<string | null>(() => urlFilters.get("class"));
+  const [selectedClass, setSelectedClass] = useState<string | null>(() => {
+    // URL param wins (deep links), otherwise resume the teacher's last class
+    // so the daily flow opens ready-to-mark with zero dropdown hunting.
+    const fromUrl = urlFilters.get("class");
+    if (fromUrl) return fromUrl;
+    try {
+      if (typeof window !== "undefined" && school?.id && user?.id) {
+        return window.localStorage.getItem(`skoolmate_attendance_class:${school.id}|${user.id}`);
+      }
+    } catch {
+      // Ignore storage errors — just start unselected.
+    }
+    return null;
+  });
   const [date, setDate] = useState(
     () =>
       urlFilters.get("date") ||
@@ -140,6 +153,33 @@ export default function AttendancePage() {
   useEffect(() => {
     setAttendPage(1);
   }, [selectedClass, date]);
+
+  // Persist the class this teacher actually used so the next day's roll call
+  // opens on it instead of forcing a dropdown hunt on a 2GB phone.
+  useEffect(() => {
+    if (!selectedClass || !school?.id || !user?.id) return;
+    try {
+      window.localStorage.setItem(`skoolmate_attendance_class:${school.id}|${user.id}`, selectedClass);
+    } catch {
+      // Ignore storage errors (private mode / quota) — not worth interrupting class.
+    }
+  }, [selectedClass, school?.id, user?.id]);
+
+  // A remembered class can disappear (deleted / teacher reassigned). Clear it
+  // once the class list arrives so the page doesn't sit on a dead selection.
+  useEffect(() => {
+    if (!selectedClass || classesLoading || classes.length === 0) return;
+    if (!filteredClasses.some((c) => c.id === selectedClass)) {
+      setSelectedClass(null);
+      try {
+        if (typeof window !== "undefined" && school?.id && user?.id) {
+          window.localStorage.removeItem(`skoolmate_attendance_class:${school.id}|${user.id}`);
+        }
+      } catch {
+        // Ignore storage errors.
+      }
+    }
+  }, [selectedClass, classesLoading, classes.length, filteredClasses, school?.id, user?.id]);
 
   useEffect(() => {
     if (students.length > 0 && attendPage > Math.ceil(students.length / attendPerPage)) {

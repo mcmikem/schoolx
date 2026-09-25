@@ -184,6 +184,7 @@ export async function sendEmailReceipt(
         "Content-Type": "application/json",
         Authorization: `Bearer ${resendApiKey}`,
       },
+      signal: AbortSignal.timeout(20000),
       body: JSON.stringify({
         from: process.env.EMAIL_FROM || `${APP_NAME} <pay@omuto.org>`,
         to: receiptData.schoolEmail || "os@omuto.org",
