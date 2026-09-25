@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireCronSecretOrDeny, createServiceRoleClientOrThrow, requireExistingSchoolOrDeny } from "@/lib/api-utils";
 import { requireActiveSubscription } from "@/lib/subscription-guard";
-import { sendAfricasTalkingSMSWithRetry, checkSmsDailyLimit } from "@/lib/africas-talking";
+import { sendToParent } from "@/lib/messaging-server";
 import { logger } from "@/lib/logger";
 
 export async function POST(request: NextRequest) {
@@ -96,17 +96,13 @@ export async function POST(request: NextRequest) {
 
         if (phone) {
           try {
-            const withinLimit = await checkSmsDailyLimit(school.schoolId, 1);
-            if (!withinLimit) {
-              errors.push({
-                itemId: item.id,
-                name: item.name,
-                reason: "Daily SMS limit reached",
-              });
-            } else {
+            {
               const smsMessage = `ALERT: ${item.name} stock is low (${currentStock} units). Reorder level: ${reorderLevel}. Please restock.`;
-              const smsResult = await sendAfricasTalkingSMSWithRetry(phone, smsMessage, {
-                formatUgandaNumber: true,
+              const smsResult = await sendToParent(supabase, {
+                schoolId: school.schoolId,
+                to: phone,
+                message: smsMessage,
+                kind: "absentee_alert",
               });
 
               if (smsResult.success) {

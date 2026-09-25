@@ -8,7 +8,7 @@ import {
   assertUserRoleOrDeny,
 } from "@/lib/api-utils";
 import { requireActiveSubscription } from "@/lib/subscription-guard";
-import { sendAfricasTalkingSMSWithRetry, checkSmsDailyLimit } from "@/lib/africas-talking";
+import { sendToParent } from "@/lib/messaging-server";
 import { logger } from "@/lib/logger";
 
 // Auto Fee Reminder SMS Scheduler
@@ -223,24 +223,20 @@ export async function POST(request: NextRequest) {
           continue;
         }
 
-        const withinLimit = await checkSmsDailyLimit(school.schoolId, 1);
-        if (!withinLimit) {
-          results.skipped.push({
-            studentId: student.id,
-            name: `${student.first_name} ${student.last_name}`,
-            reason: "Daily SMS limit reached",
-          });
-          continue;
-        }
-
+        // NOTE: daily quota is enforced inside sendSchoolMessage, and only
+        // when the resolved channel is actually SMS. Checking it here would
+        // wrongly block WhatsApp sends once a school switches channels.
         const message = highestTrigger.message
           .replace("{student_name}", `${student.first_name} ${student.last_name}`)
           .replace("{balance}", balance.toLocaleString())
           .replace("{due_date}", dueDate.toLocaleDateString())
           .replace("{class}", student.classes?.name || "Unknown");
 
-        const smsResult = await sendAfricasTalkingSMSWithRetry(student.parent_phone, message, {
-          formatUgandaNumber: true,
+        const smsResult = await sendToParent(supabase, {
+          schoolId: school.schoolId,
+          to: student.parent_phone,
+          message,
+          kind: "fee_reminder",
         });
 
         if (smsResult.success) {
@@ -275,7 +271,7 @@ export async function POST(request: NextRequest) {
           results.errors.push({
             studentId: student.id,
             name: `${student.first_name} ${student.last_name}`,
-            reason: `SMS failed: ${smsResult.error}`,
+            reason: `${smsResult.channel === "whatsapp" ? "WhatsApp" : "SMS"} failed: ${smsResult.error}`,
           });
         }
       } catch (err) {

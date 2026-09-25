@@ -8,7 +8,7 @@ import {
 } from "@/lib/automation";
 import { buildRolloverPreview, isTerminalClass, getNextClassName } from "@/lib/operations";
 import { requireCronSecretOrDeny, createServiceRoleClientOrThrow, requireExistingSchoolOrDeny } from "@/lib/api-utils";
-import { sendAfricasTalkingSMSWithRetry } from "@/lib/africas-talking";
+import { sendToParent } from "@/lib/messaging-server";
 import { logger } from "@/lib/logger";
 
 export async function POST(request: NextRequest) {
@@ -439,8 +439,11 @@ export async function POST(request: NextRequest) {
         if (student.parent_phone) {
           try {
             const smsMessage = `Dear parent, Term ${term} ${year} has ended for ${studentName} (${className}). Report cards are now available. Contact the school for any inquiries.`;
-            const smsResult = await sendAfricasTalkingSMSWithRetry(student.parent_phone, smsMessage, {
-              formatUgandaNumber: true,
+            const smsResult = await sendToParent(supabase, {
+              schoolId: school.schoolId,
+              to: student.parent_phone,
+              message: smsMessage,
+              kind: "report_card_ready",
             });
             if (smsResult.success) {
               noticesSent++;

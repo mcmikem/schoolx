@@ -2,10 +2,10 @@
 
 import { supabase } from "./supabase";
 import { logger } from "./logger";
-import { sendAfricasTalkingSMS } from "./africas-talking";
+import { sendSchoolMessage } from "./messaging";
 import { generateSMSTemplate } from "./sms-automation";
 
-export type AutomationTrigger = 
+export type AutomationTrigger =
   | "student_absent"
   | "canteen_balance_low"
   | "fee_payment_received"
@@ -14,9 +14,9 @@ export type AutomationTrigger =
   | "system_backup";
 
 export const triggerAutomationEvent = async (
-  schoolId: string | undefined, 
-  eventName: AutomationTrigger, 
-  payload: any
+  schoolId: string | undefined,
+  eventName: AutomationTrigger,
+  payload: any,
 ) => {
   if (!schoolId) return;
 
@@ -38,8 +38,9 @@ export const triggerAutomationEvent = async (
           school_name: "School",
         });
 
-        const smsResult = await sendAfricasTalkingSMS(student.parent_phone, message, {
-          formatUgandaNumber: true,
+        const smsResult = await sendSchoolMessage(student.parent_phone, message, {
+          schoolId,
+          kind: "absentee_alert",
         });
 
         if (smsResult.success) {

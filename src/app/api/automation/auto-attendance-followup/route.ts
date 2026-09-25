@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { detectConsecutiveAbsenceAlerts, filterAbsenceAlertsForCooldown } from "@/lib/operations";
 import type { AttendanceAlert } from "@/lib/operations";
 import { requireCronSecretOrDeny, createServiceRoleClientOrThrow, requireExistingSchoolOrDeny } from "@/lib/api-utils";
-import { sendAfricasTalkingSMSWithRetry } from "@/lib/africas-talking";
+import { sendToParent } from "@/lib/messaging-server";
 import { logger } from "@/lib/logger";
 
 export async function POST(request: NextRequest) {
@@ -125,10 +125,13 @@ export async function POST(request: NextRequest) {
         continue;
       }
 
-      // Send SMS to parent
+      // Send to the parent on the school's configured channel (WhatsApp-first, SMS fallback)
       try {
-        const smsResult = await sendAfricasTalkingSMSWithRetry(alert.parentPhone, alert.smsMessage, {
-          formatUgandaNumber: true,
+        const smsResult = await sendToParent(supabase, {
+          schoolId: school.schoolId,
+          to: alert.parentPhone,
+          message: alert.smsMessage,
+          kind: "absentee_alert",
         });
 
         if (smsResult.success) {
@@ -173,12 +176,13 @@ export async function POST(request: NextRequest) {
             studentName: alert.studentName,
             phone: alert.parentPhone,
             messageId: smsResult.messageId,
+            channel: smsResult.channel,
           });
         } else {
           errors.push({
             studentId: alert.studentId,
             studentName: alert.studentName,
-            reason: `SMS failed: ${smsResult.error}`,
+            reason: `${smsResult.channel === "whatsapp" ? "WhatsApp" : "SMS"} failed: ${smsResult.error}`,
           });
         }
       } catch (err) {

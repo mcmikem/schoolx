@@ -42,52 +42,49 @@ describe("Production Hardening Regression Tests", () => {
   });
 
   describe("Automation Fixes", () => {
-    it("should use sendAfricasTalkingSMSWithRetry in fee reminders", () => {
+    // Parent/staff messaging now goes through the channel resolver
+    // (src/lib/messaging.ts) so WhatsApp can be used instead of SMS.
+    // These assert each automation actually calls that resolver, rather than
+    // hard-coding a single telecom provider.
+    const AUTOMATIONS_USING_CHANNEL_RESOLVER: Array<[string, string]> = [
+      ["fee reminders", "src/app/api/automation/auto-fee-reminder/route.ts"],
+      ["attendance followup", "src/app/api/automation/auto-attendance-followup/route.ts"],
+      ["installment reminders", "src/app/api/automation/auto-installment-reminder/route.ts"],
+      ["attendance heartbeat", "src/app/api/automation/attendance-heartbeat/route.ts"],
+      ["inventory alerts", "src/app/api/automation/auto-inventory-alerts/route.ts"],
+      ["term-end notices", "src/app/api/automation/term-end/route.ts"],
+      ["manual trigger run", "src/app/api/automation/sms/run/route.ts"],
+    ];
+
+    for (const [label, relPath] of AUTOMATIONS_USING_CHANNEL_RESOLVER) {
+      it(`should route ${label} through the messaging channel resolver`, () => {
+        const src = require("fs").readFileSync(require("path").join(process.cwd(), relPath), "utf8");
+        expect(src).toContain("sendToParent");
+        // Must not bypass the resolver with a hard-coded provider call.
+        expect(src).not.toContain("sendAfricasTalkingSMSWithRetry(");
+        expect(src).not.toContain("sendAfricasTalkingSMS(");
+      });
+    }
+
+    it("should not let the SMS daily limit gate non-SMS channels", () => {
+      // Quota belongs to the channel, so it is enforced inside sendSchoolMessage
+      // and only when the resolved channel is SMS.
+      const messaging = require("fs").readFileSync(require("path").join(process.cwd(), "src/lib/messaging.ts"), "utf8");
+      expect(messaging).toContain("checkSmsDailyLimit");
       const feeReminder = require("fs").readFileSync(
         require("path").join(process.cwd(), "src/app/api/automation/auto-fee-reminder/route.ts"),
         "utf8",
       );
-      expect(feeReminder).toContain("sendAfricasTalkingSMSWithRetry");
+      expect(feeReminder).not.toContain("checkSmsDailyLimit");
     });
 
-    it("should use sendAfricasTalkingSMSWithRetry in attendance followup", () => {
-      const attendanceFollowup = require("fs").readFileSync(
-        require("path").join(process.cwd(), "src/app/api/automation/auto-attendance-followup/route.ts"),
+    it("must keep login OTP on SMS (Meta prohibits WhatsApp auth)", () => {
+      const otp = require("fs").readFileSync(
+        require("path").join(process.cwd(), "src/app/api/auth/otp/route.ts"),
         "utf8",
       );
-      expect(attendanceFollowup).toContain("sendAfricasTalkingSMSWithRetry");
-    });
-
-    it("should use sendAfricasTalkingSMSWithRetry in installment reminders", () => {
-      const installmentReminder = require("fs").readFileSync(
-        require("path").join(process.cwd(), "src/app/api/automation/auto-installment-reminder/route.ts"),
-        "utf8",
-      );
-      expect(installmentReminder).toContain("sendAfricasTalkingSMSWithRetry");
-    });
-
-    it("should use sendAfricasTalkingSMSWithRetry in attendance heartbeat", () => {
-      const heartbeat = require("fs").readFileSync(
-        require("path").join(process.cwd(), "src/app/api/automation/attendance-heartbeat/route.ts"),
-        "utf8",
-      );
-      expect(heartbeat).toContain("sendAfricasTalkingSMSWithRetry");
-    });
-
-    it("should use sendAfricasTalkingSMSWithRetry in inventory alerts", () => {
-      const inventoryAlerts = require("fs").readFileSync(
-        require("path").join(process.cwd(), "src/app/api/automation/auto-inventory-alerts/route.ts"),
-        "utf8",
-      );
-      expect(inventoryAlerts).toContain("sendAfricasTalkingSMSWithRetry");
-    });
-
-    it("should use sendAfricasTalkingSMSWithRetry in term-end", () => {
-      const termEnd = require("fs").readFileSync(
-        require("path").join(process.cwd(), "src/app/api/automation/term-end/route.ts"),
-        "utf8",
-      );
-      expect(termEnd).toContain("sendAfricasTalkingSMSWithRetry");
+      expect(otp).toContain("sendAfricasTalkingSMSWithRetry");
+      expect(otp).not.toContain("sendToParent");
     });
 
     it("should have idempotency check in term-end report cards", () => {
@@ -178,7 +175,7 @@ describe("Production Hardening Regression Tests", () => {
         require("path").join(process.cwd(), "src/lib/sms-automation.ts"),
         "utf8",
       );
-      expect(smsAutomation).toContain("sendAfricasTalkingSMS");
+      expect(smsAutomation).toContain("sendSchoolMessage");
       expect(smsAutomation).not.toContain("fetch('/api/sms/'");
     });
 

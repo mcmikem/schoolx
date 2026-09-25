@@ -158,7 +158,9 @@ export default function CommunicationHubPage() {
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
   const [messageLimit, setMessageLimit] = useState(20);
-  const [deliveryChannel, setDeliveryChannel] = useState<"auto" | "sms" | "whatsapp">("sms");
+  // "auto" prefers WhatsApp (cheaper) and falls back to SMS when WhatsApp is
+  // not configured — matching the automation channel resolver.
+  const [deliveryChannel, setDeliveryChannel] = useState<"auto" | "sms" | "whatsapp">("auto");
 
   const [audience, setAudience] = useState<"all" | "class" | "outstanding_fees" | "custom">("all");
   const [bulkSelectedClass, setBulkSelectedClass] = useState("");

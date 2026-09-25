@@ -1,7 +1,7 @@
 import { jsPDF } from "jspdf";
 import "jspdf-autotable";
 import { createSupabaseServerClient } from "../supabase/server";
-import { sendAfricasTalkingSMS } from "@/lib/africas-talking";
+import { sendSchoolMessage } from "@/lib/messaging";
 import { logger } from "@/lib/logger";
 import { APP_NAME } from "@/lib/app-name";
 
@@ -228,8 +228,9 @@ export async function sendSMSReceipt(
 
     const message = `SKOOLMATE: Payment of UGX ${receiptData.amount.toLocaleString()} for ${receiptData.plan.toUpperCase()} plan received. Receipt: ${receiptData.receiptNumber}. Thank you!`;
 
-    const smsResult = await sendAfricasTalkingSMS(school.phone, message, {
-      formatUgandaNumber: true,
+    const smsResult = await sendSchoolMessage(school.phone, message, {
+      schoolId,
+      kind: "payment_confirmation",
     });
 
     if (!smsResult.success) {

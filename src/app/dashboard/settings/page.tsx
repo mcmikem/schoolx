@@ -20,6 +20,7 @@ import { buildDefaultClasses, inferClassLevel } from "@/lib/school-setup";
 import { getErrorMessage } from "@/lib/validation";
 import MaterialIcon from "@/components/MaterialIcon";
 import GeneralSettings from "@/components/settings/GeneralSettings";
+import MessagingPaymentsSettings from "@/components/settings/MessagingPaymentsSettings";
 import AcademicSettings from "@/components/settings/AcademicSettings";
 import ClassManager from "@/components/settings/ClassManager";
 import UserManager from "@/components/settings/UserManager";
@@ -83,6 +84,7 @@ const ALL_SETTINGS_TABS = [
   { id: "config", label: "School Config", badge: "New" },
   { id: "users", label: "Staff & Users" },
   { id: "notifications", label: "Notifications" },
+  { id: "messaging", label: "Messaging & Payments" },
   { id: "checklist", label: "Setup Checklist", badge: "Important" },
   { id: "backup", label: "Backup & Export" },
   { id: "subscription", label: "Billing & Plans", badge: "Active" },
@@ -93,11 +95,11 @@ const WINDOWS_APP_URL = process.env.NEXT_PUBLIC_WINDOWS_APP_URL || "";
 const MAC_APP_URL = process.env.NEXT_PUBLIC_MAC_APP_URL || "";
 
 const ROLE_TAB_ACCESS: Record<string, string[]> = {
-  school_admin: ["general", "config", "users", "notifications", "checklist", "backup", "subscription"],
-  admin: ["general", "config", "users", "notifications", "checklist", "backup", "subscription"],
-  headmaster: ["general", "config", "users", "notifications", "checklist", "backup", "subscription"],
-  super_admin: ["general", "config", "users", "notifications", "checklist", "backup", "subscription"],
-  bursar: ["general", "notifications", "subscription"],
+  school_admin: ["general", "config", "users", "notifications", "messaging", "checklist", "backup", "subscription"],
+  admin: ["general", "config", "users", "notifications", "messaging", "checklist", "backup", "subscription"],
+  headmaster: ["general", "config", "users", "notifications", "messaging", "checklist", "backup", "subscription"],
+  super_admin: ["general", "config", "users", "notifications", "messaging", "checklist", "backup", "subscription"],
+  bursar: ["general", "notifications", "messaging", "subscription"],
   dean_of_studies: ["general", "config", "notifications"],
   teacher: ["general", "notifications"],
   secretary: ["general", "notifications"],
@@ -1010,6 +1012,10 @@ export default function SettingsPage() {
 
         <TabPanel activeTab={activeTab} tabId="notifications">
           <SystemPreferences settings={settings} onSettingChange={handleSettingChange} />
+        </TabPanel>
+
+        <TabPanel activeTab={activeTab} tabId="messaging">
+          <MessagingPaymentsSettings />
         </TabPanel>
 
         <TabPanel activeTab={activeTab} tabId="checklist">

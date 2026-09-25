@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireCronSecretOrDeny, createServiceRoleClientOrThrow, requireExistingSchoolOrDeny } from "@/lib/api-utils";
-import { sendAfricasTalkingSMSWithRetry } from "@/lib/africas-talking";
+import { sendToParent } from "@/lib/messaging-server";
 import { logger } from "@/lib/logger";
 
 export async function POST(request: NextRequest) {
@@ -50,7 +50,12 @@ export async function POST(request: NextRequest) {
         const message = `Friendly Nudge: Attendance for ${cls.name} hasn't been marked yet. Please update the system as soon as possible. - SkoolMate Admin`;
 
         try {
-          const smsRes = await sendAfricasTalkingSMSWithRetry(teacherUser.phone, message, { formatUgandaNumber: true });
+          const smsRes = await sendToParent(supabase, {
+            schoolId: school.schoolId,
+            to: teacherUser.phone,
+            message,
+            kind: "absentee_alert",
+          });
           if (smsRes.success) {
             results.nudgesSent++;
             const { withTimeout, timeoutFallback } = await import("@/lib/hooks/utils");

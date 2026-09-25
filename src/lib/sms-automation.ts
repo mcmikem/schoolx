@@ -2,7 +2,7 @@ import { supabase } from "@/lib/supabase";
 import { DEMO_STUDENTS, DEMO_FEE_STRUCTURE, DEMO_FEE_PAYMENTS, DEMO_ATTENDANCE } from "@/lib/demo-data";
 import { isDemoSchool } from "@/lib/demo-utils";
 import { getCurrentTerm } from "@/lib/automation";
-import { checkSmsDailyLimit, sendAfricasTalkingSMS } from "@/lib/africas-talking";
+import { sendSchoolMessage, type ParentMessageKind } from "@/lib/messaging";
 
 export interface SMSResult {
   success: boolean;
@@ -60,9 +60,30 @@ export function generateSMSTemplate(templateKey: string, variables: SMSTemplateV
   return message;
 }
 
-async function sendSMSDirect(phone: string, message: string): Promise<boolean> {
+/** Maps legacy `automation_type` values onto messaging template kinds. */
+function automationKindFor(automationType: string): ParentMessageKind {
+  switch (automationType) {
+    case "absentee_alert":
+      return "absentee_alert";
+    case "payment_confirmation":
+      return "payment_confirmation";
+    case "report_card_ready":
+      return "report_card_ready";
+    default:
+      return "fee_reminder";
+  }
+}
+
+async function sendSMSDirect(
+  phone: string,
+  message: string,
+  schoolId?: string,
+  kind: ParentMessageKind = "fee_reminder",
+): Promise<boolean> {
   try {
-    const result = await sendAfricasTalkingSMS(phone, message, { formatUgandaNumber: true });
+    // WhatsApp-first; SMS is the fallback. Quota is enforced inside for the
+    // SMS channel only, so a school on WhatsApp is never SMS-capped.
+    const result = await sendSchoolMessage(phone, message, { schoolId, kind });
     return result.success;
   } catch {
     return false;
@@ -92,13 +113,12 @@ async function logSMS(
   };
 
   if (!isDemo) {
-    const withinLimit = await checkSmsDailyLimit(schoolId, 1);
-    if (!withinLimit) {
-      logEntry.status = "failed";
-      return logEntry;
-    }
-
-    const sent = await sendSMSDirect(entry.parent_phone, entry.message);
+    const sent = await sendSMSDirect(
+      entry.parent_phone,
+      entry.message,
+      schoolId,
+      automationKindFor(entry.automation_type),
+    );
 
     await supabase.from("sms_logs").insert({
       school_id: schoolId,

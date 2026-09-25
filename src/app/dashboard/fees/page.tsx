@@ -42,6 +42,7 @@ import { useUndo, UndoNotification } from "@/lib/useUndo";
 import { PageGuidance } from "@/components/PageGuidance";
 import { EmptyState } from "@/components/EmptyState";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
+import PaymentClaimsPanel from "@/components/fees/PaymentClaimsPanel";
 import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
 import { getErrorMessage } from "@/lib/validation";
 import { APP_NAME } from "@/lib/app-name";
@@ -70,7 +71,19 @@ interface Installment {
   paid_date?: string;
 }
 
-type FinanceTab = "balances" | "payment-plans" | "invoices" | "cashbook";
+type PaymentClaimRow = {
+  id: string;
+  amount: number;
+  claimed_method: string;
+  reference: string | null;
+  note: string | null;
+  status: string;
+  created_at: string;
+  student_id: string;
+  students?: { first_name?: string; last_name?: string; class?: { name?: string } | null } | null;
+};
+
+type FinanceTab = "balances" | "payment-plans" | "invoices" | "cashbook" | "claims";
 
 const MAX_FINANCE_AMOUNT = 100_000_000;
 
@@ -97,6 +110,7 @@ export default function FinanceHubPage() {
     loading: paymentsLoading,
     error: paymentsError,
     totalCount: paymentsTotalCount,
+    refetch: refetchPayments,
   } = useOfflineFees(school?.id, { limit: itemsPerPage, offset });
 
   const { classes, loading: classesLoading } = useClasses(school?.id);
@@ -112,6 +126,81 @@ export default function FinanceHubPage() {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const [tab, setTab] = useState<FinanceTab>(() => (urlFilters.get("tab") as FinanceTab) || "balances");
+
+  // ---- Parent payment claims (manual fee-payment confirmation) ----
+  const [pendingClaims, setPendingClaims] = useState<PaymentClaimRow[]>([]);
+  const [claimsLoading, setClaimsLoading] = useState(false);
+  const [reviewingClaimId, setReviewingClaimId] = useState<string | null>(null);
+
+  const fetchPendingClaims = useCallback(async () => {
+    if (isDemo) return;
+    setClaimsLoading(true);
+    try {
+      const res = await fetch("/api/parent/fee-payment-claims/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "list", status: "pending" }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) setPendingClaims(data.claims ?? []);
+    } catch {
+      // A failed claim list must never block the balances tab.
+    } finally {
+      setClaimsLoading(false);
+    }
+  }, [isDemo]);
+
+  useEffect(() => {
+    if (tab === "claims") void fetchPendingClaims();
+  }, [tab, fetchPendingClaims]);
+
+  // Keep the tab badge honest so bursars notice claims without hunting.
+  useEffect(() => {
+    if (isDemo) return;
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const res = await fetch("/api/parent/fee-payment-claims/", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "list", status: "pending" }),
+        });
+        const data = await res.json();
+        if (!cancelled && res.ok && data.success) setPendingClaims(data.claims ?? []);
+      } catch {
+        // ignore
+      }
+    };
+    void poll();
+    const id = window.setInterval(poll, 60000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [isDemo]);
+
+  const reviewClaim = async (claimId: string, decision: "approve" | "reject") => {
+    setReviewingClaimId(claimId);
+    try {
+      const res = await fetch("/api/parent/fee-payment-claims/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "review", claimId, decision }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        toast.error(data?.error || "Could not update the claim. Please try again.");
+        return;
+      }
+      toast.success(decision === "approve" ? "Payment recorded" : "Claim rejected");
+      setPendingClaims((prev) => prev.filter((c) => c.id !== claimId));
+      if (decision === "approve") void refetchPayments();
+    } catch {
+      toast.error("Network problem. Please try again.");
+    } finally {
+      setReviewingClaimId(null);
+    }
+  };
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
@@ -245,7 +334,8 @@ export default function FinanceHubPage() {
       requestedTab === "balances" ||
       requestedTab === "payment-plans" ||
       requestedTab === "invoices" ||
-      requestedTab === "cashbook"
+      requestedTab === "cashbook" ||
+      requestedTab === "claims"
     ) {
       setTab(requestedTab);
     }
@@ -1214,7 +1304,7 @@ export default function FinanceHubPage() {
       const smsResult = await res.json().catch(() => null);
       const smsData = smsResult?.data || {};
       if (smsData.status === "sent") {
-        toast.success("Invoice sent via SMS");
+        toast.success("Invoice sent to the parent");
       } else if (smsData.status === "fallback" && typeof smsData.whatsappLink === "string") {
         window.open(smsData.whatsappLink, "_blank", "noopener,noreferrer");
         toast.error("SMS failed. Opened WhatsApp fallback for manual send.");
@@ -1365,7 +1455,7 @@ export default function FinanceHubPage() {
             },
             {
               icon: "sms",
-              text: "Send Reminders: Click 'Auto Fee Reminders' to SMS parents with balances",
+              text: "Send Reminders: Click 'Auto Fee Reminders' to message parents with balances",
             },
             {
               icon: "tune",
@@ -1380,17 +1470,23 @@ export default function FinanceHubPage() {
             { id: "payment-plans" as const, label: "Paying in Bits" },
             { id: "invoices" as const, label: "Invoices" },
             { id: "cashbook" as const, label: "Daily Money Log" },
+            { id: "claims" as const, label: "Payment Claims" },
           ].map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap ${
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap inline-flex items-center gap-1.5 ${
                 tab === t.id
                   ? "bg-[var(--surface)] text-[var(--t1)] shadow-sm"
                   : "text-[var(--t3)] hover:text-[var(--t2)]"
               }`}
             >
               {t.label}
+              {t.id === "claims" && pendingClaims.length > 0 && (
+                <span className="min-w-5 h-5 px-1.5 rounded-full bg-[var(--primary)] text-white text-[11px] font-bold flex items-center justify-center">
+                  {pendingClaims.length}
+                </span>
+              )}
             </button>
           ))}
         </div>
@@ -1621,6 +1717,17 @@ export default function FinanceHubPage() {
             printInvoice={printInvoice}
             sendInvoiceSMS={sendInvoiceSMS}
           />
+        )}
+
+        {tab === "claims" && (
+          <div className="max-w-2xl">
+            <PaymentClaimsPanel
+              claims={pendingClaims}
+              loading={claimsLoading}
+              onReview={reviewClaim}
+              busyId={reviewingClaimId}
+            />
+          </div>
         )}
 
         {tab === "cashbook" && (

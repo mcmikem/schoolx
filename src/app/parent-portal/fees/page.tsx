@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
+import { loadSchoolSetting } from "@/lib/school-settings";
 import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -52,11 +53,17 @@ export default function ParentFeesPage() {
   const [topupLoading, setTopupLoading] = useState(false);
   const [showPayModal, setShowPayModal] = useState(false);
   const [payAmount, setPayAmount] = useState("");
-  const [payProvider, setPayProvider] = useState<"mtn" | "airtel">("mtn");
-  const [payPhone, setPayPhone] = useState("");
-  const [payStep, setPayStep] = useState<"form" | "sent" | "verifying">("form");
-  const [payTxRef, setPayTxRef] = useState("");
-  const [payInstructions, setPayInstructions] = useState("");
+  const [payMethod, setPayMethod] = useState<"mobile_money" | "cash" | "bank" | "in_kind">("mobile_money");
+  const [payReference, setPayReference] = useState("");
+  const [payNote, setPayNote] = useState("");
+  const [payStep, setPayStep] = useState<"form" | "sent">("form");
+  // Where the parent should actually send the money. Schools set these in
+  // Settings; when empty we fall back to "pay at the school office".
+  const [payDetails, setPayDetails] = useState<{
+    momo: string;
+    airtel: string;
+    instructions: string;
+  }>({ momo: "", airtel: "", instructions: "" });
   const [payLoading, setPayLoading] = useState(false);
 
   const fetchFees = useCallback(
@@ -193,6 +200,32 @@ export default function ParentFeesPage() {
     }
   }, [selectedChild, fetchFees]);
 
+  // Where this school wants parents to send money. Read once on mount so the
+  // pay sheet always shows the school's real numbers, never a guess.
+  useEffect(() => {
+    if (isDemo) {
+      setPayDetails({ momo: "0772 000 111", airtel: "0700 000 222", instructions: "" });
+      return;
+    }
+    const schoolId = selectedChild?.school_id;
+    if (!schoolId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const momo = await loadSchoolSetting<string>(schoolId, "payment_momo_number", "");
+        const airtel = await loadSchoolSetting<string>(schoolId, "payment_airtel_number", "");
+        const instructions = await loadSchoolSetting<string>(schoolId, "payment_instructions", "");
+        if (cancelled) return;
+        setPayDetails({ momo, airtel, instructions });
+      } catch {
+        // Fall back to the generic "pay at the office" copy.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isDemo, selectedChild?.school_id]);
+
   const stats = useMemo(() => calculateFeeStats(feeStructure, payments), [feeStructure, payments]);
 
   const paidPct = stats.totalFee > 0 ? Math.round((stats.totalPaid / stats.totalFee) * 100) : 0;
@@ -256,114 +289,59 @@ export default function ParentFeesPage() {
     }
   };
 
-  const startPay = async () => {
+  // Manual payment flow. The parent pays the school directly (Momo/Airtel/cash)
+  // and tells us about it here; the bursar confirms once the money lands. This
+  // replaces the in-app mobile-money push, which is deferred.
+  const submitPaymentClaim = async () => {
     if (!selectedChild) return;
     const amountValue = Number(payAmount);
     if (!Number.isFinite(amountValue) || amountValue <= 0) {
-      toast.error("Enter a valid amount to pay.");
-      return;
-    }
-    if (!payPhone || payPhone.replace(/\D/g, "").length < 9) {
-      toast.error("Enter a valid phone number.");
+      toast.error("Enter the amount you paid.");
       return;
     }
     setPayLoading(true);
 
     if (isDemo) {
-      await new Promise((r) => setTimeout(r, 1200));
-      setPayTxRef(`DEMO-FEES-${Date.now()}`);
-      setPayInstructions(
-        `A payment request for UGX ${amountValue.toLocaleString()} has been sent to ${payPhone.replace(/\D/g, "").replace(/^0?/, "256")}. Check your phone and enter your PIN to confirm.`,
-      );
+      await new Promise((r) => setTimeout(r, 700));
       setPayStep("sent");
       setPayLoading(false);
       return;
     }
 
     try {
-      const res = await fetch("/api/parent/fee-payment/", {
+      const res = await fetch("/api/parent/fee-payment-claims/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          action: "create",
-          childId: selectedChild.id,
+          action: "submit",
+          studentId: selectedChild.id,
           amount: amountValue,
-          provider: payProvider,
-          phoneNumber: payPhone,
+          method: payMethod,
+          reference: payReference.trim() || undefined,
+          note: payNote.trim() || undefined,
         }),
       });
       const data = await res.json();
-      if (!data.success) {
-        toast.error(data.error || "Payment could not be started.");
+      if (!res.ok || !data.success) {
+        toast.error(data?.error || "Could not send your payment details. Please try again.");
         return;
       }
-      setPayTxRef(data.txRef);
-      setPayInstructions(data.instructions);
       setPayStep("sent");
+      toast.success("Sent. The school will confirm your payment.");
+      await fetchFees(selectedChild);
+    } catch {
+      toast.error("Network problem. Please try again.");
     } finally {
       setPayLoading(false);
     }
   };
 
-  const verifyPay = async () => {
-    if (!selectedChild || !payTxRef) return;
-    setPayLoading(true);
-    setPayStep("verifying");
-
-    if (isDemo) {
-      await new Promise((r) => setTimeout(r, 1500));
-      const amountValue = Number(payAmount || 0);
-      const createdAt = new Date().toISOString();
-      setPayments((current) => [
-        {
-          id: `demo-fees-${Date.now()}`,
-          amount_paid: amountValue,
-          payment_date: createdAt,
-          payment_method: payProvider === "airtel" ? "Airtel Money" : "MTN MoMo",
-          payment_reference: payTxRef,
-          fee_structure: null,
-        },
-        ...current,
-      ]);
-      setShowPayModal(false);
-      setPayStep("form");
-      setPayTxRef("");
-      setPayAmount("");
-      toast.success(`Payment of UGX ${amountValue.toLocaleString()} confirmed.`);
-      setPayLoading(false);
-      return;
-    }
-
-    try {
-      const res = await fetch("/api/parent/fee-payment/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "verify",
-          childId: selectedChild.id,
-          reference: payTxRef,
-          provider: payProvider,
-          amount: Number(payAmount || 0),
-        }),
-      });
-      const data = await res.json();
-      if (data.success && data.status === "completed") {
-        setShowPayModal(false);
-        setPayStep("form");
-        setPayTxRef("");
-        setPayAmount("");
-        toast.success("Payment confirmed and recorded.");
-        await fetchFees(selectedChild);
-      } else {
-        toast.error(data.message || "Payment not yet confirmed. Try again in a moment.");
-        setPayStep("sent");
-      }
-    } catch {
-      toast.error("Unable to verify payment. Try again.");
-      setPayStep("sent");
-    } finally {
-      setPayLoading(false);
-    }
+  const closePayModal = () => {
+    setShowPayModal(false);
+    setPayStep("form");
+    setPayAmount("");
+    setPayReference("");
+    setPayNote("");
   };
 
   return (
@@ -664,31 +642,73 @@ export default function ParentFeesPage() {
         )}
 
         {showPayModal && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
-            <div className="bg-[var(--surface)] rounded-3xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl p-8 space-y-5">
-              <div className="flex justify-between items-center">
+          <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
+            <div className="bg-[var(--surface)] rounded-3xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl p-6 space-y-5">
+              <div className="flex justify-between items-start gap-3">
                 <div>
-                  <h2 className="text-xl font-black text-[var(--on-surface)]">Pay Fees by Mobile Money</h2>
+                  <h2 className="text-xl font-black text-[var(--on-surface)]">Pay School Fees</h2>
                   <p className="text-sm text-[var(--on-surface-variant)]">
                     {selectedChild ? `${selectedChild.first_name}'s fee payment` : "Select a learner first"}
                   </p>
                 </div>
-                <button
-                  onClick={() => {
-                    setShowPayModal(false);
-                    setPayStep("form");
-                  }}
-                  className="p-2 hover:bg-[var(--surface-container)] rounded-xl"
-                >
+                <button onClick={closePayModal} className="p-2 hover:bg-[var(--surface-container)] rounded-xl shrink-0">
                   <MaterialIcon icon="close" />
                 </button>
               </div>
 
               {payStep === "form" ? (
                 <>
+                  <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-container-low)] p-4 space-y-3">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-[var(--t3)]">
+                      Send your payment to
+                    </p>
+                    {payDetails.momo ? (
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-sm font-semibold text-[var(--on-surface)] flex items-center gap-2">
+                          <MaterialIcon icon="smartphone" className="text-[var(--primary)]" /> MTN MoMo
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard?.writeText(payDetails.momo.replace(/\s/g, ""));
+                            toast.success("Number copied");
+                          }}
+                          className="font-mono text-sm font-bold text-[var(--primary)] underline underline-offset-2 shrink-0"
+                        >
+                          {payDetails.momo}
+                        </button>
+                      </div>
+                    ) : null}
+                    {payDetails.airtel ? (
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="text-sm font-semibold text-[var(--on-surface)] flex items-center gap-2">
+                          <MaterialIcon icon="smartphone" className="text-[var(--error)]" /> Airtel Money
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard?.writeText(payDetails.airtel.replace(/\s/g, ""));
+                            toast.success("Number copied");
+                          }}
+                          className="font-mono text-sm font-bold text-[var(--error)] underline underline-offset-2 shrink-0"
+                        >
+                          {payDetails.airtel}
+                        </button>
+                      </div>
+                    ) : null}
+                    {!payDetails.momo && !payDetails.airtel ? (
+                      <p className="text-sm text-[var(--on-surface-variant)]">
+                        Please pay at the school office, or use the number the school gave you.
+                      </p>
+                    ) : null}
+                    {payDetails.instructions ? (
+                      <p className="text-sm text-[var(--on-surface-variant)]">{payDetails.instructions}</p>
+                    ) : null}
+                  </div>
+
                   <div>
                     <label className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2">
-                      Amount (UGX)
+                      Amount you paid (UGX)
                     </label>
                     <input
                       type="number"
@@ -702,73 +722,88 @@ export default function ParentFeesPage() {
 
                   <div>
                     <label className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2">
-                      Mobile Money Provider
+                      How did you pay?
                     </label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {(["mtn", "airtel"] as const).map((p) => (
-                        <button
-                          key={p}
-                          type="button"
-                          onClick={() => setPayProvider(p)}
-                          className={`rounded-2xl border px-4 py-3 text-sm font-bold transition-all ${
-                            payProvider === p
-                              ? "bg-[var(--primary)] text-[var(--on-primary)] border-transparent"
-                              : "border-[var(--border)] text-[var(--on-surface-variant)] hover:border-[var(--primary)]"
-                          }`}
-                        >
-                          {p === "mtn" ? "MTN MoMo" : "Airtel Money"}
-                        </button>
-                      ))}
-                    </div>
+                    <select
+                      value={payMethod}
+                      onChange={(event) =>
+                        setPayMethod(event.target.value as "mobile_money" | "cash" | "bank" | "in_kind")
+                      }
+                      className="input w-full"
+                    >
+                      <option value="mobile_money">Mobile Money</option>
+                      <option value="cash">Cash at the office</option>
+                      <option value="bank">Bank transfer</option>
+                      <option value="in_kind">In kind</option>
+                    </select>
                   </div>
 
                   <div>
                     <label className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2">
-                      Phone Number
+                      Reference (optional)
                     </label>
                     <input
-                      type="tel"
-                      inputMode="tel"
-                      value={payPhone}
-                      onChange={(event) => setPayPhone(event.target.value)}
-                      placeholder="07XX XXX XXX"
+                      type="text"
+                      value={payReference}
+                      onChange={(event) => setPayReference(event.target.value)}
+                      placeholder="Momo/Airtel confirmation code"
+                      className="input w-full"
+                    />
+                    <p className="text-[11px] text-[var(--t3)] mt-1.5">
+                      If you have one, add the code from your Momo/Airtel receipt so the school can match it quickly.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2">
+                      Note (optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={payNote}
+                      onChange={(event) => setPayNote(event.target.value)}
+                      placeholder="Anything the school should know"
                       className="input w-full"
                     />
                   </div>
 
                   <Button
-                    onClick={startPay}
-                    disabled={!selectedChild || !payAmount.trim() || !payPhone.trim() || payLoading}
+                    onClick={submitPaymentClaim}
                     loading={payLoading}
+                    disabled={!selectedChild || !payAmount.trim()}
                     className="w-full"
                   >
-                    <MaterialIcon icon="bolt" /> Request Payment
+                    <MaterialIcon icon="check_circle" /> I&apos;ve paid — send to school
                   </Button>
+
+                  <p className="text-[11px] text-[var(--t3)] text-center leading-relaxed">
+                    Your balance updates once the school confirms they received the money.
+                  </p>
+
+                  <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface-container-low)] p-3">
+                    <p className="text-[11px] text-[var(--t3)] flex items-start gap-2">
+                      <MaterialIcon icon="schedule" className="text-sm shrink-0" />
+                      <span>
+                        <span className="font-bold text-[var(--t2)]">Coming soon:</span> paying straight from this
+                        portal without leaving the app. For now, pay the school directly and tell us here.
+                      </span>
+                    </p>
+                  </div>
                 </>
               ) : (
-                <div className="space-y-5">
-                  <div className="rounded-2xl bg-[var(--surface-container-low)] border border-[var(--border)] p-4 space-y-2">
-                    <div className="flex items-center gap-2 text-[var(--primary)]">
-                      <MaterialIcon icon={payStep === "verifying" ? "hourglass_top" : "smartphone"} />
-                      <p className="text-sm font-black text-[var(--on-surface)]">
-                        {payStep === "verifying" ? "Confirming payment…" : "Check your phone"}
-                      </p>
-                    </div>
-                    <p className="text-sm text-[var(--on-surface-variant)]">{payInstructions}</p>
-                    <p className="text-xs font-mono text-[var(--t3)]">Ref: {payTxRef}</p>
+                <div className="flex flex-col items-center text-center gap-4 py-6">
+                  <div className="w-14 h-14 rounded-full bg-[var(--green-soft)] flex items-center justify-center">
+                    <MaterialIcon icon="check_circle" className="text-3xl text-[var(--green)]" />
                   </div>
-
-                  {payStep === "sent" && (
-                    <Button onClick={verifyPay} loading={payLoading} className="w-full">
-                      <MaterialIcon icon="verified" /> I&apos;ve Entered My PIN
-                    </Button>
-                  )}
-                  {payStep === "verifying" && (
-                    <div className="flex items-center justify-center gap-2 text-sm text-[var(--t3)]">
-                      <span className="w-4 h-4 border-2 border-[var(--primary)]/30 border-t-[var(--primary)] rounded-full animate-spin" />
-                      Checking payment status…
-                    </div>
-                  )}
+                  <div>
+                    <h3 className="text-lg font-bold text-[var(--on-surface)]">Sent to the school</h3>
+                    <p className="text-sm text-[var(--on-surface-variant)] mt-1">
+                      The school will confirm your payment once they receive the money. Your balance updates then.
+                    </p>
+                  </div>
+                  <Button onClick={closePayModal} className="w-full">
+                    Done
+                  </Button>
                 </div>
               )}
             </div>

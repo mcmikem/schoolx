@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { detectInstallmentReminders } from "@/lib/operations";
 import { logger } from "@/lib/logger";
 import { requireCronSecretOrDeny, createServiceRoleClientOrThrow, requireExistingSchoolOrDeny } from "@/lib/api-utils";
-import { sendAfricasTalkingSMSWithRetry } from "@/lib/africas-talking";
+import { sendToParent } from "@/lib/messaging-server";
 
 export async function POST(request: NextRequest) {
   try {
@@ -77,8 +77,11 @@ export async function POST(request: NextRequest) {
 
       // Send SMS
       try {
-        const smsRes = await sendAfricasTalkingSMSWithRetry(reminder.parentPhone, reminder.smsMessage, {
-          formatUgandaNumber: true,
+        const smsRes = await sendToParent(supabase, {
+          schoolId: school.schoolId,
+          to: reminder.parentPhone,
+          message: reminder.smsMessage,
+          kind: "fee_reminder",
         });
         if (smsRes.success) {
           // Log success

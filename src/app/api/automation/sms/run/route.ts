@@ -10,7 +10,7 @@ import {
 } from "@/lib/api-utils";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { detectConsecutiveAbsenceAlerts, filterAbsenceAlertsForCooldown } from "@/lib/operations";
-import { sendAfricasTalkingSMSWithRetry, checkSmsDailyLimit } from "@/lib/africas-talking";
+import { sendToParent } from "@/lib/messaging-server";
 import { logger } from "@/lib/logger";
 
 const AUTOMATION_ALLOWED_ROLES = ["super_admin", "school_admin", "admin", "headmaster", "bursar", "secretary"];
@@ -117,17 +117,17 @@ async function handlePost(request: NextRequest) {
       let smsDelivered = false;
       if (alert.shouldSendSms && alert.parentPhone) {
         try {
-          const withinLimit = await checkSmsDailyLimit(scope.schoolId, 1);
-          if (withinLimit) {
-            const smsResult = await sendAfricasTalkingSMSWithRetry(alert.parentPhone, alert.smsMessage, {
-              formatUgandaNumber: true,
-            });
-            smsDelivered = smsResult.success;
-            if (!smsResult.success) {
-              logger.warn(`[sms/run] SMS send failed for ${alert.studentId}: ${smsResult.error}`);
-            }
-          } else {
-            logger.warn(`[sms/run] Daily SMS limit reached for school ${scope.schoolId}`);
+          // Channel + quota both resolved inside sendSchoolMessage, so SMS
+          // limits never block a school that has moved to WhatsApp.
+          const smsResult = await sendToParent(supabase, {
+            schoolId: scope.schoolId,
+            to: alert.parentPhone,
+            message: alert.smsMessage,
+            kind: "absentee_alert",
+          });
+          smsDelivered = smsResult.success;
+          if (!smsResult.success) {
+            logger.warn(`[sms/run] ${smsResult.channel} send failed for ${alert.studentId}: ${smsResult.error}`);
           }
         } catch (smsErr) {
           logger.error(`[sms/run] SMS send error for ${alert.studentId}:`, smsErr);
