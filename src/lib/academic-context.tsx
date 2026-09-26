@@ -123,14 +123,22 @@ export function AcademicProvider({ children }: { children: ReactNode }) {
       setAcademicYearState(activeYear);
       localStorage.setItem("academic_year", activeYear);
 
-      // Sync to DB (best-effort)
-      try {
-        await Promise.all([
-          saveSchoolSetting(school.id, "current_term", activeTerm.toString()),
-          saveSchoolSetting(school.id, "academic_year", activeYear),
-        ]);
-      } catch {
-        // Non-critical — term is already set in state + localStorage
+      // Sync to DB, but only when the resolved term actually differs from what is
+      // already stored. This effect runs on every page load, so writing
+      // unconditionally meant two pointless POSTs before the page could settle —
+      // costly on a slow connection, and needless churn in the settings table.
+      const nextTerm = activeTerm.toString();
+      const termChanged = settings.current_term !== nextTerm;
+      const yearChanged = settings.academic_year !== activeYear;
+      if (termChanged || yearChanged) {
+        try {
+          await Promise.all([
+            termChanged ? saveSchoolSetting(school.id, "current_term", nextTerm) : null,
+            yearChanged ? saveSchoolSetting(school.id, "academic_year", activeYear) : null,
+          ]);
+        } catch {
+          // Non-critical — term is already set in state + localStorage
+        }
       }
 
       // Load remaining settings
