@@ -409,14 +409,14 @@ export default function CalendarPage() {
   return (
     <PageErrorBoundary>
       <div className="p-4 sm:p-6 lg:p-8">
-        <div className="mx-auto max-w-[1420px] relative overflow-hidden rounded-[30px] border border-[#d6e4e8] bg-[linear-gradient(150deg,#eff7f5_0%,#eaf2f6_44%,#f8fbff_100%)] p-4 sm:p-6">
-          <div className="pointer-events-none absolute -left-20 -top-20 h-48 w-48 rounded-full bg-[#b7dfd8]/40 blur-3xl" />
-          <div className="pointer-events-none absolute -right-16 bottom-0 h-40 w-40 rounded-full bg-[#d8e9fb]/60 blur-3xl" />
+        <div className="mx-auto max-w-[1420px] relative overflow-hidden rounded-[30px] border border-[var(--border)] bg-[linear-gradient(150deg,#eff7f5_0%,#eaf2f6_44%,#f8fbff_100%)] p-4 sm:p-6">
+          <div className="pointer-events-none absolute -left-20 -top-20 h-48 w-48 rounded-full bg-[var(--surface-container-high)]/40 blur-3xl" />
+          <div className="pointer-events-none absolute -right-16 bottom-0 h-40 w-40 rounded-full bg-[var(--surface-container-high)]/60 blur-3xl" />
 
           <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[#4a7f76]">School planner</p>
-              <h1 className="mt-1 font-['Sora'] text-[28px] font-semibold tracking-[-0.035em] leading-tight text-[#19344a]">
+              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--green)]">School planner</p>
+              <h1 className="mt-1 font-['Sora'] text-[28px] font-semibold tracking-[-0.035em] leading-tight text-[var(--t1)]">
                 {mode === "week"
                   ? `${new Date(weekColumns[0].dateKey).toLocaleDateString("en-UG", { month: "short", day: "numeric" })} - ${new Date(weekColumns[6].dateKey).toLocaleDateString("en-UG", { month: "short", day: "numeric" })}`
                   : mode === "day"
@@ -431,7 +431,7 @@ export default function CalendarPage() {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <div className="flex rounded-full border border-[#cbdde3] bg-white/80 p-1">
+              <div className="flex rounded-full border border-[var(--border)] bg-white/80 p-1">
                 {(
                   [
                     ["day", "Daily"],
@@ -443,7 +443,7 @@ export default function CalendarPage() {
                   <button
                     key={key}
                     onClick={() => setMode(key)}
-                    className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all ${mode === key ? "bg-[#163f59] text-white" : "text-[var(--t3)] hover:text-[#1d3648]"}`}
+                    className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all ${mode === key ? "bg-[var(--primary-900)] text-white" : "text-[var(--t3)] hover:text-[var(--t1)]"}`}
                   >
                     {label}
                   </button>
@@ -477,7 +477,7 @@ export default function CalendarPage() {
             </Card>
           ) : (
             <div className="relative z-10 mt-5 grid grid-cols-1 gap-4 xl:grid-cols-[300px,1fr]">
-              <aside className="space-y-4 rounded-[22px] border border-[#cfe0e4] bg-white/90 p-4 backdrop-blur">
+              <aside className="space-y-4 rounded-[22px] border border-[var(--border)] bg-white/90 p-4 backdrop-blur">
                 <div className="rounded-xl border border-[var(--surface-container-high)] bg-white px-3 py-2">
                   <div className="flex items-center gap-2">
                     <MaterialIcon icon="search" className="text-[var(--t3)]" />
@@ -485,7 +485,7 @@ export default function CalendarPage() {
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search events..."
-                      className="w-full border-none bg-transparent text-sm text-[#2a4353] outline-none placeholder:text-[var(--t4)]"
+                      className="w-full border-none bg-transparent text-sm text-[var(--t1)] outline-none placeholder:text-[var(--t4)]"
                     />
                   </div>
                 </div>
@@ -495,17 +495,25 @@ export default function CalendarPage() {
                     <h2 className="text-sm font-bold text-[var(--t3)]">
                       {months[currentMonth]} {currentYear}
                     </h2>
-                    <div className="flex items-center gap-1 text-[#6a7f8e]">
-                      <button type="button" onClick={goPrev} className="rounded-full p-1 hover:bg-[#ecf4f6]">
+                    <div className="flex items-center gap-1 text-[var(--t1)]">
+                      <button
+                        type="button"
+                        onClick={goPrev}
+                        className="rounded-full p-1 hover:bg-[var(--surface-container)]"
+                      >
                         <MaterialIcon icon="chevron_left" className="text-[18px]" />
                       </button>
-                      <button type="button" onClick={goNext} className="rounded-full p-1 hover:bg-[#ecf4f6]">
+                      <button
+                        type="button"
+                        onClick={goNext}
+                        className="rounded-full p-1 hover:bg-[var(--surface-container)]"
+                      >
                         <MaterialIcon icon="chevron_right" className="text-[18px]" />
                       </button>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold uppercase text-[#8fa1ac]">
+                  <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold uppercase text-[var(--t2)]">
                     {weekDays.map((d) => (
                       <div key={d}>{d[0]}</div>
                     ))}
@@ -528,7 +536,7 @@ export default function CalendarPage() {
                             setSelectedDate(dateStr);
                             setNewEvent((n) => ({ ...n, start_date: dateStr }));
                           }}
-                          className={`relative h-8 rounded-lg text-xs font-semibold transition-all ${isActive ? "bg-[#173f58] text-white" : isToday ? "bg-[#dceef2] text-[#173f58]" : "text-[#425766] hover:bg-[#eef5f7]"}`}
+                          className={`relative h-8 rounded-lg text-xs font-semibold transition-all ${isActive ? "bg-[var(--primary-900)] text-white" : isToday ? "bg-[var(--surface-container)] text-[var(--t1)]" : "text-[var(--t1)] hover:bg-[var(--surface-container-low)]"}`}
                         >
                           {day}
                           {hasEvent && (
@@ -573,11 +581,11 @@ export default function CalendarPage() {
                         key={key}
                         type="button"
                         onClick={() => toggleCategory(key)}
-                        className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left transition hover:bg-[#f2f7f9]"
+                        className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left transition hover:bg-[var(--surface-container-low)]"
                       >
                         <span className="text-[var(--t3)]">{label}</span>
                         <span
-                          className={`h-4 w-4 rounded border ${categoryFilters[key] ? "border-[var(--primary-700)] bg-[var(--primary-700)]" : "border-[#bfd2da] bg-white"}`}
+                          className={`h-4 w-4 rounded border ${categoryFilters[key] ? "border-[var(--primary-700)] bg-[var(--primary-700)]" : "border-[var(--border)] bg-white"}`}
                         >
                           {categoryFilters[key] && <MaterialIcon icon="check" className="text-[12px] text-white" />}
                         </span>
@@ -601,7 +609,7 @@ export default function CalendarPage() {
                         key={scope}
                         type="button"
                         onClick={() => toggleCalendarScope(scope)}
-                        className={`flex w-full items-center justify-between rounded-lg px-2 py-1.5 transition ${calendarScopes[scope] ? "bg-[#e5f0f3] text-[#1e3f51]" : "text-[var(--t3)] hover:bg-[#f2f7f9]"}`}
+                        className={`flex w-full items-center justify-between rounded-lg px-2 py-1.5 transition ${calendarScopes[scope] ? "bg-[var(--surface-container)] text-[var(--t1)]" : "text-[var(--t3)] hover:bg-[var(--surface-container-low)]"}`}
                       >
                         <span>{label}</span>
                         <MaterialIcon
@@ -613,23 +621,25 @@ export default function CalendarPage() {
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-[#d7e6ea] bg-[#f8fcfd] p-4">
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-bright)] p-4">
                   <h3 className="text-sm font-bold text-[var(--t3)]">Snapshot</h3>
                   <div className="mt-3 space-y-2">
                     {statCards.map((stat) => (
-                      <div key={stat.label} className="rounded-xl border border-[#e0ecef] bg-white px-3 py-2">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#78909c]">{stat.label}</p>
-                        <p className="mt-1 text-base font-semibold text-[#1f3949]">{stat.value}</p>
-                        <p className="mt-0.5 truncate text-xs text-[#7a909d]">{stat.note}</p>
+                      <div key={stat.label} className="rounded-xl border border-[var(--border)] bg-white px-3 py-2">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--t2)]">
+                          {stat.label}
+                        </p>
+                        <p className="mt-1 text-base font-semibold text-[var(--t1)]">{stat.value}</p>
+                        <p className="mt-0.5 truncate text-xs text-[var(--t2)]">{stat.note}</p>
                       </div>
                     ))}
                   </div>
                 </div>
               </aside>
 
-              <section className="rounded-[22px] border border-[#d4e3e7] bg-white p-4 sm:p-5 shadow-[0_14px_28px_rgba(10,46,64,0.06)]">
-                <div className="mb-3 flex items-center justify-between rounded-xl border border-[#e1ecef] bg-[#f9fcfd] px-3 py-2">
-                  <div className="flex items-center gap-2 text-[#3c5565]">
+              <section className="rounded-[22px] border border-[var(--border)] bg-white p-4 sm:p-5 shadow-[0_14px_28px_rgba(10,46,64,0.06)]">
+                <div className="mb-3 flex items-center justify-between rounded-xl border border-[var(--border)] bg-[var(--surface-bright)] px-3 py-2">
+                  <div className="flex items-center gap-2 text-[var(--t1)]">
                     <MaterialIcon icon="today" className="text-[16px]" />
                     <p className="text-sm font-semibold">
                       {new Date(selectedDate).toLocaleDateString("en-UG", {
@@ -646,11 +656,11 @@ export default function CalendarPage() {
 
                 <div className="mb-3 flex items-center justify-between">
                   <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--t3)]">{timezoneLabel}</p>
-                  <p className="text-xs text-[#6f8794]">Click any event to delete</p>
+                  <p className="text-xs text-[var(--t1)]">Click any event to delete</p>
                 </div>
 
                 {(mode === "week" || mode === "day") && (
-                  <div className="overflow-x-auto rounded-2xl border border-[#e2edf0] bg-[#f7fbfd] p-2">
+                  <div className="overflow-x-auto rounded-2xl border border-[var(--border)] bg-[var(--surface-bright)] p-2">
                     <div
                       className={`grid min-w-[860px] gap-2 ${mode === "week" ? "grid-cols-[64px_repeat(7,minmax(110px,1fr))]" : "grid-cols-[64px_minmax(260px,1fr)]"}`}
                     >
@@ -665,21 +675,21 @@ export default function CalendarPage() {
                             key={`head-${dateKey}`}
                             type="button"
                             onClick={() => setSelectedDate(dateKey)}
-                            className={`rounded-xl border px-2 py-2 text-left transition ${isCurrent ? "border-[#1d5f74] bg-[#e0f0f4]" : "border-[var(--surface-container-high)] bg-white"}`}
+                            className={`rounded-xl border px-2 py-2 text-left transition ${isCurrent ? "border-[var(--border)] bg-[var(--surface-container)]" : "border-[var(--surface-container-high)] bg-white"}`}
                           >
                             <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--t3)]">
                               {fullWeekDays[date.getDay()]}
                             </p>
-                            <p className="mt-1 text-xl font-semibold text-[#203846]">{date.getDate()}</p>
+                            <p className="mt-1 text-xl font-semibold text-[var(--t1)]">{date.getDate()}</p>
                           </button>
                         );
                       })}
 
-                      <div className="relative h-[640px] rounded-xl bg-[#fbfeff]">
+                      <div className="relative h-[640px] rounded-xl bg-[var(--surface-bright)]">
                         {scheduleHours.map((hour) => (
                           <div
                             key={`time-${hour}`}
-                            className="absolute left-0 right-0 text-[10px] text-[#8ea0aa]"
+                            className="absolute left-0 right-0 text-[10px] text-[var(--t2)]"
                             style={{ top: `${(hour - 8) * 64}px` }}
                           >
                             {toHourLabel(hour)}
@@ -698,7 +708,7 @@ export default function CalendarPage() {
                           {scheduleHours.map((hour) => (
                             <div
                               key={`line-${dateKey}-${hour}`}
-                              className="absolute left-0 right-0 border-t border-dashed border-[#e6eef2]"
+                              className="absolute left-0 right-0 border-t border-dashed border-[var(--border)]"
                               style={{ top: `${(hour - 8) * 64}px` }}
                             />
                           ))}
@@ -719,7 +729,7 @@ export default function CalendarPage() {
                           })}
 
                           {dayColEvents.length === 0 && (
-                            <p className="absolute left-0 right-0 top-24 text-center text-xs text-[#8ea0aa]">
+                            <p className="absolute left-0 right-0 top-24 text-center text-xs text-[var(--t2)]">
                               No events
                             </p>
                           )}
@@ -731,7 +741,7 @@ export default function CalendarPage() {
 
                 {mode === "month" && (
                   <div>
-                    <div className="grid grid-cols-7 gap-2 text-center text-[11px] font-bold uppercase tracking-[0.08em] text-[#8fa1ac]">
+                    <div className="grid grid-cols-7 gap-2 text-center text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--t2)]">
                       {weekDays.map((d) => (
                         <div key={`month-head-${d}`}>{d}</div>
                       ))}
@@ -740,7 +750,7 @@ export default function CalendarPage() {
                       {Array.from({ length: firstDay }, (_, i) => (
                         <div
                           key={`month-empty-${i}`}
-                          className="h-28 rounded-xl border border-[#edf2f5] bg-[#f9fcfd]"
+                          className="h-28 rounded-xl border border-[var(--border)] bg-[var(--surface-bright)]"
                         />
                       ))}
                       {Array.from({ length: daysInMonth }, (_, i) => i + 1).map((day) => {
@@ -754,10 +764,12 @@ export default function CalendarPage() {
                             key={`month-day-${day}`}
                             type="button"
                             onClick={() => setSelectedDate(dateStr)}
-                            className={`h-28 rounded-xl border p-2 text-left transition ${isActive ? "border-[#1d5f74] bg-[#e0f0f4]" : "border-[var(--surface-container-high)] bg-white hover:border-[#bfd5dc]"}`}
+                            className={`h-28 rounded-xl border p-2 text-left transition ${isActive ? "border-[var(--border)] bg-[var(--surface-container)]" : "border-[var(--surface-container-high)] bg-white hover:border-[var(--border)]"}`}
                           >
                             <div className="flex items-center justify-between">
-                              <span className={`text-xs font-bold ${isToday ? "text-[#0d7287]" : "text-[#516977]"}`}>
+                              <span
+                                className={`text-xs font-bold ${isToday ? "text-[var(--primary)]" : "text-[var(--t1)]"}`}
+                              >
                                 {day}
                               </span>
                               <span className="text-[10px] text-[var(--t4)]">{eventsForDay.length}</span>
@@ -779,9 +791,9 @@ export default function CalendarPage() {
                   </div>
                 )}
 
-                <div className="mt-4 rounded-xl border border-dashed border-[#d3e3e8] bg-[#f7fbfc] p-3">
+                <div className="mt-4 rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface-bright)] p-3">
                   <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--t3)]">Selected date</p>
-                  <p className="mt-1 text-sm font-semibold text-[#233f50]">
+                  <p className="mt-1 text-sm font-semibold text-[var(--t1)]">
                     {new Date(selectedDate).toLocaleDateString("en-UG", {
                       weekday: "long",
                       day: "numeric",
@@ -790,16 +802,16 @@ export default function CalendarPage() {
                   </p>
                   <div className="mt-2 space-y-2">
                     {selectedDateEvents.length === 0 ? (
-                      <p className="text-sm text-[#7b919d]">No events on this date.</p>
+                      <p className="text-sm text-[var(--t2)]">No events on this date.</p>
                     ) : (
                       selectedDateEvents.map((evt) => (
                         <div
                           key={`selected-${evt.id}`}
-                          className="flex items-center justify-between rounded-lg border border-[#e3edf0] bg-white px-3 py-2"
+                          className="flex items-center justify-between rounded-lg border border-[var(--border)] bg-white px-3 py-2"
                         >
                           <div className="min-w-0">
                             <p className="truncate text-sm font-semibold text-[var(--t3)]">{evt.title}</p>
-                            <p className="text-[11px] capitalize text-[#748b98]">
+                            <p className="text-[11px] capitalize text-[var(--t1)]">
                               {evt.event_type} • {deriveEventSlot(evt).label}
                             </p>
                           </div>
@@ -812,7 +824,7 @@ export default function CalendarPage() {
                   </div>
                 </div>
 
-                {loading && <p className="mt-3 text-xs text-[#7b919d]">Refreshing events...</p>}
+                {loading && <p className="mt-3 text-xs text-[var(--t2)]">Refreshing events...</p>}
               </section>
             </div>
           )}
