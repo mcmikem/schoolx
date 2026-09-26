@@ -2372,6 +2372,14 @@ html.lite [role="button"] {
      compact and let them breathe. */
   .mobile-nav-label {
     font-size: 10px !important;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.02em;
+  }
+
+  /* Reclaim the horizontal padding so the longest label ("Students") fits a
+     320px bar with five items instead of ellipsising to "STUDEN…". */
+  .mobile-nav-item {
+    padding-left: 2px;
+    padding-right: 2px;
+    max-width: none;
   }
 }
