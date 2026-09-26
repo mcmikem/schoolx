@@ -1475,7 +1475,7 @@ export default function FinanceHubPage() {
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap inline-flex items-center gap-1.5 ${
+              className={`shrink-0 px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap inline-flex items-center gap-1.5 ${
                 tab === t.id
                   ? "bg-[var(--surface)] text-[var(--t1)] shadow-sm"
                   : "text-[var(--t3)] hover:text-[var(--t2)]"
