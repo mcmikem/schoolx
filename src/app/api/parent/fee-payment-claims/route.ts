@@ -176,7 +176,7 @@ async function handlePost(request: NextRequest) {
     const { data: claim, error: claimError } = await withTimeout(
       supabase
         .from("fee_payment_claims")
-        .select("id, student_id, amount, claimed_method, status, school_id")
+        .select("id, student_id, amount, claimed_method, reference, status, school_id")
         .eq("id", claimId)
         .eq("school_id", schoolId)
         .maybeSingle(),
@@ -214,21 +214,46 @@ async function handlePost(request: NextRequest) {
       return apiSuccess({ message: "Claim rejected" });
     }
 
-    // Approve → create the real fee payment. fee_payments.amount_paid is
-    // NOT NULL and payment_method is constrained, so map the claim onto it.
+    // Approve → create the real fee payment. NOTE: fee_payments in this schema
+    // has no school_id column (schema.sql is out of date) — the school is
+    // reached through the student. Including school_id made every approval
+    // fail with 42703.
     const paymentMethod = CLAIM_METHODS.has(claim.claimed_method)
       ? (claim.claimed_method as "cash" | "mobile_money" | "bank" | "installment" | "in_kind")
       : "mobile_money";
+
+    // Attach the claim to the student's oldest still-open fee term so the
+    // payment reduces a real balance rather than floating unallocated.
+    let studentFeeTermId: string | null = null;
+    try {
+      const { data: openTerm } = await withTimeout(
+        supabase
+          .from("student_fee_terms")
+          .select("id")
+          .eq("student_id", claim.student_id)
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .maybeSingle(),
+        10000,
+        timeoutFallback(),
+      );
+      studentFeeTermId = (openTerm as { id?: string } | null)?.id ?? null;
+    } catch {
+      studentFeeTermId = null;
+    }
 
     const { data: payment, error: paymentError } = await withTimeout(
       supabase
         .from("fee_payments")
         .insert({
-          school_id: schoolId,
           student_id: claim.student_id,
           amount_paid: claim.amount,
           payment_method: paymentMethod,
-          payment_reference: null,
+          // Carried through so the bursar can match it against the Momo/Airtel
+          // statement. fee_payments.payment_reference is uniquely indexed, which
+          // also blocks the same reference being paid twice.
+          payment_reference: claim.reference ?? null,
+          student_fee_term_id: studentFeeTermId,
           paid_by: "Parent (claimed in portal)",
           notes: "Confirmed from parent portal claim",
           payment_date: new Date().toISOString().split("T")[0],
@@ -241,6 +266,16 @@ async function handlePost(request: NextRequest) {
     );
 
     if (paymentError) {
+      // 23505 on the unique payment_reference index means this Momo/Airtel
+      // reference was already recorded — a likely double-count the bursar
+      // needs to see, not a generic failure.
+      if (paymentError.code === "23505") {
+        logger.warn("fee-payment-claims: duplicate payment reference", paymentError);
+        return apiError(
+          `A payment with reference "${claim.reference ?? ""}" was already recorded. Check for a duplicate payment.`,
+          409,
+        );
+      }
       logger.error("fee-payment-claims: payment insert failed", paymentError);
       return apiError("Could not record the payment", 500);
     }
