@@ -190,17 +190,17 @@ export function SendSMSModal({ student, isOpen, onClose, onSent }: SendSMSModalP
         className="bg-white rounded-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="p-6 border-b border-[#e8eaed]">
+        <div className="p-6 border-b border-[var(--surface-container-high)]">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-[#191c1d]">
+            <h2 className="text-lg font-semibold text-[var(--t1)]">
               SMS Parent of {student.first_name} {student.last_name}
             </h2>
-            <button onClick={onClose} className="p-2 text-[#5c6670] hover:text-[#191c1d]">
+            <button onClick={onClose} className="p-2 text-[var(--t3)] hover:text-[var(--t1)]">
               <MaterialIcon icon="close" className="text-xl" />
             </button>
           </div>
           {student.parent_phone && (
-            <p className="text-sm text-[#5c6670] mt-1">
+            <p className="text-sm text-[var(--t3)] mt-1">
               <MaterialIcon icon="phone" className="text-sm align-text-bottom mr-1" />
               {student.parent_phone}
             </p>
@@ -210,8 +210,8 @@ export function SendSMSModal({ student, isOpen, onClose, onSent }: SendSMSModalP
         <div className="p-6 space-y-4">
           {!student.parent_phone ? (
             <div className="text-center py-4">
-              <MaterialIcon icon="phone_disabled" className="text-3xl text-[#c62828] mb-2" />
-              <p className="text-sm text-[#c62828]">No parent phone number on record</p>
+              <MaterialIcon icon="phone_disabled" className="text-3xl text-[var(--red)] mb-2" />
+              <p className="text-sm text-[var(--red)]">No parent phone number on record</p>
             </div>
           ) : (
             <>
@@ -242,10 +242,10 @@ export function SendSMSModal({ student, isOpen, onClose, onSent }: SendSMSModalP
               {/* Preview Toggle */}
               {message.length > 0 && (
                 <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium text-[#191c1d]">Message Preview</label>
+                  <label className="text-sm font-medium text-[var(--t1)]">Message Preview</label>
                   <button
                     onClick={() => setShowPreview(!showPreview)}
-                    className={`relative w-10 h-5 rounded-full transition-colors ${showPreview ? "bg-[#002045]" : "bg-[#c4c6cf]"}`}
+                    className={`relative w-10 h-5 rounded-full transition-colors ${showPreview ? "bg-[var(--primary-900)]" : "bg-[var(--border2)]"}`}
                   >
                     <span
                       className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${showPreview ? "translate-x-5" : "translate-x-0.5"}`}
@@ -257,11 +257,11 @@ export function SendSMSModal({ student, isOpen, onClose, onSent }: SendSMSModalP
               {/* Phone Mockup Preview */}
               {showPreview && message.length > 0 && (
                 <div className="flex justify-center py-2">
-                  <div className="w-[220px] bg-[#1a1a2e] rounded-[24px] p-3 shadow-xl">
-                    <div className="w-[16px] h-[16px] bg-[#333] rounded-full mx-auto mb-3" />
-                    <div className="bg-[#0b4f6c] rounded-xl rounded-tl-none p-2.5 max-w-[180px]">
+                  <div className="w-[220px] bg-[var(--t1)] rounded-[24px] p-3 shadow-xl">
+                    <div className="w-[16px] h-[16px] bg-[var(--t1)] rounded-full mx-auto mb-3" />
+                    <div className="bg-[var(--primary-800)] rounded-xl rounded-tl-none p-2.5 max-w-[180px]">
                       <p className="text-white text-[11px] leading-relaxed break-words">{message}</p>
-                      <p className="text-[#a0d2db] text-[9px] text-right mt-1">
+                      <p className="text-[var(--border2)] text-[9px] text-right mt-1">
                         {new Date().toLocaleTimeString([], {
                           hour: "2-digit",
                           minute: "2-digit",
@@ -269,7 +269,7 @@ export function SendSMSModal({ student, isOpen, onClose, onSent }: SendSMSModalP
                       </p>
                     </div>
                     <div className="text-center mt-2">
-                      <span className="text-[#555] text-[9px]">{student.parent_phone}</span>
+                      <span className="text-[var(--t2)] text-[9px]">{student.parent_phone}</span>
                     </div>
                   </div>
                 </div>
@@ -277,7 +277,7 @@ export function SendSMSModal({ student, isOpen, onClose, onSent }: SendSMSModalP
 
               {/* Quick Templates */}
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Quick Templates</label>
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Quick Templates</label>
                 <div className="grid grid-cols-2 gap-2">
                   {QUICK_TEMPLATES.map((tmpl, i) => (
                     <button
@@ -285,8 +285,8 @@ export function SendSMSModal({ student, isOpen, onClose, onSent }: SendSMSModalP
                       onClick={() => handleTemplateSelect(i)}
                       className={`p-3 rounded-xl border-2 text-left text-sm transition-all ${
                         selectedTemplate === i
-                          ? "border-[#002045] bg-[#002045]/5"
-                          : "border-[#e8eaed] hover:border-[#c4c6cf]"
+                          ? "border-[var(--primary-900)] bg-[var(--primary-900)]/5"
+                          : "border-[var(--surface-container-high)] hover:border-[var(--border2)]"
                       }`}
                     >
                       <MaterialIcon
@@ -299,9 +299,11 @@ export function SendSMSModal({ student, isOpen, onClose, onSent }: SendSMSModalP
                                 ? "gavel"
                                 : "trending_up"
                         }
-                        className={`text-lg mb-1 ${selectedTemplate === i ? "text-[#002045]" : "text-[#5c6670]"}`}
+                        className={`text-lg mb-1 ${selectedTemplate === i ? "text-[var(--primary-900)]" : "text-[var(--t3)]"}`}
                       />
-                      <div className={`font-medium ${selectedTemplate === i ? "text-[#002045]" : "text-[#5c6670]"}`}>
+                      <div
+                        className={`font-medium ${selectedTemplate === i ? "text-[var(--primary-900)]" : "text-[var(--t3)]"}`}
+                      >
                         {tmpl.label}
                       </div>
                     </button>
@@ -315,7 +317,10 @@ export function SendSMSModal({ student, isOpen, onClose, onSent }: SendSMSModalP
                   {QUICK_TEMPLATES[selectedTemplate].category === "fee_reminder" && (
                     <>
                       <div>
-                        <label htmlFor="sms-template-amount" className="text-xs font-medium text-[#5c6670] mb-1 block">
+                        <label
+                          htmlFor="sms-template-amount"
+                          className="text-xs font-medium text-[var(--t3)] mb-1 block"
+                        >
                           Amount
                         </label>
                         <input
@@ -335,7 +340,7 @@ export function SendSMSModal({ student, isOpen, onClose, onSent }: SendSMSModalP
                         />
                       </div>
                       <div>
-                        <label htmlFor="sms-template-date" className="text-xs font-medium text-[#5c6670] mb-1 block">
+                        <label htmlFor="sms-template-date" className="text-xs font-medium text-[var(--t3)] mb-1 block">
                           Due Date
                         </label>
                         <input
@@ -357,7 +362,7 @@ export function SendSMSModal({ student, isOpen, onClose, onSent }: SendSMSModalP
                   )}
                   {QUICK_TEMPLATES[selectedTemplate].category === "attendance" && (
                     <div>
-                      <label htmlFor="sms-attendance-date" className="text-xs font-medium text-[#5c6670] mb-1 block">
+                      <label htmlFor="sms-attendance-date" className="text-xs font-medium text-[var(--t3)] mb-1 block">
                         Date
                       </label>
                       <input
@@ -378,7 +383,7 @@ export function SendSMSModal({ student, isOpen, onClose, onSent }: SendSMSModalP
                   )}
                   {QUICK_TEMPLATES[selectedTemplate].category === "discipline" && (
                     <div className="col-span-2">
-                      <label htmlFor="sms-incident" className="text-xs font-medium text-[#5c6670] mb-1 block">
+                      <label htmlFor="sms-incident" className="text-xs font-medium text-[var(--t3)] mb-1 block">
                         Incident
                       </label>
                       <input
@@ -401,7 +406,7 @@ export function SendSMSModal({ student, isOpen, onClose, onSent }: SendSMSModalP
                   {QUICK_TEMPLATES[selectedTemplate].category === "performance" && (
                     <>
                       <div>
-                        <label htmlFor="sms-marks" className="text-xs font-medium text-[#5c6670] mb-1 block">
+                        <label htmlFor="sms-marks" className="text-xs font-medium text-[var(--t3)] mb-1 block">
                           Marks
                         </label>
                         <input
@@ -421,7 +426,7 @@ export function SendSMSModal({ student, isOpen, onClose, onSent }: SendSMSModalP
                         />
                       </div>
                       <div>
-                        <label htmlFor="sms-subject" className="text-xs font-medium text-[#5c6670] mb-1 block">
+                        <label htmlFor="sms-subject" className="text-xs font-medium text-[var(--t3)] mb-1 block">
                           Subject
                         </label>
                         <input
@@ -441,7 +446,7 @@ export function SendSMSModal({ student, isOpen, onClose, onSent }: SendSMSModalP
                         />
                       </div>
                       <div className="col-span-2">
-                        <label htmlFor="sms-advice" className="text-xs font-medium text-[#5c6670] mb-1 block">
+                        <label htmlFor="sms-advice" className="text-xs font-medium text-[var(--t3)] mb-1 block">
                           Advice
                         </label>
                         <input
@@ -467,7 +472,7 @@ export function SendSMSModal({ student, isOpen, onClose, onSent }: SendSMSModalP
 
               {/* Message */}
               <div>
-                <label htmlFor="sms-message" className="text-sm font-medium text-[#191c1d] mb-2 block">
+                <label htmlFor="sms-message" className="text-sm font-medium text-[var(--t1)] mb-2 block">
                   Message
                 </label>
                 <textarea
@@ -481,17 +486,17 @@ export function SendSMSModal({ student, isOpen, onClose, onSent }: SendSMSModalP
                   className="input min-h-[100px] resize-none"
                 />
                 <div className="flex items-center justify-between mt-1">
-                  <p className={`text-xs ${message.length > 160 ? "text-[#c62828]" : "text-[#5c6670]"}`}>
+                  <p className={`text-xs ${message.length > 160 ? "text-[var(--red)]" : "text-[var(--t3)]"}`}>
                     {message.length}/160 characters
                   </p>
                   {message.length > 0 && (
-                    <div className="text-xs text-[#5c6670] flex items-center gap-2">
+                    <div className="text-xs text-[var(--t3)] flex items-center gap-2">
                       <span className="font-medium">
                         {Math.ceil(message.length / 160)} SMS segment
                         {Math.ceil(message.length / 160) > 1 ? "s" : ""}
                       </span>
-                      <span className="text-[#c4c6cf]">•</span>
-                      <span className="text-[#191c1d] font-semibold">
+                      <span className="text-[var(--border2)]">•</span>
+                      <span className="text-[var(--t1)] font-semibold">
                         Est. cost: UGX {(Math.ceil(message.length / 160) * 25).toLocaleString()}
                       </span>
                     </div>

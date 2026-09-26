@@ -1261,10 +1261,10 @@ function DirectoryTab({
             className="bg-white rounded-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-hidden shadow-xl my-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-6 border-b border-[#e8eaed]">
+            <div className="p-6 border-b border-[var(--surface-container-high)]">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-[#191c1d]">Add Staff Member</h2>
-                <button onClick={() => setShowAddModal(false)} className="p-2 text-[#5c6670] hover:text-[#191c1d]">
+                <h2 className="text-lg font-semibold text-[var(--t1)]">Add Staff Member</h2>
+                <button onClick={() => setShowAddModal(false)} className="p-2 text-[var(--t3)] hover:text-[var(--t1)]">
                   <MaterialIcon icon="close" className="text-xl" />
                 </button>
               </div>
@@ -1274,7 +1274,7 @@ function DirectoryTab({
               className="p-6 space-y-4 overflow-y-auto max-h-[calc(100vh-10rem)] sm:max-h-[calc(100vh-11rem)]"
             >
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Profile Photo</label>
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Profile Photo</label>
                 <div className="flex items-center gap-3">
                   <div className="w-14 h-14 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center">
                     {newStaff.avatar_url ? (
@@ -1315,7 +1315,7 @@ function DirectoryTab({
               </div>
 
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Full Name</label>
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Full Name</label>
                 <input
                   type="text"
                   value={newStaff.full_name}
@@ -1327,7 +1327,7 @@ function DirectoryTab({
               </div>
 
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Phone Number</label>
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Phone Number</label>
                 <input
                   type="tel"
                   inputMode="tel"
@@ -1341,7 +1341,7 @@ function DirectoryTab({
               </div>
 
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Role</label>
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Role</label>
                 <select
                   value={newStaff.role}
                   onChange={(e) => setNewStaff({ ...newStaff, role: e.target.value })}
@@ -1353,13 +1353,13 @@ function DirectoryTab({
                   <option value="secretary">Secretary</option>
                   <option value="dorm_master">Dorm Master/Mistress</option>
                 </select>
-                <p className="text-xs text-[#5c6670] mt-1">{ROLE_DESCRIPTIONS[newStaff.role]?.desc}</p>
+                <p className="text-xs text-[var(--t3)] mt-1">{ROLE_DESCRIPTIONS[newStaff.role]?.desc}</p>
               </div>
 
               {newStaff.role === "teacher" && (
                 <>
                   <div>
-                    <label className="text-sm font-medium text-[#191c1d] mb-2 block">Class Teacher For</label>
+                    <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Class Teacher For</label>
                     <select
                       value={newStaff.class_teacher_for}
                       onChange={(e) =>
@@ -1381,10 +1381,10 @@ function DirectoryTab({
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium text-[#191c1d] mb-2 block">Subjects Taught</label>
-                    <div className="grid grid-cols-2 gap-2 rounded-xl border border-[#e8eaed] p-3 max-h-36 overflow-y-auto">
+                    <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Subjects Taught</label>
+                    <div className="grid grid-cols-2 gap-2 rounded-xl border border-[var(--surface-container-high)] p-3 max-h-36 overflow-y-auto">
                       {subjects.map((subject) => (
-                        <label key={subject.id} className="flex items-center gap-2 text-sm text-[#191c1d]">
+                        <label key={subject.id} className="flex items-center gap-2 text-sm text-[var(--t1)]">
                           <input
                             type="checkbox"
                             checked={newStaff.subject_ids.includes(subject.id)}
@@ -1406,7 +1406,7 @@ function DirectoryTab({
               )}
 
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Email (optional)</label>
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Email (optional)</label>
                 <input
                   type="email"
                   placeholder="teacher@school.edu.ug"
@@ -1418,7 +1418,7 @@ function DirectoryTab({
               </div>
 
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Password</label>
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Password</label>
                 <input
                   type="password"
                   placeholder="Min 6 characters"
@@ -1452,10 +1452,10 @@ function DirectoryTab({
             className="bg-white rounded-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-hidden shadow-xl my-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-6 border-b border-[#e8eaed]">
+            <div className="p-6 border-b border-[var(--surface-container-high)]">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-[#191c1d]">Edit Staff Member</h2>
-                <button onClick={() => setShowEditModal(false)} className="p-2 text-[#5c6670] hover:text-[#191c1d]">
+                <h2 className="text-lg font-semibold text-[var(--t1)]">Edit Staff Member</h2>
+                <button onClick={() => setShowEditModal(false)} className="p-2 text-[var(--t3)] hover:text-[var(--t1)]">
                   <MaterialIcon icon="close" className="text-xl" />
                 </button>
               </div>
@@ -1464,10 +1464,12 @@ function DirectoryTab({
               onSubmit={handleUpdateStaff}
               className="p-6 space-y-4 overflow-y-auto max-h-[calc(100vh-10rem)] sm:max-h-[calc(100vh-11rem)]"
             >
-              {loadingAssignments ? <div className="text-sm text-[#5c6670]">Loading teacher assignments...</div> : null}
+              {loadingAssignments ? (
+                <div className="text-sm text-[var(--t3)]">Loading teacher assignments...</div>
+              ) : null}
 
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Profile Photo</label>
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Profile Photo</label>
                 <div className="flex items-center gap-3">
                   <div className="w-14 h-14 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center">
                     {editForm.avatar_url ? (
@@ -1504,7 +1506,7 @@ function DirectoryTab({
               </div>
 
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Full Name</label>
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Full Name</label>
                 <input
                   type="text"
                   value={editForm.full_name}
@@ -1516,7 +1518,7 @@ function DirectoryTab({
               </div>
 
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Phone Number</label>
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Phone Number</label>
                 <input
                   type="tel"
                   inputMode="tel"
@@ -1530,7 +1532,7 @@ function DirectoryTab({
               </div>
 
               <div>
-                <label className="text-sm font-medium text-[#191c1d] mb-2 block">Role</label>
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Role</label>
                 <select
                   value={editForm.role}
                   onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
@@ -1549,7 +1551,7 @@ function DirectoryTab({
               {editForm.role === "teacher" && (
                 <>
                   <div>
-                    <label className="text-sm font-medium text-[#191c1d] mb-2 block">Class Teacher For</label>
+                    <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Class Teacher For</label>
                     <select
                       value={editForm.class_teacher_for}
                       onChange={(e) =>
@@ -1570,10 +1572,10 @@ function DirectoryTab({
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium text-[#191c1d] mb-2 block">Subjects Taught</label>
-                    <div className="grid grid-cols-2 gap-2 rounded-xl border border-[#e8eaed] p-3 max-h-36 overflow-y-auto">
+                    <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Subjects Taught</label>
+                    <div className="grid grid-cols-2 gap-2 rounded-xl border border-[var(--surface-container-high)] p-3 max-h-36 overflow-y-auto">
                       {subjects.map((subject) => (
-                        <label key={subject.id} className="flex items-center gap-2 text-sm text-[#191c1d]">
+                        <label key={subject.id} className="flex items-center gap-2 text-sm text-[var(--t1)]">
                           <input
                             type="checkbox"
                             checked={editForm.subject_ids.includes(subject.id)}
@@ -1616,10 +1618,13 @@ function DirectoryTab({
             className="bg-white rounded-2xl w-full max-w-2xl max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-hidden shadow-xl my-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-6 border-b border-[#e8eaed]">
+            <div className="p-6 border-b border-[var(--surface-container-high)]">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-[#191c1d]">Staff ID Card Preview</h2>
-                <button onClick={() => setIdCardPreviewStaff(null)} className="p-2 text-[#5c6670] hover:text-[#191c1d]">
+                <h2 className="text-lg font-semibold text-[var(--t1)]">Staff ID Card Preview</h2>
+                <button
+                  onClick={() => setIdCardPreviewStaff(null)}
+                  className="p-2 text-[var(--t3)] hover:text-[var(--t1)]"
+                >
                   <MaterialIcon icon="close" className="text-xl" />
                 </button>
               </div>
@@ -1680,7 +1685,7 @@ function DirectoryTab({
                 </div>
                 <div className="p-4 flex flex-col relative z-10">
                   <div className="flex items-center justify-between mb-2.5 gap-2">
-                    <span className="text-[12px] font-extrabold text-[#0f172a] uppercase tracking-[0.04em] truncate">
+                    <span className="text-[12px] font-extrabold text-[var(--t1)] uppercase tracking-[0.04em] truncate">
                       {school?.name || "School"}
                     </span>
                     <span
@@ -1693,7 +1698,9 @@ function DirectoryTab({
                       STAFF
                     </span>
                   </div>
-                  <div className="text-[16px] font-extrabold text-[#0f172a] mb-1.5">{idCardPreviewStaff.full_name}</div>
+                  <div className="text-[16px] font-extrabold text-[var(--t1)] mb-1.5">
+                    {idCardPreviewStaff.full_name}
+                  </div>
                   <div
                     className="inline-flex w-fit text-[10px] uppercase tracking-[0.03em] font-bold rounded-full px-2 py-1 border mb-2"
                     style={{
@@ -1704,23 +1711,23 @@ function DirectoryTab({
                   >
                     {formatRoleLabel(idCardPreviewStaff.role)}
                   </div>
-                  <div className="text-[11px] text-[#334155] truncate">Phone: {idCardPreviewStaff.phone}</div>
-                  <div className="text-[11px] text-[#334155]">
+                  <div className="text-[11px] text-[var(--t2)] truncate">Phone: {idCardPreviewStaff.phone}</div>
+                  <div className="text-[11px] text-[var(--t2)]">
                     Status: {idCardPreviewStaff.is_active ? "Active" : "Inactive"}
                   </div>
                   {idCardPreviewStaff.email ? (
-                    <div className="text-[11px] text-[#334155] truncate">Email: {idCardPreviewStaff.email}</div>
+                    <div className="text-[11px] text-[var(--t2)] truncate">Email: {idCardPreviewStaff.email}</div>
                   ) : null}
                   {idCardPreviewStaff.subject ? (
-                    <div className="text-[11px] text-[#334155] truncate">Subjects: {idCardPreviewStaff.subject}</div>
+                    <div className="text-[11px] text-[var(--t2)] truncate">Subjects: {idCardPreviewStaff.subject}</div>
                   ) : null}
-                  <div className="mt-auto pt-2.5 border-t border-dashed border-[#cbd5e1] flex items-end justify-between text-[9px] text-[#64748b] uppercase tracking-[0.04em] gap-2">
+                  <div className="mt-auto pt-2.5 border-t border-dashed border-[var(--border2)] flex items-end justify-between text-[9px] text-[#64748b] uppercase tracking-[0.04em] gap-2">
                     <div>
                       <div>Issued {new Date().toLocaleDateString()}</div>
                       <div>{`SM-${idCardPreviewStaff.id.slice(0, 8).toUpperCase()}`}</div>
                     </div>
                     <div className="flex flex-col items-center gap-0.5">
-                      <div className="p-1 bg-white rounded-md border border-[#cbd5e1]">
+                      <div className="p-1 bg-white rounded-md border border-[var(--border2)]">
                         <QRCodeSVG
                           value={`SKOOLMATE_STAFF|school:${school?.id || "unknown"}|staff:${idCardPreviewStaff.id}|card:SM-${idCardPreviewStaff.id.slice(0, 8).toUpperCase()}|status:${idCardPreviewStaff.is_active ? "active" : "inactive"}`}
                           size={50}

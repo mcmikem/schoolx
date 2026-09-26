@@ -391,8 +391,8 @@ export default function SyllabusPage() {
       <div className="p-4 sm:p-6 lg:p-8">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-[#002045]">Syllabus & Topics</h1>
-            <p className="text-[#5c6670] mt-1">Track curriculum coverage per subject</p>
+            <h1 className="text-2xl font-bold text-[var(--primary-900)]">Syllabus & Topics</h1>
+            <p className="text-[var(--t3)] mt-1">Track curriculum coverage per subject</p>
           </div>
           <Button onClick={() => setShowAddModal(true)} disabled={!selectedClass || !selectedSubject}>
             <MaterialIcon icon="add" style={{ fontSize: "16px" }} />
@@ -448,7 +448,7 @@ export default function SyllabusPage() {
             <button
               onClick={handleAutoPopulate}
               disabled={populating}
-              className="px-4 py-2 bg-[#10b981] text-white rounded-xl text-sm font-medium hover:bg-[#059669] disabled:opacity-50 flex items-center gap-1"
+              className="px-4 py-2 bg-[var(--green)] text-white rounded-xl text-sm font-medium hover:bg-[var(--green)] disabled:opacity-50 flex items-center gap-1"
             >
               <MaterialIcon icon="auto_awesome" style={{ fontSize: "16px" }} />
               {populating ? "Populating..." : "NCDC Topics"}
@@ -459,21 +459,21 @@ export default function SyllabusPage() {
         {/* Progress Stats */}
         {selectedClass && selectedSubject && topics.length > 0 && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div className="bg-[#f8fbff] rounded-xl p-4 border border-[#e5e9f0]">
-              <div className="text-2xl font-bold text-[#17325F]">{stats.total}</div>
-              <div className="text-xs text-[#5c6670]">Total Topics</div>
+            <div className="bg-[var(--surface-bright)] rounded-xl p-4 border border-[#e5e9f0]">
+              <div className="text-2xl font-bold text-[var(--t1)]">{stats.total}</div>
+              <div className="text-xs text-[var(--t3)]">Total Topics</div>
             </div>
             <div className="bg-[#f0fdf4] rounded-xl p-4 border border-[#dcfce7]">
               <div className="text-2xl font-bold text-[#166534]">{stats.completed}</div>
-              <div className="text-xs text-[#5c6670]">Completed</div>
+              <div className="text-xs text-[var(--t3)]">Completed</div>
             </div>
             <div className="bg-[#fffbeb] rounded-xl p-4 border border-[#fef3c7]">
               <div className="text-2xl font-bold text-[#92400e]">{stats.inProgress}</div>
-              <div className="text-xs text-[#5c6670]">In Progress</div>
+              <div className="text-xs text-[var(--t3)]">In Progress</div>
             </div>
             <div className="bg-[#f0f9ff] rounded-xl p-4 border border-[#cffafe]">
               <div className="text-2xl font-bold text-[#0e7490]">{stats.percentage}%</div>
-              <div className="text-xs text-[#5c6670]">Coverage</div>
+              <div className="text-xs text-[var(--t3)]">Coverage</div>
             </div>
           </div>
         )}
@@ -481,15 +481,15 @@ export default function SyllabusPage() {
         {/* Topics List */}
         {loading ? (
           <div className="text-center py-12">
-            <div className="animate-spin w-8 h-8 border-2 border-[#17325F] border-t-transparent rounded-full mx-auto"></div>
+            <div className="animate-spin w-8 h-8 border-2 border-[var(--t1)] border-t-transparent rounded-full mx-auto"></div>
           </div>
         ) : !selectedClass || !selectedSubject ? (
-          <div className="text-center py-12 text-[#5c6670]">
+          <div className="text-center py-12 text-[var(--t3)]">
             <MaterialIcon style={{ fontSize: 48, opacity: 0.5 }}>menu_book</MaterialIcon>
             <p className="mt-2">Select a class and subject to view syllabus</p>
           </div>
         ) : topics.length === 0 ? (
-          <div className="text-center py-12 text-[#5c6670]">
+          <div className="text-center py-12 text-[var(--t3)]">
             <MaterialIcon style={{ fontSize: 48, opacity: 0.5 }}>menu_book</MaterialIcon>
             <p className="mt-2">No topics added yet</p>
             <Button onClick={() => setShowAddModal(true)} className="mt-4">
@@ -505,7 +505,7 @@ export default function SyllabusPage() {
                 placeholder="Search topics, subtopics, objectives..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-lg border border-gray-200 bg-white focus:ring-2 focus:ring-[#17325F]/20 focus:border-[#17325F]"
+                className="w-full px-4 py-2.5 rounded-lg border border-gray-200 bg-white focus:ring-2 focus:ring-[var(--t1)]/20 focus:border-[var(--t1)]"
               />
             </div>
             <div className="space-y-3">
@@ -537,16 +537,18 @@ export default function SyllabusPage() {
                                 ? "◐ In Progress"
                                 : "○ Not Started"}
                           </span>
-                          {topic.weeks_covered && <span className="text-xs text-[#5c6670]">{topic.weeks_covered}</span>}
+                          {topic.weeks_covered && (
+                            <span className="text-xs text-[var(--t3)]">{topic.weeks_covered}</span>
+                          )}
                         </div>
-                        <h3 className="font-semibold text-[#17325F]">{topic.topic}</h3>
+                        <h3 className="font-semibold text-[var(--t1)]">{topic.topic}</h3>
                         {topic.objectives && (
-                          <p className="text-sm text-[#5c6670] mt-1">Objectives: {topic.objectives}</p>
+                          <p className="text-sm text-[var(--t3)] mt-1">Objectives: {topic.objectives}</p>
                         )}
                         {topic.subtopics && topic.subtopics.length > 0 && (
                           <div className="mt-2 flex flex-wrap gap-1">
                             {topic.subtopics.map((sub: string, i: number) => (
-                              <span key={i} className="px-2 py-0.5 bg-gray-50 rounded text-xs text-[#5c6670]">
+                              <span key={i} className="px-2 py-0.5 bg-gray-50 rounded text-xs text-[var(--t3)]">
                                 {sub}
                               </span>
                             ))}
@@ -607,11 +609,11 @@ export default function SyllabusPage() {
           <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
             <div className="bg-white rounded-2xl w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
               <div className="p-6 border-b border-gray-200">
-                <h2 className="text-xl font-bold text-[#17325F]">Add Syllabus Topic</h2>
+                <h2 className="text-xl font-bold text-[var(--t1)]">Add Syllabus Topic</h2>
               </div>
               <form onSubmit={handleAddTopic} className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-[#17325F] mb-1">Topic Name *</label>
+                  <label className="block text-sm font-medium text-[var(--t1)] mb-1">Topic Name *</label>
                   <input
                     type="text"
                     value={newTopic.topic}
@@ -623,7 +625,7 @@ export default function SyllabusPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-[#17325F] mb-1">Weeks</label>
+                    <label className="block text-sm font-medium text-[var(--t1)] mb-1">Weeks</label>
                     <input
                       type="text"
                       value={newTopic.weeks_covered}
@@ -638,7 +640,7 @@ export default function SyllabusPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-[#17325F] mb-1">Resources</label>
+                    <label className="block text-sm font-medium text-[var(--t1)] mb-1">Resources</label>
                     <input
                       type="text"
                       value={newTopic.resources}
@@ -649,7 +651,7 @@ export default function SyllabusPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-[#17325F] mb-1">Learning Objectives</label>
+                  <label className="block text-sm font-medium text-[var(--t1)] mb-1">Learning Objectives</label>
                   <textarea
                     value={newTopic.objectives}
                     onChange={(e) => setNewTopic({ ...newTopic, objectives: e.target.value })}
@@ -659,7 +661,7 @@ export default function SyllabusPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-[#17325F] mb-1">Subtopics (one per line)</label>
+                  <label className="block text-sm font-medium text-[var(--t1)] mb-1">Subtopics (one per line)</label>
                   <textarea
                     value={newTopic.subtopics}
                     onChange={(e) => setNewTopic({ ...newTopic, subtopics: e.target.value })}
@@ -679,7 +681,7 @@ export default function SyllabusPage() {
                   <button
                     type="submit"
                     disabled={saving}
-                    className="flex-1 py-3 bg-[#17325F] text-white rounded-xl font-semibold"
+                    className="flex-1 py-3 bg-[var(--t1)] text-white rounded-xl font-semibold"
                   >
                     {saving ? "Saving..." : "Add Topic"}
                   </button>

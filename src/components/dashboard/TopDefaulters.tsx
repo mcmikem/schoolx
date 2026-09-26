@@ -51,17 +51,17 @@ export default function TopDefaulters({
     <div className="rounded-[24px] bg-white border border-[#e5ecf4] p-5 mb-6">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between mb-2 focus:outline-none focus:ring-2 focus:ring-[#17325f] rounded"
+        className="w-full flex items-center justify-between mb-2 focus:outline-none focus:ring-2 focus:ring-[var(--t1)] rounded"
         aria-expanded={isOpen}
         aria-controls="defaulters-list"
       >
         <div className="flex items-center gap-2">
-          <h2 id="defaulters-heading" className="text-sm font-bold text-[#17325f]">
+          <h2 id="defaulters-heading" className="text-sm font-bold text-[var(--t1)]">
             Top defaulters ({debtors.length})
           </h2>
-          <MaterialIcon icon={isOpen ? "expand_less" : "expand_more"} className="text-[#7f91aa] text-lg" />
+          <MaterialIcon icon={isOpen ? "expand_less" : "expand_more"} className="text-[var(--t3)] text-lg" />
         </div>
-        <span className="text-xs font-bold text-[#c2472b] bg-[#ffefe8] px-2 py-0.5 rounded-full">
+        <span className="text-xs font-bold text-[var(--red)] bg-[var(--red-soft)] px-2 py-0.5 rounded-full">
           UGX {formatCurrency(debtors.reduce((sum, d) => sum + d.balance, 0))}
         </span>
       </button>
@@ -75,27 +75,27 @@ export default function TopDefaulters({
               className="flex items-center gap-3 rounded-[18px] bg-[#fcfcfd] border border-[#eaedf2] px-3 py-2.5"
             >
               <div
-                className="h-9 w-9 rounded-full bg-[#ffefe8] flex items-center justify-center text-sm font-bold text-[#c2472b] shrink-0"
+                className="h-9 w-9 rounded-full bg-[var(--red-soft)] flex items-center justify-center text-sm font-bold text-[var(--red)] shrink-0"
                 aria-hidden="true"
               >
                 {student.first_name?.[0] || ""}
                 {student.last_name?.[0] || ""}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-bold text-[#17325f] truncate">
+                <p className="text-sm font-bold text-[var(--t1)] truncate">
                   {student.first_name} {student.last_name}
                 </p>
                 <p className="text-[10px] text-[#7890ad]">
                   {student.parent_name} · {(student as any).classes?.name || ""}
                 </p>
               </div>
-              <p className="text-sm font-bold text-[#c2472b]">-UGX {formatCurrency(balance)}</p>
+              <p className="text-sm font-bold text-[var(--red)]">-UGX {formatCurrency(balance)}</p>
               {student.parent_phone && (
                 <div className="flex gap-1 shrink-0">
                   <a
                     href={`tel:${student.parent_phone}`}
                     aria-label={`Call parent of ${student.first_name}`}
-                    className="rounded-lg bg-[#eef4fb] px-2 py-1.5 text-[#42638d] hover:bg-[#dce8f5] focus:outline-none focus:ring-2 focus:ring-[#17325f]"
+                    className="rounded-lg bg-[#eef4fb] px-2 py-1.5 text-[var(--t2)] hover:bg-[var(--border)] focus:outline-none focus:ring-2 focus:ring-[var(--t1)]"
                   >
                     <span className="material-symbols-outlined text-[14px]" aria-hidden="true">
                       call
@@ -104,7 +104,7 @@ export default function TopDefaulters({
                   <a
                     href={`/dashboard/messages?to=${student.parent_phone}`}
                     aria-label={`Send SMS to parent of ${student.first_name}`}
-                    className="rounded-lg bg-[#17325f] px-2 py-1.5 text-white hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#17325f]"
+                    className="rounded-lg bg-[var(--t1)] px-2 py-1.5 text-white hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--t1)]"
                   >
                     <span className="material-symbols-outlined text-[14px]" aria-hidden="true">
                       sms

@@ -425,7 +425,7 @@ export default function SuperAdminPage() {
                 <div className="rounded-2xl border border-[#fde68a] bg-[#fffbeb] p-4">
                   <div className="flex items-center gap-2 mb-3">
                     <MaterialIcon icon="warning" style={{ fontSize: 16, color: "#b45309" }} />
-                    <span className="text-[12px] font-bold text-[#b45309]">Needs Attention ({alerts.length})</span>
+                    <span className="text-[12px] font-bold text-[var(--amber)]">Needs Attention ({alerts.length})</span>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2">
                     {alerts.slice(0, 6).map((a, i) => (

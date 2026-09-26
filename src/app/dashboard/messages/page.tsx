@@ -1212,12 +1212,12 @@ export default function CommunicationHubPage() {
                 className="bg-white rounded-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="p-6 border-b border-[#e8eaed] sticky top-0 bg-white rounded-t-2xl">
-                  <h2 className="text-lg font-semibold text-[#191c1d]">Post Notice</h2>
+                <div className="p-6 border-b border-[var(--surface-container-high)] sticky top-0 bg-white rounded-t-2xl">
+                  <h2 className="text-lg font-semibold text-[var(--t1)]">Post Notice</h2>
                 </div>
                 <form onSubmit={handleNoticeSubmit} className="p-6 space-y-4">
                   <div>
-                    <label htmlFor="notice-title" className="text-sm font-medium text-[#191c1d] mb-2 block">
+                    <label htmlFor="notice-title" className="text-sm font-medium text-[var(--t1)] mb-2 block">
                       Title
                     </label>
                     <input
@@ -1231,7 +1231,7 @@ export default function CommunicationHubPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label htmlFor="notice-category" className="text-sm font-medium text-[#191c1d] mb-2 block">
+                      <label htmlFor="notice-category" className="text-sm font-medium text-[var(--t1)] mb-2 block">
                         Category
                       </label>
                       <select
@@ -1248,7 +1248,7 @@ export default function CommunicationHubPage() {
                       </select>
                     </div>
                     <div>
-                      <label htmlFor="notice-priority" className="text-sm font-medium text-[#191c1d] mb-2 block">
+                      <label htmlFor="notice-priority" className="text-sm font-medium text-[var(--t1)] mb-2 block">
                         Priority
                       </label>
                       <select
@@ -1264,7 +1264,7 @@ export default function CommunicationHubPage() {
                     </div>
                   </div>
                   <div>
-                    <label htmlFor="notice-content" className="text-sm font-medium text-[#191c1d] mb-2 block">
+                    <label htmlFor="notice-content" className="text-sm font-medium text-[var(--t1)] mb-2 block">
                       Content
                     </label>
                     <textarea
@@ -1276,9 +1276,9 @@ export default function CommunicationHubPage() {
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-[#191c1d] mb-2 block">Image (Optional)</label>
+                    <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Image (Optional)</label>
                     <div className="flex items-center gap-3">
-                      <label className="inline-flex items-center gap-2 rounded-xl border border-[#e8eaed] bg-white px-4 py-2 text-sm font-medium text-[#5c6670] hover:bg-[#f8fafb] cursor-pointer">
+                      <label className="inline-flex items-center gap-2 rounded-xl border border-[var(--surface-container-high)] bg-white px-4 py-2 text-sm font-medium text-[var(--t3)] hover:bg-[#f8fafb] cursor-pointer">
                         <MaterialIcon icon="upload" className="text-lg" />
                         {uploadingImage ? "Uploading..." : "Upload Image"}
                         <input
@@ -1297,7 +1297,7 @@ export default function CommunicationHubPage() {
                     </div>
                   </div>
                   <div
-                    className={`p-4 rounded-xl border-2 transition-all ${newNotice.category === "Emergency" || newNotice.send_sms ? "border-red-200 bg-red-50" : "border-[#e8eaed] bg-[#f8fafb]"}`}
+                    className={`p-4 rounded-xl border-2 transition-all ${newNotice.category === "Emergency" || newNotice.send_sms ? "border-red-200 bg-red-50" : "border-[var(--surface-container-high)] bg-[#f8fafb]"}`}
                   >
                     <label className="flex items-start gap-3 cursor-pointer">
                       <input
@@ -1308,7 +1308,7 @@ export default function CommunicationHubPage() {
                         className="w-4 h-4 mt-0.5"
                       />
                       <div>
-                        <span className="text-sm font-medium text-[#191c1d]">Send SMS notification to all staff</span>
+                        <span className="text-sm font-medium text-[var(--t1)]">Send SMS notification to all staff</span>
                         {newNotice.category === "Emergency" && (
                           <p className="text-xs text-red-600 mt-1">
                             Emergency notices automatically send SMS to all staff
@@ -1335,7 +1335,7 @@ export default function CommunicationHubPage() {
                       Post Notice
                     </Button>
                   </div>
-                  {noticeValidationError && <p className="text-sm text-[#5c6670]">{noticeValidationError}</p>}
+                  {noticeValidationError && <p className="text-sm text-[var(--t3)]">{noticeValidationError}</p>}
                 </form>
               </div>
             </div>

@@ -145,8 +145,8 @@ export default function AcademicSettings() {
 
   return (
     <div className="space-y-6">
-      <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 max-w-2xl">
-        <h2 className="text-lg font-semibold text-[#191c1d] mb-6 flex items-center gap-2">
+      <div className="bg-white rounded-2xl border border-[var(--surface-container-high)] p-6 max-w-2xl">
+        <h2 className="text-lg font-semibold text-[var(--t1)] mb-6 flex items-center gap-2">
           <MaterialIcon icon="calendar_month" className="text-primary" />
           Academic Configuration
         </h2>
@@ -156,7 +156,7 @@ export default function AcademicSettings() {
         </p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
           <div>
-            <label className="text-sm font-medium text-[#191c1d] mb-2 block">Active Academic Year</label>
+            <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Active Academic Year</label>
             <select value={academicYear} onChange={(e) => setAcademicYear(e.target.value)} className="input w-full">
               {Array.from({ length: 5 }).map((_, i) => {
                 const year = new Date().getFullYear() - 2 + i;
@@ -169,7 +169,7 @@ export default function AcademicSettings() {
             </select>
           </div>
           <div>
-            <label className="text-sm font-medium text-[#191c1d] mb-2 block">Current Term</label>
+            <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Current Term</label>
             <select
               value={currentTerm}
               onChange={(e) => setCurrentTerm(Number(e.target.value) as 1 | 2 | 3)}
@@ -183,9 +183,9 @@ export default function AcademicSettings() {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 max-w-2xl">
+      <div className="bg-white rounded-2xl border border-[var(--surface-container-high)] p-6 max-w-2xl">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-[#191c1d] flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-[var(--t1)] flex items-center gap-2">
             <MaterialIcon icon="calculate" className="text-primary" />
             Exam Weighting
           </h2>
@@ -200,7 +200,7 @@ export default function AcademicSettings() {
               Configure which exams to use and their weights. Total must equal 100%.
             </p>
             <div className="bg-[#f8fafc] rounded-lg p-4">
-              <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 mb-3 text-xs font-medium text-[#5c6670] uppercase">
+              <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 mb-3 text-xs font-medium text-[var(--t3)] uppercase">
                 <span className="col-span-2">Exam</span>
                 <span className="text-center">Weight</span>
                 <span className="text-center">Status</span>
@@ -210,7 +210,7 @@ export default function AcademicSettings() {
                 .map((exam) => (
                   <div
                     key={exam.id}
-                    className="grid grid-cols-4 sm:grid-cols-6 gap-2 py-2 text-sm border-t border-[#e8eaed]"
+                    className="grid grid-cols-4 sm:grid-cols-6 gap-2 py-2 text-sm border-t border-[var(--surface-container-high)]"
                   >
                     <span className="col-span-2">{exam.name}</span>
                     <span className="text-center">{exam.weight}%</span>
@@ -219,7 +219,7 @@ export default function AcademicSettings() {
                     </span>
                   </div>
                 ))}
-              <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 py-2 mt-2 border-t border-[#e8eaed] font-medium">
+              <div className="grid grid-cols-4 sm:grid-cols-6 gap-2 py-2 mt-2 border-t border-[var(--surface-container-high)] font-medium">
                 <span className="col-span-2">Total</span>
                 <span className={`text-center ${totalWeight !== 100 ? "text-red-600" : "text-green-600"}`}>
                   {totalWeight}%
@@ -236,7 +236,7 @@ export default function AcademicSettings() {
                     type="checkbox"
                     checked={exam.isActive}
                     onChange={(e) => updateExamWeight(exam.id, "isActive", e.target.checked)}
-                    className="w-4 h-4 rounded border-[#cbd5e1] text-primary"
+                    className="w-4 h-4 rounded border-[var(--border2)] text-primary"
                   />
                   <span className="flex-1 text-sm">{exam.name}</span>
                   <span className="text-xs text-[#94a3b8] w-8">{exam.shortName}</span>
@@ -246,7 +246,7 @@ export default function AcademicSettings() {
                     value={exam.weight}
                     onChange={(e) => updateExamWeight(exam.id, "weight", Number(e.target.value))}
                     disabled={!exam.isActive}
-                    className="w-16 px-2 py-1 text-sm border border-[#cbd5e1] rounded disabled:opacity-50"
+                    className="w-16 px-2 py-1 text-sm border border-[var(--border2)] rounded disabled:opacity-50"
                     min={0}
                     max={100}
                   />
@@ -254,7 +254,7 @@ export default function AcademicSettings() {
                 </div>
               ))}
             </div>
-            <div className="flex items-center justify-between mt-4 pt-4 border-t border-[#e8eaed]">
+            <div className="flex items-center justify-between mt-4 pt-4 border-t border-[var(--surface-container-high)]">
               <span className="text-sm">
                 Total:
                 <span className={`font-medium ml-2 ${totalWeight !== 100 ? "text-red-600" : "text-green-600"}`}>

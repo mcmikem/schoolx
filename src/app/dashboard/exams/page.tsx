@@ -257,7 +257,9 @@ export default function ExamsPage() {
             </div>
             <div className="flex-1">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-sm font-black text-[#002045] uppercase tracking-widest">Grading Assistant</h3>
+                <h3 className="text-sm font-black text-[var(--primary-900)] uppercase tracking-widest">
+                  Grading Assistant
+                </h3>
                 <div className="flex gap-2">
                   {isDemo && selectedClass && selectedSubject && (
                     <button

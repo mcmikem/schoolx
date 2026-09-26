@@ -9,7 +9,7 @@ export function Toggle({ value, onChange }: { value: boolean; onChange: (v: bool
     <button
       type="button"
       onClick={() => onChange(!value)}
-      className={`relative w-11 h-6 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--primary)] ${value ? "bg-[var(--primary)]" : "bg-[#cbd5e1]"}`}
+      className={`relative w-11 h-6 rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--primary)] ${value ? "bg-[var(--primary)]" : "bg-[var(--border2)]"}`}
       role="switch"
       aria-checked={value}
     >

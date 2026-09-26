@@ -385,8 +385,8 @@ export default function GeneralSettings({
 
   return (
     <>
-      <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 max-w-2xl">
-        <h2 className="text-lg font-semibold text-[#191c1d] mb-6">School Logo</h2>
+      <div className="bg-white rounded-2xl border border-[var(--surface-container-high)] p-6 max-w-2xl">
+        <h2 className="text-lg font-semibold text-[var(--t1)] mb-6">School Logo</h2>
         <div className="flex items-center gap-6 mb-6">
           <div className="w-24 h-24 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center overflow-hidden bg-gray-50">
             {logoUrl ? (
@@ -413,7 +413,7 @@ export default function GeneralSettings({
 
         {/* Report Signatures */}
         <div className="mt-8 pt-6 border-t border-gray-100">
-          <h2 className="text-lg font-semibold text-[#191c1d] mb-4">Report Signatures</h2>
+          <h2 className="text-lg font-semibold text-[var(--t1)] mb-4">Report Signatures</h2>
           <p className="text-sm text-gray-500 mb-6">Add digital signatures to auto-fill on report cards</p>
 
           <div className="grid grid-cols-2 gap-6">
@@ -483,10 +483,10 @@ export default function GeneralSettings({
           </div>
         </div>
 
-        <h2 className="text-lg font-semibold text-[#191c1d] mb-6">School Information</h2>
+        <h2 className="text-lg font-semibold text-[var(--t1)] mb-6">School Information</h2>
         <div className="space-y-4">
           <div>
-            <label className="text-sm font-medium text-[#191c1d] mb-2 block">School Name</label>
+            <label className="text-sm font-medium text-[var(--t1)] mb-2 block">School Name</label>
             <input
               type="text"
               value={schoolData.name}
@@ -496,7 +496,7 @@ export default function GeneralSettings({
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-medium text-[#191c1d] mb-2 block">District</label>
+              <label className="text-sm font-medium text-[var(--t1)] mb-2 block">District</label>
               <input
                 type="text"
                 value={schoolData.district}
@@ -505,7 +505,7 @@ export default function GeneralSettings({
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-[#191c1d] mb-2 block">Sub-county</label>
+              <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Sub-county</label>
               <input
                 type="text"
                 value={schoolData.subcounty}
@@ -516,7 +516,7 @@ export default function GeneralSettings({
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm font-medium text-[#191c1d] mb-2 block">Phone</label>
+              <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Phone</label>
               <input
                 type="tel"
                 inputMode="tel"
@@ -526,7 +526,7 @@ export default function GeneralSettings({
               />
             </div>
             <div>
-              <label className="text-sm font-medium text-[#191c1d] mb-2 block">Email</label>
+              <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Email</label>
               <input
                 type="email"
                 value={schoolData.email}
@@ -537,8 +537,8 @@ export default function GeneralSettings({
           </div>
 
           {/* School Colors */}
-          <div className="border-t border-[#e8eaed] pt-6 mt-6">
-            <h3 className="text-sm font-semibold text-[#191c1d] mb-4">School Colors</h3>
+          <div className="border-t border-[var(--surface-container-high)] pt-6 mt-6">
+            <h3 className="text-sm font-semibold text-[var(--t1)] mb-4">School Colors</h3>
             <p className="text-xs text-[#6b7280] mb-4">
               Choose colors that match your school brand. These will be used throughout the app.
             </p>
@@ -562,11 +562,11 @@ export default function GeneralSettings({
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-[#e8eaed] p-6 max-w-2xl mt-6">
+      <div className="bg-white rounded-2xl border border-[var(--surface-container-high)] p-6 max-w-2xl mt-6">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h2 className="text-lg font-semibold text-[#191c1d]">Package stage</h2>
-            <p className="text-sm text-[#5c6670]">Disable modules that fall outside your current package.</p>
+            <h2 className="text-lg font-semibold text-[var(--t1)]">Package stage</h2>
+            <p className="text-sm text-[var(--t3)]">Disable modules that fall outside your current package.</p>
           </div>
           <span className="text-xs font-semibold uppercase tracking-[0.3em] text-[#2E9448]">{selectedStage}</span>
         </div>
@@ -585,8 +585,8 @@ export default function GeneralSettings({
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-semibold text-[#191c1d]">{stage.label}</p>
-                    <p className="text-xs text-[#5c6670] mt-1">{stage.description}</p>
+                    <p className="text-sm font-semibold text-[var(--t1)]">{stage.label}</p>
+                    <p className="text-xs text-[var(--t3)] mt-1">{stage.description}</p>
                   </div>
                   {isActive && <span className="text-xs font-semibold text-[#2E9448]">Active</span>}
                 </div>

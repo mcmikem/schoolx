@@ -12,7 +12,7 @@ export default function ExpiredNotice() {
   };
 
   return (
-    <div className="fixed inset-0 bg-[#f8fbff] flex flex-col items-center justify-center p-4 z-[9997] overflow-y-auto">
+    <div className="fixed inset-0 bg-[var(--surface-bright)] flex flex-col items-center justify-center p-4 z-[9997] overflow-y-auto">
       <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-6 sm:p-8 max-w-md w-full border border-red-100/50 text-center relative overflow-hidden">
         <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-red-500 to-orange-400"></div>
 
@@ -20,14 +20,11 @@ export default function ExpiredNotice() {
           <MaterialIcon style={{ fontSize: "28px" }}>lock_clock</MaterialIcon>
         </div>
 
-        <h1 className="font-sora text-xl sm:text-2xl font-bold text-slate-800 mb-2">
-          Trial Expired
-        </h1>
+        <h1 className="font-sora text-xl sm:text-2xl font-bold text-slate-800 mb-2">Trial Expired</h1>
 
         <p className="text-slate-600 mb-6 leading-relaxed text-sm">
-          Your free trial for <strong>{school?.name || "your school"}</strong>{" "}
-          has ended. Upgrade now to continue managing students, academics &
-          finances!
+          Your free trial for <strong>{school?.name || "your school"}</strong> has ended. Upgrade now to continue
+          managing students, academics & finances!
         </p>
 
         <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mb-6 text-left">
@@ -39,26 +36,16 @@ export default function ExpiredNotice() {
           </h3>
           <ul className="space-y-2.5">
             <li className="flex items-start gap-2">
-              <MaterialIcon
-                className="text-green-600 mt-0.5"
-                style={{ fontSize: 16 }}
-              >
+              <MaterialIcon className="text-green-600 mt-0.5" style={{ fontSize: 16 }}>
                 check_circle
               </MaterialIcon>
-              <span className="text-xs text-slate-600">
-                Your data is safe & backed up.
-              </span>
+              <span className="text-xs text-slate-600">Your data is safe & backed up.</span>
             </li>
             <li className="flex items-start gap-2">
-              <MaterialIcon
-                className="text-amber-600 mt-0.5"
-                style={{ fontSize: 16 }}
-              >
+              <MaterialIcon className="text-amber-600 mt-0.5" style={{ fontSize: 16 }}>
                 schedule
               </MaterialIcon>
-              <span className="text-xs text-slate-600">
-                Dashboard access is temporarily restricted.
-              </span>
+              <span className="text-xs text-slate-600">Dashboard access is temporarily restricted.</span>
             </li>
           </ul>
         </div>
@@ -108,12 +95,8 @@ export default function ExpiredNotice() {
                 </MaterialIcon>
               </div>
               <div className="text-left flex-1">
-                <span className="text-xs font-bold text-amber-800 block">
-                  Omuto School Xperience
-                </span>
-                <span className="text-[10px] text-amber-600">
-                  Full school transformation
-                </span>
+                <span className="text-xs font-bold text-amber-800 block">Omuto School Xperience</span>
+                <span className="text-[10px] text-amber-600">Full school transformation</span>
               </div>
               <MaterialIcon className="text-amber-500" style={{ fontSize: 18 }}>
                 arrow_forward
@@ -131,12 +114,8 @@ export default function ExpiredNotice() {
                 </MaterialIcon>
               </div>
               <div className="text-left flex-1">
-                <span className="text-xs font-bold text-green-800 block">
-                  Omuto Essentials
-                </span>
-                <span className="text-[10px] text-green-600">
-                  Shop supplies & tools
-                </span>
+                <span className="text-xs font-bold text-green-800 block">Omuto Essentials</span>
+                <span className="text-[10px] text-green-600">Shop supplies & tools</span>
               </div>
               <MaterialIcon className="text-green-600" style={{ fontSize: 18 }}>
                 arrow_forward

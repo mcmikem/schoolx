@@ -144,7 +144,7 @@ export default function StaffAttendancePage() {
     {
       status: "present",
       label: "Present",
-      color: "bg-[#ecfdf5] text-[#006e1c] border-[#006e1c]",
+      color: "bg-[#ecfdf5] text-[var(--green)] border-[var(--green)]",
       active: false,
     },
     {
@@ -162,7 +162,7 @@ export default function StaffAttendancePage() {
     {
       status: "leave",
       label: "Leave",
-      color: "bg-[#e3f2fd] text-[#002045] border-[#002045]",
+      color: "bg-[#e3f2fd] text-[var(--primary-900)] border-[var(--primary-900)]",
       active: false,
     },
   ];
@@ -170,7 +170,9 @@ export default function StaffAttendancePage() {
   const getStatusClasses = (option: { status: string; color: string; active: boolean }) => {
     return (prev: Record<string, string>, memberId: string) => {
       const isActive = prev[memberId] === option.status;
-      return isActive ? option.color : "bg-white text-[#5c6670] border-[#e8eaed] hover:border-[#c4c6cf]";
+      return isActive
+        ? option.color
+        : "bg-white text-[var(--t3)] border-[var(--surface-container-high)] hover:border-[var(--border2)]";
     };
   };
 
@@ -209,16 +211,16 @@ export default function StaffAttendancePage() {
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Card className="text-center">
-            <div className="text-2xl font-bold text-[#006e1c]">{presentCount}</div>
-            <div className="text-sm text-[#5c6670] mt-1">Present</div>
+            <div className="text-2xl font-bold text-[var(--green)]">{presentCount}</div>
+            <div className="text-sm text-[var(--t3)] mt-1">Present</div>
           </Card>
           <Card className="text-center">
             <div className="text-2xl font-bold text-[#ba1a1a]">{absentCount}</div>
-            <div className="text-sm text-[#5c6670] mt-1">Absent</div>
+            <div className="text-sm text-[var(--t3)] mt-1">Absent</div>
           </Card>
           <Card className="text-center">
             <div className="text-2xl font-bold text-[#b86e00]">{lateCount}</div>
-            <div className="text-sm text-[#5c6670] mt-1">Late</div>
+            <div className="text-sm text-[var(--t3)] mt-1">Late</div>
           </Card>
         </div>
 
@@ -239,8 +241,8 @@ export default function StaffAttendancePage() {
                     <div className="flex items-center gap-3">
                       <PersonInitials name={member.full_name} size={40} />
                       <div>
-                        <div className="font-medium text-[#191c1d]">{member.full_name}</div>
-                        <div className="text-xs text-[#5c6670] capitalize">{member.role}</div>
+                        <div className="font-medium text-[var(--t1)]">{member.full_name}</div>
+                        <div className="text-xs text-[var(--t3)] capitalize">{member.role}</div>
                       </div>
                     </div>
                     <div className="flex gap-2">
@@ -251,7 +253,7 @@ export default function StaffAttendancePage() {
                           className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
                             attendance[member.id] === option.status
                               ? option.color
-                              : "bg-white text-[#5c6670] border-[#e8eaed] hover:border-[#c4c6cf]"
+                              : "bg-white text-[var(--t3)] border-[var(--surface-container-high)] hover:border-[var(--border2)]"
                           }`}
                         >
                           {option.label}

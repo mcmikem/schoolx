@@ -24,10 +24,7 @@ export function PhoneMockup() {
         i++;
       } else {
         if (typingRef.current) clearInterval(typingRef.current);
-        nextRef.current = setTimeout(
-          () => setActiveMsg((prev) => (prev + 1) % smsMessages.length),
-          3000,
-        );
+        nextRef.current = setTimeout(() => setActiveMsg((prev) => (prev + 1) % smsMessages.length), 3000);
       }
     }, 25);
     return () => {
@@ -92,12 +89,10 @@ export function PhoneMockup() {
 
       <div
         style={{
-          background:
-            "linear-gradient(160deg, #424244 0%, #1d1d1f 50%, #111113 100%)",
+          background: "linear-gradient(160deg, #424244 0%, #1d1d1f 50%, #111113 100%)",
           borderRadius: 52,
           padding: 4,
-          boxShadow:
-            "inset 0 1px 0 rgba(255,255,255,0.14), 0 0 0 1px rgba(0,0,0,0.6)",
+          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.14), 0 0 0 1px rgba(0,0,0,0.6)",
         }}
       >
         <div
@@ -177,9 +172,7 @@ export function PhoneMockup() {
               >
                 {`${APP_NAME} parent portal`}
               </p>
-              <p style={{ fontSize: 13, fontWeight: 600, color: "#fff" }}>
-                Fee &amp; attendance update
-              </p>
+              <p style={{ fontSize: 13, fontWeight: 600, color: "#fff" }}>Fee &amp; attendance update</p>
             </div>
             <div
               style={{
@@ -222,19 +215,11 @@ export function PhoneMockup() {
                   marginBottom: 8,
                 }}
               >
-                <span
-                  style={{ fontSize: 12, fontWeight: 600, color: "#0f172a" }}
-                >
-                  {smsMessages[activeMsg].from}
-                </span>
-                <span style={{ fontSize: 9, color: "#94a3b8" }}>
-                  {activeMsg === 0 ? "Incoming" : "Outgoing"}
-                </span>
+                <span style={{ fontSize: 12, fontWeight: 600, color: "#0f172a" }}>{smsMessages[activeMsg].from}</span>
+                <span style={{ fontSize: 9, color: "#94a3b8" }}>{activeMsg === 0 ? "Incoming" : "Outgoing"}</span>
               </div>
               <div style={{ height: 68, overflow: "hidden" }}>
-                <p
-                  style={{ fontSize: 12, lineHeight: "1.55", color: "#475569" }}
-                >
+                <p style={{ fontSize: 12, lineHeight: "1.55", color: "#475569" }}>
                   {typedText}
                   <span
                     style={{
@@ -283,11 +268,7 @@ export function PhoneMockup() {
                   >
                     {label}
                   </p>
-                  <p
-                    style={{ fontSize: 16, fontWeight: 700, color: "#0f172a" }}
-                  >
-                    {val}
-                  </p>
+                  <p style={{ fontSize: 16, fontWeight: 700, color: "#0f172a" }}>{val}</p>
                 </div>
               ))}
             </div>
@@ -312,8 +293,8 @@ export function PhoneMockup() {
                   }}
                   tabIndex={0}
                   aria-label={`View message ${i + 1}`}
-                  className={`h-2 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[#17325F] ${
-                    i === activeMsg ? "w-6 bg-[#17325F]" : "w-2 bg-slate-300"
+                  className={`h-2 rounded-full transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-[var(--t1)] ${
+                    i === activeMsg ? "w-6 bg-[var(--t1)]" : "w-2 bg-slate-300"
                   }`}
                 />
               ))}

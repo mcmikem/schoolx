@@ -63,7 +63,7 @@ export default function AboutPage() {
         <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
           <FadeIn>
             <div className="text-center max-w-3xl mx-auto">
-              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-white px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[#17325F] shadow-sm">
+              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-white px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--t1)] shadow-sm">
                 <MaterialIcon icon="school" className="text-sm" />
                 Our story
               </span>
@@ -99,7 +99,7 @@ export default function AboutPage() {
             <div className="grid gap-5">
               <FadeIn>
                 <div className="rounded-[34px] border border-slate-200 bg-white p-6 shadow-sm lg:p-8">
-                  <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">
+                  <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--t1)]">
                     What became obvious
                   </p>
                   <h3 className="mt-4 font-['Sora'] text-2xl font-semibold leading-tight tracking-[-0.03em] text-slate-950">
@@ -116,8 +116,8 @@ export default function AboutPage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 {storyPrinciples.map((item, i) => (
                   <FadeIn key={item.label} delay={i * 100}>
-                    <div className="story-card rounded-[28px] border border-slate-200 bg-[#f8fbff] p-5 shadow-sm h-full">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#17325F]/8 text-[#17325F]">
+                    <div className="story-card rounded-[28px] border border-slate-200 bg-[var(--surface-bright)] p-5 shadow-sm h-full">
+                      <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[var(--t1)]/8 text-[var(--t1)]">
                         <MaterialIcon icon={item.icon} className="text-[20px]" />
                       </div>
                       <p className="mt-4 text-base font-semibold leading-7 text-slate-900">{item.label}</p>
@@ -128,7 +128,7 @@ export default function AboutPage() {
 
               <FadeIn delay={200}>
                 <div className="rounded-[34px] border border-[#d7e4fb] bg-[linear-gradient(180deg,#ffffff_0%,#f5f9ff_100%)] p-6 shadow-sm lg:p-8">
-                  <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">
+                  <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--t1)]">
                     What changes when the system runs well
                   </p>
                   <p className="mt-4 text-base leading-7 text-slate-600">

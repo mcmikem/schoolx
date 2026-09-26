@@ -227,8 +227,8 @@ function HeadmasterDashboardContent() {
       ) : null}
       {isFirstRun ? (
         <div className="rounded-[24px] border border-[#d6e4e8] bg-[linear-gradient(150deg,#eff7f5_0%,#eaf2f6_44%,#f8fbff_100%)] p-6 text-center mb-6">
-          <span className="material-symbols-outlined text-[#17325f] text-4xl">rocket_launch</span>
-          <h2 className="text-lg font-bold text-[#17325f] mt-2">Welcome to {school?.name || "your school"}!</h2>
+          <span className="material-symbols-outlined text-[var(--t1)] text-4xl">rocket_launch</span>
+          <h2 className="text-lg font-bold text-[var(--t1)] mt-2">Welcome to {school?.name || "your school"}!</h2>
           <p className="text-sm text-[#60748f] mt-1 max-w-md mx-auto">
             Start by adding students and setting up your classes.
           </p>
@@ -236,14 +236,14 @@ function HeadmasterDashboardContent() {
             <Link
               href="/dashboard/students?action=add"
               title="Add your first student"
-              className="rounded-xl bg-[#17325f] px-5 py-2.5 text-xs font-bold text-white hover:opacity-90"
+              className="rounded-xl bg-[var(--t1)] px-5 py-2.5 text-xs font-bold text-white hover:opacity-90"
             >
               Add first student
             </Link>
             <Link
               href="/dashboard/settings?tab=checklist"
               title="View setup progress"
-              className="rounded-xl border border-[#17325f] px-5 py-2.5 text-xs font-bold text-[#17325f] hover:bg-[#edf4ff]"
+              className="rounded-xl border border-[var(--t1)] px-5 py-2.5 text-xs font-bold text-[var(--t1)] hover:bg-[var(--primary-50)]"
             >
               Setup guide
             </Link>

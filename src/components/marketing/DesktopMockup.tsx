@@ -29,7 +29,7 @@ export function DesktopMockup() {
     <div
       className={`mockup-shell mockup-desktop relative rounded-[32px] border border-slate-200 bg-white p-3 shadow-[0_40px_90px_rgba(15,23,42,0.14)] transition-all duration-700 min-h-[480px] ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
     >
-      <div className="rounded-[28px] border border-slate-200 bg-[#f8fbff] overflow-hidden">
+      <div className="rounded-[28px] border border-slate-200 bg-[var(--surface-bright)] overflow-hidden">
         <div className="flex items-center justify-between border-b border-slate-200 bg-white px-5 py-3">
           <div className="flex items-center gap-2">
             <span className="h-2.5 w-2.5 rounded-full bg-rose-400" />
@@ -53,14 +53,7 @@ export function DesktopMockup() {
               </div>
             </div>
             <div className="space-y-2 text-sm">
-              {[
-                "Dashboard",
-                "Students",
-                "Attendance",
-                "Exams",
-                "Finance",
-                "Messages",
-              ].map((item, index) => (
+              {["Dashboard", "Students", "Attendance", "Exams", "Finance", "Messages"].map((item, index) => (
                 <button
                   key={item}
                   onClick={() => setActiveTab(index)}
@@ -82,21 +75,16 @@ export function DesktopMockup() {
           <div className="space-y-4 p-4 sm:p-5">
             <div className="grid gap-3 md:grid-cols-3">
               {content.stats.map(([label, value, note], i) => {
-                const counter =
-                  i === 0 ? feeCounter : i === 1 ? staffCounter : lowAttCounter;
+                const counter = i === 0 ? feeCounter : i === 1 ? staffCounter : lowAttCounter;
                 return (
                   <div
                     key={label}
                     ref={counter.ref}
                     className="story-card rounded-[24px] bg-white p-4 shadow-sm ring-1 ring-slate-200 hover:shadow-md transition-shadow cursor-default"
                   >
-                    <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">
-                      {label}
-                    </p>
+                    <p className="text-xs font-medium uppercase tracking-[0.24em] text-slate-400">{label}</p>
                     <p className="mt-3 text-2xl font-semibold tracking-tight text-slate-900">
-                      {i === 0 && activeTab === 0
-                        ? `UGX ${counter.display}M`
-                        : value}
+                      {i === 0 && activeTab === 0 ? `UGX ${counter.display}M` : value}
                     </p>
                     <p className="mt-1 text-sm text-slate-500">{note}</p>
                   </div>
@@ -115,18 +103,14 @@ export function DesktopMockup() {
                           ? "Candidate and class performance"
                           : "Performance overview"}
                     </p>
-                    <p className="text-xs text-slate-500">
-                      Term II academic snapshot
-                    </p>
+                    <p className="text-xs text-slate-500">Term II academic snapshot</p>
                   </div>
                 </div>
                 <div className="space-y-4">
                   {content.bars.map((bar, i) => (
                     <div key={bar.name}>
                       <div className="mb-2 flex items-center justify-between text-sm">
-                        <span className="font-medium text-slate-700">
-                          {bar.name}
-                        </span>
+                        <span className="font-medium text-slate-700">{bar.name}</span>
                         <span className="text-slate-500">{bar.value}%</span>
                       </div>
                       <div className="h-2.5 rounded-full bg-slate-100 overflow-hidden">
@@ -146,9 +130,7 @@ export function DesktopMockup() {
 
             {content.students && (
               <div className="rounded-[28px] bg-white p-5 shadow-sm ring-1 ring-slate-200">
-                <p className="text-sm font-semibold text-slate-900 mb-4">
-                  Recent students
-                </p>
+                <p className="text-sm font-semibold text-slate-900 mb-4">Recent students</p>
                 <div className="space-y-3">
                   {content.students.map((s) => (
                     <div
@@ -156,9 +138,7 @@ export function DesktopMockup() {
                       className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0"
                     >
                       <div>
-                        <p className="text-sm font-medium text-slate-900">
-                          {s.name}
-                        </p>
+                        <p className="text-sm font-medium text-slate-900">{s.name}</p>
                         <p className="text-xs text-slate-500">{s.class}</p>
                       </div>
                       <span
@@ -173,12 +153,10 @@ export function DesktopMockup() {
             )}
 
             {content.actions && (
-              <div className="rounded-[28px] bg-[#eef5ff] p-5 ring-1 ring-[#d7e4fb]">
+              <div className="rounded-[28px] bg-[var(--primary-50)] p-5 ring-1 ring-[#d7e4fb]">
                 <div className="mb-4 flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-semibold text-slate-900">
-                      Quick actions
-                    </p>
+                    <p className="text-sm font-semibold text-slate-900">Quick actions</p>
                     <p className="text-xs text-slate-500">Common tasks</p>
                   </div>
                 </div>
@@ -187,25 +165,16 @@ export function DesktopMockup() {
                     <div
                       key={item.title}
                       className={`story-card flex items-start gap-3 rounded-[22px] bg-white p-3.5 shadow-sm hover:shadow-md transition-all duration-300 cursor-pointer ${
-                        mounted
-                          ? "opacity-100 translate-x-0"
-                          : "opacity-0 translate-x-4"
+                        mounted ? "opacity-100 translate-x-0" : "opacity-0 translate-x-4"
                       }`}
                       style={{ transitionDelay: `${i * 100 + 300}ms` }}
                     >
-                      <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl bg-[#17325F]/8 text-[#17325F] flex-shrink-0">
-                        <MaterialIcon
-                          icon={item.icon}
-                          className="text-[20px]"
-                        />
+                      <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--t1)]/8 text-[var(--t1)] flex-shrink-0">
+                        <MaterialIcon icon={item.icon} className="text-[20px]" />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-semibold text-slate-900 truncate">
-                          {item.title}
-                        </p>
-                        <p className="text-xs text-slate-500 truncate">
-                          {item.note}
-                        </p>
+                        <p className="text-sm font-semibold text-slate-900 truncate">{item.title}</p>
+                        <p className="text-xs text-slate-500 truncate">{item.note}</p>
                       </div>
                     </div>
                   ))}

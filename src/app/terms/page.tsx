@@ -54,7 +54,7 @@ export default function TermsPage() {
         {/* Content */}
         <section className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
           <FadeIn>
-            <span className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-white px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[#17325F] shadow-sm">
+            <span className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-white px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--t1)] shadow-sm">
               <MaterialIcon icon="gavel" className="text-sm" />
               Legal
             </span>

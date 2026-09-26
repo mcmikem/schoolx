@@ -744,8 +744,8 @@ export default function SchoolsPage() {
               />
             </svg>
           </div>
-          <h3 className="text-lg font-semibold text-[#002045] mb-2">Access Restricted</h3>
-          <p className="text-[#5c6670]">Only super admins can manage schools.</p>
+          <h3 className="text-lg font-semibold text-[var(--primary-900)] mb-2">Access Restricted</h3>
+          <p className="text-[var(--t3)]">Only super admins can manage schools.</p>
         </div>
       </div>
     );
@@ -756,8 +756,8 @@ export default function SchoolsPage() {
       <div className="p-4 sm:p-6 lg:p-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-[#002045]">School Management</h1>
-            <p className="text-sm text-[#5c6670] mt-1 hidden sm:block">
+            <h1 className="text-xl sm:text-2xl font-bold text-[var(--primary-900)]">School Management</h1>
+            <p className="text-sm text-[var(--t3)] mt-1 hidden sm:block">
               Manage all registered schools and subscriptions
             </p>
           </div>
@@ -769,29 +769,29 @@ export default function SchoolsPage() {
 
         {/* Stats - Mobile friendly */}
         <div className="grid grid-cols-3 sm:grid-cols-3 md:grid-cols-6 gap-2 sm:gap-4 mb-6">
-          <div className="bg-white rounded-xl border border-[#e8eaed] p-3 sm:p-4 text-center sm:text-left">
-            <div className="text-xl sm:text-2xl font-bold text-[#002045]">{stats.totalSchools}</div>
-            <div className="text-xs text-[#5c6670]">Total</div>
+          <div className="bg-white rounded-xl border border-[var(--surface-container-high)] p-3 sm:p-4 text-center sm:text-left">
+            <div className="text-xl sm:text-2xl font-bold text-[var(--primary-900)]">{stats.totalSchools}</div>
+            <div className="text-xs text-[var(--t3)]">Total</div>
           </div>
-          <div className="bg-white rounded-xl border border-[#e8eaed] p-3 sm:p-4 text-center sm:text-left">
+          <div className="bg-white rounded-xl border border-[var(--surface-container-high)] p-3 sm:p-4 text-center sm:text-left">
             <div className="text-xl sm:text-2xl font-bold text-green-600">{stats.active}</div>
-            <div className="text-xs text-[#5c6670]">Active</div>
+            <div className="text-xs text-[var(--t3)]">Active</div>
           </div>
-          <div className="bg-white rounded-xl border border-[#e8eaed] p-3 sm:p-4 text-center sm:text-left">
+          <div className="bg-white rounded-xl border border-[var(--surface-container-high)] p-3 sm:p-4 text-center sm:text-left">
             <div className="text-xl sm:text-2xl font-bold text-amber-600">{stats.trial}</div>
-            <div className="text-xs text-[#5c6670]">Trial</div>
+            <div className="text-xs text-[var(--t3)]">Trial</div>
           </div>
-          <div className="hidden md:block bg-white rounded-xl border border-[#e8eaed] p-4">
+          <div className="hidden md:block bg-white rounded-xl border border-[var(--surface-container-high)] p-4">
             <div className="text-2xl font-bold text-red-600">{stats.expired}</div>
-            <div className="text-xs text-[#5c6670]">Expired</div>
+            <div className="text-xs text-[var(--t3)]">Expired</div>
           </div>
-          <div className="hidden md:block bg-white rounded-xl border border-[#e8eaed] p-4">
-            <div className="text-2xl font-bold text-[#002045]">{stats.totalStudents.toLocaleString()}</div>
-            <div className="text-xs text-[#5c6670]">Students</div>
+          <div className="hidden md:block bg-white rounded-xl border border-[var(--surface-container-high)] p-4">
+            <div className="text-2xl font-bold text-[var(--primary-900)]">{stats.totalStudents.toLocaleString()}</div>
+            <div className="text-xs text-[var(--t3)]">Students</div>
           </div>
-          <div className="hidden md:block bg-white rounded-xl border border-[#e8eaed] p-4">
+          <div className="hidden md:block bg-white rounded-xl border border-[var(--surface-container-high)] p-4">
             <div className="text-2xl font-bold text-green-700">{formatUGX(stats.revenue)}</div>
-            <div className="text-xs text-[#5c6670]">Revenue</div>
+            <div className="text-xs text-[var(--t3)]">Revenue</div>
           </div>
         </div>
 
@@ -800,7 +800,7 @@ export default function SchoolsPage() {
           <div className="relative flex-1">
             <MaterialIcon
               icon="search"
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-[#5c6670]"
+              className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--t3)]"
               style={{ fontSize: 18 }}
             />
             <input
@@ -825,18 +825,18 @@ export default function SchoolsPage() {
           </select>
         </div>
 
-        <div className="bg-white rounded-xl border border-[#e8eaed] p-4 sm:p-5 mb-6">
+        <div className="bg-white rounded-xl border border-[var(--surface-container-high)] p-4 sm:p-5 mb-6">
           <div className="flex items-center justify-between gap-3 mb-3">
-            <h2 className="text-sm sm:text-base font-semibold text-[#002045]">Pending Module Requests</h2>
+            <h2 className="text-sm sm:text-base font-semibold text-[var(--primary-900)]">Pending Module Requests</h2>
             <span className="text-xs px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
               {pendingModuleRequests.length} pending
             </span>
           </div>
 
           {loadingModuleRequests ? (
-            <p className="text-sm text-[#5c6670]">Loading pending requests...</p>
+            <p className="text-sm text-[var(--t3)]">Loading pending requests...</p>
           ) : pendingModuleRequests.length === 0 ? (
-            <p className="text-sm text-[#5c6670]">No pending module approvals right now.</p>
+            <p className="text-sm text-[var(--t3)]">No pending module approvals right now.</p>
           ) : (
             <div className="space-y-2">
               {pendingModuleRequests.slice(0, 12).map((request) => {
@@ -844,13 +844,13 @@ export default function SchoolsPage() {
                 return (
                   <div
                     key={rowKey}
-                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-xl border border-[#e8eaed] p-3"
+                    className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-xl border border-[var(--surface-container-high)] p-3"
                   >
                     <div>
-                      <div className="text-sm font-semibold text-[#002045]">
+                      <div className="text-sm font-semibold text-[var(--primary-900)]">
                         {request.school_name} ({request.school_code})
                       </div>
-                      <div className="text-xs text-[#5c6670]">
+                      <div className="text-xs text-[var(--t3)]">
                         {request.module_name} • {request.district || "Unknown district"} • Requested{" "}
                         {formatDate(request.updated_at)}
                       </div>
@@ -882,40 +882,40 @@ export default function SchoolsPage() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="empty-state">
-            <MaterialIcon icon="school" className="text-4xl text-[#5c6670]" />
-            <h3 className="text-lg font-semibold text-[#002045] mb-2">No schools found</h3>
-            <p className="text-[#5c6670]">Try adjusting your filters or add a new school.</p>
+            <MaterialIcon icon="school" className="text-4xl text-[var(--t3)]" />
+            <h3 className="text-lg font-semibold text-[var(--primary-900)] mb-2">No schools found</h3>
+            <p className="text-[var(--t3)]">Try adjusting your filters or add a new school.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {filtered.map((school) => (
               <div
                 key={school.id}
-                className="bg-white rounded-xl border border-[#e8eaed] p-4 sm:p-6 hover:shadow-md transition-shadow cursor-pointer"
+                className="bg-white rounded-xl border border-[var(--surface-container-high)] p-4 sm:p-6 hover:shadow-md transition-shadow cursor-pointer"
                 onClick={() => openSchoolDetail(school)}
               >
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-[#002045] truncate">{school.name}</div>
-                    <div className="text-xs sm:text-sm text-[#5c6670]">
+                    <div className="font-semibold text-[var(--primary-900)] truncate">{school.name}</div>
+                    <div className="text-xs sm:text-sm text-[var(--t3)]">
                       {school.school_code} • {school.district}
                     </div>
                   </div>
                   <span
                     className={`px-2 py-0.5 rounded-full text-xs font-medium ml-2 shrink-0 ${
                       school.subscription_status === "active"
-                        ? "bg-[#e8f5e9] text-[#006e1c]"
+                        ? "bg-[var(--green-soft)] text-[var(--green)]"
                         : school.subscription_status === "trial"
-                          ? "bg-[#fff3e0] text-[#e65100]"
+                          ? "bg-[var(--amber-soft)] text-[var(--amber)]"
                           : school.subscription_status === "suspended"
                             ? "bg-gray-100 text-gray-600"
-                            : "bg-[#ffebee] text-[#c62828]"
+                            : "bg-[var(--red-soft)] text-[var(--red)]"
                     }`}
                   >
                     {school.subscription_status}
                   </span>
                 </div>
-                <div className="flex items-center justify-between text-xs sm:text-sm text-[#5c6670] mb-2">
+                <div className="flex items-center justify-between text-xs sm:text-sm text-[var(--t3)] mb-2">
                   <span className="capitalize">{school.school_type}</span>
                   <span className="capitalize">{school.ownership}</span>
                 </div>
@@ -929,13 +929,13 @@ export default function SchoolsPage() {
                   >
                     {PLANS[normalizePlan(school.subscription_plan)]?.label || school.subscription_plan}
                   </span>
-                  <span className="text-[#5c6670]">{school.student_count || 0} students</span>
+                  <span className="text-[var(--t3)]">{school.student_count || 0} students</span>
                 </div>
-                {school.phone && <div className="text-sm text-[#5c6670]">📞 {school.phone}</div>}
+                {school.phone && <div className="text-sm text-[var(--t3)]">📞 {school.phone}</div>}
                 {school.trial_ends_at && school.subscription_status === "trial" && (
                   <div className="text-xs text-amber-600 mt-1">Trial ends: {formatDate(school.trial_ends_at)}</div>
                 )}
-                <div className="mt-3 pt-3 border-t border-[#e8eaed] flex gap-3">
+                <div className="mt-3 pt-3 border-t border-[var(--surface-container-high)] flex gap-3">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -945,7 +945,7 @@ export default function SchoolsPage() {
                   >
                     View Details
                   </button>
-                  <span className="text-[#e8eaed]">|</span>
+                  <span className="text-[var(--surface-container-high)]">|</span>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -977,8 +977,8 @@ export default function SchoolsPage() {
               <div className="p-6 border-b border-gray-100">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-lg font-semibold text-[#002045]">{selectedSchool.name}</h2>
-                    <p className="text-sm text-[#5c6670]">
+                    <h2 className="text-lg font-semibold text-[var(--primary-900)]">{selectedSchool.name}</h2>
+                    <p className="text-sm text-[var(--t3)]">
                       {selectedSchool.school_code} • {selectedSchool.district}
                     </p>
                   </div>
@@ -991,30 +991,30 @@ export default function SchoolsPage() {
                 {/* School Info */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-[#f8f9fa] rounded-xl p-4">
-                    <div className="text-sm text-[#5c6670] mb-1">Plan</div>
-                    <div className="font-semibold text-[#002045]">
+                    <div className="text-sm text-[var(--t3)] mb-1">Plan</div>
+                    <div className="font-semibold text-[var(--primary-900)]">
                       {PLANS[normalizePlan(selectedSchool.subscription_plan)]?.label ||
                         selectedSchool.subscription_plan}
                     </div>
                   </div>
                   <div className="bg-[#f8f9fa] rounded-xl p-4">
-                    <div className="text-sm text-[#5c6670] mb-1">Status</div>
+                    <div className="text-sm text-[var(--t3)] mb-1">Status</div>
                     <div className="font-semibold capitalize">{selectedSchool.subscription_status}</div>
                   </div>
                   <div className="bg-[#f8f9fa] rounded-xl p-4">
-                    <div className="text-sm text-[#5c6670] mb-1">Students</div>
+                    <div className="text-sm text-[var(--t3)] mb-1">Students</div>
                     <div className="font-semibold">{selectedSchool.student_count || 0}</div>
                   </div>
                   <div className="bg-[#f8f9fa] rounded-xl p-4">
-                    <div className="text-sm text-[#5c6670] mb-1">Users</div>
+                    <div className="text-sm text-[var(--t3)] mb-1">Users</div>
                     <div className="font-semibold">{selectedSchool.user_count || 0}</div>
                   </div>
                   <div className="bg-[#f8f9fa] rounded-xl p-4">
-                    <div className="text-sm text-[#5c6670] mb-1">Trial Ends</div>
+                    <div className="text-sm text-[var(--t3)] mb-1">Trial Ends</div>
                     <div className="font-semibold">{formatDate(selectedSchool.trial_ends_at)}</div>
                   </div>
                   <div className="bg-[#f8f9fa] rounded-xl p-4">
-                    <div className="text-sm text-[#5c6670] mb-1">Sub Ends</div>
+                    <div className="text-sm text-[var(--t3)] mb-1">Sub Ends</div>
                     <div className="font-semibold">{formatDate(selectedSchool.subscription_ends_at)}</div>
                   </div>
                 </div>
@@ -1056,33 +1056,35 @@ export default function SchoolsPage() {
                 </div>
 
                 {/* Admin Tools */}
-                <div className="border-t border-[#e8eaed] pt-4">
-                  <h3 className="font-semibold text-[#002045] mb-3 text-sm uppercase tracking-wide">Admin Tools</h3>
+                <div className="border-t border-[var(--surface-container-high)] pt-4">
+                  <h3 className="font-semibold text-[var(--primary-900)] mb-3 text-sm uppercase tracking-wide">
+                    Admin Tools
+                  </h3>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     <button
                       onClick={() => openCustomizeModal(selectedSchool)}
-                      className="flex flex-col items-center gap-1 p-3 rounded-xl border border-[#e8eaed] hover:border-blue-300 hover:bg-blue-50 transition-all"
+                      className="flex flex-col items-center gap-1 p-3 rounded-xl border border-[var(--surface-container-high)] hover:border-blue-300 hover:bg-blue-50 transition-all"
                     >
                       <MaterialIcon icon="palette" className="text-blue-600" />
                       <span className="text-xs font-medium">Customize</span>
                     </button>
                     <button
                       onClick={() => openOnboardingModal(selectedSchool)}
-                      className="flex flex-col items-center gap-1 p-3 rounded-xl border border-[#e8eaed] hover:border-green-300 hover:bg-green-50 transition-all"
+                      className="flex flex-col items-center gap-1 p-3 rounded-xl border border-[var(--surface-container-high)] hover:border-green-300 hover:bg-green-50 transition-all"
                     >
                       <MaterialIcon icon="rocket_launch" className="text-green-600" />
                       <span className="text-xs font-medium">Onboarding</span>
                     </button>
                     <button
                       onClick={() => openFeaturesModal(selectedSchool)}
-                      className="flex flex-col items-center gap-1 p-3 rounded-xl border border-[#e8eaed] hover:border-teal-300 hover:bg-teal-50 transition-all"
+                      className="flex flex-col items-center gap-1 p-3 rounded-xl border border-[var(--surface-container-high)] hover:border-teal-300 hover:bg-teal-50 transition-all"
                     >
                       <MaterialIcon icon="extension" className="text-teal-600" />
                       <span className="text-xs font-medium">Features</span>
                     </button>
                     <button
                       onClick={() => openTicketModal(selectedSchool)}
-                      className="flex flex-col items-center gap-1 p-3 rounded-xl border border-[#e8eaed] hover:border-amber-300 hover:bg-amber-50 transition-all"
+                      className="flex flex-col items-center gap-1 p-3 rounded-xl border border-[var(--surface-container-high)] hover:border-amber-300 hover:bg-amber-50 transition-all"
                     >
                       <MaterialIcon icon="bug_report" className="text-amber-600" />
                       <span className="text-xs font-medium">Support</span>
@@ -1093,7 +1095,7 @@ export default function SchoolsPage() {
                 {/* Users */}
                 <div>
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-semibold text-[#002045]">Users ({schoolUsers.length})</h3>
+                    <h3 className="font-semibold text-[var(--primary-900)]">Users ({schoolUsers.length})</h3>
                     <button
                       onClick={() => setShowAddUserModal(true)}
                       className="text-xs text-blue-600 hover:text-blue-800 font-medium flex items-center gap-1"
@@ -1102,16 +1104,16 @@ export default function SchoolsPage() {
                     </button>
                   </div>
                   {loadingUsers ? (
-                    <div className="text-sm text-[#5c6670]">Loading users...</div>
+                    <div className="text-sm text-[var(--t3)]">Loading users...</div>
                   ) : schoolUsers.length === 0 ? (
-                    <div className="text-sm text-[#5c6670]">No users found</div>
+                    <div className="text-sm text-[var(--t3)]">No users found</div>
                   ) : (
                     <div className="space-y-2">
                       {schoolUsers.map((u) => (
                         <div key={u.id} className="flex items-center justify-between p-3 bg-[#f8f9fa] rounded-xl">
                           <div className="flex-1 min-w-0">
-                            <div className="font-medium text-sm text-[#002045] truncate">{u.full_name}</div>
-                            <div className="text-xs text-[#5c6670]">
+                            <div className="font-medium text-sm text-[var(--primary-900)] truncate">{u.full_name}</div>
+                            <div className="text-xs text-[var(--t3)]">
                               {u.phone} • {u.email || "No email"}
                             </div>
                           </div>
@@ -1159,8 +1161,8 @@ export default function SchoolsPage() {
               <div className="p-6 border-b border-gray-100">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h2 className="text-lg font-semibold text-[#002045]">Add New School</h2>
-                    <p className="text-sm text-[#5c6670]">Step {addStep} of 2</p>
+                    <h2 className="text-lg font-semibold text-[var(--primary-900)]">Add New School</h2>
+                    <p className="text-sm text-[var(--t3)]">Step {addStep} of 2</p>
                   </div>
                   <button
                     onClick={() => {
@@ -1358,20 +1360,28 @@ export default function SchoolsPage() {
                 <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <MaterialIcon icon="check_circle" className="text-green-600" style={{ fontSize: 32 }} />
                 </div>
-                <h2 className="text-xl font-bold text-[#002045] mb-1">School Created!</h2>
-                <p className="text-sm text-[#5c6670] mb-6">{createdSchool.name} has been set up with a 14-day trial.</p>
+                <h2 className="text-xl font-bold text-[var(--primary-900)] mb-1">School Created!</h2>
+                <p className="text-sm text-[var(--t3)] mb-6">
+                  {createdSchool.name} has been set up with a 14-day trial.
+                </p>
 
                 <div className="bg-[#f8f9fa] rounded-xl p-4 text-left space-y-3 mb-6">
                   <div>
-                    <div className="text-xs text-[#5c6670] uppercase tracking-wide mb-0.5">Admin Phone (Login ID)</div>
-                    <div className="font-mono text-lg font-bold text-[#002045]">{createdSchool.adminPhone}</div>
+                    <div className="text-xs text-[var(--t3)] uppercase tracking-wide mb-0.5">
+                      Admin Phone (Login ID)
+                    </div>
+                    <div className="font-mono text-lg font-bold text-[var(--primary-900)]">
+                      {createdSchool.adminPhone}
+                    </div>
                   </div>
                   <div>
-                    <div className="text-xs text-[#5c6670] uppercase tracking-wide mb-0.5">Admin Password</div>
-                    <div className="font-mono text-lg font-bold text-[#002045]">{createdSchool.adminPassword}</div>
+                    <div className="text-xs text-[var(--t3)] uppercase tracking-wide mb-0.5">Admin Password</div>
+                    <div className="font-mono text-lg font-bold text-[var(--primary-900)]">
+                      {createdSchool.adminPassword}
+                    </div>
                   </div>
                   <div className="pt-2 border-t border-gray-200">
-                    <div className="text-xs text-[#5c6670]">
+                    <div className="text-xs text-[var(--t3)]">
                       Login URL: <span className="font-mono text-sm">omuto.org/login</span>
                     </div>
                   </div>
@@ -1413,7 +1423,9 @@ export default function SchoolsPage() {
             <div className="modal" onClick={(e) => e.stopPropagation()}>
               <div className="p-6 border-b border-gray-100">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-[#002045]">Manage Subscription - {selectedSchool.name}</h2>
+                  <h2 className="text-lg font-semibold text-[var(--primary-900)]">
+                    Manage Subscription - {selectedSchool.name}
+                  </h2>
                   <button onClick={() => setShowSubModal(false)} className="p-2 text-gray-400 hover:text-gray-600">
                     <MaterialIcon icon="close" />
                   </button>
@@ -1428,13 +1440,13 @@ export default function SchoolsPage() {
                         key={key}
                         type="button"
                         onClick={() => setSubForm({ ...subForm, plan: key })}
-                        className={`p-4 rounded-xl border-2 text-center transition-all ${subForm.plan === key ? "border-blue-500 bg-blue-50" : "border-[#e8eaed] hover:border-gray-300"}`}
+                        className={`p-4 rounded-xl border-2 text-center transition-all ${subForm.plan === key ? "border-blue-500 bg-blue-50" : "border-[var(--surface-container-high)] hover:border-gray-300"}`}
                       >
                         <div className="font-semibold text-sm" style={{ color: plan.color }}>
                           {plan.label}
                         </div>
-                        <div className="text-xs text-[#5c6670] mt-1">{formatUGX(plan.annual)}/yr</div>
-                        <div className="text-xs text-[#5c6670]">{formatUGX(plan.perStudent)}/student</div>
+                        <div className="text-xs text-[var(--t3)] mt-1">{formatUGX(plan.annual)}/yr</div>
+                        <div className="text-xs text-[var(--t3)]">{formatUGX(plan.perStudent)}/student</div>
                       </button>
                     ))}
                   </div>
@@ -1463,10 +1475,10 @@ export default function SchoolsPage() {
                   </select>
                 </div>
                 <div className="bg-[#f8f9fa] rounded-xl p-4">
-                  <div className="text-sm text-[#5c6670]">
+                  <div className="text-sm text-[var(--t3)]">
                     Plan: <span className="font-semibold">{PLANS[subForm.plan].label}</span>
                   </div>
-                  <div className="text-sm text-[#5c6670]">
+                  <div className="text-sm text-[var(--t3)]">
                     Price:{" "}
                     <span className="font-semibold">
                       {formatUGX(
@@ -1495,14 +1507,16 @@ export default function SchoolsPage() {
             <div className="modal" onClick={(e) => e.stopPropagation()}>
               <div className="p-6 border-b border-gray-100">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-[#002045]">Reset Password - {selectedSchool.name}</h2>
+                  <h2 className="text-lg font-semibold text-[var(--primary-900)]">
+                    Reset Password - {selectedSchool.name}
+                  </h2>
                   <button onClick={() => setShowResetModal(false)} className="p-2 text-gray-400 hover:text-gray-600">
                     <MaterialIcon icon="close" />
                   </button>
                 </div>
               </div>
               <div className="p-6 space-y-4">
-                <p className="text-sm text-[#5c6670]">
+                <p className="text-sm text-[var(--t3)]">
                   Select a user to flag for password reset. They will be prompted to change their password on next
                   login.
                 </p>
@@ -1536,7 +1550,9 @@ export default function SchoolsPage() {
             <div className="modal" onClick={(e) => e.stopPropagation()}>
               <div className="p-6 border-b border-gray-100">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-[#002045]">Extend Trial - {selectedSchool.name}</h2>
+                  <h2 className="text-lg font-semibold text-[var(--primary-900)]">
+                    Extend Trial - {selectedSchool.name}
+                  </h2>
                   <button onClick={() => setShowTrialModal(false)} className="p-2 text-gray-400 hover:text-gray-600">
                     <MaterialIcon icon="close" />
                   </button>
@@ -1556,7 +1572,7 @@ export default function SchoolsPage() {
                   />
                 </div>
                 <div className="bg-[#f8f9fa] rounded-xl p-4">
-                  <div className="text-sm text-[#5c6670]">New trial end date:</div>
+                  <div className="text-sm text-[var(--t3)]">New trial end date:</div>
                   <div className="font-semibold">
                     {new Date(Date.now() + trialDays * 24 * 60 * 60 * 1000).toLocaleDateString("en-UG", {
                       year: "numeric",
@@ -1584,7 +1600,7 @@ export default function SchoolsPage() {
             <div className="modal" onClick={(e) => e.stopPropagation()}>
               <div className="p-6 border-b border-gray-100">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-[#002045]">
+                  <h2 className="text-lg font-semibold text-[var(--primary-900)]">
                     {selectedSchool.subscription_status === "suspended" ? "Reactivate" : "Suspend"} School
                   </h2>
                   <button onClick={() => setShowSuspendModal(false)} className="p-2 text-gray-400 hover:text-gray-600">
@@ -1593,7 +1609,7 @@ export default function SchoolsPage() {
                 </div>
               </div>
               <div className="p-6 space-y-4">
-                <p className="text-sm text-[#5c6670]">
+                <p className="text-sm text-[var(--t3)]">
                   {selectedSchool.subscription_status === "suspended"
                     ? `Reactivate ${selectedSchool.name}? They will regain full access immediately.`
                     : `Suspend ${selectedSchool.name}? They will lose access to the dashboard. This is typically used for non-payment.`}
@@ -1621,7 +1637,7 @@ export default function SchoolsPage() {
             <div className="modal max-w-md" onClick={(e) => e.stopPropagation()}>
               <div className="p-6 border-b border-gray-100">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold text-[#002045]">Add User - {selectedSchool.name}</h2>
+                  <h2 className="text-lg font-semibold text-[var(--primary-900)]">Add User - {selectedSchool.name}</h2>
                   <button onClick={() => setShowAddUserModal(false)} className="p-2 text-gray-400 hover:text-gray-600">
                     <MaterialIcon icon="close" />
                   </button>

@@ -489,7 +489,7 @@ export default function OwlAssistant() {
             <button
               onClick={() => submitMessage(input)}
               disabled={!input.trim() || typing}
-              className="w-9 h-9 rounded-xl bg-[#0b1c39] hover:bg-[#17325f] disabled:opacity-40 flex items-center justify-center text-white transition-colors shrink-0"
+              className="w-9 h-9 rounded-xl bg-[#0b1c39] hover:bg-[var(--t1)] disabled:opacity-40 flex items-center justify-center text-white transition-colors shrink-0"
             >
               <MaterialIcon icon="send" className="text-sm" />
             </button>

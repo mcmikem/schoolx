@@ -451,7 +451,7 @@ export function SchoolDetailSheet({
                   </div>
                 </div>
                 <div className="rounded-xl bg-[#fffbeb] border border-[#fef3c7] p-4">
-                  <div className="text-[12px] font-bold text-[#b45309] mb-3">Extend / Activate Trial</div>
+                  <div className="text-[12px] font-bold text-[var(--amber)] mb-3">Extend / Activate Trial</div>
                   <div className="flex gap-2 items-center">
                     <select
                       value={trialDays}

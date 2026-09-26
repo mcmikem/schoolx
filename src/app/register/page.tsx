@@ -826,13 +826,13 @@ function RegisterPageContent() {
                   )}
 
                   {/* IKEA Effect: "Your school so far" preview — builds ownership before final commitment */}
-                  <div className="rounded-2xl border border-[#17325F]/10 bg-gradient-to-br from-[#f0f7ff] to-white p-5 shadow-sm">
+                  <div className="rounded-2xl border border-[var(--t1)]/10 bg-gradient-to-br from-[#f0f7ff] to-white p-5 shadow-sm">
                     <div className="flex items-center gap-2 mb-3">
-                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#17325F] text-white">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--t1)] text-white">
                         <MaterialIcon icon="school" className="text-lg" />
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-[#17325F]">Your school so far</p>
+                        <p className="text-sm font-bold text-[var(--t1)]">Your school so far</p>
                         <p className="text-[11px] text-slate-500">You've already set up:</p>
                       </div>
                     </div>
@@ -867,7 +867,7 @@ function RegisterPageContent() {
                         </p>
                       </div>
                     </div>
-                    <div className="mt-3 rounded-xl bg-[#17325F]/5 px-3 py-2 text-xs text-[#17325F] flex items-center gap-1.5">
+                    <div className="mt-3 rounded-xl bg-[var(--t1)]/5 px-3 py-2 text-xs text-[var(--t1)] flex items-center gap-1.5">
                       <MaterialIcon icon="lock" className="text-sm" />
                       One more step to activate — create your admin account below.
                     </div>

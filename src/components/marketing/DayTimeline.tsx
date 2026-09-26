@@ -13,7 +13,7 @@ export function DayTimeline() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <FadeIn>
           <div className="text-center mb-12">
-            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[#17325F]">A real school day</p>
+            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--t1)]">A real school day</p>
             <h2 className="mt-3 font-['Sora'] text-3xl font-semibold leading-tight tracking-[-0.04em] text-slate-950 sm:text-4xl">
               See how {APP_NAME} runs through your day
             </h2>
@@ -65,7 +65,7 @@ export function DayTimeline() {
             </div>
 
             <div className="flex flex-col gap-5">
-              <div className="rounded-[28px] border border-slate-200 bg-[#f8fbff] p-6 flex-1">
+              <div className="rounded-[28px] border border-slate-200 bg-[var(--surface-bright)] p-6 flex-1">
                 <div className="flex items-center gap-2 mb-3">
                   <span className="material-symbols-outlined text-[20px] text-[var(--t1)]">check_circle</span>
                   <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Result</p>

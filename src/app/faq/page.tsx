@@ -76,7 +76,7 @@ export default function FAQPage() {
 
         <section className="mx-auto max-w-3xl px-4 pb-16 sm:px-6 lg:px-8">
           <FadeIn>
-            <div className="rounded-[28px] border border-slate-200 bg-[#f8fbff] p-6 text-center">
+            <div className="rounded-[28px] border border-slate-200 bg-[var(--surface-bright)] p-6 text-center">
               <h2 className="font-['Sora'] text-xl font-semibold text-slate-900">Still have questions?</h2>
               <p className="mt-2 text-sm text-slate-600">We are happy to help.</p>
               <div className="mt-4 flex flex-col sm:flex-row items-center justify-center gap-3">

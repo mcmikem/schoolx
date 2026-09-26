@@ -153,7 +153,7 @@ export function UserActions({
             type="button"
             disabled={busy}
             onClick={() => setConfirm({ open: true, type: "deactivate" })}
-            className="px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-[#fef3c7] text-[#b45309] hover:opacity-80 disabled:opacity-40"
+            className="px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-[#fef3c7] text-[var(--amber)] hover:opacity-80 disabled:opacity-40"
           >
             Deactivate
           </button>
