@@ -2361,4 +2361,13 @@ html.lite [role="button"] {
   .stat-val {
     font-size: 22px !important;
   }
+
+  /* Bottom-nav labels are fixed-width chrome, not body copy. Bumping them to
+     12px overflowed the item width and truncated every label, which is worse
+     than small text: "HO..." and "HO..." are indistinguishable. Keep them
+     compact and let them breathe. */
+  .mobile-nav-item span {
+    font-size: 10px !important;
+    letter-spacing: 0.04em;
+  }
 }

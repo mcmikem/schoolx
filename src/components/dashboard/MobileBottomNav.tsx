@@ -9,6 +9,10 @@ import { canAccess, type UserRole } from "@/lib/roles";
 
 type QuickStep = {
   label: string;
+  /** Compact label for the bottom bar. The full phrase ("Take Attendance") is
+   *  far too wide for a nav slot on a 320px screen and gets truncated to an
+   *  unreadable stub, so the bar uses a short noun instead. */
+  navLabel: string;
   href: string;
   icon: string;
 };
@@ -27,34 +31,34 @@ export default function MobileBottomNav() {
   const isActive = (path: string) => pathname === path || pathname?.startsWith(path + "/");
 
   const quickStep = useMemo<QuickStep>(() => {
-    if (!role) return { label: "Open Dashboard", href: "/dashboard", icon: "dashboard" };
+    if (!role) return { label: "Open Dashboard", navLabel: "Home", href: "/dashboard", icon: "dashboard" };
 
     if (!pathname)
       return canUseStudents
-        ? { label: "Add Student", href: "/dashboard/students", icon: "person_add" }
+        ? { label: "Add Student", navLabel: "Students", href: "/dashboard/students", icon: "person_add" }
         : canUseAttendance
-          ? { label: "Take Attendance", href: "/dashboard/attendance", icon: "how_to_reg" }
+          ? { label: "Take Attendance", navLabel: "Register", href: "/dashboard/attendance", icon: "how_to_reg" }
           : canUseFees
-            ? { label: "Record Fees", href: "/dashboard/fees", icon: "payments" }
-            : { label: "Open Dashboard", href: "/dashboard", icon: "dashboard" };
+            ? { label: "Record Fees", navLabel: "Fees", href: "/dashboard/fees", icon: "payments" }
+            : { label: "Open Dashboard", navLabel: "Home", href: "/dashboard", icon: "dashboard" };
 
     if (pathname.startsWith("/dashboard/students") && canUseAttendance)
-      return { label: "Take Attendance", href: "/dashboard/attendance", icon: "how_to_reg" };
+      return { label: "Take Attendance", navLabel: "Register", href: "/dashboard/attendance", icon: "how_to_reg" };
     if (pathname.startsWith("/dashboard/attendance") && canUseFees)
-      return { label: "Record Fees", href: "/dashboard/fees", icon: "payments" };
+      return { label: "Record Fees", navLabel: "Fees", href: "/dashboard/fees", icon: "payments" };
     if (pathname.startsWith("/dashboard/fees") && canUseMessages)
-      return { label: "Send Reminder", href: "/dashboard/messages", icon: "sms" };
+      return { label: "Send Reminder", navLabel: "Messages", href: "/dashboard/messages", icon: "sms" };
 
     if (canUseStudents) {
-      return { label: "Add Student", href: "/dashboard/students", icon: "person_add" };
+      return { label: "Add Student", navLabel: "Students", href: "/dashboard/students", icon: "person_add" };
     }
     if (canUseAttendance) {
-      return { label: "Take Attendance", href: "/dashboard/attendance", icon: "how_to_reg" };
+      return { label: "Take Attendance", navLabel: "Register", href: "/dashboard/attendance", icon: "how_to_reg" };
     }
     if (canUseFees) {
-      return { label: "Record Fees", href: "/dashboard/fees", icon: "payments" };
+      return { label: "Record Fees", navLabel: "Fees", href: "/dashboard/fees", icon: "payments" };
     }
-    return { label: "Open Dashboard", href: "/dashboard", icon: "dashboard" };
+    return { label: "Open Dashboard", navLabel: "Home", href: "/dashboard", icon: "dashboard" };
   }, [pathname, role, canUseStudents, canUseAttendance, canUseFees, canUseMessages]);
 
   const quickActive = isActive(quickStep.href);
@@ -87,7 +91,7 @@ export default function MobileBottomNav() {
         }}
       >
         <MaterialIcon icon={quickStep.icon} style={{ fontSize: 22 }} />
-        <span>{quickStep.label}</span>
+        <span>{quickStep.navLabel}</span>
         {quickActive && <span className="mobile-nav-dot" aria-hidden />}
       </Link>
 
