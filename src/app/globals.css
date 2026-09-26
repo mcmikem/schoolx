@@ -1537,7 +1537,11 @@ table tr {
     background-color: currentColor;
   }
 
-  .mobile-nav-item span {
+  /* Target the label explicitly. A blanket `.mobile-nav-item span` also matched
+     the MaterialIcon ligature span and the active dot, which are sized in
+     pixels and must not inherit text styles — that clipped the icon glyphs into
+     "how_to_re..." stubs. */
+  .mobile-nav-label {
     @apply text-[10px] font-bold uppercase tracking-wider truncate w-full text-center;
   }
 
@@ -2366,7 +2370,7 @@ html.lite [role="button"] {
      12px overflowed the item width and truncated every label, which is worse
      than small text: "HO..." and "HO..." are indistinguishable. Keep them
      compact and let them breathe. */
-  .mobile-nav-item span {
+  .mobile-nav-label {
     font-size: 10px !important;
     letter-spacing: 0.04em;
   }

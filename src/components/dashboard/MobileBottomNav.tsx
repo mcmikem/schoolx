@@ -91,7 +91,7 @@ export default function MobileBottomNav() {
         }}
       >
         <MaterialIcon icon={quickStep.icon} style={{ fontSize: 22 }} />
-        <span>{quickStep.navLabel}</span>
+        <span className="mobile-nav-label">{quickStep.navLabel}</span>
         {quickActive && <span className="mobile-nav-dot" aria-hidden />}
       </Link>
 
@@ -128,7 +128,7 @@ function NavItem({ href, icon, label, active }: { href: string; icon: string; la
       title={label}
     >
       <MaterialIcon icon={icon} style={{ fontSize: 22 }} />
-      <span>{label}</span>
+      <span className="mobile-nav-label">{label}</span>
       {active && <span className="mobile-nav-dot" aria-hidden />}
     </Link>
   );
