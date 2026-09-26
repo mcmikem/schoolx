@@ -30,9 +30,7 @@ type SuggestionRow = {
   created_at: string;
 };
 
-const normalizeCategory = (
-  category?: string | null,
-): Suggestion["category"] => {
+const normalizeCategory = (category?: string | null): Suggestion["category"] => {
   switch (category) {
     case "feature":
       return "feature";
@@ -101,9 +99,8 @@ export default function SuggestionBoxPage() {
     description: "",
     category: "feedback" as "feedback" | "feature" | "bug" | "general",
   });
-  const suggestionValidationError = !form.title.trim() || !form.description.trim()
-    ? "Add both title and details to submit a suggestion."
-    : "";
+  const suggestionValidationError =
+    !form.title.trim() || !form.description.trim() ? "Add both title and details to submit a suggestion." : "";
 
   const fetchSuggestions = useCallback(async () => {
     if (!school?.id) return;
@@ -215,197 +212,187 @@ export default function SuggestionBoxPage() {
 
   return (
     <PageErrorBoundary>
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
-      <PageHeader
-        title="Suggestion Box"
-        subtitle={`Help us improve ${APP_NAME}`}
-        actions={
-          <Button
-            onClick={() => setShowModal(true)}
-            icon={<MaterialIcon icon="add" />}
-          >
-            Add Suggestion
-          </Button>
-        }
-      />
+      <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+        <PageHeader
+          title="Suggestion Box"
+          subtitle={`Help us improve ${APP_NAME}`}
+          actions={
+            <Button onClick={() => setShowModal(true)} icon={<MaterialIcon icon="add" />}>
+              Add Suggestion
+            </Button>
+          }
+        />
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {[
-          { label: "Pending", value: suggestions.filter((s) => s.status === "pending").length, tone: "text-amber-700 bg-amber-50" },
-          { label: "Reviewed", value: suggestions.filter((s) => s.status === "reviewed").length, tone: "text-blue-700 bg-blue-50" },
-          { label: "Planned", value: suggestions.filter((s) => s.status === "planned").length, tone: "text-purple-700 bg-purple-50" },
-          { label: "Completed", value: suggestions.filter((s) => s.status === "completed").length, tone: "text-emerald-700 bg-emerald-50" },
-        ].map((item) => (
-          <Card key={item.label} className={`rounded-2xl border border-[var(--border)] p-3 ${item.tone}`}>
-            <div className="text-[11px] font-black uppercase tracking-[0.18em] opacity-80">{item.label}</div>
-            <div className="mt-1 text-lg font-bold">{item.value}</div>
-          </Card>
-        ))}
-      </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {[
+            {
+              label: "Pending",
+              value: suggestions.filter((s) => s.status === "pending").length,
+              tone: "text-amber-700 bg-amber-50",
+            },
+            {
+              label: "Reviewed",
+              value: suggestions.filter((s) => s.status === "reviewed").length,
+              tone: "text-blue-700 bg-blue-50",
+            },
+            {
+              label: "Planned",
+              value: suggestions.filter((s) => s.status === "planned").length,
+              tone: "text-purple-700 bg-purple-50",
+            },
+            {
+              label: "Completed",
+              value: suggestions.filter((s) => s.status === "completed").length,
+              tone: "text-emerald-700 bg-emerald-50",
+            },
+          ].map((item) => (
+            <Card key={item.label} className={`rounded-2xl border border-[var(--border)] p-3 ${item.tone}`}>
+              <div className="text-[11px] font-black uppercase tracking-[0.18em] opacity-80">{item.label}</div>
+              <div className="mt-1 text-lg font-bold">{item.value}</div>
+            </Card>
+          ))}
+        </div>
 
-      {/* Stats */}
-      {/* Filter */}
-      <div className="flex gap-2 overflow-x-auto pb-2">
-        {(["all", "pending", "reviewed"] as const).map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap ${
-              filter === f
-                ? "bg-[var(--primary)] text-white"
-                : "bg-[var(--surface-container)] text-[var(--t2)] hover:bg-[var(--surface-container-high)]"
-            }`}
-          >
-            {f === "all" ? "All" : f.charAt(0).toUpperCase() + f.slice(1)}
-          </button>
-        ))}
-      </div>
-
-      {/* Suggestions List */}
-      <div className="space-y-3">
-        {loading ? (
-          <Card className="p-8 text-center">
-            <p className="text-[var(--t2)]">Loading suggestions...</p>
-          </Card>
-        ) : (
-          suggestions
-          .filter((s) => filter === "all" || s.status === filter)
-          .map((suggestion) => (
-            <Card
-              key={suggestion.id}
-              className="hover:shadow-md transition-shadow"
+        {/* Stats */}
+        {/* Filter */}
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          {(["all", "pending", "reviewed"] as const).map((f) => (
+            <button
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap ${
+                filter === f
+                  ? "bg-[var(--primary)] text-white"
+                  : "bg-[var(--surface-container)] text-[var(--t2)] hover:bg-[var(--surface-container-high)]"
+              }`}
             >
-              <CardBody className="p-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-medium uppercase tracking-wider text-[var(--t3)]">
-                        {suggestion.category}
-                      </span>
-                      <span
-                        className={`text-xs px-2 py-0.5 rounded-full ${statusColors[suggestion.status]}`}
-                      >
-                        {suggestion.status}
-                      </span>
+              {f === "all" ? "All" : f.charAt(0).toUpperCase() + f.slice(1)}
+            </button>
+          ))}
+        </div>
+
+        {/* Suggestions List */}
+        <div className="space-y-3">
+          {loading ? (
+            <Card className="p-8 text-center">
+              <p className="text-[var(--t2)]">Loading suggestions...</p>
+            </Card>
+          ) : (
+            suggestions
+              .filter((s) => filter === "all" || s.status === filter)
+              .map((suggestion) => (
+                <Card key={suggestion.id} className="hover:shadow-md transition-shadow">
+                  <CardBody className="p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs font-medium uppercase tracking-wider text-[var(--t3)]">
+                            {suggestion.category}
+                          </span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full ${statusColors[suggestion.status]}`}>
+                            {suggestion.status}
+                          </span>
+                        </div>
+                        <h3 className="font-semibold text-[var(--on-surface)]">{suggestion.title}</h3>
+                        <p className="text-sm text-[var(--t2)] mt-1">{suggestion.description}</p>
+                        <p className="text-xs text-[var(--t3)] mt-2">
+                          {new Date(suggestion.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <MaterialIcon
+                        icon={
+                          suggestion.category === "bug"
+                            ? "bug_report"
+                            : suggestion.category === "feature"
+                              ? "lightbulb"
+                              : "chat"
+                        }
+                        className="text-2xl text-[var(--t3)]"
+                      />
                     </div>
-                    <h3 className="font-semibold text-[var(--on-surface)]">
-                      {suggestion.title}
-                    </h3>
-                    <p className="text-sm text-[var(--t2)] mt-1">
-                      {suggestion.description}
-                    </p>
-                    <p className="text-xs text-[var(--t3)] mt-2">
-                      {new Date(suggestion.created_at).toLocaleDateString()}
-                    </p>
+                  </CardBody>
+                </Card>
+              ))
+          )}
+
+          {!loading && suggestions.length === 0 && (
+            <Card className="p-8 text-center">
+              <MaterialIcon icon="inbox" className="text-4xl text-[var(--t3)] mx-auto mb-2" />
+              <p className="text-[var(--t2)]">No suggestions yet</p>
+              <p className="text-sm text-[var(--t3)]">Be the first to share your thoughts!</p>
+            </Card>
+          )}
+        </div>
+
+        {/* Submit Modal */}
+        {showModal && (
+          <div className="fixed inset-0 z-50 bg-black/50 p-3 sm:p-4 overflow-y-auto flex items-start sm:items-center justify-center">
+            <Card className="w-full max-w-md p-6 max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
+              <h2 className="text-xl font-bold mb-4">Add Suggestion</h2>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Category</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {categories.map((cat) => (
+                      <button
+                        key={cat.id}
+                        type="button"
+                        onClick={() => setForm({ ...form, category: cat.id as any })}
+                        className={`p-3 rounded-xl border-2 text-left transition-all ${
+                          form.category === cat.id
+                            ? "border-[var(--primary)] bg-[var(--primary-soft)]"
+                            : "border-[var(--border)] hover:border-[var(--primary)]/50"
+                        }`}
+                      >
+                        <MaterialIcon icon={cat.icon} className="text-xl mb-1" />
+                        <div className="text-sm font-medium">{cat.label}</div>
+                      </button>
+                    ))}
                   </div>
-                  <MaterialIcon
-                    icon={
-                      suggestion.category === "bug"
-                        ? "bug_report"
-                        : suggestion.category === "feature"
-                          ? "lightbulb"
-                          : "chat"
-                    }
-                    className="text-2xl text-[var(--t3)]"
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Title</label>
+                  <input
+                    type="text"
+                    value={form.title}
+                    onChange={(e) => setForm({ ...form, title: e.target.value })}
+                    className="input"
+                    placeholder="Brief summary"
+                    required
                   />
                 </div>
-              </CardBody>
-            </Card>
-          ))
-        )}
 
-        {!loading && suggestions.length === 0 && (
-          <Card className="p-8 text-center">
-            <MaterialIcon
-              icon="inbox"
-              className="text-4xl text-[var(--t3)] mx-auto mb-2"
-            />
-            <p className="text-[var(--t2)]">No suggestions yet</p>
-            <p className="text-sm text-[var(--t3)]">
-              Be the first to share your thoughts!
-            </p>
-          </Card>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Details</label>
+                  <textarea
+                    value={form.description}
+                    onChange={(e) => setForm({ ...form, description: e.target.value })}
+                    className="input min-h-[100px]"
+                    placeholder="Tell us more..."
+                    required
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <Button variant="secondary" className="flex-1" onClick={() => setShowModal(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="flex-1"
+                    loading={submitting}
+                    disabled={submitting || Boolean(suggestionValidationError)}
+                  >
+                    Submit
+                  </Button>
+                </div>
+                {suggestionValidationError && <p className="text-sm text-[var(--t3)]">{suggestionValidationError}</p>}
+              </form>
+            </Card>
+          </div>
         )}
       </div>
-
-      {/* Submit Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 bg-black/50 p-3 sm:p-4 overflow-y-auto flex items-start sm:items-center justify-center">
-          <Card className="w-full max-w-md p-6 max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
-            <h2 className="text-xl font-bold mb-4">Add Suggestion</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Category
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {categories.map((cat) => (
-                    <button
-                      key={cat.id}
-                      type="button"
-                      onClick={() =>
-                        setForm({ ...form, category: cat.id as any })
-                      }
-                      className={`p-3 rounded-xl border-2 text-left transition-all ${
-                        form.category === cat.id
-                          ? "border-[var(--primary)] bg-[var(--primary-soft)]"
-                          : "border-[var(--border)] hover:border-[var(--primary)]/50"
-                      }`}
-                    >
-                      <MaterialIcon icon={cat.icon} className="text-xl mb-1" />
-                      <div className="text-sm font-medium">{cat.label}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">Title</label>
-                <input
-                  type="text"
-                  value={form.title}
-                  onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  className="input"
-                  placeholder="Brief summary"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Details
-                </label>
-                <textarea
-                  value={form.description}
-                  onChange={(e) =>
-                    setForm({ ...form, description: e.target.value })
-                  }
-                  className="input min-h-[100px]"
-                  placeholder="Tell us more..."
-                  required
-                />
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <Button
-                  variant="secondary"
-                  className="flex-1"
-                  onClick={() => setShowModal(false)}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" className="flex-1" loading={submitting} disabled={submitting || Boolean(suggestionValidationError)}>
-                  Submit
-                </Button>
-              </div>
-              {suggestionValidationError && (
-                <p className="text-sm text-[var(--t3)]">{suggestionValidationError}</p>
-              )}
-            </form>
-          </Card>
-        </div>
-      )}
-    </div>
     </PageErrorBoundary>
   );
 }

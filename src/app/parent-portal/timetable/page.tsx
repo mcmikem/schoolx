@@ -149,7 +149,7 @@ export default function ParentTimetablePage() {
           <button
             type="button"
             onClick={() => setSelectedDay("all")}
-            className={`rounded-full px-4 py-2 text-xs font-bold whitespace-nowrap transition-all border ${
+            className={`shrink-0 rounded-full px-4 py-2 text-xs font-bold whitespace-nowrap transition-all border ${
               selectedDay === "all"
                 ? "bg-[var(--primary)] text-[var(--on-primary)] border-transparent"
                 : "bg-white text-[var(--on-surface-variant)] border-[var(--border)]"
@@ -162,7 +162,7 @@ export default function ParentTimetablePage() {
               key={d}
               type="button"
               onClick={() => setSelectedDay(d)}
-              className={`rounded-full px-4 py-2 text-xs font-bold whitespace-nowrap transition-all border ${
+              className={`shrink-0 rounded-full px-4 py-2 text-xs font-bold whitespace-nowrap transition-all border ${
                 selectedDay === d
                   ? "bg-[var(--primary)] text-[var(--on-primary)] border-transparent"
                   : "bg-white text-[var(--on-surface-variant)] border-[var(--border)]"

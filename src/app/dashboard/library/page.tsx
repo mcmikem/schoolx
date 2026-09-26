@@ -224,7 +224,7 @@ export default function LibraryPage() {
             <button
               key={c}
               onClick={() => setCategory(c)}
-              className={`px-5 py-2 rounded-2xl text-xs font-black uppercase tracking-wider whitespace-nowrap transition-all ${category === c ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20" : "bg-white text-slate-500 border border-slate-100 hover:border-slate-200"}`}
+              className={`shrink-0 px-5 py-2 rounded-2xl text-xs font-black uppercase tracking-wider whitespace-nowrap transition-all ${category === c ? "bg-indigo-600 text-white shadow-lg shadow-indigo-600/20" : "bg-white text-slate-500 border border-slate-100 hover:border-slate-200"}`}
             >
               {c}
             </button>

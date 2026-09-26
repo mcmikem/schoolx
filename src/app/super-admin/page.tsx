@@ -380,7 +380,7 @@ export default function SuperAdminPage() {
               <button
                 key={t.id}
                 onClick={() => setTab(t.id)}
-                className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-semibold whitespace-nowrap transition-all ${tab === t.id ? "bg-[var(--primary)] text-white shadow-sm" : "bg-[var(--surface)] border border-[var(--border)] text-[var(--t2)] hover:bg-[var(--bg)]"}`}
+                className={`shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-semibold whitespace-nowrap transition-all ${tab === t.id ? "bg-[var(--primary)] text-white shadow-sm" : "bg-[var(--surface)] border border-[var(--border)] text-[var(--t2)] hover:bg-[var(--bg)]"}`}
               >
                 <MaterialIcon icon={t.icon} style={{ fontSize: 15 }} />
                 {t.label}
