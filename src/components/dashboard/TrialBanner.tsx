@@ -30,22 +30,17 @@ export default function TrialBanner() {
     localStorage.setItem("trial-banner-dismissed", Date.now().toString());
   };
 
-  if (dismissed || isDemo || school?.subscription_status !== "trial")
-    return null;
+  if (dismissed || isDemo || school?.subscription_status !== "trial") return null;
 
   return (
     <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border-b border-slate-700 px-3 py-2">
-      <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+      <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
         <div className="flex items-center gap-2 flex-1 min-w-0">
           <div className="w-7 h-7 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg flex items-center justify-center shrink-0">
-            <MaterialIcon
-              icon="school"
-              className="text-white"
-              style={{ fontSize: 16 }}
-            />
+            <MaterialIcon icon="school" className="text-white" style={{ fontSize: 16 }} />
           </div>
           <div className="min-w-0">
-            <div className="text-sm font-semibold text-white">
+            <div className="text-sm font-semibold text-white [overflow-wrap:break-word]">
               {daysLeft > 0
                 ? `${daysLeft} day${daysLeft > 1 ? "s" : ""} left in free trial`
                 : "Trial expired - Upgrade now!"}
@@ -81,10 +76,7 @@ export default function TrialBanner() {
             <MaterialIcon icon="rocket_launch" style={{ fontSize: 14 }} />
             Upgrade Now
           </a>
-          <button
-            onClick={handleDismiss}
-            className="p-1 text-slate-500 hover:text-slate-300 transition-colors"
-          >
+          <button onClick={handleDismiss} className="p-1 text-slate-500 hover:text-slate-300 transition-colors">
             <MaterialIcon icon="close" style={{ fontSize: 16 }} />
           </button>
         </div>

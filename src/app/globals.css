@@ -1003,7 +1003,12 @@ table tr {
     font-family: "Sora", sans-serif;
     font-size: clamp(1.125rem, 2.5vw, 1.5rem);
     text-wrap: balance;
-    overflow-wrap: anywhere;
+    /* `anywhere` breaks a word at any character to satisfy min-content, which
+       shredded titles mid-word inside narrow columns ("To 2 S ist 1be r f(E)").
+       `break-word` only breaks when a single word genuinely cannot fit, so
+       titles wrap at spaces as a reader expects. */
+    overflow-wrap: break-word;
+    word-break: normal;
   }
 
   .ph-sub {
