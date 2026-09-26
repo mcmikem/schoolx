@@ -2376,8 +2376,12 @@ html.lite [role="button"] {
      than small text: "HO..." and "HO..." are indistinguishable. Keep them
      compact and let them breathe. */
   .mobile-nav-label {
-    font-size: 10px !important;
-    letter-spacing: 0.02em;
+    /* 9.5px rather than 10: "Messages" is eight uppercase glyphs wide and sits
+       right on the 54px-per-item boundary at 320px, where the wider M/S/G
+       overflowed into an ellipsis. Dropping half a pixel gives the longest
+       label room without changing the wording. */
+    font-size: 9.5px !important;
+    letter-spacing: 0;
   }
 
   /* Reclaim the horizontal padding so the longest label ("Students") fits a
