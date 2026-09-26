@@ -2334,3 +2334,31 @@ html.lite [role="button"] {
   touch-action: manipulation;
 }
 
+
+/* ── SMALL-PHONE TYPE FLOOR ─────────────────────────────────────────
+   The UI uses 9/10/11px text for compact labels. On a 320px-wide
+   Android those sizes are genuinely unreadable — the target device for
+   this app is a low-end 2GB handset, not a desktop.
+
+   Rather than rewrite 700+ call sites (and risk reflowing every card and
+   table), raise the floor only where it is needed. Desktops and tablets
+   keep the existing compact labels; phones get a legible minimum. */
+@media (max-width: 400px) {
+  .text-\[9px\],
+  .text-\[10px\],
+  .text-\[11px\] {
+    font-size: 12px !important;
+  }
+
+  /* Icon glyphs must not grow with the text floor or they stop lining up
+     with their labels. The material-symbols font already sizes to 1em, so
+     pin it back to a fixed metric. */
+  .material-symbols-outlined {
+    font-size: 20px !important;
+  }
+
+  /* Stat values compress to fit narrow columns; keep them readable. */
+  .stat-val {
+    font-size: 22px !important;
+  }
+}

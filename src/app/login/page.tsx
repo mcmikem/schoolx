@@ -412,7 +412,7 @@ export default function LoginPage() {
             <Input
               id="identifier"
               label="Phone Number or Email"
-              placeholder="0700000000 or you@school.com"
+              placeholder="0700000000 or email"
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
               error={identifierError}

@@ -26,51 +26,100 @@ function getFirstName(fullName?: string | null) {
   return fullName?.trim().split(" ").filter(Boolean)[0] || "User";
 }
 
-function SecretaryDashboard() {
-  const { user, school } = useAuth();
+function RoleDashboardHeader({
+  eyebrow,
+  name,
+  schoolName,
+  context,
+}: {
+  eyebrow: string;
+  name: string;
+  schoolName: string;
+  context: string;
+}) {
   const currentDate = new Date();
   const greeting =
     currentDate.getHours() < 12 ? "Good Morning" : currentDate.getHours() < 17 ? "Good Afternoon" : "Good Evening";
 
   return (
+    <div className="relative overflow-hidden rounded-[22px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5 mb-4">
+      {/* Brand wash. Tokens only, so it follows the theme in dark mode and
+          costs nothing on low-end devices (no blur layers). */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-60"
+        style={{
+          background:
+            "linear-gradient(135deg, var(--primary-50) 0%, transparent 55%, var(--surface-container-low) 100%)",
+        }}
+      />
+      <div className="relative">
+        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--primary)]">{eyebrow}</p>
+        <h1 className="mt-1 font-headline text-xl sm:text-2xl font-bold tracking-tight text-[var(--t1)]">
+          {greeting}, {name}
+        </h1>
+        <p className="mt-1 text-sm text-[var(--t3)]">
+          {schoolName} · {context}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function RoleActionCard({
+  href,
+  icon,
+  eyebrow,
+  title,
+  description,
+}: {
+  href: string;
+  icon: string;
+  eyebrow: string;
+  title: string;
+  description: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex flex-col rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 transition-colors hover:bg-[var(--surface-container-low)] active:scale-[0.99]"
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--t4)]">{eyebrow}</span>
+        <span className="material-symbols-outlined text-[var(--primary)]">{icon}</span>
+      </div>
+      <p className="mt-2 text-base font-bold text-[var(--t1)]">{title}</p>
+      <p className="mt-1 text-xs text-[var(--t3)]">{description}</p>
+    </Link>
+  );
+}
+
+function SecretaryDashboard() {
+  const { user, school } = useAuth();
+
+  return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="relative overflow-hidden rounded-[28px] border border-[#d6e4e8] bg-[linear-gradient(150deg,#eff7f5_0%,#eaf2f6_44%,#f8fbff_100%)] p-4 sm:p-6">
-        <div className="pointer-events-none absolute -left-20 -top-20 h-48 w-48 rounded-full bg-[#b7dfd8]/40 blur-3xl" />
-        <div className="pointer-events-none absolute -right-16 bottom-0 h-40 w-40 rounded-full bg-[#d8e9fb]/60 blur-3xl" />
-
-        <div className="relative z-10 mb-4">
-          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#4a7f76]">Office dashboard</p>
-          <h1 className="mt-1 font-['Sora'] text-2xl font-semibold tracking-[-0.03em] text-[#19344a]">
-            {greeting}, {getFirstName(user?.full_name)}
-          </h1>
-          <p className="mt-1 text-sm text-[#5f7788]">{school?.name} · Communication and front office desk</p>
-        </div>
-
-        <div className="relative z-10 grid grid-cols-1 gap-4 md:grid-cols-2">
-          <Link
-            href="/dashboard/messages?tab=notices"
-            className="rounded-2xl border border-[#d8e7ea] bg-white/90 p-4 transition hover:bg-white"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#7a8f9b]">Notices</span>
-              <span className="material-symbols-outlined text-[#1f4a67]">campaign</span>
-            </div>
-            <p className="mt-2 text-lg font-semibold text-[#1d3a4e]">School notices</p>
-            <p className="mt-1 text-xs text-[#6f8794]">View announcements and visitor log updates.</p>
-          </Link>
-
-          <Link
-            href="/dashboard/messages"
-            className="rounded-2xl border border-[#d8e7ea] bg-white/90 p-4 transition hover:bg-white"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#7a8f9b]">Communication</span>
-              <span className="material-symbols-outlined text-[#0b7a68]">chat</span>
-            </div>
-            <p className="mt-2 text-lg font-semibold text-[#1d3a4e]">Messages</p>
-            <p className="mt-1 text-xs text-[#6f8794]">Manage inbox, broadcasts, and office replies.</p>
-          </Link>
-        </div>
+      <RoleDashboardHeader
+        eyebrow="Office dashboard"
+        name={getFirstName(user?.full_name)}
+        schoolName={school?.name || "My School"}
+        context="Communication and front office desk"
+      />
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <RoleActionCard
+          href="/dashboard/messages?tab=notices"
+          icon="campaign"
+          eyebrow="Notices"
+          title="School notices"
+          description="View announcements and visitor log updates."
+        />
+        <RoleActionCard
+          href="/dashboard/messages"
+          icon="chat"
+          eyebrow="Communication"
+          title="Messages"
+          description="Manage inbox, broadcasts, and office replies."
+        />
       </div>
     </div>
   );
@@ -78,61 +127,37 @@ function SecretaryDashboard() {
 
 function DormMasterDashboard() {
   const { user, school } = useAuth();
-  const currentDate = new Date();
-  const greeting =
-    currentDate.getHours() < 12 ? "Good Morning" : currentDate.getHours() < 17 ? "Good Afternoon" : "Good Evening";
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="relative overflow-hidden rounded-[28px] border border-[#d6e4e8] bg-[linear-gradient(150deg,#eff7f5_0%,#eaf2f6_44%,#f8fbff_100%)] p-4 sm:p-6">
-        <div className="pointer-events-none absolute -left-20 -top-20 h-48 w-48 rounded-full bg-[#b7dfd8]/40 blur-3xl" />
-        <div className="pointer-events-none absolute -right-16 bottom-0 h-40 w-40 rounded-full bg-[#d8e9fb]/60 blur-3xl" />
-
-        <div className="relative z-10 mb-4">
-          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#4a7f76]">Dorm dashboard</p>
-          <h1 className="mt-1 font-['Sora'] text-2xl font-semibold tracking-[-0.03em] text-[#19344a]">
-            {greeting}, {getFirstName(user?.full_name)}
-          </h1>
-          <p className="mt-1 text-sm text-[#5f7788]">{school?.name} · Boarding operations and student welfare</p>
-        </div>
-
-        <div className="relative z-10 grid grid-cols-1 gap-4 md:grid-cols-3">
-          <Link
-            href="/dashboard/dorm"
-            className="rounded-2xl border border-[#d8e7ea] bg-white/90 p-4 transition hover:bg-white"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#7a8f9b]">Management</span>
-              <span className="material-symbols-outlined text-[#1f4a67]">bed</span>
-            </div>
-            <p className="mt-2 text-lg font-semibold text-[#1d3a4e]">Dorm rooms</p>
-            <p className="mt-1 text-xs text-[#6f8794]">Assignments, beds, and boarding allocations.</p>
-          </Link>
-
-          <Link
-            href="/dashboard/dorm-attendance"
-            className="rounded-2xl border border-[#d8e7ea] bg-white/90 p-4 transition hover:bg-white"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#7a8f9b]">Night check</span>
-              <span className="material-symbols-outlined text-[#0b7a68]">nightlight</span>
-            </div>
-            <p className="mt-2 text-lg font-semibold text-[#1d3a4e]">Dorm attendance</p>
-            <p className="mt-1 text-xs text-[#6f8794]">Track student presence and absences nightly.</p>
-          </Link>
-
-          <Link
-            href="/dashboard/health"
-            className="rounded-2xl border border-[#d8e7ea] bg-white/90 p-4 transition hover:bg-white"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-[#7a8f9b]">Welfare</span>
-              <span className="material-symbols-outlined text-[#b86e00]">medical_services</span>
-            </div>
-            <p className="mt-2 text-lg font-semibold text-[#1d3a4e]">Health records</p>
-            <p className="mt-1 text-xs text-[#6f8794]">Medical visits, issues, and dorm health logs.</p>
-          </Link>
-        </div>
+      <RoleDashboardHeader
+        eyebrow="Dorm dashboard"
+        name={getFirstName(user?.full_name)}
+        schoolName={school?.name || "My School"}
+        context="Boarding operations and student welfare"
+      />
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <RoleActionCard
+          href="/dashboard/dorm"
+          icon="bed"
+          eyebrow="Management"
+          title="Dorm rooms"
+          description="Assignments, beds, and boarding allocations."
+        />
+        <RoleActionCard
+          href="/dashboard/dorm-attendance"
+          icon="nightlight"
+          eyebrow="Night check"
+          title="Dorm attendance"
+          description="Track student presence and absences nightly."
+        />
+        <RoleActionCard
+          href="/dashboard/health"
+          icon="medical_services"
+          eyebrow="Welfare"
+          title="Health records"
+          description="Medical visits, issues, and dorm health logs."
+        />
       </div>
     </div>
   );
