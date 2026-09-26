@@ -342,6 +342,22 @@ export async function proxy(request: NextRequest) {
 
   ensureCSRFToken(request, supabaseResponse);
 
+  // No Supabase session cookie and no demo session => there is nothing to
+  // verify. getUser() would have to round-trip to the (US-hosted) auth server
+  // only to return "no session", and on a cold lambda that single call was the
+  // largest slice of time-to-content on a logged-out page load. Short-circuit
+  // it and answer from the cookie alone.
+  if (!hasAuthSessionCookie(request)) {
+    if (pathname.startsWith("/api/")) {
+      supabaseResponse.headers.set("x-auth-status", "no-session-cookie");
+      return supabaseResponse;
+    }
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set("redirect", pathname);
+    loginUrl.searchParams.set("reason", "session_expired");
+    return NextResponse.redirect(loginUrl);
+  }
+
   const {
     data: { user: authUser },
     error: userError,
