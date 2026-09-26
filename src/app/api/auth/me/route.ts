@@ -78,32 +78,68 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Invalid token" }, { status: 401 });
   }
 
-  // Fetch profile from users table using service role (bypasses RLS entirely)
-  // Return a limited set of safe fields to avoid leaking sensitive columns.
-  // NOTE: the users table (schema.sql) has no updated_at column — referencing it
-  // makes PostgREST return 42703 and 500 every account into degraded mode.
-  const { data: userData, error: userError } = await client
-    .from("users")
-    .select(["id", "auth_id", "full_name", "role", "email", "phone", "school_id", "is_active", "created_at"].join(", "))
-    .eq("auth_id", authUser.id)
-    .maybeSingle();
+  // Fetch profile + school in ONE round-trip. These were two sequential
+  // PostgREST calls, so every login paid the cross-region latency twice. The
+  // function is migration-backed; if it is missing we fall back to the old
+  // two-call path rather than failing the login.
+  const SAFE_USER_FIELDS = [
+    "id",
+    "auth_id",
+    "full_name",
+    "role",
+    "email",
+    "phone",
+    "school_id",
+    "is_active",
+    "created_at",
+  ].join(", ");
 
-  if (userError) {
-    logger.error("[API auth/me] Error fetching user:", userError);
-    return NextResponse.json({ error: "Database error" }, { status: 500 });
+  let userData: Record<string, unknown> | null = null;
+  let schoolData: Record<string, unknown> | null = null;
+
+  try {
+    const { data: combined, error: rpcError } = await client.rpc("get_profile_with_school", {
+      p_auth_id: authUser.id,
+    });
+    const payload = (combined as { user?: unknown; school?: unknown } | null) ?? null;
+    if (!rpcError && payload?.user) {
+      userData = payload.user as Record<string, unknown>;
+      schoolData = (payload.school as Record<string, unknown> | null) ?? null;
+    } else if (rpcError) {
+      logger.warn("[API auth/me] combined profile fetch unavailable, using fallback:", rpcError.message);
+    }
+  } catch (rpcErr) {
+    logger.warn("[API auth/me] combined profile fetch threw, using fallback:", rpcErr);
+  }
+
+  if (!userData) {
+    const { data: fallbackUser, error: userError } = await client
+      .from("users")
+      .select(SAFE_USER_FIELDS)
+      .eq("auth_id", authUser.id)
+      .maybeSingle();
+
+    if (userError) {
+      logger.error("[API auth/me] Error fetching user:", userError);
+      return NextResponse.json({ error: "Database error" }, { status: 500 });
+    }
+
+    userData = (fallbackUser as Record<string, unknown> | null) ?? null;
   }
 
   if (!userData) {
     return NextResponse.json({ error: "Profile not found" }, { status: 404 });
   }
 
-  // Fetch school data
-  let schoolData = null;
-  const user = userData as any;
-  if (user && user.school_id) {
-    const { data: sd } = await client.from("schools").select("*").eq("id", user.school_id).maybeSingle();
+  // Only needed on the fallback path; the combined fetch already has it.
+  if (!schoolData && userData.school_id) {
+    const { data: sd } = await client.from("schools").select("*").eq("id", userData.school_id).maybeSingle();
     if (sd) schoolData = sd;
   }
 
-  return NextResponse.json({ user: userData, school: schoolData });
+  // Trim to the safe field set: the function returns the whole users row.
+  const safeUser: Record<string, unknown> = {};
+  for (const field of SAFE_USER_FIELDS.split(", ")) safeUser[field] = userData[field];
+
+  return NextResponse.json({ user: safeUser, school: schoolData });
 }
