@@ -9,6 +9,7 @@ import DebugPing from "@/components/DebugPing";
 import Script from "next/script";
 import { logger } from "@/lib/logger";
 import { APP_NAME } from "@/lib/app-name";
+import { AppUpdatePrompt } from "@/components/AppUpdatePrompt";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://omuto.org"),
@@ -157,6 +158,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <Providers>
           {children}
           <DeferredChrome />
+          <AppUpdatePrompt />
         </Providers>
         {process.env.NODE_ENV === "development" && <DebugPing />}
       </body>

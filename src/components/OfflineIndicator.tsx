@@ -11,8 +11,6 @@ export const OfflineIndicator = memo(function OfflineIndicator() {
   const [pendingSync, setPendingSync] = useState(0);
   const [syncing, setSyncing] = useState(false);
   const [showIndicator, setShowIndicator] = useState(false);
-  const [swUpdateReady, setSwUpdateReady] = useState(false);
-  const [applyingUpdate, setApplyingUpdate] = useState(false);
   // Install prompt handled by PWAInstallPrompt component
 
   const syncData = useCallback(async () => {
@@ -72,10 +70,6 @@ export const OfflineIndicator = memo(function OfflineIndicator() {
       setShowIndicator(true);
     };
 
-    const handleSwUpdate = () => {
-      setSwUpdateReady(true);
-    };
-
     const checkPending = async () => {
       try {
         const online = navigator.onLine;
@@ -102,7 +96,6 @@ export const OfflineIndicator = memo(function OfflineIndicator() {
 
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
-    window.addEventListener("sw-update-available", handleSwUpdate);
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.addEventListener("message", handleSwMessage);
     }
@@ -113,7 +106,6 @@ export const OfflineIndicator = memo(function OfflineIndicator() {
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
-      window.removeEventListener("sw-update-available", handleSwUpdate);
       if ("serviceWorker" in navigator) {
         navigator.serviceWorker.removeEventListener("message", handleSwMessage);
       }
@@ -121,36 +113,7 @@ export const OfflineIndicator = memo(function OfflineIndicator() {
     };
   }, [syncData]);
 
-  const handleUpdate = () => {
-    if (!("serviceWorker" in navigator)) return;
-    void navigator.serviceWorker.getRegistration().then((reg) => {
-      const waiting = reg?.waiting;
-      if (!waiting) return;
-
-      setApplyingUpdate(true);
-
-      // A full reload is required, and router.refresh() is not enough: it
-      // re-fetches server data but keeps executing the JavaScript bundles the
-      // page already loaded, so the previous build would carry on running.
-      let reloaded = false;
-      const reload = () => {
-        if (reloaded) return;
-        reloaded = true;
-        navigator.serviceWorker.removeEventListener("controllerchange", reload);
-        window.location.reload();
-      };
-
-      navigator.serviceWorker.addEventListener("controllerchange", reload);
-      waiting.postMessage({ type: "APPLY_UPDATE" });
-
-      // Fallback in case controllerchange never arrives.
-      window.setTimeout(() => {
-        if (!reloaded) reload();
-      }, 2500);
-    });
-  };
-
-  if (!showIndicator && isOnline && pendingSync === 0 && !swUpdateReady) return null;
+  if (!showIndicator && isOnline && pendingSync === 0) return null;
 
   return (
     <div
@@ -168,42 +131,6 @@ export const OfflineIndicator = memo(function OfflineIndicator() {
         gap: 8,
       }}
     >
-      {swUpdateReady && (
-        <div
-          style={{
-            padding: "10px 20px",
-            borderRadius: 12,
-            fontSize: 13,
-            fontWeight: 600,
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-            boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
-            background: "var(--navy)",
-            color: "#fff",
-          }}
-        >
-          <MaterialIcon icon="refresh" style={{ fontSize: 18 }} />
-          New version available
-          <button
-            onClick={handleUpdate}
-            style={{
-              background: "#fff",
-              color: "var(--navy)",
-              border: "none",
-              padding: "6px 14px",
-              borderRadius: 6,
-              fontSize: 12,
-              fontWeight: 700,
-              cursor: "pointer",
-              marginLeft: 4,
-            }}
-          >
-            Update
-          </button>
-        </div>
-      )}
-
       {showIndicator && (syncing || !isOnline || pendingSync > 0) && (
         <div
           style={{

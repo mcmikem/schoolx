@@ -53,7 +53,9 @@ self.addEventListener('install', (event) => {
           )
         )
       ),
-      self.skipWaiting(),
+      // Deliberately no skipWaiting() here. A new worker waits so the app can
+      // detect it and offer "Update now". Skipping would activate it silently,
+      // leaving the page on the previous build with no way to prompt.
     ])
   );
 });
@@ -230,7 +232,8 @@ async function processSyncQueue() {
 
 // Listen for messages from the main app
 self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
+  // Sent by the "Update now" control to activate the waiting worker.
+  if (event.data && (event.data.type === 'SKIP_WAITING' || event.data.type === 'APPLY_UPDATE')) {
     self.skipWaiting();
   }
 
