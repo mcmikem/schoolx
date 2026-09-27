@@ -1,0 +1,15 @@
+# gitleaks ignore list
+#
+# These fingerprints are secrets that were committed to this repository's
+# history BEFORE secret scanning existed. Ignoring them only keeps CI usable so
+# that NEW leaks fail the build -- it does NOT make them safe.
+#
+# One of these is a Supabase service_role key that was publicly exposed in
+# April 2026. Treat it as compromised: rotate the key in the Supabase dashboard
+# (create new -> deploy to Vercel -> then revoke old). History rewriting is
+# hygiene, rotation is the actual fix.
+#
+# Once rotated, delete the entry below so the history is verified clean.
+47aa474fd2e3ea495bf5ad6d328d921a6467675e:scripts/apply-migration.sh:jwt:5
+47aa474fd2e3ea495bf5ad6d328d921a6467675e:scripts/db-push.sh:jwt:7
+50519acecdefc417e3f56fc8b50a3ee81fd98584:scripts/run-critical-fix.sh:generic-api-key:31

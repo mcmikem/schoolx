@@ -16,8 +16,19 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-      - name: Run gitleaks for secret scanning
-        uses: gitleaks/gitleaks-action@v2
+      - name: Install gitleaks
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/gitleaks/gitleaks/master/install.sh \
+            | sh -s -- -b /usr/local/bin
+          gitleaks version
+
+      # Runs the pinned binary directly rather than gitleaks-action, which
+      # requires an organisation licence key and fails closed without one.
+      # Known historical findings are listed in .gitleaksignore (fingerprints
+      # only, no secrets) so new leaks fail the build.
+      - name: Scan full history for secrets
+        run: npm run scan:secrets
+
       - name: Check for demo leakage
         run: npm run check:production-leakage
 
