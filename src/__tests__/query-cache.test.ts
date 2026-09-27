@@ -119,3 +119,51 @@ describe("queryCache", () => {
     });
   });
 });
+
+describe("dedupeRead", () => {
+  it("collapses simultaneous identical reads without retaining the result", async () => {
+    const { dedupeRead } = await import("@/lib/hooks/utils");
+    let calls = 0;
+    const run = async () => {
+      calls++;
+      return ["row"];
+    };
+
+    const [a, b] = await Promise.all([
+      dedupeRead("attendance:school:day", run),
+      dedupeRead("attendance:school:day", run),
+    ]);
+
+    expect(calls).toBe(1);
+    expect(a).toEqual(["row"]);
+    expect(b).toEqual(["row"]);
+
+    // Nothing is cached: a later read fetches again, so callers never see
+    // stale attendance.
+    await dedupeRead("attendance:school:day", run);
+    expect(calls).toBe(2);
+  });
+
+  it("releases the key after a failure so a retry can proceed", async () => {
+    const { dedupeRead } = await import("@/lib/hooks/utils");
+    let calls = 0;
+    const run = async () => {
+      calls++;
+      if (calls === 1) throw new Error("offline");
+      return ["ok"];
+    };
+
+    await expect(dedupeRead("k", run)).rejects.toThrow("offline");
+    await expect(dedupeRead("k", run)).resolves.toEqual(["ok"]);
+    expect(calls).toBe(2);
+  });
+
+  it("keeps different keys independent", async () => {
+    const { dedupeRead } = await import("@/lib/hooks/utils");
+    const a = await dedupeRead("day-1", async () => ["one"]);
+    const b = await dedupeRead("day-2", async () => ["two"]);
+
+    expect(a).toEqual(["one"]);
+    expect(b).toEqual(["two"]);
+  });
+});

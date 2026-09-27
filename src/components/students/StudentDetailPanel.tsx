@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } from "react";
+import { loadSchoolHouses } from "@/lib/houses";
 import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/index";
@@ -256,14 +257,21 @@ export default function StudentDetailPanel({
 
   useEffect(() => {
     if (!schoolId) return;
-    supabase
-      .from("houses")
-      .select("*")
-      .eq("school_id", schoolId)
-      .order("name")
-      .then(({ data }) => {
-        setHouses(data || []);
+    // Shared loader with a short cache: this panel is mounted per student, so
+    // without it a list of 25 students requested the same rows 25 times. The
+    // cancelled flag also stops a late response from updating an unmounted panel.
+    let cancelled = false;
+    void loadSchoolHouses(schoolId)
+      .then((rows) => {
+        if (cancelled) return;
+        setHouses(rows.map((house) => ({ id: house.id, name: house.name })));
+      })
+      .catch(() => {
+        if (!cancelled) setHouses([]);
       });
+    return () => {
+      cancelled = true;
+    };
   }, [schoolId]);
 
   useEffect(() => {

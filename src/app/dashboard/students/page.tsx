@@ -4,6 +4,8 @@ import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
 import { useStudents, useClasses } from "@/lib/hooks";
+import { loadSchoolHouses } from "@/lib/houses";
+import { dedupeRead } from "@/lib/hooks/utils";
 import { useToast } from "@/components/Toast";
 import { SendSMSModal } from "@/components/SendSMSModal";
 import MaterialIcon from "@/components/MaterialIcon";
@@ -241,18 +243,11 @@ export default function StudentHubPage() {
     }
 
     const loadHouses = async () => {
-      const result: { data: { id: string; name: string; color: string }[] | null; error: unknown } = await withTimeout(
-        supabase.from("houses").select("id, name, color").eq("school_id", school.id),
-        10000,
-        { data: null, error: null } as any,
-      );
-
-      if (result.error) {
-        return;
-      }
-
-      const mapped = (result.data || []).reduce<Record<string, HouseMeta>>((acc, house) => {
-        acc[house.id] = house;
+      // Shared loader: the student detail panels on this same page need the
+      // same rows, and they used to issue their own query each.
+      const rows = await loadSchoolHouses(school.id);
+      const mapped = rows.reduce<Record<string, HouseMeta>>((acc, house) => {
+        acc[house.id] = { id: house.id, name: house.name, color: house.color ?? "" };
         return acc;
       }, {});
       setHouseMap(mapped);
@@ -317,10 +312,18 @@ export default function StudentHubPage() {
       }
 
       const result: { data: { student_id: string; status: string; remarks: string | null }[] | null; error: unknown } =
-        await withTimeout(supabase.from("attendance").select("student_id, status, remarks").eq("date", today), 10000, {
-          data: null,
-          error: null,
-        } as any);
+        await withTimeout(
+          // In-flight dedup only: nothing is cached, so attendance is never
+          // shown from a stale copy, but a duplicate mount cannot double-fetch.
+          dedupeRead(`attendance-statuses:${school.id}:${today}`, () =>
+            supabase.from("attendance").select("student_id, status, remarks").eq("date", today),
+          ),
+          10000,
+          {
+            data: null,
+            error: null,
+          } as any,
+        );
 
       if (result.error) {
         setAttendanceStatusMap({});

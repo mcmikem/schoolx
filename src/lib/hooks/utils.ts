@@ -10,6 +10,33 @@ export function getQuerySchoolId(schoolId: string | undefined, isDemo: boolean):
   return schoolId;
 }
 
+const inflightReads = new Map<string, Promise<unknown>>();
+
+/**
+ * Collapse simultaneous identical reads into a single request.
+ *
+ * Unlike the TTL cache in queryCache, nothing is retained after the response
+ * lands, so this cannot serve stale data. It only removes duplicate work that
+ * would otherwise have been in flight at the same moment -- which is what
+ * happens when a screen's effects run more than once on mount, or when two
+ * components need the same rows at load.
+ *
+ * Appropriate for data that must never be stale (attendance, balances). For
+ * data that tolerates a short cache, prefer getOrFetchCached.
+ */
+export function dedupeRead<T>(key: string, run: () => PromiseLike<T>): Promise<T> {
+  const existing = inflightReads.get(key);
+  if (existing) return existing as Promise<T>;
+
+  // Supabase query builders are thenables rather than Promises, so normalise
+  // before attaching the cleanup handler.
+  const request = Promise.resolve(run()).finally(() => {
+    inflightReads.delete(key);
+  });
+  inflightReads.set(key, request);
+  return request;
+}
+
 export async function withTimeout<T>(promise: PromiseLike<T>, ms: number, fallback: T): Promise<T> {
   const result = await Promise.race([
     Promise.resolve(promise),

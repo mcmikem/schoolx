@@ -1,5 +1,6 @@
 "use client";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
+import { clearHousesCache, loadSchoolHouses } from "@/lib/houses";
 import { useState, useEffect, useCallback } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
@@ -323,14 +324,8 @@ export default function SettingsPage() {
     if (!school?.id) return;
     try {
       setLoadingHouses(true);
-      const result = await withTimeout(
-        supabase.from("houses").select("*").eq("school_id", school.id).order("name"),
-        10000,
-        timeoutFallback(),
-      );
-      setHouses(
-        (result.data || []) as { id: string; name: string; color: string; motto?: string | null | undefined }[],
-      );
+      const rows = await loadSchoolHouses(school.id);
+      setHouses(rows as { id: string; name: string; color: string; motto?: string | null | undefined }[]);
     } catch {
       setHouses([]);
     } finally {
@@ -470,6 +465,7 @@ export default function SettingsPage() {
         timeoutFallback(),
       );
       if (houseResult?.error) throw houseResult.error;
+      clearHousesCache(school.id);
       toast.success("House added");
       await fetchHouses();
     } catch (err: unknown) {
@@ -478,10 +474,12 @@ export default function SettingsPage() {
   };
 
   const deleteHouse = async (id: string) => {
+    if (!school?.id) return;
     try {
       const { withTimeout } = await import("@/lib/hooks/utils");
       const houseDelResult = await withTimeout(supabase.from("houses").delete().eq("id", id), 15000, timeoutFallback());
       if (houseDelResult?.error) throw houseDelResult.error;
+      clearHousesCache(school.id);
       toast.success("House deleted");
       await fetchHouses();
     } catch (err: unknown) {
