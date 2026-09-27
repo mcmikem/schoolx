@@ -14,6 +14,11 @@ export const SYNC_VALID_TABLES = [
   "events",
   "timetable",
   "canteen_sales",
+  // Audit events recorded while the device was offline are replayed through
+  // here. Without this entry they were rejected at the allowlist check, retried
+  // to the attempt limit, and then dropped -- which is why the audit trail was
+  // empty for schools whose staff work on intermittent connections.
+  "audit_log",
 ];
 
 export const SYNC_VALID_ACTIONS = ["create", "update", "delete"] as const;

@@ -12,6 +12,7 @@ import {
 } from "@/lib/api-utils";
 import type { Database } from "@/lib/supabase";
 import { SYNC_VALID_TABLES, SYNC_MAX_ITEMS, isValidSyncData } from "@/lib/server/sync-validation";
+import { buildAuditInsertRow } from "@/lib/server/audit-sync";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -78,6 +79,17 @@ async function resolveSchoolOwnership(params: {
     }
 
     return { ok: true };
+  }
+
+  if (table === "audit_log") {
+    // Append-only: replaying an audit event may only ever add a row. Updates and
+    // deletes would let a client rewrite history.
+    if (action !== "create") {
+      return { ok: false, error: "Forbidden: audit_log is append-only" };
+    }
+    return data.school_id === schoolId
+      ? { ok: true }
+      : { ok: false, error: `Forbidden: school scope mismatch for ${table}` };
   }
 
   if (table === "attendance") {
@@ -267,6 +279,18 @@ async function handleSyncPost(request: NextRequest) {
       }),
     );
 
+    // Identity for any replayed audit row. Taken from the profile row that
+    // requireUserWithSchool loaded, not from anything the client sent.
+    const authProfile = auth.context.user as unknown as {
+      id?: string;
+      full_name?: string | null;
+    };
+    const authIdentity = {
+      userId: typeof authProfile?.id === "string" ? authProfile.id : null,
+      userName:
+        typeof authProfile?.full_name === "string" && authProfile.full_name.length > 0 ? authProfile.full_name : null,
+    };
+
     let successCount = 0;
     let failedCount = 0;
     const errors: string[] = [];
@@ -301,6 +325,31 @@ async function handleSyncPost(request: NextRequest) {
 
         switch (item.action) {
           case "create": {
+            if (item.table === "audit_log") {
+              // Never insert the client's payload verbatim: this route runs on
+              // the service role, so identity is rebuilt from the verified
+              // session before the row is written.
+              const auditRow = buildAuditInsertRow({
+                data: item.data,
+                schoolId: scope.schoolId,
+                userId: authIdentity.userId,
+                userName: authIdentity.userName,
+              });
+              if (!auditRow.ok) {
+                failedCount++;
+                errors.push(auditRow.error);
+                break;
+              }
+              const { error } = await supabase.from("audit_log").insert(auditRow.row as never);
+              if (error) {
+                failedCount++;
+                errors.push("Create failed for audit_log");
+              } else {
+                successCount++;
+              }
+              break;
+            }
+
             const { error } = await supabase.from(item.table as any).insert(item.data as never);
             if (error) {
               failedCount++;
