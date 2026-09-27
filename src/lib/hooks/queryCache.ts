@@ -6,6 +6,12 @@ type CacheEntry<T> = {
 const CACHE = new Map<string, CacheEntry<unknown>>();
 const CACHE_TTL = 5 * 60 * 1000;
 
+// Requests currently in flight, keyed the same way as the cache. Without this,
+// every component that mounts in the same tick misses the cache together and
+// fires its own identical request -- which on a slow connection means the same
+// query is paid for several times over before the first response lands.
+const INFLIGHT = new Map<string, Promise<unknown>>();
+
 const LISTENERS = new Map<string, Set<() => void>>();
 
 function getCacheKey(key: string): string {
@@ -32,20 +38,50 @@ export function invalidateCache(key: string): void {
   LISTENERS.get(key)?.forEach((fn) => fn());
 }
 
+/**
+ * Read-through helper: serve fresh cached data if present, otherwise run the
+ * fetcher once and share that single promise with every concurrent caller.
+ *
+ * A rejected fetch is not cached and not left behind in the in-flight map, so a
+ * transient network failure does not poison the key for the next attempt.
+ */
+export async function getOrFetchCached<T>(
+  key: string,
+  fetcher: () => Promise<T>,
+): Promise<{ data: T; fromCache: boolean }> {
+  const cached = getCachedData<T>(key);
+  if (cached !== null) return { data: cached, fromCache: true };
+
+  const existing = INFLIGHT.get(getCacheKey(key));
+  if (existing) return { data: (await existing) as T, fromCache: false };
+
+  const request = fetcher()
+    .then((data) => {
+      setCachedData(key, data);
+      return data;
+    })
+    .finally(() => {
+      INFLIGHT.delete(getCacheKey(key));
+    });
+
+  INFLIGHT.set(getCacheKey(key), request);
+  return { data: await request, fromCache: false };
+}
+
 export function invalidateCachePattern(pattern: string): void {
   const prefix = getCacheKey(pattern);
   CACHE.forEach((_value, key) => {
     if (key.startsWith(prefix)) {
       CACHE.delete(key);
-      LISTENERS.get(key)?.forEach((fn) => fn());
+      // Strip the internal prefix: listeners are registered under the raw key,
+      // so looking them up with the storage key silently notified nobody.
+      const rawKey = key.slice("swr:".length);
+      LISTENERS.get(rawKey)?.forEach((fn) => fn());
     }
   });
 }
 
-export function subscribeToCache(
-  key: string,
-  callback: () => void,
-): () => void {
+export function subscribeToCache(key: string, callback: () => void): () => void {
   if (!LISTENERS.has(key)) {
     LISTENERS.set(key, new Set());
   }

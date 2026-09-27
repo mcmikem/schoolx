@@ -7,7 +7,7 @@ import { logger } from "@/lib/logger";
 import type { Student, CreateStudentInput, Class } from "@/types";
 import { getQuerySchoolId, withTimeout } from "./utils";
 import type { PostgrestSingleResponse } from "@supabase/supabase-js";
-import { getCachedData, setCachedData, invalidateCache } from "./queryCache";
+import { getCachedData, invalidateCachePattern, getOrFetchCached } from "./queryCache";
 import { offlineDB } from "@/lib/offline";
 import {
   getErrorMessage,
@@ -265,15 +265,22 @@ async function fetchStudentByIdWithFallback(studentId: string, schoolId?: string
   throw lastError;
 }
 
+interface StudentsCacheEntry {
+  students: StudentWithClass[];
+  count: number;
+}
+
 export function useStudents(schoolId?: string, options?: { limit?: number; offset?: number }) {
   const limit = options?.limit || 100;
   const offset = options?.offset || 0;
   const cacheKey = `students:${schoolId}:${limit}:${offset}`;
-  const cachedData = getCachedData<StudentWithClass[]>(cacheKey);
-  const [students, setStudents] = useState<StudentWithClass[]>(cachedData || []);
+  const cachedData = getCachedData<StudentsCacheEntry>(cacheKey);
+  const [students, setStudents] = useState<StudentWithClass[]>(cachedData?.students || []);
   const [loading, setLoading] = useState(!cachedData);
   const [error, setError] = useState<string | null>(null);
-  const [totalCount, setTotalCount] = useState(0);
+  // Seeded from the cache: a cache hit previously left the count at 0, so the
+  // list could render as "0 students" until an unrelated refetch corrected it.
+  const [totalCount, setTotalCount] = useState(cachedData?.count ?? 0);
   const { isDemo, school } = useAuth();
   const hasInitialized = useRef(false);
   const lastResolvedStudentsRef = useRef<StudentWithClass[]>([]);
@@ -345,13 +352,6 @@ export function useStudents(schoolId?: string, options?: { limit?: number; offse
       return;
     }
 
-    const cached = getCachedData<StudentWithClass[]>(cacheKey);
-    if (cached) {
-      setStudents(cached);
-      setLoading(false);
-      return;
-    }
-
     const querySchoolId = getQuerySchoolId(schoolId, isDemo);
     if (!querySchoolId) {
       setLoading(false);
@@ -361,31 +361,35 @@ export function useStudents(schoolId?: string, options?: { limit?: number; offse
 
     try {
       setLoading(true);
-      const countResult = await withTimeout(
-        supabase.from("students").select("id", { count: "exact", head: true }).eq("school_id", querySchoolId),
-        5000,
-        null,
-      );
+      // Count and rows are fetched under one shared promise and cached
+      // together. Previously every consumer that mounted in the same tick found
+      // an empty cache and issued its own identical pair of round-trips, which
+      // is expensive when each query crosses an ocean to reach the database.
+      const { data: entry } = await getOrFetchCached<StudentsCacheEntry>(cacheKey, async () => {
+        const countResult = await withTimeout(
+          supabase.from("students").select("id", { count: "exact", head: true }).eq("school_id", querySchoolId),
+          5000,
+          null,
+        );
+        const count = countResult && typeof countResult.count === "number" ? countResult.count || 0 : 0;
 
-      if (countResult && typeof countResult.count === "number") {
-        setTotalCount(countResult.count || 0);
-      }
+        const timeoutFallback = getStudentSelectTimeoutFallback(null, lastResolvedStudentsRef.current);
+        const data = await withTimeout(
+          fetchStudentsWithFallback({
+            schoolId: querySchoolId,
+            offset,
+            limit,
+          }),
+          8000,
+          timeoutFallback,
+        );
 
-      const timeoutFallback = getStudentSelectTimeoutFallback(cached, lastResolvedStudentsRef.current);
+        return { students: (data as unknown as StudentWithClass[]) || [], count };
+      });
 
-      const data = await withTimeout(
-        fetchStudentsWithFallback({
-          schoolId: querySchoolId,
-          offset,
-          limit,
-        }),
-        8000,
-        timeoutFallback,
-      );
-      const result = (data as unknown as StudentWithClass[]) || [];
-      setStudents(result);
-      lastResolvedStudentsRef.current = result;
-      setCachedData(cacheKey, result);
+      setStudents(entry.students);
+      setTotalCount(entry.count);
+      lastResolvedStudentsRef.current = entry.students;
     } catch (err: unknown) {
       setError(getErrorMessage(err, "Failed to load students"));
     } finally {
@@ -425,7 +429,7 @@ export function useStudents(schoolId?: string, options?: { limit?: number; offse
       } as unknown as StudentWithClass;
       setStudents((prev) => [newStudentData, ...prev]);
       setTotalCount((prev) => prev + 1);
-      invalidateCache(`students:${schoolId}`);
+      invalidateCachePattern(`students:${schoolId}:`);
       return newStudentData;
     }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo);
@@ -532,7 +536,7 @@ export function useStudents(schoolId?: string, options?: { limit?: number; offse
 
       setStudents((prev) => [createdStudent as StudentWithClass, ...prev]);
       setTotalCount((prev) => prev + 1);
-      invalidateCache(`students:${schoolId}`);
+      invalidateCachePattern(`students:${schoolId}:`);
 
       // Auto-create parent portal account if student has a parent phone
       const parentPhoneRaw = (studentPayload as Record<string, unknown>).parent_phone;
@@ -669,7 +673,7 @@ export function useStudents(schoolId?: string, options?: { limit?: number; offse
       }
 
       setStudents((prev) => prev.map((s) => (s.id === id ? (updatedStudent as StudentWithClass) : s)));
-      invalidateCache(`students:${schoolId}`);
+      invalidateCachePattern(`students:${schoolId}:`);
       return updatedStudent as StudentWithClass;
     } catch (err: unknown) {
       throw new Error(getErrorMessage(err, "Failed to update student"));
@@ -694,7 +698,7 @@ export function useStudents(schoolId?: string, options?: { limit?: number; offse
       if (deleteError) throw deleteError;
       setStudents((prev) => prev.filter((s) => s.id !== id));
       setTotalCount((prev) => prev - 1);
-      invalidateCache(`students:${schoolId}`);
+      invalidateCachePattern(`students:${schoolId}:`);
     } catch (err: unknown) {
       throw new Error(getErrorMessage(err, "Failed to remove student"));
     }
