@@ -1,6 +1,5 @@
 "use client";
 import { memo, useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { offlineDB } from "@/lib/offline";
 import MaterialIcon from "@/components/MaterialIcon";
@@ -8,12 +7,12 @@ import { logger } from "@/lib/logger";
 import { APP_NAME } from "@/lib/app-name";
 
 export const OfflineIndicator = memo(function OfflineIndicator() {
-  const router = useRouter();
   const [isOnline, setIsOnline] = useState(true);
   const [pendingSync, setPendingSync] = useState(0);
   const [syncing, setSyncing] = useState(false);
   const [showIndicator, setShowIndicator] = useState(false);
   const [swUpdateReady, setSwUpdateReady] = useState(false);
+  const [applyingUpdate, setApplyingUpdate] = useState(false);
   // Install prompt handled by PWAInstallPrompt component
 
   const syncData = useCallback(async () => {
@@ -123,14 +122,32 @@ export const OfflineIndicator = memo(function OfflineIndicator() {
   }, [syncData]);
 
   const handleUpdate = () => {
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.getRegistration().then((reg) => {
-        if (reg?.waiting) {
-          reg.waiting.postMessage({ type: "SKIP_WAITING" });
-          router.refresh();
-        }
-      });
-    }
+    if (!("serviceWorker" in navigator)) return;
+    void navigator.serviceWorker.getRegistration().then((reg) => {
+      const waiting = reg?.waiting;
+      if (!waiting) return;
+
+      setApplyingUpdate(true);
+
+      // A full reload is required, and router.refresh() is not enough: it
+      // re-fetches server data but keeps executing the JavaScript bundles the
+      // page already loaded, so the previous build would carry on running.
+      let reloaded = false;
+      const reload = () => {
+        if (reloaded) return;
+        reloaded = true;
+        navigator.serviceWorker.removeEventListener("controllerchange", reload);
+        window.location.reload();
+      };
+
+      navigator.serviceWorker.addEventListener("controllerchange", reload);
+      waiting.postMessage({ type: "APPLY_UPDATE" });
+
+      // Fallback in case controllerchange never arrives.
+      window.setTimeout(() => {
+        if (!reloaded) reload();
+      }, 2500);
+    });
   };
 
   if (!showIndicator && isOnline && pendingSync === 0 && !swUpdateReady) return null;

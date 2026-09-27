@@ -7,6 +7,7 @@
     "audit:uiux": "node scripts/audit-uiux.mjs",
     "audit:uiux:strict": "node scripts/audit-uiux.mjs --strict",
     "build": "next build",
+    "prebuild": "node scripts/stamp-sw-version.mjs",
     "build:android": "MOBILE_BUILD=1 npm run build && npx cap sync android",
     "build:ios": "MOBILE_BUILD=1 npm run build && npx cap sync ios",
     "build:mobile": "MOBILE_BUILD=1 npm run build",

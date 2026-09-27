@@ -827,20 +827,25 @@ export default function SettingsPage() {
         return;
       }
 
-      let refreshed = false;
-      navigator.serviceWorker.addEventListener("controllerchange", () => {
-        if (refreshed) return;
-        refreshed = true;
-        router.refresh();
-      });
+      // A full document reload is required here. router.refresh() only
+      // re-fetches server data: the page keeps running the JavaScript bundles it
+      // already loaded, so the previous build would remain in effect.
+      let reloaded = false;
+      const reload = () => {
+        if (reloaded) return;
+        reloaded = true;
+        navigator.serviceWorker.removeEventListener("controllerchange", reload);
+        window.location.reload();
+      };
 
-      registration.waiting.postMessage({ type: "SKIP_WAITING" });
+      navigator.serviceWorker.addEventListener("controllerchange", reload);
+      registration.waiting.postMessage({ type: "APPLY_UPDATE" });
       setUpdateMessage("Applying update...");
 
-      // Fallback refresh in case controllerchange is delayed.
+      // Fallback in case controllerchange is delayed.
       setTimeout(() => {
-        if (!refreshed) window.location.reload();
-      }, 1500);
+        if (!reloaded) reload();
+      }, 2500);
     } catch (err: unknown) {
       logger.error("Failed to apply app update:", err);
       setUpdateMessage("Update failed to apply. Please reload and try again.");

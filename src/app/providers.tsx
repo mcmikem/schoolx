@@ -83,42 +83,79 @@ function ServiceWorkerRegistration({ children }: { children: ReactNode }) {
 
       navigator.serviceWorker.addEventListener("controllerchange", reloadForActivatedUpdate);
 
+      let registration: ServiceWorkerRegistration | null = null;
+
+      // Announce a pending update to the UI. Fired both when a worker finishes
+      // installing and when one is already waiting at load, so a prompt is never
+      // missed because the app mounted after the update landed.
+      const announceUpdate = (reg: ServiceWorkerRegistration) => {
+        if (!reg.waiting) return;
+        window.dispatchEvent(new CustomEvent("sw-update-available", { detail: { registration: reg } }));
+      };
+
       navigator.serviceWorker
         .register("/sw.js")
-        .then(async (registration) => {
-          logger.log("Service Worker registered:", registration.scope);
-          await registration.update().catch((err) => logger.warn("[SW] Update failed", err));
+        .then(async (reg) => {
+          registration = reg;
+          logger.log("Service Worker registered:", reg.scope);
+          await reg.update().catch((err) => logger.warn("[SW] Update failed", err));
 
-          if (registration.waiting && shouldForceAuthRouteUpdate) {
-            registration.waiting.postMessage({ type: "SKIP_WAITING" });
+          if (reg.waiting) {
+            if (shouldForceAuthRouteUpdate) {
+              reg.waiting.postMessage({ type: "APPLY_UPDATE" });
+            } else {
+              announceUpdate(reg);
+            }
           }
 
-          // Check for updates and activate immediately
-          registration.addEventListener("updatefound", () => {
-            const newWorker = registration.installing;
-            if (newWorker) {
-              newWorker.addEventListener("statechange", () => {
-                if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
-                  if (shouldForceAuthRouteUpdate) {
-                    newWorker.postMessage({ type: "SKIP_WAITING" });
-                    return;
-                  }
-
-                  // Notify the UI that an update is available — let the user
-                  // decide when to reload rather than forcing it mid-session,
-                  // which can steal Supabase auth Web Locks.
-                  window.dispatchEvent(new CustomEvent("sw-update-available", { detail: { registration } }));
+          reg.addEventListener("updatefound", () => {
+            const newWorker = reg.installing;
+            if (!newWorker) return;
+            newWorker.addEventListener("statechange", () => {
+              if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
+                if (shouldForceAuthRouteUpdate) {
+                  newWorker.postMessage({ type: "APPLY_UPDATE" });
+                  return;
                 }
-              });
-            }
+                // Let the user decide when to reload rather than forcing it
+                // mid-session, which can steal Supabase auth Web Locks.
+                announceUpdate(reg);
+              }
+            });
           });
         })
         .catch((error) => {
           logger.error("Service Worker registration failed:", error);
         });
 
+      // A long-lived install can stay open for days. Re-check on a timer and
+      // whenever the app is brought back to the foreground, otherwise a newly
+      // deployed build is not noticed until the tab is fully closed and reopened.
+      const checkForUpdate = () => {
+        if (!registration) return;
+        void registration
+          .update()
+          .then(() => announceUpdate(registration as ServiceWorkerRegistration))
+          .catch((err) => logger.warn("[SW] Update check failed", err));
+      };
+
+      const UPDATE_CHECK_INTERVAL_MS = 30 * 60 * 1000;
+      const interval = setInterval(checkForUpdate, UPDATE_CHECK_INTERVAL_MS);
+
+      const handleVisibility = () => {
+        if (document.visibilityState === "visible") checkForUpdate();
+      };
+      document.addEventListener("visibilitychange", handleVisibility);
+
+      // Check once shortly after load so a build deployed while the app was
+      // opening is still picked up.
+      const initialCheck = setTimeout(checkForUpdate, 5000);
+
       return () => {
         navigator.serviceWorker.removeEventListener("controllerchange", reloadForActivatedUpdate);
+        document.removeEventListener("visibilitychange", handleVisibility);
+        clearInterval(interval);
+        clearTimeout(initialCheck);
       };
     }
   }, []);
