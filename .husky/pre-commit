@@ -104,9 +104,18 @@ fi
 echo "  [2/4] Auto-formatting and linting staged files..."
 STAGED_TS=$(git diff --cached --name-only --diff-filter=ACMR | grep -E '\.(ts|tsx|js|jsx)$' | tr '\n' ' ' || true)
 if [ -n "$STAGED_TS" ]; then
-  npx biome format --write $STAGED_TS 2>&1 > /dev/null
-  npx biome lint $STAGED_TS 2>&1
-  if [ $? -ne 0 ]; then
+  # husky runs this hook with `set -e`, so a non-zero exit here aborts the whole
+  # commit. Formatting is best-effort here; the lint gate below is what blocks.
+  npx biome format --write $STAGED_TS > /dev/null 2>&1 || true
+  # biome exits non-zero both for lint errors and when every path handed to it
+  # is ignored by its config (next-env.d.ts, for one). Treating the latter as a
+  # failure blocks commits that touch only such files, so check the message.
+  # `|| LINT_STATUS=$?` keeps `set -e` from aborting on the assignment itself,
+  # which propagates the command substitution's status.
+  LINT_STATUS=0
+  LINT_OUTPUT=$(npx biome lint $STAGED_TS 2>&1) || LINT_STATUS=$?
+  if [ $LINT_STATUS -ne 0 ] && ! echo "$LINT_OUTPUT" | grep -q "No files were processed"; then
+    echo "$LINT_OUTPUT"
     echo "❌ Lint failed. Fix errors before committing."
     exit 1
   fi
