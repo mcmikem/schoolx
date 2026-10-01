@@ -5,6 +5,9 @@
   "scripts": {
     "analyze": "ANALYZE=true npm run build",
     "audit:uiux": "node scripts/audit-uiux.mjs",
+    "check:schema-drift": "node scripts/check-schema-drift.mjs",
+    "check:schema-drift:strict": "node scripts/check-schema-drift.mjs --no-baseline",
+    "check:schema-drift:update": "node scripts/check-schema-drift.mjs --write-baseline",
     "audit:uiux:strict": "node scripts/audit-uiux.mjs --strict",
     "build": "next build",
     "prebuild": "node scripts/stamp-sw-version.mjs",
