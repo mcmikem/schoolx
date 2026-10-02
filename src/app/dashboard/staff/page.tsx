@@ -1,7 +1,7 @@
 "use client";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import Image from "next/image";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
 import { supabase } from "@/lib/supabase";
@@ -210,6 +210,11 @@ function DirectoryTab({
   });
   const [activeTab, setActiveTab] = useState("all");
   const [staffSearch, setStaffSearch] = useState("");
+  // Read by the post-create refresh: a slow create can overlap an auth
+  // re-initialisation (getUser() timing out leaves `school` briefly null), and
+  // fetchStaff() returns early when school is missing.
+  const schoolRef = useRef(school);
+  schoolRef.current = school;
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
   const [totalCount, setTotalCount] = useState(0);
@@ -246,6 +251,28 @@ function DirectoryTab({
       setLoading(false);
     }
   }, [school?.id, isDemo, offset, itemsPerPage]);
+
+  /**
+   * Refresh the list after a create.
+   *
+   * fetchStaff() returns immediately when `school` is not yet available, which
+   * silently leaves a stale list on screen and makes a successful add look like
+   * it failed. Retrying for a few seconds covers the window where the auth
+   * session is being re-established.
+   */
+  const refreshStaff = useCallback(async () => {
+    for (let attempt = 0; attempt < 5; attempt++) {
+      await fetchStaff();
+      if (schoolRef.current?.id) {
+        // One more pass after a short beat, so a refresh that raced the auth
+        // re-initialisation is not the one that is left on screen.
+        if (attempt > 0) return;
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+      } else {
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+      }
+    }
+  }, [fetchStaff]);
 
   useEffect(() => {
     setCurrentPage(1);
@@ -454,13 +481,19 @@ function DirectoryTab({
         }
       }
 
+      // The account exists from this point on. Anything below is a follow-up
+      // assignment, so it must not be able to throw: previously a failure here
+      // skipped the success toast AND fetchStaff(), which left the staff list
+      // showing the old contents and made a successful add look like it failed.
+      const warnings: string[] = [];
+
       if (newStaff.role === "teacher") {
         const { error: classAssignError } = await supabase
           .from("classes")
           .update({ class_teacher_id: createdUserId })
           .eq("id", newStaff.class_teacher_for);
 
-        if (classAssignError) throw classAssignError;
+        if (classAssignError) warnings.push(`class assignment failed: ${classAssignError.message}`);
 
         const teacherSubjectsPayload = newStaff.subject_ids.map((subjectId) => ({
           school_id: school.id,
@@ -472,13 +505,18 @@ function DirectoryTab({
         if (teacherSubjectsPayload.length > 0) {
           const { error: subjectAssignError } = await supabase.from("teacher_subjects").insert(teacherSubjectsPayload);
 
-          if (subjectAssignError) throw subjectAssignError;
+          if (subjectAssignError) warnings.push(`subject assignment failed: ${subjectAssignError.message}`);
         }
       }
 
-      toast.success("Staff member added");
+      if (warnings.length > 0) {
+        logger.warn("Staff added with follow-up warnings", warnings);
+        toast.success("Staff member added, but some assignments need attention");
+      } else {
+        toast.success("Staff member added");
+      }
       setShowAddModal(false);
-      fetchStaff();
+      void refreshStaff();
       setNewAvatarFile(null);
       setNewStaff({
         full_name: "",
