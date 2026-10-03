@@ -389,7 +389,12 @@ export default function StudentDetailPanel({
 
   const handleCreateStudent = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!schoolId) return;
+    if (!schoolId) {
+      // A silent return made the submit button do nothing at all while the auth
+      // session was still re-establishing.
+      toast.error("Your session is still loading. Please try again in a moment.");
+      return;
+    }
     if (!newStudent.first_name?.trim()) {
       toast.error("First name is required");
       return;

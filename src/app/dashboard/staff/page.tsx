@@ -412,7 +412,12 @@ function DirectoryTab({
       return;
     }
 
-    if (!school?.id) return;
+    if (!school?.id) {
+      // Returning silently here made the button look dead: on a slow connection
+      // the auth session can still be re-establishing when the form is submitted.
+      toast.error("Your session is still loading. Please try again in a moment.");
+      return;
+    }
 
     // Validate before API call
     if (!newStaff.full_name.trim() || newStaff.full_name.trim().length < 2) {

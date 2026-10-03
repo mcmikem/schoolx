@@ -685,3 +685,62 @@ describe("Syllabus Schema", () => {
     expect(schema).toContain("CREATE TABLE IF NOT EXISTS topic_coverage (");
   });
 });
+
+describe("Submit guards on a slow session", () => {
+  // Both of these bailed out with a bare `return` when the auth session had not
+  // finished re-establishing. On a slow connection that makes the submit button
+  // look completely dead: no request, no toast, no modal closure. The user's
+  // report of an add that "just loaded and brought back the page" came from
+  // exactly this, so the guards must stay chatty.
+  const HANDLERS: Array<[string, string, string]> = [
+    ["staff add", "src/app/dashboard/staff/page.tsx", "handleAddStaff"],
+    ["student add", "src/components/students/StudentDetailPanel.tsx", "handleCreateStudent"],
+  ];
+
+  const readHandler = (relPath: string, handler: string) => {
+    const src = require("fs").readFileSync(require("path").join(process.cwd(), relPath), "utf8");
+    const start = src.indexOf(`const ${handler}`);
+    expect(start).toBeGreaterThan(-1);
+    const rest = src.slice(start + `const ${handler}`.length);
+    // handlers end at the next top-level declaration in this codebase's style
+    const end = rest.search(/\n  const [a-zA-Z]/);
+    return end === -1 ? rest.slice(0, 4000) : rest.slice(0, end);
+  };
+
+  for (const [label, relPath, handler] of HANDLERS) {
+    it(`${label} tells the user when school context is still loading`, () => {
+      const body = readHandler(relPath, handler);
+      expect(body).toContain("still loading");
+      expect(body).not.toMatch(/if \(!school\?\.id\) return;/);
+      expect(body).not.toMatch(/if \(!schoolId\) return;/);
+    });
+  }
+});
+
+describe("Staff add must always update the list", () => {
+  it("refreshes through the retrying refreshStaff rather than a bare fetch", () => {
+    const src = require("fs").readFileSync(
+      require("path").join(process.cwd(), "src/app/dashboard/staff/page.tsx"),
+      "utf8",
+    );
+    expect(src).toContain("void refreshStaff();");
+    // A plain fetchStaff() after a create returns early when `school` is null,
+    // which is what left a successfully created member off the list.
+    expect(src).not.toMatch(/setShowAddModal\(false\);\s*\n\s*await fetchStaff\(\);/);
+  });
+
+  it("keeps class and subject assignment from hiding a successful add", () => {
+    const src = require("fs").readFileSync(
+      require("path").join(process.cwd(), "src/app/dashboard/staff/page.tsx"),
+      "utf8",
+    );
+    const start = src.indexOf("const handleAddStaff");
+    const rest = src.slice(start);
+    const end = rest.search(/\n  const [a-zA-Z]/);
+    const body = end === -1 ? rest.slice(0, 6000) : rest.slice(0, end);
+    // assignments are best-effort: a failure warns instead of throwing before
+    // the success toast and the list refresh
+    expect(body).toContain("warnings");
+    expect(body.indexOf("toast.success")).toBeGreaterThan(-1);
+  });
+});
