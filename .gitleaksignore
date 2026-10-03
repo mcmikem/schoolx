@@ -10,6 +10,7 @@
 # hygiene, rotation is the actual fix.
 #
 # Once rotated, delete the entry below so the history is verified clean.
+# Runbook: docs/rotate-leaked-service-key.md
 47aa474fd2e3ea495bf5ad6d328d921a6467675e:scripts/apply-migration.sh:jwt:5
 47aa474fd2e3ea495bf5ad6d328d921a6467675e:scripts/db-push.sh:jwt:7
 50519acecdefc417e3f56fc8b50a3ee81fd98584:scripts/run-critical-fix.sh:generic-api-key:31
