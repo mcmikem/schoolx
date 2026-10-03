@@ -74,6 +74,35 @@ const NEEDS_REVIEW = ["students", "staff_salaries", "notices", "sms_templates", 
 /** A parent may not create students either. */
 const PARENT_DENIED = "students";
 
+/**
+ * Sign in through the real form.
+ *
+ * page.fill() on the login form races React hydration: the fields are controlled
+ * inputs, so a fill issued before hydration mounts is silently reset to "" and the
+ * submit then sends empty credentials. The page never navigates and the test fails
+ * at waitForURL with no clue why. Retrying until the value survives hydration is
+ * what makes this deterministic.
+ */
+async function signInViaForm(page: any, identifier: string, password: string) {
+  for (let attempt = 1; attempt <= 4; attempt++) {
+    await page.goto(`${APP}/login/`, { waitUntil: "domcontentloaded" });
+    for (const [selector, value] of [
+      ["#identifier", identifier],
+      ["#password", password],
+    ] as const) {
+      for (let i = 0; i < 8; i++) {
+        await page.locator(selector).first().fill(value);
+        await page.waitForTimeout(400);
+        if ((await page.locator(selector).first().inputValue().catch(() => "")) === value) break;
+      }
+    }
+    await page.getByRole("button", { name: /sign in/i }).first().click();
+    await page.waitForTimeout(12000);
+    if (/\/(dashboard|setup)/.test(page.url())) return true;
+  }
+  return false;
+}
+
 const ROLES = ["bursar", "teacher", "secretary", "parent"] as const;
 type Role = (typeof ROLES)[number];
 
@@ -129,11 +158,8 @@ test.describe.serial("role permissions", () => {
 
     // A browser session is needed because the app authenticates its own API by
     // session cookie, not by a bearer token.
-    await page.goto(`${APP}/login/`, { waitUntil: "domcontentloaded" });
-    await page.fill("#identifier", adminEmail);
-    await page.fill("#password", PASSWORD);
-    await page.getByRole("button", { name: /sign in/i }).first().click();
-    await page.waitForURL(/\/(dashboard|setup)/, { timeout: 90000 });
+    const signedIn = await signInViaForm(page, adminEmail, PASSWORD);
+    expect(signedIn, `could not establish a session; ended on ${page.url()}`).toBe(true);
     await page.waitForTimeout(3000);
 
     tokens.school_admin = await signIn(adminEmail);
