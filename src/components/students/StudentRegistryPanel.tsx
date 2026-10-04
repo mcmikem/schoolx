@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState, type ChangeEvent, type MutableRefObject } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import OnboardingTips from "@/components/OnboardingTips";
-import MaterialIcon from "@/components/MaterialIcon";
-import { TableSkeleton } from "@/components/ui/Skeleton";
-import PersonInitials from "@/components/ui/PersonInitials";
+import { type ChangeEvent, type MutableRefObject, useCallback, useEffect, useState } from "react";
 import { EmptyState } from "@/components/EmptyState";
+import MaterialIcon from "@/components/MaterialIcon";
+import OnboardingTips from "@/components/OnboardingTips";
+import PersonInitials from "@/components/ui/PersonInitials";
+import { TableSkeleton } from "@/components/ui/Skeleton";
 
 interface StudentClassInfo {
   id: string;
@@ -66,6 +66,53 @@ interface ImportProgress {
 interface AttendanceStatusMeta {
   status: "present" | "absent" | "sick" | "late" | "excused";
   label: string;
+}
+
+/**
+ * Column order of the generated template.
+ *
+ * These are the canonical headers, chosen so the same file works whether it is
+ * fed back through this importer or through /dashboard/import: both resolve the
+ * same header names, so one template serves both screens.
+ */
+const STUDENT_TEMPLATE_COLUMNS = [
+  "First Name",
+  "Last Name",
+  "Gender",
+  "Date of Birth",
+  "Class",
+  "Parent Name",
+  "Parent Phone",
+  "Student Number",
+  "PLE Index",
+] as const;
+
+const STUDENT_TEMPLATE_SAMPLE = [
+  ["Sarah", "Nakato", "F", "2015-03-15", "P.5", "James Nakato", "0701234567", "", ""],
+  ["John", "Mukasa", "M", "2014-06-20", "P.5", "Betty Mukasa", "0702345678", "", ""],
+];
+
+/**
+ * Build the starter file as CSV rather than xlsx.
+ *
+ * The importer accepts both, but CSV opens in anything -- Excel, LibreOffice,
+ * Google Sheets, and the phone's own file viewer -- with nothing to install
+ * first. An .xlsx also carries a few hundred kilobytes of zip overhead over 3G
+ * for no benefit on a file this small.
+ */
+function buildStudentTemplateCsv(classes: Array<{ id: string; name: string }>): string {
+  const sampleClasses = classes.slice(0, 2).map((c) => c.name);
+  const rows = STUDENT_TEMPLATE_SAMPLE.map((row, rowIndex) => {
+    const copy = [...row];
+    if (sampleClasses[rowIndex]) copy[4] = sampleClasses[rowIndex];
+    return copy;
+  });
+
+  const escape = (value: string) => (/[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value);
+
+  return [STUDENT_TEMPLATE_COLUMNS, ...rows]
+    .map((row) => row.map((cell) => escape(String(cell ?? ""))).join(","))
+    .join("\n");
 }
 
 interface StudentRegistryPanelProps {
@@ -170,6 +217,21 @@ export default function StudentRegistryPanel({
   const showPhotos = !lowBandwidthMode;
   const [showQuickImport, setShowQuickImport] = useState(false);
 
+  const downloadStudentTemplate = useCallback(() => {
+    const csv = buildStudentTemplateCsv(classes);
+    // The BOM keeps Excel from reading UTF-8 names as latin-1, which turns
+    // characters common in Ugandan names into mojibake on open.
+    const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "SkoolMate_Student_Template.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [classes]);
+
   useEffect(() => {
     if (totalStudents === 0) {
       setShowQuickImport(true);
@@ -187,9 +249,7 @@ export default function StudentRegistryPanel({
     }
 
     if (gamesHouseKey) {
-      const byName = Object.values(houseMap).find(
-        (house) => house.name.toLowerCase() === gamesHouseKey.toLowerCase(),
-      );
+      const byName = Object.values(houseMap).find((house) => house.name.toLowerCase() === gamesHouseKey.toLowerCase());
       if (byName) {
         return byName;
       }
@@ -200,16 +260,12 @@ export default function StudentRegistryPanel({
 
   const resolveClassLabel = (student: StudentRow) => {
     if (student.classes?.name) {
-      return student.classes.stream
-        ? `${student.classes.name} ${student.classes.stream}`
-        : student.classes.name;
+      return student.classes.stream ? `${student.classes.name} ${student.classes.stream}` : student.classes.name;
     }
 
     const classFromId = classes.find((classItem) => classItem.id === student.class_id);
     if (classFromId) {
-      return classFromId.stream
-        ? `${classFromId.name} ${classFromId.stream}`
-        : classFromId.name;
+      return classFromId.stream ? `${classFromId.name} ${classFromId.stream}` : classFromId.name;
     }
 
     return "-";
@@ -217,9 +273,7 @@ export default function StudentRegistryPanel({
 
   const getHouseColor = (house: HouseMeta | null) => {
     if (!house?.color) return "#64748b";
-    return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(house.color)
-      ? house.color
-      : "#64748b";
+    return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(house.color) ? house.color : "#64748b";
   };
 
   const shouldForceShowQuickImport =
@@ -261,12 +315,9 @@ export default function StudentRegistryPanel({
       <div className="dashboard-surface p-5 sm:p-6 mb-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <div className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--navy)] mb-2">
-              Quick import
-            </div>
+            <div className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--navy)] mb-2">Quick import</div>
             <p className="text-sm text-[var(--t3)] max-w-2xl">
-              Keep this closed until you need bulk import. Templates, upload,
-              and preview stay one tap away.
+              Keep this closed until you need bulk import. Templates, upload, and preview stay one tap away.
             </p>
           </div>
           <button
@@ -286,265 +337,236 @@ export default function StudentRegistryPanel({
         )}
         {(showQuickImport || shouldForceShowQuickImport) && (
           <div className="grid gap-4 md:grid-cols-2 mt-6">
-          <div className="space-y-3 rounded-[20px] border border-[var(--border)] bg-[var(--surface)]/60 p-4">
-            <div className="text-sm font-semibold text-[var(--t1)]">
-              Upload student list
-            </div>
-            <input
-              type="file"
-              accept=".csv,.xlsx,.xls"
-              onChange={onTemplateUpload}
-              className="w-full text-sm text-slate-600"
-              disabled={templateStatus === "parsing"}
-            />
-            <p className="text-xs text-[var(--t3)]">
-              We auto-map Excel columns using simple heuristics; add headers
-              exactly as shown.
-            </p>
-            {templateStatus === "parsing" && (
-              <p className="text-xs text-[var(--green)]">Parsing file...</p>
-            )}
-            {templateErrors && (
-              <p className="text-xs text-[var(--amber)]">{templateErrors}</p>
-            )}
-            {templateStatus === "ready" && (
-              <button
-                onClick={onSeedTemplate}
-                className="btn btn-primary btn-sm"
-                disabled={importingTemplate}
-              >
-                {importingTemplate ? (
-                  <span className="flex items-center gap-2">
-                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Seeding {templateRowsCount} students...
-                  </span>
-                ) : (
-                  "Seed students from template"
-                )}
-              </button>
-            )}
-            {importingTemplate && (
-              <div className="w-full bg-surface-container rounded-full h-2 overflow-hidden">
-                <div
-                  className="bg-[var(--primary)] h-full transition-all duration-300"
-                  style={{
-                    width: `${((importProgress?.completed || 0) / Math.max(importProgress?.total || templateRowsCount, 1)) * 100}%`,
-                  }}
-                />
+            <div className="space-y-3 rounded-[20px] border border-[var(--border)] bg-[var(--surface)]/60 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-sm font-semibold text-[var(--t1)]">Upload student list</div>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={downloadStudentTemplate}>
+                  <MaterialIcon icon="download" className="text-sm" />
+                  Get template
+                </button>
               </div>
-            )}
-            {(importProgress || importSummary) && (
-              <div className="mt-2 text-xs text-[var(--t3)]">
-                {importingTemplate && importProgress ? (
-                  <>
-                    Imported {importProgress.completed}/{importProgress.total} rows
-                    {importProgress.success > 0 ? `, ${importProgress.success} saved` : ""}
-                    {importProgress.failed > 0 ? `, ${importProgress.failed} failed` : ""}
-                  </>
-                ) : importSummary ? (
-                  <>
-                    Import complete: {importSummary.success} saved, {importSummary.failed} failed
-                  </>
-                ) : null}
-              </div>
-            )}
-            {importSummary?.errors?.length ? (
-              <div className="mt-3 rounded-2xl border border-[var(--border)] bg-[var(--bg)]/80 p-3">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--t3)] mb-2">
-                  Import issues
-                </div>
-                <ul className="space-y-1 text-xs text-[var(--t2)]">
-                  {importSummary.errors.slice(0, 5).map((error, index) => (
-                    <li key={`${error}-${index}`}>• {error}</li>
-                  ))}
-                  {importSummary.errors.length > 5 && (
-                    <li>• {importSummary.errors.length - 5} more issue(s) were hidden</li>
-                  )}
-                </ul>
-              </div>
-            ) : null}
-            {filteredTotal === 0 ? (
-              <div className="p-8 text-center">
-                <EmptyState
-                  icon="people"
-                  title="No students found"
-                  description={
-                    searchTerm
-                      ? `No students matching "${searchTerm}"`
-                      : "Start by adding students to your school."
-                  }
-                  action={{ label: "Add Student", onClick: onAddStudent }}
-                />
-              </div>
-            ) : (
-              <div className="tbl-wrap table-responsive">
-                <table>
-                  <thead>
-                    <tr>
-                      <th data-label="Student">Student</th>
-                      <th data-label="Number">Number</th>
-                      <th data-label="Class">Class</th>
-                      <th data-label="House">House</th>
-                      <th data-label="Parent">Parent</th>
-                      <th data-label="Phone">Phone</th>
-                      <th data-label="Actions"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {paginatedStudents.map((student) => (
-                      <tr key={student.id}>
-                        <td data-label="Student">
-                          <Link
-                            href={`/dashboard/students/${student.id}`}
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 10,
-                              textDecoration: "none",
-                            }}
-                          >
-                            <div>
-                              {student.photo_url && showPhotos ? (
-                                <Image
-                                  src={student.photo_url}
-                                  alt={`${student.first_name} ${student.last_name}`}
-                                  width={36}
-                                  height={36}
-                                  unoptimized
-                                  style={{
-                                    width: "100%",
-                                    height: "100%",
-                                    objectFit: "cover",
-                                  }}
-                                />
-                              ) : (
-                                <PersonInitials
-                                  name={`${student.first_name} ${student.last_name}`}
-                                  size={36}
-                                />
-                              )}
-                            </div>
-                            <div>
-                              <div
-                                style={{ fontWeight: 600, color: "var(--t1)" }}
-                              >
-                                {student.first_name} {student.last_name}
-                              </div>
-                              <div style={{ fontSize: 11, color: "var(--t3)" }}>
-                                {student.gender === "M" ? "Male" : "Female"}
-                              </div>
-                            </div>
-                          </Link>
-                        </td>
-                        <td data-label="Number">
-                          {student.student_number || "-"}
-                        </td>
-                        <td data-label="Class">
-                          {student.classes?.name || "-"}
-                        </td>
-                        <td data-label="House">
-                          {(() => {
-                            const house = resolveHouse(student);
-                            if (!house) return "-";
-                            return (
-                              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg)] px-2 py-1 text-xs font-semibold text-[var(--t1)]">
-                                <span
-                                  className="h-2.5 w-2.5 rounded-full"
-                                  style={{ backgroundColor: getHouseColor(house) }}
-                                />
-                                {house.name}
-                              </span>
-                            );
-                          })()}
-                        </td>
-                        <td data-label="Parent">
-                          {student.parent_name || "-"}
-                        </td>
-                        <td data-label="Phone">
-                          {student.parent_phone || "-"}
-                        </td>
-                        <td data-label="Actions">
-                          <Link
-                            href={`/dashboard/students/${student.id}`}
-                            className="btn btn-ghost btn-sm"
-                          >
-                            View
-                          </Link>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {pageSize !== -1 && filteredTotal > pageSize && (
-                  <div className="flex items-center justify-between p-4 border-t border-[var(--border)]">
-                    <span style={{ fontSize: 12, color: "var(--t3)" }}>
-                      Page {currentPage} of {totalPages}
+              <input
+                type="file"
+                accept=".csv,.xlsx"
+                onChange={onTemplateUpload}
+                className="w-full text-sm text-slate-600"
+                disabled={templateStatus === "parsing"}
+              />
+              <p className="text-xs text-[var(--t3)]">
+                Columns are matched by name, so the order does not matter and common spellings work. Recognised headers
+                include{" "}
+                <span className="font-medium text-[var(--t2)]">
+                  First Name, Last Name, Gender, Class, Date of Birth, Parent Name, Parent Phone, Student Number, PLE
+                  Index
+                </span>
+                . A single Parent Name also accepts a full name like{" "}
+                <span className="font-medium text-[var(--t2)]">Sarah Nakato</span>, and Class accepts P.1, P1 or Primary
+                1.
+              </p>
+              {templateStatus === "parsing" && <p className="text-xs text-[var(--green)]">Parsing file...</p>}
+              {templateErrors && <p className="text-xs text-[var(--amber)]">{templateErrors}</p>}
+              {templateStatus === "ready" && (
+                <button onClick={onSeedTemplate} className="btn btn-primary btn-sm" disabled={importingTemplate}>
+                  {importingTemplate ? (
+                    <span className="flex items-center gap-2">
+                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Seeding {templateRowsCount} students...
                     </span>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={onPreviousPage}
-                        disabled={currentPage === 1}
-                        className="btn btn-ghost btn-sm"
-                      >
-                        Previous
-                      </button>
-                      <button
-                        onClick={onNextPage}
-                        disabled={currentPage >= totalPages}
-                        className="btn btn-ghost btn-sm"
-                      >
-                        Next
-                      </button>
-                    </div>
+                  ) : (
+                    "Seed students from template"
+                  )}
+                </button>
+              )}
+              {importingTemplate && (
+                <div className="w-full bg-surface-container rounded-full h-2 overflow-hidden">
+                  <div
+                    className="bg-[var(--primary)] h-full transition-all duration-300"
+                    style={{
+                      width: `${((importProgress?.completed || 0) / Math.max(importProgress?.total || templateRowsCount, 1)) * 100}%`,
+                    }}
+                  />
+                </div>
+              )}
+              {(importProgress || importSummary) && (
+                <div className="mt-2 text-xs text-[var(--t3)]">
+                  {importingTemplate && importProgress ? (
+                    <>
+                      Imported {importProgress.completed}/{importProgress.total} rows
+                      {importProgress.success > 0 ? `, ${importProgress.success} saved` : ""}
+                      {importProgress.failed > 0 ? `, ${importProgress.failed} failed` : ""}
+                    </>
+                  ) : importSummary ? (
+                    <>
+                      Import complete: {importSummary.success} saved, {importSummary.failed} failed
+                    </>
+                  ) : null}
+                </div>
+              )}
+              {importSummary?.errors?.length ? (
+                <div className="mt-3 rounded-2xl border border-[var(--border)] bg-[var(--bg)]/80 p-3">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--t3)] mb-2">
+                    Import issues
                   </div>
-                )}
-              </div>
-            )}
-          </div>
-          <div className="rounded-[20px] border border-[var(--border)] bg-[var(--navy-soft)] p-4 space-y-3">
-            <div className="text-sm font-semibold text-[var(--t1)]">
-              Preview & AI hints
-            </div>
-            {templatePreviewRows.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr>
-                      {Object.keys(templatePreviewRows[0]).map((col) => (
-                        <th
-                          key={col}
-                          className="px-2 py-1 text-left text-[11px] uppercase tracking-[0.2em] text-[var(--t3)]"
-                        >
-                          {col}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {templatePreviewRows.map((row, index) => (
-                      <tr
-                        key={index}
-                        className="border-t border-[var(--border)]"
-                      >
-                        {Object.values(row).map((value, idx) => (
-                          <td
-                            key={`${index}-${idx}`}
-                            className="px-2 py-1 truncate max-w-[120px]"
-                          >
-                            {value || "\u2014"}
+                  <ul className="space-y-1 text-xs text-[var(--t2)]">
+                    {importSummary.errors.slice(0, 5).map((error, index) => (
+                      <li key={`${error}-${index}`}>• {error}</li>
+                    ))}
+                    {importSummary.errors.length > 5 && (
+                      <li>• {importSummary.errors.length - 5} more issue(s) were hidden</li>
+                    )}
+                  </ul>
+                </div>
+              ) : null}
+              {filteredTotal === 0 ? (
+                <div className="p-8 text-center">
+                  <EmptyState
+                    icon="people"
+                    title="No students found"
+                    description={
+                      searchTerm ? `No students matching "${searchTerm}"` : "Start by adding students to your school."
+                    }
+                    action={{ label: "Add Student", onClick: onAddStudent }}
+                  />
+                </div>
+              ) : (
+                <div className="tbl-wrap table-responsive">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th data-label="Student">Student</th>
+                        <th data-label="Number">Number</th>
+                        <th data-label="Class">Class</th>
+                        <th data-label="House">House</th>
+                        <th data-label="Parent">Parent</th>
+                        <th data-label="Phone">Phone</th>
+                        <th data-label="Actions"></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paginatedStudents.map((student) => (
+                        <tr key={student.id}>
+                          <td data-label="Student">
+                            <Link
+                              href={`/dashboard/students/${student.id}`}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 10,
+                                textDecoration: "none",
+                              }}
+                            >
+                              <div>
+                                {student.photo_url && showPhotos ? (
+                                  <Image
+                                    src={student.photo_url}
+                                    alt={`${student.first_name} ${student.last_name}`}
+                                    width={36}
+                                    height={36}
+                                    unoptimized
+                                    style={{
+                                      width: "100%",
+                                      height: "100%",
+                                      objectFit: "cover",
+                                    }}
+                                  />
+                                ) : (
+                                  <PersonInitials name={`${student.first_name} ${student.last_name}`} size={36} />
+                                )}
+                              </div>
+                              <div>
+                                <div style={{ fontWeight: 600, color: "var(--t1)" }}>
+                                  {student.first_name} {student.last_name}
+                                </div>
+                                <div style={{ fontSize: 11, color: "var(--t3)" }}>
+                                  {student.gender === "M" ? "Male" : "Female"}
+                                </div>
+                              </div>
+                            </Link>
                           </td>
+                          <td data-label="Number">{student.student_number || "-"}</td>
+                          <td data-label="Class">{student.classes?.name || "-"}</td>
+                          <td data-label="House">
+                            {(() => {
+                              const house = resolveHouse(student);
+                              if (!house) return "-";
+                              return (
+                                <span className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg)] px-2 py-1 text-xs font-semibold text-[var(--t1)]">
+                                  <span
+                                    className="h-2.5 w-2.5 rounded-full"
+                                    style={{ backgroundColor: getHouseColor(house) }}
+                                  />
+                                  {house.name}
+                                </span>
+                              );
+                            })()}
+                          </td>
+                          <td data-label="Parent">{student.parent_name || "-"}</td>
+                          <td data-label="Phone">{student.parent_phone || "-"}</td>
+                          <td data-label="Actions">
+                            <Link href={`/dashboard/students/${student.id}`} className="btn btn-ghost btn-sm">
+                              View
+                            </Link>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {pageSize !== -1 && filteredTotal > pageSize && (
+                    <div className="flex items-center justify-between p-4 border-t border-[var(--border)]">
+                      <span style={{ fontSize: 12, color: "var(--t3)" }}>
+                        Page {currentPage} of {totalPages}
+                      </span>
+                      <div className="flex gap-2">
+                        <button onClick={onPreviousPage} disabled={currentPage === 1} className="btn btn-ghost btn-sm">
+                          Previous
+                        </button>
+                        <button
+                          onClick={onNextPage}
+                          disabled={currentPage >= totalPages}
+                          className="btn btn-ghost btn-sm"
+                        >
+                          Next
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="rounded-[20px] border border-[var(--border)] bg-[var(--navy-soft)] p-4 space-y-3">
+              <div className="text-sm font-semibold text-[var(--t1)]">Preview & AI hints</div>
+              {templatePreviewRows.length > 0 ? (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr>
+                        {Object.keys(templatePreviewRows[0]).map((col) => (
+                          <th
+                            key={col}
+                            className="px-2 py-1 text-left text-[11px] uppercase tracking-[0.2em] text-[var(--t3)]"
+                          >
+                            {col}
+                          </th>
                         ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <p className="text-xs text-[var(--t3)]">
-                Upload a file to preview the parsed rows.
-              </p>
-            )}
-          </div>
+                    </thead>
+                    <tbody>
+                      {templatePreviewRows.map((row, index) => (
+                        <tr key={index} className="border-t border-[var(--border)]">
+                          {Object.values(row).map((value, idx) => (
+                            <td key={`${index}-${idx}`} className="px-2 py-1 truncate max-w-[120px]">
+                              {value || "\u2014"}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="text-xs text-[var(--t3)]">Upload a file to preview the parsed rows.</p>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -553,13 +575,9 @@ export default function StudentRegistryPanel({
         <div className="card p-4 shadow-[0_4px_16px_rgba(0,0,0,0.08),0_1px_4px_rgba(0,0,0,0.04)]">
           <div className="flex items-center gap-3 mb-2.5">
             <div className="w-9 h-9 rounded-lg bg-[var(--navy-soft)] flex items-center justify-center">
-              <MaterialIcon style={{ fontSize: 18, color: "var(--navy)" }}>
-                group
-              </MaterialIcon>
+              <MaterialIcon style={{ fontSize: 18, color: "var(--navy)" }}>group</MaterialIcon>
             </div>
-            <span className="text-[10px] font-bold tracking-[0.07em] uppercase text-[var(--t3)]">
-              Total
-            </span>
+            <span className="text-[10px] font-bold tracking-[0.07em] uppercase text-[var(--t3)]">Total</span>
           </div>
           <div
             style={{
@@ -575,13 +593,9 @@ export default function StudentRegistryPanel({
         <div className="card p-4 shadow-[0_4px_16px_rgba(0,0,0,0.08),0_1px_4px_rgba(0,0,0,0.04)]">
           <div className="flex items-center gap-3 mb-2.5">
             <div className="w-9 h-9 rounded-lg bg-[rgba(23,50,95,.1)] flex items-center justify-center">
-              <MaterialIcon style={{ fontSize: 18, color: "var(--navy)" }}>
-                male
-              </MaterialIcon>
+              <MaterialIcon style={{ fontSize: 18, color: "var(--navy)" }}>male</MaterialIcon>
             </div>
-            <span className="text-[10px] font-bold tracking-[0.07em] uppercase text-[var(--t3)]">
-              Boys
-            </span>
+            <span className="text-[10px] font-bold tracking-[0.07em] uppercase text-[var(--t3)]">Boys</span>
           </div>
           <div
             style={{
@@ -597,13 +611,9 @@ export default function StudentRegistryPanel({
         <div className="card p-4">
           <div className="flex items-center gap-3 mb-2.5">
             <div className="w-9 h-9 rounded-lg bg-[rgba(192,57,43,.1)] flex items-center justify-center">
-              <MaterialIcon style={{ fontSize: 18, color: "var(--red)" }}>
-                female
-              </MaterialIcon>
+              <MaterialIcon style={{ fontSize: 18, color: "var(--red)" }}>female</MaterialIcon>
             </div>
-            <span className="text-[10px] font-bold tracking-[0.07em] uppercase text-[var(--t3)]">
-              Girls
-            </span>
+            <span className="text-[10px] font-bold tracking-[0.07em] uppercase text-[var(--t3)]">Girls</span>
           </div>
           <div
             style={{
@@ -619,13 +629,9 @@ export default function StudentRegistryPanel({
         <div className="card p-4 shadow-[0_4px_16px_rgba(0,0,0,0.08),0_1px_4px_rgba(0,0,0,0.04)]">
           <div className="flex items-center gap-3 mb-2.5">
             <div className="w-9 h-9 rounded-lg bg-[var(--green-soft)] flex items-center justify-center">
-              <MaterialIcon style={{ fontSize: 18, color: "var(--green)" }}>
-                school
-              </MaterialIcon>
+              <MaterialIcon style={{ fontSize: 18, color: "var(--green)" }}>school</MaterialIcon>
             </div>
-            <span className="text-[10px] font-bold tracking-[0.07em] uppercase text-[var(--t3)]">
-              Classes
-            </span>
+            <span className="text-[10px] font-bold tracking-[0.07em] uppercase text-[var(--t3)]">Classes</span>
           </div>
           <div
             style={{
@@ -706,9 +712,7 @@ export default function StudentRegistryPanel({
           </select>
           <select
             value={filterGender}
-            onChange={(e) =>
-              onFilterGenderChange(e.target.value as "all" | "M" | "F")
-            }
+            onChange={(e) => onFilterGenderChange(e.target.value as "all" | "M" | "F")}
             style={{
               padding: "10px 14px",
               border: "1px solid var(--border)",
@@ -726,9 +730,7 @@ export default function StudentRegistryPanel({
           </select>
           <select
             value={filterStatus}
-            onChange={(e) =>
-              onFilterStatusChange(e.target.value)
-            }
+            onChange={(e) => onFilterStatusChange(e.target.value)}
             style={{
               padding: "10px 14px",
               border: "1px solid var(--border)",
@@ -784,9 +786,7 @@ export default function StudentRegistryPanel({
           </label>
           <select
             value={sortBy}
-            onChange={(e) =>
-              onSortByChange(e.target.value as "name" | "number" | "class")
-            }
+            onChange={(e) => onSortByChange(e.target.value as "name" | "number" | "class")}
             style={{
               padding: "10px 14px",
               border: "1px solid var(--border)",
@@ -843,9 +843,7 @@ export default function StudentRegistryPanel({
                 margin: "0 auto 12px",
               }}
             >
-              <MaterialIcon style={{ fontSize: 24, color: "var(--t3)" }}>
-                group
-              </MaterialIcon>
+              <MaterialIcon style={{ fontSize: 24, color: "var(--t3)" }}>group</MaterialIcon>
             </div>
             <div
               style={{
@@ -858,16 +856,10 @@ export default function StudentRegistryPanel({
               No students found
             </div>
             <div style={{ fontSize: 12, color: "var(--t3)" }}>
-              {searchTerm
-                ? "Try a different search term"
-                : "Add your first student to get started"}
+              {searchTerm ? "Try a different search term" : "Add your first student to get started"}
             </div>
             {!searchTerm && (
-              <button
-                onClick={onAddStudent}
-                className="btn btn-primary"
-                style={{ marginTop: 16 }}
-              >
+              <button onClick={onAddStudent} className="btn btn-primary" style={{ marginTop: 16 }}>
                 <MaterialIcon icon="person_add" style={{ fontSize: "16px" }} />
                 Add Student
               </button>
@@ -918,10 +910,7 @@ export default function StudentRegistryPanel({
                               color: "#fff",
                               overflow: "hidden",
                               position: "relative",
-                              background:
-                                student.gender === "M"
-                                  ? "var(--navy)"
-                                  : "var(--red)",
+                              background: student.gender === "M" ? "var(--navy)" : "var(--red)",
                             }}
                           >
                             {student.photo_url && showPhotos ? (
@@ -938,10 +927,7 @@ export default function StudentRegistryPanel({
                                 }}
                               />
                             ) : (
-                              <PersonInitials
-                                name={`${student.first_name} ${student.last_name}`}
-                                size={36}
-                              />
+                              <PersonInitials name={`${student.first_name} ${student.last_name}`} size={36} />
                             )}
                             <span
                               title={statusMeta?.label || "No attendance recorded today"}
@@ -982,10 +968,7 @@ export default function StudentRegistryPanel({
                           </div>
                         </Link>
                       </td>
-                      <td
-                        data-label="Number"
-                        style={{ fontFamily: "DM Mono", fontSize: 12 }}
-                      >
+                      <td data-label="Number" style={{ fontFamily: "DM Mono", fontSize: 12 }}>
                         {student.student_number || "-"}
                       </td>
                       <td data-label="Class">
@@ -1000,22 +983,21 @@ export default function StudentRegistryPanel({
                           }}
                         >
                           {resolveClassLabel(student)}
-                          {student.boarding_status &&
-                            student.boarding_status !== "day" && (
-                              <span
-                                style={{
-                                  marginLeft: 4,
-                                  fontSize: 9,
-                                  padding: "1px 5px",
-                                  background: "rgba(155,89,182,0.15)",
-                                  color: "#0d9488",
-                                  borderRadius: 8,
-                                  fontWeight: 600,
-                                }}
-                              >
-                                {student.boarding_status}
-                              </span>
-                            )}
+                          {student.boarding_status && student.boarding_status !== "day" && (
+                            <span
+                              style={{
+                                marginLeft: 4,
+                                fontSize: 9,
+                                padding: "1px 5px",
+                                background: "rgba(155,89,182,0.15)",
+                                color: "#0d9488",
+                                borderRadius: 8,
+                                fontWeight: 600,
+                              }}
+                            >
+                              {student.boarding_status}
+                            </span>
+                          )}
                         </span>
                       </td>
                       <td data-label="House">
@@ -1037,10 +1019,7 @@ export default function StudentRegistryPanel({
                       <td data-label="Parent" style={{ fontSize: 13 }}>
                         {student.parent_name || "-"}
                       </td>
-                      <td
-                        data-label="Phone"
-                        style={{ fontSize: 13, fontFamily: "DM Mono" }}
-                      >
+                      <td data-label="Phone" style={{ fontSize: 13, fontFamily: "DM Mono" }}>
                         {student.parent_phone || "-"}
                       </td>
                       <td data-label="Actions">
@@ -1056,11 +1035,7 @@ export default function StudentRegistryPanel({
                               borderRadius: 6,
                             }}
                           >
-                            <MaterialIcon
-                              style={{ fontSize: 16, color: "var(--t3)" }}
-                            >
-                              sms
-                            </MaterialIcon>
+                            <MaterialIcon style={{ fontSize: 16, color: "var(--t3)" }}>sms</MaterialIcon>
                           </button>
                           <button
                             onClick={() => onEditStudent(student)}
@@ -1072,11 +1047,7 @@ export default function StudentRegistryPanel({
                               borderRadius: 6,
                             }}
                           >
-                            <MaterialIcon
-                              style={{ fontSize: 16, color: "var(--t3)" }}
-                            >
-                              edit
-                            </MaterialIcon>
+                            <MaterialIcon style={{ fontSize: 16, color: "var(--t3)" }}>edit</MaterialIcon>
                           </button>
                           <button
                             onClick={() => onDeleteStudent(student.id)}
@@ -1088,11 +1059,7 @@ export default function StudentRegistryPanel({
                               borderRadius: 6,
                             }}
                           >
-                            <MaterialIcon
-                              style={{ fontSize: 16, color: "var(--t3)" }}
-                            >
-                              delete
-                            </MaterialIcon>
+                            <MaterialIcon style={{ fontSize: 16, color: "var(--t3)" }}>delete</MaterialIcon>
                           </button>
                         </div>
                       </td>
@@ -1110,10 +1077,8 @@ export default function StudentRegistryPanel({
             style={{ fontSize: 13 }}
           >
             <span className="text-[var(--t3)]">
-              Showing{" "}
-              {Math.min((currentPage - 1) * pageSize + 1, filteredTotal)}-
-              {Math.min(currentPage * pageSize, filteredTotal)} of{" "}
-              {filteredTotal} students
+              Showing {Math.min((currentPage - 1) * pageSize + 1, filteredTotal)}-
+              {Math.min(currentPage * pageSize, filteredTotal)} of {filteredTotal} students
             </span>
             <div className="flex items-center gap-2">
               <button

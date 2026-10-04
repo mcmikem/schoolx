@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { buildClassAliasMap, type ParsedStudentRow, resolveClassId, validateStudentRow } from "@/lib/import/students";
 import type { CreateStudentInput } from "@/types";
-import { resolveClassIdForImport } from "@/lib/student-hub";
+
 export type TemplateRow = Record<string, string>;
 
 interface ImportSummary {
@@ -12,16 +13,38 @@ interface ImportSummary {
   errors: string[];
 }
 
+/** A row that passed header mapping, with its class resolved to a real id. */
+interface SeedableRow {
+  preview: TemplateRow;
+  data: ParsedStudentRow;
+  /** validateStudentRow rejects a missing or unrecognised gender, so a row that
+   *  reaches the seed step always has a concrete value. */
+  gender: "M" | "F";
+  classId: string;
+  classLabel: string;
+}
+
 interface UseStudentTemplateImportParams {
   classes: Array<{ id: string; name: string }>;
   createStudent: (student: CreateStudentInput) => Promise<unknown>;
 }
 
-export function useStudentTemplateImport(
-  params: UseStudentTemplateImportParams,
-) {
+const PREVIEW_COLUMNS: Array<keyof ParsedStudentRow> = [
+  "student_number",
+  "first_name",
+  "last_name",
+  "gender",
+  "date_of_birth",
+  "class_name",
+  "parent_name",
+  "parent_phone",
+  "parent_phone2",
+  "ple_index_number",
+];
+
+export function useStudentTemplateImport(params: UseStudentTemplateImportParams) {
   const { classes, createStudent } = params;
-  const [templateRows, setTemplateRows] = useState<TemplateRow[]>([]);
+  const [seedableRows, setSeedableRows] = useState<SeedableRow[]>([]);
   const [templatePreviewRows, setTemplatePreviewRows] = useState<TemplateRow[]>([]);
   const [templateStatus, setTemplateStatus] = useState<"idle" | "parsing" | "ready">("idle");
   const [templateErrors, setTemplateErrors] = useState<string | null>(null);
@@ -34,66 +57,65 @@ export function useStudentTemplateImport(
   } | null>(null);
   const [importSummary, setImportSummary] = useState<ImportSummary | null>(null);
 
-  const normalizeTemplateRows = useCallback(
-    (rows: TemplateRow[]) =>
-      rows.map((row) => ({
-        student_number: row.student_number?.trim() || "",
-        first_name: row.first_name?.trim() || "",
-        last_name: row.last_name?.trim() || "",
-        gender: row.gender?.trim().toUpperCase() === "F" ? "F" : "M",
-        class_name: row.class_name?.trim() || "",
-        class_id: row.class_id?.trim() || "",
-        ple_index_number: row.ple_index_number?.trim() || "",
-        parent_name: row.parent_name?.trim() || "",
-        parent_phone: row.parent_phone?.trim() || "",
-        parent_phone2: row.parent_phone2?.trim() || "",
-        opening_balance: row.opening_balance?.trim() || "0",
-      })),
-    [],
-  );
+  /**
+   * Reads the raw file into plain objects keyed by the original header text.
+   *
+   * No column is interpreted here. Header aliases, gender, the full-name split
+   * and the pairing of a second phone column are all handled by
+   * validateStudentRow, which is shared with /dashboard/import.
+   */
+  const readTabularRows = useCallback(async (file: File): Promise<TemplateRow[]> => {
+    const extension = (file.name.split(".").pop() || "").toLowerCase();
 
-  const parseExcelTemplate = useCallback(async (file: File) => {
-    const ExcelJS = (await import("exceljs")).default;
-    const workbook = new ExcelJS.Workbook();
-    const buffer = await file.arrayBuffer();
-    await workbook.xlsx.load(buffer);
+    if (extension === "xls") {
+      throw new Error("Legacy .xls files are not supported. Save the file as .xlsx or .csv and upload it again.");
+    }
 
-    const worksheet = workbook.worksheets[0];
-    if (!worksheet) return [] as TemplateRow[];
+    if (extension === "xlsx") {
+      const ExcelJS = (await import("exceljs")).default;
+      const workbook = new ExcelJS.Workbook();
+      await workbook.xlsx.load(await file.arrayBuffer());
+      const worksheet = workbook.worksheets[0];
+      if (!worksheet) return [];
 
-    const headerRowValues = worksheet.getRow(1).values;
-    const headerVals = Array.isArray(headerRowValues) ? headerRowValues : [];
-    const headers = headerVals
-      .slice(1)
-      .map((header) =>
-        String(header || "")
-          .trim()
-          .toLowerCase()
-          .replace(/\s+/g, "_"),
-      );
+      const firstRow = worksheet.getRow(1).values;
+      const headers = (Array.isArray(firstRow) ? firstRow : []).slice(1).map((header) => String(header ?? "").trim());
 
-    const parsedRows: TemplateRow[] = [];
-    worksheet.eachRow((row, rowNumber) => {
-      if (rowNumber === 1) return;
-
-      const rowVals = row.values;
-      const vals = Array.isArray(rowVals) ? rowVals : [];
-      const values = vals.slice(1).map((value) =>
-        String(value ?? "").trim(),
-      );
-
-      const record: TemplateRow = {};
-      headers.forEach((header, index) => {
-        if (!header) return;
-        record[header] = values[index] || "";
+      const rows: TemplateRow[] = [];
+      worksheet.eachRow((row, rowNumber) => {
+        if (rowNumber === 1) return;
+        const values = (Array.isArray(row.values) ? row.values : []).slice(1);
+        const record: TemplateRow = {};
+        headers.forEach((header, index) => {
+          if (header) record[header] = String(values[index] ?? "").trim();
+        });
+        if (Object.values(record).some((value) => value.length > 0)) rows.push(record);
       });
+      return rows;
+    }
 
-      if (Object.values(record).some((value) => value.length > 0)) {
-        parsedRows.push(record);
-      }
+    const Papa = (await import("papaparse")).default;
+    return await new Promise<TemplateRow[]>((resolve, reject) => {
+      Papa.parse<TemplateRow>(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (results) => {
+          // A duplicate or renamed header makes Papa collapse the column. Surface
+          // it rather than silently importing a shifted row.
+          const problems = (results.errors || []).slice(0, 3).map((e) => e.message);
+          if (problems.length) {
+            reject(new Error(`Could not read the file: ${problems.join("; ")}`));
+            return;
+          }
+          resolve(
+            (results.data || []).filter((row) =>
+              Object.values(row || {}).some((value) => String(value ?? "").trim().length > 0),
+            ),
+          );
+        },
+        error: (error) => reject(new Error(error.message)),
+      });
     });
-
-    return parsedRows;
   }, []);
 
   const handleStudentTemplateUpload = useCallback(
@@ -103,67 +125,105 @@ export function useStudentTemplateImport(
 
       setTemplateStatus("parsing");
       setTemplateErrors(null);
-      setTemplateRows([]);
+      setSeedableRows([]);
       setTemplatePreviewRows([]);
       setImportSummary(null);
       setImportProgress(null);
 
-      const extension = file.name.split(".").pop()?.toLowerCase();
-      if (extension === "xlsx") {
-        parseExcelTemplate(file)
-          .then((rows) => {
-            const normalized = normalizeTemplateRows(rows);
-            setTemplateRows(normalized);
-            setTemplatePreviewRows(normalized.slice(0, 5));
-            setTemplateStatus("ready");
-          })
-          .catch((error: unknown) => {
-            setTemplateErrors(
-              error instanceof Error
-                ? error.message
-                : "Failed to parse Excel file",
-            );
-            setTemplateStatus("idle");
-          });
-        return;
-      }
-
-      if (extension === "xls") {
-        setTemplateErrors(
-          "Legacy .xls files are not supported yet. Please save as .xlsx or .csv and upload again.",
-        );
-        setTemplateStatus("idle");
-        return;
-      }
-
-      const Papa = (await import("papaparse")).default;
-      Papa.parse<TemplateRow>(file, {
-        header: true,
-        skipEmptyLines: true,
-        complete: (results) => {
-          const normalized = normalizeTemplateRows(results.data);
-
-          setTemplateRows(normalized);
-          setTemplatePreviewRows(normalized.slice(0, 5));
-          setTemplateStatus("ready");
-        },
-        error: (error) => {
-          setTemplateErrors(error.message);
+      try {
+        const rawRows = await readTabularRows(file);
+        if (rawRows.length === 0) {
+          setTemplateErrors(
+            "That file has no student rows. The first line must be a header row, such as: First Name, Last Name, Gender, Class, Parent Name, Parent Phone",
+          );
           setTemplateStatus("idle");
-        },
-      });
+          return;
+        }
+
+        // One alias map for the whole file. Indexing every class under its
+        // normalised name and its common spellings is what lets "P.1", "p1" and
+        // "Primary 1" all reach the same class instead of failing row by row.
+        const classMap = buildClassAliasMap(classes);
+
+        const usable: SeedableRow[] = [];
+        const problems: string[] = [];
+
+        rawRows.forEach((raw, index) => {
+          const validated = validateStudentRow(raw);
+          const data = validated.data;
+
+          if (!data.first_name || !data.last_name) {
+            problems.push(`Row ${index + 1}: ${validated.errors.join("; ") || "first and last name are required"}`);
+            return;
+          }
+
+          // createStudent requires a parent name; validateStudentRow does not, so
+          // without this the row passes the pre-flight and then fails mid-import.
+          if (!data.parent_name) {
+            problems.push(`Row ${index + 1} (${data.first_name} ${data.last_name}): parent name is required`);
+            return;
+          }
+
+          const classId = resolveClassId(classMap, data.class_name) || "";
+          if (!classId) {
+            const known = classes.map((c) => c.name).join(", ");
+            problems.push(
+              data.class_name
+                ? `Row ${index + 1} (${data.first_name} ${data.last_name}): no class matches "${data.class_name}". Classes in this school: ${known || "none yet"}`
+                : `Row ${index + 1} (${data.first_name} ${data.last_name}): no class given. Classes in this school: ${known || "none yet"}`,
+            );
+            return;
+          }
+
+          // Parent contact is not required to enrol a learner, but an unusable
+          // phone number is worth reporting before the rows are written rather
+          // than after, when fixing it means finding the student again.
+          if (validated.errors.length) {
+            problems.push(`Row ${index + 1} (${data.first_name} ${data.last_name}): ${validated.errors.join("; ")}`);
+            return;
+          }
+
+          const preview: TemplateRow = {};
+          for (const column of PREVIEW_COLUMNS) preview[column] = String(data[column] ?? "");
+          preview.resolved_class = classes.find((c) => c.id === classId)?.name || data.class_name;
+
+          usable.push({
+            preview,
+            data,
+            gender: data.gender as "M" | "F",
+            classId,
+            classLabel: preview.resolved_class,
+          });
+        });
+
+        setSeedableRows(usable);
+        setTemplatePreviewRows(usable.slice(0, 5).map((row) => row.preview));
+        setTemplateStatus("ready");
+
+        if (problems.length) {
+          const skipped = problems.length;
+          setTemplateErrors(
+            `${skipped} of ${rawRows.length} rows cannot be imported and will be skipped:\n` +
+              problems.slice(0, 8).join("\n") +
+              (problems.length > 8 ? `\n…and ${problems.length - 8} more.` : ""),
+          );
+        }
+      } catch (error: unknown) {
+        setTemplateErrors(error instanceof Error ? error.message : "Could not read that file");
+        setTemplateStatus("idle");
+      }
     },
-    [normalizeTemplateRows, parseExcelTemplate],
+    [classes, readTabularRows],
   );
 
   const handleSeedStudentsFromTemplate = useCallback(async () => {
-    if (!templateRows.length) {
+    if (!seedableRows.length) {
       setTemplateErrors("Upload a template before seeding.");
       return;
     }
 
     setImportingTemplate(true);
-    setImportProgress({ completed: 0, total: templateRows.length, success: 0, failed: 0 });
+    setImportProgress({ completed: 0, total: seedableRows.length, success: 0, failed: 0 });
 
     let success = 0;
     let failed = 0;
@@ -172,47 +232,47 @@ export function useStudentTemplateImport(
       if (errors.length < 10) errors.push(message);
     };
 
-    for (const [index, row] of templateRows.entries()) {
-      const classId = resolveClassIdForImport(row, classes);
-      if (!row.first_name || !row.last_name || !classId) {
-        captureError(
-          `Row ${index + 1}: missing ${!row.first_name ? "first name" : !row.last_name ? "last name" : "class"}`,
-        );
-        failed++;
-        setImportProgress({ completed: index + 1, total: templateRows.length, success, failed });
-        continue;
-      }
-
+    // Deliberately sequential. createStudent() re-reads its own student number
+    // each time and asserts it is unique, so running rows concurrently makes
+    // them race for the same generated number and turns a slow import into a
+    // failed one.
+    for (const [index, row] of seedableRows.entries()) {
       try {
         await createStudent({
-          first_name: row.first_name,
-          last_name: row.last_name,
-          gender: row.gender === "F" ? "F" : "M",
-          class_id: classId,
-          student_number: row.student_number || undefined,
-          ple_index_number: row.ple_index_number || undefined,
-          parent_name: row.parent_name || "",
-          parent_phone: row.parent_phone || "",
-          parent_phone2: row.parent_phone2 || undefined,
-          opening_balance: parseFloat(row.opening_balance || "0"),
+          first_name: row.data.first_name,
+          last_name: row.data.last_name,
+          gender: row.gender,
+          date_of_birth: row.data.date_of_birth || undefined,
+          class_id: row.classId,
+          student_number: row.data.student_number || undefined,
+          ple_index_number: row.data.ple_index_number || undefined,
+          parent_name: row.data.parent_name,
+          parent_phone: row.data.parent_phone,
+          parent_phone2: row.data.parent_phone2 || undefined,
+          opening_balance: 0,
           status: "active",
         });
         success++;
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unknown error";
-        captureError(`Row ${index + 1} (${row.first_name} ${row.last_name}): ${message}`);
+        captureError(`Row ${index + 1} (${row.data.first_name} ${row.data.last_name}, ${row.classLabel}): ${message}`);
         failed++;
       }
 
-      setImportProgress({ completed: index + 1, total: templateRows.length, success, failed });
+      setImportProgress({
+        completed: index + 1,
+        total: seedableRows.length,
+        success,
+        failed,
+      });
     }
 
-    setImportSummary({ success, failed, total: templateRows.length, errors });
+    setImportSummary({ success, failed, total: seedableRows.length, errors });
     setImportingTemplate(false);
-  }, [classes, createStudent, templateRows]);
+  }, [createStudent, seedableRows]);
 
   return {
-    templateRows,
+    templateRows: seedableRows,
     templatePreviewRows,
     templateStatus,
     templateErrors,
