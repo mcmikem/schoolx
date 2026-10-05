@@ -8,6 +8,7 @@ import MaterialIcon from "@/components/MaterialIcon";
 import StudentPhotoField from "@/components/students/StudentPhotoField";
 import { uploadStudentPhoto } from "@/lib/student-photos";
 import { UGANDA_DISTRICT_DIRECTORY } from "@/lib/uganda-admin";
+import { getErrorMessage } from "@/lib/validation";
 
 function FieldHint({ tip }: { tip: string }) {
   const [open, setOpen] = useState(false);
@@ -457,7 +458,7 @@ export default function StudentDetailPanel({
       toast.success("Student added successfully");
       onClose();
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to add student";
+      const errorMessage = getErrorMessage(err, "Failed to add student");
       toast.error(errorMessage);
     } finally {
       setSaving(false);
@@ -499,7 +500,7 @@ export default function StudentDetailPanel({
       toast.success("Student updated successfully");
       onClose();
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to update student";
+      const errorMessage = getErrorMessage(err, "Failed to update student");
       toast.error(errorMessage);
     } finally {
       setSaving(false);
@@ -629,7 +630,7 @@ export default function StudentDetailPanel({
                     await handleStudentPhotoUpload(file, isEdit ? "edit" : "new");
                     toast.success(isEdit ? "Student photo updated" : "Passport photo added");
                   } catch (error: unknown) {
-                    toast.error(error instanceof Error ? error.message : "Failed to upload photo");
+                    toast.error(getErrorMessage(error, "Failed to upload photo"));
                   } finally {
                     setUploadingPhoto(false);
                   }

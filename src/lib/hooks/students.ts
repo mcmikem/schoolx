@@ -137,6 +137,20 @@ function isMissingStudentColumnError(error: unknown, columnName: string) {
   );
 }
 
+/**
+ * UNIQUE(school_id, student_number) was violated — the number handed out by the
+ * sequence was already in the table. Distinguishable from every other insert
+ * failure because it is the only one that a fresh allocation can fix.
+ */
+function isStudentNumberConflict(error: unknown) {
+  if (!error || typeof error !== "object") return false;
+
+  const code = "code" in error ? String((error as { code?: unknown }).code || "") : "";
+  const message = "message" in error ? String((error as { message?: unknown }).message || "") : "";
+
+  return code === "23505" && message.includes("students_school_id_student_number");
+}
+
 function isAnyMissingStudentsColumnError(error: unknown) {
   if (!error || typeof error !== "object") return false;
 
@@ -345,13 +359,23 @@ export function useStudents(schoolId?: string, options?: { limit?: number; offse
   const seedStudentNumberSequence = useCallback(async () => {
     if (studentNumberSeededRef.current) return;
     if (!schoolId || isDemo || isDemoSchool(schoolId)) return;
-    studentNumberSeededRef.current = true;
 
     try {
       const prefix = `SM/${new Date().getFullYear()}/`;
+      // The timeout fallback must LOOK like a failure, not like an empty
+      // table. Returning [] here read as "this school has no students yet",
+      // which left the sequence at 0 and handed out SM/<year>/0001 — a number
+      // the table already had. That is how Add Student became a duplicate-key
+      // error on a slow connection.
       const seedFallback = {
-        data: [] as { student_number: string }[],
-        error: null,
+        data: null,
+        error: {
+          message: "Timed out reading existing student numbers",
+          code: "TIMEOUT",
+          details: "",
+          hint: "",
+          name: "TimeoutError",
+        },
         count: null,
         status: 408,
         statusText: "Timeout",
@@ -371,6 +395,8 @@ export function useStudents(schoolId?: string, options?: { limit?: number; offse
         5000,
         seedFallback,
       );
+      // Deliberately not marked as seeded: this runs before the query, so one
+      // slow request used to disable seeding for the entire session.
       if (error || !data) return;
 
       const highest = highestStudentNumberSuffix(
@@ -380,18 +406,51 @@ export function useStudents(schoolId?: string, options?: { limit?: number; offse
       if (highest > studentNumberSequenceRef.current) {
         studentNumberSequenceRef.current = highest;
       }
+      studentNumberSeededRef.current = true;
     } catch (error) {
-      // Seeding is a optimisation; falling back to the local counter still
-      // produces a valid number, it just may repeat one already in the table.
       logger.warn("Could not seed the student number sequence:", error);
     }
   }, [schoolId, isDemo]);
+
+  // A cheap existence probe, used only when the sequence above could not be
+  // trusted. One query per created student, not one per counter step — the
+  // difference between O(N) and the quadratic walk this code replaced.
+  const isStudentNumberTaken = useCallback(
+    async (studentNumber: string) => {
+      if (!schoolId || isDemo || isDemoSchool(schoolId)) return false;
+
+      try {
+        const { data, error } = await withTimeout<PostgrestResponse<{ id: string }>>(
+          supabase
+            .from("students")
+            .select("id")
+            .eq("school_id", getQuerySchoolId(schoolId, isDemo))
+            .eq("student_number", studentNumber)
+            .limit(1),
+          5000,
+          // A timed-out probe is indistinguishable from "cannot check"; both
+          // fall through to the constraint below.
+          null as unknown as PostgrestResponse<{ id: string }>,
+        );
+        if (error) throw error;
+        return Boolean(data && data.length > 0);
+      } catch {
+        // Cannot check — assume free. The insert's unique constraint is the
+        // authority, and createStudent retries on that specific violation.
+        return false;
+      }
+    },
+    [schoolId, isDemo],
+  );
 
   const generateUniqueStudentNumber = useCallback(async () => {
     const year = new Date().getFullYear();
     const prefix = `SM/${year}/`;
 
     await seedStudentNumberSequence();
+    // Only true when the read above actually completed, so a school whose
+    // sequence is still unproven pays for one probe rather than trusting 0.
+    const sequenceIsTrusted = studentNumberSeededRef.current;
 
     for (let attempt = 0; attempt < 1000; attempt++) {
       studentNumberSequenceRef.current += 1;
@@ -400,12 +459,13 @@ export function useStudents(schoolId?: string, options?: { limit?: number; offse
       // (or from a previous hand-out), so re-asking for each one would repeat
       // exactly the query this replaces.
       if (assignedStudentNumbersRef.current.has(candidate)) continue;
+      if (!sequenceIsTrusted && (await isStudentNumberTaken(candidate))) continue;
       assignedStudentNumbersRef.current.add(candidate);
       return candidate;
     }
 
     return `${prefix}${Date.now().toString().slice(-6)}`;
-  }, [seedStudentNumberSequence]);
+  }, [seedStudentNumberSequence, isStudentNumberTaken]);
 
   const fetchStudents = useCallback(async () => {
     // Demo mode - check for demo school UUID
@@ -533,28 +593,28 @@ export function useStudents(schoolId?: string, options?: { limit?: number; offse
 
       let createdRow: { id: string } | null = null;
 
-      const firstInsert = await withTimeout(
-        supabase.from("students").insert(studentPayload).select("id").single(),
-        10000,
-        {
-          data: null,
-          error: { message: "Timeout", code: "TIMEOUT", details: "", hint: "", name: "TimeoutError" },
-          count: null as number | null,
-          status: 408,
-          statusText: "Timeout",
-          success: false,
-        } as unknown as PostgrestSingleResponse<{ id: string }>,
-      );
+      // UNIQUE(school_id, student_number) is the only authority on whether a
+      // number is free, and it can still reject one the sequence just handed
+      // out — a seed read that failed, or a second tab inserting at the same
+      // moment. A violation therefore means "allocate again and retry". This
+      // used to fall through to the portable-payload retry, which carries the
+      // identical student_number, so it failed the same way twice and Add
+      // Student reported a duplicate-key error instead of adding anyone.
+      const MAX_NUMBER_RETRIES = 5;
+      const reallocateOrThrow = async (candidateError: unknown, attempt: number): Promise<boolean> => {
+        if (!isStudentNumberConflict(candidateError)) return false;
+        if (!autoAllocated) throw new Error("Student number already exists for this school");
+        if (attempt >= MAX_NUMBER_RETRIES) throw candidateError;
 
-      if (firstInsert.error) {
-        logger.warn("Student insert failed with extended payload, retrying core fields:", firstInsert.error);
+        const replacement = await generateUniqueStudentNumber();
+        logger.warn(`Student number ${studentPayload.student_number} was already taken; retrying with ${replacement}`);
+        studentPayload.student_number = replacement;
+        return true;
+      };
 
-        const retryInsert = await withTimeout(
-          supabase
-            .from("students")
-            .insert(buildPortableStudentPayload(studentPayload as Record<string, unknown>))
-            .select("id")
-            .single(),
+      for (let numberAttempt = 0; ; numberAttempt++) {
+        const firstInsert = await withTimeout(
+          supabase.from("students").insert(studentPayload).select("id").single(),
           10000,
           {
             data: null,
@@ -566,10 +626,12 @@ export function useStudents(schoolId?: string, options?: { limit?: number; offse
           } as unknown as PostgrestSingleResponse<{ id: string }>,
         );
 
-        if (isMissingStudentColumnError(retryInsert.error, "photo_url")) {
-          studentPhotoColumnSupported = false;
+        if (await reallocateOrThrow(firstInsert.error, numberAttempt)) continue;
 
-          const legacyRetryInsert = await withTimeout(
+        if (firstInsert.error) {
+          logger.warn("Student insert failed with extended payload, retrying core fields:", firstInsert.error);
+
+          const retryInsert = await withTimeout(
             supabase
               .from("students")
               .insert(buildPortableStudentPayload(studentPayload as Record<string, unknown>))
@@ -586,14 +648,38 @@ export function useStudents(schoolId?: string, options?: { limit?: number; offse
             } as unknown as PostgrestSingleResponse<{ id: string }>,
           );
 
-          if (legacyRetryInsert.error) throw legacyRetryInsert.error;
-          createdRow = legacyRetryInsert.data;
+          if (await reallocateOrThrow(retryInsert.error, numberAttempt)) continue;
+
+          if (isMissingStudentColumnError(retryInsert.error, "photo_url")) {
+            studentPhotoColumnSupported = false;
+
+            const legacyRetryInsert = await withTimeout(
+              supabase
+                .from("students")
+                .insert(buildPortableStudentPayload(studentPayload as Record<string, unknown>))
+                .select("id")
+                .single(),
+              10000,
+              {
+                data: null,
+                error: { message: "Timeout", code: "TIMEOUT", details: "", hint: "", name: "TimeoutError" },
+                count: null as number | null,
+                status: 408,
+                statusText: "Timeout",
+                success: false,
+              } as unknown as PostgrestSingleResponse<{ id: string }>,
+            );
+
+            if (legacyRetryInsert.error) throw legacyRetryInsert.error;
+            createdRow = legacyRetryInsert.data;
+          } else {
+            if (retryInsert.error) throw retryInsert.error;
+            createdRow = retryInsert.data;
+          }
         } else {
-          if (retryInsert.error) throw retryInsert.error;
-          createdRow = retryInsert.data;
+          createdRow = firstInsert.data;
         }
-      } else {
-        createdRow = firstInsert.data;
+        break;
       }
 
       if (!createdRow) {
@@ -930,8 +1016,18 @@ export function useClasses(schoolId?: string) {
 
       if (error) throw error;
 
-      setClasses((data as unknown as Class[]) || []);
-      await offlineDB.cacheFromServer("classes", (data as unknown as Record<string, unknown>[]) || []);
+      const rows = (data as unknown as Class[]) || [];
+      setClasses(rows);
+
+      // Best-effort offline cache, in its own try. It used to run on the main
+      // path, so a full or broken IndexedDB threw here, fell into the catch
+      // below, blanked the rows just loaded and toasted "Failed to load
+      // classes" — on every page, on every refresh.
+      try {
+        await offlineDB.cacheFromServer("classes", rows as unknown as Record<string, unknown>[]);
+      } catch (cacheErr) {
+        logger.warn("Could not cache classes for offline use:", cacheErr);
+      }
     } catch (err) {
       logger.warn("Classes fetch error:", err);
       // Keep the last-known-good data instead of blanking the page when the
@@ -946,7 +1042,7 @@ export function useClasses(schoolId?: string) {
         // ignore cache read failure
       }
       setClasses([]);
-      toast?.error("Failed to load classes");
+      toast?.error(getErrorMessage(err, "Failed to load classes"));
     } finally {
       setLoading(false);
     }
