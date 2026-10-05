@@ -51,6 +51,8 @@ interface ClassManagerProps {
   onDeleteClass: (id: string) => void;
   onSeedDefaultClasses: () => void;
   onAssignClassTeacher: (classId: string, teacherId: string) => void;
+  hasNursery: boolean;
+  onToggleNursery: (next: boolean) => void;
 }
 
 export default function ClassManager({
@@ -70,6 +72,8 @@ export default function ClassManager({
   onDeleteClass,
   onSeedDefaultClasses,
   onAssignClassTeacher,
+  hasNursery,
+  onToggleNursery,
 }: ClassManagerProps) {
   const [showAddHouse, setShowAddHouse] = useState(false);
   const [newHouse, setNewHouse] = useState({ name: "", color: "#3b82f6", motto: "" });
@@ -78,12 +82,8 @@ export default function ClassManager({
   const [pendingDeleteClassId, setPendingDeleteClassId] = useState<string | null>(null);
   const [pendingDeleteHouseId, setPendingDeleteHouseId] = useState<string | null>(null);
 
-  const houseValidationError = !newHouse.name.trim()
-    ? "Add a house name to continue."
-    : "";
-  const classValidationError = !newClass.name.trim()
-    ? "Add a class name to continue."
-    : "";
+  const houseValidationError = !newHouse.name.trim() ? "Add a house name to continue." : "";
+  const classValidationError = !newClass.name.trim() ? "Add a class name to continue." : "";
 
   const handleAddHouse = () => {
     if (houseValidationError) return;
@@ -103,31 +103,29 @@ export default function ClassManager({
     <div className="space-y-6">
       <Card>
         <CardBody>
-          <h2 className="text-lg font-semibold text-[var(--on-surface)] mb-4">
-            School Type
-          </h2>
+          <h2 className="text-lg font-semibold text-[var(--on-surface)] mb-4">School Type</h2>
           <div className="grid grid-cols-3 gap-3 mb-4">
             {(["urban", "peri_urban", "rural"] as const).map((type) => (
               <button
                 key={type}
-                onClick={() =>
-                  onSchoolConfigChange({ ...schoolConfig, location_type: type })
-                }
+                onClick={() => onSchoolConfigChange({ ...schoolConfig, location_type: type })}
                 className={`p-4 rounded-xl border-2 text-center transition-all ${schoolConfig.location_type === type ? "border-blue-600 bg-blue-50" : "border-gray-200 hover:border-gray-300"}`}
               >
-                <div className="font-medium capitalize">
-                  {type.replace("_", " ")}
-                </div>
+                <div className="font-medium capitalize">{type.replace("_", " ")}</div>
               </button>
             ))}
           </div>
           <div className="space-y-3">
-            {([
+            {[
               { key: "has_boarding" as const, label: "Boarding School", desc: "Students stay overnight" },
-              { key: "has_houses" as const, label: "House System", desc: "Students belong to colored houses (e.g., Nile, Victoria)" },
+              {
+                key: "has_houses" as const,
+                label: "House System",
+                desc: "Students belong to colored houses (e.g., Nile, Victoria)",
+              },
               { key: "has_student_council" as const, label: "Student Council", desc: "President, VP, Secretary, etc." },
               { key: "has_prefects" as const, label: "Prefects", desc: "Head Boy, Head Girl, Sports Prefect, etc." },
-            ]).map(({ key, label, desc }) => (
+            ].map(({ key, label, desc }) => (
               <label
                 key={key}
                 className="flex items-center justify-between p-3 bg-[var(--surface-container)] rounded-xl cursor-pointer"
@@ -155,19 +153,14 @@ export default function ClassManager({
 
       <Card>
         <CardBody>
-          <h2 className="text-lg font-semibold text-[var(--on-surface)] mb-2">
-            Student ID Format
-          </h2>
+          <h2 className="text-lg font-semibold text-[var(--on-surface)] mb-2">Student ID Format</h2>
           <p className="text-sm text-[var(--t3)] mb-4">
             Customize how student numbers are generated. Tokens:{" "}
-            <code className="bg-[var(--surface-container)] px-1.5 py-0.5 rounded text-xs">{`{YYYY}`}</code>{" "}
-            = year,{" "}
-            <code className="bg-[var(--surface-container)] px-1.5 py-0.5 rounded text-xs">{`{####}`}</code>{" "}
-            = sequential number,{" "}
-            <code className="bg-[var(--surface-container)] px-1.5 py-0.5 rounded text-xs">{`{CLASS}`}</code>{" "}
-            = class code,{" "}
-            <code className="bg-[var(--surface-container)] px-1.5 py-0.5 rounded text-xs">{`{GENDER}`}</code>{" "}
-            = M/F
+            <code className="bg-[var(--surface-container)] px-1.5 py-0.5 rounded text-xs">{`{YYYY}`}</code> = year,{" "}
+            <code className="bg-[var(--surface-container)] px-1.5 py-0.5 rounded text-xs">{`{####}`}</code> = sequential
+            number, <code className="bg-[var(--surface-container)] px-1.5 py-0.5 rounded text-xs">{`{CLASS}`}</code> =
+            class code,{" "}
+            <code className="bg-[var(--surface-container)] px-1.5 py-0.5 rounded text-xs">{`{GENDER}`}</code> = M/F
           </p>
           <input
             type="text"
@@ -198,9 +191,7 @@ export default function ClassManager({
         <Card>
           <CardBody>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-[var(--on-surface)]">
-                Houses
-              </h2>
+              <h2 className="text-lg font-semibold text-[var(--on-surface)]">Houses</h2>
               <Button size="sm" onClick={() => setShowAddHouse(true)}>
                 <MaterialIcon icon="add" className="text-sm" /> Add House
               </Button>
@@ -208,9 +199,7 @@ export default function ClassManager({
             {loadingHouses ? (
               <div className="text-sm text-[var(--t3)]">Loading houses...</div>
             ) : houses.length === 0 ? (
-              <div className="text-sm text-[var(--t3)]">
-                No houses configured yet
-              </div>
+              <div className="text-sm text-[var(--t3)]">No houses configured yet</div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 {houses.map((house) => (
@@ -219,16 +208,9 @@ export default function ClassManager({
                     className="p-4 rounded-xl border-2 text-center"
                     style={{ borderColor: house.color }}
                   >
-                    <div
-                      className="w-10 h-10 rounded-full mx-auto mb-2"
-                      style={{ backgroundColor: house.color }}
-                    />
+                    <div className="w-10 h-10 rounded-full mx-auto mb-2" style={{ backgroundColor: house.color }} />
                     <div className="font-semibold text-sm">{house.name}</div>
-                    {house.motto && (
-                      <div className="text-xs text-[var(--t3)] italic mt-0.5">
-                        {house.motto}
-                      </div>
-                    )}
+                    {house.motto && <div className="text-xs text-[var(--t3)] italic mt-0.5">{house.motto}</div>}
                     <button
                       onClick={() => setPendingDeleteHouseId(house.id)}
                       className="text-xs text-red-500 mt-2 hover:underline"
@@ -244,11 +226,7 @@ export default function ClassManager({
       )}
 
       <div className="flex justify-end">
-        <Button
-          onClick={onSaveConfig}
-          disabled={savingConfig}
-          variant="primary"
-        >
+        <Button onClick={onSaveConfig} disabled={savingConfig} variant="primary">
           <MaterialIcon icon="save" className="text-sm" />
           {savingConfig ? "Saving..." : "Save Configuration"}
         </Button>
@@ -256,12 +234,10 @@ export default function ClassManager({
 
       <Card>
         <CardBody>
-          <h2 className="text-lg font-semibold text-[var(--on-surface)] mb-4">
-            Class Teachers
-          </h2>
+          <h2 className="text-lg font-semibold text-[var(--on-surface)] mb-4">Class Teachers</h2>
           <p className="text-sm text-[var(--t3)] mb-4">
-            Assign class teachers to each class. Class teachers manage
-            attendance, behavior, and communicate with parents.
+            Assign class teachers to each class. Class teachers manage attendance, behavior, and communicate with
+            parents.
           </p>
           {loadingClasses ? (
             <div className="text-sm text-[var(--t3)]">Loading classes...</div>
@@ -277,17 +253,11 @@ export default function ClassManager({
                       {cls.name}
                       {cls.stream ? ` ${cls.stream}` : ""}
                     </span>
-                    {cls.class_teacher_id && (
-                      <span className="text-xs text-[var(--t3)]">
-                        Teacher assigned
-                      </span>
-                    )}
+                    {cls.class_teacher_id && <span className="text-xs text-[var(--t3)]">Teacher assigned</span>}
                   </div>
                   <select
                     value={cls.class_teacher_id || ""}
-                    onChange={(e) =>
-                      onAssignClassTeacher(cls.id, e.target.value)
-                    }
+                    onChange={(e) => onAssignClassTeacher(cls.id, e.target.value)}
                     className="input text-sm"
                     style={{ width: "auto", minWidth: "150px" }}
                   >
@@ -303,9 +273,7 @@ export default function ClassManager({
                 </div>
               ))}
               {classes.length > 10 && (
-                <div className="text-sm text-[var(--t3)]">
-                  + {classes.length - 10} more classes
-                </div>
+                <div className="text-sm text-[var(--t3)]">+ {classes.length - 10} more classes</div>
               )}
             </div>
           )}
@@ -315,16 +283,10 @@ export default function ClassManager({
       <Card>
         <CardBody>
           <div className="flex items-center justify-between mb-4 gap-2">
-            <h2 className="text-lg font-semibold text-[var(--on-surface)]">
-              Manage Classes
-            </h2>
+            <h2 className="text-lg font-semibold text-[var(--on-surface)]">Manage Classes</h2>
             <div className="flex items-center gap-2">
               {classes.length === 0 && (
-                <Button
-                  size="sm"
-                  variant="secondary"
-                  onClick={onSeedDefaultClasses}
-                >
+                <Button size="sm" variant="secondary" onClick={onSeedDefaultClasses}>
                   <MaterialIcon icon="auto_awesome" className="text-sm" />
                   Load Standard Set
                 </Button>
@@ -336,9 +298,24 @@ export default function ClassManager({
             </div>
           </div>
           <p className="text-sm text-[var(--t3)] mb-4">
-            Add or remove classes. Use streams (A, B, C) if your school has
-            multiple classes per level.
+            Add or remove classes. Use streams (A, B, C) if your school has multiple classes per level.
           </p>
+          {schoolType !== "secondary" && (
+            <label className="flex items-center justify-between p-3 bg-[var(--surface-container)] rounded-xl cursor-pointer mb-4">
+              <div>
+                <div className="font-medium text-[var(--on-surface)]">Nursery section</div>
+                <div className="text-xs text-[var(--t3)]">
+                  Adds Baby, Middle and Top Class with pre-primary subjects
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                checked={hasNursery}
+                onChange={(e) => onToggleNursery(e.target.checked)}
+                className="w-5 h-5 rounded border-[var(--border)] text-[var(--primary)]"
+              />
+            </label>
+          )}
           {loadingClasses ? (
             <div className="text-sm text-[var(--t3)]">Loading...</div>
           ) : (
@@ -382,9 +359,7 @@ export default function ClassManager({
           >
             <div className="p-6 border-b border-[var(--border)]">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-[var(--on-surface)]">
-                  Add House
-                </h2>
+                <h2 className="text-lg font-semibold text-[var(--on-surface)]">Add House</h2>
                 <button
                   onClick={() => setShowAddHouse(false)}
                   className="p-2 text-[var(--t3)] hover:text-[var(--on-surface)]"
@@ -395,73 +370,52 @@ export default function ClassManager({
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">
-                  House Name
-                </label>
+                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">House Name</label>
                 <input
                   type="text"
                   value={newHouse.name}
-                  onChange={(e) =>
-                    setNewHouse({ ...newHouse, name: e.target.value })
-                  }
+                  onChange={(e) => setNewHouse({ ...newHouse, name: e.target.value })}
                   className="input"
                   placeholder="e.g., Nile"
                   required
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">
-                  Color
-                </label>
+                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Color</label>
                 <div className="flex items-center gap-3">
                   <input
                     type="color"
                     value={newHouse.color}
-                    onChange={(e) =>
-                      setNewHouse({ ...newHouse, color: e.target.value })
-                    }
+                    onChange={(e) => setNewHouse({ ...newHouse, color: e.target.value })}
                     className="w-12 h-10 rounded border cursor-pointer"
                   />
                   <input
                     type="text"
                     value={newHouse.color}
-                    onChange={(e) =>
-                      setNewHouse({ ...newHouse, color: e.target.value })
-                    }
+                    onChange={(e) => setNewHouse({ ...newHouse, color: e.target.value })}
                     className="input flex-1"
                   />
                 </div>
               </div>
               <div>
-                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">
-                  Motto (optional)
-                </label>
+                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Motto (optional)</label>
                 <input
                   type="text"
                   value={newHouse.motto}
-                  onChange={(e) =>
-                    setNewHouse({ ...newHouse, motto: e.target.value })
-                  }
+                  onChange={(e) => setNewHouse({ ...newHouse, motto: e.target.value })}
                   className="input"
                   placeholder="e.g., Flowing Forward"
                 />
               </div>
               <div className="flex gap-3 pt-4">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="flex-1"
-                  onClick={() => setShowAddHouse(false)}
-                >
+                <Button type="button" variant="secondary" className="flex-1" onClick={() => setShowAddHouse(false)}>
                   Cancel
                 </Button>
                 <Button className="flex-1" onClick={handleAddHouse} disabled={Boolean(houseValidationError)}>
                   Add House
                 </Button>
               </div>
-              {houseValidationError && (
-                <p className="text-sm text-[var(--t3)]">{houseValidationError}</p>
-              )}
+              {houseValidationError && <p className="text-sm text-[var(--t3)]">{houseValidationError}</p>}
             </div>
           </div>
         </div>
@@ -478,9 +432,7 @@ export default function ClassManager({
           >
             <div className="p-6 border-b border-[var(--border)]">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold text-[var(--on-surface)]">
-                  Add Class
-                </h2>
+                <h2 className="text-lg font-semibold text-[var(--on-surface)]">Add Class</h2>
                 <button
                   onClick={() => setShowAddClass(false)}
                   className="p-2 text-[var(--t3)] hover:text-[var(--on-surface)]"
@@ -491,30 +443,22 @@ export default function ClassManager({
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">
-                  Class Name
-                </label>
+                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Class Name</label>
                 <input
                   type="text"
                   value={newClass.name}
-                  onChange={(e) =>
-                    setNewClass({ ...newClass, name: e.target.value })
-                  }
+                  onChange={(e) => setNewClass({ ...newClass, name: e.target.value })}
                   className="input"
                   placeholder="e.g., P.5 or S.1"
                   required
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">
-                  Stream (Optional)
-                </label>
+                <label className="text-sm font-medium text-[var(--on-surface)] mb-2 block">Stream (Optional)</label>
                 <input
                   type="text"
                   value={newClass.stream}
-                  onChange={(e) =>
-                    setNewClass({ ...newClass, stream: e.target.value })
-                  }
+                  onChange={(e) => setNewClass({ ...newClass, stream: e.target.value })}
                   className="input"
                   placeholder="e.g., A, B, or C (leave empty if none)"
                 />
@@ -523,21 +467,14 @@ export default function ClassManager({
                 </p>
               </div>
               <div className="flex gap-3 pt-4">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  className="flex-1"
-                  onClick={() => setShowAddClass(false)}
-                >
+                <Button type="button" variant="secondary" className="flex-1" onClick={() => setShowAddClass(false)}>
                   Cancel
                 </Button>
                 <Button className="flex-1" onClick={handleAddClass} disabled={Boolean(classValidationError)}>
                   Add Class
                 </Button>
               </div>
-              {classValidationError && (
-                <p className="text-sm text-[var(--t3)]">{classValidationError}</p>
-              )}
+              {classValidationError && <p className="text-sm text-[var(--t3)]">{classValidationError}</p>}
             </div>
           </div>
         </div>

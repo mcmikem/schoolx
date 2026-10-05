@@ -17,7 +17,8 @@ import { Button } from "@/components/ui/index";
 import { Tabs, TabPanel } from "@/components/ui/Tabs";
 import { useClasses } from "@/lib/hooks";
 import SetupChecklist from "@/components/onboarding/SetupChecklist";
-import { buildDefaultClasses, inferClassLevel } from "@/lib/school-setup";
+import { buildDefaultClasses, buildNurseryClasses, inferClassLevel } from "@/lib/school-setup";
+import { NURSERY_TEMPLATE } from "@/lib/curriculum-templates";
 import { getErrorMessage } from "@/lib/validation";
 import MaterialIcon from "@/components/MaterialIcon";
 import GeneralSettings from "@/components/settings/GeneralSettings";
@@ -178,6 +179,7 @@ export default function SettingsPage() {
   const [switchingBillingMode, setSwitchingBillingMode] = useState(false);
   const [supportPhone, setSupportPhone] = useState("");
   const [savingSupportPhone, setSavingSupportPhone] = useState(false);
+  const [hasNursery, setHasNursery] = useState(false);
   const schoolType = school?.school_type || "primary";
 
   useEffect(() => {
@@ -198,6 +200,7 @@ export default function SettingsPage() {
         grade_threshold: parseInt(settingsMap.grade_threshold) || 50,
         fee_threshold: parseInt(settingsMap.fee_threshold) || 50000,
       }));
+      setHasNursery(settingsMap.has_nursery === "true");
       const schoolResult = await withTimeout(
         supabase.from("schools").select("logo_url").eq("id", school.id).single(),
         10000,
@@ -547,6 +550,67 @@ export default function SettingsPage() {
       toast.success("Standard class structure loaded");
     } catch (err: unknown) {
       toast.error(getErrorMessage(err, "Failed to load classes"));
+    }
+  };
+
+  const toggleNursery = async (next: boolean) => {
+    if (!school?.id) return;
+    try {
+      // Seed BEFORE saving the flag: if this throws, nothing is persisted and
+      // the checkbox never claims a section the school does not have.
+      if (next) {
+        const year = new Date().getFullYear().toString();
+        const classResult = await withTimeout(
+          supabase.from("classes").upsert(buildNurseryClasses(school.id, year), {
+            onConflict: "school_id,name,academic_year",
+          }),
+          15000,
+          timeoutFallback(),
+        );
+        if (classResult?.error) throw classResult.error;
+
+        // subjects has no unique key to upsert on, so insert only what is missing.
+        const { data: existingSubjects, error: readError } = await supabase
+          .from("subjects")
+          .select("name")
+          .eq("school_id", school.id);
+        if (readError) throw readError;
+
+        const existingNames = new Set((existingSubjects || []).map((row) => row.name.toLowerCase()));
+        const missing = NURSERY_TEMPLATE.subjects.filter((subject) => !existingNames.has(subject.name.toLowerCase()));
+
+        if (missing.length > 0) {
+          const subjectResult = await withTimeout(
+            supabase.from("subjects").insert(
+              missing.map((subject) => ({
+                school_id: school.id,
+                name: subject.name,
+                code: subject.code,
+                level: subject.level,
+                is_compulsory: subject.is_compulsory,
+              })),
+            ),
+            15000,
+            timeoutFallback(),
+          );
+          if (subjectResult?.error) throw subjectResult.error;
+        }
+
+        await refetchClasses();
+      }
+
+      await saveSchoolSetting(school.id, "has_nursery", next);
+      setHasNursery(next);
+
+      toast.success(
+        next
+          ? "Nursery section added: Baby, Middle and Top Class"
+          : // Deliberately deletes nothing: nursery classes can already hold
+            // students, enrolments and fee records.
+            "Nursery section turned off. Existing Baby/Middle/Top classes were kept.",
+      );
+    } catch (err: unknown) {
+      toast.error(getErrorMessage(err, "Failed to update the nursery section"));
     }
   };
 
@@ -1004,6 +1068,8 @@ export default function SettingsPage() {
             onDeleteClass={deleteClass}
             onSeedDefaultClasses={seedDefaultClasses}
             onAssignClassTeacher={assignClassTeacher}
+            hasNursery={hasNursery}
+            onToggleNursery={toggleNursery}
           />
         </TabPanel>
 
