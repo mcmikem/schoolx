@@ -206,9 +206,14 @@ export default function StudentHubPage() {
     return () => connection.removeEventListener?.("change", evaluateConnection);
   }, []);
 
+  // Keyed on the value, not on searchParams: the filter sync below rewrites the
+  // query string on every keystroke, and depending on the object identity made
+  // this re-run and re-open the Add Student form each time. The param itself is
+  // consumed by that sync (action: null).
+  const addFormRequested = searchParams?.get("action") === "add";
   useEffect(() => {
-    if (searchParams?.get("action") === "add") setShowAddModal(true);
-  }, [searchParams]);
+    if (addFormRequested) setShowAddModal(true);
+  }, [addFormRequested]);
 
   useEffect(() => {
     const tab = searchParams?.get("tab");
@@ -430,6 +435,9 @@ export default function StudentHubPage() {
       status: filterStatus !== "all" ? filterStatus : null,
       position: filterPosition !== "all" ? filterPosition : null,
       defaulters: filterDefaulters ? "1" : null,
+      // ?action=add is a one-shot deep link. setMany preserves every other key,
+      // so without clearing it here the form would come back on every refresh.
+      action: null,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchTerm, selectedClass, filterGender, filterStatus, filterPosition, filterDefaulters]);
