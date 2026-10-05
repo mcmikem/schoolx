@@ -8,7 +8,7 @@ import {
   withRateLimit,
   supabaseClientOptions,
 } from "@/lib/api-utils";
-import { PRIMARY_TEMPLATE, SECONDARY_TEMPLATE } from "@/lib/curriculum-templates";
+import { getTemplateSubjects } from "@/lib/curriculum-templates";
 import { normalizePlanType } from "@/lib/payments/subscription-client";
 import { buildUgandaAcademicTerms, buildUgandaCalendarEvents } from "@/lib/uganda-school-calendar";
 import { normalizeAuthPhone } from "@/lib/validation";
@@ -19,18 +19,6 @@ import { logger } from "@/lib/logger";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-function getDefaultSubjects(schoolType: string) {
-  if (schoolType === "primary") return PRIMARY_TEMPLATE.subjects;
-  if (schoolType === "secondary") return SECONDARY_TEMPLATE.subjects;
-  const combined = [...PRIMARY_TEMPLATE.subjects];
-  SECONDARY_TEMPLATE.subjects.forEach((s) => {
-    if (!combined.find((c) => c.code === s.code && c.level === s.level)) {
-      combined.push(s);
-    }
-  });
-  return combined;
-}
 
 export const POST = withRateLimit(
   async (request: NextRequest) => {
@@ -220,7 +208,7 @@ export const POST = withRateLimit(
       // Seed curriculum
       try {
         const currentYear = new Date().getFullYear().toString();
-        const defaultSubjects = getDefaultSubjects(schoolType);
+        const defaultSubjects = getTemplateSubjects(schoolType as SchoolSetupType);
         if (defaultSubjects.length > 0) {
           const { error: subjectsError } = await withTimeout(
             supabaseAdmin.from("subjects").insert(

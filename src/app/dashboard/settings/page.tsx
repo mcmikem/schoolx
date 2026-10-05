@@ -7,7 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
-import { loadSchoolSettings, saveSchoolSetting } from "@/lib/school-settings";
+import { loadSchoolSetting, loadSchoolSettings, saveSchoolSetting } from "@/lib/school-settings";
 import { type UserRole } from "@/lib/roles";
 import { DEFAULT_FEATURE_STAGE, type FeatureStage } from "@/lib/featureStages";
 import { logger } from "@/lib/logger";
@@ -529,10 +529,14 @@ export default function SettingsPage() {
   const seedDefaultClasses = async () => {
     if (!school?.id) return;
     try {
+      // Honour the pre-primary opt-in recorded at setup: without it a re-seed
+      // would restore P.1-P.7 but not Baby/Middle/Top for a school that has
+      // that section.
+      const nursery = await loadSchoolSetting(school.id, "has_nursery", false);
       const result = await withTimeout(
         supabase
           .from("classes")
-          .upsert(buildDefaultClasses(school.id, schoolType, new Date().getFullYear().toString()), {
+          .upsert(buildDefaultClasses(school.id, schoolType, new Date().getFullYear().toString(), { nursery }), {
             onConflict: "school_id,name,academic_year",
           }),
         15000,

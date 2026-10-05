@@ -20,11 +20,12 @@ import { buildUgandaAcademicTerms, buildUgandaCalendarEvents } from "@/lib/ugand
 import {
   buildDefaultClasses,
   buildDefaultTimetableSlots,
+  buildNurseryClasses,
   getDefaultClassTemplates,
   type SchoolSetupType,
 } from "@/lib/school-setup";
 import { saveSchoolSetting } from "@/lib/school-settings";
-import { PRIMARY_TEMPLATE, SECONDARY_TEMPLATE, type TemplateSubject } from "@/lib/curriculum-templates";
+import { getTemplateSubjects, NURSERY_TEMPLATE, type TemplateSubject } from "@/lib/curriculum-templates";
 import { logger } from "@/lib/logger";
 import { getErrorMessage } from "@/lib/validation";
 import { APP_NAME } from "@/lib/app-name";
@@ -82,6 +83,7 @@ interface FeeClassOption {
   id: string;
   name: string;
   stream?: string | null;
+  level?: string | null;
 }
 
 export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: () => void; onDismiss?: () => void }) {
@@ -121,17 +123,17 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
     address: school?.address || "",
   });
   const [localSchoolType, setLocalSchoolType] = useState<SchoolSetupType>(schoolType);
+  // Pre-primary section is opt-in: schools without one should never be handed
+  // three empty Baby/Middle/Top classes to feed fee structures and reports.
+  const [localHasNursery, setLocalHasNursery] = useState(false);
 
   // Curriculum
-  const getTemplateForType = (type: SchoolSetupType) => {
-    if (type === "secondary") return SECONDARY_TEMPLATE;
-    if (type === "combined")
-      return {
-        classes: [...PRIMARY_TEMPLATE.classes, ...SECONDARY_TEMPLATE.classes],
-        subjects: [...PRIMARY_TEMPLATE.subjects, ...SECONDARY_TEMPLATE.subjects],
-      };
-    return PRIMARY_TEMPLATE;
-  };
+  // Delegates to the shared helpers so onboarding, /register and the
+  // provisioning routes cannot drift apart on what a school is seeded with.
+  const getTemplateForType = (type: SchoolSetupType, nursery = localHasNursery) => ({
+    classes: getDefaultClassTemplates(type, { nursery }),
+    subjects: getTemplateSubjects(type, { nursery }),
+  });
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>(() =>
     getTemplateForType(localSchoolType).subjects.map((s) => s.name),
   );
@@ -221,6 +223,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
     schoolDetails,
     branding,
     localSchoolType,
+    localHasNursery,
     selectedSubjects,
     customSubjects,
     terms,
@@ -243,6 +246,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
         setSchoolDetails(saved.schoolDetails);
         if (saved.branding) setBranding(saved.branding);
         if (saved.localSchoolType) setLocalSchoolType(saved.localSchoolType as SchoolSetupType);
+        setLocalHasNursery(saved.localHasNursery === true);
         if (Array.isArray(saved.selectedSubjects)) setSelectedSubjects(saved.selectedSubjects);
         if (Array.isArray(saved.customSubjects)) setCustomSubjects(saved.customSubjects);
         if (Array.isArray(saved.terms)) setTerms(saved.terms);
@@ -292,11 +296,11 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
 
   const TOTAL_STEPS = steps.length;
 
-  // Sync subjects when school type changes
+  // Sync subjects when school type or the pre-primary section changes
   useEffect(() => {
-    const defaults = getTemplateForType(localSchoolType).subjects.map((s) => s.name);
+    const defaults = getTemplateForType(localSchoolType, localHasNursery).subjects.map((s) => s.name);
     setSelectedSubjects(Array.from(new Set([...defaults, ...customSubjects])));
-  }, [localSchoolType, customSubjects]);
+  }, [localSchoolType, localHasNursery, customSubjects]);
 
   const addCustomSubject = () => {
     const name = customSubjectInput.trim();
@@ -357,7 +361,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
     const fetchClasses = async () => {
       const { data } = await supabase
         .from("classes")
-        .select("id, name, stream")
+        .select("id, name, stream, level")
         .eq("school_id", school.id)
         .eq("academic_year", academicYear)
         .order("name", { ascending: true });
@@ -366,16 +370,32 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
 
     let classesForFees = await fetchClasses();
     if (classesForFees.length === 0) {
-      const defaults = buildDefaultClasses(school.id, localSchoolType, academicYear);
+      const defaults = buildDefaultClasses(school.id, localSchoolType, academicYear, { nursery: localHasNursery });
       await supabase.from("classes").upsert(defaults, {
+        onConflict: "school_id,name,academic_year",
+      });
+      classesForFees = await fetchClasses();
+    } else if (localHasNursery) {
+      // Classes already existed when the fee step opened — make sure the
+      // pre-primary section is among them so it is selectable as a fee scope.
+      await supabase.from("classes").upsert(buildNurseryClasses(school.id, academicYear), {
         onConflict: "school_id,name,academic_year",
       });
       classesForFees = await fetchClasses();
     }
 
+    // Mirror reality back onto the toggle. A section seeded elsewhere — by
+    // /register at sign-up, by a marketer, or by an earlier onboarding run —
+    // must not leave the toggle off, or the has_nursery setting written at
+    // the end would claim the school has no pre-primary section and a later
+    // class re-seed would drop these classes.
+    if (classesForFees.some((cls) => cls.level === "nursery")) {
+      setLocalHasNursery(true);
+    }
+
     setFeeClassOptions(classesForFees);
     return classesForFees;
-  }, [school?.id, localSchoolType]);
+  }, [school?.id, localSchoolType, localHasNursery]);
 
   const buildFeeRows = useCallback(
     (classOptions: FeeClassOption[]) => {
@@ -801,6 +821,9 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
             await Promise.all([
               saveSchoolSetting(school!.id, "academic_year", currentYear),
               saveSchoolSetting(school!.id, "current_term", "1"),
+              // Persisted so re-running the class seed in Settings still knows
+              // this school runs a pre-primary section.
+              saveSchoolSetting(school!.id, "has_nursery", localHasNursery),
             ]);
           } catch (settingsError) {
             logger.warn("Save school settings failed:", settingsError);
@@ -815,7 +838,9 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
               .eq("academic_year", currentYear);
 
             if (!count) {
-              const classData = buildDefaultClasses(school!.id, localSchoolType, currentYear);
+              const classData = buildDefaultClasses(school!.id, localSchoolType, currentYear, {
+                nursery: localHasNursery,
+              });
               const { error: classError } = await supabase.from("classes").insert(classData);
               if (classError) {
                 const { error: upsertError } = await supabase.from("classes").upsert(classData, {
@@ -825,6 +850,21 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                   logger.error("Classes upsert error:", upsertError);
                   failedSeeding.push("Classes");
                 }
+              }
+            } else if (localHasNursery) {
+              // Classes already existed (typically seeded by /register at
+              // sign-up, before onboarding ran), so the full seed above was
+              // skipped. Upsert just the pre-primary section so the toggle is
+              // not silently ignored. Keyed on school_id+name+year, this can
+              // only add missing rows.
+              const { error: nurseryError } = await supabase
+                .from("classes")
+                .upsert(buildNurseryClasses(school!.id, currentYear), {
+                  onConflict: "school_id,name,academic_year",
+                });
+              if (nurseryError) {
+                logger.error("Nursery classes upsert error:", nurseryError);
+                failedSeeding.push("Nursery classes");
               }
             }
           } catch (err) {
@@ -911,7 +951,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
           .eq("school_id", school!.id);
 
         if (!count) {
-          const templateSubjects = getTemplateForType(localSchoolType).subjects;
+          const templateSubjects = getTemplateForType(localSchoolType, localHasNursery).subjects;
           const additionalMap = new Map(ADDITIONAL_OPTIONAL_SUBJECTS.map((s) => [s.name.toLowerCase(), s]));
           const templateMap = new Map(templateSubjects.map((s) => [s.name.toLowerCase(), s]));
 
@@ -955,6 +995,33 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
             if (subjectsError) {
               logger.warn("Subjects insert failed:", subjectsError);
               failedSeeding.push("Subjects");
+            }
+          }
+        } else if (localHasNursery) {
+          // Subjects already existed (typically seeded by /register at
+          // sign-up), so the full seed above was skipped. Insert only the
+          // pre-primary subjects that are still missing — matched by name, so
+          // nursery "Mathematics" is not duplicated alongside primary
+          // "Mathematics". The subjects table has no unique key to upsert on.
+          const { data: existingSubjects } = await supabase.from("subjects").select("name").eq("school_id", school!.id);
+          const existingNames = new Set((existingSubjects || []).map((row) => row.name.toLowerCase()));
+          const missingNursery = NURSERY_TEMPLATE.subjects.filter(
+            (subject) => !existingNames.has(subject.name.toLowerCase()),
+          );
+
+          if (missingNursery.length > 0) {
+            const { error: nurserySubjectsError } = await supabase.from("subjects").insert(
+              missingNursery.map((subject) => ({
+                school_id: school!.id,
+                name: subject.name,
+                code: subject.code,
+                level: subject.level,
+                is_compulsory: subject.is_compulsory,
+              })),
+            );
+            if (nurserySubjectsError) {
+              logger.warn("Nursery subjects insert failed:", nurserySubjectsError);
+              failedSeeding.push("Nursery subjects");
             }
           }
         }
@@ -1377,6 +1444,32 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                         ))}
                       </div>
                     </div>
+
+                    {localSchoolType !== "secondary" && (
+                      <div>
+                        <label className="block text-sm font-semibold text-slate-700 mb-2">
+                          Nursery Section <span className="text-slate-400 font-normal">(optional)</span>
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setLocalHasNursery((prev) => !prev)}
+                          aria-pressed={localHasNursery}
+                          className={`flex w-full items-center justify-between rounded-xl border-2 px-4 py-3 text-left transition-all ${
+                            localHasNursery
+                              ? "border-teal-500 bg-teal-50 text-teal-700 shadow-sm"
+                              : "border-slate-200 text-slate-500 hover:border-slate-300"
+                          }`}
+                        >
+                          <span className="flex items-center gap-2 text-sm font-semibold">
+                            <MaterialIcon icon="child_care" className="text-[18px]" />
+                            Baby, Middle and Top Class
+                          </span>
+                          <span className="text-xs font-normal opacity-70">
+                            {localHasNursery ? "Will be added" : "Add pre-primary classes"}
+                          </span>
+                        </button>
+                      </div>
+                    )}
 
                     <div>
                       <label className="block text-sm font-semibold text-slate-700 mb-2">

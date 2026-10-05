@@ -201,6 +201,9 @@ export async function POST(request: NextRequest) {
         let division = null;
         let best4: number[] | null = null;
 
+        // A `nursery` level (Baby/Middle/Top) deliberately matches none of
+        // these branches: pre-primary has no PLE aggregate or division, so
+        // those report cards carry term grades only and stay null here.
         if (level.startsWith("P") || level.includes("Primary")) {
           const pleResult = computePLEAggregate(subjectScores);
           aggregate = pleResult.aggregate;

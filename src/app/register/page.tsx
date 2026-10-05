@@ -102,6 +102,7 @@ function RegisterPageContent() {
     parish: "",
     village: "",
     schoolType: "primary" as "primary" | "secondary" | "combined",
+    hasNursery: false,
     ownership: "private" as "private" | "government" | "government_aided",
     selectedPackage: "starter",
     billingMode: "full_suite" as "full_suite" | "modular",
@@ -275,6 +276,7 @@ function RegisterPageContent() {
           district: form.district,
           subcounty: form.subcounty,
           schoolType: form.schoolType,
+          hasNursery: form.schoolType === "secondary" ? false : form.hasNursery,
           ownership: form.ownership,
           selectedPackage: form.selectedPackage,
           billingMode: form.billingMode,
@@ -544,6 +546,20 @@ function RegisterPageContent() {
                         onChange={(e) => updateForm("schoolType", e.target.value)}
                         required
                       />
+
+                      {form.schoolType !== "secondary" && (
+                        <label className="flex items-center gap-2 rounded-lg border border-[var(--border)] px-3 py-2 text-sm text-[var(--t2)]">
+                          <input
+                            type="checkbox"
+                            checked={form.hasNursery}
+                            onChange={(e) => setForm((prev) => ({ ...prev, hasNursery: e.target.checked }))}
+                            className="h-4 w-4"
+                          />
+                          <span>
+                            Nursery section <span className="text-[var(--t3)]">(adds Baby, Middle and Top Class)</span>
+                          </span>
+                        </label>
+                      )}
 
                       <Select
                         label="Ownership"

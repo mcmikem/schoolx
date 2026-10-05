@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createSupabaseAdminClient } from "@/lib/server/user-provisioning";
 import { requireUserWithSchool } from "@/lib/api-utils";
 import { normalizeAuthPhone } from "@/lib/validation";
-import { PRIMARY_TEMPLATE, SECONDARY_TEMPLATE } from "@/lib/curriculum-templates";
+import { getTemplateSubjects } from "@/lib/curriculum-templates";
 import { buildDefaultClasses, type SchoolSetupType } from "@/lib/school-setup";
 import { buildUgandaAcademicTerms, buildUgandaCalendarEvents } from "@/lib/uganda-school-calendar";
 import { normalizePlanType } from "@/lib/payments/subscription-client";
@@ -240,14 +240,11 @@ export async function POST(request: NextRequest) {
 
         // 4. Seed curriculum
         const currentYear = new Date().getFullYear().toString();
-        const defaultSubjects =
-          school_type === "secondary"
-            ? SECONDARY_TEMPLATE.subjects
-            : school_type === "combined"
-              ? [...PRIMARY_TEMPLATE.subjects, ...SECONDARY_TEMPLATE.subjects].filter(
-                  (s, i, a) => a.findIndex((x) => x.code === s.code && x.level === s.level) === i,
-                )
-              : PRIMARY_TEMPLATE.subjects;
+        // Anything other than an explicit "secondary"/"combined" seeds the
+        // primary curriculum, matching the previous ternary exactly.
+        const normalizedSchoolType =
+          school_type === "secondary" || school_type === "combined" ? school_type : "primary";
+        const defaultSubjects = getTemplateSubjects(normalizedSchoolType);
         if (defaultSubjects.length > 0) {
           const { error: subjectsError } = await admin.from("subjects").insert(
             defaultSubjects.map((s: any) => ({

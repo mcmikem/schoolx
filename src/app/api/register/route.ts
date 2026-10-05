@@ -17,7 +17,7 @@
 import { NextRequest } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { apiSuccess, apiError, handleApiError, rateLimitAsync, supabaseClientOptions } from "@/lib/api-utils";
-import { PRIMARY_TEMPLATE, SECONDARY_TEMPLATE } from "@/lib/curriculum-templates";
+import { getTemplateSubjects } from "@/lib/curriculum-templates";
 import { normalizePlanType } from "@/lib/payments/subscription-client";
 import { buildUgandaAcademicTerms, buildUgandaCalendarEvents } from "@/lib/uganda-school-calendar";
 import { normalizeAuthPhone } from "@/lib/validation";
@@ -31,21 +31,6 @@ import { generateSchoolCode } from "@/lib/server/marketer-logic";
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 
-// Get default subjects based on school type
-function getDefaultSubjects(schoolType: string) {
-  if (schoolType === "primary") return PRIMARY_TEMPLATE.subjects;
-  if (schoolType === "secondary") return SECONDARY_TEMPLATE.subjects;
-
-  // Combined - merge both, avoiding duplicates by code
-  const combined = [...PRIMARY_TEMPLATE.subjects];
-  SECONDARY_TEMPLATE.subjects.forEach((s) => {
-    if (!combined.find((c) => c.code === s.code && c.level === s.level)) {
-      combined.push(s);
-    }
-  });
-  return combined;
-}
-
 interface RegisterRequest {
   schoolName: string;
   district: string;
@@ -53,6 +38,8 @@ interface RegisterRequest {
   parish?: string;
   village?: string;
   schoolType: "primary" | "secondary" | "combined";
+  /** Opt-in pre-primary section: seeds Baby/Middle/Top Class and its subjects. */
+  hasNursery?: boolean;
   ownership: "private" | "government" | "government_aided";
   selectedPackage?: string;
   billingMode?: "full_suite" | "modular";
@@ -154,6 +141,7 @@ export async function POST(request: NextRequest) {
       parish,
       village,
       schoolType,
+      hasNursery,
       ownership,
       selectedPackage,
       billingMode,
@@ -408,7 +396,7 @@ export async function POST(request: NextRequest) {
     try {
       const currentYear = new Date().getFullYear().toString();
 
-      const defaultSubjects = getDefaultSubjects(schoolType);
+      const defaultSubjects = getTemplateSubjects(schoolType, { nursery: hasNursery === true });
       if (defaultSubjects.length > 0) {
         const subjectRecords = defaultSubjects.map((s) => ({
           school_id: schoolData.id,
@@ -423,7 +411,9 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      const defaultClasses = buildDefaultClasses(schoolData.id, schoolType as SchoolSetupType, currentYear);
+      const defaultClasses = buildDefaultClasses(schoolData.id, schoolType as SchoolSetupType, currentYear, {
+        nursery: hasNursery === true,
+      });
       if (defaultClasses.length > 0) {
         const { error: classesError } = await supabaseAdmin.from("classes").insert(defaultClasses);
         if (classesError) {
