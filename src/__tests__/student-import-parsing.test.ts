@@ -3,6 +3,7 @@ import {
   BOARDING_STATUSES,
   buildClassAliasMap,
   buildHouseAliasMap,
+  formatSpreadsheetCell,
   normalizeAmount,
   normalizeBoardingStatus,
   normalizeDateOfBirth,
@@ -611,5 +612,87 @@ describe("student bulk import – template shape", () => {
     expect(result.data.date_of_birth).toBe("2015-03-15");
     expect(result.data.opening_balance).toBe("150000");
     expect(result.data.games_house).toBe("Blue");
+  });
+});
+
+/**
+ * This is why the import looked intermittent: the same roster imported cleanly
+ * as .csv and failed every date as .xlsx.
+ *
+ * ExcelJS returns a JavaScript Date for a cell Excel has formatted as a date.
+ * Stringifying it produced
+ *   "Sun Mar 15 2015 03:00:00 GMT+0300 (East Africa Time)"
+ * which no date parser accepts, so every date in a spreadsheet upload was
+ * rejected while the CSV route worked.
+ */
+describe("student bulk import – spreadsheet cells", () => {
+  it("renders a date cell as YYYY-MM-DD", () => {
+    expect(formatSpreadsheetCell(new Date(Date.UTC(2015, 2, 15)))).toBe("2015-03-15");
+    expect(formatSpreadsheetCell(new Date(Date.UTC(2014, 5, 20)))).toBe("2014-06-20");
+  });
+
+  it("accepts a leap day, which Excel can store", () => {
+    expect(formatSpreadsheetCell(new Date(Date.UTC(2016, 1, 29)))).toBe("2016-02-29");
+  });
+
+  it("turns an invalid Date into blank rather than the word Invalid", () => {
+    expect(formatSpreadsheetCell(new Date("nonsense"))).toBe("");
+  });
+
+  it("renders plain and numeric cells unchanged", () => {
+    expect(formatSpreadsheetCell("Sarah")).toBe("Sarah");
+    expect(formatSpreadsheetCell("  P.1  ")).toBe("P.1");
+    expect(formatSpreadsheetCell(150000)).toBe("150000");
+    expect(formatSpreadsheetCell(null)).toBe("");
+    expect(formatSpreadsheetCell(undefined)).toBe("");
+  });
+
+  it("reads a cell holding styled text", () => {
+    expect(formatSpreadsheetCell({ richText: [{ text: "Sara" }, { text: "h" }] })).toBe("Sarah");
+    expect(formatSpreadsheetCell({ text: "Mukasa" })).toBe("Mukasa");
+  });
+
+  it("does not surface an Excel error value as text", () => {
+    expect(formatSpreadsheetCell({ error: "#N/A" })).toBe("");
+  });
+
+  it("produces a date the row validator then accepts", () => {
+    const cell = formatSpreadsheetCell(new Date(Date.UTC(2015, 2, 15)));
+    const result = validateStudentRow({
+      "First Name": "Sarah",
+      "Last Name": "Nakato",
+      Gender: "F",
+      "Date of Birth": cell,
+      Class: "P.1",
+      "Parent Name": "James Nakato",
+    });
+    expect(result.errors).toEqual([]);
+    expect(result.data.date_of_birth).toBe("2015-03-15");
+  });
+});
+
+describe("student bulk import – uneab number", () => {
+  it("is captured from the roster", () => {
+    const result = validateStudentRow({
+      first_name: "Sarah",
+      last_name: "Nakato",
+      gender: "F",
+      class: "P.1",
+      parent_name: "James Nakato",
+      "UNEAB Number": "U8483920",
+    });
+    expect(result.errors).toEqual([]);
+    expect(result.data.uneab_number).toBe("U8483920");
+  });
+
+  it("is left blank when the column is absent", () => {
+    const result = validateStudentRow({
+      first_name: "John",
+      last_name: "Mukasa",
+      gender: "M",
+      class: "P.1",
+      parent_name: "Betty Mukasa",
+    });
+    expect(result.data.uneab_number).toBe("");
   });
 });

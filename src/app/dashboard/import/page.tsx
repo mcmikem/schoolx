@@ -1,13 +1,18 @@
 "use client";
-import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState, useRef, useCallback } from "react";
-import { useAuth } from "@/lib/auth-context";
-import { useToast } from "@/components/Toast";
+import { useCallback, useRef, useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
-import { PageHeader } from "@/components/ui/PageHeader";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
+import { useToast } from "@/components/Toast";
 import { Card as UICard } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
-import { parseDelimitedText, parseStudentRows, type ValidatedStudentRow } from "@/lib/import/students";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { useAuth } from "@/lib/auth-context";
+import {
+  formatSpreadsheetCell,
+  parseDelimitedText,
+  parseStudentRows,
+  type ValidatedStudentRow,
+} from "@/lib/import/students";
 import { logger } from "@/lib/logger";
 
 interface ImportResult {
@@ -17,12 +22,6 @@ interface ImportResult {
 }
 
 type AddMethod = "upload" | "paste" | "sheets";
-
-function formatCell(value: unknown): string {
-  if (value === null || value === undefined) return "";
-  if (value instanceof Date) return value.toISOString().split("T")[0];
-  return String(value);
-}
 
 export default function ImportPage() {
   const { user } = useAuth();
@@ -103,7 +102,7 @@ export default function ImportPage() {
           } else {
             const obj: Record<string, unknown> = {};
             row.eachCell({ includeEmpty: false }, (cell, colNumber) => {
-              obj[headers[colNumber - 1]] = formatCell(cell.value);
+              obj[headers[colNumber - 1]] = formatSpreadsheetCell(cell.value);
             });
             if (Object.keys(obj).length > 0) rawRows.push(obj);
           }

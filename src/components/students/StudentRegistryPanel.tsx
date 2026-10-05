@@ -111,6 +111,7 @@ const STUDENT_TEMPLATE_COLUMNS = [
   "Prefect Role",
   "Student Council Role",
   "Games House",
+  "UNEAB Number",
 ] as const;
 
 /** Blank means "not set"; the importer applies its own defaults. */

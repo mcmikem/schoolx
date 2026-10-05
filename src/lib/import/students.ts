@@ -36,7 +36,8 @@ export type StudentField =
   | "is_class_monitor"
   | "prefect_role"
   | "student_council_role"
-  | "games_house";
+  | "games_house"
+  | "uneab_number";
 
 export interface ParsedStudentRow {
   first_name: string;
@@ -67,6 +68,7 @@ export interface ParsedStudentRow {
   prefect_role: string;
   student_council_role: string;
   games_house: string;
+  uneab_number: string;
 }
 
 export interface ValidatedStudentRow {
@@ -185,6 +187,8 @@ const FIELD_ALIASES: Record<StudentField, string[]> = {
   is_class_monitor: ["isclassmonitor", "classmonitor", "monitor", "classprefect"],
   prefect_role: ["prefectrole", "prefect", "prefecttitle", "leadershiprole", "monitorrole"],
   games_house: ["gameshouse", "games", "sportshouse", "athleticshouse", "footballhouse"],
+  // The Ugandan National Education Assessment Bureau number.
+  uneab_number: ["uneabnumber", "uneab", "uneabno", "uneabid"],
   student_council_role: ["studentcouncilrole", "studentcouncil", "councilrole", "scc", "council"],
 };
 
@@ -474,6 +478,7 @@ export function validateStudentRow(raw: Record<string, unknown>): ValidatedStude
       prefect_role: get("prefect_role"),
       student_council_role: get("student_council_role"),
       games_house: get("games_house"),
+      uneab_number: get("uneab_number"),
     },
     isValid: errors.length === 0,
     errors,
@@ -483,6 +488,42 @@ export function validateStudentRow(raw: Record<string, unknown>): ValidatedStude
 export function parseStudentRows(rows: Array<Record<string, unknown>>): ValidatedStudentRow[] {
   if (!Array.isArray(rows)) return [];
   return rows.map((row) => validateStudentRow(row || {}));
+}
+
+/**
+ * Render one spreadsheet cell as the text the rest of the importer expects.
+ *
+ * A cell Excel has formatted as a date arrives as a JavaScript Date, and
+ * `String(date)` produces
+ *   "Sun Mar 15 2015 03:00:00 GMT+0300 (East Africa Time)"
+ * which is not a date the parser accepts. Every date in a .xlsx was therefore
+ * rejected while the same file saved as .csv imported fine -- the import looked
+ * intermittent when it depended only on which extension was uploaded.
+ *
+ * ExcelJS reads a date cell as UTC, so toISOString returns the date the cell
+ * actually shows.
+ *
+ * A shared implementation matters here: the quick import and /dashboard/import
+ * each had their own cell handling, which is how they drifted in the first place.
+ */
+export function formatSpreadsheetCell(value: unknown): string {
+  if (value === null || value === undefined) return "";
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? "" : value.toISOString().split("T")[0];
+  }
+  if (typeof value === "object") {
+    const cell = value as Record<string, unknown>;
+    // A cell holding styled text fragments.
+    if (Array.isArray(cell.richText)) {
+      return cell.richText.map((part) => String((part as { text?: string })?.text ?? "")).join("");
+    }
+    if (typeof cell.text === "string") return cell.text;
+    if (typeof cell.result === "number" || typeof cell.result === "string") return String(cell.result);
+    // An Excel error value such as #N/A.
+    if (cell.error) return "";
+  }
+  if (typeof value === "number") return String(value);
+  return String(value).trim();
 }
 
 export function detectDelimiter(text: string): string {
@@ -556,6 +597,7 @@ export function buildEmptyStudentRow(): ParsedStudentRow {
     prefect_role: "",
     student_council_role: "",
     games_house: "",
+    uneab_number: "",
   };
 }
 

@@ -5,6 +5,7 @@ import {
   type BoardingStatus,
   buildClassAliasMap,
   buildHouseAliasMap,
+  formatSpreadsheetCell,
   type ParsedStudentRow,
   resolveClassId,
   resolveHouseId,
@@ -72,6 +73,7 @@ const PREVIEW_COLUMNS: Array<keyof ParsedStudentRow> = [
   "prefect_role",
   "student_council_role",
   "games_house",
+  "uneab_number",
 ];
 
 export function useStudentTemplateImport(params: UseStudentTemplateImportParams) {
@@ -119,7 +121,9 @@ export function useStudentTemplateImport(params: UseStudentTemplateImportParams)
         const values = (Array.isArray(row.values) ? row.values : []).slice(1);
         const record: TemplateRow = {};
         headers.forEach((header, index) => {
-          if (header) record[header] = String(values[index] ?? "").trim();
+          // ExcelJS hands back a Date for a date-formatted cell; rendering it as a
+          // string is what made every date in a .xlsx fail to parse.
+          if (header) record[header] = formatSpreadsheetCell(values[index]);
         });
         if (Object.values(record).some((value) => value.length > 0)) rows.push(record);
       });
@@ -314,6 +318,7 @@ export function useStudentTemplateImport(params: UseStudentTemplateImportParams)
           prefect_role: row.data.prefect_role || undefined,
           student_council_role: row.data.student_council_role || undefined,
           games_house: row.data.games_house || undefined,
+          uneab_number: row.data.uneab_number || undefined,
           status: "active",
         });
         success++;

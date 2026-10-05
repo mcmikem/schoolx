@@ -132,6 +132,7 @@ export interface CreateStudentInput {
   class_id: string;
   student_number?: string;
   ple_index_number?: string;
+  uneab_number?: string;
   status?: "active" | "transferred" | "dropped" | "completed";
   opening_balance?: number;
   transfer_from?: string;
