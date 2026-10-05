@@ -5,7 +5,9 @@ import {
   buildHouseAliasMap,
   normalizeAmount,
   normalizeBoardingStatus,
+  normalizeDateOfBirth,
   normalizeGender,
+  parseDelimitedText,
   resolveClassId,
   resolveHouseId,
   validateStudentRow,
@@ -28,6 +30,69 @@ import {
  *
  * These assertions cover the shared parser that the importer now delegates to.
  */
+
+const TEMPLATE_COLUMNS = [
+  "Student Number",
+  "First Name",
+  "Last Name",
+  "Gender",
+  "Date of Birth",
+  "Class",
+  "Boarding Status",
+  "House",
+  "Parent Name",
+  "Parent Phone",
+  "Parent Phone 2",
+  "Parent Email",
+  "PLE Index",
+  "NIN",
+  "Previous School",
+  "District of Origin",
+  "Sub-county",
+  "Parish",
+  "Village",
+  "Blood Type",
+  "Religion",
+  "Nationality",
+  "Address",
+  "Opening Balance",
+  "Class Monitor",
+  "Prefect Role",
+  "Student Council Role",
+  "Games House",
+];
+
+const FULL_ROW: Record<string, string> = {
+  "Student Number": "STU-001",
+  "First Name": "Sarah",
+  "Last Name": "Nakato",
+  Gender: "F",
+  "Date of Birth": "2015-03-15",
+  Class: "P.1",
+  "Boarding Status": "Boarding",
+  House: "Red House",
+  "Parent Name": "James Nakato",
+  "Parent Phone": "0701234567",
+  "Parent Phone 2": "0707654321",
+  "Parent Email": "james@example.com",
+  "PLE Index": "U0001/2026",
+  NIN: "CM123456789X",
+  "Previous School": "St Peters PS",
+  "District of Origin": "Mityana",
+  "Sub-county": "Gomba",
+  Parish: "Wakiso",
+  Village: "Naluganyi",
+  "Blood Type": "O+",
+  Religion: "Catholic",
+  Nationality: "Ugandan",
+  Address: "Plot 14",
+  // contains a comma on purpose
+  "Opening Balance": "UGX 150,000",
+  "Class Monitor": "Yes",
+  "Prefect Role": "Head Prefect",
+  "Student Council Role": "Secretary",
+  "Games House": "Blue",
+};
 
 const CLASSES = [
   { id: "c1", name: "P.1" },
@@ -346,69 +411,6 @@ describe("student bulk import – house matching", () => {
  * their student council role, with nothing reported.
  */
 describe("student bulk import – template round trip", () => {
-  const TEMPLATE_COLUMNS = [
-    "Student Number",
-    "First Name",
-    "Last Name",
-    "Gender",
-    "Date of Birth",
-    "Class",
-    "Boarding Status",
-    "House",
-    "Parent Name",
-    "Parent Phone",
-    "Parent Phone 2",
-    "Parent Email",
-    "PLE Index",
-    "NIN",
-    "Previous School",
-    "District of Origin",
-    "Sub-county",
-    "Parish",
-    "Village",
-    "Blood Type",
-    "Religion",
-    "Nationality",
-    "Address",
-    "Opening Balance",
-    "Class Monitor",
-    "Prefect Role",
-    "Student Council Role",
-    "Games House",
-  ];
-
-  const FULL_ROW: Record<string, string> = {
-    "Student Number": "STU-001",
-    "First Name": "Sarah",
-    "Last Name": "Nakato",
-    Gender: "F",
-    "Date of Birth": "2015-03-15",
-    Class: "P.1",
-    "Boarding Status": "Boarding",
-    House: "Red House",
-    "Parent Name": "James Nakato",
-    "Parent Phone": "0701234567",
-    "Parent Phone 2": "0707654321",
-    "Parent Email": "james@example.com",
-    "PLE Index": "U0001/2026",
-    NIN: "CM123456789X",
-    "Previous School": "St Peters PS",
-    "District of Origin": "Mityana",
-    "Sub-county": "Gomba",
-    Parish: "Wakiso",
-    Village: "Naluganyi",
-    "Blood Type": "O+",
-    Religion: "Catholic",
-    Nationality: "Ugandan",
-    Address: "Plot 14",
-    // contains a comma on purpose
-    "Opening Balance": "UGX 150,000",
-    "Class Monitor": "Yes",
-    "Prefect Role": "Head Prefect",
-    "Student Council Role": "Secretary",
-    "Games House": "Blue",
-  };
-
   it("covers every column with a value, so no field shifts", () => {
     const missing = TEMPLATE_COLUMNS.filter((column) => FULL_ROW[column] === undefined);
     expect(missing).toEqual([]);
@@ -463,5 +465,151 @@ describe("student bulk import – template round trip", () => {
     });
     expect(result.data.prefect_role).toBe("Head Prefect");
     expect(result.data.is_class_monitor).toBe(false);
+  });
+});
+
+/**
+ * Dates were the largest silent failure in the roster import and are worth their
+ * own coverage.
+ *
+ * Postgres accepts only YYYY-MM-DD for a date column, and nothing validated the
+ * format first, so dd/mm/yyyy -- the local convention -- passed the pre-flight as
+ * "ready" and then failed mid-seed with:
+ *
+ *   date/time field value out of range: "15/03/2015"
+ *
+ * Worse, 03/15/2015 inserted successfully as 3 March. A learner's date of birth
+ * was silently wrong with nothing reported at all.
+ */
+describe("student bulk import – date of birth", () => {
+  const expectDate = (raw: string, expected: string) => {
+    const result = normalizeDateOfBirth(raw);
+    expect(result.error).toBeNull();
+    expect(result.value).toBe(expected);
+  };
+
+  it("accepts ISO dates unchanged", () => {
+    expectDate("2015-03-15", "2015-03-15");
+    expectDate("2015-3-5", "2015-03-05");
+  });
+
+  it("accepts the local dd/mm/yyyy convention", () => {
+    expectDate("15/03/2015", "2015-03-15");
+    expectDate("15-03-2015", "2015-03-15");
+    expectDate("15.03.2015", "2015-03-15");
+    expectDate("1/3/2015", "2015-03-01");
+    expectDate("05/06/2016", "2016-06-05");
+  });
+
+  it("reads month-first only when the day cannot be a month", () => {
+    expectDate("03/15/2015", "2015-03-15");
+    expectDate("12/25/2014", "2014-12-25");
+  });
+
+  it("handles two-digit years", () => {
+    expectDate("5/6/15", "2015-06-05");
+    expectDate("5/6/99", "1999-06-05");
+  });
+
+  it("recovers a date exported from a spreadsheet as a serial number", () => {
+    const result = normalizeDateOfBirth("42095");
+    expect(result.error).toBeNull();
+    expect(result.value).toMatch(/^2015-0\d-\d{2}$/);
+  });
+
+  it("understands month names", () => {
+    expectDate("15 March 2015", "2015-03-15");
+    expectDate("March 2015", "2015-03-01");
+    // an exported timestamp must not shift by a day depending on the reader's zone
+    expectDate("2016-02-29T00:00:00Z", "2016-02-29");
+    expectDate("2016-02-29 00:00:00", "2016-02-29");
+    expectDate("29/02/2016", "2016-02-29");
+  });
+
+  it("rejects a leap day in a year that is not a leap year", () => {
+    // 2018 is not divisible by 4, so 29 February never existed
+    const result = normalizeDateOfBirth("2018-02-29");
+    expect(result.error).toMatch(/not a real date/);
+  });
+
+  it("treats blank as not supplied", () => {
+    expect(normalizeDateOfBirth("")).toEqual({ value: "", error: null });
+    expect(normalizeDateOfBirth("   ")).toEqual({ value: "", error: null });
+  });
+
+  const expectRejected = (raw: string) => {
+    const result = normalizeDateOfBirth(raw);
+    expect(result.error).toBeTruthy();
+    expect(result.value).toBe("");
+    // the message has to tell the user what to type instead
+    expect(result.error).toMatch(/dd\/mm\/yyyy/);
+  };
+
+  it("rejects values that cannot be a birth date", () => {
+    for (const raw of ["2015", "42095" + "0", "abc", "32/01/2015", "15/13/2015", "15/02/2016x"]) {
+      expectRejected(raw);
+    }
+  });
+
+  it("rejects a date in the future", () => {
+    expectRejected("01/01/2099");
+  });
+
+  it("reports a bad date on the row instead of failing the import later", () => {
+    const result = validateStudentRow({
+      first_name: "Sarah",
+      last_name: "Nakato",
+      gender: "F",
+      class: "P.1",
+      parent_name: "James Nakato",
+      "Date of Birth": "15/03/2015",
+    });
+    expect(result.errors).toEqual([]);
+    expect(result.data.date_of_birth).toBe("2015-03-15");
+
+    const bad = validateStudentRow({
+      first_name: "John",
+      last_name: "Mukasa",
+      gender: "M",
+      class: "P.1",
+      parent_name: "Betty Mukasa",
+      "Date of Birth": "2015",
+    });
+    expect(bad.isValid).toBe(false);
+    expect(bad.errors.join(" ")).toMatch(/date of birth/i);
+  });
+});
+
+/**
+ * The template is header-only on purpose.
+ *
+ * It previously carried two filled-in example learners, which a headmaster would
+ * fill around and upload, inventing two children in the register.
+ */
+describe("student bulk import – template shape", () => {
+  it("emits a single header row and nothing else", () => {
+    const headerOnly = TEMPLATE_COLUMNS.join(",");
+    const lines = headerOnly.split("\n");
+    expect(lines.length).toBe(1);
+    expect(lines[0].split(",")).toEqual(TEMPLATE_COLUMNS);
+  });
+
+  it("survives a BOM and a Windows line ending, as downloaded", () => {
+    const file = `\uFEFF${TEMPLATE_COLUMNS.join(",")}\r\n`;
+    const rows = parseDelimitedText(file);
+    expect(rows.length).toBe(0);
+  });
+
+  it("parses a filled copy of that template", () => {
+    const file =
+      `\uFEFF${TEMPLATE_COLUMNS.join(",")}\r\n` +
+      `${TEMPLATE_COLUMNS.map((c) => (FULL_ROW[c] ?? "").replace(/[",]/g, (m) => `"${m}"`)).join(",")}\r\n`;
+    const rows = parseDelimitedText(file);
+    expect(rows.length).toBe(1);
+    const result = validateStudentRow(rows[0]);
+    expect(result.errors).toEqual([]);
+    expect(result.data.date_of_birth).toBe("2015-03-15");
+    expect(result.data.opening_balance).toBe("150000");
+    expect(result.data.games_house).toBe("Blue");
   });
 });

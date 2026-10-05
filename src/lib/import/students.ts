@@ -287,6 +287,119 @@ export function normalizeAmount(raw: string): { value: string; error: string | n
   return { value: cleaned, error: null };
 }
 
+/**
+ * Excel's day zero is 1899-12-30. Serials below this are not dates anyone means
+ * by a birth date, so they are treated as a mistake rather than a date.
+ */
+const EXCEL_EPOCH_UTC = Date.UTC(1899, 11, 30);
+const MIN_PLAUSIBLE_SERIAL = 20000; // 1954-10-03
+const MAX_PLAUSIBLE_SERIAL = 80000; // 2119-01-01
+
+const MONTH_NAMES = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+
+/**
+ * Read a date of birth and restate it as YYYY-MM-DD.
+ *
+ * Dates are the one place where being lenient is unsafe. Postgres only accepts
+ * YYYY-MM-DD, so anything else reaches the insert and comes back as
+ * `date/time field value out of range` with no hint about the offending row.
+ * dd/mm/yyyy is the local convention here, so a slash, dash or dot date is read
+ * day-first; a value whose first part cannot be a month, such as 15/03/2015, is
+ * read month-first instead rather than being silently read as 3 March.
+ *
+ * Anything unrecognised is returned as an error instead of being guessed at, so
+ * the row is reported before seeding rather than during it.
+ */
+export function normalizeDateOfBirth(raw: string): { value: string; error: string | null } {
+  const input = (raw || "").trim();
+  if (!input) return { value: "", error: null };
+
+  const fail = (detail: string) => ({
+    value: "",
+    error: `"${raw}" ${detail}. Use dd/mm/yyyy, for example 15/03/2015.`,
+  });
+
+  // A bare year, or anything that is only digits, is ambiguous or too coarse.
+  if (/^\d{4}$/.test(input)) {
+    return { value: "", error: `is only a year. Use dd/mm/yyyy, for example 01/01/${input}` };
+  }
+
+  // Excel serial, which is what a spreadsheet exports when a date column was
+  // ever formatted as a number.
+  if (/^\d{4,6}$/.test(input)) {
+    const serial = Number(input);
+    if (serial < MIN_PLAUSIBLE_SERIAL || serial > MAX_PLAUSIBLE_SERIAL) {
+      return fail("is not a date");
+    }
+    const d = new Date(EXCEL_EPOCH_UTC + serial * 86400000);
+    if (Number.isNaN(d.getTime())) return fail("is not a date");
+    return { value: d.toISOString().slice(0, 10), error: null };
+  }
+
+  // ISO already.
+  const iso = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(input);
+  if (iso) {
+    const [, y, m, d] = iso;
+    return finishDate(Number(y), Number(m), Number(d), fail);
+  }
+
+  const sep = /^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})$/.exec(input);
+  if (sep) {
+    const [, a, b, rawYear] = sep;
+    const first = Number(a);
+    const second = Number(b);
+    let year = Number(rawYear);
+    if (rawYear.length === 2) year = year > 30 ? 1900 + year : 2000 + year;
+
+    // Read day-first unless the first part cannot be a month.
+    if (first > 12) return finishDate(year, second, first, fail);
+    if (second > 12) return finishDate(year, first, second, fail);
+    return finishDate(year, second, first, fail); // both plausible: dd/mm
+  }
+
+  // An exported timestamp, e.g. 2018-02-29T00:00:00Z. The date is taken
+  // verbatim from the text rather than handed to `new Date()`.
+  const stamped = /^(\d{4})-(\d{1,2})-(\d{1,2})(?:[T ]|$)/.exec(input);
+  if (stamped) {
+    return finishDate(Number(stamped[1]), Number(stamped[2]), Number(stamped[3]), fail);
+  }
+
+  // Month names, written out. `new Date("15 March 2015")` reads the text in the
+  // machine's own zone, so the same file imported in Kampala and in London could
+  // disagree by a day. Every date here is therefore read from the string itself.
+  const named = /^(\d{1,2})?[\s\-/]*([a-z]{3,9})[\s\-/,]*(\d{1,2})?[\s,\-/]*(\d{4})$/i.exec(input);
+  if (named) {
+    const day = named[1] ? Number(named[1]) : null;
+    const month = MONTH_NAMES.indexOf(named[2].slice(0, 3).toLowerCase());
+    const second = named[3] ? Number(named[3]) : null;
+    const year = Number(named[4]);
+    if (month >= 0) {
+      if (day !== null && second !== null) return fail("is ambiguous");
+      return finishDate(year, month + 1, day ?? second ?? 1, fail);
+    }
+  }
+
+  return fail("is not a date");
+}
+
+function finishDate(
+  year: number,
+  month: number,
+  day: number,
+  fail: (detail: string) => { value: string; error: string | null },
+): { value: string; error: string | null } {
+  if (month < 1 || month > 12) return fail("has a month outside 01-12");
+  if (day < 1 || day > 31) return fail("has a day outside 01-31");
+
+  const asDate = new Date(Date.UTC(year, month - 1, day));
+  if (asDate.getUTCFullYear() !== year || asDate.getUTCMonth() !== month - 1 || asDate.getUTCDate() !== day) {
+    return fail("is not a real date");
+  }
+  if (asDate.getTime() > Date.now()) return fail("is in the future");
+
+  return { value: asDate.toISOString().slice(0, 10), error: null };
+}
+
 export function validateStudentRow(raw: Record<string, unknown>): ValidatedStudentRow {
   const keys = mapRowKeys(raw);
   const get = (field: StudentField): string => (keys[field] ? cleanValue(raw[keys[field] as string]) : "");
@@ -328,12 +441,15 @@ export function validateStudentRow(raw: Record<string, unknown>): ValidatedStude
   if (amount.error) errors.push(`Opening balance: ${amount.error}`);
   const amountValue = amount.value;
 
+  const dob = normalizeDateOfBirth(get("date_of_birth"));
+  if (dob.error) errors.push(`Date of birth: ${dob.error}`);
+
   return {
     data: {
       first_name: first,
       last_name: last,
       gender,
-      date_of_birth: get("date_of_birth"),
+      date_of_birth: dob.value,
       parent_name: get("parent_name"),
       parent_phone,
       parent_phone2: get("parent_phone2"),
