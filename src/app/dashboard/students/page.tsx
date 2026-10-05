@@ -762,7 +762,11 @@ export default function StudentHubPage() {
             title="Bulk Import Students"
             size="xl"
           >
-            <BulkImport onComplete={() => setShowBulkImportModal(false)} />
+            <BulkImport
+              onComplete={() => setShowBulkImportModal(false)}
+              createStudent={createStudent}
+              houses={importHouses}
+            />
           </Modal>
         )}
 

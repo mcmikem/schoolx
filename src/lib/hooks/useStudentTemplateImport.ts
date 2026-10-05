@@ -1,9 +1,8 @@
 "use client";
 
-import type { PostgrestResponse } from "@supabase/supabase-js";
 import { useCallback, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { withTimeout } from "@/lib/hooks/utils";
+import { buildRosterKeys, loadExistingStudents } from "@/lib/import/existing-roster";
 import {
   type BoardingStatus,
   buildClassAliasMap,
@@ -15,7 +14,6 @@ import {
   studentIdentityKey,
   validateStudentRow,
 } from "@/lib/import/students";
-import { supabase } from "@/lib/supabase";
 import type { CreateStudentInput } from "@/types";
 
 export type TemplateRow = Record<string, string>;
@@ -27,59 +25,6 @@ interface ImportSummary {
   skipped: number;
   total: number;
   errors: string[];
-}
-
-interface ExistingStudent {
-  student_number: string | null;
-  first_name: string | null;
-  last_name: string | null;
-  gender: string | null;
-  date_of_birth: string | null;
-}
-
-/**
- * Reads the roster this school already has, in pages.
- *
- * Without this the importer only knows about numbers it generated itself, so
- * re-uploading a file after a partial failure -- the most likely thing a user
- * does when some rows failed -- created a second copy of every learner that had
- * gone in first time. PostgREST caps a single response, so the read pages.
- */
-async function loadExistingStudents(schoolId: string): Promise<ExistingStudent[]> {
-  const rows: ExistingStudent[] = [];
-  const pageSize = 1000;
-
-  for (let from = 0; from < 50000; from += pageSize) {
-    const fallback = {
-      data: null,
-      error: { message: "Timeout", code: "TIMEOUT", details: "", hint: "", name: "TimeoutError" },
-      count: null,
-      status: 408,
-      statusText: "Timeout",
-      success: false,
-    } as unknown as PostgrestResponse<ExistingStudent>;
-
-    const { data, error } = await withTimeout<PostgrestResponse<ExistingStudent>>(
-      supabase
-        .from("students")
-        .select("student_number, first_name, last_name, gender, date_of_birth")
-        .eq("school_id", schoolId)
-        .order("created_at", { ascending: true })
-        .range(from, from + pageSize - 1),
-      10000,
-      fallback,
-    );
-
-    // A failed or timed-out read must not silently continue as "nothing exists",
-    // or the very duplicates this guards against would be created.
-    if (error) throw new Error(`Could not check existing students: ${String(error.message || error)}`);
-
-    const batch = (data || []) as unknown as ExistingStudent[];
-    rows.push(...batch);
-    if (batch.length < pageSize) break;
-  }
-
-  return rows;
 }
 
 /** A row that passed header mapping, with its class resolved to a real id. */
@@ -351,13 +296,9 @@ export function useStudentTemplateImport(params: UseStudentTemplateImportParams)
     let existingPeople = new Set<string>();
     if (school?.id && !isDemo) {
       try {
-        const existing = await loadExistingStudents(school.id);
-        existingNumbers = new Set(existing.map((row) => String(row.student_number || "").trim()).filter(Boolean));
-        existingPeople = new Set(
-          existing.map((row) =>
-            studentIdentityKey(row.first_name || "", row.last_name || "", row.gender || "", row.date_of_birth || ""),
-          ),
-        );
+        const keys = buildRosterKeys(await loadExistingStudents(school.id));
+        existingNumbers = keys.numbers;
+        existingPeople = keys.people;
       } catch (error) {
         const message = error instanceof Error ? error.message : "Could not check existing students";
         setTemplateErrors(`${message}. Nothing was imported.`);

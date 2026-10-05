@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "@jest/globals";
 import {
   BOARDING_STATUSES,
@@ -813,5 +815,55 @@ describe("student bulk import – template columns", () => {
       "UNEAB Number",
     ];
     for (const header of wanted) expect(STUDENT_TEMPLATE_HEADERS).toContain(header);
+  });
+});
+
+/**
+ * Four screens hand out a student template, and every one of them used to keep
+ * its own column list. Three of the four went on shipping 7-8 headings after
+ * the fourth had grown to 29, and the ones that drifted also carried their own
+ * sample learners -- John Doe, Mary Smith and Peter Jones were added to real
+ * registers by schools that downloaded a "blank" form.
+ *
+ * This reads the source rather than the output, because the failure was always
+ * someone editing one copy and not knowing the others existed.
+ */
+describe("student bulk import – no rogue templates", () => {
+  const read = (relativePath: string) => readFileSync(resolve(process.cwd(), relativePath), "utf8");
+
+  const HANDLERS = [
+    "src/components/BulkImport.tsx",
+    "src/components/students/StudentRegistryPanel.tsx",
+    "src/app/dashboard/import/page.tsx",
+    "src/app/api/import-template/route.ts",
+  ];
+
+  // Pairing the path with the result keeps the failure readable: the shared
+  // matcher prints the object, so a drift says which screen drifted.
+  const results = (paths: string[], check: (source: string) => boolean) =>
+    paths.map((path) => ({ path, passes: check(read(path)) }));
+
+  it("every screen that hands out a template reads the shared column list", () => {
+    const shared = /buildStudentTemplateCsv|STUDENT_TEMPLATE_HEADERS/;
+    expect(results(HANDLERS, (source) => shared.test(source))).toEqual(
+      HANDLERS.map((path) => ({ path, passes: true })),
+    );
+  });
+
+  it("no screen carries a hard-coded student template of its own", () => {
+    const hasOwn = (source: string) =>
+      // The old 7-column header as a raw template literal.
+      /student_number,first_name,last_name,gender,date_of_birth/.test(source) ||
+      // Sample learners that shipped inside the "blank" form.
+      source.includes("John,Doe") ||
+      source.includes("Peter,Jones");
+
+    expect(results(HANDLERS, (source) => !hasOwn(source))).toEqual(HANDLERS.map((path) => ({ path, passes: true })));
+  });
+
+  it("no template ships sample learners", () => {
+    const csv = buildStudentTemplateCsv();
+    expect(csv).not.toMatch(/John|Doe|Smith|Okello|Nakibuuka/);
+    expect(csv.split(/\r?\n/)).toHaveLength(1);
   });
 });

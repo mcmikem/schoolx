@@ -1,18 +1,45 @@
 "use client";
-import { useState, useRef } from "react";
+import { useRef, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useClasses } from "@/lib/hooks";
+import { buildRosterKeys, loadExistingStudents, type RosterKeys } from "@/lib/import/existing-roster";
+import {
+  type BoardingStatus,
+  buildClassAliasMap,
+  buildHouseAliasMap,
+  buildStudentTemplateCsv,
+  parseDelimitedText,
+  parseStudentRows,
+  resolveClassId,
+  resolveHouseId,
+  studentIdentityKey,
+  type ValidatedStudentRow,
+} from "@/lib/import/students";
 import { supabase } from "@/lib/supabase";
-import { withTimeout } from "@/lib/hooks/utils";
-import { parseDelimitedText, parseStudentRows, type ValidatedStudentRow } from "@/lib/import/students";
+import type { CreateStudentInput } from "@/types";
 
 interface ImportResult {
   success: number;
   failed: number;
+  /** Rows the school already had, skipped rather than duplicated. */
+  skipped: number;
   errors: string[];
 }
 
-export default function BulkImport({ onComplete }: { onComplete: () => void }) {
+interface BulkImportProps {
+  onComplete: () => void;
+  /**
+   * The Students page hands over the same creator the registry's own import
+   * uses. This component used to insert rows directly, which meant it wrote 11
+   * of the 29 fields its own template asked for, took the class from a single
+   * dropdown instead of the file, and had no plan limit, no uniqueness check
+   * and no parent portal account.
+   */
+  createStudent: (student: CreateStudentInput) => Promise<unknown>;
+  houses?: Array<{ id: string; name: string }>;
+}
+
+export default function BulkImport({ onComplete, createStudent, houses = [] }: BulkImportProps) {
   const { school } = useAuth();
   const { classes } = useClasses(school?.id);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -25,6 +52,13 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
   const [isDragOver, setIsDragOver] = useState(false);
   const [sheetsUrl, setSheetsUrl] = useState("");
   const [sheetsLoading, setSheetsLoading] = useState(false);
+  const [progress, setProgress] = useState<{
+    completed: number;
+    total: number;
+    success: number;
+    skipped: number;
+    failed: number;
+  } | null>(null);
 
   const parseCSV = (text: string): ValidatedStudentRow[] => {
     const rows = parseDelimitedText(text);
@@ -81,18 +115,14 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
   };
 
   const handleImport = async () => {
-    const isCurrentlyDemo = typeof window !== "undefined" && localStorage.getItem("skoolmate_demo_v1") !== null;
-
-    if (!school?.id || (!supabase && !isCurrentlyDemo)) {
-      setError("Cannot import - no school or database connection");
+    if (!school?.id) {
+      setError("Cannot import - no school connection");
       return;
     }
 
     setStep("importing");
     setError("");
-
-    const results: ImportResult = { success: 0, failed: 0, errors: [] };
-    const batchSize = 10; // Smaller batches for demo feel
+    setProgress(null);
 
     const validStudents = validatedRows.filter((r) => r.isValid).map((r) => r.data);
     if (validStudents.length === 0) {
@@ -101,63 +131,121 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
       return;
     }
 
-    if (isCurrentlyDemo) {
-      // Simulate slow import
+    if (typeof window !== "undefined" && localStorage.getItem("skoolmate_demo_v1") !== null) {
       await new Promise((r) => setTimeout(r, 1500));
-      setResult({ success: validStudents.length, failed: 0, errors: [] });
+      setResult({ success: validStudents.length, failed: 0, skipped: 0, errors: [] });
       setStep("complete");
       return;
     }
 
-    // Process in batches
-    for (let i = 0; i < validStudents.length; i += batchSize) {
-      const batch = validStudents.slice(i, i + batchSize).map((s, batchIdx) => {
-        const globalIdx = i + batchIdx;
-        return {
-          school_id: school.id,
-          student_number: s.student_number || `STD-${Date.now()}-${String(globalIdx).padStart(4, "0")}`,
-          first_name: s.first_name,
-          last_name: s.last_name,
-          gender: s.gender,
-          date_of_birth: s.date_of_birth || null,
-          parent_name: s.parent_name || null,
-          parent_phone: s.parent_phone || null,
-          class_id: selectedClass || null,
-          status: "active",
-          admission_date: new Date().toISOString().split("T")[0],
-        };
-      });
+    // A class from the file wins; the dropdown is only the fallback for a
+    // roster that has no Class column. Previously the dropdown was the sole
+    // source, so every learner in the file landed in whatever was selected.
+    const classMap = buildClassAliasMap(classes);
+    const houseMap = buildHouseAliasMap(houses);
 
-      try {
-        const { data, error: insertError } = await withTimeout(
-          supabase.from("students").insert(batch).select(),
-          15000,
-          { data: null, error: { message: "Batch insert timed out", code: "TIMEOUT" } } as any,
-        );
-
-        if (insertError) {
-          results.failed += batch.length;
-          results.errors.push(`Batch ${Math.floor(i / batchSize) + 1}: ${insertError.message}`);
-        } else {
-          results.success += data?.length || batch.length;
-        }
-      } catch (err: any) {
-        results.failed += batch.length;
-        results.errors.push(`Batch ${Math.floor(i / batchSize) + 1}: ${err.message}`);
-      }
+    let roster: RosterKeys;
+    try {
+      roster = buildRosterKeys(await loadExistingStudents(school.id));
+    } catch (err) {
+      // Failing open here is how duplicates are made: an unreadable roster
+      // would be treated as an empty one.
+      setError(`${err instanceof Error ? err.message : "Could not check existing students"}. Nothing was imported.`);
+      setStep("preview");
+      return;
     }
 
-    setResult(results);
+    const errors: string[] = [];
+    const captureError = (message: string) => {
+      if (errors.length < 10) errors.push(message);
+    };
+
+    let success = 0;
+    let skipped = 0;
+    let failed = 0;
+    const total = validStudents.length;
+
+    for (const [index, s] of validStudents.entries()) {
+      const label = `${s.first_name} ${s.last_name}`;
+      const number = String(s.student_number || "").trim();
+
+      if (
+        (number && roster.numbers.has(number)) ||
+        roster.people.has(studentIdentityKey(s.first_name, s.last_name, s.gender, s.date_of_birth))
+      ) {
+        skipped++;
+        setProgress({ completed: index + 1, total, success, skipped, failed });
+        continue;
+      }
+
+      const classId = resolveClassId(classMap, s.class_name) || selectedClass || "";
+      if (!classId) {
+        captureError(
+          `Row ${index + 1} (${label}): no class matches "${
+            s.class_name || "(none)"
+          }". Classes in this school: ${classes.map((c) => c.name).join(", ") || "none yet"}`,
+        );
+        failed++;
+        setProgress({ completed: index + 1, total, success, skipped, failed });
+        continue;
+      }
+
+      try {
+        await createStudent({
+          first_name: s.first_name,
+          last_name: s.last_name,
+          gender: s.gender as "M" | "F",
+          date_of_birth: s.date_of_birth || undefined,
+          class_id: classId,
+          student_number: number || undefined,
+          ple_index_number: s.ple_index_number || undefined,
+          parent_name: s.parent_name,
+          parent_phone: s.parent_phone,
+          parent_phone2: s.parent_phone2 || undefined,
+          parent_email: s.parent_email || undefined,
+          address: s.address || undefined,
+          village: s.village || undefined,
+          parish: s.parish || undefined,
+          sub_county: s.sub_county || undefined,
+          district_origin: s.district_origin || undefined,
+          boarding_status: (s.boarding_status || "day") as BoardingStatus,
+          house_id: resolveHouseId(houseMap, s.house_name) || undefined,
+          previous_school: s.previous_school || undefined,
+          blood_type: s.blood_type || undefined,
+          religion: s.religion || undefined,
+          nationality: s.nationality || undefined,
+          nin: s.nin || undefined,
+          opening_balance: s.opening_balance ? Number(s.opening_balance) : 0,
+          is_class_monitor: s.is_class_monitor,
+          prefect_role: s.prefect_role || undefined,
+          student_council_role: s.student_council_role || undefined,
+          games_house: s.games_house || undefined,
+          uneab_number: s.uneab_number || undefined,
+          status: "active",
+        });
+        success++;
+      } catch (err) {
+        captureError(`Row ${index + 1} (${label}): ${err instanceof Error ? err.message : "Unknown error"}`);
+        failed++;
+      }
+
+      setProgress({ completed: index + 1, total, success, skipped, failed });
+    }
+
+    setResult({ success, failed, skipped, errors });
     setStep("complete");
   };
 
+  /**
+   * Header row only, and the same 29 headings every other screen hands out.
+   *
+   * This button used to emit a 7-column file with three sample learners in it.
+   * The importer accepted 29 columns, so anything the school had beyond those
+   * seven had nowhere to go -- and anyone who uploaded the file unedited added
+   * John Doe, Mary Smith and Peter Jones to their register.
+   */
   const downloadTemplate = () => {
-    const template = `student_number,first_name,last_name,gender,date_of_birth,parent_name,parent_phone
-001,John,Doe,M,2015-01-15,Jane Doe,0700000001
-002,Mary,Smith,F,2015-03-20,John Smith,0700000002
-003,Peter,Jones,M,2014-07-10,Sarah Jones,0700000003`;
-
-    const blob = new Blob([template], { type: "text/csv" });
+    const blob = new Blob(["\uFEFF", buildStudentTemplateCsv()], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -309,10 +397,13 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
               {isDragOver ? "Drop your CSV file here" : "Click to upload CSV file"}
             </p>
             <p style={{ fontSize: 13, color: "var(--t3)" }}>Or drag and drop your file here</p>
+            <p style={{ fontSize: 12, color: "var(--t4)", marginTop: 6 }}>
+              CSV only. For Excel (.xlsx), use Import on the Students page.
+            </p>
             <input
               ref={fileInputRef}
               type="file"
-              accept=".csv,.xlsx,.xls"
+              accept=".csv,.txt,text/csv"
               onChange={handleFileSelect}
               style={{ display: "none" }}
             />
@@ -495,6 +586,34 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
 
       {step === "importing" && (
         <div style={{ textAlign: "center", padding: 40 }}>
+          {progress && (
+            <div style={{ marginBottom: 20 }}>
+              <div
+                style={{
+                  height: 8,
+                  background: "var(--border)",
+                  borderRadius: 999,
+                  overflow: "hidden",
+                  marginBottom: 8,
+                }}
+              >
+                <div
+                  style={{
+                    height: "100%",
+                    width: `${Math.round((progress.completed / Math.max(progress.total, 1)) * 100)}%`,
+                    background: "var(--primary)",
+                    transition: "width 0.3s",
+                  }}
+                />
+              </div>
+              <p style={{ fontSize: 13, color: "var(--t2)" }}>
+                {progress.completed}/{progress.total} processed
+                {progress.success > 0 ? `, ${progress.success} saved` : ""}
+                {progress.skipped > 0 ? `, ${progress.skipped} already on file` : ""}
+                {progress.failed > 0 ? `, ${progress.failed} failed` : ""}
+              </p>
+            </div>
+          )}
           <div
             className="animate-spin"
             style={{
@@ -548,7 +667,8 @@ export default function BulkImport({ onComplete }: { onComplete: () => void }) {
 
           <p style={{ fontSize: 14, color: "var(--t2)", marginBottom: 16 }}>
             {result?.success} students imported successfully
-            {(result?.failed ?? 0) > 0 && `, ${result?.failed} failed`}
+            {(result?.skipped ?? 0) > 0 && `, ${result?.skipped ?? 0} skipped because they are already on file`}
+            {(result?.failed ?? 0) > 0 && `, ${result?.failed ?? 0} failed`}
           </p>
 
           {(result?.errors.length ?? 0) > 0 && (
