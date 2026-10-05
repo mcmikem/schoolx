@@ -406,7 +406,11 @@ export function useStudents(schoolId?: string, options?: { limit?: number; offse
       if (highest > studentNumberSequenceRef.current) {
         studentNumberSequenceRef.current = highest;
       }
-      studentNumberSeededRef.current = true;
+      // Trust the read only when it actually saw numbered students. Zero rows
+      // is ambiguous — a genuinely new school, or existing numbers the LIKE
+      // pattern never matched — and trusting it would skip the uniqueness probe
+      // and hand out SM/<year>/0001 on every add, forever.
+      if (highest > 0) studentNumberSeededRef.current = true;
     } catch (error) {
       logger.warn("Could not seed the student number sequence:", error);
     }
@@ -605,6 +609,13 @@ export function useStudents(schoolId?: string, options?: { limit?: number; offse
         if (!isStudentNumberConflict(candidateError)) return false;
         if (!autoAllocated) throw new Error("Student number already exists for this school");
         if (attempt >= MAX_NUMBER_RETRIES) throw candidateError;
+
+        // The number we believed was free is taken, so the seed that produced
+        // it is stale (or never ran). Drop the "seeded" mark so the next
+        // allocation re-reads the real maximum and jumps past it, instead of
+        // walking one counter step at a time into the same wall — the probe is
+        // best-effort and times out on a slow connection.
+        studentNumberSeededRef.current = false;
 
         const replacement = await generateUniqueStudentNumber();
         logger.warn(`Student number ${studentPayload.student_number} was already taken; retrying with ${replacement}`);
