@@ -1,23 +1,23 @@
 import {
+  getErrorMessage,
   isFutureDate,
-  normalizeAuthPhone,
-  sanitizeString,
-  sanitizePhone,
-  sanitizeNumber,
-  isValidPhone,
-  isValidEmail,
   isValidDate,
+  isValidEmail,
+  isValidPhone,
   isValidScore,
   normalizeAttendanceInput,
+  normalizeAuthPhone,
   normalizeFeeStructureInput,
   normalizePaymentInput,
   normalizeStudentInput,
   normalizeStudentUpdateInput,
+  sanitizeNumber,
+  sanitizePhone,
+  sanitizeString,
   validateAttendanceInput,
   validateFeeStructureInput,
   validatePaymentInput,
   validateStudentInput,
-  getErrorMessage,
 } from "../lib/validation";
 
 describe("Validation - String Sanitization", () => {
@@ -206,6 +206,12 @@ describe("Validation - Student Input", () => {
         is_class_monitor: false,
         prefect_role: null,
         student_council_role: null,
+        // Absent from the input, so they land empty. Both were missing from
+        // the return object entirely, which meant a roster could supply them
+        // and have them discarded just before the insert.
+        nin: null,
+        uneab_number: null,
+        status: "active",
       });
     });
   });

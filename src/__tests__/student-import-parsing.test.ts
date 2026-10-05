@@ -17,6 +17,7 @@ import {
   STUDENT_TEMPLATE_HEADERS,
   validateStudentRow,
 } from "@/lib/import/students";
+import { normalizeStudentInput, normalizeStudentUpdateInput, validateStudentInput } from "@/lib/validation";
 
 /**
  * Regression coverage for the Students page bulk import.
@@ -865,5 +866,176 @@ describe("student bulk import – no rogue templates", () => {
     const csv = buildStudentTemplateCsv();
     expect(csv).not.toMatch(/John|Doe|Smith|Okello|Nakibuuka/);
     expect(csv.split(/\r?\n/)).toHaveLength(1);
+  });
+});
+
+/**
+ * The contract a school relies on when it fills in a roster: anything left
+ * blank stays blank on the learner, and only what genuinely cannot be missing
+ * is reported. A blank cell must never fail the parse.
+ */
+describe("student bulk import – blank cells are allowed", () => {
+  const REQUIRED: Record<string, string> = {
+    "First Name": "Sarah",
+    "Last Name": "Nakato",
+    Gender: "F",
+    "Parent Name": "James Nakato",
+    "Parent Phone": "0701234567",
+    Class: "P.1",
+  };
+
+  const buildRow = (fill: Record<string, string> = {}) => {
+    const row: Record<string, string> = {};
+    for (const header of STUDENT_TEMPLATE_HEADERS) row[header] = "";
+    return { ...row, ...REQUIRED, ...fill };
+  };
+
+  it("every optional column blank produces no errors", () => {
+    const result = validateStudentRow(buildRow());
+    expect(result.errors).toEqual([]);
+  });
+
+  it("cells holding only spaces are treated as blank, not as bad data", () => {
+    const row = buildRow();
+    for (const header of STUDENT_TEMPLATE_HEADERS) row[header] = "   ";
+    Object.assign(row, {
+      "First Name": "  Sarah  ",
+      "Last Name": "\tNakato\n",
+      Gender: "  F  ",
+      "Parent Name": "  James Nakato  ",
+      "Parent Phone": " 0701234567 ",
+      Class: "  P.1  ",
+    });
+
+    const result = validateStudentRow(row);
+    expect(result.errors).toEqual([]);
+    expect(result.data.first_name).toBe("Sarah");
+    expect(result.data.last_name).toBe("Nakato");
+    expect(result.data.parent_phone).toBe("0701234567");
+    expect(result.data.class_name).toBe("P.1");
+  });
+
+  it("an entirely empty roster reports only what is genuinely required", () => {
+    const row: Record<string, string> = {};
+    for (const header of STUDENT_TEMPLATE_HEADERS) row[header] = "";
+    expect(validateStudentRow(row).errors).toEqual(["Missing first name", "Missing last name", "Missing gender"]);
+  });
+
+  it("blank optional cells pass createStudent validation and land as null", () => {
+    const parsed = validateStudentRow(buildRow()).data;
+    const payload = {
+      first_name: parsed.first_name,
+      last_name: parsed.last_name,
+      gender: parsed.gender as "M" | "F",
+      date_of_birth: parsed.date_of_birth || undefined,
+      class_id: "class-1",
+      parent_name: parsed.parent_name,
+      parent_phone: parsed.parent_phone,
+      parent_phone2: parsed.parent_phone2 || undefined,
+      parent_email: parsed.parent_email || undefined,
+      address: parsed.address || undefined,
+      village: parsed.village || undefined,
+      nin: parsed.nin || undefined,
+      uneab_number: parsed.uneab_number || undefined,
+      boarding_status: (parsed.boarding_status || "day") as "day" | "evening" | "boarding",
+      opening_balance: parsed.opening_balance ? Number(parsed.opening_balance) : 0,
+      status: "active" as const,
+    };
+
+    expect(validateStudentInput(normalizeStudentInput(payload))).toEqual([]);
+
+    const normalized = normalizeStudentInput(payload);
+    // Left empty, not rejected and not filled with stray text.
+    expect(normalized.village).toBeNull();
+    expect(normalized.nin).toBeNull();
+    expect(normalized.uneab_number).toBeNull();
+    expect(normalized.date_of_birth).toBeNull();
+    expect(normalized.opening_balance).toBe(0);
+    expect(normalized.is_class_monitor).toBe(false);
+  });
+
+  /**
+   * A column is only real if it survives all the way to the insert. nin and
+   * uneab_number were missing from normalizeStudentInput, so the roster
+   * collected them, the parser read them and the seeding hook passed them --
+   * and this function threw them away an instant before the write.
+   */
+  it("every template column reaches the database payload", () => {
+    const values: Record<string, string> = {
+      "Student Number": "SM/2026/0007",
+      "First Name": "Sarah",
+      "Last Name": "Nakato",
+      Gender: "F",
+      "Date of Birth": "15/03/2015",
+      "Boarding Status": "day",
+      "Parent Name": "James Nakato",
+      "Parent Phone": "0701234567",
+      "Parent Phone 2": "0702345678",
+      "Parent Email": "james@example.com",
+      "PLE Index": "PLE/2026/001",
+      NIN: "CM123456789012",
+      "Previous School": "Kikunyu Primary",
+      "District of Origin": "Kabarole",
+      "Sub-county": "Kicucu",
+      Parish: "Kicucu",
+      Village: "Kicucu East",
+      "Blood Type": "O+",
+      Religion: "Christian",
+      Nationality: "Ugandan",
+      Address: "Plot 1 Kabarole",
+      "Opening Balance": "150000",
+      "Class Monitor": "yes",
+      "Prefect Role": "Head Boy",
+      "Student Council Role": "Treasurer",
+      "Games House": "Red",
+      "UNEAB Number": "U8483920",
+    };
+
+    const validation = validateStudentRow(buildRow(values));
+    expect(validation.errors).toEqual([]);
+    const parsed = validation.data;
+
+    const normalized = normalizeStudentInput({
+      ...parsed,
+      class_id: "class-1",
+      gender: parsed.gender as "M" | "F",
+      date_of_birth: parsed.date_of_birth || undefined,
+      parent_phone2: parsed.parent_phone2 || undefined,
+      parent_email: parsed.parent_email || undefined,
+      address: parsed.address || undefined,
+      village: parsed.village || undefined,
+      parish: parsed.parish || undefined,
+      sub_county: parsed.sub_county || undefined,
+      district_origin: parsed.district_origin || undefined,
+      boarding_status: (parsed.boarding_status || "day") as "day" | "evening" | "boarding",
+      previous_school: parsed.previous_school || undefined,
+      blood_type: parsed.blood_type || undefined,
+      religion: parsed.religion || undefined,
+      nationality: parsed.nationality || undefined,
+      nin: parsed.nin || undefined,
+      uneab_number: parsed.uneab_number || undefined,
+      opening_balance: parsed.opening_balance ? Number(parsed.opening_balance) : 0,
+      prefect_role: parsed.prefect_role || undefined,
+      student_council_role: parsed.student_council_role || undefined,
+      games_house: parsed.games_house || undefined,
+      student_number: parsed.student_number || undefined,
+      ple_index_number: parsed.ple_index_number || undefined,
+      status: "active",
+    });
+
+    expect(normalized.nin).toBe("CM123456789012");
+    expect(normalized.uneab_number).toBe("U8483920");
+    expect(normalized.village).toBe("Kicucu East");
+    expect(normalized.prefect_role).toBe("Head Boy");
+    expect(normalized.games_house).toBe("Red");
+    expect(normalized.opening_balance).toBe(150000);
+    expect(normalized.is_class_monitor).toBe(true);
+    expect(normalized.status).toBe("active");
+  });
+
+  it("editing a UNEB number on an existing learner is not discarded", () => {
+    expect(normalizeStudentUpdateInput({ uneab_number: "U8483920" })).toEqual({ uneab_number: "U8483920" });
+    expect(normalizeStudentUpdateInput({ uneab_number: "" })).toEqual({ uneab_number: null });
+    expect(normalizeStudentUpdateInput({ nin: "" })).toEqual({ nin: null });
   });
 });

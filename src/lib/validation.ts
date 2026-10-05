@@ -273,6 +273,16 @@ export function normalizeStudentInput(input: Record<string, any>): Record<string
     is_class_monitor: input.is_class_monitor === true,
     prefect_role: input.prefect_role || null,
     student_council_role: input.student_council_role || null,
+    // Both are roster columns the registration form and the CSV template ask
+    // for, and both were missing from this return object -- so a school that
+    // typed a NIN or a UNEB number into the import had it read by the parser,
+    // passed by the seeding hook, and then stripped here, an instant before
+    // the insert. Nothing reported it.
+    nin: input.nin || null,
+    uneab_number: input.uneab_number || null,
+    // Supplied rather than left to the column default so a caller asking for a
+    // specific status gets it instead of silently receiving 'active'.
+    status: input.status || "active",
   };
 }
 
@@ -354,6 +364,10 @@ export function normalizeStudentUpdateInput(input: Record<string, any>): Record<
   if (input.class_id !== undefined) out.class_id = String(input.class_id || "").trim();
   if (input.ple_index_number !== undefined) out.ple_index_number = input.ple_index_number || null;
   if (input.nin !== undefined) out.nin = input.nin || null;
+  // The create path and the edit path disagreed: nin was writable, uneab_number
+  // was not, so correcting a UNEB number on an existing learner was discarded
+  // without a word.
+  if (input.uneab_number !== undefined) out.uneab_number = input.uneab_number || null;
 
   if (input.opening_balance !== undefined) {
     const balance =
