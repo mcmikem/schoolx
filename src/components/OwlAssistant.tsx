@@ -53,23 +53,64 @@ function welcomeMessage(): Message {
 function formatMessage(text: string) {
   const escapeHtml = (s: string) =>
     s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-  const renderLine = (line: string) => {
+  const renderInline = (line: string) => {
     const escaped = escapeHtml(line);
-    const parts = escaped.split(/\*\*(.*?)\*\*/g);
-    return parts.map((part, j) => {
-      if (j % 2 === 1) {
-        return <strong key={j}>{part}</strong>;
+    const nodes: React.ReactNode[] = [];
+    // **bold** and `code` spans
+    const parts = escaped.split(/(\*\*.*?\*\*|`[^`]*`)/g);
+    parts.forEach((part, j) => {
+      if (!part) return;
+      if (/^\*\*.*\*\*$/.test(part)) {
+        nodes.push(<strong key={`b${j}`}>{part.slice(2, -2)}</strong>);
+      } else if (/^`.*`$/.test(part)) {
+        nodes.push(
+          <code key={`c${j}`} className="px-1 py-0.5 rounded bg-black/5 text-[12px]">
+            {part.slice(1, -1)}
+          </code>,
+        );
+      } else {
+        nodes.push(<span key={`t${j}`}>{part}</span>);
       }
-      return part;
     });
+    return nodes;
   };
-  const lines = text.split("\n");
-  return lines.map((line, i) => (
-    <span key={i}>
-      {renderLine(line)}
-      {i < lines.length - 1 && <br />}
-    </span>
-  ));
+
+  return text.split("\n").map((line, i) => {
+    // **Title** alone on a line → heading
+    const heading = /^\*\*(.+?)\*\*$/.exec(line);
+    if (heading) {
+      return (
+        <div key={i} className="font-semibold text-[13px] mt-1 first:mt-0">
+          {heading[1]}
+        </div>
+      );
+    }
+    // blank line → spacing
+    if (!line.trim()) {
+      return <div key={i} style={{ height: 6 }} />;
+    }
+    // bullet
+    const bullet = /^([•\-–])\s+(.*)$/.exec(line);
+    if (bullet) {
+      return (
+        <div key={i} className="flex gap-1.5">
+          <span className="shrink-0 opacity-60">{bullet[1]}</span>
+          <span className="flex-1">{renderInline(bullet[2])}</span>
+        </div>
+      );
+    }
+    // numbered step
+    const numbered = /^(\d+)\.\s+(.*)$/.exec(line);
+    if (numbered) {
+      return (
+        <div key={i} className="flex gap-1.5">
+          <span className="shrink-0 font-medium">{numbered[1]}.</span>
+          <span className="flex-1">{renderInline(numbered[2])}</span>
+        </div>
+      );
+    }
+    return <div key={i}>{renderInline(line)}</div>;
+  });
 }
 
 export default function OwlAssistant() {
