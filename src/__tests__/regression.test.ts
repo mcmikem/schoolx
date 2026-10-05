@@ -1,7 +1,7 @@
 // Regression tests for all fixes applied during production hardening
 // Run: npm test -- --testPathPattern=regression
 
-import { describe, it, expect } from "@jest/globals";
+import { describe, expect, it } from "@jest/globals";
 
 describe("Production Hardening Regression Tests", () => {
   describe("Auth Flow", () => {
@@ -593,6 +593,41 @@ describe("Production Hardening Regression Tests", () => {
       );
       expect(academicsPage).toContain("ParentPortalShell");
       expect(academicsPage).not.toContain("useParentPortalGuard");
+    });
+  });
+
+  describe("Parent Portal – must not hijack a staff account", () => {
+    const routePath = "src/app/api/students/create-parent-portal/route.ts";
+    const readRoute = () => require("fs").readFileSync(require("path").join(process.cwd(), routePath), "utf8");
+
+    it("checks the matched account's role before touching credentials", () => {
+      expect(readRoute()).toContain('existingUser.role !== "parent"');
+    });
+
+    it("refuses with 409 rather than rotating a non-parent", () => {
+      const src = readRoute();
+      expect(src).toContain("status: 409");
+      expect(src).toContain('conflict: "phone_owned_by_staff"');
+    });
+
+    it("keeps the guard ahead of the password rotation", () => {
+      const src = readRoute();
+      const guard = src.indexOf('existingUser.role !== "parent"');
+      const rotate = src.indexOf("updateUserById(existingUser.auth_id");
+      expect(guard).toBeGreaterThan(-1);
+      expect(rotate).toBeGreaterThan(-1);
+      expect(guard).toBeLessThan(rotate);
+    });
+
+    it("never rewrites role to parent without the guard", () => {
+      const src = readRoute();
+      const guard = src.indexOf('existingUser.role !== "parent"');
+      const clobber = src.indexOf('role: "parent"');
+      expect(guard).toBeGreaterThan(-1);
+      expect(clobber).toBeGreaterThan(-1);
+      // The metadata write that sets role:"parent" lives in the rotation call,
+      // which only runs after the guard above has passed.
+      expect(guard).toBeLessThan(clobber);
     });
   });
 });

@@ -1,11 +1,11 @@
-import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { normalizeAuthPhone } from "@/lib/validation";
+import { randomBytes } from "crypto";
+import { NextRequest, NextResponse } from "next/server";
+import { apiError, assertSchoolScopeOrDeny, requireUserWithSchool, supabaseClientOptions } from "@/lib/api-utils";
 import { buildAuthEmailFromPhone } from "@/lib/auth-login";
 import { logger } from "@/lib/logger";
-import { sendParentPortalCredentials, isWhatsAppConfigured } from "@/lib/whatsapp";
-import { requireUserWithSchool, assertSchoolScopeOrDeny, apiError, supabaseClientOptions } from "@/lib/api-utils";
-import { randomBytes } from "crypto";
+import { normalizeAuthPhone } from "@/lib/validation";
+import { isWhatsAppConfigured, sendParentPortalCredentials } from "@/lib/whatsapp";
 
 const supabaseUrl: string = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseServiceKey: string | undefined = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
   const phoneNormalized = normalizeAuthPhone(parentPhone);
   const { data: existingUser } = await supabaseAdmin
     .from("users")
-    .select("id, role, auth_id")
+    .select("id, role, auth_id, full_name")
     .eq("phone", phoneNormalized)
     .eq("school_id", schoolId)
     .maybeSingle();
@@ -113,6 +113,29 @@ export async function POST(request: NextRequest) {
   };
 
   if (existingUser) {
+    // This lookup matches on phone number only, and staff members routinely
+    // appear as a student's contact. Without this guard, a school_admin whose
+    // number is listed as a parent's would have their password replaced with a
+    // random one and their role overwritten to "parent" — locked out of their
+    // own account and demoted, with no error anywhere. Refuse instead of
+    // guessing which of the two accounts was meant.
+    if (existingUser.role !== "parent") {
+      const roleLabel = String(existingUser.role).replace(/_/g, " ");
+      logger.warn("[create-parent-portal] refusing: phone belongs to a non-parent account", {
+        phone: phoneNormalized,
+        schoolId,
+        studentId,
+        matchedRole: existingUser.role,
+      });
+      return NextResponse.json(
+        {
+          error: `That phone number is already used by a ${roleLabel} account (${existingUser.full_name}), not a parent. Nothing was changed and no credentials were issued. Use the parent's own phone number, or update the student's parent contact and try again.`,
+          conflict: "phone_owned_by_staff",
+        },
+        { status: 409 },
+      );
+    }
+
     // Parent exists — ensure link to this student
     const { data: existingLink } = await supabaseAdmin
       .from("parent_students")
