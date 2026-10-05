@@ -1053,7 +1053,17 @@ export function useClasses(schoolId?: string) {
         // ignore cache read failure
       }
       setClasses([]);
-      toast?.error(getErrorMessage(err, "Failed to load classes"));
+      // The reason travels with the toast. Besides telling the user what broke,
+      // the wording identifies the running build — older bundles showed a bare
+      // "Failed to load classes" even when the error carried a full message.
+      const reason = getErrorMessage(err, "");
+      const code =
+        err && typeof err === "object" && "code" in err ? String((err as { code?: unknown }).code || "") : "";
+      toast?.error(
+        reason
+          ? `Failed to load classes: ${reason}${code ? ` [${code}]` : ""}`
+          : `Failed to load classes (error carried no message: ${err === null ? "null" : typeof err})`,
+      );
     } finally {
       setLoading(false);
     }
