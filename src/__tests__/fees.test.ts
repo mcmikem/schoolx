@@ -1,5 +1,6 @@
 import { calculateStudentFeePosition } from "../lib/operations";
 import { validateAdjustment, validatePayment, generateInvoice } from "../lib/server/fee-logic";
+import { normalizeFeeSummary, HIGH_RISK_ARREARS_THRESHOLD } from "../lib/hooks/fees";
 
 describe("calculateStudentFeePosition", () => {
   it("returns unpaid when there are no payments or adjustments", () => {
@@ -396,5 +397,90 @@ describe("Payment validation", () => {
       notes: "Payment for Term 1 fees",
     });
     expect(errors).toHaveLength(0);
+  });
+});
+
+// fee_summary() runs in the database so the Bursar dashboard sums the whole
+// school instead of the first 100 students / 50 payments. Postgres NUMERIC and
+// BIGINT columns arrive as JSON strings, so the normaliser has to coerce them
+// or every headline figure silently renders as 0.
+describe("normalizeFeeSummary", () => {
+  it("maps the RPC row to camelCase numbers", () => {
+    expect(
+      normalizeFeeSummary({
+        students_count: 594,
+        expected_total: 2019600000,
+        collected_total: 375000,
+        overdue_count: 594,
+        high_risk_count: 12,
+        this_month_total: 150000,
+        last_month_total: 225000,
+      }),
+    ).toEqual({
+      studentsCount: 594,
+      expectedTotal: 2019600000,
+      collectedTotal: 375000,
+      overdueCount: 594,
+      highRiskCount: 12,
+      thisMonthTotal: 150000,
+      lastMonthTotal: 225000,
+    });
+  });
+
+  it("coerces numeric strings returned by PostgREST", () => {
+    const summary = normalizeFeeSummary({
+      students_count: "173",
+      expected_total: "22150000.00",
+      collected_total: "0",
+      overdue_count: "140",
+      high_risk_count: "0",
+      this_month_total: "0",
+      last_month_total: null,
+    });
+
+    expect(summary).toEqual({
+      studentsCount: 173,
+      expectedTotal: 22150000,
+      collectedTotal: 0,
+      overdueCount: 140,
+      highRiskCount: 0,
+      thisMonthTotal: 0,
+      lastMonthTotal: 0,
+    });
+  });
+
+  it("returns null so callers fall back to client-side totals", () => {
+    expect(normalizeFeeSummary(null)).toBeNull();
+    expect(normalizeFeeSummary(undefined)).toBeNull();
+    expect(normalizeFeeSummary("boom")).toBeNull();
+    expect(normalizeFeeSummary({ other_function: 1 })).toBeNull();
+  });
+
+  it("treats malformed numbers as zero rather than NaN", () => {
+    const summary = normalizeFeeSummary({
+      students_count: "not-a-number",
+      expected_total: "1000.50",
+      collected_total: "",
+      overdue_count: null,
+      high_risk_count: null,
+      this_month_total: null,
+      last_month_total: null,
+    });
+
+    expect(summary).toEqual({
+      studentsCount: 0,
+      expectedTotal: 1000.5,
+      collectedTotal: 0,
+      overdueCount: 0,
+      highRiskCount: 0,
+      thisMonthTotal: 0,
+      lastMonthTotal: 0,
+    });
+  });
+});
+
+describe("HIGH_RISK_ARREARS_THRESHOLD", () => {
+  it("matches the threshold the fee_summary() SQL function uses", () => {
+    expect(HIGH_RISK_ARREARS_THRESHOLD).toBe(300000);
   });
 });

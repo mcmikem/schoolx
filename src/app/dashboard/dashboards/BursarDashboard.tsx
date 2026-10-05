@@ -3,8 +3,6 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import OwlMascot from "@/components/brand/OwlMascot";
 import CollectionDonut from "@/components/dashboard/CollectionDonut";
-import DashboardInsights from "@/components/dashboard/DashboardInsights";
-import EcosystemPulse from "@/components/dashboard/EcosystemPulse";
 import RecentPayments from "@/components/dashboard/RecentPayments";
 import SchoolCalendar from "@/components/dashboard/SchoolCalendar";
 import SchoolHero from "@/components/dashboard/SchoolHero";
@@ -20,7 +18,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { StuckLoadingOverlay, TopLoadingBar } from "@/components/ui/Skeleton";
 import { useAcademic } from "@/lib/academic-context";
 import { useAuth } from "@/lib/auth-context";
-import { useFeePayments, useFeeStructure, useStudents } from "@/lib/hooks";
+import { useFeePayments, useFeeStructure, useFeeSummary, useStudents, HIGH_RISK_ARREARS_THRESHOLD } from "@/lib/hooks";
 import { greetingFor, todayLabelFor } from "@/lib/utils";
 
 function BursarDashboardContent() {
@@ -29,8 +27,9 @@ function BursarDashboardContent() {
   const { students, loading: studentsLoading } = useStudents(school?.id);
   const { payments, loading: paymentsLoading } = useFeePayments(school?.id);
   const { feeStructure, loading: feeStructureLoading } = useFeeStructure(school?.id);
+  const { summary: feeSummary, loading: feeSummaryLoading } = useFeeSummary(school?.id);
   const [loadingTimedOut, setLoadingTimedOut] = useState(false);
-  const dataLoading = studentsLoading || paymentsLoading || feeStructureLoading;
+  const dataLoading = studentsLoading || paymentsLoading || feeStructureLoading || feeSummaryLoading;
 
   useEffect(() => {
     if (!dataLoading) {
@@ -52,30 +51,19 @@ function BursarDashboardContent() {
   const currentDate = new Date();
   const greeting = greetingFor(currentDate);
 
-  const totalFeesExpected = useMemo(
-    () =>
-      students.reduce((total, student) => {
-        const classFees = feeStructure.filter((f) => !f.class_id || f.class_id === student.class_id);
-        const studentExpected = classFees.reduce((sum, f) => sum + Number(f.amount || 0), 0);
-        return total + studentExpected;
-      }, 0),
-    [students, feeStructure],
-  );
+  // Client-side totals — the fallback when fee_summary() cannot answer (demo
+  // mode, offline, a timeout, or a deployment where the migration has not run
+  // yet). Kept identical to the database function's semantics so the two paths
+  // agree; in normal operation the RPC wins and this is not what the numbers
+  // come from, because this path only ever sees the first 100 students and 50
+  // payments.
+  const legacyFigures = useMemo(() => {
+    const expected = students.reduce((total, student) => {
+      const classFees = feeStructure.filter((f) => !f.class_id || f.class_id === student.class_id);
+      return total + classFees.reduce((sum, f) => sum + Number(f.amount || 0), 0);
+    }, 0);
+    const collected = payments.reduce((sum, p) => sum + Number(p.amount_paid || 0), 0);
 
-  const totalFeesCollected = useMemo(
-    () => payments.reduce((sum, p) => sum + Number(p.amount_paid || 0), 0),
-    [payments],
-  );
-  const totalArrears = useMemo(
-    () => Math.max(0, totalFeesExpected - totalFeesCollected),
-    [totalFeesExpected, totalFeesCollected],
-  );
-  const collectionRate = useMemo(
-    () => (totalFeesExpected > 0 ? Math.round((totalFeesCollected / totalFeesExpected) * 100) : 0),
-    [totalFeesExpected, totalFeesCollected],
-  );
-
-  const overdueCount = useMemo(() => {
     const studentExpectedMap: Record<string, number> = {};
     for (const student of students) {
       const classFees = feeStructure.filter((f) => !f.class_id || f.class_id === student.class_id);
@@ -86,12 +74,52 @@ function BursarDashboardContent() {
       const sid = p.student_id;
       studentPaidMap[sid] = (studentPaidMap[sid] || 0) + Number(p.amount_paid || 0);
     }
-    return students.filter((s) => {
-      const expected = studentExpectedMap[s.id] || 0;
+
+    let overdue = 0;
+    let highRisk = 0;
+    for (const s of students) {
+      const studentExpected = studentExpectedMap[s.id] || 0;
       const paid = studentPaidMap[s.id] || 0;
-      return expected > 0 && paid < expected;
-    }).length;
+      if (studentExpected > 0 && paid < studentExpected) overdue += 1;
+      if (Math.max(0, studentExpected - paid) >= HIGH_RISK_ARREARS_THRESHOLD) highRisk += 1;
+    }
+
+    const now = new Date();
+    const monthKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}`;
+    const currentKey = monthKey(now);
+    const previousKey = monthKey(new Date(now.getFullYear(), now.getMonth() - 1, 1));
+    let thisMonth = 0;
+    let previousMonth = 0;
+    for (const p of payments) {
+      const amount = Number(p.amount_paid || 0);
+      const key = monthKey(new Date(p.payment_date));
+      if (key === currentKey) thisMonth += amount;
+      else if (key === previousKey) previousMonth += amount;
+    }
+
+    return {
+      studentsCount: students.length,
+      expectedTotal: expected,
+      collectedTotal: collected,
+      overdueCount: overdue,
+      highRiskCount: highRisk,
+      thisMonthTotal: thisMonth,
+      lastMonthTotal: previousMonth,
+    };
   }, [students, feeStructure, payments]);
+
+  const figures = feeSummary ?? legacyFigures;
+  const totalFeesExpected = figures.expectedTotal;
+  const totalFeesCollected = figures.collectedTotal;
+  const totalArrears = Math.max(0, totalFeesExpected - totalFeesCollected);
+  const collectionRate = totalFeesExpected > 0 ? Math.round((totalFeesCollected / totalFeesExpected) * 100) : 0;
+  const overdueCount = figures.overdueCount;
+  const highRiskArrearsCount = figures.highRiskCount;
+  const thisMonthTotal = figures.thisMonthTotal;
+  const lastMonthTotal = figures.lastMonthTotal;
+  const collectionTrend =
+    lastMonthTotal > 0 ? Math.round(((thisMonthTotal - lastMonthTotal) / lastMonthTotal) * 100) : 0;
+  const studentTotal = figures.studentsCount;
 
   const recentPayments = useMemo(() => {
     const studentMap = Object.fromEntries(students.map((s) => [s.id, s]));
@@ -105,56 +133,6 @@ function BursarDashboardContent() {
           : "Unknown",
       }));
   }, [payments, students]);
-
-  const thisMonthPayments = useMemo(
-    () =>
-      payments.filter((p) => {
-        const d = new Date(p.payment_date);
-        const now = new Date();
-        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-      }),
-    [payments],
-  );
-  const lastMonthPayments = useMemo(
-    () =>
-      payments.filter((p) => {
-        const d = new Date(p.payment_date);
-        const now = new Date();
-        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        return d.getMonth() === lastMonth.getMonth() && d.getFullYear() === lastMonth.getFullYear();
-      }),
-    [payments],
-  );
-  const thisMonthTotal = useMemo(
-    () => thisMonthPayments.reduce((s, p) => s + Number(p.amount_paid || 0), 0),
-    [thisMonthPayments],
-  );
-  const lastMonthTotal = useMemo(
-    () => lastMonthPayments.reduce((s, p) => s + Number(p.amount_paid || 0), 0),
-    [lastMonthPayments],
-  );
-  const collectionTrend = useMemo(
-    () => (lastMonthTotal > 0 ? Math.round(((thisMonthTotal - lastMonthTotal) / lastMonthTotal) * 100) : 0),
-    [thisMonthTotal, lastMonthTotal],
-  );
-
-  const highRiskArrearsCount = useMemo(() => {
-    const studentExpectedMap: Record<string, number> = {};
-    for (const student of students) {
-      const classFees = feeStructure.filter((f) => !f.class_id || f.class_id === student.class_id);
-      studentExpectedMap[student.id] = classFees.reduce((sum, f) => sum + Number(f.amount || 0), 0);
-    }
-    const studentPaidMap: Record<string, number> = {};
-    for (const p of payments) {
-      const sid = p.student_id;
-      studentPaidMap[sid] = (studentPaidMap[sid] || 0) + Number(p.amount_paid || 0);
-    }
-    return students.filter((s) => {
-      const expected = studentExpectedMap[s.id] || 0;
-      const paid = studentPaidMap[s.id] || 0;
-      return Math.max(0, expected - paid) >= 300000;
-    }).length;
-  }, [students, feeStructure, payments]);
 
   const todayActions = [
     {
@@ -196,7 +174,7 @@ function BursarDashboardContent() {
     if (highRiskArrearsCount > 0) {
       items.push({
         id: "high-risk",
-        label: `${highRiskArrearsCount} high-risk arrears above UGX 300,000`,
+        label: `${highRiskArrearsCount} high-risk arrears above UGX ${HIGH_RISK_ARREARS_THRESHOLD.toLocaleString()}`,
         icon: "warning",
         priority: "attention" as const,
         href: "/dashboard/fees?tab=defaulters",
@@ -259,7 +237,7 @@ function BursarDashboardContent() {
             <StatCard
               label="Expected"
               value={`UGX ${formatCurrency(totalFeesExpected)}`}
-              subValue={`${students.length} students`}
+              subValue={`${studentTotal} students`}
               icon="account_balance"
               accentColor="navy"
               loading={dataLoading}
@@ -367,12 +345,14 @@ function BursarDashboardContent() {
                 className={`rounded-xl border p-3 ${highRiskArrearsCount > 0 ? "border-[var(--amber)] bg-[var(--amber-soft)]" : "border-[var(--surface-container-low)] bg-[var(--surface-bright)]"}`}
               >
                 <div className="text-xs font-semibold text-[var(--t1)]">High-risk arrears</div>
-                <div className="text-sm font-bold mt-1 text-[var(--t1)]">{highRiskArrearsCount} above UGX 300,000</div>
+                <div className="text-sm font-bold mt-1 text-[var(--t1)]">
+                  {highRiskArrearsCount} above UGX {HIGH_RISK_ARREARS_THRESHOLD.toLocaleString()}
+                </div>
               </div>
               <div className="rounded-xl border border-[var(--surface-container-low)] bg-[var(--surface-bright)] p-3">
                 <div className="text-xs font-semibold text-[var(--t1)]">Students in arrears</div>
                 <div className="text-sm font-bold mt-1 text-[var(--t1)]">
-                  {overdueCount} of {students.length}
+                  {overdueCount} of {studentTotal}
                 </div>
               </div>
               <div className="rounded-xl border border-[var(--surface-container-low)] bg-[var(--surface-bright)] p-3">

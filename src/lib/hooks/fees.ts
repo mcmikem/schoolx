@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import type { FeePayment, FeeStructure, FeeAdjustment, CreatePaymentInput } from "@/types";
-import { getQuerySchoolId, withTimeout, timeoutFallback } from "./utils";
+import { getQuerySchoolId, withTimeout, timeoutFallback, isTimeoutResult } from "./utils";
 import { getCachedData, setCachedData, invalidateCache } from "./queryCache";
 import { DEMO_FEE_PAYMENTS, DEMO_FEE_STRUCTURE, DEMO_EXPENSES, DEMO_BUDGETS, DemoExpense } from "@/lib/demo-data";
 import { isDemoSchool } from "@/lib/demo-utils";
@@ -11,6 +11,7 @@ import { offlineDB, useOnlineStatus } from "@/lib/offline";
 import { logAuditEventWithOfflineSupport } from "@/lib/audit";
 import { logger } from "@/lib/logger";
 import {
+  getErrorMessage,
   normalizeFeeStructureInput,
   normalizePaymentInput,
   validateFeeStructureInput,
@@ -592,6 +593,115 @@ export function useFeeStructure(schoolId?: string) {
     deleteFeeStructure,
     refetch: fetchFeeStructure,
   };
+}
+
+/** A student's shortfall at or above this amount counts as high-risk arrears. */
+export const HIGH_RISK_ARREARS_THRESHOLD = 300000;
+
+export interface FeeSummary {
+  studentsCount: number;
+  expectedTotal: number;
+  collectedTotal: number;
+  overdueCount: number;
+  highRiskCount: number;
+  thisMonthTotal: number;
+  lastMonthTotal: number;
+}
+
+function toNumber(value: unknown): number {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+/** Postgres NUMERIC/BIGINT arrive as JSON strings — normalise to real numbers. */
+export function normalizeFeeSummary(row: unknown): FeeSummary | null {
+  if (!row || typeof row !== "object") return null;
+  const r = row as Record<string, unknown>;
+  if (!("expected_total" in r)) return null;
+  return {
+    studentsCount: toNumber(r.students_count),
+    expectedTotal: toNumber(r.expected_total),
+    collectedTotal: toNumber(r.collected_total),
+    overdueCount: toNumber(r.overdue_count),
+    highRiskCount: toNumber(r.high_risk_count),
+    thisMonthTotal: toNumber(r.this_month_total),
+    lastMonthTotal: toNumber(r.last_month_total),
+  };
+}
+
+/**
+ * Headline fee totals for the whole school, summed by the fee_summary()
+ * database function in one round trip.
+ *
+ * The Bursar dashboard used to add these up in the browser from the first page
+ * of students (100 rows) and payments (50 rows), so every school past those
+ * limits reported the wrong money. Returns `null` whenever the RPC cannot
+ * answer — demo mode, offline, a timeout, or a deployment where the migration
+ * has not run yet — so callers fall back to the client-side computation
+ * instead of rendering zeros.
+ */
+export function useFeeSummary(schoolId?: string) {
+  const [summary, setSummary] = useState<FeeSummary | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { isDemo } = useAuth();
+  const isOnline = useOnlineStatus();
+  const prevIsDemo = useRef(isDemo);
+  const cacheKey = `fee_summary:${schoolId}`;
+
+  useEffect(() => {
+    if (prevIsDemo.current && !isDemo) {
+      setSummary(null);
+      setError(null);
+    }
+    prevIsDemo.current = isDemo;
+  }, [isDemo]);
+
+  const fetchSummary = useCallback(async () => {
+    if (isDemo || isDemoSchool(schoolId) || !schoolId) {
+      setSummary(null);
+      setLoading(false);
+      return;
+    }
+
+    const cached = getCachedData<FeeSummary>(cacheKey);
+    if (cached) setSummary(cached);
+
+    const querySchoolId = getQuerySchoolId(schoolId, isDemo);
+    if (!querySchoolId || !isOnline) {
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const result = await withTimeout(
+        supabase.rpc("fee_summary", { p_school_id: querySchoolId }).maybeSingle(),
+        8000,
+        timeoutFallback<FeeSummary>(),
+      );
+      // A deadline means the answer is UNKNOWN — keep whatever we already
+      // hold rather than overwriting good numbers with an empty result.
+      if (isTimeoutResult(result)) return;
+      if (result.error) throw result.error;
+
+      const normalized = normalizeFeeSummary(result.data);
+      setSummary(normalized);
+      if (normalized) setCachedData(cacheKey, normalized);
+      setError(null);
+    } catch (err: unknown) {
+      logger.warn("[useFeeSummary] RPC unavailable, falling back to client totals:", err);
+      setError(getErrorMessage(err, "Failed to load fee totals"));
+    } finally {
+      setLoading(false);
+    }
+  }, [schoolId, isDemo, isOnline, cacheKey]);
+
+  useEffect(() => {
+    fetchSummary();
+  }, [fetchSummary]);
+
+  return { summary, loading, error, refetch: fetchSummary };
 }
 
 export function useFeeAdjustments(schoolId?: string) {
