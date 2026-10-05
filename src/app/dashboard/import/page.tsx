@@ -11,6 +11,7 @@ import {
   formatSpreadsheetCell,
   parseDelimitedText,
   parseStudentRows,
+  STUDENT_TEMPLATE_HEADERS,
   type ValidatedStudentRow,
 } from "@/lib/import/students";
 import { logger } from "@/lib/logger";
@@ -220,36 +221,14 @@ export default function ImportPage() {
         const ExcelJS = (await import("exceljs")).default;
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet("Students");
-        worksheet.columns = [
-          { header: "First Name", key: "firstName", width: 15 },
-          { header: "Last Name", key: "lastName", width: 15 },
-          { header: "Gender", key: "gender", width: 10 },
-          { header: "Date of Birth", key: "dob", width: 15 },
-          { header: "Class", key: "class", width: 10 },
-          { header: "Parent Name", key: "parentName", width: 20 },
-          { header: "Parent Phone", key: "parentPhone", width: 15 },
-          { header: "Student Number", key: "studentNumber", width: 15 },
-        ];
-        worksheet.addRow({
-          firstName: "Sarah",
-          lastName: "Nakato",
-          gender: "F",
-          dob: "2015-03-15",
-          class: "P.5",
-          parentName: "James Nakato",
-          parentPhone: "0701234567",
-          studentNumber: "",
-        });
-        worksheet.addRow({
-          firstName: "John",
-          lastName: "Mukasa",
-          gender: "M",
-          dob: "2014-06-20",
-          class: "P.5",
-          parentName: "Betty Mukasa",
-          parentPhone: "0702345678",
-          studentNumber: "",
-        });
+        // Header row only. This list is shared with the registry CSV and the
+        // Word template, because each screen used to keep its own copy and two
+        // of them went on shipping an 8-column file after the third grew to 29.
+        worksheet.columns = STUDENT_TEMPLATE_HEADERS.map((header) => ({
+          header,
+          key: header,
+          width: Math.max(header.length + 4, 14),
+        }));
         const buffer = await workbook.xlsx.writeBuffer();
         const blob = new Blob([buffer], {
           type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",

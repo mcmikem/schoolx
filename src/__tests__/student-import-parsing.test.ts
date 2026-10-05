@@ -3,6 +3,7 @@ import {
   BOARDING_STATUSES,
   buildClassAliasMap,
   buildHouseAliasMap,
+  buildStudentTemplateCsv,
   formatSpreadsheetCell,
   normalizeAmount,
   normalizeBoardingStatus,
@@ -11,6 +12,7 @@ import {
   parseDelimitedText,
   resolveClassId,
   resolveHouseId,
+  STUDENT_TEMPLATE_HEADERS,
   validateStudentRow,
 } from "@/lib/import/students";
 
@@ -694,5 +696,122 @@ describe("student bulk import – uneab number", () => {
       parent_name: "Betty Mukasa",
     });
     expect(result.data.uneab_number).toBe("");
+  });
+});
+
+/**
+ * Three screens hand out a student template: the registry's CSV, the import
+ * page's Excel file, and the API route's Word document. Each used to keep its
+ * own column list, so two of them went on shipping an 8-column file after the
+ * third had grown to 29 -- the same file, downloaded from a different page,
+ * looked unchanged.
+ */
+describe("student bulk import – template columns", () => {
+  it("ships one list", () => {
+    expect(buildStudentTemplateCsv()).toBe(STUDENT_TEMPLATE_HEADERS.join(","));
+  });
+
+  it("carries every field a person can supply", () => {
+    // 47 columns on the students table, of which 15 are system-managed and 3
+    // are unused by any code, leaving 29 that a school could want on a roster.
+    expect(STUDENT_TEMPLATE_HEADERS).toHaveLength(29);
+  });
+
+  it("is a header row only, so downloading it cannot create a learner", () => {
+    const rows = buildStudentTemplateCsv().split(/\r?\n/);
+    expect(rows).toHaveLength(1);
+  });
+
+  it("starts with the fields needed to identify a child", () => {
+    expect(STUDENT_TEMPLATE_HEADERS.slice(0, 6)).toEqual([
+      "Student Number",
+      "First Name",
+      "Last Name",
+      "Gender",
+      "Date of Birth",
+      "Class",
+    ]);
+  });
+
+  /**
+   * One filled-in value per heading. Every template column must appear here:
+   * adding a heading without adding a sample is how a column ends up shipped
+   * but never parsed, which is the failure this suite exists to catch.
+   */
+  const SAMPLE_BY_HEADER: Record<string, string> = {
+    "Student Number": "",
+    "First Name": "Sarah",
+    "Last Name": "Nakato",
+    Gender: "F",
+    "Date of Birth": "2015-03-15",
+    Class: "P.1",
+    "Boarding Status": "day",
+    House: "Red",
+    "Parent Name": "James Nakato",
+    "Parent Phone": "0701234567",
+    "Parent Phone 2": "",
+    "Parent Email": "james@example.com",
+    "PLE Index": "PLE/2026/001",
+    NIN: "CM123456789012",
+    "Previous School": "Kikunyu Primary",
+    "District of Origin": "Kabarole",
+    "Sub-county": "Kicucu",
+    Parish: "Kicucu",
+    Village: "Kicucu East",
+    "Blood Type": "O+",
+    Religion: "Christian",
+    Nationality: "Ugandan",
+    Address: "Plot 1 Kabarole",
+    "Opening Balance": "150000",
+    "Class Monitor": "yes",
+    "Prefect Role": "Head Boy",
+    "Student Council Role": "Treasurer",
+    "Games House": "Red",
+    "UNEAB Number": "U8483920",
+  };
+
+  it("covers every heading with a sample, so none can be shipped unread", () => {
+    for (const header of STUDENT_TEMPLATE_HEADERS) {
+      expect(SAMPLE_BY_HEADER).toHaveProperty(header);
+    }
+    expect(Object.keys(SAMPLE_BY_HEADER)).toHaveLength(STUDENT_TEMPLATE_HEADERS.length);
+  });
+
+  it("round-trips: a row built from the template parses back intact", () => {
+    const csv = [
+      STUDENT_TEMPLATE_HEADERS.join(","),
+      STUDENT_TEMPLATE_HEADERS.map((header) => SAMPLE_BY_HEADER[header]).join(","),
+    ].join("\n");
+
+    const rows = parseDelimitedText(csv);
+    expect(rows).toHaveLength(1);
+
+    const result = validateStudentRow(rows[0]);
+    expect(result.errors).toEqual([]);
+
+    expect(result.data.first_name).toBe("Sarah");
+    expect(result.data.last_name).toBe("Nakato");
+    expect(result.data.date_of_birth).toBe("2015-03-15");
+    expect(result.data.uneab_number).toBe("U8483920");
+    expect(result.data.village).toBe("Kicucu East");
+    expect(result.data.previous_school).toBe("Kikunyu Primary");
+    expect(result.data.prefect_role).toBe("Head Boy");
+    // The parser keeps the raw text; the seeding hook converts it with Number().
+    expect(result.data.opening_balance).toBe("150000");
+    expect(result.data.is_class_monitor).toBe(true);
+  });
+
+  it("covers the fields the registration form itself collects", () => {
+    const wanted = [
+      "Boarding Status",
+      "House",
+      "NIN",
+      "PLE Index",
+      "Opening Balance",
+      "Class Monitor",
+      "Prefect Role",
+      "UNEAB Number",
+    ];
+    for (const header of wanted) expect(STUDENT_TEMPLATE_HEADERS).toContain(header);
   });
 });

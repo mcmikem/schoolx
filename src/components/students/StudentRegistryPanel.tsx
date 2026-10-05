@@ -8,6 +8,7 @@ import MaterialIcon from "@/components/MaterialIcon";
 import OnboardingTips from "@/components/OnboardingTips";
 import PersonInitials from "@/components/ui/PersonInitials";
 import { TableSkeleton } from "@/components/ui/Skeleton";
+import { buildStudentTemplateCsv } from "@/lib/import/students";
 
 interface StudentClassInfo {
   id: string;
@@ -52,6 +53,8 @@ interface ClassOption {
 interface ImportSummary {
   success: number;
   failed: number;
+  /** Rows the school already had on file, skipped instead of duplicated. */
+  skipped: number;
   total: number;
   errors: string[];
 }
@@ -61,6 +64,7 @@ interface ImportProgress {
   total: number;
   success: number;
   failed: number;
+  skipped?: number;
 }
 
 interface AttendanceStatusMeta {
@@ -81,115 +85,10 @@ interface AttendanceStatusMeta {
  * Anything omitted here is a field a headteacher has to retype one learner at a
  * time, so the template mirrors the form rather than the minimum needed to
  * insert a row. Leave a column out of a class and it imports blank.
- */
-const STUDENT_TEMPLATE_COLUMNS = [
-  "Student Number",
-  "First Name",
-  "Last Name",
-  "Gender",
-  "Date of Birth",
-  "Class",
-  "Boarding Status",
-  "House",
-  "Parent Name",
-  "Parent Phone",
-  "Parent Phone 2",
-  "Parent Email",
-  "PLE Index",
-  "NIN",
-  "Previous School",
-  "District of Origin",
-  "Sub-county",
-  "Parish",
-  "Village",
-  "Blood Type",
-  "Religion",
-  "Nationality",
-  "Address",
-  "Opening Balance",
-  "Class Monitor",
-  "Prefect Role",
-  "Student Council Role",
-  "Games House",
-  "UNEAB Number",
-] as const;
-
-/** Blank means "not set"; the importer applies its own defaults. */
-const STUDENT_TEMPLATE_SAMPLE: string[][] = [
-  [
-    "",
-    "Sarah",
-    "Nakato",
-    "F",
-    "2015-03-15",
-    "",
-    "",
-    "",
-    "James Nakato",
-    "0701234567",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-  ],
-  [
-    "",
-    "John",
-    "Mukasa",
-    "M",
-    "2014-06-20",
-    "",
-    "",
-    "",
-    "Betty Mukasa",
-    "0702345678",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-    "",
-  ],
-];
-
-/**
- * Build the starter file as CSV rather than xlsx.
  *
- * The importer accepts both, but CSV opens in anything -- Excel, LibreOffice,
- * Google Sheets, and the phone's own file viewer -- with nothing to install
- * first. An .xlsx also carries a few hundred kilobytes of zip overhead over 3G
- * for no benefit on a file this small.
+ * The list itself lives in @/lib/import/students so the import page's Excel and
+ * Word templates cannot drift from this one.
  */
-function buildStudentTemplateCsv(): string {
-  return STUDENT_TEMPLATE_COLUMNS.join(",");
-}
 
 interface StudentRegistryPanelProps {
   schoolId?: string;
@@ -468,10 +367,14 @@ export default function StudentRegistryPanel({
                       Imported {importProgress.completed}/{importProgress.total} rows
                       {importProgress.success > 0 ? `, ${importProgress.success} saved` : ""}
                       {importProgress.failed > 0 ? `, ${importProgress.failed} failed` : ""}
+                      {(importProgress.skipped || 0) > 0 ? `, ${importProgress.skipped} already on file` : ""}
                     </>
                   ) : importSummary ? (
                     <>
                       Import complete: {importSummary.success} saved, {importSummary.failed} failed
+                      {importSummary.skipped > 0
+                        ? `, ${importSummary.skipped} skipped because they are already on file`
+                        : ""}
                     </>
                   ) : null}
                 </div>

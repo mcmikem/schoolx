@@ -1,24 +1,24 @@
 "use client";
-import { useState, useEffect, useCallback, useRef } from "react";
-import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/lib/auth-context";
+import type { PostgrestResponse, PostgrestSingleResponse } from "@supabase/supabase-js";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useToast } from "@/components/Toast";
+import { useAuth } from "@/lib/auth-context";
+import { DEMO_CLASSES, DEMO_STUDENTS, DemoStudent } from "@/lib/demo-data";
+import { isDemoSchool } from "@/lib/demo-utils";
+import { formatStudentNumber, highestStudentNumberSuffix } from "@/lib/import/students";
 import { logger } from "@/lib/logger";
-import type { Student, CreateStudentInput, Class } from "@/types";
-import { getQuerySchoolId, withTimeout } from "./utils";
-import type { PostgrestSingleResponse } from "@supabase/supabase-js";
-import { getCachedData, invalidateCachePattern, getOrFetchCached } from "./queryCache";
 import { offlineDB } from "@/lib/offline";
+import { getFeatureLimit, getPlanUsageWarning, normalizePlanType, PlanType } from "@/lib/payments/subscription-client";
+import { supabase } from "@/lib/supabase";
 import {
   getErrorMessage,
   normalizeStudentInput,
   normalizeStudentUpdateInput,
   validateStudentInput,
 } from "@/lib/validation";
-
-import { DEMO_STUDENTS, DEMO_CLASSES, DemoStudent } from "@/lib/demo-data";
-import { isDemoSchool } from "@/lib/demo-utils";
-import { getFeatureLimit, getPlanUsageWarning, PlanType, normalizePlanType } from "@/lib/payments/subscription-client";
+import type { Class, CreateStudentInput, Student } from "@/types";
+import { getCachedData, getOrFetchCached, invalidateCachePattern } from "./queryCache";
+import { getQuerySchoolId, withTimeout } from "./utils";
 
 export type StudentWithClass = Student & {
   classes?: { id: string; name: string; level: string } | Class;
@@ -281,6 +281,13 @@ export function useStudents(schoolId?: string, options?: { limit?: number; offse
   // Seeded from the cache: a cache hit previously left the count at 0, so the
   // list could render as "0 students" until an unrelated refetch corrected it.
   const [totalCount, setTotalCount] = useState(cachedData?.count ?? 0);
+  // Mirror of totalCount that we update ourselves.
+  //
+  // `totalCount` is React state, so inside a bulk import loop the value a
+  // closure captures never advances: the plan-limit check kept reading the
+  // roster size from before the import started, so a 500-learner file sailed
+  // past a 100-student plan without ever raising. The ref moves with the loop.
+  const studentCountRef = useRef(totalCount);
   const { isDemo, school } = useAuth();
   const hasInitialized = useRef(false);
   const lastResolvedStudentsRef = useRef<StudentWithClass[]>([]);
@@ -290,6 +297,7 @@ export function useStudents(schoolId?: string, options?: { limit?: number; offse
     if (prevIsDemo.current && !isDemo) {
       setStudents([]);
       setTotalCount(0);
+      studentCountRef.current = 0;
       hasInitialized.current = false;
     }
     prevIsDemo.current = isDemo;
@@ -321,28 +329,90 @@ export function useStudents(schoolId?: string, options?: { limit?: number; offse
     [schoolId, isDemo],
   );
 
+  // Every number this browser session has handed out, plus the highest number
+  // already in the database for the current year.
+  //
+  // This used to start at `totalCount + 1` and probe the database once per
+  // attempt. `totalCount` is React state, so it never advances inside a bulk
+  // import loop: row k proposed the same base number as row 1, found it taken,
+  // and stepped forward until it landed. That is N(N+1)/2 round trips for N
+  // students -- 45,000 queries for a 300-learner roster. Seeding once from the
+  // database and then counting locally is one query total.
+  const assignedStudentNumbersRef = useRef<Set<string>>(new Set());
+  const studentNumberSequenceRef = useRef(0);
+  const studentNumberSeededRef = useRef(false);
+
+  const seedStudentNumberSequence = useCallback(async () => {
+    if (studentNumberSeededRef.current) return;
+    if (!schoolId || isDemo || isDemoSchool(schoolId)) return;
+    studentNumberSeededRef.current = true;
+
+    try {
+      const prefix = `SM/${new Date().getFullYear()}/`;
+      const seedFallback = {
+        data: [] as { student_number: string }[],
+        error: null,
+        count: null,
+        status: 408,
+        statusText: "Timeout",
+        success: false,
+      } as unknown as PostgrestResponse<{ student_number: string }>;
+
+      const { data, error } = await withTimeout<PostgrestResponse<{ student_number: string }>>(
+        supabase
+          .from("students")
+          .select("student_number")
+          .eq("school_id", getQuerySchoolId(schoolId, isDemo))
+          .like("student_number", `${prefix}%`)
+          // Fixed-width, zero-padded suffixes sort correctly as text below 10000,
+          // and the numeric pass below handles anything beyond that.
+          .order("student_number", { ascending: false })
+          .limit(50),
+        5000,
+        seedFallback,
+      );
+      if (error || !data) return;
+
+      const highest = highestStudentNumberSuffix(
+        data.map((row) => String(row.student_number)),
+        prefix,
+      );
+      if (highest > studentNumberSequenceRef.current) {
+        studentNumberSequenceRef.current = highest;
+      }
+    } catch (error) {
+      // Seeding is a optimisation; falling back to the local counter still
+      // produces a valid number, it just may repeat one already in the table.
+      logger.warn("Could not seed the student number sequence:", error);
+    }
+  }, [schoolId, isDemo]);
+
   const generateUniqueStudentNumber = useCallback(async () => {
     const year = new Date().getFullYear();
-    let counter = totalCount + 1;
+    const prefix = `SM/${year}/`;
 
-    for (let attempt = 0; attempt < 10; attempt++) {
-      const candidate = `SM/${year}/${String(counter).padStart(4, "0")}`;
-      try {
-        await assertUniqueStudentNumber(candidate);
-        return candidate;
-      } catch {
-        counter += 1;
-      }
+    await seedStudentNumberSequence();
+
+    for (let attempt = 0; attempt < 1000; attempt++) {
+      studentNumberSequenceRef.current += 1;
+      const candidate = formatStudentNumber(year, studentNumberSequenceRef.current);
+      // Only the in-memory set is checked: these numbers came from the database
+      // (or from a previous hand-out), so re-asking for each one would repeat
+      // exactly the query this replaces.
+      if (assignedStudentNumbersRef.current.has(candidate)) continue;
+      assignedStudentNumbersRef.current.add(candidate);
+      return candidate;
     }
 
-    return `SM/${year}/${Date.now().toString().slice(-6)}`;
-  }, [assertUniqueStudentNumber, totalCount]);
+    return `${prefix}${Date.now().toString().slice(-6)}`;
+  }, [seedStudentNumberSequence]);
 
   const fetchStudents = useCallback(async () => {
     // Demo mode - check for demo school UUID
     if (isDemo || isDemoSchool(schoolId)) {
       setStudents(DEMO_STUDENTS as unknown as StudentWithClass[]);
       setTotalCount(DEMO_STUDENTS.length);
+      studentCountRef.current = DEMO_STUDENTS.length;
       setLoading(false);
       return;
     }
@@ -389,6 +459,7 @@ export function useStudents(schoolId?: string, options?: { limit?: number; offse
 
       setStudents(entry.students);
       setTotalCount(entry.count);
+      studentCountRef.current = entry.count;
       lastResolvedStudentsRef.current = entry.students;
     } catch (err: unknown) {
       setError(getErrorMessage(err, "Failed to load students"));
@@ -408,7 +479,7 @@ export function useStudents(schoolId?: string, options?: { limit?: number; offse
     if (!isDemo && !isDemoSchool(schoolId) && school?.subscription_plan) {
       const plan = normalizePlanType(school.subscription_plan);
       const maxStudents = typeof plan === "string" ? getFeatureLimit(plan, "maxStudents") : 999999;
-      if (maxStudents !== -1 && totalCount >= maxStudents) {
+      if (maxStudents !== -1 && studentCountRef.current >= maxStudents) {
         throw new Error(
           `Student limit reached. Your plan allows ${maxStudents.toLocaleString()} students. Upgrade to add more.`,
         );
@@ -429,6 +500,7 @@ export function useStudents(schoolId?: string, options?: { limit?: number; offse
       } as unknown as StudentWithClass;
       setStudents((prev) => [newStudentData, ...prev]);
       setTotalCount((prev) => prev + 1);
+      studentCountRef.current += 1;
       invalidateCachePattern(`students:${schoolId}:`);
       return newStudentData;
     }
@@ -438,13 +510,26 @@ export function useStudents(schoolId?: string, options?: { limit?: number; offse
     }
 
     try {
+      // A number we just allocated from the seeded sequence does not need a
+      // second database round trip to prove it is free: it came from the table
+      // moments ago and the schema already enforces UNIQUE(school_id,
+      // student_number). Only a number typed into the roster needs checking,
+      // because that is the one that can genuinely collide.
+      let studentNumber = (normalizedStudent.student_number as string) || undefined;
+      const autoAllocated = !studentNumber;
+      if (!studentNumber) {
+        studentNumber = await generateUniqueStudentNumber();
+      }
+
       const studentPayload = {
         ...normalizedStudent,
         school_id: querySchoolId,
-        student_number: (normalizedStudent.student_number as string) || (await generateUniqueStudentNumber()),
+        student_number: studentNumber,
       };
 
-      await withTimeout(assertUniqueStudentNumber(studentPayload.student_number as string), 5000, undefined);
+      if (!autoAllocated) {
+        await withTimeout(assertUniqueStudentNumber(studentPayload.student_number as string), 5000, undefined);
+      }
 
       let createdRow: { id: string } | null = null;
 
@@ -536,6 +621,7 @@ export function useStudents(schoolId?: string, options?: { limit?: number; offse
 
       setStudents((prev) => [createdStudent as StudentWithClass, ...prev]);
       setTotalCount((prev) => prev + 1);
+      studentCountRef.current += 1;
       invalidateCachePattern(`students:${schoolId}:`);
 
       // Auto-create parent portal account if student has a parent phone
@@ -684,6 +770,7 @@ export function useStudents(schoolId?: string, options?: { limit?: number; offse
     if (isDemo || isDemoSchool(schoolId)) {
       setStudents((prev) => prev.filter((s) => s.id !== id));
       setTotalCount((prev) => prev - 1);
+      studentCountRef.current = Math.max(0, studentCountRef.current - 1);
       return;
     }
     try {
@@ -698,6 +785,7 @@ export function useStudents(schoolId?: string, options?: { limit?: number; offse
       if (deleteError) throw deleteError;
       setStudents((prev) => prev.filter((s) => s.id !== id));
       setTotalCount((prev) => prev - 1);
+      studentCountRef.current = Math.max(0, studentCountRef.current - 1);
       invalidateCachePattern(`students:${schoolId}:`);
     } catch (err: unknown) {
       throw new Error(getErrorMessage(err, "Failed to remove student"));

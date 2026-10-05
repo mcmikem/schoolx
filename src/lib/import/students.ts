@@ -506,6 +506,94 @@ export function parseStudentRows(rows: Array<Record<string, unknown>>): Validate
  * A shared implementation matters here: the quick import and /dashboard/import
  * each had their own cell handling, which is how they drifted in the first place.
  */
+/**
+ * Identity key used to decide whether a roster row is already on file.
+ *
+ * Names are padded differently between exports, so "Nakato,  Grace" and
+ * "nakato grace" must collapse to the same key or a re-uploaded file would
+ * create a second copy of every learner.
+ */
+/**
+ * Every column the roster accepts, in template order.
+ *
+ * One list for all three template downloads (registry CSV, import-page Excel,
+ * import-page Word) and for the parser's own expectations. The screens used to
+ * each keep their own copy, which is how two of them went on handing out an
+ * 8-column file while the third had 29: whoever changed one had no way to know
+ * the others existed.
+ */
+export const STUDENT_TEMPLATE_HEADERS: readonly string[] = [
+  "Student Number",
+  "First Name",
+  "Last Name",
+  "Gender",
+  "Date of Birth",
+  "Class",
+  "Boarding Status",
+  "House",
+  "Parent Name",
+  "Parent Phone",
+  "Parent Phone 2",
+  "Parent Email",
+  "PLE Index",
+  "NIN",
+  "Previous School",
+  "District of Origin",
+  "Sub-county",
+  "Parish",
+  "Village",
+  "Blood Type",
+  "Religion",
+  "Nationality",
+  "Address",
+  "Opening Balance",
+  "Class Monitor",
+  "Prefect Role",
+  "Student Council Role",
+  "Games House",
+  "UNEAB Number",
+];
+
+/**
+ * A ready-to-fill roster: header row only.
+ *
+ * No sample learners. An example row in a template is a row the importer will
+ * happily create as a real student, so the earlier two-row version produced
+ * "Sarah Nakato" in schools that had only ever downloaded the blank form.
+ */
+export function buildStudentTemplateCsv(): string {
+  return STUDENT_TEMPLATE_HEADERS.join(",");
+}
+
+export function studentIdentityKey(first: string, last: string, gender: string, dateOfBirth: string): string {
+  const tidy = (value: string) => value.trim().replace(/\s+/g, " ").toLowerCase();
+  return [tidy(first), tidy(last), tidy(gender), tidy(dateOfBirth)].join("|");
+}
+
+/**
+ * Highest numeric suffix among student numbers carrying `prefix`.
+ *
+ * Used once to seed the generator for a new school year, so allocating the
+ * next number costs no database round trips during an import. Non-conforming
+ * numbers (an older scheme, a mistyped value) are ignored rather than allowed
+ * to make the sequence jump backwards.
+ */
+export function highestStudentNumberSuffix(rows: string[], prefix: string): number {
+  let highest = 0;
+  for (const row of rows) {
+    const value = String(row ?? "").trim();
+    if (!value.startsWith(prefix)) continue;
+    const suffix = Number(value.slice(prefix.length));
+    if (Number.isInteger(suffix) && suffix > highest) highest = suffix;
+  }
+  return highest;
+}
+
+/** `SM/2026/0007` -- fixed width, so numbers sort correctly as text. */
+export function formatStudentNumber(year: number, sequence: number): string {
+  return `SM/${year}/${String(sequence).padStart(4, "0")}`;
+}
+
 export function formatSpreadsheetCell(value: unknown): string {
   if (value === null || value === undefined) return "";
   if (value instanceof Date) {

@@ -1,23 +1,15 @@
+import { AlignmentType, Document, Packer, Paragraph, Table, TableCell, TableRow, TextRun, WidthType } from "docx";
 import { NextRequest } from "next/server";
-import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType } from "docx";
 import { requireUserWithSchool } from "@/lib/api-utils";
+import { STUDENT_TEMPLATE_HEADERS } from "@/lib/import/students";
 
-const HEADERS = [
-  "First Name",
-  "Last Name",
-  "Gender",
-  "Date of Birth",
-  "Class",
-  "Parent Name",
-  "Parent Phone",
-  "Student Number",
-];
+// No example rows: this file goes straight into the importer, and an example
+// row is a row that becomes a real student named "Sarah Nakato". The registry
+// CSV and the import page's Excel template dropped theirs for the same reason.
+const EXAMPLE_ROWS: string[][] = [];
 
-const EXAMPLE_ROWS: string[][] = [
-  ["Sarah", "Nakato", "F", "2015-03-15", "P.5", "James Nakato", "0701234567", ""],
-  ["John", "Mukasa", "M", "2014-06-20", "P.5", "Betty Mukasa", "0702345678", ""],
-  ["Amelia", "Kirabo", "F", "2015-01-10", "P.4", "Robert Kirabo", "0703456789", ""],
-];
+/** Exposed so a test can pin this document to the shared column list. */
+export const TEMPLATE_HEADERS = STUDENT_TEMPLATE_HEADERS;
 
 async function handleGet(request: NextRequest) {
   const auth = await requireUserWithSchool(request);
@@ -35,7 +27,7 @@ async function handleGet(request: NextRequest) {
     });
 
   const rows = [
-    new TableRow({ children: HEADERS.map((h) => cell(h, true)) }),
+    new TableRow({ children: STUDENT_TEMPLATE_HEADERS.map((h) => cell(h, true)) }),
     ...EXAMPLE_ROWS.map((row) => new TableRow({ children: row.map((v) => cell(v)) })),
   ];
 
@@ -53,7 +45,7 @@ async function handleGet(request: NextRequest) {
             spacing: { after: 200 },
             children: [
               new TextRun({
-                text: "Fill in one student per row, then upload this file to SkoolMate OS.",
+                text: `Fill in one student per row under the ${STUDENT_TEMPLATE_HEADERS.length} column headings, then upload this file to SkoolMate OS. Leave a heading empty if it does not apply.`,
                 size: 22,
               }),
             ],
@@ -84,7 +76,7 @@ async function handleGet(request: NextRequest) {
             spacing: { after: 80 },
             children: [
               new TextRun({
-                text: "• You can delete the example rows before uploading.",
+                text: "• Only the heading row is supplied. Start the first learner on the row directly below it.",
                 size: 22,
               }),
             ],
@@ -102,7 +94,7 @@ async function handleGet(request: NextRequest) {
             spacing: { before: 100, after: 200 },
             children: [
               new TextRun({
-                text: "Need a different layout? You can also upload your own Word or Excel file, or copy-paste text from an existing list.",
+                text: "Other accepted formats: .xlsx, .csv, or plain text. The Excel and CSV templates carry the same headings as this document.",
                 size: 22,
                 italics: true,
               }),

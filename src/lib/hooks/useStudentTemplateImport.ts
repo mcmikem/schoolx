@@ -1,6 +1,9 @@
 "use client";
 
+import type { PostgrestResponse } from "@supabase/supabase-js";
 import { useCallback, useState } from "react";
+import { useAuth } from "@/lib/auth-context";
+import { withTimeout } from "@/lib/hooks/utils";
 import {
   type BoardingStatus,
   buildClassAliasMap,
@@ -9,8 +12,10 @@ import {
   type ParsedStudentRow,
   resolveClassId,
   resolveHouseId,
+  studentIdentityKey,
   validateStudentRow,
 } from "@/lib/import/students";
+import { supabase } from "@/lib/supabase";
 import type { CreateStudentInput } from "@/types";
 
 export type TemplateRow = Record<string, string>;
@@ -18,8 +23,63 @@ export type TemplateRow = Record<string, string>;
 interface ImportSummary {
   success: number;
   failed: number;
+  /** Rows the file already had on file -- skipped rather than duplicated. */
+  skipped: number;
   total: number;
   errors: string[];
+}
+
+interface ExistingStudent {
+  student_number: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  gender: string | null;
+  date_of_birth: string | null;
+}
+
+/**
+ * Reads the roster this school already has, in pages.
+ *
+ * Without this the importer only knows about numbers it generated itself, so
+ * re-uploading a file after a partial failure -- the most likely thing a user
+ * does when some rows failed -- created a second copy of every learner that had
+ * gone in first time. PostgREST caps a single response, so the read pages.
+ */
+async function loadExistingStudents(schoolId: string): Promise<ExistingStudent[]> {
+  const rows: ExistingStudent[] = [];
+  const pageSize = 1000;
+
+  for (let from = 0; from < 50000; from += pageSize) {
+    const fallback = {
+      data: null,
+      error: { message: "Timeout", code: "TIMEOUT", details: "", hint: "", name: "TimeoutError" },
+      count: null,
+      status: 408,
+      statusText: "Timeout",
+      success: false,
+    } as unknown as PostgrestResponse<ExistingStudent>;
+
+    const { data, error } = await withTimeout<PostgrestResponse<ExistingStudent>>(
+      supabase
+        .from("students")
+        .select("student_number, first_name, last_name, gender, date_of_birth")
+        .eq("school_id", schoolId)
+        .order("created_at", { ascending: true })
+        .range(from, from + pageSize - 1),
+      10000,
+      fallback,
+    );
+
+    // A failed or timed-out read must not silently continue as "nothing exists",
+    // or the very duplicates this guards against would be created.
+    if (error) throw new Error(`Could not check existing students: ${String(error.message || error)}`);
+
+    const batch = (data || []) as unknown as ExistingStudent[];
+    rows.push(...batch);
+    if (batch.length < pageSize) break;
+  }
+
+  return rows;
 }
 
 /** A row that passed header mapping, with its class resolved to a real id. */
@@ -78,6 +138,7 @@ const PREVIEW_COLUMNS: Array<keyof ParsedStudentRow> = [
 
 export function useStudentTemplateImport(params: UseStudentTemplateImportParams) {
   const { classes, houses = [], createStudent } = params;
+  const { school, isDemo } = useAuth();
   const [seedableRows, setSeedableRows] = useState<SeedableRow[]>([]);
   const [templatePreviewRows, setTemplatePreviewRows] = useState<TemplateRow[]>([]);
   const [templateStatus, setTemplateStatus] = useState<"idle" | "parsing" | "ready">("idle");
@@ -88,6 +149,7 @@ export function useStudentTemplateImport(params: UseStudentTemplateImportParams)
     total: number;
     success: number;
     failed: number;
+    skipped?: number;
   } | null>(null);
   const [importSummary, setImportSummary] = useState<ImportSummary | null>(null);
 
@@ -267,10 +329,10 @@ export function useStudentTemplateImport(params: UseStudentTemplateImportParams)
     [classes, houses, readTabularRows],
   );
 
-  const handleSeedStudentsFromTemplate = useCallback(async () => {
+  const handleSeedStudentsFromTemplate = useCallback(async (): Promise<ImportSummary | null> => {
     if (!seedableRows.length) {
       setTemplateErrors("Upload a template before seeding.");
-      return;
+      return null;
     }
 
     setImportingTemplate(true);
@@ -278,7 +340,32 @@ export function useStudentTemplateImport(params: UseStudentTemplateImportParams)
 
     let success = 0;
     let failed = 0;
+    let skipped = 0;
     const errors: string[] = [];
+
+    // Work out which learners are already on file before writing anything, so a
+    // partial failure followed by a re-upload skips them instead of adding them
+    // twice. A read that fails aborts the import: continuing would assume the
+    // table is empty, which is exactly how duplicates get created.
+    let existingNumbers = new Set<string>();
+    let existingPeople = new Set<string>();
+    if (school?.id && !isDemo) {
+      try {
+        const existing = await loadExistingStudents(school.id);
+        existingNumbers = new Set(existing.map((row) => String(row.student_number || "").trim()).filter(Boolean));
+        existingPeople = new Set(
+          existing.map((row) =>
+            studentIdentityKey(row.first_name || "", row.last_name || "", row.gender || "", row.date_of_birth || ""),
+          ),
+        );
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Could not check existing students";
+        setTemplateErrors(`${message}. Nothing was imported.`);
+        setImportingTemplate(false);
+        setTemplateStatus("idle");
+        return null;
+      }
+    }
     const captureError = (message: string) => {
       if (errors.length < 10) errors.push(message);
     };
@@ -288,6 +375,18 @@ export function useStudentTemplateImport(params: UseStudentTemplateImportParams)
     // them race for the same generated number and turns a slow import into a
     // failed one.
     for (const [index, row] of seedableRows.entries()) {
+      const numberAlreadyUsed =
+        Boolean(row.data.student_number) && existingNumbers.has(String(row.data.student_number).trim());
+      const alreadyOnFile = existingPeople.has(
+        studentIdentityKey(row.data.first_name, row.data.last_name, row.gender, row.data.date_of_birth),
+      );
+
+      if (numberAlreadyUsed || alreadyOnFile) {
+        skipped++;
+        setImportProgress({ completed: index + 1, total: seedableRows.length, success, failed, skipped });
+        continue;
+      }
+
       try {
         await createStudent({
           first_name: row.data.first_name,
@@ -333,12 +432,17 @@ export function useStudentTemplateImport(params: UseStudentTemplateImportParams)
         total: seedableRows.length,
         success,
         failed,
+        skipped,
       });
     }
 
-    setImportSummary({ success, failed, total: seedableRows.length, errors });
+    const summary: ImportSummary = { success, failed, skipped, total: seedableRows.length, errors };
+    setImportSummary(summary);
     setImportingTemplate(false);
-  }, [createStudent, seedableRows]);
+    // Returned as well as stored, because a caller awaiting this reads its own
+    // render's closure and would otherwise see the previous summary.
+    return summary;
+  }, [createStudent, school, isDemo, seedableRows]);
 
   return {
     templateRows: seedableRows,

@@ -10,7 +10,6 @@
  * The useStudentImport hook below is a thin wrapper that delegates to the
  * canonical hook implementation.
  */
-import { useState } from "react";
 import { useStudentTemplateImport } from "@/lib/hooks/useStudentTemplateImport";
 
 export interface UseStudentImportResult {
@@ -19,8 +18,20 @@ export interface UseStudentImportResult {
   templateRowsCount: number;
   templatePreviewRows: Record<string, string>[];
   importingTemplate: boolean;
-  importProgress: { completed: number; total: number; success: number; failed: number } | null;
-  importSummary: { success: number; failed: number; total: number; errors: string[] } | null;
+  importProgress: {
+    completed: number;
+    total: number;
+    success: number;
+    failed: number;
+    skipped?: number;
+  } | null;
+  importSummary: {
+    success: number;
+    failed: number;
+    skipped: number;
+    total: number;
+    errors: string[];
+  } | null;
   onTemplateUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onSeedTemplate: () => void;
 }
@@ -32,19 +43,8 @@ export function useStudentImport(
   houses: { id: string; name: string }[] = [],
 ): UseStudentImportResult {
   const hook = useStudentTemplateImport({ classes, houses, createStudent });
-  const [importSummary, setImportSummary] = useState<{
-    success: number;
-    failed: number;
-    total: number;
-    errors: string[];
-  } | null>(null);
 
-  const onSeedTemplate = async () => {
-    await hook.handleSeedStudentsFromTemplate();
-    if (hook.importSummary) {
-      setImportSummary(hook.importSummary);
-    }
-  };
+  const onSeedTemplate = () => hook.handleSeedStudentsFromTemplate();
 
   return {
     templateStatus: hook.templateStatus,
@@ -52,8 +52,14 @@ export function useStudentImport(
     templateRowsCount: hook.templateRows.length,
     templatePreviewRows: hook.templatePreviewRows,
     importingTemplate: hook.importingTemplate,
-    importProgress: null,
-    importSummary,
+    importProgress: hook.importProgress,
+    // Read straight off the hook: this object is rebuilt on every render, so it
+    // carries the latest summary. The wrapper used to copy the summary into its
+    // own state by reading hook.importSummary immediately after awaiting, which
+    // held the render that started the import -- null on the first run -- so the
+    // completion line never showed and users could not tell whether anything
+    // had been saved.
+    importSummary: hook.importSummary,
     onTemplateUpload: hook.handleStudentTemplateUpload,
     onSeedTemplate,
   };
