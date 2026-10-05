@@ -1,7 +1,15 @@
 "use client";
 
 import { useCallback, useState } from "react";
-import { buildClassAliasMap, type ParsedStudentRow, resolveClassId, validateStudentRow } from "@/lib/import/students";
+import {
+  type BoardingStatus,
+  buildClassAliasMap,
+  buildHouseAliasMap,
+  type ParsedStudentRow,
+  resolveClassId,
+  resolveHouseId,
+  validateStudentRow,
+} from "@/lib/import/students";
 import type { CreateStudentInput } from "@/types";
 
 export type TemplateRow = Record<string, string>;
@@ -22,10 +30,17 @@ interface SeedableRow {
   gender: "M" | "F";
   classId: string;
   classLabel: string;
+  /** Resolved house id, or "" when the roster did not name one. */
+  houseId: string;
 }
 
 interface UseStudentTemplateImportParams {
   classes: Array<{ id: string; name: string }>;
+  /**
+   * Houses are optional. Without them a House column is reported as unmatched
+   * rather than silently dropped, so a roster can still import without one.
+   */
+  houses?: Array<{ id: string; name: string }>;
   createStudent: (student: CreateStudentInput) => Promise<unknown>;
 }
 
@@ -36,14 +51,31 @@ const PREVIEW_COLUMNS: Array<keyof ParsedStudentRow> = [
   "gender",
   "date_of_birth",
   "class_name",
+  "boarding_status",
+  "house_name",
   "parent_name",
   "parent_phone",
   "parent_phone2",
+  "parent_email",
   "ple_index_number",
+  "nin",
+  "previous_school",
+  "district_origin",
+  "sub_county",
+  "parish",
+  "village",
+  "blood_type",
+  "religion",
+  "nationality",
+  "opening_balance",
+  "is_class_monitor",
+  "prefect_role",
+  "student_council_role",
+  "games_house",
 ];
 
 export function useStudentTemplateImport(params: UseStudentTemplateImportParams) {
-  const { classes, createStudent } = params;
+  const { classes, houses = [], createStudent } = params;
   const [seedableRows, setSeedableRows] = useState<SeedableRow[]>([]);
   const [templatePreviewRows, setTemplatePreviewRows] = useState<TemplateRow[]>([]);
   const [templateStatus, setTemplateStatus] = useState<"idle" | "parsing" | "ready">("idle");
@@ -144,6 +176,7 @@ export function useStudentTemplateImport(params: UseStudentTemplateImportParams)
         // normalised name and its common spellings is what lets "P.1", "p1" and
         // "Primary 1" all reach the same class instead of failing row by row.
         const classMap = buildClassAliasMap(classes);
+        const houseMap = buildHouseAliasMap(houses);
 
         const usable: SeedableRow[] = [];
         const problems: string[] = [];
@@ -183,9 +216,22 @@ export function useStudentTemplateImport(params: UseStudentTemplateImportParams)
             return;
           }
 
+          let houseId = "";
+          if (data.house_name) {
+            houseId = resolveHouseId(houseMap, data.house_name) || "";
+            if (!houseId) {
+              const knownHouses = houses.map((h) => h.name).join(", ");
+              problems.push(
+                `Row ${index + 1} (${data.first_name} ${data.last_name}): no house matches "${data.house_name}". Houses in this school: ${knownHouses || "none yet"}`,
+              );
+              return;
+            }
+          }
+
           const preview: TemplateRow = {};
           for (const column of PREVIEW_COLUMNS) preview[column] = String(data[column] ?? "");
           preview.resolved_class = classes.find((c) => c.id === classId)?.name || data.class_name;
+          preview.resolved_house = houses.find((h) => h.id === houseId)?.name || "";
 
           usable.push({
             preview,
@@ -193,6 +239,7 @@ export function useStudentTemplateImport(params: UseStudentTemplateImportParams)
             gender: data.gender as "M" | "F",
             classId,
             classLabel: preview.resolved_class,
+            houseId,
           });
         });
 
@@ -213,7 +260,7 @@ export function useStudentTemplateImport(params: UseStudentTemplateImportParams)
         setTemplateStatus("idle");
       }
     },
-    [classes, readTabularRows],
+    [classes, houses, readTabularRows],
   );
 
   const handleSeedStudentsFromTemplate = useCallback(async () => {
@@ -249,7 +296,24 @@ export function useStudentTemplateImport(params: UseStudentTemplateImportParams)
           parent_name: row.data.parent_name,
           parent_phone: row.data.parent_phone,
           parent_phone2: row.data.parent_phone2 || undefined,
-          opening_balance: 0,
+          parent_email: row.data.parent_email || undefined,
+          address: row.data.address || undefined,
+          village: row.data.village || undefined,
+          parish: row.data.parish || undefined,
+          sub_county: row.data.sub_county || undefined,
+          district_origin: row.data.district_origin || undefined,
+          boarding_status: (row.data.boarding_status || "day") as BoardingStatus,
+          house_id: row.houseId || undefined,
+          previous_school: row.data.previous_school || undefined,
+          blood_type: row.data.blood_type || undefined,
+          religion: row.data.religion || undefined,
+          nationality: row.data.nationality || undefined,
+          nin: row.data.nin || undefined,
+          opening_balance: row.data.opening_balance ? Number(row.data.opening_balance) : 0,
+          is_class_monitor: row.data.is_class_monitor,
+          prefect_role: row.data.prefect_role || undefined,
+          student_council_role: row.data.student_council_role || undefined,
+          games_house: row.data.games_house || undefined,
           status: "active",
         });
         success++;

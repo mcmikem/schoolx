@@ -1,5 +1,15 @@
-import { describe, it, expect } from "@jest/globals";
-import { buildClassAliasMap, resolveClassId, validateStudentRow, normalizeGender } from "@/lib/import/students";
+import { describe, expect, it } from "@jest/globals";
+import {
+  BOARDING_STATUSES,
+  buildClassAliasMap,
+  buildHouseAliasMap,
+  normalizeAmount,
+  normalizeBoardingStatus,
+  normalizeGender,
+  resolveClassId,
+  resolveHouseId,
+  validateStudentRow,
+} from "@/lib/import/students";
 
 /**
  * Regression coverage for the Students page bulk import.
@@ -178,5 +188,280 @@ describe("student bulk import – headers", () => {
     });
     expect(result.isValid).toBe(false);
     expect(result.errors.join(" ")).toMatch(/phone/i);
+  });
+});
+
+/**
+ * The roster template is meant to carry every field the registration form takes,
+ * so a learner enrolled in bulk ends up with the same record as one typed in by
+ * hand. These cover the columns that were added for that parity.
+ */
+describe("student bulk import – full registration contract", () => {
+  const base = {
+    first_name: "Sarah",
+    last_name: "Nakato",
+    gender: "F",
+    class: "P.5",
+    parent_name: "James Nakato",
+  };
+
+  it("captures the address and origin columns", () => {
+    const r = validateStudentRow({
+      ...base,
+      village: "Naluganyi",
+      parish: "Wakiso",
+      "sub-county": "Gomba",
+      "District of Origin": "Mityana",
+      address: "Plot 14, Namagave",
+    });
+    expect(r.errors).toEqual([]);
+    expect(r.data).toMatchObject({
+      village: "Naluganyi",
+      parish: "Wakiso",
+      sub_county: "Gomba",
+      district_origin: "Mityana",
+      address: "Plot 14, Namagave",
+    });
+  });
+
+  it("captures the personal columns", () => {
+    const r = validateStudentRow({
+      ...base,
+      "Blood Type": "O+",
+      Religion: "Catholic",
+      Nationality: "Ugandan",
+      NIN: "CM123456789X",
+      "Previous School": "St Peter's PS",
+    });
+    expect(r.errors).toEqual([]);
+    expect(r.data).toMatchObject({
+      blood_type: "O+",
+      religion: "Catholic",
+      nationality: "Ugandan",
+      nin: "CM123456789X",
+      previous_school: "St Peter's PS",
+    });
+  });
+
+  it("captures the roles and the opening balance", () => {
+    const r = validateStudentRow({
+      ...base,
+      "Opening Balance": "UGX 150,000",
+      "Prefect Role": "Head Prefect",
+      "Student Council Role": "Secretary",
+      "Games House": "Red",
+    });
+    expect(r.errors).toEqual([]);
+    expect(r.data.opening_balance).toBe("150000");
+    expect(r.data.prefect_role).toBe("Head Prefect");
+    expect(r.data.student_council_role).toBe("Secretary");
+    expect(r.data.games_house).toBe("Red");
+  });
+
+  it("defaults a blank boarding status to day", () => {
+    const r = validateStudentRow({ ...base });
+    expect(r.errors).toEqual([]);
+    expect(r.data.boarding_status).toBe("day");
+  });
+
+  it("reads every spelling of boarding status", () => {
+    for (const raw of ["boarding", "Boarding", "boarder", "B"]) {
+      expect(normalizeBoardingStatus(raw)).toBe("boarding");
+    }
+    for (const raw of ["day", "Day", "day scholar", "D"]) {
+      expect(normalizeBoardingStatus(raw)).toBe("day");
+    }
+    for (const raw of ["weekly", "Weekly", "W"]) {
+      expect(normalizeBoardingStatus(raw)).toBe("weekly");
+    }
+    expect(BOARDING_STATUSES).toEqual(["day", "boarding", "weekly"]);
+  });
+
+  it("rejects an unrecognised boarding status rather than guessing", () => {
+    const r = validateStudentRow({ ...base, "Boarding Status": "sometimes" });
+    expect(r.isValid).toBe(false);
+    expect(r.errors.join(" ")).toMatch(/boarding/i);
+  });
+
+  it("treats a blank class monitor as false and flags a bad value", () => {
+    expect(validateStudentRow({ ...base }).data.is_class_monitor).toBe(false);
+    expect(validateStudentRow({ ...base, "Class Monitor": "yes" }).data.is_class_monitor).toBe(true);
+    const bad = validateStudentRow({ ...base, "Class Monitor": "maybe" });
+    expect(bad.isValid).toBe(false);
+    expect(bad.errors.join(" ")).toMatch(/monitor/i);
+  });
+
+  it("strips currency formatting from the opening balance", () => {
+    expect(normalizeAmount("UGX 150,000")).toEqual({ value: "150000", error: null });
+    expect(normalizeAmount("")).toEqual({ value: "", error: null });
+    expect(normalizeAmount("abc").error).toMatch(/not a number/);
+  });
+
+  it("rejects a non-numeric opening balance", () => {
+    const r = validateStudentRow({ ...base, "Opening Balance": "lots" });
+    expect(r.isValid).toBe(false);
+    expect(r.errors.join(" ")).toMatch(/balance/i);
+  });
+});
+
+describe("student bulk import – house matching", () => {
+  const houses = [
+    { id: "h1", name: "Red" },
+    { id: "h2", name: "Blue" },
+    { id: "h3", name: "Kasu" },
+  ];
+  const map = buildHouseAliasMap(houses);
+
+  it("matches the names a roster actually uses", () => {
+    for (const written of ["Red", "red", "RED", "Red House", "redhouse", "R"]) {
+      const id = resolveHouseId(map, written);
+      expect(id).toBe("h1");
+    }
+    expect(resolveHouseId(map, "Kasu")).toBe("h3");
+  });
+
+  it("does not invent a house that does not exist", () => {
+    expect(resolveHouseId(map, "Purple")).toBeUndefined();
+    expect(resolveHouseId(map, "")).toBeUndefined();
+    expect(resolveHouseId(map, undefined)).toBeUndefined();
+  });
+
+  it("does not collide on a shared first letter", () => {
+    const twoSameLetter = buildHouseAliasMap([
+      { id: "x", name: "Red" },
+      { id: "y", name: "Ruby" },
+    ]);
+    expect(resolveHouseId(twoSameLetter, "Red")).toBe("x");
+    expect(resolveHouseId(twoSameLetter, "Ruby")).toBe("y");
+  });
+});
+
+/**
+ * Guards the template against the two ways it can break silently: a column that
+ * slips out of alignment, and two fields claiming the same header.
+ *
+ * The alignment failure found during development was real. "UGX 150,000" contains
+ * a comma, so an unquoted cell split into two columns and every value after
+ * Opening Balance shifted left by one -- a learner's games house silently became
+ * their student council role, with nothing reported.
+ */
+describe("student bulk import – template round trip", () => {
+  const TEMPLATE_COLUMNS = [
+    "Student Number",
+    "First Name",
+    "Last Name",
+    "Gender",
+    "Date of Birth",
+    "Class",
+    "Boarding Status",
+    "House",
+    "Parent Name",
+    "Parent Phone",
+    "Parent Phone 2",
+    "Parent Email",
+    "PLE Index",
+    "NIN",
+    "Previous School",
+    "District of Origin",
+    "Sub-county",
+    "Parish",
+    "Village",
+    "Blood Type",
+    "Religion",
+    "Nationality",
+    "Address",
+    "Opening Balance",
+    "Class Monitor",
+    "Prefect Role",
+    "Student Council Role",
+    "Games House",
+  ];
+
+  const FULL_ROW: Record<string, string> = {
+    "Student Number": "STU-001",
+    "First Name": "Sarah",
+    "Last Name": "Nakato",
+    Gender: "F",
+    "Date of Birth": "2015-03-15",
+    Class: "P.1",
+    "Boarding Status": "Boarding",
+    House: "Red House",
+    "Parent Name": "James Nakato",
+    "Parent Phone": "0701234567",
+    "Parent Phone 2": "0707654321",
+    "Parent Email": "james@example.com",
+    "PLE Index": "U0001/2026",
+    NIN: "CM123456789X",
+    "Previous School": "St Peters PS",
+    "District of Origin": "Mityana",
+    "Sub-county": "Gomba",
+    Parish: "Wakiso",
+    Village: "Naluganyi",
+    "Blood Type": "O+",
+    Religion: "Catholic",
+    Nationality: "Ugandan",
+    Address: "Plot 14",
+    // contains a comma on purpose
+    "Opening Balance": "UGX 150,000",
+    "Class Monitor": "Yes",
+    "Prefect Role": "Head Prefect",
+    "Student Council Role": "Secretary",
+    "Games House": "Blue",
+  };
+
+  it("covers every column with a value, so no field shifts", () => {
+    const missing = TEMPLATE_COLUMNS.filter((column) => FULL_ROW[column] === undefined);
+    expect(missing).toEqual([]);
+    expect(TEMPLATE_COLUMNS.length).toBe(Object.keys(FULL_ROW).length);
+  });
+
+  it("lands every value on the field it belongs to", () => {
+    const result = validateStudentRow(FULL_ROW);
+    expect(result.errors).toEqual([]);
+    expect(result.data).toMatchObject({
+      student_number: "STU-001",
+      first_name: "Sarah",
+      last_name: "Nakato",
+      gender: "F",
+      date_of_birth: "2015-03-15",
+      class_name: "P.1",
+      boarding_status: "boarding",
+      house_name: "Red House",
+      parent_name: "James Nakato",
+      parent_phone: "0701234567",
+      parent_phone2: "0707654321",
+      parent_email: "james@example.com",
+      ple_index_number: "U0001/2026",
+      nin: "CM123456789X",
+      previous_school: "St Peters PS",
+      district_origin: "Mityana",
+      sub_county: "Gomba",
+      parish: "Wakiso",
+      village: "Naluganyi",
+      blood_type: "O+",
+      religion: "Catholic",
+      nationality: "Ugandan",
+      address: "Plot 14",
+      opening_balance: "150000",
+      is_class_monitor: true,
+      prefect_role: "Head Prefect",
+      student_council_role: "Secretary",
+      games_house: "Blue",
+    });
+  });
+
+  it("does not let a bare Prefect header be read as the monitor flag", () => {
+    // is_class_monitor used to claim "prefect" and was matched first, so a
+    // column headed "Prefect" was parsed as a yes/no instead of a role.
+    const result = validateStudentRow({
+      first_name: "John",
+      last_name: "Mukasa",
+      gender: "M",
+      class: "P.1",
+      parent_name: "Betty Mukasa",
+      Prefect: "Head Prefect",
+    });
+    expect(result.data.prefect_role).toBe("Head Prefect");
+    expect(result.data.is_class_monitor).toBe(false);
   });
 });

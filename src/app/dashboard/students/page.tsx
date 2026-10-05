@@ -1,38 +1,37 @@
 "use client";
-import { useState, useMemo, useEffect, useRef, useCallback } from "react";
-import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { useAuth } from "@/lib/auth-context";
-import { useAcademic } from "@/lib/academic-context";
-import { useStudents, useClasses } from "@/lib/hooks";
-import { loadSchoolHouses } from "@/lib/houses";
-import { dedupeRead } from "@/lib/hooks/utils";
-import { useToast } from "@/components/Toast";
-import { SendSMSModal } from "@/components/SendSMSModal";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import BulkImport from "@/components/BulkImport";
 import MaterialIcon from "@/components/MaterialIcon";
-import { PageHeader } from "@/components/ui/PageHeader";
-import { TabPanel } from "@/components/ui/Tabs";
-import { Modal } from "@/components/ui/Modal";
-import { Button } from "@/components/ui/index";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { PageGuidance } from "@/components/PageGuidance";
-import BulkImport from "@/components/BulkImport";
-import StudentWorkspaceShell from "@/components/students/StudentWorkspaceShell";
-import StudentRegistryPanel from "@/components/students/StudentRegistryPanel";
-import StudentTransfersPanel from "@/components/students/StudentTransfersPanel";
-import StudentRetentionPanel from "@/components/students/StudentRetentionPanel";
-import StudentPromotionPanel from "@/components/students/StudentPromotionPanel";
+import { SendSMSModal } from "@/components/SendSMSModal";
 import StudentDetailPanel from "@/components/students/StudentDetailPanel";
 import { useStudentImport } from "@/components/students/StudentImportModal";
-import { useTablePreferences } from "@/lib/useTablePreferences";
-import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
-import { useStudentTransfers } from "@/hooks/useStudentTransfers";
+import StudentPromotionPanel from "@/components/students/StudentPromotionPanel";
+import StudentRegistryPanel from "@/components/students/StudentRegistryPanel";
+import StudentRetentionPanel from "@/components/students/StudentRetentionPanel";
+import StudentTransfersPanel from "@/components/students/StudentTransfersPanel";
+import StudentWorkspaceShell from "@/components/students/StudentWorkspaceShell";
+import { useToast } from "@/components/Toast";
+import { Button } from "@/components/ui/index";
+import { Modal } from "@/components/ui/Modal";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { TabPanel } from "@/components/ui/Tabs";
 import { useStudentDropouts } from "@/hooks/useStudentDropouts";
 import { useStudentPromotion } from "@/hooks/useStudentPromotion";
-import { supabase } from "@/lib/supabase";
-import { withTimeout } from "@/lib/hooks/utils";
+import { useStudentTransfers } from "@/hooks/useStudentTransfers";
+import { useAcademic } from "@/lib/academic-context";
+import { useAuth } from "@/lib/auth-context";
 import { DEMO_ATTENDANCE } from "@/lib/demo-data";
-import { logger } from "@/lib/logger";
+import { useClasses, useStudents } from "@/lib/hooks";
+import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
 import { useUrlSyncedFilters } from "@/lib/hooks/useUrlSyncedFilters";
+import { dedupeRead, withTimeout } from "@/lib/hooks/utils";
+import { loadSchoolHouses } from "@/lib/houses";
+import { logger } from "@/lib/logger";
+import { supabase } from "@/lib/supabase";
+import { useTablePreferences } from "@/lib/useTablePreferences";
 
 type StudentWorkspaceTab = "registry" | "transfers" | "dropouts" | "promotion";
 
@@ -176,7 +175,10 @@ export default function StudentHubPage() {
     studentId: string | null;
   }>({ open: false, studentId: null });
 
-  const templateImport = useStudentImport(classes, createStudent, toast);
+  // Houses let a roster column name a house and have it resolved to the id the
+  // insert needs, the same way Class is resolved.
+  const importHouses = useMemo(() => Object.values(houseMap).map((h) => ({ id: h.id, name: h.name })), [houseMap]);
+  const templateImport = useStudentImport(classes, createStudent, toast, importHouses);
 
   useEffect(() => {
     if (typeof navigator === "undefined") return;

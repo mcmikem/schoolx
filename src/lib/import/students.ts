@@ -1,15 +1,42 @@
+/**
+ * Every field a roster can carry.
+ *
+ * This is the single field list shared by both import screens, and it mirrors
+ * the registration form so a learner can be enrolled identically whether they
+ * are typed in one at a time or uploaded in bulk. `house_name` and `class_name`
+ * are the human-written forms; the importer resolves them to the ids the insert
+ * actually needs.
+ */
 export type StudentField =
   | "first_name"
   | "last_name"
   | "full_name"
   | "gender"
   | "date_of_birth"
+  | "class_name"
+  | "student_number"
+  | "ple_index_number"
   | "parent_name"
   | "parent_phone"
   | "parent_phone2"
-  | "class_name"
-  | "student_number"
-  | "ple_index_number";
+  | "parent_email"
+  | "address"
+  | "village"
+  | "parish"
+  | "sub_county"
+  | "district_origin"
+  | "boarding_status"
+  | "house_name"
+  | "previous_school"
+  | "blood_type"
+  | "religion"
+  | "nationality"
+  | "nin"
+  | "opening_balance"
+  | "is_class_monitor"
+  | "prefect_role"
+  | "student_council_role"
+  | "games_house";
 
 export interface ParsedStudentRow {
   first_name: string;
@@ -19,9 +46,27 @@ export interface ParsedStudentRow {
   parent_name: string;
   parent_phone: string;
   parent_phone2: string;
+  parent_email: string;
+  address: string;
+  village: string;
+  parish: string;
+  sub_county: string;
+  district_origin: string;
   class_name: string;
   student_number: string;
   ple_index_number: string;
+  boarding_status: string;
+  house_name: string;
+  previous_school: string;
+  blood_type: string;
+  religion: string;
+  nationality: string;
+  nin: string;
+  opening_balance: string;
+  is_class_monitor: boolean;
+  prefect_role: string;
+  student_council_role: string;
+  games_house: string;
 }
 
 export interface ValidatedStudentRow {
@@ -120,6 +165,27 @@ const FIELD_ALIASES: Record<StudentField, string[]> = {
     "pleunebindex",
     "unebindexnumber",
   ],
+  parent_email: ["parentemail", "email", "guardianemail", "parentmail", "contactemail"],
+  address: ["address", "homeaddress", "residentialaddress", "physicaladdress"],
+  village: ["village", "villageofresidence", "homevillage"],
+  parish: ["parish", "parishofresidence"],
+  sub_county: ["subcounty", "subcountyofresidence", "subcountyoforigin", "county"],
+  district_origin: ["districtorigin", "origindistrict", "district", "homedistrict", "districtoforigin"],
+  boarding_status: ["boardingstatus", "boarding", "residence", "residencetype", "boardingtype"],
+  house_name: ["house", "housename", "schoolhouse", "houseofresidence"],
+  previous_school: ["previousschool", "formerschool", "lastschool", "prior school", "priorschool", "prevschool"],
+  blood_type: ["bloodtype", "bloodgroup", "blood"],
+  religion: ["religion", "religiousaffiliation", "faith"],
+  nationality: ["nationality", "citizenship", "country"],
+  nin: ["nin", "nationalidentificationnumber", "nationalid", "ssn"],
+  opening_balance: ["openingbalance", "openingfees", "openingfeebalance", "balance", "opening", "fee balance"],
+  // "prefect" alone belongs to prefect_role. normalizeHeader returns the first
+  // field that claims a header, and is_class_monitor is declared first, so
+  // listing it here made a column headed "Prefect" read as a yes/no flag.
+  is_class_monitor: ["isclassmonitor", "classmonitor", "monitor", "classprefect"],
+  prefect_role: ["prefectrole", "prefect", "prefecttitle", "leadershiprole", "monitorrole"],
+  games_house: ["gameshouse", "games", "sportshouse", "athleticshouse", "footballhouse"],
+  student_council_role: ["studentcouncilrole", "studentcouncil", "councilrole", "scc", "council"],
 };
 
 export function normalizeHeader(raw: string): StudentField | null {
@@ -176,6 +242,51 @@ export function normalizeGender(raw: string): "M" | "F" | "" {
   return "";
 }
 
+export const BOARDING_STATUSES = ["day", "boarding", "weekly"] as const;
+export type BoardingStatus = (typeof BOARDING_STATUSES)[number];
+
+const TRUTHY = ["y", "yes", "true", "1", "x", "t"];
+const FALSY = ["n", "no", "false", "0", "f", ""];
+
+/**
+ * The form stores a single leading letter per house, so accept the word forms
+ * that appear in a hand-written roster and settle on the letter.
+ */
+export function normalizeBoardingStatus(raw: string): BoardingStatus | "" {
+  const k = (raw || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z]/g, "");
+  if (!k) return "day";
+  if (k.startsWith("b")) return "boarding";
+  if (k.startsWith("d")) return "day";
+  if (k.startsWith("w")) return "weekly";
+  return "";
+}
+
+/**
+ * A blank cell means "not a monitor" rather than an error. An unrecognised value
+ * is reported, because guessing here would quietly put the wrong student on the
+ * prefects list.
+ */
+export function normalizeMonitorFlag(raw: string): { value: boolean; error: string | null } {
+  const k = (raw || "").trim().toLowerCase();
+  if (TRUTHY.includes(k)) return { value: true, error: null };
+  if (FALSY.includes(k)) return { value: false, error: null };
+  return { value: false, error: `unrecognised value "${raw}"` };
+}
+
+/** Returns "" when the cell is blank or not a number, so it can be reported. */
+export function normalizeAmount(raw: string): { value: string; error: string | null } {
+  const k = (raw || "").trim();
+  if (!k) return { value: "", error: null };
+  const cleaned = k.replace(/[^\d.\-]/g, "");
+  if (!cleaned || cleaned === "-" || isNaN(Number(cleaned))) {
+    return { value: "", error: `"${k}" is not a number` };
+  }
+  return { value: cleaned, error: null };
+}
+
 export function validateStudentRow(raw: Record<string, unknown>): ValidatedStudentRow {
   const keys = mapRowKeys(raw);
   const get = (field: StudentField): string => (keys[field] ? cleanValue(raw[keys[field] as string]) : "");
@@ -205,6 +316,18 @@ export function validateStudentRow(raw: Record<string, unknown>): ValidatedStude
   else if (!gender) errors.push(`Invalid gender "${genderRaw}"`);
   if (parent_phone && phoneDigits.length < 9) errors.push("Phone number looks too short");
 
+  const boarding = normalizeBoardingStatus(get("boarding_status"));
+  if (!boarding) errors.push(`Unrecognised boarding status "${get("boarding_status")}"`);
+  const boardingStatus = boarding || "";
+
+  const monitorFlag = normalizeMonitorFlag(get("is_class_monitor"));
+  if (monitorFlag.error) errors.push(`Class monitor: ${monitorFlag.error}`);
+  const monitor = monitorFlag.value;
+
+  const amount = normalizeAmount(get("opening_balance"));
+  if (amount.error) errors.push(`Opening balance: ${amount.error}`);
+  const amountValue = amount.value;
+
   return {
     data: {
       first_name: first,
@@ -217,6 +340,24 @@ export function validateStudentRow(raw: Record<string, unknown>): ValidatedStude
       class_name: get("class_name"),
       student_number: get("student_number"),
       ple_index_number: get("ple_index_number"),
+      parent_email: get("parent_email"),
+      address: get("address"),
+      village: get("village"),
+      parish: get("parish"),
+      sub_county: get("sub_county"),
+      district_origin: get("district_origin"),
+      boarding_status: boardingStatus,
+      house_name: get("house_name"),
+      previous_school: get("previous_school"),
+      blood_type: get("blood_type"),
+      religion: get("religion"),
+      nationality: get("nationality"),
+      nin: get("nin"),
+      opening_balance: amountValue,
+      is_class_monitor: monitor,
+      prefect_role: get("prefect_role"),
+      student_council_role: get("student_council_role"),
+      games_house: get("games_house"),
     },
     isValid: errors.length === 0,
     errors,
@@ -278,9 +419,27 @@ export function buildEmptyStudentRow(): ParsedStudentRow {
     parent_name: "",
     parent_phone: "",
     parent_phone2: "",
+    parent_email: "",
+    address: "",
+    village: "",
+    parish: "",
+    sub_county: "",
+    district_origin: "",
     class_name: "",
     student_number: "",
     ple_index_number: "",
+    boarding_status: "day",
+    house_name: "",
+    previous_school: "",
+    blood_type: "",
+    religion: "",
+    nationality: "",
+    nin: "",
+    opening_balance: "",
+    is_class_monitor: false,
+    prefect_role: "",
+    student_council_role: "",
+    games_house: "",
   };
 }
 
@@ -328,4 +487,56 @@ export function resolveClassId(map: Map<string, string>, rawClassName: unknown):
     .toLowerCase();
   if (!raw) return undefined;
   return map.get(raw) ?? map.get(raw.replace(/[\s._-]+/g, ""));
+}
+
+/**
+ * Index houses by every spelling that identifies them.
+ *
+ * Roster sheets write "Red", "red house", "RED"; the stored value is a single
+ * letter. Normalising the same way class names are normalised means a house
+ * column is as forgiving as a class column.
+ */
+export function buildHouseAliasMap(houses: Array<{ id: string; name: string }>): Map<string, string> {
+  const map = new Map<string, string>();
+  const addAlias = (key: string, id: string) => {
+    const k = key.trim().toLowerCase();
+    if (k && !map.has(k)) map.set(k, id);
+  };
+  for (const { id, name } of houses) {
+    const raw = String(name || "");
+    if (!raw.trim()) continue;
+    addAlias(raw, id);
+    addAlias(raw.replace(/[\s._-]+/g, ""), id);
+    const letters = raw
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z]/g, "");
+    if (letters) {
+      addAlias(letters, id);
+      addAlias(letters.slice(0, 1), id);
+      addAlias(`${letters.slice(0, 1)}house`, id);
+    }
+  }
+  return map;
+}
+
+export function resolveHouseId(map: Map<string, string>, rawHouseName: unknown): string | undefined {
+  if (rawHouseName === null || rawHouseName === undefined) return undefined;
+  const k = String(rawHouseName).trim().toLowerCase();
+  if (!k) return undefined;
+  const direct = map.get(k);
+  if (direct) return direct;
+
+  const compact = k.replace(/[\s._-]+/g, "");
+  const lettersOnly = compact.replace(/[^a-z]/g, "");
+  const withoutNoise = map.get(compact) ?? map.get(lettersOnly);
+  if (withoutNoise) return withoutNoise;
+
+  // A roster is as likely to say "Red House" as "Red", so drop the word that
+  // only qualifies the colour and try again.
+  const stripped = lettersOnly.replace(/houses?$/, "");
+  if (stripped && stripped !== lettersOnly) {
+    return map.get(stripped) ?? map.get(stripped.slice(0, 1));
+  }
+  return undefined;
 }

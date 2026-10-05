@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { type ChangeEvent, type MutableRefObject, useCallback, useEffect, useState } from "react";
+import { type ChangeEvent, type MutableRefObject, useCallback, useEffect, useMemo, useState } from "react";
 import { EmptyState } from "@/components/EmptyState";
 import MaterialIcon from "@/components/MaterialIcon";
 import OnboardingTips from "@/components/OnboardingTips";
@@ -75,21 +75,107 @@ interface AttendanceStatusMeta {
  * fed back through this importer or through /dashboard/import: both resolve the
  * same header names, so one template serves both screens.
  */
+/**
+ * One column per field the registration form accepts.
+ *
+ * Anything omitted here is a field a headteacher has to retype one learner at a
+ * time, so the template mirrors the form rather than the minimum needed to
+ * insert a row. Leave a column out of a class and it imports blank.
+ */
 const STUDENT_TEMPLATE_COLUMNS = [
+  "Student Number",
   "First Name",
   "Last Name",
   "Gender",
   "Date of Birth",
   "Class",
+  "Boarding Status",
+  "House",
   "Parent Name",
   "Parent Phone",
-  "Student Number",
+  "Parent Phone 2",
+  "Parent Email",
   "PLE Index",
+  "NIN",
+  "Previous School",
+  "District of Origin",
+  "Sub-county",
+  "Parish",
+  "Village",
+  "Blood Type",
+  "Religion",
+  "Nationality",
+  "Address",
+  "Opening Balance",
+  "Class Monitor",
+  "Prefect Role",
+  "Student Council Role",
+  "Games House",
 ] as const;
 
-const STUDENT_TEMPLATE_SAMPLE = [
-  ["Sarah", "Nakato", "F", "2015-03-15", "P.5", "James Nakato", "0701234567", "", ""],
-  ["John", "Mukasa", "M", "2014-06-20", "P.5", "Betty Mukasa", "0702345678", "", ""],
+/** Blank means "not set"; the importer applies its own defaults. */
+const STUDENT_TEMPLATE_SAMPLE: string[][] = [
+  [
+    "",
+    "Sarah",
+    "Nakato",
+    "F",
+    "2015-03-15",
+    "",
+    "",
+    "",
+    "James Nakato",
+    "0701234567",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+  ],
+  [
+    "",
+    "John",
+    "Mukasa",
+    "M",
+    "2014-06-20",
+    "",
+    "",
+    "",
+    "Betty Mukasa",
+    "0702345678",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+    "",
+  ],
 ];
 
 /**
@@ -100,11 +186,20 @@ const STUDENT_TEMPLATE_SAMPLE = [
  * first. An .xlsx also carries a few hundred kilobytes of zip overhead over 3G
  * for no benefit on a file this small.
  */
-function buildStudentTemplateCsv(classes: Array<{ id: string; name: string }>): string {
-  const sampleClasses = classes.slice(0, 2).map((c) => c.name);
-  const rows = STUDENT_TEMPLATE_SAMPLE.map((row, rowIndex) => {
+function buildStudentTemplateCsv(
+  classes: Array<{ id: string; name: string }>,
+  houses: Array<{ id: string; name: string }> = [],
+): string {
+  // Pre-filling Class and House with names this school actually uses turns the
+  // two most error-prone columns into a copy rather than a guess.
+  const className = classes[0]?.name || "";
+  const houseName = houses[0]?.name || "";
+  const classIndex = STUDENT_TEMPLATE_COLUMNS.indexOf("Class");
+  const houseIndex = STUDENT_TEMPLATE_COLUMNS.indexOf("House");
+  const rows = STUDENT_TEMPLATE_SAMPLE.map((row) => {
     const copy = [...row];
-    if (sampleClasses[rowIndex]) copy[4] = sampleClasses[rowIndex];
+    if (className) copy[classIndex] = className;
+    if (houseName) copy[houseIndex] = houseName;
     return copy;
   });
 
@@ -217,8 +312,12 @@ export default function StudentRegistryPanel({
   const showPhotos = !lowBandwidthMode;
   const [showQuickImport, setShowQuickImport] = useState(false);
 
+  // Only the names are needed, to pre-fill the template and to resolve a House
+  // column; identity otherwise comes from houseMap.
+  const housesList = useMemo(() => Object.values(houseMap || {}).map((h) => ({ id: h.id, name: h.name })), [houseMap]);
+
   const downloadStudentTemplate = useCallback(() => {
-    const csv = buildStudentTemplateCsv(classes);
+    const csv = buildStudentTemplateCsv(classes, housesList);
     // The BOM keeps Excel from reading UTF-8 names as latin-1, which turns
     // characters common in Ugandan names into mojibake on open.
     const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
@@ -230,7 +329,7 @@ export default function StudentRegistryPanel({
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  }, [classes]);
+  }, [classes, housesList]);
 
   useEffect(() => {
     if (totalStudents === 0) {
@@ -353,15 +452,11 @@ export default function StudentRegistryPanel({
                 disabled={templateStatus === "parsing"}
               />
               <p className="text-xs text-[var(--t3)]">
-                Columns are matched by name, so the order does not matter and common spellings work. Recognised headers
-                include{" "}
-                <span className="font-medium text-[var(--t2)]">
-                  First Name, Last Name, Gender, Class, Date of Birth, Parent Name, Parent Phone, Student Number, PLE
-                  Index
-                </span>
-                . A single Parent Name also accepts a full name like{" "}
-                <span className="font-medium text-[var(--t2)]">Sarah Nakato</span>, and Class accepts P.1, P1 or Primary
-                1.
+                The template carries every field the registration form takes, so nothing has to be retyped later.
+                Columns are matched by name, so order does not matter:{" "}
+                <span className="font-medium text-[var(--t2)]">Class</span> accepts P.1, P1 or Primary 1, and{" "}
+                <span className="font-medium text-[var(--t2)]">House</span> accepts the name your school uses. Leave a
+                cell blank and it imports blank.
               </p>
               {templateStatus === "parsing" && <p className="text-xs text-[var(--green)]">Parsing file...</p>}
               {templateErrors && <p className="text-xs text-[var(--amber)]">{templateErrors}</p>}

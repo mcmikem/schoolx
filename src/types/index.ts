@@ -149,6 +149,13 @@ export interface CreateStudentInput {
   parish?: string;
   village?: string;
   boarding_status?: "day" | "boarding" | "weekly";
+  // normalizeStudentInput already accepts and forwards these four; the type was
+  // narrower than the insert contract, so they could not be sent by the bulk
+  // importer or any other caller.
+  address?: string;
+  blood_type?: string;
+  religion?: string;
+  nationality?: string;
   games_house?: string;
   is_class_monitor?: boolean;
   prefect_role?: string;

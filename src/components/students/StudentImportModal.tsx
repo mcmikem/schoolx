@@ -29,8 +29,9 @@ export function useStudentImport(
   classes: { id: string; name: string }[],
   createStudent: (data: any) => Promise<any>,
   toast: { error: (msg: string) => void },
+  houses: { id: string; name: string }[] = [],
 ): UseStudentImportResult {
-  const hook = useStudentTemplateImport({ classes, createStudent });
+  const hook = useStudentTemplateImport({ classes, houses, createStudent });
   const [importSummary, setImportSummary] = useState<{
     success: number;
     failed: number;
