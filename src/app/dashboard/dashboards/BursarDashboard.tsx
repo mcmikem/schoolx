@@ -27,7 +27,10 @@ function BursarDashboardContent() {
   const { students, loading: studentsLoading } = useStudents(school?.id);
   const { payments, loading: paymentsLoading } = useFeePayments(school?.id);
   const { feeStructure, loading: feeStructureLoading } = useFeeStructure(school?.id);
-  const { summary: feeSummary, loading: feeSummaryLoading } = useFeeSummary(school?.id);
+  // Scoped to the term the header names. fee_summary() falls back to the
+  // school's other fees when that term has none that apply, so this never
+  // drops to zero just because a term has not been set up yet.
+  const { summary: feeSummary, loading: feeSummaryLoading } = useFeeSummary(school?.id, currentTerm, academicYear);
   const [loadingTimedOut, setLoadingTimedOut] = useState(false);
   const dataLoading = studentsLoading || paymentsLoading || feeStructureLoading || feeSummaryLoading;
 
@@ -53,10 +56,11 @@ function BursarDashboardContent() {
 
   // Client-side totals — the fallback when fee_summary() cannot answer (demo
   // mode, offline, a timeout, or a deployment where the migration has not run
-  // yet). Kept identical to the database function's semantics so the two paths
-  // agree; in normal operation the RPC wins and this is not what the numbers
-  // come from, because this path only ever sees the first 100 students and 50
-  // payments.
+  // yet). It deliberately skips the RPC's term scoping: this path only ever
+  // sees the first 100 students and 50 payments, so re-running the tier
+  // fallback against a truncated roster would disagree with the database more
+  // often than it agreed. In normal operation the RPC wins and these numbers
+  // are not what the dashboard shows.
   const legacyFigures = useMemo(() => {
     const expected = students.reduce((total, student) => {
       const classFees = feeStructure.filter((f) => !f.class_id || f.class_id === student.class_id);

@@ -639,15 +639,21 @@ export function normalizeFeeSummary(row: unknown): FeeSummary | null {
  * answer — demo mode, offline, a timeout, or a deployment where the migration
  * has not run yet — so callers fall back to the client-side computation
  * instead of rendering zeros.
+ *
+ * `term` / `academicYear` scope the figures to the term the dashboard header
+ * names. Pass both to keep Expected and Collected on the same term; pass
+ * neither to sum every fee the school has configured. The function degrades
+ * on its own when the requested term has no fees that apply to anyone, so the
+ * figures never drop to zero just because a term has not been set up yet.
  */
-export function useFeeSummary(schoolId?: string) {
+export function useFeeSummary(schoolId?: string, term?: number | null, academicYear?: string | null) {
   const [summary, setSummary] = useState<FeeSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { isDemo } = useAuth();
   const isOnline = useOnlineStatus();
   const prevIsDemo = useRef(isDemo);
-  const cacheKey = `fee_summary:${schoolId}`;
+  const cacheKey = `fee_summary:${schoolId}:${term ?? "all"}:${academicYear ?? "all"}`;
 
   useEffect(() => {
     if (prevIsDemo.current && !isDemo) {
@@ -676,7 +682,13 @@ export function useFeeSummary(schoolId?: string) {
     try {
       setLoading(true);
       const result = await withTimeout(
-        supabase.rpc("fee_summary", { p_school_id: querySchoolId }).maybeSingle(),
+        supabase
+          .rpc("fee_summary", {
+            p_school_id: querySchoolId,
+            p_term: term ?? null,
+            p_academic_year: academicYear ?? null,
+          })
+          .maybeSingle(),
         8000,
         timeoutFallback<FeeSummary>(),
       );
@@ -695,7 +707,7 @@ export function useFeeSummary(schoolId?: string) {
     } finally {
       setLoading(false);
     }
-  }, [schoolId, isDemo, isOnline, cacheKey]);
+  }, [schoolId, term, academicYear, isDemo, isOnline, cacheKey]);
 
   useEffect(() => {
     fetchSummary();
