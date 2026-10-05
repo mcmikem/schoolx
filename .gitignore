@@ -88,3 +88,7 @@ coverage/
 # Large binary assets / design moodboards (not part of the app)
 behance_img_*
 public/downloads/*.apk
+
+# Stitch UI redesign mockups (reviewed 2026-10-03; not adopted -- the app's
+# existing tokens already match them to within a few ΔE)
+stitch_ugandan_schools_ui_redesign/
