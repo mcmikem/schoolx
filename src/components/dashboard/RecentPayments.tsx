@@ -1,6 +1,6 @@
 "use client";
-import { useState } from "react";
 import Link from "next/link";
+import { useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 
 function formatCurrency(amount: number) {
@@ -23,7 +23,7 @@ export default function RecentPayments({
   if (payments.length === 0) return null;
 
   return (
-    <div className="rounded-[24px] bg-white border border-[#e5ecf4] p-5 mb-6">
+    <div className="rounded-[24px] bg-white border border-[var(--border)] p-5 mb-6">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="w-full flex items-center justify-between mb-2 focus:outline-none focus:ring-2 focus:ring-[var(--t1)] rounded"
@@ -36,7 +36,7 @@ export default function RecentPayments({
           </h2>
           <MaterialIcon icon={isOpen ? "expand_less" : "expand_more"} className="text-[var(--t3)] text-lg" />
         </div>
-        <span className="text-xs font-bold text-[var(--green)] bg-[#e1f3ee] px-2 py-0.5 rounded-full">
+        <span className="text-xs font-bold text-[var(--green)] bg-[var(--green-soft)] px-2 py-0.5 rounded-full">
           +UGX {formatCurrency(thisMonthTotal)}
         </span>
       </button>
@@ -48,19 +48,19 @@ export default function RecentPayments({
             const method = p.payment_method || "Cash";
             const methodColor =
               method === "Cash"
-                ? "bg-[#e1f3ee] text-[var(--green)]"
+                ? "bg-[var(--green-soft)] text-[var(--green)]"
                 : method === "Mobile Money" || method === "mobile_money"
-                  ? "bg-[#e0efff] text-[#2563eb]"
-                  : "bg-[#eef1ff] text-[#5564d8]";
+                  ? "bg-[var(--primary-50)] text-[var(--primary)]"
+                  : "bg-[var(--primary-50)] text-[var(--navy)]";
 
             return (
               <div
                 key={p.id}
                 role="listitem"
-                className="flex items-center gap-3 rounded-[18px] bg-[#f6f9fc] px-3 py-2.5"
+                className="flex items-center gap-3 rounded-[18px] bg-[var(--surface-container-low)] px-3 py-2.5"
               >
                 <div
-                  className="h-8 w-8 rounded-lg bg-white border border-[#eaedf2] flex items-center justify-center text-xs font-bold text-[var(--t1)] shrink-0"
+                  className="h-8 w-8 rounded-lg bg-white border border-[var(--border)] flex items-center justify-center text-xs font-bold text-[var(--t1)] shrink-0"
                   aria-hidden="true"
                 >
                   {student ? (student.first_name?.[0] || "") + (student.last_name?.[0] || "") : "?"}
@@ -69,7 +69,7 @@ export default function RecentPayments({
                   <p className="text-xs font-bold text-[var(--t1)] truncate">
                     {student ? `${student.first_name} ${student.last_name}` : "Unknown"}
                   </p>
-                  <p className="text-[10px] text-[#7890ad]">
+                  <p className="text-[10px] text-[var(--t3)]">
                     {new Date(p.payment_date).toLocaleDateString("en-UG", {
                       day: "numeric",
                       month: "short",

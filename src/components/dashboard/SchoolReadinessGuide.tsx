@@ -19,7 +19,7 @@ export function SchoolReadinessGuide({ items, title = "School Readiness" }: Scho
   if (missing === 0) return null;
 
   return (
-    <div className="rounded-[24px] border border-[#f5deb3] bg-[#fffaf5] p-4 mb-6">
+    <div className="rounded-[24px] border border-[var(--amber)] bg-[var(--amber-soft)] p-4 mb-6">
       <div className="flex items-center gap-2 mb-3">
         <span className="material-symbols-outlined text-[var(--amber)] text-lg">fact_check</span>
         <span className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--amber)]">{title}</span>
@@ -46,7 +46,7 @@ export function SchoolReadinessGuide({ items, title = "School Readiness" }: Scho
             </span>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-semibold text-[var(--t1)]">{item.label}</p>
-              <p className="text-[11px] text-[#6b7f99] truncate">{item.detail}</p>
+              <p className="text-[11px] text-[var(--t3)] truncate">{item.detail}</p>
             </div>
             {item.status !== "ok" && (
               <Link
@@ -65,7 +65,7 @@ export function SchoolReadinessGuide({ items, title = "School Readiness" }: Scho
 
 export function TeacherQuickGuide() {
   return (
-    <div className="rounded-[24px] border border-[#d6e4e8] bg-[linear-gradient(150deg,#eff7f5_0%,#eaf2f6_44%,#f8fbff_100%)] p-4 mb-6">
+    <div className="rounded-[24px] border border-[var(--border)] bg-[linear-gradient(150deg,var(--green-soft)_0%,var(--surface-container-low)_44%,var(--surface-bright)_100%)] p-4 mb-6">
       <div className="flex items-center gap-2 mb-3">
         <span className="material-symbols-outlined text-[var(--t1)] text-lg">school</span>
         <span className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--t1)]">My Day</span>
@@ -80,7 +80,7 @@ export function TeacherQuickGuide() {
           <Link
             key={action.step}
             href={action.href}
-            className="rounded-xl bg-white border border-[#e5ecf4] p-3 hover:bg-[var(--primary-50)] transition-colors text-center"
+            className="rounded-xl bg-white border border-[var(--border)] p-3 hover:bg-[var(--primary-50)] transition-colors text-center"
           >
             <div className="w-6 h-6 rounded-full bg-[var(--t1)] text-white text-[10px] font-bold flex items-center justify-center mx-auto mb-1">
               {action.step}

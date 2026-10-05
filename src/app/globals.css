@@ -128,6 +128,19 @@ button {
   --red: #f04444;
   --red-soft: #fac5c5;
 
+  /* Badge foregrounds.
+     The hues above are tuned for headings and icons. On a tinted badge
+     background they fall below contrast in light mode — #f59e0b on
+     --amber-soft is 2.3:1. These are the darkened badge text colours, and they
+     flip with the theme so the same badge stays readable on dark too. */
+  --violet: #7c3aed;
+  --violet-soft: #f3e8ff;
+  --blue-ink: #1d4ed8;
+  --amber-ink: #b45309;
+  --red-ink: #dc2626;
+  --green-ink: #059669;
+  --slate-ink: #64748b;
+
   /* Light Theme - Surface & Background */
   --sidebar-width: 264px;
   --sidebar-collapsed-width: 74px;
@@ -434,6 +447,14 @@ button {
 
   --red: #ff7a7a;
   --red-soft: #331a1a;
+
+  --violet: #a78bfa;
+  --violet-soft: #2a1f47;
+  --blue-ink: #93c5fd;
+  --amber-ink: #ffb84d;
+  --red-ink: #ff9494;
+  --green-ink: #6ee7b7;
+  --slate-ink: #9aa5b4;
 
   --primary: #8ab0f0;
   --primary-50: #16233a;

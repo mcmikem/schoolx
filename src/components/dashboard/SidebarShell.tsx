@@ -192,7 +192,7 @@ export default function SidebarShell({ onNavigate }: { onNavigate?: () => void }
             <Link
               href="/dashboard/staff"
               onClick={onNavigate}
-              className="mt-3 flex items-center justify-center gap-1.5 rounded-full bg-white px-3 py-2 text-[12px] font-bold text-[#0e2a1e] no-underline transition-transform hover:scale-[1.02] active:scale-[0.98]"
+              className="mt-3 flex items-center justify-center gap-1.5 rounded-full bg-white px-3 py-2 text-[12px] font-bold text-[var(--t1)] no-underline transition-transform hover:scale-[1.02] active:scale-[0.98]"
             >
               Invite staff
               <MaterialIcon icon="arrow_outward" style={{ fontSize: 14 }} />

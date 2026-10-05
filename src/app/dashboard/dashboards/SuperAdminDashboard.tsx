@@ -45,11 +45,11 @@ interface AlertItem {
 
 /* ── Helpers ─────────────────────────────────────────────── */
 const PLAN_COLORS: Record<string, string> = {
-  starter: "#3b82f6",
-  growth: "#0d9488",
-  enterprise: "#f59e0b",
-  lifetime: "#7c3aed",
-  free_trial: "#64748b",
+  starter: "var(--primary)",
+  growth: "var(--secondary-600)",
+  enterprise: "var(--amber)",
+  lifetime: "var(--violet)",
+  free_trial: "var(--slate-ink)",
 };
 
 const PLAN_LABELS: Record<string, string> = {
@@ -61,12 +61,12 @@ const PLAN_LABELS: Record<string, string> = {
 };
 
 const STATUS_BADGE: Record<string, { bg: string; text: string; label: string }> = {
-  active: { bg: "#ccfbf1", text: "#0d9488", label: "Active" },
-  trial: { bg: "#e0efff", text: "#003366", label: "Trial" },
-  expired: { bg: "#fdedec", text: "#e74c3c", label: "Expired" },
-  suspended: { bg: "#fef3c7", text: "#b45309", label: "Suspended" },
-  past_due: { bg: "#fef3c7", text: "#b45309", label: "Past Due" },
-  canceled: { bg: "#f1f5f9", text: "#64748b", label: "Canceled" },
+  active: { bg: "var(--secondary-100)", text: "var(--secondary-600)", label: "Active" },
+  trial: { bg: "var(--primary-50)", text: "var(--primary-700)", label: "Trial" },
+  expired: { bg: "var(--red-soft)", text: "var(--red-ink)", label: "Expired" },
+  suspended: { bg: "var(--amber-soft)", text: "var(--amber-ink)", label: "Suspended" },
+  past_due: { bg: "var(--amber-soft)", text: "var(--amber-ink)", label: "Past Due" },
+  canceled: { bg: "var(--surface-container-low)", text: "var(--slate-ink)", label: "Canceled" },
 };
 
 function formatCurrency(n: number) {
@@ -112,7 +112,7 @@ function BigStatCard({
           <div
             className="stat-icon-box"
             style={{
-              background: `${color}18`,
+              background: `color-mix(in srgb, ${color} 10%, transparent)`,
               color,
             }}
           >
@@ -155,7 +155,7 @@ function ActionCard({
     >
       <div
         className="w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
-        style={{ background: `${color}18`, color }}
+        style={{ background: `color-mix(in srgb, ${color} 10%, transparent)`, color }}
       >
         <MaterialIcon icon={icon} style={{ fontSize: 22 }} />
       </div>
@@ -267,7 +267,7 @@ function SuperAdminDashboardContent() {
               label: s.name,
               sub: `Trial ends in ${daysLeft} day${daysLeft !== 1 ? "s" : ""}`,
               href: "/dashboard/schools",
-              color: "#b45309",
+              color: "var(--amber-ink)",
             });
           }
         }
@@ -278,7 +278,7 @@ function SuperAdminDashboardContent() {
             label: s.name,
             sub: "Subscription expired — needs renewal",
             href: "/dashboard/schools",
-            color: "#e74c3c",
+            color: "var(--red-ink)",
           });
         }
         if (s.subscription_status === "suspended") {
@@ -288,7 +288,7 @@ function SuperAdminDashboardContent() {
             label: s.name,
             sub: "Account suspended",
             href: "/dashboard/schools",
-            color: "#b45309",
+            color: "var(--amber-ink)",
           });
         }
       });
@@ -385,7 +385,7 @@ function SuperAdminDashboardContent() {
           value={loading ? "…" : stats.totalUsers.toLocaleString()}
           sub="Staff + admin accounts"
           icon="manage_accounts"
-          color="#7c3aed"
+          color="var(--violet)"
           href="/dashboard/users"
         />
         <BigStatCard
@@ -416,7 +416,7 @@ function SuperAdminDashboardContent() {
               >
                 <div
                   className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                  style={{ background: `${a.color}18`, color: a.color }}
+                  style={{ background: `color-mix(in srgb, ${a.color} 10%, transparent)`, color: a.color }}
                 >
                   <MaterialIcon
                     icon={a.type === "expiring" ? "error" : a.type === "trial" ? "schedule" : "block"}
@@ -508,8 +508,8 @@ function SuperAdminDashboardContent() {
                         <span
                           className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase"
                           style={{
-                            background: `${PLAN_COLORS[s.subscription_plan] || "#64748b"}18`,
-                            color: PLAN_COLORS[s.subscription_plan] || "#64748b",
+                            background: `color-mix(in srgb, ${PLAN_COLORS[s.subscription_plan] || "var(--slate-ink)"} 10%, transparent)`,
+                            color: PLAN_COLORS[s.subscription_plan] || "var(--slate-ink)",
                           }}
                         >
                           {PLAN_LABELS[s.subscription_plan] || s.subscription_plan}
@@ -534,7 +534,10 @@ function SuperAdminDashboardContent() {
                 {planBreakdown.map(({ plan, count }) => (
                   <div key={plan}>
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-[12px] font-semibold" style={{ color: PLAN_COLORS[plan] || "#64748b" }}>
+                      <span
+                        className="text-[12px] font-semibold"
+                        style={{ color: PLAN_COLORS[plan] || "var(--slate-ink)" }}
+                      >
                         {PLAN_LABELS[plan] || plan}
                       </span>
                       <span className="text-[12px] font-bold text-[var(--t1)]">{count}</span>
@@ -544,7 +547,7 @@ function SuperAdminDashboardContent() {
                         className="h-full rounded-full transition-all duration-700"
                         style={{
                           width: `${Math.round((count / maxPlan) * 100)}%`,
-                          background: PLAN_COLORS[plan] || "#64748b",
+                          background: PLAN_COLORS[plan] || "var(--slate-ink)",
                         }}
                       />
                     </div>
@@ -562,22 +565,22 @@ function SuperAdminDashboardContent() {
                 {
                   label: "Active",
                   value: stats.activeSchools,
-                  color: "#0d9488",
-                  bg: "#ccfbf1",
+                  color: "var(--secondary-600)",
+                  bg: "var(--secondary-100)",
                   icon: "check_circle",
                 },
                 {
                   label: "On Trial",
                   value: stats.trialSchools,
-                  color: "#003366",
-                  bg: "#e0efff",
+                  color: "var(--primary-700)",
+                  bg: "var(--primary-50)",
                   icon: "schedule",
                 },
                 {
                   label: "Expired / Suspended",
                   value: stats.expiredSchools,
-                  color: "#e74c3c",
-                  bg: "#fdedec",
+                  color: "var(--red-ink)",
+                  bg: "var(--red-soft)",
                   icon: "error",
                 },
               ].map((item) => (
@@ -615,7 +618,7 @@ function SuperAdminDashboardContent() {
             label="System Users"
             desc="All users, roles, and access control"
             icon="manage_accounts"
-            color="#7c3aed"
+            color="var(--violet)"
             href="/dashboard/users"
           />
           <ActionCard
@@ -636,28 +639,28 @@ function SuperAdminDashboardContent() {
             label="Platform Settings"
             desc="Global config, SMS quotas, feature flags"
             icon="tune"
-            color="#0284c7"
+            color="var(--primary)"
             href="/dashboard/settings"
           />
           <ActionCard
             label="Subscriptions"
             desc="Billing plans, renewals, and upgrades"
             icon="credit_card"
-            color="#db2777"
+            color="var(--red-ink)"
             href="/dashboard/schools"
           />
           <ActionCard
             label="Register School"
             desc="Create and provision a new school account"
             icon="add_business"
-            color="#16a34a"
+            color="var(--green-ink)"
             href="/dashboard/schools"
           />
           <ActionCard
             label="Analytics"
             desc="Platform growth, usage, and retention"
             icon="bar_chart"
-            color="#d97706"
+            color="var(--amber-ink)"
             href="/dashboard/analytics"
           />
         </div>

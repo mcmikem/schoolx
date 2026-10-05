@@ -218,10 +218,10 @@ function HeadmasterDashboardContent() {
         </div>
       ) : null}
       {isFirstRun ? (
-        <div className="rounded-[24px] border border-[#d6e4e8] bg-[linear-gradient(150deg,#eff7f5_0%,#eaf2f6_44%,#f8fbff_100%)] p-6 text-center mb-6">
+        <div className="rounded-[24px] border border-[var(--border)] bg-[linear-gradient(150deg,var(--green-soft)_0%,var(--surface-container-low)_44%,var(--surface-bright)_100%)] p-6 text-center mb-6">
           <span className="material-symbols-outlined text-[var(--t1)] text-4xl">rocket_launch</span>
           <h2 className="text-lg font-bold text-[var(--t1)] mt-2">Welcome to {school?.name || "your school"}!</h2>
-          <p className="text-sm text-[#60748f] mt-1 max-w-md mx-auto">
+          <p className="text-sm text-[var(--t3)] mt-1 max-w-md mx-auto">
             Start by adding students and setting up your classes.
           </p>
           <div className="flex flex-wrap justify-center gap-3 mt-4">

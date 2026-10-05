@@ -1,9 +1,9 @@
 "use client";
-import { memo, useState, useEffect } from "react";
 import Link from "next/link";
+import { memo, useEffect, useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
+import { timeoutFallback, withTimeout } from "@/lib/hooks/utils";
 import { supabase } from "@/lib/supabase";
-import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 
 interface MemberActivity {
   user_name: string;
@@ -17,7 +17,7 @@ const AVATAR_TONES: Array<[string, string]> = [
   ["var(--primary-100)", "var(--primary-700)"],
   ["var(--green-soft)", "var(--green)"],
   ["var(--amber-soft)", "var(--amber)"],
-  ["#f3e8ff", "#7c3aed"],
+  ["var(--violet-soft)", "var(--violet)"],
 ];
 
 function initialsOf(name: string) {

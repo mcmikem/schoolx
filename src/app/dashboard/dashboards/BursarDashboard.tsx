@@ -364,7 +364,7 @@ function BursarDashboardContent() {
                 </div>
               </div>
               <div
-                className={`rounded-xl border p-3 ${highRiskArrearsCount > 0 ? "border-[#f5deb3] bg-[#fff8eb]" : "border-[var(--surface-container-low)] bg-[var(--surface-bright)]"}`}
+                className={`rounded-xl border p-3 ${highRiskArrearsCount > 0 ? "border-[var(--amber)] bg-[var(--amber-soft)]" : "border-[var(--surface-container-low)] bg-[var(--surface-bright)]"}`}
               >
                 <div className="text-xs font-semibold text-[var(--t1)]">High-risk arrears</div>
                 <div className="text-sm font-bold mt-1 text-[var(--t1)]">{highRiskArrearsCount} above UGX 300,000</div>
