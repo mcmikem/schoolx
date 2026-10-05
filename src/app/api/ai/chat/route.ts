@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
+import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logger";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -60,9 +60,12 @@ export async function POST(request: NextRequest) {
     }
 
     if (!process.env.GOOGLE_GENAI_API_KEY) {
+      // No AI brain configured — tell the client to answer from its built-in
+      // offline knowledge base instead of showing a dead-end apology.
       return NextResponse.json({
+        fallback: true,
         response:
-          "I can't connect to my AI brain right now — the API key isn't configured.\n\nHere's what I can tell you: Ask about **fees, attendance, grades, NCDC curriculum, timetable, SMS, students, staff, reports, UNEB, discipline, health, library, or setup**.\n\nOr use the WhatsApp button to talk directly to our team.",
+          "I can't connect to my AI brain right now. Here's what I can help with: **fees, attendance, grades, NCDC curriculum, timetable, SMS, students, staff, reports, UNEB, discipline, health, library, setup, offline sync** — or use the WhatsApp button to talk to our team.",
       });
     }
 
@@ -113,13 +116,17 @@ export async function POST(request: NextRequest) {
 
     const generated = result?.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!generated) {
-      return NextResponse.json({ response: "Sorry, I couldn't generate a response. Please try again." });
+      return NextResponse.json({
+        fallback: true,
+        response: "Sorry, I couldn't generate a response. Please try again in a moment.",
+      });
     }
 
     return NextResponse.json({ response: generated.slice(0, 4000) });
   } catch (error) {
     logger.error("[AI Chat] Error:", error);
     return NextResponse.json({
+      fallback: true,
       response:
         "I hit a technical glitch. Please try again in a moment, or use the WhatsApp button below to reach the team directly.",
     });

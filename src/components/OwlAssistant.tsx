@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 import { useAuth } from "@/lib/auth-context";
+import { answerLocally, getPageHints } from "@/lib/owly-knowledge";
 import { supabase } from "@/lib/supabase";
 import {
   DEFAULT_WHATSAPP_ENV,
@@ -18,154 +19,35 @@ interface Message {
   time: string;
 }
 
-// ─── Built-in knowledge base (offline fallback when the AI can't be reached) ─
-const KNOWLEDGE: { keywords: string[]; answer: string }[] = [
-  {
-    keywords: ["fee", "fees", "payment", "pay", "invoice", "balance"],
-    answer:
-      "📋 **Fee Management** in SkoolMate:\n\n• Go to **Fees** → Record Payment\n• Accepts Cash, Mobile Money, Bank Transfer, or Installments\n• Auto-generates receipts and invoices\n• Use **Fee Terms** to set installment schedules\n• **Payment Plans** let students pay in parts over a term\n\nTip: Use Ctrl+N on the Fees page to quickly record a new payment.",
-  },
-  {
-    keywords: ["attendance", "absent", "present", "mark", "register"],
-    answer:
-      "✅ **Attendance** in SkoolMate:\n\n• Go to **Attendance** → select class & date\n• Click students to cycle: Absent → Present → Late\n• Works offline — syncs when reconnected\n• **Staff Attendance** is tracked separately\n• **Dorm Attendance** tracks boarders at night\n\nAttendance auto-alerts parents after 3 consecutive absences if SMS automation is enabled.",
-  },
-  {
-    keywords: ["grade", "marks", "score", "exam", "ca", "continuous"],
-    answer:
-      "📝 **Marks & Grades** in SkoolMate:\n\n• Go to **Grades** → select class & subject\n• Enter CA1, CA2, CA3, and Exam scores\n• Grades auto-calculate based on your grading scheme\n• Use **Lock/Unlock** to prevent accidental edits\n• Workflow: Draft → Submitted → Approved → Published\n\nGrades align with NCDC Uganda grading scale (Distinction/Credit/Pass/Fail for O-Level).",
-  },
-  {
-    keywords: ["ncdc", "curriculum", "syllabus", "topics", "scheme"],
-    answer:
-      "📚 **NCDC Curriculum** in SkoolMate:\n\n• Go to **Syllabus** → select class, subject, and term\n• Click **NCDC Topics** to auto-load the national curriculum topics\n• Mark topics as Not Started / In Progress / Completed\n• **Scheme of Work** generates weekly lesson breakdowns\n• Covers P1–P7 (primary) and S1–S6 (secondary) curriculum\n\nSkoolMate is fully aligned with the NCDC revised curriculum for Ugandan schools.",
-  },
-  {
-    keywords: ["timetable", "schedule", "period", "lesson", "slot"],
-    answer:
-      "🗓️ **Timetable** in SkoolMate:\n\n• Go to **Timetable** → select a class\n• Click any empty slot to assign a teacher & subject\n• Conflicts are auto-detected (teacher double-booking)\n• Delete entries by hovering and clicking the trash icon\n• **Term Calendar** tab shows public holidays, midterm breaks, and EOT dates\n\nSchool-wide timetable period slots are configured in **Setup → Timetable Slots**.",
-  },
-  {
-    keywords: ["sms", "message", "text", "bulk", "notify", "whatsapp"],
-    answer:
-      "📱 **Messages & WhatsApp** in SkoolMate:\n\n• Go to **Messages** to send individual or bulk SMS\n• **Automation** tab: auto-send on absences, fee reminders, etc.\n• **Templates** tab: create reusable SMS templates\n• **Notices** tab: post school announcements\n• Where SMS fails, the app falls back to **WhatsApp** automatically\n\nMTN and Airtel Uganda are both supported.",
-  },
-  {
-    keywords: ["student", "enroll", "admission", "register", "transfer"],
-    answer:
-      "👩‍🎓 **Students** in SkoolMate:\n\n• Go to **Students** → Add Student (or bulk import CSV)\n• Each student gets a unique student number\n• Transfer in/out via **Student Transfers**\n• Track dropout risks in **Dropout Tracking**\n• Link parents via **parent_phone** field\n\nStudent IDs can be printed as ID cards from the **ID Cards** section.",
-  },
-  {
-    keywords: ["staff", "teacher", "employee", "payroll", "salary"],
-    answer:
-      "👨‍🏫 **Staff Management** in SkoolMate:\n\n• Go to **Staff** → Staff Directory tab\n• Add staff from Settings → Users tab\n• **Payroll**: process monthly salary by grade scale\n• **Leave**: staff apply for leave; headmaster approves\n• **Reviews**: performance reviews per term\n\nSalary grades (Scale 1–5) follow Uganda Government salary structures. Custom salaries are also supported.",
-  },
-  {
-    keywords: ["report", "report card", "progress", "term report"],
-    answer:
-      "📊 **Report Cards** in SkoolMate:\n\n• Go to **Report Cards** after publishing grades\n• Reports auto-populate all subjects and comments\n• Head of Department can add subject remarks\n• Headmaster's comment is added per student\n• Export as PDF for printing\n\nReports follow UNEB format for Uganda schools — Class Teacher comments, HOD remarks, and Principal signature.",
-  },
-  {
-    keywords: ["uneb", "ple", "uce", "uace", "registration", "candidate"],
-    answer:
-      "🎓 **UNEB Registration** in SkoolMate:\n\n• Go to **UNEB Registration** → register candidates by class\n• Assign index numbers to students\n• Export registration lists in UNEB-compatible format\n• Track PLE (P7), UCE (S4), UACE (S6) candidates\n• Links to NCDC syllabus tracking for exam preparation\n\nUNEB reports are generated in the format required by Uganda National Examinations Board.",
-  },
-  {
-    keywords: ["demo", "demo mode", "test", "sample data"],
-    answer:
-      "🔍 **Demo Mode**:\n\nSkoolMate includes a demo mode with sample data for Kimuli Junior School so you can explore features without affecting real data. Demo mode is clearly indicated in the sidebar. To exit, log in with your school's credentials.",
-  },
-  {
-    keywords: ["login", "password", "reset", "access", "account"],
-    answer:
-      "🔐 **Account & Access**:\n\n• Login at the main page with your email and password\n• Forgot password → click **Forgot Password** on login\n• Contact your school admin to reset your password\n• Super admins manage all school accounts from the admin panel\n\nNeed urgent help? WhatsApp the team using the green button above.",
-  },
-  {
-    keywords: ["setup", "settings", "configure", "onboarding", "first time"],
-    answer:
-      "⚙️ **School Setup** in SkoolMate:\n\n1. The **Setup Wizard** guides you through initial configuration\n2. Add **Classes**, **Subjects**, and **Timetable Slots** in Settings\n3. Import **Students** and **Staff** via CSV templates\n4. Configure **Fee Structure** for your term\n5. Enable SMS by adding your Africa's Talking API key\n\nStuck? Use the green WhatsApp button above for a free guided setup call.",
-  },
-  {
-    keywords: ["mtn", "airtel", "mobile money", "subscription", "plan", "billing", "upgrade"],
-    answer:
-      "💳 **Subscription & Billing**:\n\n• Plans available: Starter, Growth, Enterprise\n• Pay via MTN MoMo or Airtel Money\n• Go to your school's billing section to upgrade\n• MTN MoMo: you'll receive a USSD prompt on your phone — enter your PIN to confirm\n• Airtel Money: you'll receive an Airtel prompt — enter your PIN to confirm\n\nIf payment isn't processing, WhatsApp the team with the green button above.",
-  },
-  {
-    keywords: ["help", "support", "contact", "issue", "problem", "bug", "stuck", "confused"],
-    answer: `🆘 **Need help?**\n\n• Ask me here — I can guide you through any feature\n• For urgent issues, tap the green **WhatsApp** button — it opens a pre-filled message to our team\n• WhatsApp is our fastest channel: **${PLATFORM_SUPPORT_PHONE_DISPLAY}**\n• SMS works too, but WhatsApp gets a faster reply\n\nWe typically respond within a few hours on school days.`,
-  },
-  {
-    keywords: ["discipline", "behavior", "behaviour", "incident", "misconduct", "punishment"],
-    answer:
-      "⚠️ **Discipline & Behavior** in SkoolMate:\n\n• Go to **Behavior** → Log Incident\n• Record misconduct, warnings, suspensions, and commendations\n• Each incident is linked to a student and date\n• Patterns are visible in the student's profile\n• Use it to track both negative incidents AND positive behaviour\n\nRegular behavior logging helps identify at-risk students early.",
-  },
-  {
-    keywords: ["health", "sick", "medical", "nurse", "clinic", "first aid", "health log"],
-    answer:
-      "🏥 **Health Log** in SkoolMate:\n\n• Go to **Health Log** → New Record\n• Record student visits to the sick bay\n• Log symptoms, treatment given, and referrals\n• Track chronic conditions per student\n• Export health summaries for term reports\n\nKeeping health records helps spot outbreaks (malaria, measles) affecting multiple students.",
-  },
-  {
-    keywords: ["library", "books", "reading", "borrow", "return", "lend"],
-    answer:
-      "📚 **Library Management** in SkoolMate:\n\n• Go to **Library** to manage books\n• Add books with ISBN, title, author, and copies\n• Issue books to students and track return dates\n• Overdue books show with red indicators\n• Generate reports on most-borrowed books by class\n\nLink library records to student profiles for a full academic picture.",
-  },
-  {
-    keywords: ["hostel", "boarding", "dormitory", "dorm", "bed", "boarding fee"],
-    answer:
-      "🛏️ **Boarding & Hostel** in SkoolMate:\n\n• Mark students as **Day** or **Boarding** in their profile\n• Use **Dorm Attendance** for nightly boarder check-ins\n• Boarding fees can be added separately in Fee Structure\n• Bulk SMS can be sent to all boarding parents at once\n• Track which students are on school premises overnight\n\nFor full boarding management, contact the SkoolMate team via WhatsApp.",
-  },
-  {
-    keywords: ["budget", "expense", "expenditure", "finance", "spending", "approve", "approval"],
-    answer:
-      "💰 **Budget & Expenses** in SkoolMate:\n\n• Go to **Budget** → Log Expense\n• Categories: Staff, Maintenance, Supplies, Activities, etc.\n• Expenses above a threshold require headmaster approval\n• Pending approvals appear in your Needs Attention dashboard\n• Reports show spending vs income by category\n\nLink expenses to your Fee income to see the full financial picture each term.",
-  },
-  {
-    keywords: ["parent", "guardian", "parent portal", "parent access", "parent view"],
-    answer:
-      "👨‍👩‍👧 **Parent Access** in SkoolMate:\n\n• Parents access their child's data via the **Parent Portal**\n• Share the link: your-school.skoolmate.app/parent\n• Parents enter their child's student number or registered phone\n• They can view: attendance, grades, fees, and notices\n• SMS notifications keep parents informed automatically\n\nParents do NOT need an app — the portal works on any smartphone browser.",
-  },
-  {
-    keywords: ["automation", "workflow", "automatic", "trigger", "scheduled", "reminder", "auto"],
-    answer:
-      "⚡ **Automation & Workflows** in SkoolMate:\n\n• Go to **Automation** → Create Workflow\n• Trigger types: fee overdue, absent 3+ days, low grades, term end\n• Actions: Send SMS, Send Email, Create Task, Flag Student\n• Common automations: fee reminders, attendance alerts, grade reports\n• All triggers are school-specific and fully customizable\n\nAutomation saves teachers and bursars hours every week.",
-  },
-  {
-    keywords: ["moes", "ministry", "ministry of education", "emis", "government report"],
-    answer:
-      "🏛️ **MoES & Government Reporting** in SkoolMate:\n\n• Go to **MoES Reports** to generate statutory reports\n• School census data (enrollment by gender, class, age)\n• Teacher qualifications and deployment report\n• Exports in the format required by Ministry of Education Uganda\n• EMIS codes can be set in **Settings → School Profile**\n\nSubmit your termly returns directly from SkoolMate — no re-entering data.",
-  },
-  {
-    keywords: ["nira", "national id", "birth certificate", "identity", "identification"],
-    answer:
-      "🪪 **Student Identity (NIRA / National ID)** in SkoolMate:\n\n• Record National ID or Birth Certificate number in student profile\n• Required for UNEB registration (PLE, UCE, UACE)\n• P.7 students need valid NIRA/birth certificate for PLE entry\n• Export student ID data in UNEB-compatible format\n\nContact your District Education Officer (DEO) if you have issues with national ID verification for candidates.",
-  },
-  {
-    keywords: ["district", "subcounty", "location", "region", "uganda"],
-    answer:
-      "📍 **Location & District Settings**:\n\n• Your school's district, subcounty, and parish are set during registration\n• Update them in **Settings → School Profile**\n• Location data is used in MoES reports and for regional analytics\n• SkoolMate covers all districts of Uganda\n\nIf your school is in a new district (e.g., from a recent split), contact support to update the district list.",
-  },
-];
+const STORAGE_KEY = "skoolmate_owly_messages_v1";
+const MAX_STORED_MESSAGES = 40;
+const AI_TIMEOUT_MS = 12000;
 
-function getResponse(input: string): string {
-  const lower = input.toLowerCase();
-  const match = KNOWLEDGE.find((entry) => entry.keywords.some((kw) => lower.includes(kw)));
-  if (match) return match.answer;
+function loadStoredMessages(): Message[] | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed) || parsed.length === 0) return null;
+    const valid = parsed.filter(
+      (m): m is Message =>
+        !!m &&
+        (m.role === "user" || m.role === "assistant") &&
+        typeof m.text === "string" &&
+        typeof m.time === "string",
+    );
+    return valid.length ? valid.slice(-MAX_STORED_MESSAGES) : null;
+  } catch {
+    return null;
+  }
+}
 
-  // Page-specific hints
-  if (lower.includes("how") && lower.includes("add")) {
-    return "💡 To add something, look for the **+ button** or **Add** button at the top right of any page. Most pages have a form or modal that opens when you click it.";
-  }
-  if (lower.includes("delete") || lower.includes("remove")) {
-    return "🗑️ To delete records, look for a **trash/delete icon** on each row or card. Some sections require you to hover over an item first to see the delete button.";
-  }
-  if (lower.includes("export") || lower.includes("download")) {
-    return "📥 For exports, go to the **Export** section in the sidebar, or look for the export button on individual pages (Grades, Reports, MoES, UNEB sections all have export functionality).";
-  }
-  if (lower.includes("import") || lower.includes("upload") || lower.includes("csv")) {
-    return "📤 To import data, go to the **Import** section in the sidebar. Download the CSV template, fill it in, then upload. Students and Staff can be bulk-imported this way.";
-  }
-
-  return "I'm not sure about that specific question. Try asking about: **fees, attendance, grades, NCDC, timetable, SMS, students, staff, reports, UNEB, discipline, health, library, or setup**.\n\nOr tap the green WhatsApp button below to talk directly to the SkoolMate team!";
+function welcomeMessage(): Message {
+  return {
+    role: "assistant",
+    text: "Hi! I'm **Owly**, your SkoolMate assistant.\n\nI can help with **school management**, the **SkoolMate app**, **NCDC Uganda curriculum**, fees, attendance, reports, and more — and I keep working **offline** using my built-in guide.\n\nWhat can I help you with today?",
+    time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+  };
 }
 
 function formatMessage(text: string) {
@@ -194,15 +76,10 @@ export default function OwlAssistant() {
   const { school, user } = useAuth();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: "assistant",
-      text: "Hi! I'm **Owly**, your SkoolMate assistant.\n\nI can help with **school management**, the **SkoolMate app**, **NCDC Uganda curriculum**, fees, attendance, reports, and more. I remember what we've talked about in this session.\n\nWhat can I help you with today?",
-      time: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>(() => loadStoredMessages() ?? [welcomeMessage()]);
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
+  const [online, setOnline] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -214,6 +91,27 @@ export default function OwlAssistant() {
     role: user?.role ?? undefined,
     page: pathname ?? undefined,
   };
+
+  useEffect(() => {
+    setOnline(typeof navigator === "undefined" ? true : navigator.onLine);
+    const goOnline = () => setOnline(true);
+    const goOffline = () => setOnline(false);
+    window.addEventListener("online", goOnline);
+    window.addEventListener("offline", goOffline);
+    return () => {
+      window.removeEventListener("online", goOnline);
+      window.removeEventListener("offline", goOffline);
+    };
+  }, []);
+
+  // Persist the conversation so Owly remembers it across reloads.
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(messages.slice(-MAX_STORED_MESSAGES)));
+    } catch {
+      // Storage full / private mode — chat just won't survive reloads.
+    }
+  }, [messages]);
 
   useEffect(() => {
     if (open && messagesEndRef.current) {
@@ -253,6 +151,12 @@ export default function OwlAssistant() {
       setTyping(false);
     };
 
+    const localAnswer = () => answerLocally(text, { page: pathname ?? undefined });
+
+    // Offline or AI unavailable → answer from the built-in guide (no network needed).
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
+
     try {
       const {
         data: { session },
@@ -274,18 +178,26 @@ export default function OwlAssistant() {
             page: pathname ?? undefined,
           },
         }),
+        signal: controller.signal,
       });
 
       if (res.ok) {
         const data = await res.json();
-        reply(data.response || getResponse(text));
+        const aiText = typeof data?.response === "string" ? data.response : "";
+        // `fallback: true` means the server has no AI brain (missing API key) —
+        // use the built-in guide instead of the server's canned apology.
+        if (aiText && !data?.fallback) {
+          reply(aiText);
+        } else {
+          reply(localAnswer());
+        }
       } else {
-        // AI unavailable / API error — fall back to the built-in guide
-        reply(getResponse(text));
+        reply(localAnswer());
       }
     } catch {
-      // Offline or network failure — fall back to the built-in guide
-      reply(getResponse(text));
+      reply(localAnswer());
+    } finally {
+      clearTimeout(timer);
     }
   };
 
@@ -296,19 +208,7 @@ export default function OwlAssistant() {
     }
   };
 
-  // Page-specific quick hints (page-aware guidance)
-  const getPageHints = () => {
-    const path = pathname || "";
-    if (path.includes("fees")) return ["How do I record a payment?", "How do I set up a payment plan?"];
-    if (path.includes("attendance")) return ["How does offline attendance work?", "How do I mark a student absent?"];
-    if (path.includes("grades")) return ["How do I lock grades?", "How does NCDC grading work?"];
-    if (path.includes("syllabus")) return ["How do I load NCDC topics?", "How do I mark a topic complete?"];
-    if (path.includes("timetable")) return ["How do I add a lesson slot?", "How do I view the term calendar?"];
-    if (path.includes("staff")) return ["How do I add a staff member?", "How do I process payroll?"];
-    if (path.includes("students")) return ["How do I import students from CSV?", "How do I transfer a student?"];
-    if (path.includes("messages")) return ["How do I send bulk SMS?", "How do I automate fee reminders?"];
-    return ["How do I get started?", "Where is the setup wizard?", "How do I get help?"];
-  };
+  const hints = getPageHints(pathname || "");
 
   return (
     <>
@@ -341,7 +241,9 @@ export default function OwlAssistant() {
               className="rounded-2xl"
             />
             <span
-              className="absolute top-0 right-0 w-3.5 h-3.5 rounded-full bg-green-400 border-2 border-white animate-pulse"
+              className={`absolute top-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white ${
+                online ? "bg-green-400 animate-pulse" : "bg-amber-400"
+              }`}
               aria-hidden
             />
           </div>
@@ -377,7 +279,9 @@ export default function OwlAssistant() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-white font-bold text-sm leading-tight">Owly Assistant</p>
-              <p className="text-white/70 text-xs">SkoolMate OS · School Management</p>
+              <p className="text-white/70 text-xs">
+                {online ? "SkoolMate OS · School Management" : "Offline · built-in guide answering"}
+              </p>
             </div>
             <a
               href={generateSupportWhatsAppLink(contactCtx)}
@@ -464,7 +368,7 @@ export default function OwlAssistant() {
           {/* Quick hints */}
           {messages.length <= 2 && (
             <div className="px-3 pb-2 flex gap-1.5 flex-wrap">
-              {getPageHints().map((hint, i) => (
+              {hints.map((hint, i) => (
                 <button
                   key={i}
                   onClick={() => submitMessage(hint)}
