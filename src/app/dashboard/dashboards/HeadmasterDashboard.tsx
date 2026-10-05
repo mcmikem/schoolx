@@ -17,7 +17,7 @@ import { useAcademic } from "@/lib/academic-context";
 import { useAuth } from "@/lib/auth-context";
 import { useClasses, useDashboardStats, useFeeStructure, useStudents } from "@/lib/hooks";
 import { useDashboardExtraData } from "@/lib/hooks/useDashboardExtraData";
-import { formatNumber } from "@/lib/utils";
+import { formatNumber, greetingFor, todayLabelFor } from "@/lib/utils";
 
 function HeadmasterDashboardContent() {
   const { school, user } = useAuth();
@@ -40,8 +40,7 @@ function HeadmasterDashboardContent() {
   } = useDashboardExtraData(school?.id, students, feeStructure, currentTerm, academicYear);
 
   const currentDate = useMemo(() => new Date(), []);
-  const greeting =
-    currentDate.getHours() < 12 ? "Good Morning" : currentDate.getHours() < 17 ? "Good Afternoon" : "Good Evening";
+  const greeting = greetingFor(currentDate);
 
   const boysCount = stats.maleStudents;
   const girlsCount = stats.femaleStudents;
@@ -59,14 +58,7 @@ function HeadmasterDashboardContent() {
       : 0;
   }, [stats.presentToday, stats.totalStudents]);
 
-  const todayDayName = currentDate.toLocaleDateString("en-UG", {
-    weekday: "long",
-  });
-  const todayFormatted = currentDate.toLocaleDateString("en-UG", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
+  const todayLabel = todayLabelFor(currentDate);
 
   const quickActions = useMemo(
     () => [
@@ -291,7 +283,7 @@ function HeadmasterDashboardContent() {
                   {greeting}, {user?.full_name?.split(" ")[0] || "there"}
                 </h1>
                 <p className="text-[13px] text-[var(--t3)] mt-1 truncate">
-                  {school?.name} · {todayDayName}, {todayFormatted} · Term {currentTerm}, {academicYear}
+                  {school?.name} · {todayLabel} · Term {currentTerm}, {academicYear}
                 </p>
               </div>
               <div className="flex flex-wrap items-center gap-2.5 flex-shrink-0">

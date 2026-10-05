@@ -1,12 +1,13 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
-import Link from "next/link";
 import Image from "next/image";
-import { supabase, isSupabaseConfigured } from "@/lib/supabase";
-import { useAuth } from "@/lib/auth-context";
+import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import MaterialIcon from "@/components/MaterialIcon";
 import { APP_NAME } from "@/lib/app-name";
-import ErrorBoundary from "@/components/ErrorBoundary";
+import { useAuth } from "@/lib/auth-context";
+import { isSupabaseConfigured, supabase } from "@/lib/supabase";
+import { greetingFor } from "@/lib/utils";
 
 /* ── Types ──────────────────────────────────────────────── */
 interface PlatformStats {
@@ -315,8 +316,7 @@ function SuperAdminDashboardContent() {
     fetchData();
   }, [fetchData]);
 
-  const greeting =
-    new Date().getHours() < 12 ? "Good Morning" : new Date().getHours() < 17 ? "Good Afternoon" : "Good Evening";
+  const greeting = greetingFor();
 
   const firstName = user?.full_name?.trim().split(" ")[0] || "Admin";
 

@@ -1,11 +1,12 @@
 "use client";
-import Link from "next/link";
 import dynamic from "next/dynamic";
-import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/lib/auth-context";
+import { useEffect, useState } from "react";
 import { DashboardSkeleton } from "@/components/Skeletons";
+import { useAuth } from "@/lib/auth-context";
 import { logger } from "@/lib/logger";
+import { greetingFor } from "@/lib/utils";
 
 const HeadmasterDashboard = dynamic(() => import("./dashboards/HeadmasterDashboard"), {
   loading: () => <DashboardSkeleton />,
@@ -37,9 +38,7 @@ function RoleDashboardHeader({
   schoolName: string;
   context: string;
 }) {
-  const currentDate = new Date();
-  const greeting =
-    currentDate.getHours() < 12 ? "Good Morning" : currentDate.getHours() < 17 ? "Good Afternoon" : "Good Evening";
+  const greeting = greetingFor();
 
   return (
     <div className="relative overflow-hidden rounded-[22px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5 mb-4">

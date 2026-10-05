@@ -2,12 +2,15 @@
 import Image from "next/image";
 import type { ReactNode } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
+import { greetingFor, todayLabelFor } from "@/lib/utils";
 
 interface SchoolHeroProps {
   school?: { name?: string; logo_url?: string | null } | null;
-  greeting: string;
+  /** Override only when a caller needs custom wording; defaults to the shared greeting. */
+  greeting?: string;
   userName: string;
-  dateLabel: string;
+  /** Override only for a non-today label; defaults to today's date. */
+  dateLabel?: string;
   subtitle?: string;
   rightSection?: ReactNode;
   bottomCenter?: ReactNode;
@@ -24,6 +27,9 @@ export default function SchoolHero({
   bottomCenter,
   bottomRight,
 }: SchoolHeroProps) {
+  const resolvedGreeting = greeting ?? greetingFor();
+  const resolvedDateLabel = dateLabel ?? todayLabelFor();
+
   return (
     <div className="relative mb-6 overflow-hidden rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--sh1)]">
       <div className="relative z-10 flex items-center gap-4">
@@ -50,11 +56,11 @@ export default function SchoolHero({
             className="text-[20px] font-bold text-[var(--t1)] tracking-tight truncate"
             style={{ fontFamily: "'Sora', sans-serif" }}
           >
-            {greeting}, {userName}
+            {resolvedGreeting}, {userName}
           </p>
           <p className="text-[13px] text-[var(--t3)] mt-0.5 truncate">
             {subtitle || school?.name}
-            {dateLabel ? ` · ${dateLabel}` : ""}
+            {resolvedDateLabel ? ` · ${resolvedDateLabel}` : ""}
           </p>
         </div>
         {rightSection && <div className="hidden sm:block flex-shrink-0">{rightSection}</div>}
@@ -64,7 +70,7 @@ export default function SchoolHero({
         <div className="relative z-10 mt-4 flex flex-wrap items-center gap-3 border-t border-[var(--border)] pt-4">
           <div className="flex items-center gap-2 text-xs text-[var(--t3)]">
             <MaterialIcon icon="today" className="text-base" />
-            <span className="font-semibold">{dateLabel}</span>
+            <span className="font-semibold">{resolvedDateLabel}</span>
           </div>
           {bottomCenter}
           {bottomRight && <div className="ml-auto">{bottomRight}</div>}

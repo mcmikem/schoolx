@@ -1,24 +1,25 @@
 "use client";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/lib/auth-context";
-import { useAcademic } from "@/lib/academic-context";
-import { useStudents, useClasses, useSubjects, useDashboardStats } from "@/lib/hooks";
-import { withTimeout } from "@/lib/hooks/utils";
-import { useState, useMemo, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
-import { buildDefaultClasses, buildDefaultTimetableSlots, type SchoolSetupType } from "@/lib/school-setup";
-import { getDefaultSubjects } from "@/lib/curriculum";
-import MaterialIcon from "@/components/MaterialIcon";
-import ErrorBoundary from "@/components/ErrorBoundary";
-import { useToast } from "@/components/Toast";
-import { TopLoadingBar, StuckLoadingOverlay } from "@/components/ui/Skeleton";
+import { useEffect, useMemo, useState } from "react";
 import OwlMascot from "@/components/brand/OwlMascot";
-import { TeacherQuickGuide } from "@/components/dashboard/SchoolReadinessGuide";
 import SchoolCalendar from "@/components/dashboard/SchoolCalendar";
-import TaskManager from "@/components/dashboard/TaskManager";
-import CollapsibleSection from "@/components/ui/CollapsibleSection";
 import SchoolHero from "@/components/dashboard/SchoolHero";
+import { TeacherQuickGuide } from "@/components/dashboard/SchoolReadinessGuide";
+import TaskManager from "@/components/dashboard/TaskManager";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import MaterialIcon from "@/components/MaterialIcon";
+import { useToast } from "@/components/Toast";
+import CollapsibleSection from "@/components/ui/CollapsibleSection";
+import { StuckLoadingOverlay, TopLoadingBar } from "@/components/ui/Skeleton";
+import { useAcademic } from "@/lib/academic-context";
+import { useAuth } from "@/lib/auth-context";
+import { getDefaultSubjects } from "@/lib/curriculum";
+import { useClasses, useDashboardStats, useStudents, useSubjects } from "@/lib/hooks";
+import { withTimeout } from "@/lib/hooks/utils";
+import { buildDefaultClasses, buildDefaultTimetableSlots, type SchoolSetupType } from "@/lib/school-setup";
+import { supabase } from "@/lib/supabase";
+import { greetingFor, todayLabelFor } from "@/lib/utils";
 
 function TeacherDashboardContent() {
   const router = useRouter();
@@ -45,8 +46,7 @@ function TeacherDashboardContent() {
   }, [dataLoading]);
 
   const currentDate = new Date();
-  const greeting =
-    currentDate.getHours() < 12 ? "Good Morning" : currentDate.getHours() < 17 ? "Good Afternoon" : "Good Evening";
+  const greeting = greetingFor(currentDate);
 
   const myClasses = classes;
   const mySubjects = subjects;
@@ -58,11 +58,7 @@ function TeacherDashboardContent() {
         : 0,
     [stats?.totalStudents, stats?.presentToday],
   );
-  const todayLabel = currentDate.toLocaleDateString("en-UG", {
-    weekday: "long",
-    day: "numeric",
-    month: "short",
-  });
+  const todayLabel = todayLabelFor(currentDate);
   const classesWithNoStudents = myClasses.filter(
     (cls) => students.filter((s) => s.class_id === cls.id).length === 0,
   ).length;

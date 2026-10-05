@@ -1,10 +1,11 @@
 "use client";
-import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { APP_NAME } from "@/lib/app-name";
 import { useAuth } from "@/lib/auth-context";
 import { logger } from "@/lib/logger";
-import { APP_NAME } from "@/lib/app-name";
+import { greetingFor } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -297,8 +298,7 @@ export default function MarketerDashboard() {
     fetchData();
   };
 
-  const hr = new Date().getHours();
-  const greeting = hr < 12 ? "Good morning" : hr < 17 ? "Good afternoon" : "Good evening";
+  const greeting = greetingFor();
 
   const fetchData = useCallback(async () => {
     setLoading(true);

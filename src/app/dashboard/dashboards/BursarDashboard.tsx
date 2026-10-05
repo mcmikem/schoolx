@@ -1,26 +1,27 @@
 "use client";
 import Link from "next/link";
-import { useMemo, useState, useEffect } from "react";
-import { useAuth } from "@/lib/auth-context";
-import { useAcademic } from "@/lib/academic-context";
-import { useStudents, useFeePayments, useFeeStructure } from "@/lib/hooks";
-import MaterialIcon from "@/components/MaterialIcon";
-import ErrorBoundary from "@/components/ErrorBoundary";
-import SchoolCalendar from "@/components/dashboard/SchoolCalendar";
-import TaskManager from "@/components/dashboard/TaskManager";
-
-import StatCard from "@/components/dashboard/StatCard";
-import WeeklyCollections from "@/components/dashboard/WeeklyCollections";
+import { useEffect, useMemo, useState } from "react";
+import OwlMascot from "@/components/brand/OwlMascot";
 import CollectionDonut from "@/components/dashboard/CollectionDonut";
 import DashboardInsights from "@/components/dashboard/DashboardInsights";
 import EcosystemPulse from "@/components/dashboard/EcosystemPulse";
-import TopDefaulters from "@/components/dashboard/TopDefaulters";
 import RecentPayments from "@/components/dashboard/RecentPayments";
-import CollapsibleSection from "@/components/ui/CollapsibleSection";
+import SchoolCalendar from "@/components/dashboard/SchoolCalendar";
 import SchoolHero from "@/components/dashboard/SchoolHero";
-import { TopLoadingBar, StuckLoadingOverlay } from "@/components/ui/Skeleton";
-import OwlMascot from "@/components/brand/OwlMascot";
+
+import StatCard from "@/components/dashboard/StatCard";
+import TaskManager from "@/components/dashboard/TaskManager";
+import TopDefaulters from "@/components/dashboard/TopDefaulters";
+import WeeklyCollections from "@/components/dashboard/WeeklyCollections";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import MaterialIcon from "@/components/MaterialIcon";
+import CollapsibleSection from "@/components/ui/CollapsibleSection";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { StuckLoadingOverlay, TopLoadingBar } from "@/components/ui/Skeleton";
+import { useAcademic } from "@/lib/academic-context";
+import { useAuth } from "@/lib/auth-context";
+import { useFeePayments, useFeeStructure, useStudents } from "@/lib/hooks";
+import { greetingFor, todayLabelFor } from "@/lib/utils";
 
 function BursarDashboardContent() {
   const { school, user, isDemo } = useAuth();
@@ -49,8 +50,7 @@ function BursarDashboardContent() {
   };
 
   const currentDate = new Date();
-  const greeting =
-    currentDate.getHours() < 12 ? "Good Morning" : currentDate.getHours() < 17 ? "Good Afternoon" : "Good Evening";
+  const greeting = greetingFor(currentDate);
 
   const totalFeesExpected = useMemo(
     () =>
@@ -179,11 +179,7 @@ function BursarDashboardContent() {
     },
   ];
 
-  const todayLabel = currentDate.toLocaleDateString("en-UG", {
-    weekday: "long",
-    day: "numeric",
-    month: "short",
-  });
+  const todayLabel = todayLabelFor(currentDate);
 
   const tasks = useMemo(() => {
     const items = [];

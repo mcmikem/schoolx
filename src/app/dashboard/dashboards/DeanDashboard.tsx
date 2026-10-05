@@ -1,18 +1,18 @@
 "use client";
 import Link from "next/link";
-import { useAuth } from "@/lib/auth-context";
-import { useAcademic } from "@/lib/academic-context";
-import { useStudents, useClasses, useSubjects, useDashboardStats } from "@/lib/hooks";
-import { useState, useEffect, useMemo } from "react";
-import { formatNumber } from "@/lib/utils";
-import MaterialIcon from "@/components/MaterialIcon";
-import ErrorBoundary from "@/components/ErrorBoundary";
-import SchoolCalendar from "@/components/dashboard/SchoolCalendar";
-import TaskManager from "@/components/dashboard/TaskManager";
-import CollapsibleSection from "@/components/ui/CollapsibleSection";
-import SchoolHero from "@/components/dashboard/SchoolHero";
-import { TopLoadingBar, StuckLoadingOverlay } from "@/components/ui/Skeleton";
+import { useEffect, useMemo, useState } from "react";
 import OwlMascot from "@/components/brand/OwlMascot";
+import SchoolCalendar from "@/components/dashboard/SchoolCalendar";
+import SchoolHero from "@/components/dashboard/SchoolHero";
+import TaskManager from "@/components/dashboard/TaskManager";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import MaterialIcon from "@/components/MaterialIcon";
+import CollapsibleSection from "@/components/ui/CollapsibleSection";
+import { StuckLoadingOverlay, TopLoadingBar } from "@/components/ui/Skeleton";
+import { useAcademic } from "@/lib/academic-context";
+import { useAuth } from "@/lib/auth-context";
+import { useClasses, useDashboardStats, useStudents, useSubjects } from "@/lib/hooks";
+import { formatNumber, greetingFor, todayLabelFor } from "@/lib/utils";
 
 function DeanDashboardContent() {
   const { school, user } = useAuth();
@@ -35,8 +35,7 @@ function DeanDashboardContent() {
   }, [statsLoading]);
 
   const currentDate = new Date();
-  const greeting =
-    currentDate.getHours() < 12 ? "Good Morning" : currentDate.getHours() < 17 ? "Good Afternoon" : "Good Evening";
+  const greeting = greetingFor(currentDate);
 
   const attendanceRate =
     stats?.presentToday > 0 && stats.totalStudents > 0
@@ -47,11 +46,7 @@ function DeanDashboardContent() {
     return students.filter((s) => s.class_id === classId).length;
   };
 
-  const todayLabel = currentDate.toLocaleDateString("en-UG", {
-    weekday: "long",
-    day: "numeric",
-    month: "short",
-  });
+  const todayLabel = todayLabelFor(currentDate);
 
   const tasks = useMemo(() => {
     const items = [];
