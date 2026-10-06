@@ -1,6 +1,6 @@
 import { calculateStudentFeePosition } from "../lib/operations";
 import { validateAdjustment, validatePayment, generateInvoice } from "../lib/server/fee-logic";
-import { normalizeFeeSummary, HIGH_RISK_ARREARS_THRESHOLD } from "../lib/hooks/fees";
+import { normalizeFeeSummary, HIGH_RISK_ARREARS_THRESHOLD, MAX_RETURNED_DEFAULTERS } from "../lib/hooks/fees";
 
 describe("calculateStudentFeePosition", () => {
   it("returns unpaid when there are no payments or adjustments", () => {
@@ -415,6 +415,18 @@ describe("normalizeFeeSummary", () => {
         high_risk_count: 12,
         this_month_total: 150000,
         last_month_total: 225000,
+        overdue_balance: 1980000000,
+        defaulters: [
+          {
+            student_id: "84f26cdf-0000-0000-0000-000000000001",
+            first_name: "Nahweera",
+            last_name: "Promise",
+            parent_name: "Kyasimiire Scovia",
+            parent_phone: "256756620272",
+            class_name: "P.1",
+            balance: 200000,
+          },
+        ],
       }),
     ).toEqual({
       studentsCount: 594,
@@ -424,7 +436,81 @@ describe("normalizeFeeSummary", () => {
       highRiskCount: 12,
       thisMonthTotal: 150000,
       lastMonthTotal: 225000,
+      overdueBalance: 1980000000,
+      defaulters: [
+        {
+          student_id: "84f26cdf-0000-0000-0000-000000000001",
+          first_name: "Nahweera",
+          last_name: "Promise",
+          parent_name: "Kyasimiire Scovia",
+          parent_phone: "256756620272",
+          class_name: "P.1",
+          balance: 200000,
+        },
+      ],
     });
+  });
+
+  it("defaults the defaulter block when a pre-migration row lacks it", () => {
+    const summary = normalizeFeeSummary({
+      students_count: 10,
+      expected_total: 1000,
+      collected_total: 0,
+      overdue_count: 3,
+      high_risk_count: 0,
+      this_month_total: 0,
+      last_month_total: 0,
+    });
+
+    expect(summary?.overdueBalance).toBe(0);
+    expect(summary?.defaulters).toEqual([]);
+  });
+
+  it("drops unusable defaulter rows and coerces their balances", () => {
+    const summary = normalizeFeeSummary({
+      students_count: 5,
+      expected_total: 500,
+      collected_total: 0,
+      overdue_count: 1,
+      high_risk_count: 0,
+      this_month_total: 0,
+      last_month_total: 0,
+      overdue_balance: "900",
+      defaulters: [
+        { student_id: "s1", balance: "450", first_name: "A", class_name: "P.1" },
+        { student_id: null, balance: 500 },
+        "garbage",
+        null,
+        { student_id: "s2", balance: null },
+      ],
+    });
+
+    expect(summary?.overdueBalance).toBe(900);
+    expect(summary?.defaulters).toEqual([
+      {
+        student_id: "s1",
+        first_name: "A",
+        last_name: null,
+        parent_name: null,
+        parent_phone: null,
+        class_name: "P.1",
+        balance: 450,
+      },
+      {
+        student_id: "s2",
+        first_name: null,
+        last_name: null,
+        parent_name: null,
+        parent_phone: null,
+        class_name: null,
+        balance: 0,
+      },
+    ]);
+  });
+
+  it("leaves a non-array defaulters payload empty rather than throwing", () => {
+    expect(normalizeFeeSummary({ expected_total: 1, defaulters: "oops" })?.defaulters).toEqual([]);
+    expect(normalizeFeeSummary({ expected_total: 1, defaulters: { a: 1 } })?.defaulters).toEqual([]);
   });
 
   it("coerces numeric strings returned by PostgREST", () => {
@@ -436,6 +522,7 @@ describe("normalizeFeeSummary", () => {
       high_risk_count: "0",
       this_month_total: "0",
       last_month_total: null,
+      overdue_balance: "3100000",
     });
 
     expect(summary).toEqual({
@@ -446,6 +533,8 @@ describe("normalizeFeeSummary", () => {
       highRiskCount: 0,
       thisMonthTotal: 0,
       lastMonthTotal: 0,
+      overdueBalance: 3100000,
+      defaulters: [],
     });
   });
 
@@ -475,6 +564,8 @@ describe("normalizeFeeSummary", () => {
       highRiskCount: 0,
       thisMonthTotal: 0,
       lastMonthTotal: 0,
+      overdueBalance: 0,
+      defaulters: [],
     });
   });
 });
@@ -482,5 +573,32 @@ describe("normalizeFeeSummary", () => {
 describe("HIGH_RISK_ARREARS_THRESHOLD", () => {
   it("matches the threshold the fee_summary() SQL function uses", () => {
     expect(HIGH_RISK_ARREARS_THRESHOLD).toBe(300000);
+  });
+});
+
+describe("MAX_RETURNED_DEFAULTERS", () => {
+  it("matches the LIMIT the fee_summary() SQL function uses", () => {
+    expect(MAX_RETURNED_DEFAULTERS).toBe(20);
+  });
+
+  it("caps the row count even if the payload comes back longer", () => {
+    const defaulters = Array.from({ length: 60 }, (_, i) => ({
+      student_id: `s${i}`,
+      balance: 100 - i,
+    }));
+    const summary = normalizeFeeSummary({
+      students_count: 60,
+      expected_total: 6000,
+      collected_total: 0,
+      overdue_count: 60,
+      high_risk_count: 0,
+      this_month_total: 0,
+      last_month_total: 0,
+      defaulters,
+    });
+
+    expect(summary?.defaulters).toHaveLength(MAX_RETURNED_DEFAULTERS);
+    expect(summary?.defaulters[0].student_id).toBe("s0");
+    expect(summary?.defaulters.at(-1)?.student_id).toBe("s19");
   });
 });

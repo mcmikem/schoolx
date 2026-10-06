@@ -18,7 +18,15 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { StuckLoadingOverlay, TopLoadingBar } from "@/components/ui/Skeleton";
 import { useAcademic } from "@/lib/academic-context";
 import { useAuth } from "@/lib/auth-context";
-import { useFeePayments, useFeeStructure, useFeeSummary, useStudents, HIGH_RISK_ARREARS_THRESHOLD } from "@/lib/hooks";
+import {
+  HIGH_RISK_ARREARS_THRESHOLD,
+  MAX_RETURNED_DEFAULTERS,
+  useFeePayments,
+  useFeeStructure,
+  useFeeSummary,
+  useStudents,
+} from "@/lib/hooks";
+import type { FeeDefaulter } from "@/lib/hooks";
 import { greetingFor, todayLabelFor } from "@/lib/utils";
 
 function BursarDashboardContent() {
@@ -79,14 +87,25 @@ function BursarDashboardContent() {
       studentPaidMap[sid] = (studentPaidMap[sid] || 0) + Number(p.amount_paid || 0);
     }
 
-    let overdue = 0;
+    const debtors: FeeDefaulter[] = [];
     let highRisk = 0;
     for (const s of students) {
       const studentExpected = studentExpectedMap[s.id] || 0;
       const paid = studentPaidMap[s.id] || 0;
-      if (studentExpected > 0 && paid < studentExpected) overdue += 1;
+      if (studentExpected > 0 && paid < studentExpected) {
+        debtors.push({
+          student_id: s.id,
+          first_name: s.first_name ?? null,
+          last_name: s.last_name ?? null,
+          parent_name: s.parent_name ?? null,
+          parent_phone: s.parent_phone ?? null,
+          class_name: s.classes?.name ?? null,
+          balance: studentExpected - paid,
+        });
+      }
       if (Math.max(0, studentExpected - paid) >= HIGH_RISK_ARREARS_THRESHOLD) highRisk += 1;
     }
+    debtors.sort((a, b) => b.balance - a.balance);
 
     const now = new Date();
     const monthKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}`;
@@ -105,10 +124,12 @@ function BursarDashboardContent() {
       studentsCount: students.length,
       expectedTotal: expected,
       collectedTotal: collected,
-      overdueCount: overdue,
+      overdueCount: debtors.length,
       highRiskCount: highRisk,
       thisMonthTotal: thisMonth,
       lastMonthTotal: previousMonth,
+      overdueBalance: debtors.reduce((sum, d) => sum + d.balance, 0),
+      defaulters: debtors.slice(0, MAX_RETURNED_DEFAULTERS),
     };
   }, [students, feeStructure, payments]);
 
@@ -371,7 +392,11 @@ function BursarDashboardContent() {
             </div>
           </div>
 
-          <TopDefaulters students={students} feeStructure={feeStructure} payments={payments} />
+          <TopDefaulters
+            defaulters={figures.defaulters}
+            debtorCount={figures.overdueCount}
+            totalBalance={figures.overdueBalance}
+          />
           <RecentPayments payments={payments} students={students} thisMonthTotal={thisMonthTotal} />
         </div>
 

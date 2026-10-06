@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
-import { FeePayment, FeeStructure, Student } from "@/types";
+import type { FeeDefaulter } from "@/lib/hooks";
 
 function formatCurrency(amount: number) {
   if (amount >= 1000000) return `${(amount / 1000000).toFixed(1)}M`;
@@ -10,42 +10,30 @@ function formatCurrency(amount: number) {
   return `${amount}`;
 }
 
+/**
+ * Head of the defaulter ranking produced by fee_summary(), not a client-side
+ * pass over the roster. Ranking here used to sum the first 100 students
+ * against the first 50 payments, so a school past either limit showed the
+ * wrong debtors and a wrong total right underneath headline figures that are
+ * now summed across the whole school.
+ *
+ * `debtorCount` / `totalBalance` cover every debtor; `defaulters` is just the
+ * window this panel renders.
+ */
 export default function TopDefaulters({
-  students,
-  feeStructure,
-  payments,
+  defaulters,
+  debtorCount,
+  totalBalance,
 }: {
-  students: any[];
-  feeStructure: any[];
-  payments: any[];
+  defaulters: FeeDefaulter[];
+  debtorCount: number;
+  totalBalance: number;
 }) {
   const [isOpen, setIsOpen] = useState(false);
 
-  // Pre-calculate debtors
-  const debtors = students
-    .filter((s) => {
-      const paid = payments
-        .filter((p) => p.student_id === s.id)
-        .reduce((sum, p) => sum + Number(p.amount_paid || 0), 0);
-      const expected = feeStructure
-        .filter((f) => !f.class_id || f.class_id === s.class_id)
-        .reduce((sum, f) => sum + Number(f.amount || 0), 0);
-      return paid < expected && expected > 0;
-    })
-    .map((s) => {
-      const paid = payments
-        .filter((p) => p.student_id === s.id)
-        .reduce((sum, p) => sum + Number(p.amount_paid || 0), 0);
-      const expected = feeStructure
-        .filter((f) => !f.class_id || f.class_id === s.class_id)
-        .reduce((sum, f) => sum + Number(f.amount || 0), 0);
-      return { student: s, balance: expected - paid };
-    })
-    .sort((a, b) => b.balance - a.balance);
+  if (debtorCount === 0 || defaulters.length === 0) return null;
 
-  if (debtors.length === 0) return null;
-
-  const topDebtors = debtors.slice(0, 5);
+  const topDebtors = defaulters.slice(0, 5);
 
   return (
     <div className="rounded-[24px] bg-white border border-[var(--border)] p-5 mb-6">
@@ -57,20 +45,20 @@ export default function TopDefaulters({
       >
         <div className="flex items-center gap-2">
           <h2 id="defaulters-heading" className="text-sm font-bold text-[var(--t1)]">
-            Top defaulters ({debtors.length})
+            Top defaulters ({debtorCount})
           </h2>
           <MaterialIcon icon={isOpen ? "expand_less" : "expand_more"} className="text-[var(--t3)] text-lg" />
         </div>
         <span className="text-xs font-bold text-[var(--red)] bg-[var(--red-soft)] px-2 py-0.5 rounded-full">
-          UGX {formatCurrency(debtors.reduce((sum, d) => sum + d.balance, 0))}
+          UGX {formatCurrency(totalBalance)}
         </span>
       </button>
 
       {isOpen && (
         <div id="defaulters-list" className="space-y-2 mt-4" role="list" aria-labelledby="defaulters-heading">
-          {topDebtors.map(({ student, balance }) => (
+          {topDebtors.map((student) => (
             <div
-              key={student.id}
+              key={student.student_id}
               role="listitem"
               className="flex items-center gap-3 rounded-[18px] bg-[var(--surface-container-low)] border border-[var(--border)] px-3 py-2.5"
             >
@@ -86,10 +74,10 @@ export default function TopDefaulters({
                   {student.first_name} {student.last_name}
                 </p>
                 <p className="text-[10px] text-[var(--t3)]">
-                  {student.parent_name} · {(student as any).classes?.name || ""}
+                  {student.parent_name} · {student.class_name || ""}
                 </p>
               </div>
-              <p className="text-sm font-bold text-[var(--red)]">-UGX {formatCurrency(balance)}</p>
+              <p className="text-sm font-bold text-[var(--red)]">-UGX {formatCurrency(student.balance)}</p>
               {student.parent_phone && (
                 <div className="flex gap-1 shrink-0">
                   <a
@@ -116,7 +104,7 @@ export default function TopDefaulters({
           ))}
           <div className="pt-2 text-center">
             <Link href="/dashboard/fees" className="card-action-pill">
-              View all {debtors.length} debtors →
+              View all {debtorCount} debtors →
             </Link>
           </div>
         </div>

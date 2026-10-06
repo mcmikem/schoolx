@@ -598,6 +598,20 @@ export function useFeeStructure(schoolId?: string) {
 /** A student's shortfall at or above this amount counts as high-risk arrears. */
 export const HIGH_RISK_ARREARS_THRESHOLD = 300000;
 
+/** Head of the defaulter ranking returned by fee_summary(); the total is in
+ *  FeeSummary.overdueCount / overdueBalance. */
+export const MAX_RETURNED_DEFAULTERS = 20;
+
+export interface FeeDefaulter {
+  student_id: string;
+  first_name: string | null;
+  last_name: string | null;
+  parent_name: string | null;
+  parent_phone: string | null;
+  class_name: string | null;
+  balance: number;
+}
+
 export interface FeeSummary {
   studentsCount: number;
   expectedTotal: number;
@@ -606,11 +620,39 @@ export interface FeeSummary {
   highRiskCount: number;
   thisMonthTotal: number;
   lastMonthTotal: number;
+  overdueBalance: number;
+  defaulters: FeeDefaulter[];
 }
 
 function toNumber(value: unknown): number {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function toNullableString(value: unknown): string | null {
+  return value === null || value === undefined ? null : String(value);
+}
+
+function normalizeDefaulters(value: unknown): FeeDefaulter[] {
+  if (!Array.isArray(value)) return [];
+  const rows: FeeDefaulter[] = [];
+  for (const item of value) {
+    if (!item || typeof item !== "object") continue;
+    const r = item as Record<string, unknown>;
+    if (r.student_id === null || r.student_id === undefined) continue;
+    rows.push({
+      student_id: String(r.student_id),
+      first_name: toNullableString(r.first_name),
+      last_name: toNullableString(r.last_name),
+      parent_name: toNullableString(r.parent_name),
+      parent_phone: toNullableString(r.parent_phone),
+      class_name: toNullableString(r.class_name),
+      balance: toNumber(r.balance),
+    });
+  }
+  // fee_summary() already LIMITs, but never trust the payload's row count —
+  // the panel only renders five and the file could be reused elsewhere.
+  return rows.slice(0, MAX_RETURNED_DEFAULTERS);
 }
 
 /** Postgres NUMERIC/BIGINT arrive as JSON strings — normalise to real numbers. */
@@ -626,6 +668,8 @@ export function normalizeFeeSummary(row: unknown): FeeSummary | null {
     highRiskCount: toNumber(r.high_risk_count),
     thisMonthTotal: toNumber(r.this_month_total),
     lastMonthTotal: toNumber(r.last_month_total),
+    overdueBalance: toNumber(r.overdue_balance),
+    defaulters: normalizeDefaulters(r.defaulters),
   };
 }
 
