@@ -11,13 +11,15 @@ import CollapsibleSection from "@/components/ui/CollapsibleSection";
 import { StuckLoadingOverlay, TopLoadingBar } from "@/components/ui/Skeleton";
 import { useAcademic } from "@/lib/academic-context";
 import { useAuth } from "@/lib/auth-context";
-import { useClasses, useDashboardStats, useStudents, useSubjects } from "@/lib/hooks";
+import { useAllStudents, useClasses, useDashboardStats, useSubjects } from "@/lib/hooks";
 import { formatNumber, greetingFor, todayLabelFor } from "@/lib/utils";
 
 function DeanDashboardContent() {
   const { school, user } = useAuth();
   const { academicYear, currentTerm } = useAcademic();
-  const { students } = useStudents(school?.id);
+  // The whole roster, not `useStudents`' first 100 rows: per-class counts built
+  // off a capped page stop rising at 100 and disagree with the headline.
+  const { students } = useAllStudents(school?.id);
   const { classes } = useClasses(school?.id);
   const { subjects } = useSubjects(school?.id);
   const { stats, loading: statsLoading } = useDashboardStats(school?.id, { term: currentTerm, academicYear });
@@ -37,10 +39,11 @@ function DeanDashboardContent() {
   const currentDate = new Date();
   const greeting = greetingFor(currentDate);
 
+  // Attendance is marked for enrolled students only, so the rate divides by the
+  // active head count — `totalStudents` now counts the whole roster.
+  const attendanceBase = stats?.activeStudents ? stats.activeStudents : stats?.totalStudents || 0;
   const attendanceRate =
-    stats?.presentToday > 0 && stats.totalStudents > 0
-      ? Math.round((stats.presentToday / stats.totalStudents) * 100)
-      : 0;
+    stats?.presentToday > 0 && attendanceBase > 0 ? Math.round((stats.presentToday / attendanceBase) * 100) : 0;
 
   const getStudentCountForClass = (classId: string) => {
     return students.filter((s) => s.class_id === classId).length;

@@ -36,7 +36,7 @@ export default function EarlyWarningsPage() {
   const { school } = useAuth();
   const { academicYear, currentTerm } = useAcademic();
   const toast = useToast();
-  const { students } = useStudents(school?.id);
+  const { students } = useStudents(school?.id, { limit: 1000, fields: "slim" });
   const { classes } = useClasses(school?.id);
   const [warnings, setWarnings] = useState<Warning[]>([]);
   const [loading, setLoading] = useState(true);

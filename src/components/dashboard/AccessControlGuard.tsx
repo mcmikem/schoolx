@@ -5,12 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
 import { canAccess, type UserRole, type RolePermissions, getRoleLabel } from "@/lib/roles";
 import { useToast } from "@/components/Toast";
-import {
-  useStudents,
-  useClasses,
-  useFeePayments,
-  useFeeStructure,
-} from "@/lib/hooks";
+import { useStudents, useClasses, useFeePayments, useFeeStructure } from "@/lib/hooks";
 import {
   isModuleInFeatureStage,
   getRequiredModuleForPath,
@@ -166,23 +161,18 @@ export function useAccessControl() {
   const toast = useToast();
   const { overrides } = useRoleRouteOverrides(school?.id);
 
-  const featureStage =
-    (school?.feature_stage as FeatureStage) || DEFAULT_FEATURE_STAGE;
+  const featureStage = (school?.feature_stage as FeatureStage) || DEFAULT_FEATURE_STAGE;
 
   useEffect(() => {
     if (!user || !pathname || pathname === "/dashboard") return;
     if (pathname.startsWith("/dashboard/no-access")) return;
 
-    const routeKey = Object.keys(roleBasedRoutes).find((key) =>
-      pathname.startsWith(key),
-    );
+    const routeKey = Object.keys(roleBasedRoutes).find((key) => pathname.startsWith(key));
     if (routeKey) {
       const permission = roleBasedRoutes[routeKey];
       const role = user.role as UserRole;
       const baseAllowed = role ? canAccess(role, permission) : false;
-      const allowed = role
-        ? resolveRouteAccess(role, pathname, baseAllowed, overrides)
-        : baseAllowed;
+      const allowed = role ? resolveRouteAccess(role, pathname, baseAllowed, overrides) : baseAllowed;
       if (user.role && !allowed) {
         const lastDenied = sessionStorage.getItem("lastDeniedPath");
         if (lastDenied !== pathname) {
@@ -208,9 +198,7 @@ export function useAccessControl() {
         sessionStorage.setItem("lastDeniedPath", pathname);
         toast?.error("Upgrade your package to access this module");
       }
-      router.replace(
-        `/dashboard/no-access?reason=feature&from=${encodeURIComponent(pathname)}&module=${moduleKey}`,
-      );
+      router.replace(`/dashboard/no-access?reason=feature&from=${encodeURIComponent(pathname)}&module=${moduleKey}`);
       return;
     }
     sessionStorage.removeItem("lastDeniedPath");
@@ -220,7 +208,9 @@ export function useAccessControl() {
 export function useDashboardNotifications() {
   const { school, isDemo } = useAuth();
   const { currentTerm, academicYear } = useAcademic();
-  const { students } = useStudents(isDemo ? undefined : school?.id);
+  // The whole roster in one request: this guard multiplies expected fees by
+  // `students.length`, and the default page of 100 silently under-counted.
+  const { students } = useStudents(isDemo ? undefined : school?.id, { limit: 1000 });
   const { classes } = useClasses(isDemo ? undefined : school?.id);
   const { payments } = useFeePayments(isDemo ? undefined : school?.id);
   const { feeStructure } = useFeeStructure(isDemo ? undefined : school?.id);
@@ -267,27 +257,14 @@ export function useDashboardNotifications() {
       color: string;
       href: string;
     }> = [];
-    const totalExpectedPerStudent = feeStructure.reduce(
-      (sum, item) => sum + Number(item.amount || 0),
-      0,
-    );
+    const totalExpectedPerStudent = feeStructure.reduce((sum, item) => sum + Number(item.amount || 0), 0);
     const totalExpected = totalExpectedPerStudent * students.length;
-    const totalCollected = payments.reduce(
-      (sum, payment) => sum + Number(payment.amount_paid || 0),
-      0,
-    );
+    const totalCollected = payments.reduce((sum, payment) => sum + Number(payment.amount_paid || 0), 0);
     const outstanding = Math.max(0, totalExpected - totalCollected);
-    const collectionRate =
-      totalExpected > 0
-        ? Math.round((totalCollected / totalExpected) * 100)
-        : 0;
+    const collectionRate = totalExpected > 0 ? Math.round((totalCollected / totalExpected) * 100) : 0;
     const latestPayment = payments
       .slice()
-      .sort(
-        (a, b) =>
-          new Date(b.payment_date).getTime() -
-          new Date(a.payment_date).getTime(),
-      )[0];
+      .sort((a, b) => new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime())[0];
 
     if (students.length === 0) {
       items.push({
@@ -353,15 +330,7 @@ export function useDashboardNotifications() {
     }
 
     return items.slice(0, 5);
-  }, [
-    isDemo,
-    students.length,
-    classes.length,
-    payments,
-    feeStructure,
-    currentTerm,
-    academicYear,
-  ]);
+  }, [isDemo, students.length, classes.length, payments, feeStructure, currentTerm, academicYear]);
 
   return { notifications };
 }

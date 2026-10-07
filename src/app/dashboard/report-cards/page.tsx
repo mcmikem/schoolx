@@ -100,7 +100,7 @@ export default function ReportCardsPage() {
   const toast = useToast();
   const { classes } = useClasses(school?.id);
   const { subjects } = useSubjects(school?.id);
-  const { students: classStudents } = useStudents(school?.id);
+  const { students: classStudents } = useStudents(school?.id, { limit: 1000 });
   const { payments } = useFeePayments(school?.id);
   const { feeStructure } = useFeeStructure(school?.id);
 

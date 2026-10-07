@@ -15,9 +15,17 @@ import { logger } from "@/lib/logger";
 import { normalizeFeeSummary } from "./fees";
 
 interface DashboardStats {
+  /** Every student on the roster — active, transferred, dropped, completed and
+   *  pending alike. This is the one headline number every screen agrees on;
+   *  showing it only for `status = 'active'` here is what made the Student Hub
+   *  say 320 while the dashboards said 295. */
   totalStudents: number;
   maleStudents: number;
   femaleStudents: number;
+  /** Active-only head count. Attendance is only marked for students still
+   *  enrolled, so this — not `totalStudents` — is the denominator of every
+   *  attendance rate. */
+  activeStudents: number;
   /** Present count for today. -1 means "unknown" (query timed out); the UI must
    *  show "--" rather than a misleading 0, and must NOT flag "attendance not
    *  taken yet" until a successful query confirms it really is 0. */
@@ -32,6 +40,7 @@ const EMPTY_STATS: DashboardStats = {
   totalStudents: 0,
   maleStudents: 0,
   femaleStudents: 0,
+  activeStudents: 0,
   presentToday: -1,
   feesCollected: 0,
   feesBalance: 0,
@@ -43,6 +52,7 @@ const DEMO_STATS: DashboardStats = {
   totalStudents: 847,
   maleStudents: 423,
   femaleStudents: 424,
+  activeStudents: 847,
   presentToday: 798,
   feesCollected: 45000000,
   feesBalance: 12500000,
@@ -70,7 +80,9 @@ async function readCachedStats(cacheKey: string): Promise<CachedStats | null> {
     const cached = (await offlineDB.get("dashboard_cache", cacheKey)) as { payload?: CachedStats } | null;
     const payload = cached?.payload;
     if (!payload || typeof payload.savedAt !== "number" || !payload.stats) return null;
-    return payload;
+    // Snapshots written before `activeStudents` existed arrive without it;
+    // spreading the empty defaults keeps rate maths from dividing by undefined.
+    return { ...payload, stats: { ...EMPTY_STATS, ...payload.stats } };
   } catch {
     return null;
   }
@@ -92,19 +104,16 @@ async function writeCachedStats(cacheKey: string, stats: DashboardStats): Promis
 const COUNT_UNKNOWN = -1;
 
 /**
- * Count active students, optionally narrowed to one gender.
+ * Count students, optionally narrowed to one status and/or gender.
  *
  * A head-count instead of `select(...)` + `.length`: PostgREST caps a request
  * at 1000 rows, so the array version silently stopped growing and reported
  * exactly 1000 students for a school that had 1,001.
  */
-function countActiveStudents(schoolId: string, gender?: "M" | "F") {
-  let query = supabase
-    .from("students")
-    .select("id", { count: "exact", head: true })
-    .eq("school_id", schoolId)
-    .eq("status", "active");
-  if (gender) query = query.eq("gender", gender);
+function countStudents(schoolId: string, options?: { status?: string; gender?: "M" | "F" }) {
+  let query = supabase.from("students").select("id", { count: "exact", head: true }).eq("school_id", schoolId);
+  if (options?.status) query = query.eq("status", options.status);
+  if (options?.gender) query = query.eq("gender", options.gender);
 
   return withTimeout(
     query.then((r) => {
@@ -125,7 +134,7 @@ async function computeStats(
   // via toISOString() would shift a day for schools ahead of UTC (e.g. Uganda).
   const today = getLocalDateString();
 
-  // All seven feed-queries run in parallel so the wall-clock time is bounded by
+  // All eight feed-queries run in parallel so the wall-clock time is bounded by
   // the slowest single query, not their sum — this is the single biggest
   // latency win on slow 3G links.
   //
@@ -137,79 +146,82 @@ async function computeStats(
   // capped out at 1000 payment rows, so "collected" stopped growing on a busy
   // school. Two queries disappear from the request and the answer is now
   // computed over the whole school in one round trip.
-  const [feeSummary, activeTotal, maleCount, femaleCount, presentCount, classCount, teacherCount] = await Promise.all([
-    withTimeout(
-      supabase
-        .rpc("fee_summary", {
-          p_school_id: schoolId,
-          p_term: term ?? null,
-          p_academic_year: academicYear ?? null,
-        })
-        .maybeSingle()
-        .then((r) => {
-          if (r.error) throw r.error;
-          const summary = normalizeFeeSummary(r.data);
-          if (!summary) throw new Error("fee_summary() returned no row");
-          return summary;
-        }),
-      15000,
-      null,
-    ),
-    countActiveStudents(schoolId),
-    countActiveStudents(schoolId, "M"),
-    countActiveStudents(schoolId, "F"),
-    // presentToday is counted directly on the attendance table. RLS already
-    // scopes rows to this school's classes, so there is no need to first fetch
-    // every student id and pass a huge IN(...) list (which could time out or
-    // exceed URL length limits on large schools, silently reporting 0 present).
-    // A timed-out count returns -1 ("unknown") so the dashboard never claims
-    // attendance wasn't taken when the server was just slow.
-    withTimeout(
-      supabase
-        .from("attendance")
-        .select("id", { count: "exact", head: true })
-        .eq("date", today)
-        .eq("status", "present")
-        .then((r) => {
-          if (r.error) throw r.error;
-          return r.count ?? 0;
-        }),
-      15000,
-      -1,
-    ),
-    withTimeout(
-      supabase
-        .from("classes")
-        .select("id", { count: "exact", head: true })
-        .eq("school_id", schoolId)
-        .then((r) => r.count),
-      15000,
-      0,
-    ),
-    withTimeout(
-      supabase
-        .from("users")
-        .select("id", { count: "exact", head: true })
-        .eq("school_id", schoolId)
-        .eq("role", "teacher")
-        .then((r) => r.count),
-      15000,
-      0,
-    ),
-  ]);
+  const [feeSummary, rosterTotal, maleCount, femaleCount, activeTotal, presentCount, classCount, teacherCount] =
+    await Promise.all([
+      withTimeout(
+        supabase
+          .rpc("fee_summary", {
+            p_school_id: schoolId,
+            p_term: term ?? null,
+            p_academic_year: academicYear ?? null,
+          })
+          .maybeSingle()
+          .then((r) => {
+            if (r.error) throw r.error;
+            const summary = normalizeFeeSummary(r.data);
+            if (!summary) throw new Error("fee_summary() returned no row");
+            return summary;
+          }),
+        15000,
+        null,
+      ),
+      countStudents(schoolId),
+      countStudents(schoolId, { gender: "M" }),
+      countStudents(schoolId, { gender: "F" }),
+      countStudents(schoolId, { status: "active" }),
+      // presentToday is counted directly on the attendance table. RLS already
+      // scopes rows to this school's classes, so there is no need to first fetch
+      // every student id and pass a huge IN(...) list (which could time out or
+      // exceed URL length limits on large schools, silently reporting 0 present).
+      // A timed-out count returns -1 ("unknown") so the dashboard never claims
+      // attendance wasn't taken when the server was just slow.
+      withTimeout(
+        supabase
+          .from("attendance")
+          .select("id", { count: "exact", head: true })
+          .eq("date", today)
+          .eq("status", "present")
+          .then((r) => {
+            if (r.error) throw r.error;
+            return r.count ?? 0;
+          }),
+        15000,
+        -1,
+      ),
+      withTimeout(
+        supabase
+          .from("classes")
+          .select("id", { count: "exact", head: true })
+          .eq("school_id", schoolId)
+          .then((r) => r.count),
+        15000,
+        0,
+      ),
+      withTimeout(
+        supabase
+          .from("users")
+          .select("id", { count: "exact", head: true })
+          .eq("school_id", schoolId)
+          .eq("role", "teacher")
+          .then((r) => r.count),
+        15000,
+        0,
+      ),
+    ]);
 
   // Unknown money or student counts must not be written into the cache as
   // zero. Reject instead: fetchStats keeps the previous snapshot (and its
   // OfflineDB copy) and the caller keeps rendering something it stands behind.
   if (!feeSummary) throw new Error("Timed out reading fee_summary()");
-  if (activeTotal < 0 || maleCount < 0 || femaleCount < 0) {
+  if (rosterTotal < 0 || maleCount < 0 || femaleCount < 0 || activeTotal < 0) {
     throw new Error("Timed out reading student counts");
   }
 
   return {
-    totalStudents: activeTotal,
+    totalStudents: rosterTotal,
     maleStudents: maleCount,
     femaleStudents: femaleCount,
+    activeStudents: activeTotal,
     presentToday: presentCount,
     feesCollected: feeSummary.collectedTotal,
     feesBalance: Math.max(0, feeSummary.expectedTotal - feeSummary.collectedTotal),
@@ -445,7 +457,15 @@ export function useAnalytics(schoolId?: string) {
       try {
         setLoading(true);
         // Use proper joins - attendance and grades don't have school_id directly
-        const [{ data: students }, { data: feeStructure }, { data: attendance }, { data: grades }] = await Promise.all([
+        const [
+          { data: students },
+          { data: feeStructure },
+          { data: attendance },
+          { data: grades },
+          rosterCount,
+          rosterMale,
+          rosterFemale,
+        ] = await Promise.all([
           supabase
             .from("students")
             .select("id, first_name, last_name, gender, class_id, classes(name)")
@@ -462,6 +482,13 @@ export function useAnalytics(schoolId?: string) {
             .from("grades")
             .select("student_id, score, class_id, students!inner(school_id), classes(name)")
             .eq("students.school_id", schoolId),
+          // Head counts over the whole roster (all statuses). The row query
+          // above is active-only and stops at PostgREST's 1000-row ceiling, so
+          // `students.length` was neither the same definition nor the same
+          // number as the dashboard headline.
+          countStudents(schoolId),
+          countStudents(schoolId, { gender: "M" }),
+          countStudents(schoolId, { gender: "F" }),
         ]);
 
         const genderLevels = { M: 0, F: 0 };
@@ -469,6 +496,10 @@ export function useAnalytics(schoolId?: string) {
           if (s.gender === "M") genderLevels.M++;
           else if (s.gender === "F") genderLevels.F++;
         });
+        if (rosterMale >= 0 && rosterFemale >= 0) {
+          genderLevels.M = rosterMale;
+          genderLevels.F = rosterFemale;
+        }
         const genderDistribution = [
           { name: "Boys", value: genderLevels.M, color: "#3b82f6" },
           { name: "Girls", value: genderLevels.F, color: "#ec4899" },
@@ -570,7 +601,7 @@ export function useAnalytics(schoolId?: string) {
           subjectPerformance: [],
           feeCollection: [],
           stats: {
-            totalStudents: students?.length || 0,
+            totalStudents: rosterCount >= 0 ? rosterCount : students?.length || 0,
             avgAttendance: realAvgAttendance,
             avgGrade: realAvgGrade,
             feeCollectionRate: feeRate,

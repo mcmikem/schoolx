@@ -14,6 +14,7 @@ import { TableSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { getErrorMessage } from "@/lib/validation";
 import { withTimeout } from "@/lib/hooks/utils";
+import { useStudentTotal } from "@/lib/hooks/students";
 import { createRecord, updateRecord, deleteRecord, CrudWriteError } from "@/lib/crud-service";
 
 interface ClassRow {
@@ -49,6 +50,10 @@ export default function ClassesPage() {
 
   const [classes, setClasses] = useState<ClassRow[]>([]);
   const [teachers, setTeachers] = useState<{ id: string; full_name: string }[]>([]);
+  // Headline count: one uncapped head count over the whole roster. Summing
+  // `student_count` only reaches students who are active *and* assigned to a
+  // class shown by the current filter, so it read lower than every other screen.
+  const schoolStudentTotal = useStudentTotal(school?.id);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [yearFilter, setYearFilter] = useState(CURRENT_YEAR);
@@ -344,7 +349,7 @@ export default function ClassesPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
             { label: "Total Classes", value: filtered.length, icon: "class" },
-            { label: "Total Students", value: totalStudents, icon: "group" },
+            { label: "Total Students", value: (isDemo ? null : schoolStudentTotal) ?? totalStudents, icon: "group" },
             { label: "Full Classes", value: fullClasses, icon: "warning", warn: fullClasses > 0 },
             { label: "Academic Year", value: yearFilter, icon: "calendar_today" },
           ].map((s) => (

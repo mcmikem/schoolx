@@ -18,7 +18,7 @@ export default function RolloverPage() {
   const { school, isDemo } = useAuth();
   const { academicYear, currentTerm, setAcademicYear, setCurrentTerm } = useAcademic();
   const toast = useToast();
-  const { students, updateStudent } = useStudents(school?.id);
+  const { students, updateStudent } = useStudents(school?.id, { limit: 1000 });
   const { classes: allSchoolClasses, updateClass, createClass } = useClasses(school?.id);
 
   const [newAcademicYear, setNewAcademicYear] = useState(String(Number(academicYear) + 1));

@@ -41,7 +41,7 @@ interface StudentDNA {
 export default function PerformanceDNAPage() {
   const { school } = useAuth();
   const { currentTerm, academicYear } = useAcademic();
-  const { students } = useStudents(school?.id);
+  const { students } = useStudents(school?.id, { limit: 1000, fields: "slim" });
   const { classes } = useClasses(school?.id);
   const [searchStudent, setSearchStudent] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);

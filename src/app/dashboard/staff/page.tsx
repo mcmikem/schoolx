@@ -15,11 +15,12 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { DEMO_STAFF, DEMO_CLASSES, DEMO_SCHOOL_ID } from "@/lib/demo-data";
 import { useStaff, useStaffReviews, useDashboardStats } from "@/lib/hooks";
 import { logger } from "@/lib/logger";
+import { withTimeout } from "@/lib/hooks/utils";
 import { StaffReview, School } from "@/types";
 import { PageGuidance } from "@/components/PageGuidance";
 import SmartAdvisor from "@/components/dashboard/SmartAdvisor";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { compressStudentPhoto, validateStudentPhoto } from "@/lib/student-photos";
+import { compressStudentPhoto, compressedPhotoExtension, validateStudentPhoto } from "@/lib/student-photos";
 import { QRCodeSVG } from "qrcode.react";
 
 interface StaffMember {
@@ -90,6 +91,28 @@ const ROLE_DESCRIPTIONS: Record<string, { desc: string; icon: string }> = {
   },
 };
 
+// Everything that is not a staff member lives in the same `users` table
+// (`role` is a single column: there is no separate parents table), so every
+// read of "staff" has to say so explicitly or parents land in the directory.
+const NON_STAFF_ROLES = '("parent","student")';
+
+type StaffScope = "staff" | "parents";
+type TabCountKey = "active" | "inactive" | "parents";
+type TabCounts = Record<TabCountKey, number | null>;
+
+/**
+ * PostgREST parses `,`, `(` and `)` out of `?or=(...)` expressions, so a name
+ * like "O'Brien, Jr" or a stray `%` would either break the filter or silently
+ * widen it. Strip them before the term reaches the query string.
+ */
+function sanitizeStaffSearch(raw: string): string {
+  return raw
+    .replace(/[\\'"%(),]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 60);
+}
+
 const LEAVE_TYPES = [
   { value: "sick", label: "Sick Leave" },
   { value: "personal", label: "Personal" },
@@ -104,10 +127,11 @@ export default function StaffHubPage() {
   const toast = useToast();
   const { stats } = useDashboardStats(school?.id);
   const [activeMainTab, setActiveMainTab] = useState("directory");
+  // Attendance is marked for enrolled students only, so the rate divides by the
+  // active head count — `totalStudents` now counts the whole roster.
+  const attendanceBase = stats?.activeStudents ? stats.activeStudents : stats?.totalStudents || 0;
   const attendanceRate =
-    stats?.presentToday > 0 && stats.totalStudents > 0
-      ? Math.round((stats.presentToday / stats.totalStudents) * 100)
-      : 0;
+    stats?.presentToday > 0 && attendanceBase > 0 ? Math.round((stats.presentToday / attendanceBase) * 100) : 0;
 
   const mainTabs = [
     { id: "directory", label: "Directory", icon: "groups" },
@@ -210,6 +234,10 @@ function DirectoryTab({
   });
   const [activeTab, setActiveTab] = useState("all");
   const [staffSearch, setStaffSearch] = useState("");
+  // Server-side search runs on the debounced copy: filtering happens in the
+  // database now (it used to run inside the 20-row page, so a search never
+  // found anyone past page 1), and one request per keystroke would be wasteful.
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   // Read by the post-create refresh: a slow create can overlap an auth
   // re-initialisation (getUser() timing out leaves `school` briefly null), and
   // fetchStaff() returns early when school is missing.
@@ -217,40 +245,89 @@ function DirectoryTab({
   schoolRef.current = school;
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
-  const [totalCount, setTotalCount] = useState(0);
+  // Counts per tab, under the current search. `null` means "the count query
+  // failed" — never render it as 0, which reads as "this school has no staff".
+  const [tabCounts, setTabCounts] = useState<TabCounts>({ active: null, inactive: null, parents: null });
+  // Pagination survives a failed count by asking for one row beyond the page.
+  const [hasMore, setHasMore] = useState(false);
   const offset = (currentPage - 1) * itemsPerPage;
+  // Switching tab resets the page, which can leave two fetches in flight for
+  // the same list. The last one to *arrive* must not be the older one.
+  const fetchSeqRef = useRef(0);
 
   const fetchStaff = useCallback(async () => {
+    const seq = ++fetchSeqRef.current;
     if (isDemo) {
-      setStaff(DEMO_STAFF as unknown as StaffMember[]);
-      setTotalCount(DEMO_STAFF.length);
+      const demoRows = DEMO_STAFF as unknown as StaffMember[];
+      setStaff(demoRows);
+      setTabCounts({
+        active: demoRows.filter((s) => s.is_active && s.role !== "parent").length,
+        inactive: demoRows.filter((s) => !s.is_active && s.role !== "parent").length,
+        parents: demoRows.filter((s) => s.role === "parent").length,
+      });
+      setHasMore(false);
       setLoading(false);
       return;
     }
     if (!school?.id) return;
+
+    const term = debouncedSearch;
+    const orFilter = term
+      ? `full_name.ilike.*${term}*,email.ilike.*${term}*,phone.ilike.*${term}*,role.ilike.*${term}*`
+      : null;
+
+    const countQuery = (scope: StaffScope, active?: boolean) => {
+      let query = supabase.from("users").select("id", { count: "exact", head: true }).eq("school_id", school.id);
+      query = scope === "parents" ? query.eq("role", "parent") : query.not("role", "in", NON_STAFF_ROLES);
+      if (active === true) query = query.eq("is_active", true);
+      if (active === false) query = query.neq("is_active", true);
+      if (orFilter) query = query.or(orFilter);
+      return withTimeout<{ count: number | null } | null>(query, 5000, null);
+    };
+
     try {
       setLoading(true);
-      const countResult = await supabase
-        .from("users")
-        .select("id", { count: "exact", head: true })
-        .eq("school_id", school.id);
-      if (countResult.count !== null) {
-        setTotalCount(countResult.count);
-      }
-      const { data, error } = await supabase
-        .from("users")
-        .select("*")
-        .eq("school_id", school.id)
-        .order("full_name")
-        .range(offset, offset + itemsPerPage - 1);
-      if (error) throw error;
-      setStaff(data || []);
+      let dataQuery = supabase.from("users").select("*").eq("school_id", school.id);
+      dataQuery =
+        activeTab === "parents" ? dataQuery.eq("role", "parent") : dataQuery.not("role", "in", NON_STAFF_ROLES);
+      if (activeTab === "active") dataQuery = dataQuery.eq("is_active", true);
+      if (activeTab === "inactive") dataQuery = dataQuery.neq("is_active", true);
+      if (orFilter) dataQuery = dataQuery.or(orFilter);
+
+      // One extra row beyond the page: it proves whether a next page exists even
+      // when every count query fails, so pagination can never dead-end on page 1.
+      const [activeCount, inactiveCount, parentCount, rows] = await Promise.all([
+        countQuery("staff", true),
+        countQuery("staff", false),
+        countQuery("parents"),
+        withTimeout<StaffMember[] | null>(
+          dataQuery
+            .order("full_name")
+            .range(offset, offset + itemsPerPage)
+            .then((result) => {
+              if (result.error) throw result.error;
+              return (result.data || []) as unknown as StaffMember[];
+            }),
+          8000,
+          null,
+        ),
+      ]);
+
+      const pageRows = rows || [];
+      if (seq !== fetchSeqRef.current) return;
+      setHasMore(pageRows.length > itemsPerPage);
+      setStaff(pageRows.slice(0, itemsPerPage));
+      setTabCounts((prev) => ({
+        active: typeof activeCount?.count === "number" ? activeCount.count : prev.active,
+        inactive: typeof inactiveCount?.count === "number" ? inactiveCount.count : prev.inactive,
+        parents: typeof parentCount?.count === "number" ? parentCount.count : prev.parents,
+      }));
     } catch (err) {
-      logger.error("Error:", err);
+      if (seq === fetchSeqRef.current) logger.error("Error:", err);
     } finally {
-      setLoading(false);
+      if (seq === fetchSeqRef.current) setLoading(false);
     }
-  }, [school?.id, isDemo, offset, itemsPerPage]);
+  }, [school?.id, isDemo, offset, itemsPerPage, activeTab, debouncedSearch]);
 
   /**
    * Refresh the list after a create.
@@ -274,9 +351,33 @@ function DirectoryTab({
     }
   }, [fetchStaff]);
 
+  /**
+   * Keep the tab badges honest after a local add/delete instead of leaving the
+   * stale server count on screen until the next full fetch.
+   */
+  const bumpTabCounts = useCallback((member: StaffMember, delta: number) => {
+    setTabCounts((prev) => {
+      const key: TabCountKey = member.role === "parent" ? "parents" : member.is_active ? "active" : "inactive";
+      const current = prev[key];
+      if (current === null) return prev;
+      return { ...prev, [key]: Math.max(0, current + delta) };
+    });
+  }, []);
+
+  useEffect(() => {
+    const handle = setTimeout(() => setDebouncedSearch(sanitizeStaffSearch(staffSearch)), 300);
+    return () => clearTimeout(handle);
+  }, [staffSearch]);
+
   useEffect(() => {
     setCurrentPage(1);
   }, [activeTab]);
+
+  // A search applied on top of page 3 of the previous result set would land on
+  // an empty page of the new one.
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch]);
 
   useEffect(() => {
     fetchStaff();
@@ -342,11 +443,12 @@ function DirectoryTab({
 
       validateStudentPhoto(file);
       const compressed = await compressStudentPhoto(file);
-      const filePath = `${school.id}/staff/${staffId}.jpg`;
+      const extension = compressedPhotoExtension(compressed.type);
+      const filePath = `${school.id}/staff/${staffId}.${extension}`;
 
       let uploadResult = await supabase.storage.from("student-photos").upload(filePath, compressed, {
         upsert: true,
-        contentType: "image/jpeg",
+        contentType: compressed.type,
       });
 
       if (uploadResult.error && uploadResult.error.message.includes("bucket")) {
@@ -358,7 +460,7 @@ function DirectoryTab({
 
         uploadResult = await supabase.storage.from("student-photos").upload(filePath, compressed, {
           upsert: true,
-          contentType: "image/jpeg",
+          contentType: compressed.type,
         });
       }
 
@@ -395,7 +497,7 @@ function DirectoryTab({
         is_active: true,
       };
       setStaff((prev) => [newMember as unknown as StaffMember, ...prev]);
-      setTotalCount((prev) => prev + 1);
+      bumpTabCounts(newMember as unknown as StaffMember, 1);
       toast.success("Staff member added (Demo Mode)");
       setShowAddModal(false);
       setNewStaff({
@@ -711,8 +813,9 @@ function DirectoryTab({
       try {
         const { error } = await supabase.from("users").delete().eq("id", id);
         if (error) throw error;
+        const removed = staff.find((s) => s.id === id);
         setStaff(staff.filter((s) => s.id !== id));
-        setTotalCount((prev) => Math.max(0, prev - 1));
+        if (removed) bumpTabCounts(removed, -1);
         toast.success("Staff member deleted");
       } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : "Failed to delete staff";
@@ -1071,6 +1174,8 @@ function DirectoryTab({
       school_admin: { bg: "bg-blue-100", text: "text-blue-700" },
       dos: { bg: "bg-orange-100", text: "text-orange-700" },
       bursar: { bg: "bg-red-100", text: "text-red-700" },
+      parent: { bg: "bg-purple-100", text: "text-purple-700" },
+      student: { bg: "bg-slate-200", text: "text-slate-700" },
     };
     const style = roles[role] || roles.teacher;
     return (
@@ -1084,35 +1189,49 @@ function DirectoryTab({
     );
   };
 
-  const filteredStaff = (
-    activeTab === "all"
-      ? staff
-      : activeTab === "active"
-        ? staff.filter((s) => s.is_active)
-        : staff.filter((s) => !s.is_active)
-  ).filter(
-    (s) =>
-      !staffSearch ||
-      (s.full_name?.toLowerCase() ?? "").includes(staffSearch.toLowerCase()) ||
-      (s.role?.toLowerCase() ?? "").includes(staffSearch.toLowerCase()) ||
-      (s.email?.toLowerCase() ?? "").includes(staffSearch.toLowerCase()),
-  );
+  // The query already scoped the rows to this tab and search; these are the
+  // same predicates re-applied locally so demo mode (which has no server) and
+  // the rendered list can never disagree with the badges above.
+  const filteredStaff = staff.filter((s) => {
+    if (activeTab === "parents") {
+      if (s.role !== "parent") return false;
+    } else if (s.role === "parent" || s.role === "student") {
+      return false;
+    }
+    if (activeTab === "active" && !s.is_active) return false;
+    if (activeTab === "inactive" && s.is_active) return false;
+    const term = debouncedSearch.toLowerCase();
+    if (!term) return true;
+    return (
+      (s.full_name?.toLowerCase() ?? "").includes(term) ||
+      (s.role?.toLowerCase() ?? "").includes(term) ||
+      (s.email?.toLowerCase() ?? "").includes(term) ||
+      (s.phone?.toLowerCase() ?? "").includes(term)
+    );
+  });
 
   const staffCardPrimary = school?.primary_color || "#1e40af";
   const staffCardAccent = school?.accent_color || "#1d4ed8";
 
+  // null = the count query failed. Shown as "N+" rather than a wrong total.
+  const staffTotal =
+    tabCounts.active !== null && tabCounts.inactive !== null ? tabCounts.active + tabCounts.inactive : null;
+  const totalCount =
+    activeTab === "parents"
+      ? tabCounts.parents
+      : activeTab === "active"
+        ? tabCounts.active
+        : activeTab === "inactive"
+          ? tabCounts.inactive
+          : staffTotal;
+  const knownPages = totalCount === null ? null : Math.max(1, Math.ceil(totalCount / itemsPerPage));
+  const fallbackTotal = offset + (hasMore ? itemsPerPage : filteredStaff.length);
+
   const tabs = [
-    { id: "all", label: "All Staff", count: staff.length },
-    {
-      id: "active",
-      label: "Active",
-      count: staff.filter((s) => s.is_active).length,
-    },
-    {
-      id: "inactive",
-      label: "Inactive",
-      count: staff.filter((s) => !s.is_active).length,
-    },
+    { id: "all", label: "All Staff", count: staffTotal ?? undefined },
+    { id: "active", label: "Active", count: tabCounts.active ?? undefined },
+    { id: "inactive", label: "Inactive", count: tabCounts.inactive ?? undefined },
+    { id: "parents", label: "Parents", count: tabCounts.parents ?? undefined },
   ];
 
   function renderContent() {
@@ -1121,6 +1240,15 @@ function DirectoryTab({
     }
 
     if (filteredStaff.length === 0) {
+      if (activeTab === "parents") {
+        return (
+          <EmptyState
+            icon="family_restroom"
+            title="No parent accounts"
+            description="Parent logins are created from a student's profile — open the student and add a parent from there."
+          />
+        );
+      }
       return (
         <EmptyState
           icon="groups"
@@ -1208,12 +1336,17 @@ function DirectoryTab({
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-xl font-semibold text-[var(--on-surface)]">Staff Directory</h2>
-          <p className="text-sm text-[var(--t3)]">{totalCount} staff members</p>
+          <h2 className="text-xl font-semibold text-[var(--on-surface)]">
+            {activeTab === "parents" ? "Parent Accounts" : "Staff Directory"}
+          </h2>
+          <p className="text-sm text-[var(--t3)]">
+            {totalCount === null ? `${fallbackTotal}${hasMore ? "+" : ""}` : totalCount}{" "}
+            {activeTab === "parents" ? "parent accounts" : "staff members"}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <span className="text-sm text-[var(--t3)]">
-            Page {currentPage} of {Math.max(1, Math.ceil(totalCount / itemsPerPage))}
+            {knownPages === null ? `Page ${currentPage}` : `Page ${currentPage} of ${knownPages}`}
           </span>
           <Button
             variant="ghost"
@@ -1226,16 +1359,18 @@ function DirectoryTab({
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setCurrentPage((p) => Math.min(Math.ceil(totalCount / itemsPerPage), p + 1))}
-            disabled={currentPage >= Math.ceil(totalCount / itemsPerPage)}
+            onClick={() => setCurrentPage((p) => (knownPages === null ? p + 1 : Math.min(knownPages, p + 1)))}
+            disabled={knownPages === null ? !hasMore : currentPage >= knownPages}
           >
             <MaterialIcon icon="chevron_right" />
           </Button>
         </div>
-        <Button onClick={() => setShowAddModal(true)}>
-          <MaterialIcon icon="person_add" className="text-lg" />
-          Add Staff
-        </Button>
+        {activeTab !== "parents" && (
+          <Button onClick={() => setShowAddModal(true)}>
+            <MaterialIcon icon="person_add" className="text-lg" />
+            Add Staff
+          </Button>
+        )}
       </div>
 
       <details className="mb-4 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
@@ -1292,6 +1427,9 @@ function DirectoryTab({
         {renderContent()}
       </TabPanel>
       <TabPanel activeTab={activeTab} tabId="inactive">
+        {renderContent()}
+      </TabPanel>
+      <TabPanel activeTab={activeTab} tabId="parents">
         {renderContent()}
       </TabPanel>
 

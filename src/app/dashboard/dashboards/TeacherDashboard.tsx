@@ -15,7 +15,7 @@ import { StuckLoadingOverlay, TopLoadingBar } from "@/components/ui/Skeleton";
 import { useAcademic } from "@/lib/academic-context";
 import { useAuth } from "@/lib/auth-context";
 import { getDefaultSubjects } from "@/lib/curriculum";
-import { useClasses, useDashboardStats, useStudents, useSubjects } from "@/lib/hooks";
+import { useAllStudents, useClasses, useDashboardStats, useSubjects } from "@/lib/hooks";
 import { withTimeout } from "@/lib/hooks/utils";
 import { buildDefaultClasses, buildDefaultTimetableSlots, type SchoolSetupType } from "@/lib/school-setup";
 import { supabase } from "@/lib/supabase";
@@ -26,13 +26,15 @@ function TeacherDashboardContent() {
   const toast = useToast();
   const { school, user, isDemo } = useAuth();
   const { academicYear, currentTerm } = useAcademic();
-  const { students, loading: studentsLoading } = useStudents(school?.id);
+  // The whole roster, not `useStudents`' first 100 rows: per-class counts off a
+  // capped page stop rising at 100 and start reporting healthy classes as empty.
+  const { students, ready: rosterReady } = useAllStudents(school?.id);
   const { classes, loading: classesLoading } = useClasses(school?.id);
   const { subjects, loading: subjectsLoading } = useSubjects(school?.id);
   const { stats, loading: statsLoading } = useDashboardStats(school?.id, { term: currentTerm, academicYear });
   const [settingUp, setSettingUp] = useState(false);
   const [loadingTimedOut, setLoadingTimedOut] = useState(false);
-  const dataLoading = studentsLoading || classesLoading || subjectsLoading || statsLoading;
+  const dataLoading = !rosterReady || classesLoading || subjectsLoading || statsLoading;
 
   useEffect(() => {
     if (!dataLoading) {
@@ -51,12 +53,12 @@ function TeacherDashboardContent() {
   const myClasses = classes;
   const mySubjects = subjects;
   const needsSetup = classes.length === 0 || subjects.length === 0;
+  // Attendance is marked for enrolled students only, so the rate divides by the
+  // active head count — `totalStudents` now counts the whole roster.
+  const attendanceBase = stats?.activeStudents ? stats.activeStudents : stats?.totalStudents || 0;
   const attendanceRate = useMemo(
-    () =>
-      stats?.presentToday > 0 && stats.totalStudents > 0
-        ? Math.round((stats.presentToday / stats.totalStudents) * 100)
-        : 0,
-    [stats?.totalStudents, stats?.presentToday],
+    () => (stats?.presentToday > 0 && attendanceBase > 0 ? Math.round((stats.presentToday / attendanceBase) * 100) : 0),
+    [attendanceBase, stats?.presentToday],
   );
   const todayLabel = todayLabelFor(currentDate);
   const classesWithNoStudents = myClasses.filter(

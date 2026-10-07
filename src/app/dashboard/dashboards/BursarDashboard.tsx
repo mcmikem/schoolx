@@ -33,7 +33,7 @@ import { greetingFor, todayLabelFor } from "@/lib/utils";
 function BursarDashboardContent() {
   const { school, user, isDemo } = useAuth();
   const { academicYear, currentTerm } = useAcademic();
-  const { students, loading: studentsLoading } = useStudents(school?.id);
+  const { students, loading: studentsLoading } = useStudents(school?.id, { limit: 1000 });
   const { payments, loading: paymentsLoading } = useFeePayments(school?.id);
   const { feeStructure, loading: feeStructureLoading } = useFeeStructure(school?.id);
   // Scoped to the term the header names. fee_summary() falls back to the

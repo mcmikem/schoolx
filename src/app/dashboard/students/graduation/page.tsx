@@ -22,7 +22,7 @@ export default function GraduationPage() {
   const { school, user, isDemo } = useAuth();
   const { academicYear, currentTerm } = useAcademic();
   const toast = useToast();
-  const { students, loading: studentsLoading } = useStudents(school?.id);
+  const { students, loading: studentsLoading } = useStudents(school?.id, { limit: 1000 });
   const { classes } = useClasses(school?.id);
 
   const [eligibleStudents, setEligibleStudents] = useState<any[]>([]);

@@ -14,12 +14,10 @@ import { logger } from "@/lib/logger";
 export default function ExportPage() {
   const { school, isDemo } = useAuth();
   const toast = useToast();
-  const { students } = useStudents(school?.id);
+  const { students } = useStudents(school?.id, { limit: 1000 });
   const { classes } = useClasses(school?.id);
   const [selectedClass, setSelectedClass] = useState("all");
-  const [exportType, setExportType] = useState<
-    "students" | "uneb" | "grades" | "attendance" | "fees"
-  >("students");
+  const [exportType, setExportType] = useState<"students" | "uneb" | "grades" | "attendance" | "fees">("students");
   const [exporting, setExporting] = useState(false);
 
   const filteredStudents = useMemo(() => {
@@ -36,12 +34,7 @@ export default function ExportPage() {
       let filename = "";
 
       if (isDemo) {
-        const {
-          DEMO_GRADES,
-          DEMO_ATTENDANCE,
-          DEMO_FEE_PAYMENTS,
-          DEMO_STUDENTS,
-        } = await import("@/lib/demo-data");
+        const { DEMO_GRADES, DEMO_ATTENDANCE, DEMO_FEE_PAYMENTS, DEMO_STUDENTS } = await import("@/lib/demo-data");
 
         switch (exportType) {
           case "students":
@@ -144,13 +137,8 @@ export default function ExportPage() {
           case "grades":
             const { data: grades } = await supabase
               .from("grades")
-              .select(
-                "*, students(first_name, last_name, student_number), subjects(name, code)",
-              )
-              .eq(
-                "class_id",
-                selectedClass !== "all" ? selectedClass : undefined,
-              );
+              .select("*, students(first_name, last_name, student_number), subjects(name, code)")
+              .eq("class_id", selectedClass !== "all" ? selectedClass : undefined);
 
             data =
               grades?.map((g) => ({
@@ -169,12 +157,7 @@ export default function ExportPage() {
             const { data: attendance } = await supabase
               .from("attendance")
               .select("*, students(first_name, last_name, student_number)")
-              .gte(
-                "date",
-                new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
-                  .toISOString()
-                  .split("T")[0],
-              );
+              .gte("date", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]);
 
             data =
               attendance?.map((a) => ({
@@ -207,10 +190,7 @@ export default function ExportPage() {
 
       const workbook = new ExcelJS.Workbook();
       const worksheet = workbook.addWorksheet("Data");
-      worksheet.columns =
-        data.length > 0
-          ? Object.keys(data[0]).map((key) => ({ header: key, key }))
-          : [];
+      worksheet.columns = data.length > 0 ? Object.keys(data[0]).map((key) => ({ header: key, key })) : [];
       data.forEach((row) => worksheet.addRow(row));
 
       const buffer = await workbook.xlsx.writeBuffer();
@@ -235,152 +215,115 @@ export default function ExportPage() {
 
   return (
     <PageErrorBoundary>
-    <div className="p-4 sm:p-6 lg:p-8">
-      <PageHeader title="Export Data" subtitle="Export school data to Excel" />
+      <div className="p-4 sm:p-6 lg:p-8">
+        <PageHeader title="Export Data" subtitle="Export school data to Excel" />
 
-      <UICard className="max-w-2xl p-6">
-        <div className="space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-[var(--on-surface)] mb-2">
-              What do you want to export?
-            </label>
-            <select
-              value={exportType}
-              onChange={(e) =>
-                setExportType(
-                  e.target.value as
-                    | "students"
-                    | "uneb"
-                    | "grades"
-                    | "attendance"
-                    | "fees",
-                )
-              }
-              className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] transition-colors"
-            >
-              <option value="students">Student List</option>
-              <option value="uneb">UNEB Candidate List</option>
-              <option value="grades">Grades</option>
-              <option value="attendance">Attendance Records</option>
-              <option value="fees">Fee Payments</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-[var(--on-surface)] mb-2">
-              Class
-            </label>
-            <select
-              value={selectedClass}
-              onChange={(e) => setSelectedClass(e.target.value)}
-              className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] transition-colors"
-            >
-              <option value="all">All Classes</option>
-              {classes.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="p-4 bg-[var(--surface-container)] rounded-lg">
-            <div className="text-sm text-[var(--t3)]">
-              {exportType === "students" &&
-                `${filteredStudents.length} students will be exported`}
-              {exportType === "uneb" &&
-                `${filteredStudents.filter((s) => s.ple_index_number).length} students with PLE index numbers`}
-              {exportType === "grades" &&
-                "All grade records for selected class"}
-              {exportType === "attendance" && "Last 30 days attendance records"}
-              {exportType === "fees" && "All fee payment records"}
+        <UICard className="max-w-2xl p-6">
+          <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-[var(--on-surface)] mb-2">
+                What do you want to export?
+              </label>
+              <select
+                value={exportType}
+                onChange={(e) =>
+                  setExportType(e.target.value as "students" | "uneb" | "grades" | "attendance" | "fees")
+                }
+                className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] transition-colors"
+              >
+                <option value="students">Student List</option>
+                <option value="uneb">UNEB Candidate List</option>
+                <option value="grades">Grades</option>
+                <option value="attendance">Attendance Records</option>
+                <option value="fees">Fee Payments</option>
+              </select>
             </div>
+
+            <div>
+              <label className="block text-sm font-medium text-[var(--on-surface)] mb-2">Class</label>
+              <select
+                value={selectedClass}
+                onChange={(e) => setSelectedClass(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)] transition-colors"
+              >
+                <option value="all">All Classes</option>
+                {classes.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="p-4 bg-[var(--surface-container)] rounded-lg">
+              <div className="text-sm text-[var(--t3)]">
+                {exportType === "students" && `${filteredStudents.length} students will be exported`}
+                {exportType === "uneb" &&
+                  `${filteredStudents.filter((s) => s.ple_index_number).length} students with PLE index numbers`}
+                {exportType === "grades" && "All grade records for selected class"}
+                {exportType === "attendance" && "Last 30 days attendance records"}
+                {exportType === "fees" && "All fee payment records"}
+              </div>
+            </div>
+
+            <Button onClick={exportToExcel} disabled={exporting} className="w-full" size="lg">
+              {exporting ? (
+                <span className="flex items-center gap-2">
+                  <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24">
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                      fill="none"
+                    />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Exporting...
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  <MaterialIcon icon="download" />
+                  Download Excel File
+                </span>
+              )}
+            </Button>
           </div>
+        </UICard>
 
-          <Button
-            onClick={exportToExcel}
-            disabled={exporting}
-            className="w-full"
-            size="lg"
-          >
-            {exporting ? (
-              <span className="flex items-center gap-2">
-                <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24">
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                    fill="none"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
-                  />
-                </svg>
-                Exporting...
+        <UICard className="max-w-2xl p-6 mt-6">
+          <h2 className="font-semibold text-[var(--on-surface)] mb-4">Export Tips</h2>
+          <ul className="space-y-2 text-sm text-[var(--t3)]">
+            <li className="flex items-start gap-2">
+              <MaterialIcon icon="check_circle" className="text-[var(--green)] mt-0.5" />
+              <span>
+                <strong>UNEB Export:</strong> Use this to fill UNEB registration forms. Make sure students have PLE
+                index numbers.
               </span>
-            ) : (
-              <span className="flex items-center gap-2">
-                <MaterialIcon icon="download" />
-                Download Excel File
+            </li>
+            <li className="flex items-start gap-2">
+              <MaterialIcon icon="check_circle" className="text-[var(--green)] mt-0.5" />
+              <span>
+                <strong>Student List:</strong> Export all student records including parent contacts.
               </span>
-            )}
-          </Button>
-        </div>
-      </UICard>
-
-      <UICard className="max-w-2xl p-6 mt-6">
-        <h2 className="font-semibold text-[var(--on-surface)] mb-4">
-          Export Tips
-        </h2>
-        <ul className="space-y-2 text-sm text-[var(--t3)]">
-          <li className="flex items-start gap-2">
-            <MaterialIcon
-              icon="check_circle"
-              className="text-[var(--green)] mt-0.5"
-            />
-            <span>
-              <strong>UNEB Export:</strong> Use this to fill UNEB registration
-              forms. Make sure students have PLE index numbers.
-            </span>
-          </li>
-          <li className="flex items-start gap-2">
-            <MaterialIcon
-              icon="check_circle"
-              className="text-[var(--green)] mt-0.5"
-            />
-            <span>
-              <strong>Student List:</strong> Export all student records
-              including parent contacts.
-            </span>
-          </li>
-          <li className="flex items-start gap-2">
-            <MaterialIcon
-              icon="check_circle"
-              className="text-[var(--green)] mt-0.5"
-            />
-            <span>
-              <strong>Grades:</strong> Export all grade records for analysis or
-              backup.
-            </span>
-          </li>
-          <li className="flex items-start gap-2">
-            <MaterialIcon
-              icon="check_circle"
-              className="text-[var(--green)] mt-0.5"
-            />
-            <span>
-              <strong>Fees:</strong> Export payment records for accounting or
-              audits.
-            </span>
-          </li>
-        </ul>
-      </UICard>
-    </div>
+            </li>
+            <li className="flex items-start gap-2">
+              <MaterialIcon icon="check_circle" className="text-[var(--green)] mt-0.5" />
+              <span>
+                <strong>Grades:</strong> Export all grade records for analysis or backup.
+              </span>
+            </li>
+            <li className="flex items-start gap-2">
+              <MaterialIcon icon="check_circle" className="text-[var(--green)] mt-0.5" />
+              <span>
+                <strong>Fees:</strong> Export payment records for accounting or audits.
+              </span>
+            </li>
+          </ul>
+        </UICard>
+      </div>
     </PageErrorBoundary>
   );
 }

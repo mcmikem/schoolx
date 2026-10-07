@@ -35,7 +35,7 @@ interface StudentResult {
 export default function UNEBAnalysisPage() {
   const { school } = useAuth();
   const { academicYear, currentTerm, gradeLabels } = useAcademic();
-  const { students } = useStudents(school?.id);
+  const { students } = useStudents(school?.id, { limit: 1000, fields: "slim" });
   const { classes } = useClasses(school?.id);
 
   const [results, setResults] = useState<StudentResult[]>([]);

@@ -32,7 +32,7 @@ const CATEGORIES_NEUTRAL = ["Counselling", "Parent Meeting", "Warning"];
 export default function ConductManagementPage() {
   const { school, user } = useAuth();
   const toast = useToast();
-  const { students } = useStudents(school?.id);
+  const { students } = useStudents(school?.id, { limit: 1000, fields: "slim" });
 
   const [activeType, setActiveType] = useState<"all" | "positive" | "negative">("all");
   const [logs, setLogs] = useState<BehaviorLog[]>([]);

@@ -12,7 +12,13 @@ type SupabaseResponse<T> = { data: T | null; error: unknown | null; count?: numb
 
 const STAFF_TIMEOUT = 15000;
 const FETCH_TIMEOUT = 8000;
-const TIMEOUT_FALLBACK_ERR = { message: "Request timed out", code: "TIMEOUT", details: "", hint: "", name: "TimeoutError" };
+const TIMEOUT_FALLBACK_ERR = {
+  message: "Request timed out",
+  code: "TIMEOUT",
+  details: "",
+  hint: "",
+  name: "TimeoutError",
+};
 
 type StaffUser = {
   id: string;
@@ -50,11 +56,13 @@ export function useStaff(schoolId?: string) {
         const data = await withTimeout(
           supabase
             .from("users")
-            .select(
-              "id, full_name, email, phone, role, avatar_url, is_active, created_at",
-            )
+            .select("id, full_name, email, phone, role, avatar_url, is_active, created_at")
             .eq("school_id", querySchoolId)
             .eq("is_active", true)
+            // Parents and students share the `users` table; without this every
+            // "all staff" consumer (SMS blasts, inspection counts, reviews)
+            // silently counted them as personnel.
+            .not("role", "in", '("parent","student")')
             .order("full_name")
             .then((r) => {
               if (r.error) throw r.error;
@@ -84,10 +92,7 @@ export function useSalaries(schoolId?: string) {
   const [loading, setLoading] = useState(true);
   const { isDemo } = useAuth();
 
-  const updateSalary = async (
-    staffId: string,
-    updates: Partial<StaffSalary>,
-  ) => {
+  const updateSalary = async (staffId: string, updates: Partial<StaffSalary>) => {
     if (isDemo || isDemoSchool(schoolId)) {
       return { success: true };
     }
@@ -96,10 +101,7 @@ export function useSalaries(schoolId?: string) {
       const { error } = await withTimeout(
         supabase
           .from("staff_salaries")
-          .upsert(
-            { staff_id: staffId, school_id: querySchoolId, ...updates },
-            { onConflict: "staff_id" },
-          ),
+          .upsert({ staff_id: staffId, school_id: querySchoolId, ...updates }, { onConflict: "staff_id" }),
         STAFF_TIMEOUT,
         { error: TIMEOUT_FALLBACK_ERR, data: null } as SupabaseResponse<unknown>,
       );
@@ -148,9 +150,7 @@ export function useSalaryPayments(schoolId?: string) {
   const [loading, setLoading] = useState(true);
   const { isDemo } = useAuth();
 
-  const processPayment = async (
-    payment: Omit<SalaryPayment, "id" | "created_at">,
-  ) => {
+  const processPayment = async (payment: Omit<SalaryPayment, "id" | "created_at">) => {
     if (isDemo || isDemoSchool(schoolId)) {
       return {
         success: true,
@@ -164,16 +164,16 @@ export function useSalaryPayments(schoolId?: string) {
     const querySchoolId = getQuerySchoolId(schoolId, isDemo);
     try {
       const { data, error } = await withTimeout(
-          supabase
-            .from("salary_payments")
-            .insert([{ ...payment, school_id: querySchoolId }])
-            .select(
-              "id, school_id, staff_id, academic_year_id, month, year, base_paid, allowances_paid, deductions_applied, net_paid, payment_date, payment_status, created_at",
-            )
-            .single(),
-          STAFF_TIMEOUT,
-          { data: null, error: TIMEOUT_FALLBACK_ERR } as SupabaseResponse<unknown>,
-        );
+        supabase
+          .from("salary_payments")
+          .insert([{ ...payment, school_id: querySchoolId }])
+          .select(
+            "id, school_id, staff_id, academic_year_id, month, year, base_paid, allowances_paid, deductions_applied, net_paid, payment_date, payment_status, created_at",
+          )
+          .single(),
+        STAFF_TIMEOUT,
+        { data: null, error: TIMEOUT_FALLBACK_ERR } as SupabaseResponse<unknown>,
+      );
       if (error) throw error;
       return { success: true, data };
     } catch (err: any) {
@@ -220,9 +220,7 @@ export function useStaffReviews(schoolId?: string, staffId?: string) {
   const [loading, setLoading] = useState(true);
   const { isDemo } = useAuth();
 
-  const submitReview = async (
-    review: Omit<StaffReview, "id" | "created_at">,
-  ) => {
+  const submitReview = async (review: Omit<StaffReview, "id" | "created_at">) => {
     if (isDemo || isDemoSchool(schoolId)) {
       return {
         success: true,
@@ -236,16 +234,16 @@ export function useStaffReviews(schoolId?: string, staffId?: string) {
     const querySchoolId = getQuerySchoolId(schoolId, isDemo);
     try {
       const { data, error } = await withTimeout(
-          supabase
-            .from("staff_reviews")
-            .insert([{ ...review, school_id: querySchoolId }])
-            .select(
-              "id, school_id, staff_id, reviewer_id, review_date, rating, strengths, areas_for_improvement, goals, comments, status, created_at",
-            )
-            .single(),
-          STAFF_TIMEOUT,
-          { data: null, error: TIMEOUT_FALLBACK_ERR } as SupabaseResponse<unknown>,
-        );
+        supabase
+          .from("staff_reviews")
+          .insert([{ ...review, school_id: querySchoolId }])
+          .select(
+            "id, school_id, staff_id, reviewer_id, review_date, rating, strengths, areas_for_improvement, goals, comments, status, created_at",
+          )
+          .single(),
+        STAFF_TIMEOUT,
+        { data: null, error: TIMEOUT_FALLBACK_ERR } as SupabaseResponse<unknown>,
+      );
       if (error) throw error;
       return { success: true, data };
     } catch (err: any) {
@@ -269,11 +267,10 @@ export function useStaffReviews(schoolId?: string, staffId?: string) {
           )
           .eq("school_id", querySchoolId);
         if (staffId) query = query.eq("staff_id", staffId);
-        const { data, error } = await withTimeout(
-          query.order("review_date", { ascending: false }),
-          FETCH_TIMEOUT,
-          { data: [], error: null } as SupabaseResponse<unknown[]>,
-        );
+        const { data, error } = await withTimeout(query.order("review_date", { ascending: false }), FETCH_TIMEOUT, {
+          data: [],
+          error: null,
+        } as SupabaseResponse<unknown[]>);
         if (error) {
           const pgError = error as { code?: string; message?: string };
           if (pgError.code === "42P01" || pgError.code === "42501" || pgError.code === "PGRST116") {
@@ -323,16 +320,16 @@ export function useLeaveRequests(schoolId?: string) {
     const querySchoolId = getQuerySchoolId(schoolId, isDemo);
     try {
       const { data, error } = await withTimeout(
-          supabase
-            .from("leave_requests")
-            .insert({ ...request, school_id: querySchoolId })
-            .select(
-              "id, school_id, staff_id, leave_type, status, start_date, end_date, days_count, reason, approved_at, created_at",
-            )
-            .single(),
-          STAFF_TIMEOUT,
-          { data: null, error: TIMEOUT_FALLBACK_ERR } as SupabaseResponse<unknown>,
-        );
+        supabase
+          .from("leave_requests")
+          .insert({ ...request, school_id: querySchoolId })
+          .select(
+            "id, school_id, staff_id, leave_type, status, start_date, end_date, days_count, reason, approved_at, created_at",
+          )
+          .single(),
+        STAFF_TIMEOUT,
+        { data: null, error: TIMEOUT_FALLBACK_ERR } as SupabaseResponse<unknown>,
+      );
       if (error) throw error;
       setRequests((prev) => [data, ...prev]);
       return data;
@@ -341,29 +338,24 @@ export function useLeaveRequests(schoolId?: string) {
     }
   };
 
-  const updateRequestStatus = async (
-    id: string,
-    status: "approved" | "rejected",
-  ) => {
+  const updateRequestStatus = async (id: string, status: "approved" | "rejected") => {
     if (isDemo || isDemoSchool(schoolId)) {
-      setRequests((prev) =>
-        prev.map((r) => (r.id === id ? { ...r, status } : r)),
-      );
+      setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
       return { id, status };
     }
     try {
       const { data, error } = await withTimeout(
-          supabase
-            .from("leave_requests")
-            .update({ status, approved_at: new Date().toISOString() })
-            .eq("id", id)
-            .select(
-              "id, school_id, staff_id, leave_type, status, start_date, end_date, days_count, reason, approved_at, created_at",
-            )
-            .single(),
-          STAFF_TIMEOUT,
-          { data: null, error: TIMEOUT_FALLBACK_ERR } as SupabaseResponse<unknown>,
-        );
+        supabase
+          .from("leave_requests")
+          .update({ status, approved_at: new Date().toISOString() })
+          .eq("id", id)
+          .select(
+            "id, school_id, staff_id, leave_type, status, start_date, end_date, days_count, reason, approved_at, created_at",
+          )
+          .single(),
+        STAFF_TIMEOUT,
+        { data: null, error: TIMEOUT_FALLBACK_ERR } as SupabaseResponse<unknown>,
+      );
       if (error) throw error;
       setRequests((prev) => prev.map((r) => (r.id === id ? data : r)));
       return data;

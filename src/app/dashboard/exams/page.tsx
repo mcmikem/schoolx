@@ -35,7 +35,7 @@ export default function ExamsPage() {
 
   const termLocked = isTermLocked ? isTermLocked(academicYear, currentTerm) : false;
 
-  const { students } = useStudents(school?.id);
+  const { students } = useStudents(school?.id, { limit: 1000, fields: "slim" });
   const { classes } = useClasses(school?.id);
   const { subjects } = useSubjects(school?.id, false);
   const { exams, loading: examsLoading, createExam, deleteExam } = useExams(school?.id);

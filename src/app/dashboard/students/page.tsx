@@ -556,7 +556,10 @@ export default function StudentHubPage() {
             loading ? (
               <span className="inline-block w-48 h-4 rounded bg-gray-200 animate-pulse" />
             ) : (
-              `${students.length} students enrolled in ${academicYear} (${boysCount} Boys / ${girlsCount} Girls)`
+              // `totalCount` is the uncapped head count; `students.length` is
+              // however many rows fit in one request, which is what made this
+              // header disagree with the dashboards on large rosters.
+              `${totalCount} students enrolled in ${academicYear} (${boysCount} Boys / ${girlsCount} Girls)`
             )
           }
           variant="premium"
@@ -573,7 +576,7 @@ export default function StudentHubPage() {
 
         <StudentWorkspaceShell
           lowBandwidthMode={isConstrainedNetwork}
-          totalStudents={students.length}
+          totalStudents={totalCount}
           boysCount={boysCount}
           girlsCount={girlsCount}
           activeStudents={students.filter((s) => s.status === "active").length}
@@ -594,7 +597,7 @@ export default function StudentHubPage() {
         <TabPanel activeTab={activeTab} tabId="registry">
           <StudentRegistryPanel
             schoolId={school?.id}
-            totalStudents={students.length}
+            totalStudents={totalCount}
             boysCount={boysCount}
             girlsCount={girlsCount}
             classesCount={classes.length}

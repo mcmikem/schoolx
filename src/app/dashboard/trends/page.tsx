@@ -4,7 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { formatCompactCurrency } from "@/lib/currency";
 import { useAcademic } from "@/lib/academic-context";
-import { useStudents, useFeePayments } from "@/lib/hooks";
+import { useAllStudents, useFeePayments } from "@/lib/hooks";
 import { useToast } from "@/components/Toast";
 import { supabase } from "@/lib/supabase";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar } from "recharts";
@@ -28,7 +28,9 @@ export default function TrendAnalyticsPage() {
   const { school } = useAuth();
   const toast = useToast();
   const { academicYear } = useAcademic();
-  const { students } = useStudents(school?.id);
+  // Counting rows caps the trend at `useStudents`' first page (and at
+  // PostgREST's 1000-row ceiling); the roster hook pages the whole school.
+  const { students } = useAllStudents(school?.id);
   const { payments } = useFeePayments(school?.id);
   const [historicalData, setHistoricalData] = useState<TrendData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -75,11 +77,12 @@ export default function TrendAnalyticsPage() {
         for (const term of terms.data) {
           const termYear = (term as { academic_years?: { year: string }[] })?.academic_years?.[0]?.year || academicYear;
 
+          // Head count of the whole roster (all statuses) — the same number the
+          // dashboards headline, so this chart cannot drift from them.
           const termStudents = await supabase
             .from("students")
-            .select("id", { count: "exact" })
-            .eq("school_id", school.id)
-            .eq("status", "active");
+            .select("id", { count: "exact", head: true })
+            .eq("school_id", school.id);
 
           if (termStudents.error) throw new Error(termStudents.error.message);
 

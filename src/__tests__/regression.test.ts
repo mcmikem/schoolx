@@ -779,3 +779,201 @@ describe("Staff add must always update the list", () => {
     expect(body.indexOf("toast.success")).toBeGreaterThan(-1);
   });
 });
+
+describe("Staff Directory never lists parents as staff", () => {
+  const read = (rel: string) => require("fs").readFileSync(require("path").join(process.cwd(), rel), "utf8");
+
+  it("scopes the directory query away from parent and student rows", () => {
+    const src = read("src/app/dashboard/staff/page.tsx");
+    expect(src).toContain(`const NON_STAFF_ROLES = '("parent","student")'`);
+    expect(src).toContain('dataQuery.not("role", "in", NON_STAFF_ROLES)');
+    expect(src).toContain('dataQuery.eq("role", "parent")');
+  });
+
+  it("gives parents their own tab instead of mixing them into the counts", () => {
+    const src = read("src/app/dashboard/staff/page.tsx");
+    expect(src).toContain('tabId="parents"');
+    // The badges used to count the 20 rows on screen, so a school with 200
+    // staff read as "All Staff (20)" and everyone assumed accounts were lost.
+    expect(src).not.toContain("count: staff.length");
+  });
+
+  it("paginates past the first 20 rows even when the count query fails", () => {
+    const src = read("src/app/dashboard/staff/page.tsx");
+    expect(src).toContain("setHasMore(pageRows.length > itemsPerPage)");
+    expect(src).toContain(".range(offset, offset + itemsPerPage)");
+  });
+
+  it("keeps parents and students out of the shared useStaff hook", () => {
+    expect(read("src/lib/hooks/staff.ts")).toContain('.not("role", "in", \'("parent","student")\')');
+  });
+});
+
+describe("Student totals agree across screens", () => {
+  const read = (rel: string) => require("fs").readFileSync(require("path").join(process.cwd(), rel), "utf8");
+
+  it("counts the whole roster, not status='active', for the headline", () => {
+    const src = read("src/lib/hooks/analytics.ts");
+    // Dashboards said 295 while the Student Hub said 320 because this was the
+    // active-only head count.
+    expect(src).toContain("totalStudents: rosterTotal,");
+    // Attendance rates still need the active-only figure as their denominator.
+    expect(src).toContain("activeStudents: activeTotal,");
+  });
+
+  it("divides attendance rates by active students, not the whole roster", () => {
+    for (const rel of [
+      "src/app/dashboard/dashboards/HeadmasterDashboard.tsx",
+      "src/app/dashboard/dashboards/DeanDashboard.tsx",
+      "src/app/dashboard/dashboards/TeacherDashboard.tsx",
+      "src/app/dashboard/staff/page.tsx",
+    ]) {
+      const src = read(rel);
+      expect(src).toContain("attendanceBase");
+      expect(src).not.toMatch(/presentToday\s*\/\s*stats\.totalStudents/);
+    }
+  });
+
+  it("reads the Student Hub header from the uncapped head count", () => {
+    const src = read("src/app/dashboard/students/page.tsx");
+    expect(src).toContain("totalCount} students enrolled");
+    expect(src).not.toContain("students.length} students enrolled");
+  });
+
+  it("gets per-class counts from the whole roster, not the first 100 rows", () => {
+    for (const rel of [
+      "src/app/dashboard/dashboards/DeanDashboard.tsx",
+      "src/app/dashboard/dashboards/TeacherDashboard.tsx",
+      "src/app/dashboard/trends/page.tsx",
+    ]) {
+      expect(read(rel)).toContain("useAllStudents(school?.id)");
+      expect(read(rel)).not.toContain("useStudents(school?.id)");
+    }
+  });
+
+  it("fetches the full roster on screens that count, export or promote it", () => {
+    const capped: Array<[string, string]> = [
+      ["bulk report printing", "src/app/dashboard/reports/page.tsx"],
+      ["MoES export", "src/app/dashboard/moes/page.tsx"],
+      ["year rollover", "src/app/dashboard/rollover/page.tsx"],
+      ["roster export", "src/app/dashboard/export/page.tsx"],
+      ["report cards", "src/app/dashboard/report-cards/page.tsx"],
+      ["graduation", "src/app/dashboard/students/graduation/page.tsx"],
+      ["bursar fee maths", "src/app/dashboard/dashboards/BursarDashboard.tsx"],
+      ["go-live fee gate", "src/components/dashboard/AccessControlGuard.tsx"],
+    ];
+    for (const [label, rel] of capped) {
+      const src = read(rel);
+      expect(src).toContain("{ limit: 1000 }");
+      expect(src).not.toMatch(/useStudents\(school\?\.id\)(?!, \{)/);
+    }
+  });
+
+  it("offers an uncapped head count for screens that do not load rows", () => {
+    const src = read("src/lib/hooks/students.ts");
+    expect(src).toContain("export function useStudentTotal");
+    expect(read("src/app/dashboard/classes/page.tsx")).toContain("useStudentTotal(school?.id)");
+  });
+
+  it("fetches slim rows on pick-list screens instead of 35-column rows", () => {
+    const hook = read("src/lib/hooks/students.ts");
+    expect(hook).toContain("STUDENT_SLIM_FIELDS");
+    expect(hook).toContain("export type SlimStudent");
+    // The slim overload is what stops a future edit from silently reading a
+    // column the query no longer fetches: it fails typecheck instead.
+    expect(hook).toContain('fields: "slim"');
+    expect(hook).toContain("UseStudentsResult<SlimStudent>");
+    const slim: Array<[string, string]> = [
+      ["behaviour logs", "src/app/dashboard/behavior/page.tsx"],
+      ["UNEB", "src/app/dashboard/uneb/page.tsx"],
+      ["comments", "src/app/dashboard/comments/page.tsx"],
+      ["ID cards", "src/app/dashboard/idcards/page.tsx"],
+      ["conduct", "src/app/dashboard/students/conduct/page.tsx"],
+      ["exams", "src/app/dashboard/exams/page.tsx"],
+      ["discipline", "src/app/dashboard/discipline/page.tsx"],
+      ["warnings", "src/app/dashboard/warnings/page.tsx"],
+      ["cohort DNA", "src/app/dashboard/analytics/dna/page.tsx"],
+      ["go-live gate", "src/components/GoLiveGate.tsx"],
+    ];
+    for (const [label, rel] of slim) {
+      expect(read(rel)).toContain('{ limit: 1000, fields: "slim" }');
+    }
+  });
+});
+
+describe("Student photos stay small without breaking uploads", () => {
+  const read = (rel: string) => require("fs").readFileSync(require("path").join(process.cwd(), rel), "utf8");
+
+  it("encodes WebP first and keeps JPEG as the fallback", () => {
+    const src = read("src/lib/student-photos.ts");
+    expect(src).toContain('export const STUDENT_PHOTO_OUTPUT_TYPES = ["image/webp", "image/jpeg"]');
+    expect(src).toContain("contentType: compressedFile.type");
+  });
+
+  it("caps batch onboarding photos below the full-size default", () => {
+    const src = read("src/app/dashboard/students/photos/page.tsx");
+    expect(src).toContain("uploadStudentPhoto({");
+    expect(src).toContain("maxWidth: 1024");
+    expect(src).toContain("maxHeight: 1024");
+  });
+
+  it("keeps staff avatar uploads on the same encoding", () => {
+    const src = read("src/app/dashboard/staff/page.tsx");
+    expect(src).toContain("compressedPhotoExtension(compressed.type)");
+    expect(src).toContain("contentType: compressed.type");
+  });
+
+  it("removes the replaced photo object instead of orphaning it", () => {
+    expect(read("src/lib/student-photos.ts")).toContain("export async function removePreviousPhoto");
+    const batch = read("src/app/dashboard/students/photos/page.tsx");
+    // Only after the new URL is saved: a failed save must never leave the row
+    // pointing at a deleted file.
+    expect(batch).toContain("await removePreviousPhoto(student.photo_url, filePath)");
+  });
+
+  it("matches batch photos against one roster read, not one lookup per file", () => {
+    const batch = read("src/app/dashboard/students/photos/page.tsx");
+    expect(batch).toContain("rosterByNumber");
+    expect(batch).not.toContain("maybeSingle");
+    expect(batch).not.toContain('.eq("student_number"');
+  });
+
+  it("retries only failed batch photos instead of re-uploading everything", () => {
+    const batch = read("src/app/dashboard/students/photos/page.tsx");
+    expect(batch).toContain("retryFailed");
+    expect(batch).toContain("Retry {errorCount} failed");
+    // Earlier successes are kept; only retried rows are replaced.
+    expect(batch).toContain("retriedNumbers");
+  });
+});
+
+describe("Student profile page structure", () => {
+  const read = (rel: string) => require("fs").readFileSync(require("path").join(process.cwd(), rel), "utf8");
+
+  it("organises the profile into Overview, Guardians and Messages tabs", () => {
+    const src = read("src/app/dashboard/students/[id]/page.tsx");
+    expect(src).toContain('tabId="overview"');
+    expect(src).toContain('tabId="guardians"');
+    expect(src).toContain('tabId="messages"');
+  });
+
+  it("keeps parent contact, guardians and portal access in one card", () => {
+    const src = read("src/app/dashboard/students/[id]/page.tsx");
+    expect(src).toContain("Guardians & contact");
+    expect(src).not.toContain(">Parent/Guardian<");
+    expect(src).not.toContain(">Quick Facts<");
+  });
+});
+
+describe("Batch photo requests always have deadlines", () => {
+  const read = (rel: string) => require("fs").readFileSync(require("path").join(process.cwd(), rel), "utf8");
+
+  it("deadlines every batch-photo request so one stall cannot freeze the queue", () => {
+    const lib = read("src/lib/student-photos.ts");
+    expect(lib).toContain("UPLOAD_TIMEOUT_MS");
+    expect(lib).toContain("UPLOAD_TIMEOUT_RESULT");
+    const batch = read("src/app/dashboard/students/photos/page.tsx");
+    // Roster read and per-row save both fail the file instead of hanging.
+    expect(batch.match(/withTimeout[<(]/g)?.length).toBeGreaterThanOrEqual(2);
+  });
+});

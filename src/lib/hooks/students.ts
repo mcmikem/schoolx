@@ -76,6 +76,59 @@ const STUDENT_SELECT_FIELDS_MINIMAL = `
   created_at, classes(id, name, level, stream)
 `;
 
+/**
+ * Slim roster row for pick-list screens (behaviour logs, discipline, ID cards,
+ * comments, exams, …). Roughly half the columns of the full select: everything
+ * a list needs to name, group and find a learner, nothing it doesn't.
+ *
+ * Includes every *required* `Student` prop so a slim row stays assignable to
+ * `StudentWithClass` — screens that read anything heavier fail typecheck and
+ * must stay on the full select.
+ */
+const STUDENT_SLIM_FIELDS = `
+  id, school_id, student_number, first_name, last_name, gender,
+  date_of_birth, parent_name, parent_phone,
+  class_id, admission_date, status, photo_url,
+  created_at, classes(id, name, level, stream)
+`;
+
+export type SlimStudent = Pick<
+  Student,
+  | "id"
+  | "school_id"
+  | "student_number"
+  | "first_name"
+  | "last_name"
+  | "gender"
+  | "date_of_birth"
+  | "parent_name"
+  | "parent_phone"
+  | "class_id"
+  | "admission_date"
+  | "status"
+  | "photo_url"
+  | "created_at"
+> &
+  Pick<StudentWithClass, "classes">;
+
+export interface UseStudentsResult<TStudent> {
+  students: TStudent[];
+  loading: boolean;
+  error: string | null;
+  totalCount: number;
+  createStudent: (student: CreateStudentInput) => Promise<StudentWithClass>;
+  updateStudent: (id: string, updates: Partial<Student>) => Promise<StudentWithClass>;
+  deleteStudent: (id: string) => Promise<void>;
+  refetch: () => Promise<void>;
+}
+
+export type StudentQueryOptions = {
+  limit?: number;
+  offset?: number;
+  /** "full" (default) or "slim" — the pick-list row set above. */
+  fields?: "full" | "slim";
+};
+
 function buildCoreStudentPayload(student: Record<string, unknown>) {
   return {
     school_id: student.school_id,
@@ -220,7 +273,31 @@ function getStudentSelectTimeoutFallback(cachedData: StudentWithClass[] | null, 
   return null;
 }
 
-async function fetchStudentsWithFallback(options: { schoolId: string; offset: number; limit: number }) {
+async function fetchStudentsWithFallback(options: {
+  schoolId: string;
+  offset: number;
+  limit: number;
+  fields?: "full" | "slim";
+}) {
+  // Slim rows are all core columns, so one attempt is enough; if the schema
+  // turns out older than expected, fall through to the full ladder below.
+  if (options.fields === "slim") {
+    const result = await supabase
+      .from("students")
+      .select(STUDENT_SLIM_FIELDS)
+      .eq("school_id", options.schoolId)
+      .order("created_at", { ascending: false })
+      .range(options.offset, options.offset + options.limit - 1);
+
+    if (!result.error) {
+      return result.data as unknown as StudentWithClass[];
+    }
+
+    if (!isAnyMissingStudentsColumnError(result.error)) {
+      throw result.error;
+    }
+  }
+
   const selectAttempts = buildStudentSelectAttempts("select");
 
   let lastError: unknown = null;
@@ -470,10 +547,83 @@ export function useAllStudents(schoolId?: string) {
   return { students, ready };
 }
 
-export function useStudents(schoolId?: string, options?: { limit?: number; offset?: number }) {
+/**
+ * The canonical "how many students" number for a school: one uncapped head
+ * count over every student on the roster, all statuses.
+ *
+ * Use this for headline totals. `students.length` is only ever as big as the
+ * page that was fetched, so two screens fetching different pages of the same
+ * school disagree — which is exactly what sent users looking for "deleted"
+ * accounts that were never deleted.
+ */
+export function useStudentTotal(schoolId?: string) {
+  const { isDemo } = useAuth();
+  const demoMode = isDemo || isDemoSchool(schoolId);
+  const querySchoolId = demoMode ? undefined : getQuerySchoolId(schoolId, isDemo);
+  const [total, setTotal] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (demoMode) {
+      setTotal(DEMO_STUDENTS.length);
+      return;
+    }
+    if (!querySchoolId) {
+      setTotal(null);
+      return;
+    }
+
+    let cancelled = false;
+    withTimeout(
+      supabase
+        .from("students")
+        .select("id", { count: "exact", head: true })
+        .eq("school_id", querySchoolId)
+        .then((r) => {
+          if (r.error) throw r.error;
+          return r.count;
+        }),
+      8000,
+      null,
+    )
+      .then((count) => {
+        if (!cancelled) setTotal(typeof count === "number" ? count : null);
+      })
+      .catch((err) => {
+        logger.error("Failed to count students:", err);
+        if (!cancelled) setTotal(null);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [querySchoolId, demoMode]);
+
+  return total;
+}
+
+/**
+ * Students for a screen.
+ *
+ * The default `limit` of 100 is a *first page*, not a roster: it exists so a
+ * list renders fast. Any screen that counts, exports, prints or promotes the
+ * whole school must pass `{ limit: 1000 }` (the most a single PostgREST
+ * request will answer with — see `ROSTER_PAGE_SIZE`) or page with
+ * `fetchAllStudents()`. Counting `students.length` off the default is how a
+ * 320-learner school came to be shown as 100 on some screens and 320 on others.
+ */
+export function useStudents(
+  schoolId?: string,
+  options?: StudentQueryOptions & { fields?: "full" },
+): UseStudentsResult<StudentWithClass>;
+export function useStudents(
+  schoolId?: string,
+  options?: StudentQueryOptions & { fields: "slim" },
+): UseStudentsResult<SlimStudent>;
+export function useStudents(schoolId?: string, options?: StudentQueryOptions): UseStudentsResult<StudentWithClass> {
   const limit = options?.limit || 100;
   const offset = options?.offset || 0;
-  const cacheKey = `students:${schoolId}:${limit}:${offset}`;
+  const slim = options?.fields === "slim";
+  const cacheKey = `students:${schoolId}:${limit}:${offset}:${slim ? "slim" : "full"}`;
   const cachedData = getCachedData<StudentsCacheEntry>(cacheKey);
   const [students, setStudents] = useState<StudentWithClass[]>(cachedData?.students || []);
   const [loading, setLoading] = useState(!cachedData);
@@ -699,6 +849,7 @@ export function useStudents(schoolId?: string, options?: { limit?: number; offse
             schoolId: querySchoolId,
             offset,
             limit,
+            fields: slim ? "slim" : "full",
           }),
           8000,
           timeoutFallback,

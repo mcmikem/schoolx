@@ -31,7 +31,7 @@ export default function MoESExportPage() {
   const { school } = useAuth();
   const { academicYear, currentTerm } = useAcademic();
   const toast = useToast();
-  const { students } = useStudents(school?.id);
+  const { students } = useStudents(school?.id, { limit: 1000 });
   const { classes } = useClasses(school?.id);
   const [exporting, setExporting] = useState(false);
 

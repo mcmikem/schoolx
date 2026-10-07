@@ -27,6 +27,7 @@ import type { User, School } from "@/types";
 import { logger } from "./logger";
 import { getErrorMessage } from "./validation";
 import { buildAuthEmailFromPhone, buildAuthLoginAttempts } from "./auth-login";
+import { classifyAuthFailure } from "./auth-failure";
 import { isSupabaseLockAbortError, withSupabaseLockRetry } from "./supabase-lock";
 import {
   AuthContextType,
@@ -879,6 +880,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             if ((isInvalidCredentials || isUserNotFound) && !credentialError) {
               credentialError = error;
+            }
+
+            // The auth server already answered — this is an outage or a rate
+            // limit, not a question about which email format the account uses.
+            // Every other format would hit the same dead gateway, so keep
+            // going only costs the user four round-trips before they are told
+            // the truth. (A per-attempt timeout is deliberately not in here:
+            // that request is still in flight, and only waiting it out lets
+            // the post-loop session check see it land.)
+            const failureKind = classifyAuthFailure(error.message);
+            if (failureKind === "transient" || failureKind === "rate_limited") {
+              break;
             }
 
             // Only fast-fail on explicit "wrong password" - we can't distinguish

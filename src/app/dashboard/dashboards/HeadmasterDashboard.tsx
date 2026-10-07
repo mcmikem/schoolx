@@ -52,11 +52,14 @@ function HeadmasterDashboardContent() {
     [totalExpected, stats.feesCollected],
   );
 
+  // Attendance is only marked for students still enrolled, so the rate divides
+  // by the active head count — the whole roster now includes dropouts, which
+  // would drag the percentage down for a school that marked everyone present.
+  // The fallback covers stats snapshots cached before `activeStudents` existed.
+  const attendanceBase = stats.activeStudents > 0 ? stats.activeStudents : stats.totalStudents;
   const attendanceRate = useMemo(() => {
-    return stats.presentToday > 0 && stats.totalStudents > 0
-      ? Math.round((stats.presentToday / stats.totalStudents) * 100)
-      : 0;
-  }, [stats.presentToday, stats.totalStudents]);
+    return stats.presentToday > 0 && attendanceBase > 0 ? Math.round((stats.presentToday / attendanceBase) * 100) : 0;
+  }, [stats.presentToday, attendanceBase]);
 
   const todayLabel = todayLabelFor(currentDate);
 

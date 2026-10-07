@@ -13,7 +13,7 @@ import { EmptyState } from "@/components/EmptyState";
 
 export default function IDCardsPage() {
   const { school } = useAuth();
-  const { students } = useStudents(school?.id);
+  const { students } = useStudents(school?.id, { limit: 1000, fields: "slim" });
   const { classes } = useClasses(school?.id);
 
   const [selectedClass, setSelectedClass] = useState("");

@@ -126,3 +126,26 @@ describe("login page only counts real credential failures", () => {
     expect(toastLines.join("\n")).not.toContain("Invalid login details");
   });
 });
+
+describe("signIn stops guessing email formats once the gateway has answered", () => {
+  const src = fs.readFileSync(path.join(process.cwd(), "src/lib/auth-context.tsx"), "utf8");
+  const signInBody = src.match(/async function signIn[\s\S]*?^  }/m)![0];
+
+  it("breaks out instead of burning four round-trips on a dead auth server", () => {
+    expect(signInBody).toContain("classifyAuthFailure(error.message)");
+    expect(signInBody).toContain('failureKind === "transient"');
+    expect(signInBody).toContain('failureKind === "rate_limited"');
+    expect(signInBody).toMatch(/if \(failureKind[^)]*\) \{\s*break;/);
+  });
+
+  it("only fast-fails a request the server actually finished answering", () => {
+    // A per-attempt timeout is a different case: that request is still in
+    // flight, and abandoning it early is what flashed an error seconds
+    // before the late success signed the user in anyway.
+    const classifierAt = signInBody.indexOf("classifyAuthFailure(");
+    const raceCatchAt = signInBody.indexOf("catch (attemptError)");
+    expect(classifierAt).toBeGreaterThan(-1);
+    expect(raceCatchAt).toBeGreaterThan(-1);
+    expect(classifierAt).toBeLessThan(raceCatchAt);
+  });
+});

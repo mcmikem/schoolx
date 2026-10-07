@@ -20,7 +20,7 @@ interface GoLiveCheck {
 export default function GoLiveGate({ onDismiss }: { onDismiss: () => void }) {
   const { school, user } = useAuth();
   const { currentTerm, academicYear } = useAcademic();
-  const { students } = useStudents(school?.id);
+  const { students } = useStudents(school?.id, { limit: 1000, fields: "slim" });
   const { classes } = useClasses(school?.id);
   const [hasFeeStructure, setHasFeeStructure] = useState(false);
   const [hasGrading, setHasGrading] = useState(false);
