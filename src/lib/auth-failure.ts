@@ -21,7 +21,7 @@ export type AuthFailureKind =
   | "transient"
   /** Supabase is rate limiting. Clears on its own. */
   | "rate_limited"
-  /** The account exists but cannot sign in yet (unconfirmed, disabled). */
+  /** The account, or the sign-in method it needs, is blocked (unconfirmed, disabled). */
   | "account"
   /** A failure we cannot attribute. Treated as a real attempt. */
   | "unknown";
@@ -66,6 +66,13 @@ const ACCOUNT_PATTERNS: RegExp[] = [
   /account disabled/i,
   /user disabled/i,
   /signups not allowed/i,
+  // GoTrue answers 422 phone_provider_disabled when the project has phone sign-in
+  // switched off. Nothing was checked, so it must not count as a guess — and it
+  // is the fourth and last attempt of every failed sign-in (after the three
+  // email formats), so it is the response a real user is looking at whenever the
+  // phone route is the only one left.
+  /phone[ _-]provider[ _-]disabled/i,
+  /phone logins are disabled/i,
 ];
 
 /**
