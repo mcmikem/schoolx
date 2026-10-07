@@ -15,7 +15,7 @@ import CollapsibleSection from "@/components/ui/CollapsibleSection";
 import { StuckLoadingOverlay, TopLoadingBar } from "@/components/ui/Skeleton";
 import { useAcademic } from "@/lib/academic-context";
 import { useAuth } from "@/lib/auth-context";
-import { useClasses, useDashboardStats, useFeeStructure, useStudents } from "@/lib/hooks";
+import { useAllStudents, useClasses, useDashboardStats, useFeeStructure } from "@/lib/hooks";
 import { useDashboardExtraData } from "@/lib/hooks/useDashboardExtraData";
 import { formatNumber, greetingFor, todayLabelFor } from "@/lib/utils";
 
@@ -24,7 +24,7 @@ function HeadmasterDashboardContent() {
   const { academicYear, currentTerm } = useAcademic();
 
   const { stats, loading: statsLoading } = useDashboardStats(school?.id);
-  const { students = [] } = useStudents(school?.id);
+  const { students, ready: rosterReady } = useAllStudents(school?.id);
   const { feeStructure = [] } = useFeeStructure(school?.id);
   const { classes = [] } = useClasses(school?.id);
 
@@ -37,7 +37,7 @@ function HeadmasterDashboardContent() {
     dropoutRiskCount,
     loading: loadingExtra,
     timedOut,
-  } = useDashboardExtraData(school?.id, students, feeStructure, currentTerm, academicYear);
+  } = useDashboardExtraData(school?.id, rosterReady ? students : null, feeStructure, currentTerm, academicYear);
 
   const currentDate = useMemo(() => new Date(), []);
   const greeting = greetingFor(currentDate);

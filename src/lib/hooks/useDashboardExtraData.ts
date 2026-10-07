@@ -100,13 +100,19 @@ class DashboardTimeoutsError extends Error {
 
 function computePayload(
   schoolId: string,
-  students: any[],
+  students: any[] | null,
   feeStructure: any[],
   currentTerm: string | number | undefined,
   academicYear: string | undefined,
   fallback?: DashboardPayload | null,
 ): Promise<DashboardPayload> {
   return (async () => {
+    // The roster arrives from useAllStudents, which reports `null` when it
+    // could not be read at all. That is UNKNOWN, not "this school has no
+    // students" -- and every roster-wide figure below (students at risk,
+    // dropout risk, overdue count) would otherwise render as a confident zero.
+    if (!students) throw new DashboardTimeoutsError();
+
     const now = new Date();
     // Local date — must match how attendance is marked in the UI.
     const today = getLocalDateString(now);
@@ -230,14 +236,18 @@ function computePayload(
     const attendanceByClass: Record<string, ClassAttendance> = {};
     const hasAttendanceMarkedToday = (attendanceRes.data?.length || 0) > 0;
     const studentClassMap: Record<string, string> = {};
+    // Built once: at-risk used to run students.find() per candidate, which is
+    // fine on a 100-row page and quadratic once the roster is the whole school.
+    const studentById = new Map<string, (typeof students)[number]>();
     students.forEach((s) => {
       studentClassMap[s.id] = s.class_id;
+      studentById.set(s.id, s);
     });
 
     if (hasAttendanceMarkedToday) {
       attendanceRes.data?.forEach((a) => {
         // Prefer the class_id stamped on the attendance row itself; fall back
-        // to the (possibly paginated) student list for legacy rows without it.
+        // to the roster for legacy rows without it.
         const classId = a.class_id || studentClassMap[a.student_id];
         if (!classId) return;
         if (!attendanceByClass[classId]) {
@@ -264,7 +274,7 @@ function computePayload(
 
     const atRisk = Object.entries(studentScores)
       .filter(([_, scores]) => scores.filter((s) => s < 50).length >= 2)
-      .map(([studentId]) => students.find((s) => s.id === studentId))
+      .map(([studentId]) => studentById.get(studentId))
       .filter(Boolean)
       .slice(0, 5);
 
@@ -380,7 +390,7 @@ async function writeDashboardCache(cacheKey: string, payload: DashboardPayload):
 
 export function useDashboardExtraData(
   schoolId: string | undefined,
-  students: any[],
+  students: any[] | null,
   feeStructure: any[],
   currentTerm: string | number | undefined,
   academicYear: string | undefined,
@@ -395,7 +405,19 @@ export function useDashboardExtraData(
   const usedFallbackRef = useRef(false);
 
   const query = useQuery<DashboardPayload>({
-    queryKey: ["dashboard-extra", schoolId, currentTerm, academicYear],
+    // Both the roster and the fee structure are inputs to computePayload but
+    // arrive on their own clocks. Leaving them out of the key meant the first
+    // run (inputs still empty) produced 0 overdue / 0 at-risk and kept that
+    // answer for the whole staleTime window — and once computePayload started
+    // refusing to run without a roster, it left the board spinning forever.
+    queryKey: [
+      "dashboard-extra",
+      schoolId,
+      currentTerm,
+      academicYear,
+      students ? students.length : "pending",
+      feeStructure.length,
+    ],
     enabled,
     staleTime: 2 * 60 * 1000,
     refetchOnWindowFocus: false,

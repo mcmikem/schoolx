@@ -3,7 +3,7 @@ import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useMemo } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
-import { useStudents, useClasses, useStaff, useFeePayments, useFeeStructure, useDashboardStats } from "@/lib/hooks";
+import { useAllStudents, useClasses, useStaff, useFeePayments, useFeeStructure, useDashboardStats } from "@/lib/hooks";
 import { useDashboardExtraData } from "@/lib/hooks/useDashboardExtraData";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -75,7 +75,7 @@ function formatCurrency(amount: number): string {
 function InspectionReportContent() {
   const { school } = useAuth();
   const { academicYear, currentTerm } = useAcademic();
-  const { students = [] } = useStudents(school?.id);
+  const { students, ready: rosterReady } = useAllStudents(school?.id);
   const { classes = [] } = useClasses(school?.id);
   const { staff = [] } = useStaff(school?.id);
   const { payments = [] } = useFeePayments(school?.id);
@@ -94,7 +94,7 @@ function InspectionReportContent() {
     lowAttendanceClasses,
     dropoutRiskCount,
     loading: loadingExtra,
-  } = useDashboardExtraData(school?.id, students, feeStructure, currentTerm, academicYear);
+  } = useDashboardExtraData(school?.id, rosterReady ? students : null, feeStructure, currentTerm, academicYear);
 
   const [exportingExcel, setExportingExcel] = useState(false);
   const [exportingPDF, setExportingPDF] = useState(false);
