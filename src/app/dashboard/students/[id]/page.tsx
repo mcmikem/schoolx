@@ -719,427 +719,448 @@ export default function StudentProfilePage() {
           </div>
         )}
 
-        <div className="relative overflow-hidden rounded-[var(--r2)] border border-[var(--border)] bg-motif p-5 sm:p-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-center gap-4 min-w-0 flex-1">
-              <Link
-                href="/dashboard/students"
-                aria-label="Back to students"
-                className="shrink-0 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-2 transition-colors hover:bg-[var(--surface-container-low)]"
-              >
-                <ArrowLeft className="h-5 w-5 text-[var(--t2)]" />
-              </Link>
-              <div className="relative h-20 w-20 shrink-0">
-                <div className="h-20 w-20 overflow-hidden rounded-full border-4 border-[var(--surface)] bg-primary-100 shadow-md dark:bg-primary-900/50">
-                  {student.photo_url ? (
-                    <Image
-                      src={student.photo_url}
-                      alt={`${student.first_name || "Student"} ${student.last_name || ""}`}
-                      width={80}
-                      height={80}
-                      unoptimized
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <span className="flex h-full w-full items-center justify-center text-2xl font-bold text-primary-700 dark:text-primary-300">
+        <div className="grid items-start gap-5 lg:grid-cols-[300px_minmax(0,1fr)] xl:grid-cols-[340px_minmax(0,1fr)]">
+          <aside className="lg:sticky lg:top-6">
+            <div className="rounded-[var(--r2)] border border-[var(--border)] bg-motif p-3 sm:p-4">
+              <div className="relative aspect-[3/4] max-h-[360px] w-full overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--surface-container-low)] sm:max-h-[440px] lg:max-h-none">
+                {student.photo_url ? (
+                  <Image
+                    src={student.photo_url}
+                    alt={`${student.first_name || "Student"} ${student.last_name || ""}`}
+                    width={480}
+                    height={640}
+                    unoptimized
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-full w-full flex-col items-center justify-center gap-3 bg-[var(--navy-soft)]">
+                    <span className="text-6xl font-bold text-[var(--navy)]">
                       {student.first_name?.[0] || "?"}
                       {student.last_name?.[0] || "?"}
                     </span>
-                  )}
-                </div>
+                    <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--navy)] opacity-70">
+                      No photo
+                    </span>
+                  </div>
+                )}
                 <span
-                  className={`absolute bottom-1 right-1 h-4 w-4 rounded-full border-2 border-[var(--surface)] ${statusCfg.dot}`}
+                  className={`absolute bottom-3 right-3 h-4 w-4 rounded-full border-2 border-[var(--surface)] ${statusCfg.dot}`}
                   title={statusCfg.label}
                 />
               </div>
-              <div className="min-w-0">
-                <h1 className="truncate text-2xl font-bold text-[var(--t1)]">
-                  {student.first_name || "Unknown"} {student.last_name || "Student"}
-                </h1>
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--surface-container-low)] px-2.5 py-1 text-xs font-medium text-[var(--t2)]">
-                    <School className="h-3 w-3" />
-                    {classLabel}
-                  </span>
-                  <span
-                    className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${statusCfg.bg} ${statusCfg.text} ${statusCfg.border}`}
-                  >
-                    <span className={`h-1.5 w-1.5 rounded-full ${statusCfg.dot}`} />
-                    {statusCfg.label}
-                  </span>
-                  {student.student_number && (
-                    <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--surface-container-low)] px-2.5 py-1 font-mono text-xs font-medium text-[var(--t2)]">
-                      <IdCard className="h-3 w-3" />
-                      {student.student_number}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2 sm:justify-end">
-              <button
-                onClick={() => setShowEdit(true)}
-                className="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
-              >
-                <Edit className="h-4 w-4" />
-                Edit
-              </button>
-              <button
-                onClick={() => setSmsOpen(true)}
-                className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--t1)] transition-colors hover:bg-[var(--surface-container-low)]"
-              >
-                <MessageSquare className="h-4 w-4" />
-                SMS Parent
-              </button>
-              <Link
-                href="/dashboard/timetable"
-                className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--t1)] transition-colors hover:bg-[var(--surface-container-low)]"
-              >
-                <Calendar className="h-4 w-4" />
-                Schedule
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid gap-3 grid-cols-2 xl:grid-cols-4">
-          {[
-            {
-              label: "Attendance",
-              value: `${attendancePct}%`,
-              tone: "text-emerald-600 dark:text-emerald-400",
-              Icon: ClipboardCheck,
-            },
-            {
-              label: "Balance",
-              value: outstandingBalance > 0 ? `UGX ${outstandingBalance.toLocaleString()}` : "Cleared",
-              tone:
-                outstandingBalance > 0 ? "text-red-600 dark:text-red-400" : "text-emerald-600 dark:text-emerald-400",
-              Icon: CreditCard,
-            },
-            {
-              label: "Average",
-              value: latestGrade !== null ? `${latestGrade}%` : "No grades",
-              tone: "text-blue-600 dark:text-blue-400",
-              Icon: TrendingUp,
-            },
-            {
-              label: "Contacts",
-              value: `${parentContacts} linked`,
-              tone: "text-gray-900 dark:text-gray-100",
-              Icon: Phone,
-            },
-          ].map((item) => (
-            <div
-              key={item.label}
-              className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800"
-            >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-700/60">
-                <item.Icon className={`h-5 w-5 ${item.tone}`} />
-              </div>
-              <div className="min-w-0">
-                <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">
-                  {item.label}
-                </div>
-                <div className={`mt-0.5 truncate text-base font-bold ${item.tone}`}>{item.value}</div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <Tabs tabs={profileTabs} activeTab={activeTab} onChange={setActiveTab} className="mb-6" />
-
-        <TabPanel activeTab={activeTab} tabId="overview">
-          <div className="grid gap-6 xl:grid-cols-3">
-            <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-              <h3 className="mb-4 flex items-center gap-2 font-semibold text-gray-900 dark:text-gray-100">
-                <ClipboardCheck className="h-4 w-4 text-emerald-600" />
-                Attendance
-              </h3>
-              {detailsLoading ? (
-                <Skeleton className="h-48 w-full rounded-2xl" />
-              ) : (
-                <>
-                  <AttendanceRing percentage={attendancePct} />
-                  {!isConstrainedNetwork ? (
-                    <div className="mt-4">
-                      <AttendanceHeatmap records={attendanceRecords} isDemo={isDemo} />
-                    </div>
-                  ) : (
-                    <div className="mt-4 rounded-xl bg-gray-50 p-3 text-xs text-gray-600 dark:bg-gray-700/40 dark:text-gray-300">
-                      Heatmap hidden to reduce data and rendering costs on slower connections.
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-
-            <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-              <h3 className="mb-4 flex items-center gap-2 font-semibold text-gray-900 dark:text-gray-100">
-                <CreditCard className="h-4 w-4 text-yellow-600" />
-                Fees
-              </h3>
-              {detailsLoading ? (
-                <Skeleton className="h-48 w-full rounded-2xl" />
-              ) : (
-                <>
-                  <FeeProgressBar paid={feePosition.paid} total={feePosition.total} />
-                  <div className="mt-4 rounded-xl bg-gray-50 p-3 text-sm text-gray-700 dark:bg-gray-700/50 dark:text-gray-200">
-                    {outstandingBalance > 0
-                      ? `Outstanding balance: UGX ${outstandingBalance.toLocaleString()}`
-                      : "All fees are cleared."}
-                  </div>
-                </>
-              )}
-            </div>
-
-            <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-              <h3 className="mb-4 flex items-center gap-2 font-semibold text-gray-900 dark:text-gray-100">
-                <TrendingUp className="h-4 w-4 text-blue-600" />
-                Performance
-              </h3>
-              {detailsLoading ? (
-                <Skeleton className="h-48 w-full rounded-2xl" />
-              ) : gradeHistory.length > 0 ? (
-                !isConstrainedNetwork ? (
-                  <GradeSparkline data={gradeHistory} />
-                ) : (
-                  <div className="rounded-xl bg-blue-50 px-3 py-3 text-sm text-blue-800 dark:bg-blue-950/40 dark:text-blue-200">
-                    Current average: {latestGrade}%
-                  </div>
-                )
-              ) : (
-                <p className="text-sm text-[var(--t3)]">No grade history yet.</p>
-              )}
-              <div className="mt-4 rounded-xl bg-gray-50 p-3 text-xs text-gray-500 dark:bg-gray-700/50 dark:text-gray-300">
-                {gradeHistory.length > 0 ? "Last terms average progression" : "Add grades to see trends"}
-              </div>
-            </div>
-          </div>
-
-          <div className="mt-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-            <h3 className="mb-4 flex items-center gap-2 font-semibold text-gray-900 dark:text-gray-100">
-              <User className="h-4 w-4 text-gray-500" />
-              About this pupil
-            </h3>
-            <dl className="grid gap-x-8 gap-y-3 text-sm text-gray-700 sm:grid-cols-2 dark:text-gray-300">
-              <div className="flex items-center justify-between gap-4">
-                <dt>Student number</dt>
-                <dd className="font-mono font-semibold">{student.student_number || "N/A"}</dd>
-              </div>
-              <div className="flex items-center justify-between gap-4">
-                <dt>Class</dt>
-                <dd className="font-semibold">{classLabel}</dd>
-              </div>
-              <div className="flex items-center justify-between gap-4">
-                <dt>Gender</dt>
-                <dd className="font-semibold">{student.gender === "M" ? "Male" : "Female"}</dd>
-              </div>
-              <div className="flex items-center justify-between gap-4">
-                <dt>Date of birth</dt>
-                <dd className="font-semibold">
-                  {student.date_of_birth ? new Date(student.date_of_birth).toLocaleDateString() : "N/A"}
-                </dd>
-              </div>
-              <div className="flex items-center justify-between gap-4">
-                <dt>Status</dt>
-                <dd className={`font-semibold ${statusCfg.text}`}>{statusCfg.label}</dd>
-              </div>
-              <div className="flex items-center justify-between gap-4">
-                <dt>Joined</dt>
-                <dd className="font-semibold">
-                  {student.admission_date ? new Date(student.admission_date).toLocaleDateString() : "N/A"}
-                </dd>
-              </div>
-            </dl>
-          </div>
-        </TabPanel>
-
-        <TabPanel activeTab={activeTab} tabId="guardians">
-          <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="flex items-center gap-2 font-semibold text-gray-900 dark:text-gray-100">
-                <Phone className="h-4 w-4 text-emerald-600" />
-                Guardians & contact
-              </h3>
-              <button
-                onClick={() => setShowGuardianModal(true)}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-700"
-              >
-                <User className="h-3.5 w-3.5" />
-                Add Guardian
-              </button>
-            </div>
-
-            <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">
-              Primary contact
-            </p>
-            <div className="space-y-3 text-sm text-gray-700 dark:text-gray-300">
-              <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-gray-400" />
-                <span className="font-medium">{student.parent_name || "N/A"}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-gray-400" />
-                <span>{student.parent_phone || "N/A"}</span>
-              </div>
-              {student.parent_phone2 && (
-                <div className="flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-gray-400" />
-                  <span>{student.parent_phone2}</span>
-                </div>
-              )}
-              {student.parent_email && (
-                <div className="flex items-center gap-2 break-all">
-                  <Mail className="h-4 w-4 text-gray-400" />
-                  <span>{student.parent_email}</span>
-                </div>
-              )}
-              {(student.village || student.parish || student.sub_county || student.district_origin) && (
-                <div className="flex items-start gap-2">
-                  <MapPin className="mt-0.5 h-4 w-4 text-gray-400" />
-                  <span>
-                    {[student.village, student.parish, student.sub_county, student.district_origin]
-                      .filter(Boolean)
-                      .join(", ")}
-                  </span>
-                </div>
-              )}
-            </div>
-            {student.parent_phone && (
-              <div className="mt-4">
-                <button
-                  onClick={handleCreatePortalAccess}
-                  disabled={creatingPortal}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
+              <div className="mt-3 flex items-center justify-between gap-2 px-1">
+                <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--t3)]">
+                  Student photo
+                </span>
+                <span
+                  className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${statusCfg.bg} ${statusCfg.text} ${statusCfg.border}`}
                 >
-                  <User className="h-3.5 w-3.5" />
-                  {creatingPortal ? "Creating..." : "Create Parent Portal Access"}
-                </button>
+                  <span className={`h-1.5 w-1.5 rounded-full ${statusCfg.dot}`} />
+                  {statusCfg.label}
+                </span>
               </div>
-            )}
-            {portalCreds && (
-              <div className="mt-3 rounded-xl bg-green-50 px-4 py-3 text-sm text-green-800 dark:bg-green-950/40 dark:text-green-200">
-                <p className="font-medium">{portalCreds.parentName}</p>
-                <p className="mt-1">Phone: {portalCreds.parentPhone}</p>
-                {portalCreds.generatedPassword && (
-                  <p className="mt-1 font-mono text-xs">
-                    Password: <span className="font-bold">{portalCreds.generatedPassword}</span>
-                  </p>
-                )}
-                {portalCreds.credentialsDelivered ? (
-                  <p className="mt-1 text-green-600">Credentials sent via WhatsApp</p>
-                ) : (
-                  <p className="mt-1 text-amber-600">Share the password above with the parent</p>
-                )}
-              </div>
-            )}
+            </div>
+          </aside>
 
-            <div className="my-5 border-t border-gray-100 dark:border-gray-700" />
-            <p className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">
-              Linked guardians
-            </p>
-            {guardiansLoading ? (
-              <div className="space-y-2">
-                <Skeleton className="h-12 w-full rounded-xl" />
-                <Skeleton className="h-12 w-full rounded-xl" />
-              </div>
-            ) : guardians.length === 0 ? (
-              <p className="text-sm text-[var(--t3)]">
-                No additional guardians linked. The primary contact above is used.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {guardians.map((g) => {
-                  const user = g.users || {};
-                  const isPrimary = user.full_name === student.parent_name || user.phone === student.parent_phone;
-                  return (
-                    <div
-                      key={g.id}
-                      className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-700/30"
-                    >
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium">{user.full_name || "Unknown"}</span>
-                          {isPrimary && (
-                            <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
-                              Primary
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-xs text-[var(--t3)]">
-                          {user.phone || ""}
-                          {g.relationship !== "parent" ? ` · ${g.relationship}` : ""}
-                        </div>
-                      </div>
-                      {!isPrimary && (
-                        <button
-                          onClick={() => handleSetPrimaryGuardian(g)}
-                          className="text-xs text-blue-600 hover:underline"
-                          title="Set as primary guardian"
-                        >
-                          Set Primary
-                        </button>
+          <div className="min-w-0 space-y-6">
+            <div className="relative overflow-hidden rounded-[var(--r2)] border border-[var(--border)] bg-motif p-5 sm:p-6">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-4 min-w-0 flex-1">
+                  <Link
+                    href="/dashboard/students"
+                    aria-label="Back to students"
+                    className="shrink-0 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-2 transition-colors hover:bg-[var(--surface-container-low)]"
+                  >
+                    <ArrowLeft className="h-5 w-5 text-[var(--t2)]" />
+                  </Link>
+                  <div className="min-w-0">
+                    <h1 className="truncate text-2xl font-bold text-[var(--t1)]">
+                      {student.first_name || "Unknown"} {student.last_name || "Student"}
+                    </h1>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--surface-container-low)] px-2.5 py-1 text-xs font-medium text-[var(--t2)]">
+                        <School className="h-3 w-3" />
+                        {classLabel}
+                      </span>
+                      {student.student_number && (
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--surface-container-low)] px-2.5 py-1 font-mono text-xs font-medium text-[var(--t2)]">
+                          <IdCard className="h-3 w-3" />
+                          {student.student_number}
+                        </span>
                       )}
                     </div>
-                  );
-                })}
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 sm:justify-end">
+                  <button
+                    onClick={() => setShowEdit(true)}
+                    className="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
+                  >
+                    <Edit className="h-4 w-4" />
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => setSmsOpen(true)}
+                    className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--t1)] transition-colors hover:bg-[var(--surface-container-low)]"
+                  >
+                    <MessageSquare className="h-4 w-4" />
+                    SMS Parent
+                  </button>
+                  <Link
+                    href="/dashboard/timetable"
+                    className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--t1)] transition-colors hover:bg-[var(--surface-container-low)]"
+                  >
+                    <Calendar className="h-4 w-4" />
+                    Schedule
+                  </Link>
+                </div>
               </div>
-            )}
-          </div>
-        </TabPanel>
-
-        <TabPanel activeTab={activeTab} tabId="messages">
-          <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="flex items-center gap-2 font-semibold text-gray-900 dark:text-gray-100">
-                <MessageSquare className="h-4 w-4 text-blue-600" />
-                SMS History
-              </h3>
-              <button
-                onClick={() => setSmsOpen(true)}
-                className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-700"
-              >
-                <MessageSquare className="h-3.5 w-3.5" />
-                SMS Parent
-              </button>
             </div>
-            {smsHistoryLoading ? (
-              <Skeleton className="h-32 w-full rounded-xl" />
-            ) : smsHistory.length === 0 ? (
-              <p className="text-sm text-[var(--t3)]">No SMS messages have been sent to this student&apos;s parents.</p>
-            ) : (
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {smsHistory.map((msg) => (
-                  <div key={msg.id} className="rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-700/30">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-medium text-[var(--t3)]">
-                        {msg.sent_at
-                          ? new Date(msg.sent_at).toLocaleString()
-                          : new Date(msg.created_at).toLocaleString()}
-                      </span>
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                          msg.status === "sent"
-                            ? "bg-green-100 text-green-700"
-                            : msg.status === "delivered"
-                              ? "bg-blue-100 text-blue-700"
-                              : msg.status === "failed"
-                                ? "bg-red-100 text-red-700"
-                                : "bg-gray-100 text-gray-600"
-                        }`}
-                      >
-                        {msg.status}
+
+            <div className="grid gap-3 grid-cols-2 xl:grid-cols-4">
+              {[
+                {
+                  label: "Attendance",
+                  value: `${attendancePct}%`,
+                  tone: "text-emerald-600 dark:text-emerald-400",
+                  Icon: ClipboardCheck,
+                },
+                {
+                  label: "Balance",
+                  value: outstandingBalance > 0 ? `UGX ${outstandingBalance.toLocaleString()}` : "Cleared",
+                  tone:
+                    outstandingBalance > 0
+                      ? "text-red-600 dark:text-red-400"
+                      : "text-emerald-600 dark:text-emerald-400",
+                  Icon: CreditCard,
+                },
+                {
+                  label: "Average",
+                  value: latestGrade !== null ? `${latestGrade}%` : "No grades",
+                  tone: "text-blue-600 dark:text-blue-400",
+                  Icon: TrendingUp,
+                },
+                {
+                  label: "Contacts",
+                  value: `${parentContacts} linked`,
+                  tone: "text-gray-900 dark:text-gray-100",
+                  Icon: Phone,
+                },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800"
+                >
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-700/60">
+                    <item.Icon className={`h-5 w-5 ${item.tone}`} />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">
+                      {item.label}
+                    </div>
+                    <div className={`mt-0.5 truncate text-base font-bold ${item.tone}`}>{item.value}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <Tabs tabs={profileTabs} activeTab={activeTab} onChange={setActiveTab} className="mb-6" />
+
+            <TabPanel activeTab={activeTab} tabId="overview">
+              <div className="grid gap-6 xl:grid-cols-3">
+                <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                  <h3 className="mb-4 flex items-center gap-2 font-semibold text-gray-900 dark:text-gray-100">
+                    <ClipboardCheck className="h-4 w-4 text-emerald-600" />
+                    Attendance
+                  </h3>
+                  {detailsLoading ? (
+                    <Skeleton className="h-48 w-full rounded-2xl" />
+                  ) : (
+                    <>
+                      <AttendanceRing percentage={attendancePct} />
+                      {!isConstrainedNetwork ? (
+                        <div className="mt-4">
+                          <AttendanceHeatmap records={attendanceRecords} isDemo={isDemo} />
+                        </div>
+                      ) : (
+                        <div className="mt-4 rounded-xl bg-gray-50 p-3 text-xs text-gray-600 dark:bg-gray-700/40 dark:text-gray-300">
+                          Heatmap hidden to reduce data and rendering costs on slower connections.
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+
+                <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                  <h3 className="mb-4 flex items-center gap-2 font-semibold text-gray-900 dark:text-gray-100">
+                    <CreditCard className="h-4 w-4 text-yellow-600" />
+                    Fees
+                  </h3>
+                  {detailsLoading ? (
+                    <Skeleton className="h-48 w-full rounded-2xl" />
+                  ) : (
+                    <>
+                      <FeeProgressBar paid={feePosition.paid} total={feePosition.total} />
+                      <div className="mt-4 rounded-xl bg-gray-50 p-3 text-sm text-gray-700 dark:bg-gray-700/50 dark:text-gray-200">
+                        {outstandingBalance > 0
+                          ? `Outstanding balance: UGX ${outstandingBalance.toLocaleString()}`
+                          : "All fees are cleared."}
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                  <h3 className="mb-4 flex items-center gap-2 font-semibold text-gray-900 dark:text-gray-100">
+                    <TrendingUp className="h-4 w-4 text-blue-600" />
+                    Performance
+                  </h3>
+                  {detailsLoading ? (
+                    <Skeleton className="h-48 w-full rounded-2xl" />
+                  ) : gradeHistory.length > 0 ? (
+                    !isConstrainedNetwork ? (
+                      <GradeSparkline data={gradeHistory} />
+                    ) : (
+                      <div className="rounded-xl bg-blue-50 px-3 py-3 text-sm text-blue-800 dark:bg-blue-950/40 dark:text-blue-200">
+                        Current average: {latestGrade}%
+                      </div>
+                    )
+                  ) : (
+                    <p className="text-sm text-[var(--t3)]">No grade history yet.</p>
+                  )}
+                  <div className="mt-4 rounded-xl bg-gray-50 p-3 text-xs text-gray-500 dark:bg-gray-700/50 dark:text-gray-300">
+                    {gradeHistory.length > 0 ? "Last terms average progression" : "Add grades to see trends"}
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                <h3 className="mb-4 flex items-center gap-2 font-semibold text-gray-900 dark:text-gray-100">
+                  <User className="h-4 w-4 text-gray-500" />
+                  About this pupil
+                </h3>
+                <dl className="grid gap-x-8 gap-y-3 text-sm text-gray-700 sm:grid-cols-2 dark:text-gray-300">
+                  <div className="flex items-center justify-between gap-4">
+                    <dt>Student number</dt>
+                    <dd className="font-mono font-semibold">{student.student_number || "N/A"}</dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-4">
+                    <dt>Class</dt>
+                    <dd className="font-semibold">{classLabel}</dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-4">
+                    <dt>Gender</dt>
+                    <dd className="font-semibold">{student.gender === "M" ? "Male" : "Female"}</dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-4">
+                    <dt>Date of birth</dt>
+                    <dd className="font-semibold">
+                      {student.date_of_birth ? new Date(student.date_of_birth).toLocaleDateString() : "N/A"}
+                    </dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-4">
+                    <dt>Status</dt>
+                    <dd className={`font-semibold ${statusCfg.text}`}>{statusCfg.label}</dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-4">
+                    <dt>Joined</dt>
+                    <dd className="font-semibold">
+                      {student.admission_date ? new Date(student.admission_date).toLocaleDateString() : "N/A"}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+            </TabPanel>
+
+            <TabPanel activeTab={activeTab} tabId="guardians">
+              <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="flex items-center gap-2 font-semibold text-gray-900 dark:text-gray-100">
+                    <Phone className="h-4 w-4 text-emerald-600" />
+                    Guardians & contact
+                  </h3>
+                  <button
+                    onClick={() => setShowGuardianModal(true)}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-700"
+                  >
+                    <User className="h-3.5 w-3.5" />
+                    Add Guardian
+                  </button>
+                </div>
+
+                <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">
+                  Primary contact
+                </p>
+                <div className="space-y-3 text-sm text-gray-700 dark:text-gray-300">
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-gray-400" />
+                    <span className="font-medium">{student.parent_name || "N/A"}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Phone className="h-4 w-4 text-gray-400" />
+                    <span>{student.parent_phone || "N/A"}</span>
+                  </div>
+                  {student.parent_phone2 && (
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-4 w-4 text-gray-400" />
+                      <span>{student.parent_phone2}</span>
+                    </div>
+                  )}
+                  {student.parent_email && (
+                    <div className="flex items-center gap-2 break-all">
+                      <Mail className="h-4 w-4 text-gray-400" />
+                      <span>{student.parent_email}</span>
+                    </div>
+                  )}
+                  {(student.village || student.parish || student.sub_county || student.district_origin) && (
+                    <div className="flex items-start gap-2">
+                      <MapPin className="mt-0.5 h-4 w-4 text-gray-400" />
+                      <span>
+                        {[student.village, student.parish, student.sub_county, student.district_origin]
+                          .filter(Boolean)
+                          .join(", ")}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">{msg.message}</p>
-                    {msg.phone && <p className="text-xs text-[var(--t3)] mt-1">To: {msg.phone}</p>}
+                  )}
+                </div>
+                {student.parent_phone && (
+                  <div className="mt-4">
+                    <button
+                      onClick={handleCreatePortalAccess}
+                      disabled={creatingPortal}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
+                    >
+                      <User className="h-3.5 w-3.5" />
+                      {creatingPortal ? "Creating..." : "Create Parent Portal Access"}
+                    </button>
                   </div>
-                ))}
+                )}
+                {portalCreds && (
+                  <div className="mt-3 rounded-xl bg-green-50 px-4 py-3 text-sm text-green-800 dark:bg-green-950/40 dark:text-green-200">
+                    <p className="font-medium">{portalCreds.parentName}</p>
+                    <p className="mt-1">Phone: {portalCreds.parentPhone}</p>
+                    {portalCreds.generatedPassword && (
+                      <p className="mt-1 font-mono text-xs">
+                        Password: <span className="font-bold">{portalCreds.generatedPassword}</span>
+                      </p>
+                    )}
+                    {portalCreds.credentialsDelivered ? (
+                      <p className="mt-1 text-green-600">Credentials sent via WhatsApp</p>
+                    ) : (
+                      <p className="mt-1 text-amber-600">Share the password above with the parent</p>
+                    )}
+                  </div>
+                )}
+
+                <div className="my-5 border-t border-gray-100 dark:border-gray-700" />
+                <p className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">
+                  Linked guardians
+                </p>
+                {guardiansLoading ? (
+                  <div className="space-y-2">
+                    <Skeleton className="h-12 w-full rounded-xl" />
+                    <Skeleton className="h-12 w-full rounded-xl" />
+                  </div>
+                ) : guardians.length === 0 ? (
+                  <p className="text-sm text-[var(--t3)]">
+                    No additional guardians linked. The primary contact above is used.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {guardians.map((g) => {
+                      const user = g.users || {};
+                      const isPrimary = user.full_name === student.parent_name || user.phone === student.parent_phone;
+                      return (
+                        <div
+                          key={g.id}
+                          className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-700/30"
+                        >
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium">{user.full_name || "Unknown"}</span>
+                              {isPrimary && (
+                                <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+                                  Primary
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-xs text-[var(--t3)]">
+                              {user.phone || ""}
+                              {g.relationship !== "parent" ? ` · ${g.relationship}` : ""}
+                            </div>
+                          </div>
+                          {!isPrimary && (
+                            <button
+                              onClick={() => handleSetPrimaryGuardian(g)}
+                              className="text-xs text-blue-600 hover:underline"
+                              title="Set as primary guardian"
+                            >
+                              Set Primary
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-            )}
+            </TabPanel>
+
+            <TabPanel activeTab={activeTab} tabId="messages">
+              <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                <div className="mb-4 flex items-center justify-between">
+                  <h3 className="flex items-center gap-2 font-semibold text-gray-900 dark:text-gray-100">
+                    <MessageSquare className="h-4 w-4 text-blue-600" />
+                    SMS History
+                  </h3>
+                  <button
+                    onClick={() => setSmsOpen(true)}
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-700"
+                  >
+                    <MessageSquare className="h-3.5 w-3.5" />
+                    SMS Parent
+                  </button>
+                </div>
+                {smsHistoryLoading ? (
+                  <Skeleton className="h-32 w-full rounded-xl" />
+                ) : smsHistory.length === 0 ? (
+                  <p className="text-sm text-[var(--t3)]">
+                    No SMS messages have been sent to this student&apos;s parents.
+                  </p>
+                ) : (
+                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                    {smsHistory.map((msg) => (
+                      <div key={msg.id} className="rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-700/30">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs font-medium text-[var(--t3)]">
+                            {msg.sent_at
+                              ? new Date(msg.sent_at).toLocaleString()
+                              : new Date(msg.created_at).toLocaleString()}
+                          </span>
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                              msg.status === "sent"
+                                ? "bg-green-100 text-green-700"
+                                : msg.status === "delivered"
+                                  ? "bg-blue-100 text-blue-700"
+                                  : msg.status === "failed"
+                                    ? "bg-red-100 text-red-700"
+                                    : "bg-gray-100 text-gray-600"
+                            }`}
+                          >
+                            {msg.status}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-700 dark:text-gray-300 line-clamp-2">{msg.message}</p>
+                        {msg.phone && <p className="text-xs text-[var(--t3)] mt-1">To: {msg.phone}</p>}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </TabPanel>
           </div>
-        </TabPanel>
+        </div>
 
         <SendSMSModal
           student={{

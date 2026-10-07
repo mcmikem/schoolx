@@ -418,7 +418,7 @@ export default function StudentRegistryPanel({
                   />
                 </div>
               ) : (
-                <div className="tbl-wrap table-responsive">
+                <div className="tbl-wrap table-responsive hidden md:block">
                   <table>
                     <thead>
                       <tr>
@@ -855,209 +855,351 @@ export default function StudentRegistryPanel({
             )}
           </div>
         ) : (
-          <div className="tbl-wrap table-responsive">
-            <table>
-              <thead>
-                <tr>
-                  <th data-label="Student">Student</th>
-                  <th data-label="Number">Number</th>
-                  <th data-label="Class">Class</th>
-                  <th data-label="House">House</th>
-                  <th data-label="Parent">Parent</th>
-                  <th data-label="Phone">Phone</th>
-                  <th data-label="Actions"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {paginatedStudents.map((student) => {
-                  const house = resolveHouse(student);
-                  const statusMeta = attendanceStatusMap[student.id];
-                  const leader = leadershipLabel(student);
+          <>
+            <div className="tbl-wrap table-responsive hidden md:block">
+              <table>
+                <thead>
+                  <tr>
+                    <th data-label="Student">Student</th>
+                    <th data-label="Number">Number</th>
+                    <th data-label="Class">Class</th>
+                    <th data-label="House">House</th>
+                    <th data-label="Parent">Parent</th>
+                    <th data-label="Phone">Phone</th>
+                    <th data-label="Actions"></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {paginatedStudents.map((student) => {
+                    const house = resolveHouse(student);
+                    const statusMeta = attendanceStatusMap[student.id];
+                    const leader = leadershipLabel(student);
 
-                  return (
-                    <tr key={student.id}>
-                      <td data-label="Student">
-                        <Link
-                          href={`/dashboard/students/${student.id}`}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 10,
-                            textDecoration: "none",
-                          }}
-                        >
-                          <div
+                    return (
+                      <tr key={student.id}>
+                        <td data-label="Student">
+                          <Link
+                            href={`/dashboard/students/${student.id}`}
                             style={{
-                              width: 36,
-                              height: 36,
-                              borderRadius: "50%",
                               display: "flex",
                               alignItems: "center",
-                              justifyContent: "center",
-                              fontSize: 12,
-                              fontWeight: 700,
-                              color: "#fff",
-                              overflow: "hidden",
-                              position: "relative",
-                              background: student.gender === "M" ? "var(--navy)" : "var(--red)",
+                              gap: 10,
+                              textDecoration: "none",
                             }}
                           >
-                            {student.photo_url && showPhotos ? (
-                              <Image
-                                src={student.photo_url}
-                                alt={`${student.first_name} ${student.last_name}`}
-                                width={36}
-                                height={36}
-                                unoptimized
-                                style={{
-                                  width: "100%",
-                                  height: "100%",
-                                  objectFit: "cover",
-                                }}
-                              />
-                            ) : (
-                              <PersonInitials name={`${student.first_name} ${student.last_name}`} size={36} />
-                            )}
-                            <span
-                              title={statusMeta?.label || "No attendance recorded today"}
-                              aria-label={statusMeta?.label || "No attendance recorded today"}
+                            <div
                               style={{
-                                position: "absolute",
-                                right: 0,
-                                bottom: 0,
-                                width: 10,
-                                height: 10,
+                                width: 36,
+                                height: 36,
                                 borderRadius: "50%",
-                                border: "2px solid var(--surface)",
-                                backgroundColor: attendanceTone(statusMeta?.status),
-                                boxShadow: "0 0 0 1px rgba(0,0,0,0.08)",
-                              }}
-                            />
-                          </div>
-                          <div>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <div style={{ fontWeight: 600, color: "var(--t1)" }}>
-                                {student.first_name} {student.last_name}
-                              </div>
-                              {leader ? (
-                                <span
-                                  className="inline-flex items-center rounded-full bg-[var(--navy-soft)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--navy)]"
-                                  title={leader}
-                                >
-                                  {student.is_class_monitor && !student.prefect_role && !student.student_council_role
-                                    ? "Monitor"
-                                    : "Leader"}
-                                </span>
-                              ) : null}
-                            </div>
-                            <div style={{ fontSize: 11, color: "var(--t3)" }}>
-                              {student.gender === "M" ? "Male" : "Female"}
-                              {statusMeta ? ` • ${statusMeta.label}` : ""}
-                            </div>
-                          </div>
-                        </Link>
-                      </td>
-                      <td data-label="Number" style={{ fontFamily: "DM Mono", fontSize: 12 }}>
-                        {student.student_number || "-"}
-                      </td>
-                      <td data-label="Class">
-                        <span
-                          style={{
-                            padding: "4px 10px",
-                            background: "var(--bg)",
-                            borderRadius: 999,
-                            fontSize: 11,
-                            fontWeight: 600,
-                            color: "var(--t1)",
-                          }}
-                        >
-                          {resolveClassLabel(student)}
-                          {student.boarding_status && student.boarding_status !== "day" && (
-                            <span
-                              style={{
-                                marginLeft: 4,
-                                fontSize: 9,
-                                padding: "1px 5px",
-                                background: "rgba(155,89,182,0.15)",
-                                color: "#0d9488",
-                                borderRadius: 8,
-                                fontWeight: 600,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                fontSize: 12,
+                                fontWeight: 700,
+                                color: "#fff",
+                                overflow: "hidden",
+                                position: "relative",
+                                background: student.gender === "M" ? "var(--navy)" : "var(--red)",
                               }}
                             >
-                              {student.boarding_status}
-                            </span>
-                          )}
-                        </span>
-                      </td>
-                      <td data-label="House">
-                        {house ? (
+                              {student.photo_url && showPhotos ? (
+                                <Image
+                                  src={student.photo_url}
+                                  alt={`${student.first_name} ${student.last_name}`}
+                                  width={36}
+                                  height={36}
+                                  unoptimized
+                                  style={{
+                                    width: "100%",
+                                    height: "100%",
+                                    objectFit: "cover",
+                                  }}
+                                />
+                              ) : (
+                                <PersonInitials name={`${student.first_name} ${student.last_name}`} size={36} />
+                              )}
+                              <span
+                                title={statusMeta?.label || "No attendance recorded today"}
+                                aria-label={statusMeta?.label || "No attendance recorded today"}
+                                style={{
+                                  position: "absolute",
+                                  right: 0,
+                                  bottom: 0,
+                                  width: 10,
+                                  height: 10,
+                                  borderRadius: "50%",
+                                  border: "2px solid var(--surface)",
+                                  backgroundColor: attendanceTone(statusMeta?.status),
+                                  boxShadow: "0 0 0 1px rgba(0,0,0,0.08)",
+                                }}
+                              />
+                            </div>
+                            <div>
+                              <div className="flex flex-wrap items-center gap-2">
+                                <div style={{ fontWeight: 600, color: "var(--t1)" }}>
+                                  {student.first_name} {student.last_name}
+                                </div>
+                                {leader ? (
+                                  <span
+                                    className="inline-flex items-center rounded-full bg-[var(--navy-soft)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--navy)]"
+                                    title={leader}
+                                  >
+                                    {student.is_class_monitor && !student.prefect_role && !student.student_council_role
+                                      ? "Monitor"
+                                      : "Leader"}
+                                  </span>
+                                ) : null}
+                              </div>
+                              <div style={{ fontSize: 11, color: "var(--t3)" }}>
+                                {student.gender === "M" ? "Male" : "Female"}
+                                {statusMeta ? ` • ${statusMeta.label}` : ""}
+                              </div>
+                            </div>
+                          </Link>
+                        </td>
+                        <td data-label="Number" style={{ fontFamily: "DM Mono", fontSize: 12 }}>
+                          {student.student_number || "-"}
+                        </td>
+                        <td data-label="Class">
                           <span
-                            className="inline-flex h-3.5 w-3.5 rounded-full border border-white/60 shadow-sm"
-                            title={house.name}
-                            aria-label={`House: ${house.name}`}
+                            style={{
+                              padding: "4px 10px",
+                              background: "var(--bg)",
+                              borderRadius: 999,
+                              fontSize: 11,
+                              fontWeight: 600,
+                              color: "var(--t1)",
+                            }}
                           >
-                            <span
-                              className="h-full w-full rounded-full"
-                              style={{ backgroundColor: getHouseColor(house) }}
-                            />
+                            {resolveClassLabel(student)}
+                            {student.boarding_status && student.boarding_status !== "day" && (
+                              <span
+                                style={{
+                                  marginLeft: 4,
+                                  fontSize: 9,
+                                  padding: "1px 5px",
+                                  background: "rgba(155,89,182,0.15)",
+                                  color: "#0d9488",
+                                  borderRadius: 8,
+                                  fontWeight: 600,
+                                }}
+                              >
+                                {student.boarding_status}
+                              </span>
+                            )}
                           </span>
+                        </td>
+                        <td data-label="House">
+                          {house ? (
+                            <span
+                              className="inline-flex h-3.5 w-3.5 rounded-full border border-white/60 shadow-sm"
+                              title={house.name}
+                              aria-label={`House: ${house.name}`}
+                            >
+                              <span
+                                className="h-full w-full rounded-full"
+                                style={{ backgroundColor: getHouseColor(house) }}
+                              />
+                            </span>
+                          ) : (
+                            "-"
+                          )}
+                        </td>
+                        <td data-label="Parent" style={{ fontSize: 13 }}>
+                          {student.parent_name || "-"}
+                        </td>
+                        <td data-label="Phone" style={{ fontSize: 13, fontFamily: "DM Mono" }}>
+                          {student.parent_phone || "-"}
+                        </td>
+                        <td data-label="Actions">
+                          <div style={{ display: "flex", gap: 4 }}>
+                            <button
+                              onClick={() => onSmsParent(student)}
+                              title="SMS Parent"
+                              style={{
+                                background: "none",
+                                border: "none",
+                                cursor: "pointer",
+                                padding: 6,
+                                borderRadius: 6,
+                              }}
+                            >
+                              <MaterialIcon style={{ fontSize: 16, color: "var(--t3)" }}>sms</MaterialIcon>
+                            </button>
+                            <button
+                              onClick={() => onEditStudent(student)}
+                              style={{
+                                background: "none",
+                                border: "none",
+                                cursor: "pointer",
+                                padding: 6,
+                                borderRadius: 6,
+                              }}
+                            >
+                              <MaterialIcon style={{ fontSize: 16, color: "var(--t3)" }}>edit</MaterialIcon>
+                            </button>
+                            <button
+                              onClick={() => onDeleteStudent(student.id)}
+                              style={{
+                                background: "none",
+                                border: "none",
+                                cursor: "pointer",
+                                padding: 6,
+                                borderRadius: 6,
+                              }}
+                            >
+                              <MaterialIcon style={{ fontSize: 16, color: "var(--t3)" }}>delete</MaterialIcon>
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="space-y-3 md:hidden">
+              {paginatedStudents.map((student) => {
+                const house = resolveHouse(student);
+                const statusMeta = attendanceStatusMap[student.id];
+                const leader = leadershipLabel(student);
+
+                return (
+                  <div
+                    key={student.id}
+                    className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--sh1)]"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div
+                        className="relative h-12 w-12 shrink-0 overflow-hidden"
+                        style={{
+                          borderRadius: "50%",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          background: student.gender === "M" ? "var(--navy)" : "var(--red)",
+                        }}
+                      >
+                        {student.photo_url && showPhotos ? (
+                          <Image
+                            src={student.photo_url}
+                            alt={`${student.first_name} ${student.last_name}`}
+                            width={48}
+                            height={48}
+                            unoptimized
+                            className="h-full w-full object-cover"
+                          />
                         ) : (
-                          "-"
+                          <PersonInitials name={`${student.first_name} ${student.last_name}`} size={48} />
                         )}
-                      </td>
-                      <td data-label="Parent" style={{ fontSize: 13 }}>
-                        {student.parent_name || "-"}
-                      </td>
-                      <td data-label="Phone" style={{ fontSize: 13, fontFamily: "DM Mono" }}>
-                        {student.parent_phone || "-"}
-                      </td>
-                      <td data-label="Actions">
-                        <div style={{ display: "flex", gap: 4 }}>
-                          <button
-                            onClick={() => onSmsParent(student)}
-                            title="SMS Parent"
-                            style={{
-                              background: "none",
-                              border: "none",
-                              cursor: "pointer",
-                              padding: 6,
-                              borderRadius: 6,
-                            }}
-                          >
-                            <MaterialIcon style={{ fontSize: 16, color: "var(--t3)" }}>sms</MaterialIcon>
-                          </button>
-                          <button
-                            onClick={() => onEditStudent(student)}
-                            style={{
-                              background: "none",
-                              border: "none",
-                              cursor: "pointer",
-                              padding: 6,
-                              borderRadius: 6,
-                            }}
-                          >
-                            <MaterialIcon style={{ fontSize: 16, color: "var(--t3)" }}>edit</MaterialIcon>
-                          </button>
-                          <button
-                            onClick={() => onDeleteStudent(student.id)}
-                            style={{
-                              background: "none",
-                              border: "none",
-                              cursor: "pointer",
-                              padding: 6,
-                              borderRadius: 6,
-                            }}
-                          >
-                            <MaterialIcon style={{ fontSize: 16, color: "var(--t3)" }}>delete</MaterialIcon>
-                          </button>
+                        <span
+                          title={statusMeta?.label || "No attendance recorded today"}
+                          aria-label={statusMeta?.label || "No attendance recorded today"}
+                          className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-[var(--surface)]"
+                          style={{
+                            backgroundColor: attendanceTone(statusMeta?.status),
+                            boxShadow: "0 0 0 1px rgba(0,0,0,0.08)",
+                          }}
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <Link href={`/dashboard/students/${student.id}`} className="block min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-semibold text-[var(--t1)]">
+                              {student.first_name} {student.last_name}
+                            </span>
+                            {leader ? (
+                              <span
+                                className="rounded-full bg-[var(--navy-soft)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--navy)]"
+                                title={leader}
+                              >
+                                {student.is_class_monitor && !student.prefect_role && !student.student_council_role
+                                  ? "Monitor"
+                                  : "Leader"}
+                              </span>
+                            ) : null}
+                          </div>
+                          <div className="mt-0.5 text-xs text-[var(--t3)]">
+                            {student.gender === "M" ? "Male" : "Female"}
+                            {statusMeta ? ` • ${statusMeta.label}` : ""}
+                          </div>
+                        </Link>
+                        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                          <span className="rounded-full bg-[var(--bg)] px-2.5 py-1 text-[11px] font-semibold text-[var(--t1)]">
+                            {resolveClassLabel(student)}
+                            {student.boarding_status && student.boarding_status !== "day" && (
+                              <span
+                                className="ml-1 rounded px-1.5 py-0.5 text-[9px] font-semibold"
+                                style={{ background: "rgba(155,89,182,0.15)", color: "#0d9488" }}
+                              >
+                                {student.boarding_status}
+                              </span>
+                            )}
+                          </span>
+                          {house ? (
+                            <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--bg)] px-2.5 py-1 text-[11px] font-semibold text-[var(--t1)]">
+                              <span
+                                className="h-2.5 w-2.5 rounded-full"
+                                style={{ backgroundColor: getHouseColor(house) }}
+                              />
+                              {house.name}
+                            </span>
+                          ) : null}
                         </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                      </div>
+                    </div>
+
+                    <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-[var(--border)] pt-3 text-xs">
+                      <div className="min-w-0">
+                        <dt className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--t3)]">Number</dt>
+                        <dd className="mt-0.5 truncate font-mono text-[var(--t1)]">{student.student_number || "-"}</dd>
+                      </div>
+                      <div className="min-w-0">
+                        <dt className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--t3)]">Parent</dt>
+                        <dd className="mt-0.5 truncate text-[var(--t1)]">{student.parent_name || "-"}</dd>
+                      </div>
+                      <div className="col-span-2 min-w-0">
+                        <dt className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--t3)]">Phone</dt>
+                        <dd className="mt-0.5 truncate font-mono text-[var(--t1)]">{student.parent_phone || "-"}</dd>
+                      </div>
+                    </dl>
+
+                    <div className="mt-3 flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => onSmsParent(student)}
+                        aria-label={`SMS parent of ${student.first_name} ${student.last_name}`}
+                        className="flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] text-[13px] font-semibold text-[var(--t2)] transition-transform active:scale-[0.98]"
+                      >
+                        <MaterialIcon style={{ fontSize: 16 }}>sms</MaterialIcon>
+                        SMS
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onEditStudent(student)}
+                        aria-label={`Edit ${student.first_name} ${student.last_name}`}
+                        className="flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] text-[13px] font-semibold text-[var(--t2)] transition-transform active:scale-[0.98]"
+                      >
+                        <MaterialIcon style={{ fontSize: 16 }}>edit</MaterialIcon>
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onDeleteStudent(student.id)}
+                        aria-label={`Delete ${student.first_name} ${student.last_name}`}
+                        className="flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-xl border border-[var(--red-soft)] bg-[var(--red-soft)] text-[13px] font-semibold text-[var(--red-ink)] transition-transform active:scale-[0.98]"
+                      >
+                        <MaterialIcon style={{ fontSize: 16 }}>delete</MaterialIcon>
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
 
         {!loading && pageSize !== -1 && filteredCount > pageSize && (
