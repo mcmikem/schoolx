@@ -86,7 +86,6 @@ export function useSyncStatus() {
         "fee_structure",
         "messages",
         "events",
-        "timetable",
         "canteen_sales",
       ];
 

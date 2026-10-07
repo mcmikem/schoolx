@@ -20,6 +20,15 @@ interface OfflineRecord {
 const MAX_RETRY_ATTEMPTS = 3;
 const SOFT_DELETE_TABLES = new Set(["grades", "fee_payments", "fee_structure", "fee_adjustments"]);
 
+// PostgREST answers 404 with code PGRST205 for a table that is not in the
+// schema. The refresh list that runs after every successful sign-in still
+// names `timetable`, which was replaced by `timetable_slots` and whose cache
+// entry nothing reads, so it is seeded here rather than paying a 404 on the
+// first sync of every page load. Any other table that drifts is remembered on
+// its first miss instead of on every sync after it.
+const MISSING_TABLE_CODE = "PGRST205";
+const missingTables = new Set<string>(["timetable"]);
+
 type SyncItemResult =
   | { status: "synced" }
   | { status: "conflict"; reason: string }
@@ -644,9 +653,16 @@ class OfflineDB {
     try {
       const { supabase } = await import("@/lib/supabase");
       for (const table of tables) {
+        if (missingTables.has(table)) continue;
         try {
           const { data, error } = await supabase.from(table).select("*");
-          if (error) throw error;
+          if (error) {
+            if (error.code === MISSING_TABLE_CODE) {
+              missingTables.add(table);
+              continue;
+            }
+            throw error;
+          }
           if (data) {
             await this.cacheFromServer(table, data as Record<string, unknown>[]);
           }
