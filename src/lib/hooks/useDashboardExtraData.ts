@@ -53,6 +53,25 @@ interface DashboardPayload {
   dropoutRiskCount: number;
 }
 
+/** Shape returned by the dashboard_extra() SQL function (migration
+ *  202611010017). It aggregates the eight queries this hook used to fire, so
+ *  the browser only ever receives the numbers it was deriving from raw rows. */
+interface RpcExtra {
+  class_attendance: Record<string, { present: number; total: number }>;
+  low_attendance_classes: number;
+  at_risk_students: any[];
+  sms_sent_today: number;
+  sms_delivered_today: number;
+  fees_today: number;
+  fees_week: number;
+  fees_term: number;
+  staff_on_duty: number;
+  pending_expenses: number;
+  pending_leave: number;
+  dropout_risk_count: number;
+  overdue_count: number;
+}
+
 const DEMO_PAYLOAD: DashboardPayload = {
   classAttendance: {
     "demo-class-1": { present: 28, total: 30 },
@@ -98,7 +117,7 @@ class DashboardTimeoutsError extends Error {
   name = "DashboardTimeoutsError";
 }
 
-function computePayload(
+function computePayloadLegacy(
   schoolId: string,
   students: any[] | null,
   feeStructure: any[],
@@ -363,6 +382,101 @@ function computePayload(
       lowAttendanceClasses: lowAtt,
       dropoutRiskCount: computedDropoutCount,
     };
+  })();
+}
+
+/** Local midnight as an ISO instant. messages.created_at is a timestamptz, so
+ *  comparing it against a bare date would snap to UTC midnight — Uganda is
+ *  UTC+3 and that dropped the first three hours of every day. */
+export function localMidnightIso(now: Date): string {
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
+}
+
+/** Turns the dashboard_extra() row into the payload shape the dashboards read.
+ *  Exported so the mapping (rounding, coercion, defaults) is unit-tested rather
+ *  than only exercised against a live database. */
+export function payloadFromRpc(extra: RpcExtra): DashboardPayload {
+  const sentToday = extra.sms_sent_today || 0;
+  const delivered = extra.sms_delivered_today || 0;
+
+  return {
+    classAttendance: extra.class_attendance || {},
+    atRiskStudents: extra.at_risk_students || [],
+    smsStats: {
+      sentToday,
+      deliveryRate: sentToday > 0 ? Math.round((delivered / sentToday) * 100) : 0,
+      remaining: 0,
+      total: 0,
+    },
+    pendingExpenses: extra.pending_expenses || 0,
+    pendingLeave: extra.pending_leave || 0,
+    feesToday: Number(extra.fees_today) || 0,
+    feesThisWeek: Number(extra.fees_week) || 0,
+    feesThisTerm: Number(extra.fees_term) || 0,
+    staffOnDuty: extra.staff_on_duty || 0,
+    overdueFeeCount: extra.overdue_count || 0,
+    lowAttendanceClasses: extra.low_attendance_classes || 0,
+    dropoutRiskCount: extra.dropout_risk_count || 0,
+  };
+}
+
+/** One round trip instead of eight. Falls back to the original eight-query
+ *  path when the function is unavailable (a database that predates migration
+ *  202611010017) so a missing migration degrades to slow rather than broken. */
+function computePayload(
+  schoolId: string,
+  students: any[] | null,
+  feeStructure: any[],
+  currentTerm: string | number | undefined,
+  academicYear: string | undefined,
+  fallback?: DashboardPayload | null,
+): Promise<DashboardPayload> {
+  return (async () => {
+    // Same guard as the legacy path: a null roster means the school's data
+    // could not be read at all, and a confident-looking zero payload would be
+    // a lie — even though every figure below now comes from the database.
+    if (!students) throw new DashboardTimeoutsError();
+
+    const now = new Date();
+    const today = getLocalDateString(now);
+    const dayOfWeek = now.getDay();
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+
+    const termLookbackDate = new Date(now);
+    termLookbackDate.setDate(now.getDate() - 180);
+
+    const fourteenDaysAgo = new Date(now);
+    fourteenDaysAgo.setDate(now.getDate() - 14);
+
+    const rpc = await withTimeout(
+      supabase.rpc("dashboard_extra", {
+        p_school_id: schoolId,
+        p_academic_year: academicYear || new Date().getFullYear().toString(),
+        p_term: currentTerm === undefined || currentTerm === null ? "1" : String(currentTerm),
+        p_today: today,
+        p_week_start: getLocalDateString(monday),
+        p_term_start: getLocalDateString(termLookbackDate),
+        p_dropout_start: getLocalDateString(fourteenDaysAgo),
+        p_today_ts: localMidnightIso(now),
+      }),
+      15000,
+      timeoutFallback<RpcExtra>(),
+    );
+
+    if (rpc.status === 408) {
+      if (fallback) return { ...fallback };
+      throw new DashboardTimeoutsError();
+    }
+
+    if (rpc.error || !rpc.data) {
+      // Most likely PGRST202 — the function has not been created on this
+      // database yet. Say so once and serve the data the old way.
+      logger.warn("[dashboard-extra] dashboard_extra unavailable, using the 8-query path:", rpc.error?.message);
+      return computePayloadLegacy(schoolId, students, feeStructure, currentTerm, academicYear, fallback);
+    }
+
+    return payloadFromRpc(rpc.data as RpcExtra);
   })();
 }
 
