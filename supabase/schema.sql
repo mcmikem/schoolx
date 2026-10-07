@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS schools (
     has_boarding BOOLEAN DEFAULT false,
     has_houses BOOLEAN DEFAULT false,
     has_student_council BOOLEAN DEFAULT false,
+    has_prefects BOOLEAN DEFAULT false,
     location_type TEXT CHECK (location_type IN ('urban', 'peri_urban', 'rural')) DEFAULT 'urban',
     address TEXT,
     motto TEXT,
@@ -459,6 +460,8 @@ CREATE TABLE IF NOT EXISTS messages (
     status TEXT CHECK (status IN ('pending', 'sent', 'delivered', 'failed')) DEFAULT 'pending',
     delivery_status TEXT,
     recipient_count INTEGER DEFAULT 1,
+    message_id TEXT,
+    channel TEXT,
     sent_by UUID REFERENCES users(id),
     sent_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT NOW()
@@ -590,7 +593,8 @@ CREATE TABLE IF NOT EXISTS automated_message_logs (
     recipient_id TEXT,
     status TEXT NOT NULL CHECK (status IN ('sent', 'failed')) DEFAULT 'sent',
     record_id TEXT,
-    sent_at TIMESTAMPTZ DEFAULT NOW()
+    sent_at TIMESTAMPTZ DEFAULT NOW(),
+    created_at TIMESTAMPTZ DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_automated_message_logs_school ON automated_message_logs(school_id);
 CREATE INDEX IF NOT EXISTS idx_automated_message_logs_trigger ON automated_message_logs(trigger_id, created_at);
@@ -2419,7 +2423,7 @@ CREATE TABLE IF NOT EXISTS dorm_students (
     dorm_id UUID NOT NULL REFERENCES dorms(id) ON DELETE CASCADE,
     student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
     bed_number TEXT,
-    assigned_date DATE DEFAULT CURRENT_DATE,
+    assigned_at TIMESTAMPTZ DEFAULT now(),
     created_at TIMESTAMPTZ DEFAULT NOW(),
     UNIQUE(dorm_id, student_id)
 );
@@ -2717,7 +2721,7 @@ CREATE TABLE IF NOT EXISTS homework_submissions (
     homework_id UUID REFERENCES homework(id) ON DELETE CASCADE,
     student_id UUID REFERENCES students(id) ON DELETE CASCADE,
     submitted_at TIMESTAMPTZ,
-    marks INTEGER,
+    marks_obtained INTEGER,
     feedback TEXT,
     status TEXT CHECK (status IN ('pending', 'submitted', 'graded', 'late')) DEFAULT 'pending',
     created_at TIMESTAMPTZ DEFAULT NOW(),

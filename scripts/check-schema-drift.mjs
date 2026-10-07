@@ -66,8 +66,33 @@ const SUPABASE_URL =
   process.env.SUPABASE_TEST_PROJECT_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+/**
+ * Strip `-- ...` line comments, ignoring any `--` inside a string literal.
+ *
+ * Column lists are split on commas, so a trailing comment such as
+ * `stream TEXT, -- e.g. "A", "B", "Science", "Arts"` used to invent phantom
+ * columns (`b`, `science`, `arts`) and, because it consumed the real column
+ * names that followed, also hid columns that do exist.
+ */
+function stripSqlComments(input) {
+  let out = "";
+  let inString = false;
+  for (let i = 0; i < input.length; i++) {
+    const ch = input[i];
+    if (ch === "'") inString = !inString;
+    if (!inString && ch === "-" && input[i + 1] === "-") {
+      while (i < input.length && input[i] !== "\n") i++;
+      out += "\n";
+      continue;
+    }
+    out += ch;
+  }
+  return out;
+}
+
 /** Parse CREATE TABLE blocks out of schema.sql into { table: [columns] }. */
-function parseSchema(sql) {
+function parseSchema(raw) {
+  const sql = stripSqlComments(raw);
   const tables = new Map();
   const re = /CREATE TABLE (?:IF NOT EXISTS )?([a-z_][a-z0-9_]*)\s*\(/gi;
   let m;
