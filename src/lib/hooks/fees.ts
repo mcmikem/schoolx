@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import type { FeePayment, FeeStructure, FeeAdjustment, CreatePaymentInput } from "@/types";
-import { getQuerySchoolId, withTimeout, timeoutFallback, isTimeoutResult } from "./utils";
+import { getLocalDateString, getQuerySchoolId, withTimeout, timeoutFallback, isTimeoutResult } from "./utils";
 import { getCachedData, setCachedData, invalidateCache } from "./queryCache";
 import { DEMO_FEE_PAYMENTS, DEMO_FEE_STRUCTURE, DEMO_EXPENSES, DEMO_BUDGETS, DemoExpense } from "@/lib/demo-data";
 import { isDemoSchool } from "@/lib/demo-utils";
@@ -214,7 +214,10 @@ export function useFeePayments(schoolId?: string, page: number = 1, limit: numbe
   const createPayment = async (payment: CreatePaymentInput) => {
     const normalizedPayment = normalizePaymentInput({
       ...payment,
-      payment_date: new Date().toISOString().split("T")[0],
+      // Local, not UTC. A payment entered at 01:00 in Uganda is dated
+      // YESTERDAY by toISOString(), which drops it out of "Fees today" on the
+      // dashboard and files it under the wrong day of the cashbook.
+      payment_date: getLocalDateString(),
     });
     const validationErrors = validatePaymentInput(normalizedPayment);
     if (validationErrors.length > 0) {

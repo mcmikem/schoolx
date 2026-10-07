@@ -114,20 +114,25 @@ function computePayload(
     if (!students) throw new DashboardTimeoutsError();
 
     const now = new Date();
-    // Local date — must match how attendance is marked in the UI.
+    // Every boundary below is local. toISOString() renders in UTC, which in
+    // Uganda (UTC+3) puts anything created between 00:00 and 03:00 on the
+    // previous day — so the week window opened a day late, the 14-day dropout
+    // window started a day early, and a payment logged just after midnight
+    // never counted as this week's. The comment on `today` above already said
+    // this; the other three were never converted.
     const today = getLocalDateString(now);
     const dayOfWeek = now.getDay();
     const monday = new Date(now);
     monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
-    const weekStart = monday.toISOString().split("T")[0];
+    const weekStart = getLocalDateString(monday);
 
     const termLookbackDate = new Date(now);
     termLookbackDate.setDate(now.getDate() - 180);
-    const termStart = termLookbackDate.toISOString().split("T")[0];
+    const termStart = getLocalDateString(termLookbackDate);
 
     const fourteenDaysAgo = new Date(now);
     fourteenDaysAgo.setDate(now.getDate() - 14);
-    const dropoutStartDate = fourteenDaysAgo.toISOString().split("T")[0];
+    const dropoutStartDate = getLocalDateString(fourteenDaysAgo);
     const effectiveAcademicYear = academicYear || new Date().getFullYear().toString();
 
     const [attendanceRes, gradesRes, messagesRes, paymentsRes, staffAttRes, dropoutAttRes] = await Promise.all([
