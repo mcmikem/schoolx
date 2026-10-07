@@ -80,7 +80,7 @@ function InspectionReportContent() {
   const { staff = [] } = useStaff(school?.id);
   const { payments = [] } = useFeePayments(school?.id);
   const { feeStructure = [] } = useFeeStructure(school?.id);
-  const { stats } = useDashboardStats(school?.id);
+  const { stats } = useDashboardStats(school?.id, { term: currentTerm, academicYear });
 
   const {
     classAttendance,

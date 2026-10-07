@@ -12,6 +12,7 @@ import {
 import { isDemoSchool } from "@/lib/demo-utils";
 import { offlineDB } from "@/lib/offline";
 import { logger } from "@/lib/logger";
+import { normalizeFeeSummary } from "./fees";
 
 interface DashboardStats {
   totalStudents: number;
@@ -85,28 +86,78 @@ async function writeCachedStats(cacheKey: string, stats: DashboardStats): Promis
   }
 }
 
-async function computeStats(schoolId: string): Promise<DashboardStats> {
+// Returned by withTimeout() when a head-count missed its deadline. Never
+// rendered: computeStats turns it into a rejection so the dashboard keeps the
+// last figure it actually verified instead of showing 0.
+const COUNT_UNKNOWN = -1;
+
+/**
+ * Count active students, optionally narrowed to one gender.
+ *
+ * A head-count instead of `select(...)` + `.length`: PostgREST caps a request
+ * at 1000 rows, so the array version silently stopped growing and reported
+ * exactly 1000 students for a school that had 1,001.
+ */
+function countActiveStudents(schoolId: string, gender?: "M" | "F") {
+  let query = supabase
+    .from("students")
+    .select("id", { count: "exact", head: true })
+    .eq("school_id", schoolId)
+    .eq("status", "active");
+  if (gender) query = query.eq("gender", gender);
+
+  return withTimeout(
+    query.then((r) => {
+      if (r.error) throw r.error;
+      return r.count ?? 0;
+    }),
+    15000,
+    COUNT_UNKNOWN,
+  );
+}
+
+async function computeStats(
+  schoolId: string,
+  term?: number | null,
+  academicYear?: string | null,
+): Promise<DashboardStats> {
   // Local date — must match the date the attendance UI marks with. Using UTC
   // via toISOString() would shift a day for schools ahead of UTC (e.g. Uganda).
   const today = getLocalDateString();
 
-  // All six feed-queries run in parallel so the wall-clock time is bounded by
+  // All seven feed-queries run in parallel so the wall-clock time is bounded by
   // the slowest single query, not their sum — this is the single biggest
   // latency win on slow 3G links.
-  const [activeStudents, presentCount, classCount, teacherCount, feeStructure, totalCollected] = await Promise.all([
+  //
+  // Money comes from fee_summary(), the same function the Bursar dashboard
+  // reads. Summing fee_structure x students-by-class here produced a different
+  // answer for a different reason (it counted every term's fees at once while
+  // the Bursar was scoped to the term in the header), so the two boards
+  // disagreed about the collection rate with nothing to explain why. It also
+  // capped out at 1000 payment rows, so "collected" stopped growing on a busy
+  // school. Two queries disappear from the request and the answer is now
+  // computed over the whole school in one round trip.
+  const [feeSummary, activeTotal, maleCount, femaleCount, presentCount, classCount, teacherCount] = await Promise.all([
     withTimeout(
       supabase
-        .from("students")
-        .select("id, gender, class_id")
-        .eq("school_id", schoolId)
-        .eq("status", "active")
+        .rpc("fee_summary", {
+          p_school_id: schoolId,
+          p_term: term ?? null,
+          p_academic_year: academicYear ?? null,
+        })
+        .maybeSingle()
         .then((r) => {
           if (r.error) throw r.error;
-          return r.data || [];
+          const summary = normalizeFeeSummary(r.data);
+          if (!summary) throw new Error("fee_summary() returned no row");
+          return summary;
         }),
       15000,
-      [] as Array<{ id: string; gender: string | null; class_id: string | null }>,
+      null,
     ),
+    countActiveStudents(schoolId),
+    countActiveStudents(schoolId, "M"),
+    countActiveStudents(schoolId, "F"),
     // presentToday is counted directly on the attendance table. RLS already
     // scopes rows to this school's classes, so there is no need to first fetch
     // every student id and pass a huge IN(...) list (which could time out or
@@ -145,55 +196,23 @@ async function computeStats(schoolId: string): Promise<DashboardStats> {
       15000,
       0,
     ),
-    withTimeout(
-      supabase
-        .from("fee_structure")
-        .select("amount, class_id")
-        .eq("school_id", schoolId)
-        .then((r) => {
-          if (r.error) throw r.error;
-          return r.data || [];
-        }),
-      15000,
-      [] as Array<{ amount: number | null; class_id: string | null }>,
-    ),
-    withTimeout(
-      supabase
-        .from("fee_payments")
-        .select("amount_paid, students!inner(school_id)")
-        .eq("students.school_id", schoolId)
-        .then((r) => {
-          if (r.error) throw r.error;
-          return (r.data || []).reduce((sum: number, row: { amount_paid?: number | null }) => {
-            return sum + Number(row.amount_paid || 0);
-          }, 0);
-        }),
-      15000,
-      0,
-    ),
   ]);
 
-  const totalStudents = activeStudents.length;
-  const maleStudents = activeStudents.filter((s) => s.gender === "M").length;
-  const femaleStudents = activeStudents.filter((s) => s.gender === "F").length;
-
-  const studentsByClass: Record<string, number> = {};
-  activeStudents.forEach((s) => {
-    if (s.class_id) studentsByClass[s.class_id] = (studentsByClass[s.class_id] || 0) + 1;
-  });
-
-  const totalExpected = (feeStructure || []).reduce((sum, f) => {
-    const count = f.class_id ? studentsByClass[f.class_id] || 0 : totalStudents;
-    return sum + Number(f.amount || 0) * count;
-  }, 0);
+  // Unknown money or student counts must not be written into the cache as
+  // zero. Reject instead: fetchStats keeps the previous snapshot (and its
+  // OfflineDB copy) and the caller keeps rendering something it stands behind.
+  if (!feeSummary) throw new Error("Timed out reading fee_summary()");
+  if (activeTotal < 0 || maleCount < 0 || femaleCount < 0) {
+    throw new Error("Timed out reading student counts");
+  }
 
   return {
-    totalStudents,
-    maleStudents,
-    femaleStudents,
+    totalStudents: activeTotal,
+    maleStudents: maleCount,
+    femaleStudents: femaleCount,
     presentToday: presentCount,
-    feesCollected: totalCollected,
-    feesBalance: Math.max(0, totalExpected - totalCollected),
+    feesCollected: feeSummary.collectedTotal,
+    feesBalance: Math.max(0, feeSummary.expectedTotal - feeSummary.collectedTotal),
     totalClasses: classCount || 0,
     totalTeachers: teacherCount || 0,
   };
@@ -207,11 +226,16 @@ async function computeStats(schoolId: string): Promise<DashboardStats> {
  *  3. `refetch({ force: true })`/the `dashboard-stats:refresh` window event
  *     (fired after attendance/fees are saved) refresh immediately.
  */
-export function useDashboardStats(schoolId?: string) {
+export function useDashboardStats(schoolId?: string, options?: { term?: number | null; academicYear?: string | null }) {
+  const term = options?.term ?? null;
+  const academicYear = options?.academicYear ?? null;
   const [stats, setStats] = useState<DashboardStats>(EMPTY_STATS);
   const [loading, setLoading] = useState(true);
   const { isDemo } = useAuth();
-  const cacheKey = schoolId ? `${STATS_CACHE_PREFIX}${schoolId}` : "";
+  // Scoped to the term, because fee_summary() is: the same school in Term 1
+  // and Term 3 owes different amounts, and one cache entry for both would show
+  // the previous term's collection rate after a switch.
+  const cacheKey = schoolId ? `${STATS_CACHE_PREFIX}${schoolId}:${term ?? "all"}:${academicYear ?? "all"}` : "";
   const inFlightRef = useRef(false);
 
   const fetchStats = useCallback(
@@ -246,7 +270,7 @@ export function useDashboardStats(schoolId?: string) {
 
       inFlightRef.current = true;
       try {
-        const next = await computeStats(querySchoolId);
+        const next = await computeStats(querySchoolId, term, academicYear);
         // A timed-out presentToday (-1) must not be cached (it would overwrite a
         // last-known-good snapshot) and must not downgrade the currently shown
         // value to "unknown". The UI keeps the previous value and shows "--".
@@ -264,7 +288,7 @@ export function useDashboardStats(schoolId?: string) {
         setLoading(false);
       }
     },
-    [schoolId, isDemo, cacheKey],
+    [schoolId, isDemo, cacheKey, term, academicYear],
   );
 
   // Seed from cache on mount, then revalidate in the background.

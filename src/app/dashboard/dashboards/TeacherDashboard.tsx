@@ -29,7 +29,7 @@ function TeacherDashboardContent() {
   const { students, loading: studentsLoading } = useStudents(school?.id);
   const { classes, loading: classesLoading } = useClasses(school?.id);
   const { subjects, loading: subjectsLoading } = useSubjects(school?.id);
-  const { stats, loading: statsLoading } = useDashboardStats(school?.id);
+  const { stats, loading: statsLoading } = useDashboardStats(school?.id, { term: currentTerm, academicYear });
   const [settingUp, setSettingUp] = useState(false);
   const [loadingTimedOut, setLoadingTimedOut] = useState(false);
   const dataLoading = studentsLoading || classesLoading || subjectsLoading || statsLoading;

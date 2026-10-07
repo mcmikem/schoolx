@@ -23,7 +23,7 @@ function HeadmasterDashboardContent() {
   const { school, user } = useAuth();
   const { academicYear, currentTerm } = useAcademic();
 
-  const { stats, loading: statsLoading } = useDashboardStats(school?.id);
+  const { stats, loading: statsLoading } = useDashboardStats(school?.id, { term: currentTerm, academicYear });
   const { students, ready: rosterReady } = useAllStudents(school?.id);
   const { feeStructure = [] } = useFeeStructure(school?.id);
   const { classes = [] } = useClasses(school?.id);

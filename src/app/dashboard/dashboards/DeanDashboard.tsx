@@ -20,7 +20,7 @@ function DeanDashboardContent() {
   const { students } = useStudents(school?.id);
   const { classes } = useClasses(school?.id);
   const { subjects } = useSubjects(school?.id);
-  const { stats, loading: statsLoading } = useDashboardStats(school?.id);
+  const { stats, loading: statsLoading } = useDashboardStats(school?.id, { term: currentTerm, academicYear });
   const [loadingTimedOut, setLoadingTimedOut] = useState(false);
 
   useEffect(() => {
