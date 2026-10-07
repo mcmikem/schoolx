@@ -198,7 +198,20 @@ function HeadmasterDashboardContent() {
     );
   }
 
-  const isFirstRun = school?.id && !isDataLoading && stats.totalStudents === 0 && classes.length === 0;
+  // Two things this deliberately does not test, and one it now does.
+  //
+  // Not `classes.length === 0`: the 10-step onboarding creates the classes,
+  // terms and fee structure before a single learner is imported, so requiring
+  // an empty class list meant this welcome never appeared for the schools it
+  // was written for.
+  //
+  // Not `stats.totalStudents === 0` either: an unread school and an empty
+  // school both look like zero there, and the welcome would take over a
+  // dashboard that simply could not be reached.
+  //
+  // `rosterReady` is only true after a read actually succeeded, so it is the
+  // one signal that separates "no students" from "we do not know".
+  const isFirstRun = school?.id && !isDataLoading && rosterReady && students.length === 0;
 
   return (
     <div className="content overflow-x-hidden">
@@ -222,7 +235,9 @@ function HeadmasterDashboardContent() {
           <span className="material-symbols-outlined text-[var(--t1)] text-4xl">rocket_launch</span>
           <h2 className="text-lg font-bold text-[var(--t1)] mt-2">Welcome to {school?.name || "your school"}!</h2>
           <p className="text-sm text-[var(--t3)] mt-1 max-w-md mx-auto">
-            Start by adding students and setting up your classes.
+            {classes.length === 0
+              ? "Start by adding students and setting up your classes."
+              : "Your classes are ready — add your first student to get going."}
           </p>
           <div className="flex flex-wrap justify-center gap-3 mt-4">
             <Link
