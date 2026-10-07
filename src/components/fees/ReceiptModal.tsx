@@ -1,22 +1,27 @@
-'use client'
-import MaterialIcon from '@/components/MaterialIcon'
+"use client";
+import MaterialIcon from "@/components/MaterialIcon";
+import { formatCurrency } from "@/lib/currency";
 
 interface ReceiptModalProps {
-  isOpen: boolean
-  student: { name: string; student_number: string; paid: number; balance: number } | null
-  schoolName: string
-  onClose: () => void
-  onPrint: () => void
+  isOpen: boolean;
+  student: { name: string; student_number: string; paid: number; balance: number } | null;
+  schoolName: string;
+  onClose: () => void;
+  onPrint: () => void;
 }
 
-const formatCurrency = (amount: number) => `UGX ${amount.toLocaleString()}`
-
 export default function ReceiptModal({ isOpen, student, schoolName, onClose, onPrint }: ReceiptModalProps) {
-  if (!isOpen || !student) return null
+  if (!isOpen || !student) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4" onClick={onClose}>
-      <div className="bg-surface-container-lowest rounded-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-surface-container-lowest rounded-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="p-6">
           <div className="text-center border-b-2 border-primary pb-4 mb-4">
             <h3 className="font-headline font-bold text-xl text-primary">{schoolName}</h3>
@@ -37,17 +42,22 @@ export default function ReceiptModal({ isOpen, student, schoolName, onClose, onP
             </div>
             <div className="flex justify-between py-2 border-b border-dashed">
               <span className="text-on-surface-variant">Balance:</span>
-              <span className={`font-bold ${student.balance > 0 ? 'text-error' : 'text-secondary'}`}>{formatCurrency(student.balance)}</span>
+              <span className={`font-bold ${student.balance > 0 ? "text-error" : "text-secondary"}`}>
+                {formatCurrency(student.balance)}
+              </span>
             </div>
           </div>
         </div>
         <div className="p-6 border-t border-outline-variant/10">
-          <button onClick={onPrint} className="w-full py-3 bg-primary text-white font-semibold rounded-xl flex items-center justify-center gap-2">
+          <button
+            onClick={onPrint}
+            className="w-full py-3 bg-primary text-white font-semibold rounded-xl flex items-center justify-center gap-2"
+          >
             <MaterialIcon icon="print" className="text-lg" />
             Print Receipt
           </button>
         </div>
       </div>
     </div>
-  )
+  );
 }

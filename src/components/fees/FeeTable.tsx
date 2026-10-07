@@ -1,6 +1,7 @@
 "use client";
 import { useState, useMemo } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
+import { formatCurrency } from "@/lib/currency";
 
 export interface StudentBalance {
   id: string;
@@ -37,8 +38,6 @@ interface EnhancedFeeTableProps {
   onSendSMS?: (students: StudentBalance[]) => void;
   onExport?: (students: StudentBalance[]) => void;
 }
-
-const formatCurrency = (amount: number) => `UGX ${amount.toLocaleString()}`;
 
 function FeeProgressBar({ percentage, amount, total }: { percentage: number; amount: number; total: number }) {
   // Soft system palette (not saturated 500s): quiet track, single confident fill.

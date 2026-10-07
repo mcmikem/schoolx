@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
+import { formatCurrency } from "@/lib/currency";
 
 interface FeeStatsProps {
   stats: {
@@ -18,8 +19,6 @@ interface FeeStatsProps {
   onFilter?: (status: "all" | "paid" | "partial" | "unpaid") => void;
   activeFilter?: "all" | "paid" | "partial" | "unpaid";
 }
-
-const formatCurrency = (amount: number) => `UGX ${amount.toLocaleString()}`;
 
 function CollectionDonut({
   stats,

@@ -2,12 +2,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
-
-function formatCurrency(amount: number) {
-  if (amount >= 1000000) return `${(amount / 1000000).toFixed(1)}M`;
-  if (amount >= 1000) return `${(amount / 1000).toFixed(0)}K`;
-  return `${amount}`;
-}
+import { formatCompactCurrency } from "@/lib/currency";
 
 export default function RecentPayments({
   payments,
@@ -37,7 +32,7 @@ export default function RecentPayments({
           <MaterialIcon icon={isOpen ? "expand_less" : "expand_more"} className="text-[var(--t3)] text-lg" />
         </div>
         <span className="text-xs font-bold text-[var(--green)] bg-[var(--green-soft)] px-2 py-0.5 rounded-full">
-          +UGX {formatCurrency(thisMonthTotal)}
+          +UGX {formatCompactCurrency(thisMonthTotal)}
         </span>
       </button>
 
@@ -80,7 +75,7 @@ export default function RecentPayments({
                   {method === "mobile_money" ? "Mobile" : method}
                 </span>
                 <p className="text-sm font-bold text-[var(--green)]">
-                  UGX {formatCurrency(p.amount_paid || p.amount || 0)}
+                  UGX {formatCompactCurrency(p.amount_paid || p.amount || 0)}
                 </p>
               </div>
             );

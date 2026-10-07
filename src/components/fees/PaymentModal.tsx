@@ -1,6 +1,7 @@
 "use client";
 import { useState, useMemo } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
+import { formatCurrency } from "@/lib/currency";
 
 interface PaymentData {
   student_id: string;
@@ -23,8 +24,6 @@ interface PaymentModalProps {
   onPaymentChange: (updates: Record<string, unknown>) => void;
   saving: boolean;
 }
-
-const formatCurrency = (amount: number) => `UGX ${amount.toLocaleString()}`;
 
 export default function PaymentModal({
   isOpen,

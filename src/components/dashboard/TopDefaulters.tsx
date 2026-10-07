@@ -2,13 +2,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
+import { formatCompactCurrency } from "@/lib/currency";
 import type { FeeDefaulter } from "@/lib/hooks";
-
-function formatCurrency(amount: number) {
-  if (amount >= 1000000) return `${(amount / 1000000).toFixed(1)}M`;
-  if (amount >= 1000) return `${(amount / 1000).toFixed(0)}K`;
-  return `${amount}`;
-}
 
 /**
  * Head of the defaulter ranking produced by fee_summary(), not a client-side
@@ -50,7 +45,7 @@ export default function TopDefaulters({
           <MaterialIcon icon={isOpen ? "expand_less" : "expand_more"} className="text-[var(--t3)] text-lg" />
         </div>
         <span className="text-xs font-bold text-[var(--red)] bg-[var(--red-soft)] px-2 py-0.5 rounded-full">
-          UGX {formatCurrency(totalBalance)}
+          UGX {formatCompactCurrency(totalBalance)}
         </span>
       </button>
 
@@ -77,7 +72,7 @@ export default function TopDefaulters({
                   {student.parent_name} · {student.class_name || ""}
                 </p>
               </div>
-              <p className="text-sm font-bold text-[var(--red)]">-UGX {formatCurrency(student.balance)}</p>
+              <p className="text-sm font-bold text-[var(--red)]">-UGX {formatCompactCurrency(student.balance)}</p>
               {student.parent_phone && (
                 <div className="flex gap-1 shrink-0">
                   <a

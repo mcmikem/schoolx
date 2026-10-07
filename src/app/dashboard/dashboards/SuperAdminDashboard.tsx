@@ -69,13 +69,6 @@ const STATUS_BADGE: Record<string, { bg: string; text: string; label: string }> 
   canceled: { bg: "var(--surface-container-low)", text: "var(--slate-ink)", label: "Canceled" },
 };
 
-function formatCurrency(n: number) {
-  if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`;
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(0)}K`;
-  return `${n}`;
-}
-
 function timeSince(dateStr: string) {
   const diff = Date.now() - new Date(dateStr).getTime();
   const days = Math.floor(diff / 86_400_000);

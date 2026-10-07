@@ -18,6 +18,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { StuckLoadingOverlay, TopLoadingBar } from "@/components/ui/Skeleton";
 import { useAcademic } from "@/lib/academic-context";
 import { useAuth } from "@/lib/auth-context";
+import { formatCompactCurrency } from "@/lib/currency";
 import {
   HIGH_RISK_ARREARS_THRESHOLD,
   MAX_RETURNED_DEFAULTERS,
@@ -52,12 +53,6 @@ function BursarDashboardContent() {
     }, 3000);
     return () => window.clearTimeout(timer);
   }, [dataLoading]);
-
-  const formatCurrency = (amount: number) => {
-    if (amount >= 1000000) return `${(amount / 1000000).toFixed(1)}M`;
-    if (amount >= 1000) return `${(amount / 1000).toFixed(0)}K`;
-    return `${amount}`;
-  };
 
   const currentDate = new Date();
   const greeting = greetingFor(currentDate);
@@ -265,7 +260,7 @@ function BursarDashboardContent() {
           <div className="stat-grid !mb-0">
             <StatCard
               label="Expected"
-              value={`UGX ${formatCurrency(totalFeesExpected)}`}
+              value={`UGX ${formatCompactCurrency(totalFeesExpected)}`}
               subValue={`${studentTotal} students`}
               icon="account_balance"
               accentColor="navy"
@@ -275,7 +270,7 @@ function BursarDashboardContent() {
             />
             <StatCard
               label="Collected"
-              value={`UGX ${formatCurrency(totalFeesCollected)}`}
+              value={`UGX ${formatCompactCurrency(totalFeesCollected)}`}
               icon="payments"
               accentColor="green"
               loading={dataLoading}
@@ -290,7 +285,7 @@ function BursarDashboardContent() {
             />
             <StatCard
               label="Arrears"
-              value={`UGX ${formatCurrency(totalArrears)}`}
+              value={`UGX ${formatCompactCurrency(totalArrears)}`}
               subValue={`${overdueCount} in arrears`}
               icon="warning"
               accentColor={totalArrears > 0 ? "red" : "green"}

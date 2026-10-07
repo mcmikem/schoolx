@@ -2,20 +2,12 @@
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { formatCompactCurrency } from "@/lib/currency";
 import { useAcademic } from "@/lib/academic-context";
 import { useStudents, useFeePayments } from "@/lib/hooks";
 import { useToast } from "@/components/Toast";
 import { supabase } from "@/lib/supabase";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  BarChart,
-  Bar,
-} from "recharts";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar } from "recharts";
 import { logger } from "@/lib/logger";
 
 import MaterialIcon from "@/components/MaterialIcon";
@@ -81,9 +73,7 @@ export default function TrendAnalyticsPage() {
 
       if (terms.data) {
         for (const term of terms.data) {
-          const termYear =
-            (term as { academic_years?: { year: string }[] })
-              ?.academic_years?.[0]?.year || academicYear;
+          const termYear = (term as { academic_years?: { year: string }[] })?.academic_years?.[0]?.year || academicYear;
 
           const termStudents = await supabase
             .from("students")
@@ -93,28 +83,16 @@ export default function TrendAnalyticsPage() {
 
           if (termStudents.error) throw new Error(termStudents.error.message);
 
-          const termPayments = await supabase
-            .from("fee_payments")
-            .select("amount_paid")
-            .eq("school_id", school.id);
+          const termPayments = await supabase.from("fee_payments").select("amount_paid").eq("school_id", school.id);
 
           if (termPayments.error) throw new Error(termPayments.error.message);
 
-          const feeStructure = await supabase
-            .from("fee_structure")
-            .select("amount")
-            .eq("school_id", school.id);
+          const feeStructure = await supabase.from("fee_structure").select("amount").eq("school_id", school.id);
 
           if (feeStructure.error) throw new Error(feeStructure.error.message);
 
-          const totalExpected = (feeStructure.data || []).reduce(
-            (sum, f) => sum + Number(f.amount || 0),
-            0,
-          );
-          const totalCollected = (termPayments.data || []).reduce(
-            (sum, p) => sum + Number(p.amount_paid || 0),
-            0,
-          );
+          const totalExpected = (feeStructure.data || []).reduce((sum, f) => sum + Number(f.amount || 0), 0);
+          const totalCollected = (termPayments.data || []).reduce((sum, p) => sum + Number(p.amount_paid || 0), 0);
 
           data.push({
             term: `Term ${term.term_number}`,
@@ -193,24 +171,16 @@ export default function TrendAnalyticsPage() {
   const stats = useMemo(() => {
     if (historicalData.length === 0) return null;
 
-    const totalStudents =
-      historicalData.reduce((s, d) => s + d.students, 0) /
-      historicalData.length;
-    const avgAttendance =
-      historicalData.reduce((s, d) => s + d.attendance, 0) /
-      historicalData.length;
+    const totalStudents = historicalData.reduce((s, d) => s + d.students, 0) / historicalData.length;
+    const avgAttendance = historicalData.reduce((s, d) => s + d.attendance, 0) / historicalData.length;
     const totalCollected = historicalData.reduce((s, d) => s + d.collected, 0);
     const totalExpected = historicalData.reduce((s, d) => s + d.expected, 0);
-    const collectionRate =
-      totalExpected > 0
-        ? Math.round((totalCollected / totalExpected) * 100)
-        : 0;
+    const collectionRate = totalExpected > 0 ? Math.round((totalCollected / totalExpected) * 100) : 0;
 
     const studentTrend =
       historicalData.length > 1
         ? (
-            ((historicalData[historicalData.length - 1].students -
-              historicalData[0].students) /
+            ((historicalData[historicalData.length - 1].students - historicalData[0].students) /
               historicalData[0].students) *
             100
           ).toFixed(1)
@@ -218,17 +188,13 @@ export default function TrendAnalyticsPage() {
 
     const attendanceTrend =
       historicalData.length > 1
-        ? (
-            historicalData[historicalData.length - 1].attendance -
-            historicalData[0].attendance
-          ).toFixed(1)
+        ? (historicalData[historicalData.length - 1].attendance - historicalData[0].attendance).toFixed(1)
         : "0";
 
     const collectionTrend =
       historicalData.length > 1
         ? (
-            ((historicalData[historicalData.length - 1].collected -
-              historicalData[0].collected) /
+            ((historicalData[historicalData.length - 1].collected - historicalData[0].collected) /
               historicalData[0].collected) *
             100
           ).toFixed(1)
@@ -244,25 +210,13 @@ export default function TrendAnalyticsPage() {
     };
   }, [historicalData]);
 
-  const formatCurrency = (value: number) => {
-    if (value >= 1000000) return `UGX ${(value / 1000000).toFixed(1)}M`;
-    if (value >= 1000) return `UGX ${(value / 1000).toFixed(0)}K`;
-    return `UGX ${value}`;
-  };
-
   if (loading) {
     return (
       <div className="p-4 sm:p-6 lg:p-8 space-y-6">
-        <PageHeader
-          title="Trend Analytics"
-          subtitle="Multi-term performance trends"
-        />
+        <PageHeader title="Trend Analytics" subtitle="Multi-term performance trends" />
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[1, 2, 3, 4].map((i) => (
-            <div
-              key={i}
-              className="h-24 bg-[var(--surface-container)] rounded-xl"
-            ></div>
+            <div key={i} className="h-24 bg-[var(--surface-container)] rounded-xl"></div>
           ))}
         </div>
       </div>
@@ -271,147 +225,96 @@ export default function TrendAnalyticsPage() {
 
   return (
     <PageErrorBoundary>
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
-      <PageHeader
-        title="Trend Analytics"
-        subtitle="Multi-term performance trends"
-      >
-        {academicYears.length > 1 && (
-          <Select
-            aria-label="Select academic year"
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(e.target.value)}
-            options={academicYears.map((y) => ({ value: y, label: y }))}
-            className="w-40"
-          />
-        )}
-      </PageHeader>
+      <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+        <PageHeader title="Trend Analytics" subtitle="Multi-term performance trends">
+          {academicYears.length > 1 && (
+            <Select
+              aria-label="Select academic year"
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(e.target.value)}
+              options={academicYears.map((y) => ({ value: y, label: y }))}
+              className="w-40"
+            />
+          )}
+        </PageHeader>
 
-      {stats && (
-        <>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <Card className="p-4 text-center">
-              <div className="text-2xl font-bold text-[var(--t1)]">
-                {Math.round(stats.totalStudents)}
-              </div>
-              <div className="text-sm text-[var(--t3)] mt-1">Avg Students</div>
-              <div
-                className={`text-xs mt-1 ${Number(stats.studentTrend) >= 0 ? "text-[var(--green)]" : "text-[var(--red)]"}`}
-              >
-                {Number(stats.studentTrend) >= 0 ? "↑" : "↓"}{" "}
-                {stats.studentTrend}%
-              </div>
-            </Card>
-            <Card className="p-4 text-center">
-              <div className="text-2xl font-bold text-[var(--t1)]">
-                {stats.avgAttendance.toFixed(1)}%
-              </div>
-              <div className="text-sm text-[var(--t3)] mt-1">
-                Avg Attendance
-              </div>
-              <div
-                className={`text-xs mt-1 ${Number(stats.attendanceTrend) >= 0 ? "text-[var(--green)]" : "text-[var(--red)]"}`}
-              >
-                {Number(stats.attendanceTrend) >= 0 ? "↑" : "↓"}{" "}
-                {stats.attendanceTrend}%
-              </div>
-            </Card>
-            <Card className="p-4 text-center">
-              <div className="text-2xl font-bold text-[var(--t1)]">
-                {stats.collectionRate}%
-              </div>
-              <div className="text-sm text-[var(--t3)] mt-1">
-                Collection Rate
-              </div>
-              <div
-                className={`text-xs mt-1 ${Number(stats.collectionTrend) >= 0 ? "text-[var(--green)]" : "text-[var(--red)]"}`}
-              >
-                {Number(stats.collectionTrend) >= 0 ? "↑" : "↓"}{" "}
-                {stats.collectionTrend}%
-              </div>
-            </Card>
-            <Card className="p-4 text-center">
-              <div className="text-2xl font-bold text-[var(--green)]">
-                {formatCurrency(
-                  historicalData[historicalData.length - 1]?.collected || 0,
-                )}
-              </div>
-              <div className="text-sm text-[var(--t3)] mt-1">
-                Latest Collected
-              </div>
-            </Card>
-          </div>
+        {stats && (
+          <>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <Card className="p-4 text-center">
+                <div className="text-2xl font-bold text-[var(--t1)]">{Math.round(stats.totalStudents)}</div>
+                <div className="text-sm text-[var(--t3)] mt-1">Avg Students</div>
+                <div
+                  className={`text-xs mt-1 ${Number(stats.studentTrend) >= 0 ? "text-[var(--green)]" : "text-[var(--red)]"}`}
+                >
+                  {Number(stats.studentTrend) >= 0 ? "↑" : "↓"} {stats.studentTrend}%
+                </div>
+              </Card>
+              <Card className="p-4 text-center">
+                <div className="text-2xl font-bold text-[var(--t1)]">{stats.avgAttendance.toFixed(1)}%</div>
+                <div className="text-sm text-[var(--t3)] mt-1">Avg Attendance</div>
+                <div
+                  className={`text-xs mt-1 ${Number(stats.attendanceTrend) >= 0 ? "text-[var(--green)]" : "text-[var(--red)]"}`}
+                >
+                  {Number(stats.attendanceTrend) >= 0 ? "↑" : "↓"} {stats.attendanceTrend}%
+                </div>
+              </Card>
+              <Card className="p-4 text-center">
+                <div className="text-2xl font-bold text-[var(--t1)]">{stats.collectionRate}%</div>
+                <div className="text-sm text-[var(--t3)] mt-1">Collection Rate</div>
+                <div
+                  className={`text-xs mt-1 ${Number(stats.collectionTrend) >= 0 ? "text-[var(--green)]" : "text-[var(--red)]"}`}
+                >
+                  {Number(stats.collectionTrend) >= 0 ? "↑" : "↓"} {stats.collectionTrend}%
+                </div>
+              </Card>
+              <Card className="p-4 text-center">
+                <div className="text-2xl font-bold text-[var(--green)]">
+                  {formatCompactCurrency(historicalData[historicalData.length - 1]?.collected || 0, true)}
+                </div>
+                <div className="text-sm text-[var(--t3)] mt-1">Latest Collected</div>
+              </Card>
+            </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardBody>
-                <h2 className="font-semibold text-[var(--t1)] mb-4">
-                  Enrollment Over Time
-                </h2>
-                <div className="h-64 overflow-x-auto">
-                  <LineChart width={700} height={240} data={historicalData}>
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        stroke="var(--border)"
-                      />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardBody>
+                  <h2 className="font-semibold text-[var(--t1)] mb-4">Enrollment Over Time</h2>
+                  <div className="h-64 overflow-x-auto">
+                    <LineChart width={700} height={240} data={historicalData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                       <XAxis dataKey="term" stroke="var(--t3)" />
                       <YAxis stroke="var(--t3)" />
                       <Tooltip />
-                      <Line
-                        type="monotone"
-                        dataKey="students"
-                        stroke="var(--navy)"
-                        strokeWidth={2}
-                        name="Students"
-                      />
+                      <Line type="monotone" dataKey="students" stroke="var(--navy)" strokeWidth={2} name="Students" />
                     </LineChart>
-                </div>
-              </CardBody>
-            </Card>
+                  </div>
+                </CardBody>
+              </Card>
+
+              <Card>
+                <CardBody>
+                  <h2 className="font-semibold text-[var(--t1)] mb-4">Fee Collection Over Time</h2>
+                  <div className="h-64 overflow-x-auto">
+                    <BarChart width={700} height={240} data={historicalData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                      <XAxis dataKey="term" stroke="var(--t3)" />
+                      <YAxis stroke="var(--t3)" />
+                      <Tooltip formatter={(value) => formatCompactCurrency(Number(value), true)} />
+                      <Bar dataKey="collected" fill="var(--green)" name="Collected" />
+                      <Bar dataKey="expected" fill="var(--surface-container)" name="Expected" />
+                    </BarChart>
+                  </div>
+                </CardBody>
+              </Card>
+            </div>
 
             <Card>
               <CardBody>
-                <h2 className="font-semibold text-[var(--t1)] mb-4">
-                  Fee Collection Over Time
-                </h2>
+                <h2 className="font-semibold text-[var(--t1)] mb-4">Attendance Over Time</h2>
                 <div className="h-64 overflow-x-auto">
-                  <BarChart width={700} height={240} data={historicalData}>
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        stroke="var(--border)"
-                      />
-                      <XAxis dataKey="term" stroke="var(--t3)" />
-                      <YAxis stroke="var(--t3)" />
-                      <Tooltip
-                        formatter={(value) => formatCurrency(Number(value))}
-                      />
-                      <Bar
-                        dataKey="collected"
-                        fill="var(--green)"
-                        name="Collected"
-                      />
-                      <Bar
-                        dataKey="expected"
-                        fill="var(--surface-container)"
-                        name="Expected"
-                      />
-                    </BarChart>
-                </div>
-              </CardBody>
-            </Card>
-          </div>
-
-          <Card>
-            <CardBody>
-              <h2 className="font-semibold text-[var(--t1)] mb-4">
-                Attendance Over Time
-              </h2>
-              <div className="h-64 overflow-x-auto">
-                <LineChart width={700} height={240} data={historicalData}>
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="var(--border)"
-                    />
+                  <LineChart width={700} height={240} data={historicalData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
                     <XAxis dataKey="term" stroke="var(--t3)" />
                     <YAxis domain={[60, 100]} stroke="var(--t3)" />
                     <Tooltip />
@@ -423,12 +326,12 @@ export default function TrendAnalyticsPage() {
                       name="Attendance %"
                     />
                   </LineChart>
-              </div>
-            </CardBody>
-          </Card>
-        </>
-      )}
-    </div>
+                </div>
+              </CardBody>
+            </Card>
+          </>
+        )}
+      </div>
     </PageErrorBoundary>
   );
 }

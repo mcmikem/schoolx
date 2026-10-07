@@ -1,4 +1,5 @@
 "use client";
+import { formatCurrency } from "@/lib/currency";
 
 interface AdjustmentData {
   student_id: string;
@@ -16,8 +17,6 @@ interface AdjustmentModalProps {
   onAdjustmentChange: (updates: Partial<AdjustmentData>) => void;
   saving: boolean;
 }
-
-const formatCurrency = (amount: number) => `UGX ${amount.toLocaleString()}`;
 
 export default function AdjustmentModal({
   isOpen,

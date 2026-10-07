@@ -6,6 +6,7 @@ import { APP_NAME } from "@/lib/app-name";
 import { useAuth } from "@/lib/auth-context";
 import { logger } from "@/lib/logger";
 import { greetingFor } from "@/lib/utils";
+import { formatCurrency } from "@/lib/currency";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -219,9 +220,6 @@ function StatCard({
 
 function getFirstName(name?: string | null) {
   return name?.trim().split(" ").filter(Boolean)[0] || "Marketer";
-}
-function formatCurrency(amount: number) {
-  return `UGX ${amount.toLocaleString()}`;
 }
 function formatDate(d: string) {
   return new Date(d).toLocaleDateString("en-UG", { day: "numeric", month: "short", year: "numeric" });

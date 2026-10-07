@@ -47,6 +47,7 @@ import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
 import { getErrorMessage } from "@/lib/validation";
 import { APP_NAME } from "@/lib/app-name";
 import { logger } from "@/lib/logger";
+import { formatCurrency } from "@/lib/currency";
 
 interface PaymentPlan {
   id: string;
@@ -379,8 +380,6 @@ export default function FinanceHubPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [feePage]);
-
-  const formatCurrency = (amount: number) => `UGX ${amount.toLocaleString()}`;
 
   const fetchPlans = useCallback(async () => {
     if (!school?.id) return;

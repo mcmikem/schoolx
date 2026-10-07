@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
 import { Button } from "@/components/ui/index";
 import { getErrorMessage } from "@/lib/validation";
+import { formatCompactCurrency } from "@/lib/currency";
 import { logger } from "@/lib/logger";
 import { isSupabaseConfigured } from "@/lib/supabase";
 
@@ -719,12 +720,6 @@ export default function SchoolsPage() {
     return matchSearch && matchStatus && matchPlan;
   });
 
-  const formatUGX = (amount: number) => {
-    if (amount >= 1_000_000) return `UGX ${(amount / 1_000_000).toFixed(1)}M`;
-    if (amount >= 1_000) return `UGX ${(amount / 1_000).toFixed(0)}K`;
-    return `UGX ${amount.toLocaleString()}`;
-  };
-
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return "Not set";
     return new Date(dateStr).toLocaleDateString("en-UG", { year: "numeric", month: "short", day: "numeric" });
@@ -790,7 +785,7 @@ export default function SchoolsPage() {
             <div className="text-xs text-[var(--t3)]">Students</div>
           </div>
           <div className="hidden md:block bg-white rounded-xl border border-[var(--surface-container-high)] p-4">
-            <div className="text-2xl font-bold text-green-700">{formatUGX(stats.revenue)}</div>
+            <div className="text-2xl font-bold text-green-700">{formatCompactCurrency(stats.revenue, true)}</div>
             <div className="text-xs text-[var(--t3)]">Revenue</div>
           </div>
         </div>
@@ -1445,8 +1440,12 @@ export default function SchoolsPage() {
                         <div className="font-semibold text-sm" style={{ color: plan.color }}>
                           {plan.label}
                         </div>
-                        <div className="text-xs text-[var(--t3)] mt-1">{formatUGX(plan.annual)}/yr</div>
-                        <div className="text-xs text-[var(--t3)]">{formatUGX(plan.perStudent)}/student</div>
+                        <div className="text-xs text-[var(--t3)] mt-1">
+                          {formatCompactCurrency(plan.annual, true)}/yr
+                        </div>
+                        <div className="text-xs text-[var(--t3)]">
+                          {formatCompactCurrency(plan.perStudent, true)}/student
+                        </div>
                       </button>
                     ))}
                   </div>
@@ -1481,8 +1480,9 @@ export default function SchoolsPage() {
                   <div className="text-sm text-[var(--t3)]">
                     Price:{" "}
                     <span className="font-semibold">
-                      {formatUGX(
+                      {formatCompactCurrency(
                         subForm.billing === "annual" ? PLANS[subForm.plan].annual : PLANS[subForm.plan].monthly,
+                        true,
                       )}
                     </span>
                     /{subForm.billing === "annual" ? "year" : "month"}

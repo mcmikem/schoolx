@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/index";
 import { SchoolReadinessGuide } from "@/components/dashboard/SchoolReadinessGuide";
 import { toLocalDateString } from "@/lib/date-utils";
 import { logger } from "@/lib/logger";
+import { formatCurrency } from "@/lib/currency";
 
 interface ByClassEntry {
   className: string;
@@ -66,10 +67,6 @@ interface ReportData {
     leave: number;
   };
   atRisk: number;
-}
-
-function formatCurrency(amount: number): string {
-  return `UGX ${amount.toLocaleString()}`;
 }
 
 function InspectionReportContent() {
