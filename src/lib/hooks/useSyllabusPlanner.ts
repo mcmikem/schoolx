@@ -5,7 +5,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import { logger } from "@/lib/logger";
-import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
+import { withTimeout, timeoutFallback, getLocalDateString } from "@/lib/hooks/utils";
 import type { AutoPlannerConfig } from "@/lib/syllabus-planner-utils";
 
 export interface SyllabusTopicWithCoverage {
@@ -255,7 +255,7 @@ export function useSyllabusTimeline(
               .update({
                 status,
                 completion_percentage,
-                completed_date: status === "completed" ? new Date().toISOString().split("T")[0] : null,
+                completed_date: status === "completed" ? getLocalDateString() : null,
                 updated_at: new Date().toISOString(),
               })
               .eq("syllabus_id", syllabusId)
@@ -281,7 +281,7 @@ export function useSyllabusTimeline(
                 class_id: classId,
                 status,
                 completion_percentage,
-                completed_date: status === "completed" ? new Date().toISOString().split("T")[0] : null,
+                completed_date: status === "completed" ? getLocalDateString() : null,
               })
               .select()
               .single(),

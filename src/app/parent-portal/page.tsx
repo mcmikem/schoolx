@@ -12,7 +12,7 @@ import { logger } from "@/lib/logger";
 import ParentPortalShell from "@/components/parent-portal/ParentPortalShell";
 import { ChildSelector } from "@/components/parent-portal/ChildSelector";
 import { useParentPortal } from "@/components/parent-portal/ParentPortalProvider";
-import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
+import { withTimeout, timeoutFallback, getLocalDateString } from "@/lib/hooks/utils";
 import {
   calculateFeeStats,
   normalizeFeeTermItems,
@@ -347,7 +347,7 @@ function ParentDashboardContent() {
     router.push("/parent-portal/fees");
   };
 
-  const todayDate = new Date().toISOString().split("T")[0];
+  const todayDate = getLocalDateString();
   const child = selectedChild ?? children[0] ?? null;
   const todayAttendance = attendance.find((record) => record.date === todayDate) ?? null;
   const attendanceStatus = todayAttendance?.status ?? null;

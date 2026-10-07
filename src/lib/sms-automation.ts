@@ -3,6 +3,7 @@ import { DEMO_STUDENTS, DEMO_FEE_STRUCTURE, DEMO_FEE_PAYMENTS, DEMO_ATTENDANCE }
 import { isDemoSchool } from "@/lib/demo-utils";
 import { getCurrentTerm } from "@/lib/automation";
 import { sendSchoolMessage, type ParentMessageKind } from "@/lib/messaging";
+import { getLocalDateString } from "@/lib/hooks/utils";
 
 export interface SMSResult {
   success: boolean;
@@ -293,7 +294,7 @@ export async function sendAbsenteeAlert(options?: {
 }): Promise<SMSResult> {
   const schoolId = options?.schoolId;
   const isDemo = options?.isDemo ?? false;
-  const targetDate = options?.date ?? new Date().toISOString().split("T")[0];
+  const targetDate = options?.date ?? getLocalDateString();
   const logs: SMSLogEntry[] = [];
 
   if (isDemo || isDemoSchool(schoolId)) {

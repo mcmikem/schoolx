@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
-import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
+import { withTimeout, timeoutFallback, getLocalDateString } from "@/lib/hooks/utils";
 import { DEMO_ATTENDANCE } from "@/lib/demo-data";
 import { logger } from "@/lib/logger";
 import type { StudentWithClass } from "@/lib/hooks/students";
@@ -76,8 +76,8 @@ export function useStudentDropouts(
       const today = new Date();
       const thirtyDaysAgo = new Date(today);
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const todayStr = today.toISOString().split("T")[0];
-      const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split("T")[0];
+      const todayStr = getLocalDateString(today);
+      const thirtyDaysAgoStr = getLocalDateString(thirtyDaysAgo);
       const activeStudents = students.filter((s) => s.status === "active");
       const activeIds = activeStudents.map((s) => s.id);
       if (activeIds.length === 0) {
@@ -268,7 +268,7 @@ export function useStudentDropouts(
       await updateStudent(showDropoutModal, {
         status: "dropped",
         dropout_reason: dropoutReason,
-        dropout_date: new Date().toISOString().split("T")[0],
+        dropout_date: getLocalDateString(),
       });
       if (!isDemo && student) {
         await withTimeout(

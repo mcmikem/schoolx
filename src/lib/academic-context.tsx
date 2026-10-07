@@ -5,6 +5,7 @@ import { logger } from "./logger";
 import { loadSchoolSettings, saveSchoolSetting } from "./school-settings";
 import { supabase } from "./supabase";
 import { getErrorMessage } from "./validation";
+import { getLocalDateString } from "@/lib/hooks/utils";
 
 const getDefaultAcademicYear = () => new Date().getFullYear().toString();
 const getStoredAcademicYear = () => {
@@ -98,7 +99,7 @@ export function AcademicProvider({ children }: { children: ReactNode }) {
         .eq("school_id", school.id);
 
       const today = new Date();
-      const todayStr = today.toISOString().split("T")[0];
+      const todayStr = getLocalDateString(today);
 
       type TermRow = NonNullable<typeof allTerms>[number];
       let matchedTerm: TermRow | undefined;

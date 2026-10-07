@@ -222,8 +222,8 @@ export function useAttendanceHistory(schoolId?: string, academicYear?: string, o
     try {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      const startDate = academicYear ? `${academicYear}-01-01` : thirtyDaysAgo.toISOString().split("T")[0];
-      const endDate = academicYear ? `${academicYear}-12-31` : new Date().toISOString().split("T")[0];
+      const startDate = academicYear ? `${academicYear}-01-01` : getLocalDateString(thirtyDaysAgo);
+      const endDate = academicYear ? `${academicYear}-12-31` : getLocalDateString();
 
       const { data: attendanceData, error } = await supabase
         .from("attendance")
@@ -301,7 +301,7 @@ export function useStaffAttendance(schoolId?: string, date?: string) {
   const { isDemo } = useAuth();
 
   const markAttendance = async (staffId: string, status: string, remarks?: string) => {
-    const currentDate = date || new Date().toISOString().split("T")[0];
+    const currentDate = date || getLocalDateString();
     if (isDemo || isDemoSchool(schoolId)) {
       const newRecord = {
         staff_id: staffId,

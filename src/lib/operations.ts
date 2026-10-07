@@ -1,4 +1,5 @@
 import type { Student, Class, User, Attendance, SMSTrigger } from "@/types";
+import { getLocalDateString } from "@/lib/hooks/utils";
 
 export type FinancialAdjustmentType =
   | "discount"
@@ -469,7 +470,7 @@ export function detectInstallmentReminders(input: {
   const daysNotice = input.daysNotice || 1;
   const targetDate = new Date();
   targetDate.setDate(targetDate.getDate() + daysNotice);
-  const targetDateStr = targetDate.toISOString().split("T")[0];
+  const targetDateStr = getLocalDateString(targetDate);
 
   return input.installments
     .filter((inst) => inst.due_date === targetDateStr && !inst.paid)

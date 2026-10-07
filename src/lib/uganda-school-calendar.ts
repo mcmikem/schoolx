@@ -35,13 +35,14 @@ const HOLIDAY_TEMPLATE = [
 type HolidayTemplateEntry = (typeof HOLIDAY_TEMPLATE)[number] & {
   offsetYear?: number;
 };
+import { getLocalDateString } from "@/lib/hooks/utils";
 
 function formatDate(year: number, month: number, day: number) {
   return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
 }
 
 function isCurrentDateInRange(start: string, end: string, today = new Date()) {
-  const current = today.toISOString().split("T")[0];
+  const current = getLocalDateString(today);
   return current >= start && current <= end;
 }
 
@@ -61,15 +62,14 @@ export function buildUgandaAcademicTerms(schoolId: string, academicYear: string)
       term_number: term.termNumber,
       academic_year: academicYear,
       is_active: true,
-      is_current:
-        TERM_TEMPLATE.some((candidate, candidateIndex) => {
-          if (candidateIndex < index) return false;
-          const candidateStart = formatDate(year, candidate.startMonth, candidate.startDay);
-          const candidateEnd = formatDate(year, candidate.endMonth, candidate.endDay);
-          return isCurrentDateInRange(candidateStart, candidateEnd);
-        })
-          ? isCurrentDateInRange(startDate, endDate)
-          : index === 0,
+      is_current: TERM_TEMPLATE.some((candidate, candidateIndex) => {
+        if (candidateIndex < index) return false;
+        const candidateStart = formatDate(year, candidate.startMonth, candidate.startDay);
+        const candidateEnd = formatDate(year, candidate.endMonth, candidate.endDay);
+        return isCurrentDateInRange(candidateStart, candidateEnd);
+      })
+        ? isCurrentDateInRange(startDate, endDate)
+        : index === 0,
     };
   });
 }
@@ -96,11 +96,7 @@ export function buildUgandaCalendarEvents(schoolId: string, academicYear: string
         "Preloaded holiday window based on the official Uganda school term pattern. Headteachers can tweak dates later if a new circular is issued.",
       event_type: "holiday",
       start_date: formatDate(year, holiday.startMonth, holiday.startDay),
-      end_date: formatDate(
-        year + (entry.offsetYear || 0),
-        holiday.endMonth,
-        holiday.endDay,
-      ),
+      end_date: formatDate(year + (entry.offsetYear || 0), holiday.endMonth, holiday.endDay),
     };
   });
 

@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
-import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
+import { withTimeout, timeoutFallback, getLocalDateString } from "@/lib/hooks/utils";
 import { DEMO_CLASSES } from "@/lib/demo-data";
 import { logger } from "@/lib/logger";
 import type { StudentWithClass } from "@/lib/hooks/students";
@@ -15,13 +15,6 @@ const TRANSFER_REASONS = [
   "Academic reasons",
   "Other",
 ];
-
-function getLocalDateString(date = new Date()) {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
 
 function buildTransferStudentNumber(date = new Date()) {
   const stamp = getLocalDateString(date).replace(/-/g, "");
@@ -173,7 +166,7 @@ export function useStudentTransfers(
             transfer_type: "in",
             previous_school: transferInForm.previous_school,
             reason: transferInForm.reason,
-            transfer_date: new Date().toISOString().split("T")[0],
+            transfer_date: getLocalDateString(),
             status: "completed",
           }),
           15000,

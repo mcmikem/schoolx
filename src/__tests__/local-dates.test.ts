@@ -53,3 +53,35 @@ describe("getLocalDateString", () => {
     expect(getLocalDateString()).toBe(localDay(new Date()));
   });
 });
+
+// The function above is correct; nothing stops the next feature from writing
+// the toISOString() version again. This is the guard: these are the files that
+// build a calendar date out of "now" and compare it to a stored YYYY-MM-DD —
+// admission, dropout, transfer and syllabus-completion dates, the current-term
+// lookup, the absence-SMS run, the parent portal's "today". One of them going
+// back to UTC would put a student's admission date on the wrong day for every
+// school in Uganda without anything looking broken.
+describe("no UTC day-strings in date-comparing code", () => {
+  const files = [
+    "src/lib/hooks/attendance.ts",
+    "src/lib/hooks/students.ts",
+    "src/lib/hooks/useSyllabusPlanner.ts",
+    "src/hooks/useStudentDropouts.ts",
+    "src/hooks/useStudentTransfers.ts",
+    "src/lib/academic-context.tsx",
+    "src/lib/operations.ts",
+    "src/lib/sms-automation.ts",
+    "src/lib/automation-engine.ts",
+    "src/lib/uganda-school-calendar.ts",
+    "src/app/parent-portal/page.tsx",
+    "src/app/parent-portal/events/page.tsx",
+  ];
+
+  const read = (rel: string) => require("fs").readFileSync(require("path").join(process.cwd(), rel), "utf8");
+
+  it.each(files)("%s derives its date with getLocalDateString", (rel) => {
+    const source = read(rel);
+    expect(source).not.toContain('.toISOString().split("T")[0]');
+    expect(source).toContain("getLocalDateString");
+  });
+});

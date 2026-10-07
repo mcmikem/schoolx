@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
-import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
+import { withTimeout, timeoutFallback, getLocalDateString } from "@/lib/hooks/utils";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import ParentPortalShell from "@/components/parent-portal/ParentPortalShell";
@@ -41,7 +41,7 @@ function getDemoEvents(): SchoolEvent[] {
   const iso = (daysFromToday: number) => {
     const d = new Date(today);
     d.setDate(d.getDate() + daysFromToday);
-    return d.toISOString().split("T")[0];
+    return getLocalDateString(d);
   };
   return [
     {
@@ -126,7 +126,7 @@ export default function ParentEventsPage() {
     if (selectedChild) fetchEvents(selectedChild);
   }, [selectedChild, fetchEvents]);
 
-  const today = useMemo(() => new Date().toISOString().split("T")[0], []);
+  const today = useMemo(() => getLocalDateString(), []);
   const monthKey = (date: string) => date.slice(0, 7);
 
   const groups = useMemo(() => {

@@ -4,6 +4,7 @@ import { supabase } from "./supabase";
 import { logger } from "./logger";
 import { sendSchoolMessage } from "./messaging";
 import { generateSMSTemplate } from "./sms-automation";
+import { getLocalDateString } from "@/lib/hooks/utils";
 
 export type AutomationTrigger =
   | "student_absent"
@@ -51,7 +52,7 @@ export const triggerAutomationEvent = async (
             parent_phone: student.parent_phone,
             message,
             status: smsResult.demo ? "demo" : "sent",
-            metadata: { date: payload.date || new Date().toISOString().split("T")[0] },
+            metadata: { date: payload.date || getLocalDateString() },
             sent_at: new Date().toISOString(),
           });
           logger.log(`[AUTOMATION] Absence SMS sent to ${student.parent_phone}`);

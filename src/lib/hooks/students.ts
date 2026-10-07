@@ -18,7 +18,7 @@ import {
 } from "@/lib/validation";
 import type { Class, CreateStudentInput, Student } from "@/types";
 import { getCachedData, getOrFetchCached, invalidateCachePattern } from "./queryCache";
-import { getQuerySchoolId, isTimeoutResult, timeoutFallback, withTimeout } from "./utils";
+import { getLocalDateString, getQuerySchoolId, isTimeoutResult, timeoutFallback, withTimeout } from "./utils";
 
 export type StudentWithClass = Student & {
   classes?: { id: string; name: string; level: string } | Class;
@@ -744,7 +744,7 @@ export function useStudents(schoolId?: string, options?: { limit?: number; offse
         school_id: schoolId || "00000000-0000-0000-0000-000000000001",
         student_number: (normalizedStudent.student_number as string) || `STU-${newId.slice(0, 8)}`,
         status: "active" as const,
-        admission_date: new Date().toISOString().split("T")[0],
+        admission_date: getLocalDateString(),
         created_at: new Date().toISOString(),
         classes: (DEMO_CLASSES.find((c) => c.id === normalizedStudent.class_id) || DEMO_CLASSES[0]) as unknown as Class,
       } as unknown as StudentWithClass;
@@ -893,7 +893,7 @@ export function useStudents(schoolId?: string, options?: { limit?: number; offse
         createdStudent = {
           ...(studentPayload as StudentWithClass),
           id: createdRow.id,
-          admission_date: new Date().toISOString().split("T")[0],
+          admission_date: getLocalDateString(),
           created_at: new Date().toISOString(),
           opening_balance:
             typeof (studentPayload as Record<string, unknown>).opening_balance === "number"
