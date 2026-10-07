@@ -89,7 +89,7 @@ function HeadmasterDashboardContent() {
       },
       {
         label: "Defaulters",
-        href: "/dashboard/fees?tab=defaulters",
+        href: "/dashboard/fees?status=unpaid",
         icon: "print",
       },
     ],

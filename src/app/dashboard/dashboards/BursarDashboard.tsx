@@ -171,7 +171,11 @@ function BursarDashboardContent() {
       icon: "analytics",
     },
     {
-      href: "/dashboard/fees",
+      // Arrears, not the plain balances list — "Record payment" above already
+      // lands there. `status` is the filter the fees page reads from the URL;
+      // the `tab=defaulters` these links used to carry is not one of the five
+      // tabs that page accepts, so it silently fell back to Balances.
+      href: "/dashboard/fees?status=unpaid",
       label: "Follow up arrears",
       icon: "campaign",
     },
@@ -202,7 +206,7 @@ function BursarDashboardContent() {
         label: `${highRiskArrearsCount} high-risk arrears above UGX ${HIGH_RISK_ARREARS_THRESHOLD.toLocaleString()}`,
         icon: "warning",
         priority: "attention" as const,
-        href: "/dashboard/fees?tab=defaulters",
+        href: "/dashboard/fees?status=unpaid",
         cta: "Review",
       });
     }
@@ -291,7 +295,7 @@ function BursarDashboardContent() {
               icon="warning"
               accentColor={totalArrears > 0 ? "red" : "green"}
               loading={dataLoading}
-              href="/dashboard/fees?tab=defaulters"
+              href="/dashboard/fees?status=unpaid"
               hrefLabel="Open defaulters"
             />
             <StatCard

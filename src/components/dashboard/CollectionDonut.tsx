@@ -30,7 +30,7 @@ const CollectionDonut = memo(function CollectionDonut({
     <div className="card h-full flex flex-col">
       <div className="panel-head !mb-3">
         <h2 className="panel-title">Collection progress</h2>
-        <Link href="/dashboard/fees?tab=defaulters" className="card-action-pill" aria-label="Open fee defaulters">
+        <Link href="/dashboard/fees?status=unpaid" className="card-action-pill" aria-label="Open fee defaulters">
           Arrears
           <MaterialIcon icon="arrow_outward" style={{ fontSize: 13 }} />
         </Link>
