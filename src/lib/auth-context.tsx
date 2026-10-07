@@ -835,6 +835,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // late success still signs the user in seconds later.
       const attemptTimeoutMs = isSlowConnection() ? 15000 : 8000;
       let lastError: unknown = null;
+      // The first answer Supabase actually checked the password against. Later
+      // attempts can be fallback formats that time out on a slow network, and
+      // returning those instead would report an outage as a wrong password.
+      let credentialError: unknown = null;
 
       for (let i = 0; i < attempts.length; i++) {
         const attempt = attempts[i];
@@ -872,6 +876,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               errMsg.includes("incorrect password");
             const isUserNotFound =
               errMsg.includes("user not found") || errMsg.includes("no user") || errMsg.includes("email not found");
+
+            if ((isInvalidCredentials || isUserNotFound) && !credentialError) {
+              credentialError = error;
+            }
 
             // Only fast-fail on explicit "wrong password" - we can't distinguish
             // "user doesn't exist" from "wrong password" when Supabase returns
@@ -961,7 +969,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       releaseSignInLock();
       return {
-        error: lastError || { message: "Invalid phone number or password" },
+        error: credentialError || lastError || { message: "Invalid phone number or password" },
       };
     } catch (error) {
       releaseSignInLock();

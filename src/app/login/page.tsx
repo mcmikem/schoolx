@@ -12,6 +12,7 @@ import { supabase } from "@/lib/supabase";
 import { isValidEmail, normalizeAuthPhone } from "@/lib/validation";
 import { DEMO_MODE_ENABLED } from "@/lib/auth-context-types";
 import { saveDemoStorage } from "@/lib/auth-demo";
+import { classifyAuthFailure, countsAsCredentialGuess, loginFailureMessage } from "@/lib/auth-failure";
 import { generateSupportWhatsAppLink, PLATFORM_SUPPORT_PHONE_DISPLAY } from "@/lib/support-contact";
 
 // Regression compatibility anchors:
@@ -326,18 +327,30 @@ export default function LoginPage() {
         if (rawMsg === "Login already in progress") {
           return;
         }
-        attemptsRef.current += 1;
-        const newAttempts = attemptsRef.current;
-        setFailedAttempts(newAttempts);
 
-        if (newAttempts >= MAX_FAILED_ATTEMPTS) {
-          const lockoutTime = Date.now() + LOCKOUT_MS;
-          setLockoutUntil(lockoutTime);
-          toast.error(`Too many attempts. Please try again in 5 minutes.`);
-        } else {
-          const msg = rawMsg || "Invalid login details";
-          toast.error(process.env.NODE_ENV === "development" ? `Login failed: ${msg}` : "Invalid login details");
+        // Why it failed decides both what we say and whether it counts. A
+        // gateway timeout is not a guess at anyone's password, and counting
+        // it as one is what locked people out of their own school whenever
+        // Supabase had a bad minute.
+        const kind = classifyAuthFailure(rawMsg);
+        const isCredentialGuess = countsAsCredentialGuess(kind);
+
+        if (isCredentialGuess) {
+          attemptsRef.current += 1;
+          const newAttempts = attemptsRef.current;
+          setFailedAttempts(newAttempts);
+
+          if (newAttempts >= MAX_FAILED_ATTEMPTS) {
+            const lockoutTime = Date.now() + LOCKOUT_MS;
+            setLockoutUntil(lockoutTime);
+            toast.error(`Too many attempts. Please try again in 5 minutes.`);
+            submitInFlightRef.current = false;
+            setLoading(false);
+            return;
+          }
         }
+
+        toast.error(loginFailureMessage(kind, { dev: process.env.NODE_ENV === "development", detail: rawMsg }));
         submitInFlightRef.current = false;
         setLoading(false);
         return;
