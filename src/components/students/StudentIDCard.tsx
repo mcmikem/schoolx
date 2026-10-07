@@ -40,8 +40,7 @@ function hexWithAlpha(hexColor: string, alphaHex: string): string {
 }
 
 export default function StudentIDCard({ student, school }: StudentIDCardProps) {
-  const className =
-    student.classes?.name + (student.classes?.stream ? ` ${student.classes.stream}` : "");
+  const className = student.classes?.name + (student.classes?.stream ? ` ${student.classes.stream}` : "");
   const primaryColor = school.primary_color || "#1e3a8a";
   const accentColor = school.accent_color || primaryColor;
 
@@ -58,7 +57,10 @@ export default function StudentIDCard({ student, school }: StudentIDCardProps) {
       />
 
       {/* Header */}
-      <div className="px-4 py-2 text-white flex items-center gap-2 relative z-10" style={{ backgroundColor: primaryColor }}>
+      <div
+        className="px-4 py-2 text-white flex items-center gap-2 relative z-10"
+        style={{ backgroundColor: primaryColor }}
+      >
         {school.logo_url ? (
           <Image
             src={school.logo_url}
@@ -71,10 +73,11 @@ export default function StudentIDCard({ student, school }: StudentIDCardProps) {
           <SkoolMateLogo size="sm" variant="white" showText={false} className="shrink-0" />
         )}
         <div className="flex-1 min-w-0">
-          <h3 className="text-[10px] font-black leading-tight uppercase truncate">
-            {school.name}
-          </h3>
-          <p className="text-[7px] font-bold tracking-wider leading-none" style={{ color: hexWithAlpha("#ffffff", "cc") }}>
+          <h3 className="text-[10px] font-black leading-tight uppercase truncate">{school.name}</h3>
+          <p
+            className="text-[7px] font-bold tracking-wider leading-none"
+            style={{ color: hexWithAlpha("#ffffff", "cc") }}
+          >
             Digital Identity Card
           </p>
         </div>
@@ -94,6 +97,7 @@ export default function StudentIDCard({ student, school }: StudentIDCardProps) {
                 alt="Student"
                 width={80}
                 height={100}
+                unoptimized
                 className="w-full h-full object-cover"
               />
             ) : (
@@ -103,7 +107,10 @@ export default function StudentIDCard({ student, school }: StudentIDCardProps) {
               </span>
             )}
           </div>
-          <p className="text-[8px] font-black tracking-tighter uppercase whitespace-nowrap" style={{ color: primaryColor }}>
+          <p
+            className="text-[8px] font-black tracking-tighter uppercase whitespace-nowrap"
+            style={{ color: primaryColor }}
+          >
             Valid {new Date().getFullYear()} - {new Date().getFullYear() + 1}
           </p>
         </div>
@@ -111,9 +118,7 @@ export default function StudentIDCard({ student, school }: StudentIDCardProps) {
         {/* Info Area */}
         <div className="flex-1 space-y-2">
           <div>
-            <p className="text-[7px] text-slate-400 font-bold uppercase tracking-widest leading-none mb-0.5">
-              Name
-            </p>
+            <p className="text-[7px] text-slate-400 font-bold uppercase tracking-widest leading-none mb-0.5">Name</p>
             <h4 className="text-[11px] font-black text-slate-800 leading-tight uppercase">
               {student.first_name} {student.last_name}
             </h4>
@@ -129,20 +134,14 @@ export default function StudentIDCard({ student, school }: StudentIDCardProps) {
               </p>
             </div>
             <div>
-              <p className="text-[7px] text-slate-400 font-bold uppercase tracking-widest leading-none mb-0.5">
-                Class
-              </p>
-              <p className="text-[9px] font-black text-slate-700 leading-none">
-                {className}
-              </p>
+              <p className="text-[7px] text-slate-400 font-bold uppercase tracking-widest leading-none mb-0.5">Class</p>
+              <p className="text-[9px] font-black text-slate-700 leading-none">{className}</p>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <p className="text-[7px] text-slate-400 font-bold uppercase tracking-widest leading-none mb-0.5">
-                DOB
-              </p>
+              <p className="text-[7px] text-slate-400 font-bold uppercase tracking-widest leading-none mb-0.5">DOB</p>
               <p className="text-[9px] font-black text-slate-700 leading-none">
                 {student.date_of_birth ? new Date(student.date_of_birth).toLocaleDateString() : "N/A"}
               </p>
@@ -159,12 +158,8 @@ export default function StudentIDCard({ student, school }: StudentIDCardProps) {
 
           {student.house && (
             <div>
-              <p className="text-[7px] text-slate-400 font-bold uppercase tracking-widest leading-none mb-0.5">
-                House
-              </p>
-              <p className="text-[9px] font-black text-slate-700 leading-none">
-                {student.house.name}
-              </p>
+              <p className="text-[7px] text-slate-400 font-bold uppercase tracking-widest leading-none mb-0.5">House</p>
+              <p className="text-[9px] font-black text-slate-700 leading-none">{student.house.name}</p>
             </div>
           )}
         </div>
@@ -172,12 +167,7 @@ export default function StudentIDCard({ student, school }: StudentIDCardProps) {
         {/* QR Code */}
         <div className="w-[15mm] flex flex-col items-center justify-center gap-1">
           <div className="p-1 bg-white rounded-lg shadow-sm border border-slate-100">
-            <QRCodeSVG
-              value={student.id}
-              size={48}
-              level="H"
-              includeMargin={false}
-            />
+            <QRCodeSVG value={student.id} size={48} level="H" includeMargin={false} />
           </div>
           <p className="text-[6px] font-black text-slate-400 uppercase tracking-tighter text-center">
             Scan for Profile

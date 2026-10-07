@@ -189,7 +189,12 @@ export default function StudentRegistryPanel({
   onEditStudent,
   onDeleteStudent,
 }: StudentRegistryPanelProps) {
-  const showPhotos = !lowBandwidthMode;
+  // Data saver is right about the cost — 500 passport photos is real 3G
+  // traffic — but it used to be a silent swap: the avatar turned into initials
+  // and the only clue was a banner further down the toolbar. The toggle hands
+  // the decision back to the person looking at the list.
+  const [showPhotosOverride, setShowPhotosOverride] = useState<boolean | null>(null);
+  const showPhotos = showPhotosOverride ?? !lowBandwidthMode;
   const [showQuickImport, setShowQuickImport] = useState(false);
 
   const downloadStudentTemplate = useCallback(() => {
@@ -307,7 +312,14 @@ export default function StudentRegistryPanel({
         {lowBandwidthMode && (
           <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-[var(--amber-soft)] px-3 py-1 text-xs font-semibold text-[var(--amber)]">
             <MaterialIcon icon="network_check" className="text-sm" />
-            Data saver mode enabled for slower connections
+            Data saver on — photos hidden
+            <button
+              type="button"
+              onClick={() => setShowPhotosOverride((current) => (current === true ? null : true))}
+              className="btn btn-ghost btn-xs underline"
+            >
+              {showPhotosOverride === true ? "Hide photos" : "Show photos"}
+            </button>
           </div>
         )}
         {(showQuickImport || shouldForceShowQuickImport) && (
