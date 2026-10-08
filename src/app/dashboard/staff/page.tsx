@@ -15,6 +15,7 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { DEMO_STAFF, DEMO_CLASSES, DEMO_SCHOOL_ID } from "@/lib/demo-data";
 import { useStaff, useStaffReviews, useDashboardStats } from "@/lib/hooks";
 import { logger } from "@/lib/logger";
+import { getErrorMessage } from "@/lib/validation";
 import { withTimeout } from "@/lib/hooks/utils";
 import { StaffReview, School } from "@/types";
 import { PageGuidance } from "@/components/PageGuidance";
@@ -740,40 +741,70 @@ function DirectoryTab({
             : editForm.subject || null,
       };
 
-      let { error } = await supabase.from("users").update(updatePayload).eq("id", editingStaff.id);
+      // Deadlined: on a saturated database an unbounded save hangs until the
+      // 30s client abort and surfaces as a bare "fetch is aborted". Failing
+      // fast names the real problem (timeout vs rejection) instead.
+      let { error } = await withTimeout(supabase.from("users").update(updatePayload).eq("id", editingStaff.id), 20000, {
+        error: {
+          message: "Saving timed out — the database is slow right now. Wait a moment and try again.",
+        },
+      } as unknown as { error: { message: string } | null });
 
       if ((error as { code?: string } | null)?.code === "42703") {
         const { subject: _ignored, ...fallbackPayload } = updatePayload;
-        const retry = await supabase.from("users").update(fallbackPayload).eq("id", editingStaff.id);
+        const retry = await withTimeout(
+          supabase.from("users").update(fallbackPayload).eq("id", editingStaff.id),
+          20000,
+          {
+            error: {
+              message: "Saving timed out — the database is slow right now. Wait a moment and try again.",
+            },
+          } as unknown as { error: { message: string } | null },
+        );
         error = retry.error;
       }
 
       if (error) throw error;
 
       if (!isDemo && school?.id) {
-        const { error: clearClassError } = await supabase
-          .from("classes")
-          .update({ class_teacher_id: null })
-          .eq("school_id", school.id)
-          .eq("class_teacher_id", editingStaff.id);
+        const saveTimeout = (what: string) =>
+          ({
+            error: {
+              message: `${what} timed out — the database is slow right now. The staff record itself was saved; wait a moment and re-open to retry the assignment.`,
+            },
+          }) as unknown as { error: { message: string } | null };
+
+        const { error: clearClassError } = await withTimeout(
+          supabase
+            .from("classes")
+            .update({ class_teacher_id: null })
+            .eq("school_id", school.id)
+            .eq("class_teacher_id", editingStaff.id),
+          15000,
+          saveTimeout("Clearing the previous class assignment"),
+        );
 
         if (clearClassError) throw clearClassError;
 
-        const { error: clearSubjectsError } = await supabase
-          .from("teacher_subjects")
-          .delete()
-          .eq("school_id", school.id)
-          .eq("teacher_id", editingStaff.id);
+        const { error: clearSubjectsError } = await withTimeout(
+          supabase.from("teacher_subjects").delete().eq("school_id", school.id).eq("teacher_id", editingStaff.id),
+          15000,
+          saveTimeout("Clearing the previous subject assignments"),
+        );
 
         if (clearSubjectsError) throw clearSubjectsError;
 
         if (editForm.role === "teacher") {
           if (editForm.class_teacher_for) {
-            const { error: assignClassError } = await supabase
-              .from("classes")
-              .update({ class_teacher_id: editingStaff.id })
-              .eq("id", editForm.class_teacher_for)
-              .eq("school_id", school.id);
+            const { error: assignClassError } = await withTimeout(
+              supabase
+                .from("classes")
+                .update({ class_teacher_id: editingStaff.id })
+                .eq("id", editForm.class_teacher_for)
+                .eq("school_id", school.id),
+              15000,
+              saveTimeout("Assigning the class"),
+            );
             if (assignClassError) throw assignClassError;
           }
 
@@ -784,7 +815,11 @@ function DirectoryTab({
               subject_id: subjectId,
             }));
 
-            const { error: assignSubjectsError } = await supabase.from("teacher_subjects").insert(payload);
+            const { error: assignSubjectsError } = await withTimeout(
+              supabase.from("teacher_subjects").insert(payload),
+              15000,
+              saveTimeout("Assigning subjects"),
+            );
             if (assignSubjectsError) throw assignSubjectsError;
           }
         }
@@ -811,8 +846,12 @@ function DirectoryTab({
       setShowEditModal(false);
       setEditingStaff(null);
     } catch (err: unknown) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to update staff";
-      toast.error(errorMessage);
+      // Supabase errors are plain objects, not Error instances — reading
+      // `.message` off them is what turns "Failed to update staff" into the
+      // actual reason (timeout, rejected write, …). Also logged so the
+      // browser console carries the full shape for support.
+      logger.error("Failed to update staff:", err);
+      toast.error(getErrorMessage(err, "Failed to update staff"));
     } finally {
       setSaving(false);
     }

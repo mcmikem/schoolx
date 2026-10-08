@@ -1000,6 +1000,14 @@ describe("Staff directory rows use one overflow menu", () => {
       expect(src).toContain(action);
     }
   });
+
+  it("deadlines the staff save and surfaces the real database error", () => {
+    const src = read("src/app/dashboard/staff/page.tsx");
+    // The toast used to swallow every database error behind "Failed to update
+    // staff" because Supabase errors are plain objects, not Error instances.
+    expect(src).toContain('getErrorMessage(err, "Failed to update staff")');
+    expect(src).toContain("Saving timed out");
+  });
 });
 
 describe("Student registry bulk selection", () => {
