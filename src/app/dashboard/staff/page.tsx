@@ -16,7 +16,7 @@ import { DEMO_STAFF, DEMO_CLASSES, DEMO_SCHOOL_ID } from "@/lib/demo-data";
 import { useStaff, useStaffReviews, useDashboardStats } from "@/lib/hooks";
 import { logger } from "@/lib/logger";
 import { getErrorMessage } from "@/lib/validation";
-import { withTimeout } from "@/lib/hooks/utils";
+import { isMissingTableColumnError, withTimeout } from "@/lib/hooks/utils";
 import { StaffReview, School } from "@/types";
 import { PageGuidance } from "@/components/PageGuidance";
 import SmartAdvisor from "@/components/dashboard/SmartAdvisor";
@@ -750,7 +750,7 @@ function DirectoryTab({
         },
       } as unknown as { error: { message: string } | null });
 
-      if ((error as { code?: string } | null)?.code === "42703") {
+      if (isMissingTableColumnError(error, "users", "subject")) {
         const { subject: _ignored, ...fallbackPayload } = updatePayload;
         const retry = await withTimeout(
           supabase.from("users").update(fallbackPayload).eq("id", editingStaff.id),

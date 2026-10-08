@@ -126,3 +126,29 @@ export function getLocalDateString(date?: Date): string {
   const d = date || new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
+
+/**
+ * True when a write failed only because the named column does not exist.
+ *
+ * Two different layers report this two different ways, and handling just one
+ * leaves the other fatal: Postgres answers `42703 undefined_column`, but when
+ * PostgREST itself rejects an unknown column from its schema cache the query
+ * never reaches Postgres and comes back as `PGRST204` ("Could not find the
+ * 'subject' column of 'users' in the schema cache"). That second shape is what
+ * made every staff edit fail in production while the 42703-only fallback sat
+ * right next to it, never firing.
+ */
+export function isMissingTableColumnError(error: unknown, table: string, column: string): boolean {
+  if (!error || typeof error !== "object") return false;
+  const code = String((error as { code?: unknown }).code || "");
+  const message = String((error as { message?: unknown }).message || "");
+  if (code === "42703" && message.includes(`column ${table}."${column}"`)) return true;
+  if (code === "42703" && message.includes(`column "${column}" does not exist`)) return true;
+  if (
+    (code === "PGRST204" || code === "PGRST301") &&
+    message.toLowerCase().includes(`could not find the '${column}' column of '${table}'`)
+  ) {
+    return true;
+  }
+  return false;
+}

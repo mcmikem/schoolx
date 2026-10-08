@@ -1008,6 +1008,14 @@ describe("Staff directory rows use one overflow menu", () => {
     expect(src).toContain('getErrorMessage(err, "Failed to update staff")');
     expect(src).toContain("Saving timed out");
   });
+
+  it("retries a staff save without the subject column on either missing-column shape", () => {
+    const src = read("src/app/dashboard/staff/page.tsx");
+    // Production answers PGRST204 from the schema cache, never Postgres 42703,
+    // so a 42703-only fallback left every single staff edit failing.
+    expect(src).toContain('isMissingTableColumnError(error, "users", "subject")');
+    expect(src).not.toContain('?.code === "42703"');
+  });
 });
 
 describe("Student registry bulk selection", () => {
