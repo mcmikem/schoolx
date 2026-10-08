@@ -8,6 +8,7 @@ import {
   getLocalDateString,
   isDashboardStatsDirty,
   clearDashboardStatsDirty,
+  dedupeRead,
 } from "./utils";
 import { isDemoSchool } from "@/lib/demo-utils";
 import { offlineDB } from "@/lib/offline";
@@ -66,8 +67,9 @@ const DEMO_STATS: DashboardStats = {
 // this is what stops the dashboard from reloading the whole board every time
 // the tab regains focus or the user navigates back. In-app mutations (saving
 // attendance/fees) force an immediate refresh via `dashboard-stats:refresh`,
-// so a generous TTL is safe and keeps revisits fast on 3G.
-const STATS_TTL = 5 * 60 * 1000;
+// so a generous TTL is safe and keeps revisits fast on 3G — and keeps a room
+// full of phones from re-running the full 8-query batch every few minutes.
+const STATS_TTL = 15 * 60 * 1000;
 
 const STATS_CACHE_PREFIX = "dashboard-stats:";
 
@@ -295,7 +297,10 @@ export function useDashboardStats(schoolId?: string, options?: { term?: number |
 
       inFlightRef.current = true;
       try {
-        const next = await computeStats(querySchoolId, term, academicYear);
+        // Collapse simultaneous identical batches (two components mounting in
+        // the same tick, StrictMode remounts) into one database round trip.
+        // In-flight only — nothing stale is ever served from this.
+        const next = await dedupeRead(cacheKey, () => computeStats(querySchoolId, term, academicYear));
         // A timed-out presentToday (-1) must not be cached (it would overwrite a
         // last-known-good snapshot) and must not downgrade the currently shown
         // value to "unknown". The UI keeps the previous value and shows "--".

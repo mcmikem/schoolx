@@ -1054,3 +1054,13 @@ describe("Fees defaulter-first view", () => {
     expect(src).toContain("View ledger");
   });
 });
+
+describe("Dashboard stats stay light under concurrent load", () => {
+  const read = (rel: string) => require("fs").readFileSync(require("path").join(process.cwd(), rel), "utf8");
+
+  it("collapses simultaneous stats batches and revalidates at most every 15 minutes", () => {
+    const src = read("src/lib/hooks/analytics.ts");
+    expect(src).toContain("dedupeRead(cacheKey, () => computeStats(");
+    expect(src).toContain("STATS_TTL = 15 * 60 * 1000");
+  });
+});
