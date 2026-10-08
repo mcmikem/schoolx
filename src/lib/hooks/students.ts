@@ -1348,7 +1348,7 @@ export function useClasses(schoolId?: string) {
       const { data, error } = await withTimeout(
         supabase
           .from("classes")
-          .select("id, name, level, school_id, created_at, stream, academic_year")
+          .select("id, name, level, school_id, created_at, stream, academic_year, class_teacher_id")
           .eq("school_id", querySchoolId)
           .order("name"),
         15000,

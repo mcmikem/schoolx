@@ -1118,3 +1118,72 @@ describe("Dashboard stats stay light under concurrent load", () => {
     expect(src).toContain("STATS_TTL = 15 * 60 * 1000");
   });
 });
+
+describe("Teacher class scope", () => {
+  const read = (rel: string) => require("fs").readFileSync(require("path").join(process.cwd(), rel), "utf8");
+
+  it("useClasses selects class_teacher_id", () => {
+    const src = read("src/lib/hooks/students.ts");
+    // The attendance class dropdown filters (or used to filter) on
+    // class_teacher_id; leaving it out of the select made every row undefined
+    // and teachers got an empty class list.
+    expect(src).toContain("academic_year, class_teacher_id");
+  });
+
+  it("attendance takes the server-scoped class list as-is", () => {
+    const src = read("src/app/dashboard/attendance/page.tsx");
+    // RLS now returns exactly the classes the teacher leads or teaches.
+    // Filtering on class_teacher_id alone hid every class they only teach a
+    // subject in, and the column was never selected anyway.
+    expect(src).toContain("const filteredClasses = classes;");
+    expect(src).not.toMatch(/classes\.filter\(\(c\) => c\.class_teacher_id === user\?\.id\)/);
+  });
+
+  it("global search never queries rows the role cannot open", () => {
+    const src = read("src/components/GlobalSearch.tsx");
+    expect(src).toMatch(/can\("fees"\)\s*\?[\s\S]{0,160}\.from\("fee_payments"\)/);
+    expect(src).toMatch(/can\("messages"\)\s*\?[\s\S]{0,160}\.from\("messages"\)/);
+    expect(src).toMatch(/can\("staff"\)\s*\?[\s\S]{0,160}\.from\("staff"\)/);
+    // Page shortcuts obey the same permission table as the route guard.
+    expect(src).toContain("roleBasedRoutes[p.href]");
+  });
+
+  it("students registry is read-only for class-scoped roles", () => {
+    const page = read("src/app/dashboard/students/page.tsx");
+    expect(page).toContain("const canManageStudents = !isClassScopedRole(user?.role)");
+    // Both the workspace shell (register/import) and the registry rows
+    // (edit/delete) get the flag.
+    expect(page.match(/canManage=\{canManageStudents\}/g)).toHaveLength(2);
+    expect(page).toContain("onAddStudent={() => setShowAddModal(true)}");
+    expect(page).toContain("onDeleteStudent={(id) => setDeleteConfirm({ open: true, studentId: id })}");
+
+    const shell = read("src/components/students/StudentWorkspaceShell.tsx");
+    expect(shell).toMatch(/\{canManage && \(\n\s+<button onClick=\{onAddStudent\}/);
+
+    const panel = read("src/components/students/StudentRegistryPanel.tsx");
+    expect(panel).toContain("canManage?: boolean");
+    expect(panel).toMatch(/\{canManage && \(/);
+  });
+
+  it("class-scope role check lives in one shared helper", () => {
+    const roles = read("src/lib/roles.ts");
+    expect(roles).toContain("export function isClassScopedRole(role: string | null | undefined): boolean");
+    expect(roles).toContain('role === "teacher" || role === "class_teacher"');
+    const server = read("src/lib/server/class-scope.ts");
+    expect(server).toContain("export { isClassScopedRole };");
+    expect(server).not.toContain("CLASS_SCOPED_ROLES");
+  });
+
+  it("migration drops the school-wide policies and rewrites them class-scoped", () => {
+    const mig = read("supabase/migrations/202611030001_teacher_class_scope.sql");
+    // Permissive policies OR together, so a leftover "Allow all for
+    // authenticated" would silently undo the scoping.
+    expect(mig).toContain('DROP POLICY IF EXISTS "Allow all for authenticated" ON grades');
+    expect(mig).toContain('DROP POLICY IF EXISTS "Allow all for authenticated" ON students');
+    expect(mig).toContain("in_teachers_scope");
+    expect(mig).toContain("my_assigned_class_ids");
+    // Write paths must check the row's own class_id, not just the student.
+    expect(mig).toMatch(/CREATE POLICY "School users students update"[\s\S]{0,400}WITH CHECK/);
+    expect(mig).toMatch(/CREATE POLICY "School users classes write"[\s\S]{0,300}NOT is_class_scoped_role\(\)/);
+  });
+});

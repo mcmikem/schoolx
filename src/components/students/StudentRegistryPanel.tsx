@@ -138,6 +138,9 @@ interface StudentRegistryPanelProps {
   onSmsParent: (student: StudentRow) => void;
   onEditStudent: (student: StudentRow) => void;
   onDeleteStudent: (studentId: string) => void;
+  /** False for class-scoped roles: the registry is read-only for them (RLS
+   * already refuses the writes; this just stops offering the buttons). */
+  canManage?: boolean;
 }
 
 export default function StudentRegistryPanel({
@@ -188,6 +191,7 @@ export default function StudentRegistryPanel({
   onSmsParent,
   onEditStudent,
   onDeleteStudent,
+  canManage = true,
 }: StudentRegistryPanelProps) {
   // Data saver is right about the cost — 500 passport photos is real 3G
   // traffic — but it used to be a silent swap: the avatar turned into initials
@@ -504,7 +508,7 @@ export default function StudentRegistryPanel({
                     description={
                       searchTerm ? `No students matching "${searchTerm}"` : "Start by adding students to your school."
                     }
-                    action={{ label: "Add Student", onClick: onAddStudent }}
+                    action={canManage ? { label: "Add Student", onClick: onAddStudent } : undefined}
                   />
                 </div>
               ) : (
@@ -970,7 +974,8 @@ export default function StudentRegistryPanel({
                 Clear filters
               </button>
             ) : (
-              !searchTerm && (
+              !searchTerm &&
+              canManage && (
                 <button onClick={onAddStudent} className="btn btn-primary" style={{ marginTop: 16 }}>
                   <MaterialIcon icon="person_add" style={{ fontSize: "16px" }} />
                   Add Student
@@ -1167,30 +1172,34 @@ export default function StudentRegistryPanel({
                             >
                               <MaterialIcon style={{ fontSize: 16, color: "var(--t3)" }}>sms</MaterialIcon>
                             </button>
-                            <button
-                              onClick={() => onEditStudent(student)}
-                              style={{
-                                background: "none",
-                                border: "none",
-                                cursor: "pointer",
-                                padding: 6,
-                                borderRadius: 6,
-                              }}
-                            >
-                              <MaterialIcon style={{ fontSize: 16, color: "var(--t3)" }}>edit</MaterialIcon>
-                            </button>
-                            <button
-                              onClick={() => onDeleteStudent(student.id)}
-                              style={{
-                                background: "none",
-                                border: "none",
-                                cursor: "pointer",
-                                padding: 6,
-                                borderRadius: 6,
-                              }}
-                            >
-                              <MaterialIcon style={{ fontSize: 16, color: "var(--t3)" }}>delete</MaterialIcon>
-                            </button>
+                            {canManage && (
+                              <>
+                                <button
+                                  onClick={() => onEditStudent(student)}
+                                  style={{
+                                    background: "none",
+                                    border: "none",
+                                    cursor: "pointer",
+                                    padding: 6,
+                                    borderRadius: 6,
+                                  }}
+                                >
+                                  <MaterialIcon style={{ fontSize: 16, color: "var(--t3)" }}>edit</MaterialIcon>
+                                </button>
+                                <button
+                                  onClick={() => onDeleteStudent(student.id)}
+                                  style={{
+                                    background: "none",
+                                    border: "none",
+                                    cursor: "pointer",
+                                    padding: 6,
+                                    borderRadius: 6,
+                                  }}
+                                >
+                                  <MaterialIcon style={{ fontSize: 16, color: "var(--t3)" }}>delete</MaterialIcon>
+                                </button>
+                              </>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -1323,24 +1332,28 @@ export default function StudentRegistryPanel({
                         <MaterialIcon style={{ fontSize: 16 }}>sms</MaterialIcon>
                         SMS
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => onEditStudent(student)}
-                        aria-label={`Edit ${student.first_name} ${student.last_name}`}
-                        className="flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] text-[13px] font-semibold text-[var(--t2)] transition-transform active:scale-[0.98]"
-                      >
-                        <MaterialIcon style={{ fontSize: 16 }}>edit</MaterialIcon>
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onDeleteStudent(student.id)}
-                        aria-label={`Delete ${student.first_name} ${student.last_name}`}
-                        className="flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-xl border border-[var(--red-soft)] bg-[var(--red-soft)] text-[13px] font-semibold text-[var(--red-ink)] transition-transform active:scale-[0.98]"
-                      >
-                        <MaterialIcon style={{ fontSize: 16 }}>delete</MaterialIcon>
-                        Delete
-                      </button>
+                      {canManage && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => onEditStudent(student)}
+                            aria-label={`Edit ${student.first_name} ${student.last_name}`}
+                            className="flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] text-[13px] font-semibold text-[var(--t2)] transition-transform active:scale-[0.98]"
+                          >
+                            <MaterialIcon style={{ fontSize: 16 }}>edit</MaterialIcon>
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onDeleteStudent(student.id)}
+                            aria-label={`Delete ${student.first_name} ${student.last_name}`}
+                            className="flex min-h-[44px] flex-1 items-center justify-center gap-1.5 rounded-xl border border-[var(--red-soft)] bg-[var(--red-soft)] text-[13px] font-semibold text-[var(--red-ink)] transition-transform active:scale-[0.98]"
+                          >
+                            <MaterialIcon style={{ fontSize: 16 }}>delete</MaterialIcon>
+                            Delete
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 );

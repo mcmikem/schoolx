@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
+import { canAccess, type UserRole, type RolePermissions } from "@/lib/roles";
+import { roleBasedRoutes } from "@/components/dashboard/AccessControlGuard";
 
 const RECENT_SEARCHES_KEY = "skoolmate_recent_searches";
 const MAX_RECENT_SEARCHES = 8;
@@ -68,122 +70,135 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
     }
   }, [isOpen]);
 
-  const pages: SearchResult[] = useMemo(
-    () => [
-      {
-        type: "page",
-        id: "dashboard",
-        title: "Dashboard",
-        icon: "dashboard",
-        href: "/dashboard",
-      },
-      {
-        type: "page",
-        id: "students",
-        title: "Students",
-        icon: "group",
-        href: "/dashboard/students",
-      },
-      {
-        type: "page",
-        id: "attendance",
-        title: "Attendance",
-        icon: "how_to_reg",
-        href: "/dashboard/attendance",
-      },
-      {
-        type: "page",
-        id: "grades",
-        title: "Grades",
-        icon: "menu_book",
-        href: "/dashboard/grades",
-      },
-      {
-        type: "page",
-        id: "exams",
-        title: "Exams",
-        icon: "fact_check",
-        href: "/dashboard/exams",
-      },
-      {
-        type: "page",
-        id: "fees",
-        title: "Fees",
-        icon: "payments",
-        href: "/dashboard/fees",
-      },
-      {
-        type: "page",
-        id: "staff",
-        title: "Staff",
-        icon: "person",
-        href: "/dashboard/staff",
-      },
-      {
-        type: "page",
-        id: "reports",
-        title: "Reports",
-        icon: "description",
-        href: "/dashboard/reports",
-      },
-      {
-        type: "page",
-        id: "messages",
-        title: "Messages",
-        icon: "chat",
-        href: "/dashboard/messages",
-      },
-      {
-        type: "page",
-        id: "settings",
-        title: "Settings",
-        icon: "settings",
-        href: "/dashboard/settings",
-      },
-      {
-        type: "page",
-        id: "timetable",
-        title: "Timetable",
-        icon: "calendar_month",
-        href: "/dashboard/timetable",
-      },
-      {
-        type: "page",
-        id: "payroll",
-        title: "Payroll",
-        icon: "payments",
-        href: "/dashboard/payroll",
-      },
-      {
-        type: "page",
-        id: "budget",
-        title: "Budget",
-        icon: "account_balance_wallet",
-        href: "/dashboard/budget",
-      },
-      {
-        type: "page",
-        id: "analytics",
-        title: "Analytics",
-        icon: "analytics",
-        href: "/dashboard/analytics",
-      },
-      {
-        type: "page",
-        id: "health",
-        title: "Health Records",
-        icon: "medical_services",
-        href: "/dashboard/health",
-      },
-      {
-        type: "page",
-        id: "discipline",
-        title: "Discipline",
-        icon: "warning",
-        href: "/dashboard/discipline",
-      },
-    ],
-    [],
+  // Same permission table the route guard uses: a teacher has fees/messages/
+  // staff denied, so search must not surface those pages or their rows either.
+  const can = useCallback(
+    (feature: keyof RolePermissions): boolean => (user?.role ? canAccess(user.role as UserRole, feature) : true),
+    [user?.role],
+  );
+
+  const pages = useMemo<SearchResult[]>(
+    () =>
+      (
+        [
+          {
+            type: "page",
+            id: "dashboard",
+            title: "Dashboard",
+            icon: "dashboard",
+            href: "/dashboard",
+          },
+          {
+            type: "page",
+            id: "students",
+            title: "Students",
+            icon: "group",
+            href: "/dashboard/students",
+          },
+          {
+            type: "page",
+            id: "attendance",
+            title: "Attendance",
+            icon: "how_to_reg",
+            href: "/dashboard/attendance",
+          },
+          {
+            type: "page",
+            id: "grades",
+            title: "Grades",
+            icon: "menu_book",
+            href: "/dashboard/grades",
+          },
+          {
+            type: "page",
+            id: "exams",
+            title: "Exams",
+            icon: "fact_check",
+            href: "/dashboard/exams",
+          },
+          {
+            type: "page",
+            id: "fees",
+            title: "Fees",
+            icon: "payments",
+            href: "/dashboard/fees",
+          },
+          {
+            type: "page",
+            id: "staff",
+            title: "Staff",
+            icon: "person",
+            href: "/dashboard/staff",
+          },
+          {
+            type: "page",
+            id: "reports",
+            title: "Reports",
+            icon: "description",
+            href: "/dashboard/reports",
+          },
+          {
+            type: "page",
+            id: "messages",
+            title: "Messages",
+            icon: "chat",
+            href: "/dashboard/messages",
+          },
+          {
+            type: "page",
+            id: "settings",
+            title: "Settings",
+            icon: "settings",
+            href: "/dashboard/settings",
+          },
+          {
+            type: "page",
+            id: "timetable",
+            title: "Timetable",
+            icon: "calendar_month",
+            href: "/dashboard/timetable",
+          },
+          {
+            type: "page",
+            id: "payroll",
+            title: "Payroll",
+            icon: "payments",
+            href: "/dashboard/payroll",
+          },
+          {
+            type: "page",
+            id: "budget",
+            title: "Budget",
+            icon: "account_balance_wallet",
+            href: "/dashboard/budget",
+          },
+          {
+            type: "page",
+            id: "analytics",
+            title: "Analytics",
+            icon: "analytics",
+            href: "/dashboard/analytics",
+          },
+          {
+            type: "page",
+            id: "health",
+            title: "Health Records",
+            icon: "medical_services",
+            href: "/dashboard/health",
+          },
+          {
+            type: "page",
+            id: "discipline",
+            title: "Discipline",
+            icon: "warning",
+            href: "/dashboard/discipline",
+          },
+        ] as SearchResult[]
+      ).filter((p) => {
+        const permission = roleBasedRoutes[p.href];
+        return !permission || can(permission);
+      }),
+    [can],
   );
 
   const searchDatabase = useCallback(
@@ -196,35 +211,43 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
       setLoading(true);
       const searchTerm = `%${searchQuery}%`;
       const [studentsRes, staffRes, paymentsRes, messagesRes] = await Promise.all([
-        supabase
-          .from("students")
-          .select("id, first_name, last_name, student_number, class_id")
-          .eq("school_id", schoolId)
-          .or(`first_name.ilike.${searchTerm},last_name.ilike.${searchTerm},student_number.ilike.${searchTerm}`)
-          .limit(5),
-        supabase
-          .from("staff")
-          .select("id, first_name, last_name, employee_number, role")
-          .eq("school_id", schoolId)
-          .or(`first_name.ilike.${searchTerm},last_name.ilike.${searchTerm},employee_number.ilike.${searchTerm}`)
-          .limit(5),
-        supabase
-          .from("fee_payments")
-          .select("id, payment_reference, amount_paid, payment_date, student_id, students(first_name, last_name)")
-          .eq("school_id", schoolId)
-          .ilike("payment_reference", searchTerm)
-          .order("payment_date", { ascending: false })
-          .limit(3),
-        supabase
-          .from("messages")
-          .select("id, message, phone, created_at")
-          .eq("school_id", schoolId)
-          .ilike("message", searchTerm)
-          .order("created_at", { ascending: false })
-          .limit(3),
+        can("students")
+          ? supabase
+              .from("students")
+              .select("id, first_name, last_name, student_number, class_id")
+              .eq("school_id", schoolId)
+              .or(`first_name.ilike.${searchTerm},last_name.ilike.${searchTerm},student_number.ilike.${searchTerm}`)
+              .limit(5)
+          : Promise.resolve(null),
+        can("staff")
+          ? supabase
+              .from("staff")
+              .select("id, first_name, last_name, employee_number, role")
+              .eq("school_id", schoolId)
+              .or(`first_name.ilike.${searchTerm},last_name.ilike.${searchTerm},employee_number.ilike.${searchTerm}`)
+              .limit(5)
+          : Promise.resolve(null),
+        can("fees")
+          ? supabase
+              .from("fee_payments")
+              .select("id, payment_reference, amount_paid, payment_date, student_id, students(first_name, last_name)")
+              .eq("school_id", schoolId)
+              .ilike("payment_reference", searchTerm)
+              .order("payment_date", { ascending: false })
+              .limit(3)
+          : Promise.resolve(null),
+        can("messages")
+          ? supabase
+              .from("messages")
+              .select("id, message, phone, created_at")
+              .eq("school_id", schoolId)
+              .ilike("message", searchTerm)
+              .order("created_at", { ascending: false })
+              .limit(3)
+          : Promise.resolve(null),
       ]);
 
-      const studentResults: SearchResult[] = (studentsRes.data || []).map((s) => ({
+      const studentResults: SearchResult[] = (studentsRes?.data || []).map((s) => ({
         type: "student",
         id: s.id,
         title: `${s.first_name} ${s.last_name}`,
@@ -233,7 +256,7 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
         href: `/dashboard/students/${s.id}`,
       }));
 
-      const staffResults: SearchResult[] = (staffRes.data || []).map((s) => ({
+      const staffResults: SearchResult[] = (staffRes?.data || []).map((s) => ({
         type: "staff",
         id: s.id,
         title: `${s.first_name} ${s.last_name}`,
@@ -242,7 +265,7 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
         href: `/dashboard/staff`,
       }));
 
-      const paymentResults: SearchResult[] = (paymentsRes.data || []).map((p) => {
+      const paymentResults: SearchResult[] = (paymentsRes?.data || []).map((p) => {
         const student = Array.isArray(p.students) ? p.students[0] : p.students;
         return {
           type: "payment",
@@ -254,7 +277,7 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
         };
       });
 
-      const messageResults: SearchResult[] = (messagesRes.data || []).map((m) => ({
+      const messageResults: SearchResult[] = (messagesRes?.data || []).map((m) => ({
         type: "message",
         id: m.id,
         title: m.message.slice(0, 60) + (m.message.length > 60 ? "..." : ""),
@@ -268,7 +291,7 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
       setResults([...studentResults, ...staffResults, ...paymentResults, ...messageResults, ...pageResults]);
       setLoading(false);
     },
-    [schoolId, pages],
+    [schoolId, pages, can],
   );
 
   useEffect(() => {

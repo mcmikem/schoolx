@@ -25,6 +25,8 @@ interface StudentWorkspaceShellProps {
   onAddStudent: () => void;
   onGeneratePle: () => void;
   onExport: () => void;
+  /** False for class-scoped roles: no registering, importing or bulk edits. */
+  canManage?: boolean;
 }
 
 const WORKFLOW_TABS: Array<{
@@ -84,6 +86,7 @@ export default function StudentWorkspaceShell({
   onAddStudent,
   onGeneratePle,
   onExport,
+  canManage = true,
 }: StudentWorkspaceShellProps) {
   const tabsScrollerRef = useRef<HTMLDivElement | null>(null);
   const [showTabsOverflowHint, setShowTabsOverflowHint] = useState(false);
@@ -103,9 +106,7 @@ export default function StudentWorkspaceShell({
   useEffect(() => {
     const node = tabsScrollerRef.current;
     if (!node) return;
-    const activeButton = node.querySelector<HTMLButtonElement>(
-      `[data-tab-id="${activeTab}"]`,
-    );
+    const activeButton = node.querySelector<HTMLButtonElement>(`[data-tab-id="${activeTab}"]`);
     activeButton?.scrollIntoView({ inline: "center", block: "nearest", behavior: "smooth" });
   }, [activeTab]);
 
@@ -126,42 +127,42 @@ export default function StudentWorkspaceShell({
               Keep admissions, transfers, retention, and progression in one workflow.
             </p>
             <div className="mt-3 flex flex-wrap gap-2">
-              <span className="dashboard-pill bg-[var(--navy-soft)] text-[var(--navy)]">
-                {totalStudents} enrolled
-              </span>
-              <span className="dashboard-pill bg-[var(--navy-soft)] text-[var(--navy)]">
-                {classesCount} classes
-              </span>
+              <span className="dashboard-pill bg-[var(--navy-soft)] text-[var(--navy)]">{totalStudents} enrolled</span>
+              <span className="dashboard-pill bg-[var(--navy-soft)] text-[var(--navy)]">{classesCount} classes</span>
               <span className="dashboard-pill bg-[var(--amber-soft)] text-[var(--amber)]">
                 Term {currentTerm || "–"}
               </span>
-              {(atRiskCount + likelyDropoutCount) > 0 && (
+              {atRiskCount + likelyDropoutCount > 0 && (
                 <span className="dashboard-pill bg-[var(--red-soft)] text-[var(--red)]">
                   {atRiskCount + likelyDropoutCount} at risk
                 </span>
               )}
               {lowBandwidthMode && (
-                <span className="dashboard-pill bg-[var(--amber-soft)] text-[var(--amber)]">
-                  Data saver mode
-                </span>
+                <span className="dashboard-pill bg-[var(--amber-soft)] text-[var(--amber)]">Data saver mode</span>
               )}
             </div>
           </div>
 
           <div className="w-full lg:w-auto space-y-2">
-            <button onClick={onAddStudent} className="btn btn-primary w-full lg:w-auto">
-              <MaterialIcon icon="person_add" size={15} />
-              Register Student
-            </button>
+            {canManage && (
+              <button onClick={onAddStudent} className="btn btn-primary w-full lg:w-auto">
+                <MaterialIcon icon="person_add" size={15} />
+                Register Student
+              </button>
+            )}
             <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-              <button onClick={onImport} className="btn btn-ghost whitespace-nowrap">
-                <MaterialIcon icon="cloud_upload" size={15} />
-                Import CSV
-              </button>
-              <button onClick={onGeneratePle} className="btn btn-ghost whitespace-nowrap">
-                <MaterialIcon icon="tag" size={15} />
-                PLE Numbers
-              </button>
+              {canManage && (
+                <button onClick={onImport} className="btn btn-ghost whitespace-nowrap">
+                  <MaterialIcon icon="cloud_upload" size={15} />
+                  Import CSV
+                </button>
+              )}
+              {canManage && (
+                <button onClick={onGeneratePle} className="btn btn-ghost whitespace-nowrap">
+                  <MaterialIcon icon="tag" size={15} />
+                  PLE Numbers
+                </button>
+              )}
               <button onClick={onExport} className="btn btn-ghost whitespace-nowrap">
                 <MaterialIcon icon="download" size={15} />
                 Export
@@ -176,11 +177,17 @@ export default function StudentWorkspaceShell({
           { label: "Total enrolled", value: totalStudents, color: "var(--navy)" },
           { label: "Boys", value: boysCount, color: "var(--navy)" },
           { label: "Girls", value: girlsCount, color: "var(--green)" },
-          { label: "At risk", value: atRiskCount + likelyDropoutCount, color: atRiskCount + likelyDropoutCount > 0 ? "var(--amber)" : "var(--t3)" },
+          {
+            label: "At risk",
+            value: atRiskCount + likelyDropoutCount,
+            color: atRiskCount + likelyDropoutCount > 0 ? "var(--amber)" : "var(--t3)",
+          },
         ].map((s) => (
           <div key={s.label} className="card p-4">
             <div className="text-[11px] font-bold uppercase tracking-widest text-[var(--t3)]">{s.label}</div>
-            <div className="mt-2 text-2xl font-extrabold" style={{ color: s.color, fontFamily: "Sora, sans-serif" }}>{s.value}</div>
+            <div className="mt-2 text-2xl font-extrabold" style={{ color: s.color, fontFamily: "Sora, sans-serif" }}>
+              {s.value}
+            </div>
           </div>
         ))}
       </section>
@@ -188,42 +195,44 @@ export default function StudentWorkspaceShell({
       <section className="card overflow-hidden">
         <div className="border-b border-[var(--border)] px-2 pt-2">
           <div className="relative">
-          <div
-            ref={tabsScrollerRef}
-            className="flex gap-1 overflow-x-auto no-scrollbar px-1 pb-1 snap-x snap-mandatory"
-            aria-label="Student workflow tabs"
-          >
-            {WORKFLOW_TABS.map((tab) => {
-              const isActive = activeTab === tab.id;
-              const count = workflowCounts[tab.id];
-              return (
-                <button
-                  key={tab.id}
-                  data-tab-id={tab.id}
-                  onClick={() => onTabChange(tab.id)}
-                  className={`flex shrink-0 snap-start items-center gap-2 px-4 py-3 rounded-t-xl text-[13px] font-semibold whitespace-nowrap border-b-2 transition-all ${
-                    isActive
-                      ? "border-[var(--primary)] text-[var(--primary)] bg-[var(--navy-soft)]"
-                      : "border-transparent text-[var(--t3)] hover:text-[var(--t1)] hover:bg-[var(--bg)]"
-                  }`}
-                >
-                  <MaterialIcon icon={tab.icon} size={16} />
-                  {tab.label}
-                  {count > 0 && (
-                    <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${isActive ? "bg-[var(--primary)] text-white" : "bg-[var(--surface-container)] text-[var(--t3)]"}`}>
-                      {count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-          {showTabsOverflowHint && (
-            <>
-              <div className="pointer-events-none absolute inset-y-0 left-0 w-5 bg-gradient-to-r from-[var(--surface)] to-transparent" />
-              <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-[var(--surface)] to-transparent" />
-            </>
-          )}
+            <div
+              ref={tabsScrollerRef}
+              className="flex gap-1 overflow-x-auto no-scrollbar px-1 pb-1 snap-x snap-mandatory"
+              aria-label="Student workflow tabs"
+            >
+              {WORKFLOW_TABS.map((tab) => {
+                const isActive = activeTab === tab.id;
+                const count = workflowCounts[tab.id];
+                return (
+                  <button
+                    key={tab.id}
+                    data-tab-id={tab.id}
+                    onClick={() => onTabChange(tab.id)}
+                    className={`flex shrink-0 snap-start items-center gap-2 px-4 py-3 rounded-t-xl text-[13px] font-semibold whitespace-nowrap border-b-2 transition-all ${
+                      isActive
+                        ? "border-[var(--primary)] text-[var(--primary)] bg-[var(--navy-soft)]"
+                        : "border-transparent text-[var(--t3)] hover:text-[var(--t1)] hover:bg-[var(--bg)]"
+                    }`}
+                  >
+                    <MaterialIcon icon={tab.icon} size={16} />
+                    {tab.label}
+                    {count > 0 && (
+                      <span
+                        className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${isActive ? "bg-[var(--primary)] text-white" : "bg-[var(--surface-container)] text-[var(--t3)]"}`}
+                      >
+                        {count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+            {showTabsOverflowHint && (
+              <>
+                <div className="pointer-events-none absolute inset-y-0 left-0 w-5 bg-gradient-to-r from-[var(--surface)] to-transparent" />
+                <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-[var(--surface)] to-transparent" />
+              </>
+            )}
           </div>
           {showTabsOverflowHint && (
             <div className="sm:hidden px-2 pb-2 text-[11px] text-[var(--t3)] flex items-center gap-1">
@@ -233,44 +242,49 @@ export default function StudentWorkspaceShell({
           )}
         </div>
         <div className="px-4 sm:px-5 py-3 bg-[var(--surface-container-low)]">
-          <p className="text-[13px] text-[var(--t2)]">
-            {TAB_DESCRIPTIONS[activeTab]}
-          </p>
+          <p className="text-[13px] text-[var(--t2)]">{TAB_DESCRIPTIONS[activeTab]}</p>
         </div>
       </section>
 
       <section className="space-y-2">
-        <div className="px-1 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--t3)]">
-          Quick tools
-        </div>
+        <div className="px-1 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--t3)]">Quick tools</div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <Link href="/dashboard/students/id-cards" className="card flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg)] transition-colors no-underline">
-          <div className="w-9 h-9 rounded-xl bg-[var(--navy-soft)] flex items-center justify-center flex-shrink-0">
-            <MaterialIcon icon="id_card" size={17} className="text-[var(--navy)]" />
-          </div>
-          <div>
-            <div className="text-[13px] font-semibold text-[var(--t1)]">ID Card Studio</div>
-            <div className="text-[11px] text-[var(--t3)]">Print student identity cards</div>
-          </div>
-        </Link>
-        <Link href="/dashboard/reports" className="card flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg)] transition-colors no-underline">
-          <div className="w-9 h-9 rounded-xl bg-[var(--navy-soft)] flex items-center justify-center flex-shrink-0">
-            <MaterialIcon icon="description" size={17} className="text-[var(--navy)]" />
-          </div>
-          <div>
-            <div className="text-[13px] font-semibold text-[var(--t1)]">Individual Reports</div>
-            <div className="text-[11px] text-[var(--t3)]">Preview & print report cards</div>
-          </div>
-        </Link>
-        <Link href="/dashboard/report-cards" className="card flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg)] transition-colors no-underline">
-          <div className="w-9 h-9 rounded-xl bg-[var(--navy-soft)] flex items-center justify-center flex-shrink-0">
-            <MaterialIcon icon="print" size={17} className="text-[var(--navy)]" />
-          </div>
-          <div>
-            <div className="text-[13px] font-semibold text-[var(--t1)]">Batch Reports</div>
-            <div className="text-[11px] text-[var(--t3)]">Print whole-class report runs</div>
-          </div>
-        </Link>
+          <Link
+            href="/dashboard/students/id-cards"
+            className="card flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg)] transition-colors no-underline"
+          >
+            <div className="w-9 h-9 rounded-xl bg-[var(--navy-soft)] flex items-center justify-center flex-shrink-0">
+              <MaterialIcon icon="id_card" size={17} className="text-[var(--navy)]" />
+            </div>
+            <div>
+              <div className="text-[13px] font-semibold text-[var(--t1)]">ID Card Studio</div>
+              <div className="text-[11px] text-[var(--t3)]">Print student identity cards</div>
+            </div>
+          </Link>
+          <Link
+            href="/dashboard/reports"
+            className="card flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg)] transition-colors no-underline"
+          >
+            <div className="w-9 h-9 rounded-xl bg-[var(--navy-soft)] flex items-center justify-center flex-shrink-0">
+              <MaterialIcon icon="description" size={17} className="text-[var(--navy)]" />
+            </div>
+            <div>
+              <div className="text-[13px] font-semibold text-[var(--t1)]">Individual Reports</div>
+              <div className="text-[11px] text-[var(--t3)]">Preview & print report cards</div>
+            </div>
+          </Link>
+          <Link
+            href="/dashboard/report-cards"
+            className="card flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg)] transition-colors no-underline"
+          >
+            <div className="w-9 h-9 rounded-xl bg-[var(--navy-soft)] flex items-center justify-center flex-shrink-0">
+              <MaterialIcon icon="print" size={17} className="text-[var(--navy)]" />
+            </div>
+            <div>
+              <div className="text-[13px] font-semibold text-[var(--t1)]">Batch Reports</div>
+              <div className="text-[11px] text-[var(--t3)]">Print whole-class report runs</div>
+            </div>
+          </Link>
         </div>
       </section>
     </div>

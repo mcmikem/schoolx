@@ -31,6 +31,7 @@ import { dedupeRead, withTimeout } from "@/lib/hooks/utils";
 import { loadSchoolHouses } from "@/lib/houses";
 import { logger } from "@/lib/logger";
 import { supabase } from "@/lib/supabase";
+import { isClassScopedRole } from "@/lib/roles";
 import { useTablePreferences } from "@/lib/useTablePreferences";
 
 type StudentWorkspaceTab = "registry" | "transfers" | "dropouts" | "promotion";
@@ -104,6 +105,10 @@ interface AttendanceStatusMeta {
 export default function StudentHubPage() {
   const { school, user, isDemo } = useAuth();
   const { academicYear, currentTerm } = useAcademic();
+  // Teachers (and class teachers) get a read-only registry: RLS already
+  // refuses their inserts, updates and deletes — the UI just stops offering
+  // actions that would fail.
+  const canManageStudents = !isClassScopedRole(user?.role);
   const toast = useToast();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -592,6 +597,7 @@ export default function StudentHubPage() {
           onAddStudent={() => setShowAddModal(true)}
           onGeneratePle={generatePLEIndexNumbers}
           onExport={handleExport}
+          canManage={canManageStudents}
         />
 
         <TabPanel activeTab={activeTab} tabId="registry">
@@ -641,6 +647,7 @@ export default function StudentHubPage() {
               setShowEditModal(true);
             }}
             onDeleteStudent={(id) => setDeleteConfirm({ open: true, studentId: id })}
+            canManage={canManageStudents}
           />
 
           <StudentDetailPanel

@@ -148,7 +148,11 @@ export default function AttendancePage() {
     user?.role === "super_admin" ||
     user?.role === "bursar";
 
-  const filteredClasses = isClassTeacher && !isAdmin ? classes.filter((c) => c.class_teacher_id === user?.id) : classes;
+  // RLS scopes this list to the classes the teacher leads or teaches, so take
+  // it as-is: filtering on class_teacher_id alone drops every class where the
+  // teacher only teaches a subject (and the column used to be unselected, so
+  // teachers got an empty dropdown either way).
+  const filteredClasses = classes;
 
   useEffect(() => {
     setAttendPage(1);
@@ -777,7 +781,7 @@ export default function AttendancePage() {
                 <select
                   value={selectedClass || ""}
                   onChange={(e) => setSelectedClass(e.target.value || null)}
-                  className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-primary/20"
+                  className="w-full bg-surface-container border-none rounded-xl py-3 px-4 min-h-[44px] text-base font-medium focus:ring-2 focus:ring-primary/20"
                 >
                   <option value="">Select a class</option>
                   {filteredClasses.map((c) => (
@@ -799,7 +803,7 @@ export default function AttendancePage() {
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
                   disabled={bulkMode}
-                  className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-primary/20 disabled:opacity-40"
+                  className="w-full bg-surface-container border-none rounded-xl py-3 px-4 min-h-[44px] text-base font-medium focus:ring-2 focus:ring-primary/20 disabled:opacity-40"
                 />
               </div>
               <button
@@ -825,7 +829,7 @@ export default function AttendancePage() {
                   type="date"
                   value={bulkDateFrom}
                   onChange={(e) => setBulkDateFrom(e.target.value)}
-                  className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-primary/20"
+                  className="w-full bg-surface-container border-none rounded-xl py-3 px-4 min-h-[44px] text-base font-medium focus:ring-2 focus:ring-primary/20"
                 />
               </div>
               <div className="sm:w-48">
@@ -836,7 +840,7 @@ export default function AttendancePage() {
                   type="date"
                   value={bulkDateTo}
                   onChange={(e) => setBulkDateTo(e.target.value)}
-                  className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm font-medium focus:ring-2 focus:ring-primary/20"
+                  className="w-full bg-surface-container border-none rounded-xl py-3 px-4 min-h-[44px] text-base font-medium focus:ring-2 focus:ring-primary/20"
                 />
               </div>
               <div className="flex-1 flex items-end gap-2 flex-wrap">
@@ -1044,7 +1048,7 @@ export default function AttendancePage() {
                   <input
                     type="text"
                     placeholder="Search student name..."
-                    className="w-full md:w-48 rounded-xl border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm"
+                    className="w-full md:w-48 rounded-xl border border-outline-variant bg-surface-container-lowest px-3 py-2 min-h-[44px] text-base"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
@@ -1054,7 +1058,7 @@ export default function AttendancePage() {
                     <button
                       key={f}
                       onClick={() => setFilterStatus(f)}
-                      className={`px-3 py-2 rounded-lg text-sm font-medium transition-all min-h-[40px] ${
+                      className={`px-3 py-2 rounded-lg text-sm font-medium transition-all min-h-[44px] ${
                         filterStatus === f
                           ? "bg-primary text-on-primary"
                           : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
@@ -1265,7 +1269,7 @@ export default function AttendancePage() {
                                   <button
                                     key={s}
                                     onClick={() => markAttendance(student.id, s)}
-                                    className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
+                                    className={`px-3 py-1.5 min-h-[44px] rounded-lg text-sm font-medium border transition-all ${
                                       isActive
                                         ? `${sConfig.bg} border-${s === "absent" ? "error" : s === "present" ? "secondary" : s === "late" ? "tertiary" : "[#7c3aed]"}`
                                         : "bg-surface-container-lowest text-on-surface-variant border-outline-variant/30 hover:border-outline-variant"
