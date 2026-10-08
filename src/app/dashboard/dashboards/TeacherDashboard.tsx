@@ -17,6 +17,7 @@ import { useAuth } from "@/lib/auth-context";
 import { getDefaultSubjects } from "@/lib/curriculum";
 import { useAllStudents, useClasses, useDashboardStats, useSubjects } from "@/lib/hooks";
 import { withTimeout } from "@/lib/hooks/utils";
+import { isClassScopedRole } from "@/lib/roles";
 import { buildDefaultClasses, buildDefaultTimetableSlots, type SchoolSetupType } from "@/lib/school-setup";
 import { supabase } from "@/lib/supabase";
 import { greetingFor, todayLabelFor } from "@/lib/utils";
@@ -137,6 +138,48 @@ function TeacherDashboardContent() {
             <OwlMascot size={52} premium ring glow animated />
             <p className="mt-4 text-sm text-[var(--t3)]">Loading your dashboard...</p>
           </div>
+        </div>
+        <StuckLoadingOverlay />
+      </div>
+    );
+  }
+
+  // RLS scopes this teacher's classes to the ones they lead or teach a subject
+  // in, so an empty list means "no assignments yet" — not "the school has no
+  // classes". Show an honest waiting screen instead of a dashboard full of
+  // zeros that looks broken.
+  if (!dataLoading && isClassScopedRole(user?.role) && myClasses.length === 0) {
+    return (
+      <div className="content overflow-x-hidden">
+        <SchoolHero
+          school={school}
+          greeting={greeting}
+          userName={user?.full_name?.split(" ")[0] || ""}
+          dateLabel={todayLabel}
+          bottomCenter={
+            <div className="text-xs text-[var(--t2)]">
+              <span className="font-semibold">{school?.name}</span> · Term {currentTerm} · {academicYear}
+            </div>
+          }
+        />
+        <div className="rounded-2xl border border-[var(--surface-container-low)] bg-white p-6 text-center">
+          <OwlMascot size={64} premium ring glow animated />
+          <h2 className="mt-4 text-lg font-bold text-[var(--t1)] font-['Sora']">No classes assigned yet</h2>
+          <p className="mx-auto mt-2 max-w-md text-sm text-[var(--t3)]">
+            Your school administrator hasn&apos;t assigned you to a class or subject. Once they do, your classes,
+            students, attendance and marks will appear here.
+          </p>
+          <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+            <Link
+              href="/dashboard/timetable"
+              className="rounded-xl bg-[var(--t1)] px-5 py-2.5 text-xs font-bold text-white hover:opacity-90 transition-opacity"
+            >
+              Open my timetable
+            </Link>
+          </div>
+        </div>
+        <div className="mt-5">
+          <SchoolCalendar schoolId={school?.id} userId={user?.id} />
         </div>
         <StuckLoadingOverlay />
       </div>

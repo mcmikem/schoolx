@@ -12,8 +12,10 @@ import { Button } from "@/components/ui/index";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
+import { Modal } from "@/components/ui/Modal";
 import { getErrorMessage } from "@/lib/validation";
-import { withTimeout } from "@/lib/hooks/utils";
+import { isClassScopedRole } from "@/lib/roles";
+import { isTimeoutResult, withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import { useStudentTotal } from "@/lib/hooks/students";
 import { createRecord, updateRecord, deleteRecord, CrudWriteError } from "@/lib/crud-service";
 
@@ -41,7 +43,10 @@ const BLANK_FORM = {
 };
 
 export default function ClassesPage() {
-  const { school, isDemo } = useAuth();
+  const { school, isDemo, user } = useAuth();
+  // Class-scoped roles (teachers) can list their classes but never create or
+  // reassign them — RLS and the admin-gated policies refuse those writes.
+  const canManage = !isClassScopedRole(user?.role);
   const toast = useToast();
   const toastRef = useRef(toast);
   useEffect(() => {
@@ -75,6 +80,11 @@ export default function ClassesPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingDelete, setPendingDelete] = useState<ClassRow | null>(null);
   const [deleting, setDeleting] = useState(false);
+
+  const [showBulk, setShowBulk] = useState(false);
+  const [bulkTeacherId, setBulkTeacherId] = useState("");
+  const [bulkSelected, setBulkSelected] = useState<string[]>([]);
+  const [bulkSaving, setBulkSaving] = useState(false);
 
   const fetchClasses = useCallback(async () => {
     if (!school?.id) {
@@ -181,6 +191,42 @@ export default function ClassesPage() {
     fetchClasses();
     fetchTeachers();
   }, [fetchClasses, fetchTeachers]);
+
+  const unassignedClasses = classes.filter((c) => !c.class_teacher_id);
+
+  const openBulkAssign = () => {
+    setBulkTeacherId("");
+    setBulkSelected(unassignedClasses.map((c) => c.id));
+    setShowBulk(true);
+  };
+
+  const toggleBulkClass = (id: string) => {
+    setBulkSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
+
+  const handleBulkAssign = async () => {
+    if (!bulkTeacherId || bulkSelected.length === 0) return;
+    setBulkSaving(true);
+    try {
+      const result = await withTimeout(
+        supabase.from("classes").update({ class_teacher_id: bulkTeacherId }).in("id", bulkSelected).select("id"),
+        15000,
+        timeoutFallback<{ id: string }[]>(),
+      );
+      if (isTimeoutResult(result)) {
+        throw new Error("The assignment timed out. Nothing may have been saved — please try again.");
+      }
+      if (result.error) throw result.error;
+      if (!result.data?.length) throw new Error("No classes were updated. Check your admin access and try again.");
+      toastRef.current.success(`${result.data.length} ${result.data.length === 1 ? "class" : "classes"} assigned`);
+      setShowBulk(false);
+      await fetchClasses();
+    } catch (err) {
+      toastRef.current.error(getErrorMessage(err));
+    } finally {
+      setBulkSaving(false);
+    }
+  };
 
   const openAdd = () => {
     setEditingClass(null);
@@ -397,6 +443,26 @@ export default function ClassesPage() {
           </select>
         </div>
 
+        {!isDemo && canManage && !loading && unassignedClasses.length > 0 && (
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-[var(--amber)]/30 bg-[var(--amber-soft)] p-4">
+            <div className="flex items-start gap-3">
+              <MaterialIcon className="text-[var(--amber)] mt-0.5">warning</MaterialIcon>
+              <div>
+                <p className="text-sm font-bold text-[var(--t1)]">
+                  {unassignedClasses.length} {unassignedClasses.length === 1 ? "class has" : "classes have"} no class
+                  teacher
+                </p>
+                <p className="text-xs text-[var(--t3)] mt-0.5">
+                  Teachers can&apos;t open attendance, marks or students for a class until someone is assigned to it.
+                </p>
+              </div>
+            </div>
+            <Button variant="primary" onClick={openBulkAssign} className="shrink-0">
+              Bulk assign
+            </Button>
+          </div>
+        )}
+
         {/* Classes Table */}
         <Card>
           <CardBody className="p-0 overflow-x-auto">
@@ -407,9 +473,15 @@ export default function ClassesPage() {
             ) : filtered.length === 0 ? (
               <EmptyState
                 icon="class"
-                title="No classes found"
-                description={search ? "No classes match your search" : "Create your first class to get started"}
-                action={{ label: "Add Class", onClick: openAdd }}
+                title={canManage ? "No classes found" : "No classes assigned yet"}
+                description={
+                  search
+                    ? "No classes match your search"
+                    : canManage
+                      ? "Create your first class to get started"
+                      : "Your administrator hasn't assigned you to a class or subject yet."
+                }
+                action={canManage ? { label: "Add Class", onClick: openAdd } : undefined}
               />
             ) : (
               <table className="w-full text-sm">
@@ -603,6 +675,76 @@ export default function ClassesPage() {
             </div>
           </div>
         )}
+
+        <Modal isOpen={showBulk} onClose={() => setShowBulk(false)} title="Assign a class teacher in bulk">
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-[var(--on-surface-variant)] uppercase tracking-wide mb-1.5">
+                Teacher
+              </label>
+              <select
+                value={bulkTeacherId}
+                onChange={(e) => setBulkTeacherId(e.target.value)}
+                className="w-full px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] text-sm outline-none focus:ring-2 focus:ring-[var(--primary)]"
+              >
+                <option value="">Select a teacher…</option>
+                {teachers.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.full_name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-semibold text-[var(--on-surface-variant)] uppercase tracking-wide">
+                  Classes without a teacher
+                </label>
+                <button
+                  type="button"
+                  className="text-xs font-bold text-[var(--primary)]"
+                  onClick={() =>
+                    setBulkSelected(
+                      bulkSelected.length === unassignedClasses.length ? [] : unassignedClasses.map((c) => c.id),
+                    )
+                  }
+                >
+                  {bulkSelected.length === unassignedClasses.length ? "Clear all" : "Select all"}
+                </button>
+              </div>
+              <div className="max-h-64 overflow-y-auto rounded-xl border border-[var(--border)] divide-y divide-[var(--border)]">
+                {unassignedClasses.map((cls) => (
+                  <label
+                    key={cls.id}
+                    className="flex items-center gap-3 px-4 py-2.5 cursor-pointer hover:bg-[var(--surface-container-low)]"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={bulkSelected.includes(cls.id)}
+                      onChange={() => toggleBulkClass(cls.id)}
+                      className="accent-[var(--primary)]"
+                    />
+                    <span className="text-sm font-semibold text-[var(--t1)]">{cls.name}</span>
+                    <span className="text-xs text-[var(--t3)]">{cls.level}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="flex justify-end gap-3 pt-1">
+              <Button variant="secondary" onClick={() => setShowBulk(false)} disabled={bulkSaving}>
+                Cancel
+              </Button>
+              <Button
+                onClick={() => void handleBulkAssign()}
+                disabled={!bulkTeacherId || bulkSelected.length === 0 || bulkSaving}
+              >
+                {bulkSaving
+                  ? "Assigning…"
+                  : `Assign ${bulkSelected.length} ${bulkSelected.length === 1 ? "class" : "classes"}`}
+              </Button>
+            </div>
+          </div>
+        </Modal>
 
         <ConfirmDialog
           isOpen={confirmOpen}

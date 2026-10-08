@@ -32,6 +32,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { GradeImportModal } from "@/components/grades/GradeImportModal";
 import { createRecord, updateRecord, upsertRecordReturning } from "@/lib/crud-service";
 import { deriveGradeWorkflowStatus, getNextGradeWorkflowStatusActions, GradeWorkflowStatus } from "@/lib/operations";
+import { isClassScopedRole } from "@/lib/roles";
 
 interface TopicCoverage {
   id: string;
@@ -1349,8 +1350,19 @@ export default function GradesPage() {
                   </div>
                 ) : classes.length === 0 ? (
                   <div className="bg-[var(--amber-soft)] border border-[var(--amber)]/20 rounded-xl p-4">
-                    <p className="text-[var(--t1)] text-sm font-medium">No classes found</p>
-                    <p className="text-[var(--amber)] text-xs mt-1">Contact support if this persists.</p>
+                    {isClassScopedRole(user?.role) ? (
+                      <>
+                        <p className="text-[var(--t1)] text-sm font-medium">No classes assigned yet</p>
+                        <p className="text-[var(--amber)] text-xs mt-1">
+                          Your administrator hasn&apos;t assigned you to a class or subject yet.
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-[var(--t1)] text-sm font-medium">No classes found</p>
+                        <p className="text-[var(--amber)] text-xs mt-1">Contact support if this persists.</p>
+                      </>
+                    )}
                   </div>
                 ) : (
                   <select

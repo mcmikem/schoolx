@@ -4914,10 +4914,10 @@ ON classes
 FOR ALL
 TO authenticated
 USING (
-  school_id = my_school_id() AND NOT is_class_scoped_role()
+  school_id = my_school_id() AND is_school_admin(my_school_id())
 )
 WITH CHECK (
-  school_id = my_school_id() AND NOT is_class_scoped_role()
+  school_id = my_school_id() AND is_school_admin(my_school_id())
 )
 ;
 

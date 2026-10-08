@@ -111,6 +111,17 @@ function HeadmasterDashboardContent() {
         cta: "Take now",
       });
     }
+    const unassignedClassCount = classes.filter((c) => !c.class_teacher_id).length;
+    if (unassignedClassCount > 0) {
+      items.push({
+        id: "class-teachers",
+        label: `${unassignedClassCount} ${unassignedClassCount === 1 ? "class" : "classes"} with no class teacher`,
+        icon: "person_search",
+        priority: "attention" as const,
+        href: "/dashboard/classes",
+        cta: "Assign",
+      });
+    }
     if (overdueFeeCount > 0) {
       items.push({
         id: "fees",
@@ -175,7 +186,7 @@ function HeadmasterDashboardContent() {
   }, [
     statsLoading,
     stats.presentToday,
-    classes.length,
+    classes,
     overdueFeeCount,
     lowAttendanceClasses,
     atRiskStudents,

@@ -771,11 +771,22 @@ export default function AttendancePage() {
                 </div>
               ) : classes.length === 0 ? (
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-                  <p className="text-amber-800 text-sm font-medium">No classes found</p>
-                  <p className="text-amber-600 text-xs mt-1">
-                    Classes are created automatically when you register a school. If you are seeing this, please contact
-                    support or re-register.
-                  </p>
+                  {isClassTeacher && !isAdmin ? (
+                    <>
+                      <p className="text-amber-800 text-sm font-medium">No classes assigned yet</p>
+                      <p className="text-amber-600 text-xs mt-1">
+                        Your administrator hasn&apos;t assigned you to a class or subject yet.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-amber-800 text-sm font-medium">No classes found</p>
+                      <p className="text-amber-600 text-xs mt-1">
+                        Classes are created automatically when you register a school. If you are seeing this, please
+                        contact support or re-register.
+                      </p>
+                    </>
+                  )}
                 </div>
               ) : (
                 <select
@@ -889,7 +900,7 @@ export default function AttendancePage() {
             title="Select a class"
             description={
               isClassTeacher && !isAdmin && filteredClasses.length === 0
-                ? "You are not assigned as class teacher for any class"
+                ? "Your administrator hasn't assigned you to a class or subject yet"
                 : "Choose a class to mark attendance"
             }
           />

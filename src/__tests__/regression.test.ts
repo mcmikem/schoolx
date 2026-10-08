@@ -1184,6 +1184,14 @@ describe("Teacher class scope", () => {
     expect(mig).toContain("my_assigned_class_ids");
     // Write paths must check the row's own class_id, not just the student.
     expect(mig).toMatch(/CREATE POLICY "School users students update"[\s\S]{0,400}WITH CHECK/);
-    expect(mig).toMatch(/CREATE POLICY "School users classes write"[\s\S]{0,300}NOT is_class_scoped_role\(\)/);
+    // Class management stays admin-only — production's classes_insert/update/
+    // delete were all is_school_admin(). A looser "not a teacher" predicate
+    // would let a secretary or bursar restructure classes, and would still let
+    // a teacher rewrite class_teacher_id on any class (that column feeds
+    // my_assigned_class_ids(), so it is self-promotion).
+    expect(mig).toMatch(/CREATE POLICY "School users classes write"[\s\S]{0,300}is_school_admin\(my_school_id\(\)\)/);
+    // Teachers also cannot reassign their own subjects (adds classes to their
+    // own scope).
+    expect(mig).toMatch(/CREATE POLICY "School users teacher_subjects write"[\s\S]{0,300}NOT is_class_scoped_role\(\)/);
   });
 });

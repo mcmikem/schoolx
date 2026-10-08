@@ -468,6 +468,15 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> = dee
       ],
     },
     {
+      label: "My Roster",
+      icon: "groups",
+      defaultOpen: true,
+      items: [
+        { href: "/dashboard/students", label: "My Students", icon: "group" },
+        { href: "/dashboard/classes", label: "My Classes", icon: "school" },
+      ],
+    },
+    {
       label: "Take Attendance",
       icon: "how_to_reg",
       defaultOpen: true,

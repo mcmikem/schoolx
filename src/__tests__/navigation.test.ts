@@ -49,6 +49,15 @@ describe("Navigation", () => {
       expect(allHrefs).not.toContain("/dashboard/settings");
     });
 
+    test("teacher nav offers the roster pages and no staff/settings routes", () => {
+      const nav = getNavigationForRole("teacher");
+      const allHrefs = nav.flatMap((g) => g.items.map((i) => i.href));
+      expect(allHrefs).toContain("/dashboard/students");
+      expect(allHrefs).toContain("/dashboard/classes");
+      expect(allHrefs).not.toContain("/dashboard/staff");
+      expect(allHrefs).not.toContain("/dashboard/permissions");
+    });
+
     test("bursar has fees and budget access", () => {
       const nav = getNavigationForRole("bursar");
       const allHrefs = nav.flatMap((g) => g.items.map((i) => i.href));

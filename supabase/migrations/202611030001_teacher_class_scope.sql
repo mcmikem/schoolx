@@ -335,18 +335,20 @@ USING (
 ;
 
 
--- Creating, renaming or reassigning a class is management work. Without this
--- a teacher could set class_teacher_id to themselves on any class in the school
--- (the column feeds my_assigned_class_ids()).
+-- Creating, renaming or reassigning a class is management work. Without the
+-- admin gate a teacher could set class_teacher_id to themselves on any class in
+-- the school (the column feeds my_assigned_class_ids()), and every other staff
+-- role could rename or restructure classes — production's classes_insert /
+-- classes_update / classes_delete policies were all is_school_admin() only.
 CREATE POLICY "School users classes write"
 ON classes
 FOR ALL
 TO authenticated
 USING (
-  school_id = my_school_id() AND NOT is_class_scoped_role()
+  school_id = my_school_id() AND is_school_admin(my_school_id())
 )
 WITH CHECK (
-  school_id = my_school_id() AND NOT is_class_scoped_role()
+  school_id = my_school_id() AND is_school_admin(my_school_id())
 )
 ;
 
