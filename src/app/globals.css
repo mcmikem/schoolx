@@ -47,7 +47,11 @@
 @font-face {
   font-family: "Material Symbols Outlined";
   font-style: normal;
-  font-display: swap;
+  /* `block`, not `swap`: while this font is still arriving over a slow link
+     every icon would otherwise render its ligature name ("system_update_alt")
+     as giant fallback text. Block keeps the glyph invisible for the short
+     block period instead of flashing readable garbage. */
+  font-display: block;
   font-weight: 300 700;
   src: url("/fonts/material-symbols-outlined.woff2") format("woff2");
 }

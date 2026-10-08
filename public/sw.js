@@ -114,15 +114,31 @@ self.addEventListener('fetch', (event) => {
   if (isNavigationRequest(request)) {
     const isDashboardRoute = url.pathname.startsWith('/dashboard') || url.pathname.startsWith('/onboarding');
 
+    // Navigations stay network-first so a fresh deploy is picked up, but on a
+    // slow link the fetch can hang long past any server timeout — including the
+    // reload after tapping "Update now", which left the banner frozen on
+    // "Updating…". Race the network against a deadline and fall through to the
+    // same cache fallbacks below. The update flow precaches the app shell at
+    // install, so the fallback usually serves the NEW build, not the old one.
+    const NAVIGATION_TIMEOUT_MS = 8000;
+    let navigationTimer;
+    const navigationTimeout = new Promise((_, reject) => {
+      navigationTimer = setTimeout(() => reject(new Error('navigation timeout')), NAVIGATION_TIMEOUT_MS);
+    });
+
     event.respondWith(
-      fetch(request)
-        .then((response) => {
-          if (response.ok) {
-            const clone = response.clone();
-            caches.open(PAGE_CACHE).then((cache) => cache.put(request, clone));
-          }
-          return response;
-        })
+      Promise.race([
+        fetch(request)
+          .then((response) => {
+            if (response.ok) {
+              const clone = response.clone();
+              caches.open(PAGE_CACHE).then((cache) => cache.put(request, clone));
+            }
+            return response;
+          }),
+        navigationTimeout,
+      ])
+        .finally(() => clearTimeout(navigationTimer))
         .catch(async () => {
           const cachedPage = await caches.match(request);
           if (cachedPage) return cachedPage;
