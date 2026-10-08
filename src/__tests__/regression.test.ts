@@ -938,6 +938,11 @@ describe("Student photos stay small without breaking uploads", () => {
     expect(batch).not.toContain('.eq("student_number"');
   });
 
+  it("skips the database write when a re-run uploads an identical photo URL", () => {
+    const batch = read("src/app/dashboard/students/photos/page.tsx");
+    expect(batch).toContain("Already up to date");
+  });
+
   it("retries only failed batch photos instead of re-uploading everything", () => {
     const batch = read("src/app/dashboard/students/photos/page.tsx");
     expect(batch).toContain("retryFailed");
@@ -975,5 +980,77 @@ describe("Batch photo requests always have deadlines", () => {
     const batch = read("src/app/dashboard/students/photos/page.tsx");
     // Roster read and per-row save both fail the file instead of hanging.
     expect(batch.match(/withTimeout[<(]/g)?.length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe("Staff directory rows use one overflow menu", () => {
+  const read = (rel: string) => require("fs").readFileSync(require("path").join(process.cwd(), rel), "utf8");
+
+  it("opens actions from a per-row menu instead of five inline buttons", () => {
+    const src = read("src/app/dashboard/staff/page.tsx");
+    expect(src).toContain("menuOpenId");
+    expect(src).toContain('icon="more_vert"');
+    for (const action of [
+      "openEditModal(member)",
+      "setIdCardPreviewStaff(member)",
+      "handleResetPassword(member.id, pass)",
+      "toggleStatus(member.id",
+      "handleDeleteStaff(member.id)",
+    ]) {
+      expect(src).toContain(action);
+    }
+  });
+});
+
+describe("Student registry bulk selection", () => {
+  const read = (rel: string) => require("fs").readFileSync(require("path").join(process.cwd(), rel), "utf8");
+
+  it("selects page rows and exports them without a backend round trip", () => {
+    const src = read("src/components/students/StudentRegistryPanel.tsx");
+    expect(src).toContain("selectedIds");
+    expect(src).toContain("toggleSelectPage");
+    expect(src).toContain("exportSelectedCsv");
+    expect(src).toContain("students-selected.csv");
+  });
+
+  it("offers clear-filters instead of a dead end when filters hide everyone", () => {
+    const src = read("src/components/students/StudentRegistryPanel.tsx");
+    expect(src).toContain("filtersActive");
+    expect(src).toContain("clearFilters");
+    expect(src).toContain("Clear filters");
+  });
+
+  it("keeps search and filters reachable while scrolling the list", () => {
+    const src = read("src/components/students/StudentRegistryPanel.tsx");
+    expect(src).toContain('position: "sticky"');
+  });
+});
+
+describe("Attendance progress header", () => {
+  const read = (rel: string) => require("fs").readFileSync(require("path").join(process.cwd(), rel), "utf8");
+
+  it("shows marked progress with sync state and jumps to the next unmarked pupil", () => {
+    const src = read("src/app/dashboard/attendance/page.tsx");
+    expect(src).toContain("markedCount");
+    expect(src).toContain("jumpToNextUnmarked");
+    expect(src).toContain("Next unmarked");
+    expect(src).toContain("att-row-");
+  });
+});
+
+describe("Fees defaulter-first view", () => {
+  const read = (rel: string) => require("fs").readFileSync(require("path").join(process.cwd(), rel), "utf8");
+
+  it("pins filtered Expected/Collected/Balance totals above the balances list", () => {
+    const src = read("src/app/dashboard/fees/page.tsx");
+    expect(src).toContain("filteredTotals");
+    expect(src).toContain("filteredCollectionPct");
+  });
+
+  it("expands an inline ledger per pupil from already-loaded payments", () => {
+    const src = read("src/components/fees/FeeTable.tsx");
+    expect(src).toContain("BalanceLedger");
+    expect(src).toContain("expandedId");
+    expect(src).toContain("View ledger");
   });
 });

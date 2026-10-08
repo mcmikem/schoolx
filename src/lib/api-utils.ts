@@ -524,7 +524,11 @@ export function requireCronSecretOrDeny(request: NextRequest): { ok: true } | { 
     };
   }
 
-  const provided = request.headers.get("x-cron-secret") || "";
+  // Vercel Cron authenticates with `Authorization: Bearer ${CRON_SECRET}`;
+  // our own internal callers (e.g. /api/term-end) send `x-cron-secret`.
+  const authorization = request.headers.get("authorization") || "";
+  const bearer = authorization.replace(/^bearer\s+/i, "");
+  const provided = request.headers.get("x-cron-secret") || bearer || "";
 
   if (provided !== expected) {
     return {

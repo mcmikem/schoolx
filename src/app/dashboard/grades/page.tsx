@@ -1689,154 +1689,381 @@ export default function GradesPage() {
               </div>
             </div>
 
-            {/* Desktop: Inline Table View */}
+            {/* Desktop: Inline Table View (md and up) + mobile cards (<md) */}
             {inlineEntryMode && (
-              <div className="bg-surface-container-lowest rounded-2xl overflow-hidden shadow-sm">
-                <div className="overflow-x-auto table-responsive">
-                  <table className="w-full border-collapse">
-                    <thead>
-                      <tr className="bg-surface-container-low/50 text-left">
-                        <th className="px-8 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                          Student Identity
-                        </th>
-                        {competencyMode ? (
-                          <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
-                            Competency Level
+              <>
+                <div className="hidden md:block bg-surface-container-lowest rounded-2xl overflow-hidden shadow-sm">
+                  <div className="overflow-x-auto table-responsive">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="bg-surface-container-low/50 text-left">
+                          <th className="px-8 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                            Student Identity
                           </th>
+                          {competencyMode ? (
+                            <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
+                              Competency Level
+                            </th>
+                          ) : (
+                            <>
+                              {activeAssessmentTypes.map((type) => (
+                                <th
+                                  key={type}
+                                  className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center"
+                                >
+                                  {type === "ca1"
+                                    ? "CA1"
+                                    : type === "ca2"
+                                      ? "CA2"
+                                      : type === "ca3"
+                                        ? "CA3"
+                                        : type === "ca4"
+                                          ? "CA4"
+                                          : type === "project"
+                                            ? "Project"
+                                            : "Exam"}{" "}
+                                  ({ASSESSMENT_MAX[type]})
+                                </th>
+                              ))}
+                            </>
+                          )}
+                          <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
+                            {competencyMode ? "Status" : "Total (100)"}
+                          </th>
+                          <th className="px-8 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-right">
+                            Grade
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-surface-container">
+                        {studentsLoading ? (
+                          <tr>
+                            <td colSpan={7} className="px-8 py-12">
+                              <TableSkeleton rows={5} />
+                            </td>
+                          </tr>
+                        ) : displayStudents.length === 0 ? (
+                          <tr>
+                            <td colSpan={7} className="px-8 py-12">
+                              <NoData
+                                title={
+                                  statusFilter !== "all"
+                                    ? `No ${statusFilter} students in this class`
+                                    : "No students in this class"
+                                }
+                              />
+                            </td>
+                          </tr>
                         ) : (
-                          <>
-                            {activeAssessmentTypes.map((type) => (
-                              <th
-                                key={type}
-                                className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center"
+                          paginatedStudents.map((student) => {
+                            const ca1 = getMark(student.id, "ca1");
+                            const ca2 = getMark(student.id, "ca2");
+                            const ca3 = getMark(student.id, "ca3");
+                            const exam = getMark(student.id, "exam");
+                            const total = getStudentTotal(student.id);
+                            const gradeInfo = total !== null ? getGrade(total) : null;
+                            const graded = isStudentGraded(student.id);
+                            return (
+                              <tr
+                                key={student.id}
+                                className={`hover:bg-surface-bright transition-colors ${
+                                  !graded && completionStats.graded < completionStats.total
+                                    ? "bg-orange-50/20 dark:bg-orange-900/5"
+                                    : ""
+                                }`}
                               >
-                                {type === "ca1"
-                                  ? "CA1"
-                                  : type === "ca2"
-                                    ? "CA2"
-                                    : type === "ca3"
-                                      ? "CA3"
-                                      : type === "ca4"
-                                        ? "CA4"
-                                        : type === "project"
-                                          ? "Project"
-                                          : "Exam"}{" "}
-                                ({ASSESSMENT_MAX[type]})
-                              </th>
-                            ))}
-                          </>
-                        )}
-                        <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
-                          {competencyMode ? "Status" : "Total (100)"}
-                        </th>
-                        <th className="px-8 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-right">
-                          Grade
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-surface-container">
-                      {studentsLoading ? (
-                        <tr>
-                          <td colSpan={7} className="px-8 py-12">
-                            <TableSkeleton rows={5} />
-                          </td>
-                        </tr>
-                      ) : displayStudents.length === 0 ? (
-                        <tr>
-                          <td colSpan={7} className="px-8 py-12">
-                            <NoData
-                              title={
-                                statusFilter !== "all"
-                                  ? `No ${statusFilter} students in this class`
-                                  : "No students in this class"
-                              }
-                            />
-                          </td>
-                        </tr>
-                      ) : (
-                        paginatedStudents.map((student) => {
-                          const ca1 = getMark(student.id, "ca1");
-                          const ca2 = getMark(student.id, "ca2");
-                          const ca3 = getMark(student.id, "ca3");
-                          const exam = getMark(student.id, "exam");
-                          const total = getStudentTotal(student.id);
-                          const gradeInfo = total !== null ? getGrade(total) : null;
-                          const graded = isStudentGraded(student.id);
-                          return (
-                            <tr
-                              key={student.id}
-                              className={`hover:bg-surface-bright transition-colors ${
-                                !graded && completionStats.graded < completionStats.total
-                                  ? "bg-orange-50/20 dark:bg-orange-900/5"
-                                  : ""
-                              }`}
-                            >
-                              <td className="px-8 py-5">
-                                <div className="flex items-center gap-4">
-                                  <PersonInitials name={`${student.first_name} ${student.last_name}`} size={40} />
-                                  <div>
-                                    <p className="font-bold text-primary">
-                                      {student.first_name} {student.last_name}
-                                    </p>
-                                    <p className="text-xs text-on-surface-variant">{student.student_number || "-"}</p>
-                                    {(() => {
-                                      const sStatus = studentStatusMap[student.id] || "draft";
-                                      return (
-                                        <span
-                                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black mt-1 ${
-                                            sStatus === "draft"
-                                              ? "bg-[var(--amber-soft)] text-[var(--amber)]"
+                                <td className="px-8 py-5">
+                                  <div className="flex items-center gap-4">
+                                    <PersonInitials name={`${student.first_name} ${student.last_name}`} size={40} />
+                                    <div>
+                                      <p className="font-bold text-primary">
+                                        {student.first_name} {student.last_name}
+                                      </p>
+                                      <p className="text-xs text-on-surface-variant">{student.student_number || "-"}</p>
+                                      {(() => {
+                                        const sStatus = studentStatusMap[student.id] || "draft";
+                                        return (
+                                          <span
+                                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black mt-1 ${
+                                              sStatus === "draft"
+                                                ? "bg-[var(--amber-soft)] text-[var(--amber)]"
+                                                : sStatus === "submitted"
+                                                  ? "bg-blue-50 text-blue-700"
+                                                  : sStatus === "approved"
+                                                    ? "bg-[var(--green-soft)] text-[var(--green)]"
+                                                    : "bg-surface-container text-on-surface-variant"
+                                            }`}
+                                          >
+                                            {sStatus === "draft"
+                                              ? "Draft"
                                               : sStatus === "submitted"
-                                                ? "bg-blue-50 text-blue-700"
+                                                ? "Submitted"
                                                 : sStatus === "approved"
-                                                  ? "bg-[var(--green-soft)] text-[var(--green)]"
-                                                  : "bg-surface-container text-on-surface-variant"
-                                          }`}
-                                        >
-                                          {sStatus === "draft"
-                                            ? "Draft"
-                                            : sStatus === "submitted"
-                                              ? "Submitted"
-                                              : sStatus === "approved"
-                                                ? "Approved"
-                                                : "Published"}
-                                        </span>
-                                      );
-                                    })()}
-                                  </div>
-                                  {graded && <MaterialIcon icon="check_circle" className="text-green-500 text-lg" />}
-                                </div>
-                              </td>
-                              {competencyMode ? (
-                                <td className="px-4 py-5">
-                                  <div className="relative">
-                                    <select
-                                      className="w-24 mx-auto block text-center font-bold py-2 px-1 rounded-lg border-none focus:outline-none transition-all bg-surface-container-low"
-                                      value={marks[`${student.id}_competency`] ?? ""}
-                                      onChange={(e) => {
-                                        const val = e.target.value;
-                                        handleMarkChange(student.id, "competency", val ? val : "");
-                                      }}
-                                      disabled={isSubmitted}
-                                    >
-                                      <option value="">—</option>
-                                      {COMPETENCY_SCHEME.values?.map((cv) => (
-                                        <option key={cv.value} value={cv.value}>
-                                          {cv.value} - {cv.label}
-                                        </option>
-                                      ))}
-                                    </select>
-                                    {getSaveStatusForInput(student.id, "competency") === "saved" && (
-                                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white" />
-                                    )}
+                                                  ? "Approved"
+                                                  : "Published"}
+                                          </span>
+                                        );
+                                      })()}
+                                    </div>
+                                    {graded && <MaterialIcon icon="check_circle" className="text-green-500 text-lg" />}
                                   </div>
                                 </td>
-                              ) : (
-                                activeAssessmentTypes.map((type) => (
-                                  <td key={type} className="px-4 py-5">
+                                {competencyMode ? (
+                                  <td className="px-4 py-5">
+                                    <div className="relative">
+                                      <select
+                                        className="w-24 mx-auto block text-center font-bold py-2 px-1 rounded-lg border-none focus:outline-none transition-all bg-surface-container-low"
+                                        value={marks[`${student.id}_competency`] ?? ""}
+                                        onChange={(e) => {
+                                          const val = e.target.value;
+                                          handleMarkChange(student.id, "competency", val ? val : "");
+                                        }}
+                                        disabled={isSubmitted}
+                                      >
+                                        <option value="">—</option>
+                                        {COMPETENCY_SCHEME.values?.map((cv) => (
+                                          <option key={cv.value} value={cv.value}>
+                                            {cv.value} - {cv.label}
+                                          </option>
+                                        ))}
+                                      </select>
+                                      {getSaveStatusForInput(student.id, "competency") === "saved" && (
+                                        <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white" />
+                                      )}
+                                    </div>
+                                  </td>
+                                ) : (
+                                  activeAssessmentTypes.map((type) => (
+                                    <td key={type} className="px-4 py-5">
+                                      <div className="relative">
+                                        <input
+                                          className={`w-16 mx-auto block text-center font-bold py-2 px-1 rounded-lg border-none focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed ${getInputBorderClass(student.id, type)}`}
+                                          type="number"
+                                          inputMode="numeric"
+                                          min={0}
+                                          max={ASSESSMENT_MAX[type]}
+                                          placeholder="—"
+                                          value={
+                                            marks[`${student.id}_${type}`] !== null &&
+                                            marks[`${student.id}_${type}`] !== undefined
+                                              ? String(marks[`${student.id}_${type}`])
+                                              : ""
+                                          }
+                                          onChange={(e) => handleMarkChange(student.id, type, e.target.value)}
+                                          onBlur={() => handleInlineBlur(student.id, type)}
+                                          disabled={isSubmitted || (caLocked && type.startsWith("ca"))}
+                                          onKeyDown={(e) => {
+                                            if (e.key === "Enter") {
+                                              e.currentTarget.blur();
+                                            }
+                                          }}
+                                        />
+                                        {getSaveStatusForInput(student.id, type) === "saved" && (
+                                          <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white" />
+                                        )}
+                                      </div>
+                                    </td>
+                                  ))
+                                )}
+                                <td className="px-4 py-5 text-center">
+                                  <span
+                                    className={`font-black text-xl ${total !== null ? "text-primary" : "text-on-surface-variant"}`}
+                                  >
+                                    {total !== null ? total : "—"}
+                                  </span>
+                                </td>
+                                <td className="px-8 py-5 text-right">
+                                  <span
+                                    className={`px-4 py-1.5 rounded-full text-xs font-black ${gradeInfo ? "bg-surface-container" : "bg-surface-bright text-on-surface-variant"} ${gradeInfo?.color || ""}`}
+                                  >
+                                    {gradeInfo ? gradeInfo.grade : "-"}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                      {displayStudents.length > 0 && !competencyMode && (
+                        <tfoot className="bg-surface-container-low/40">
+                          <tr>
+                            <td className="px-8 py-4">
+                              <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">
+                                Class Avg
+                              </span>
+                            </td>
+                            {activeAssessmentTypes.map((type) => {
+                              const vals = displayStudents
+                                .map((s) => marks[`${s.id}_${type}`])
+                                .filter((v): v is number => v !== null && v !== undefined);
+                              const avg =
+                                vals.length > 0
+                                  ? Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10
+                                  : null;
+                              return (
+                                <td key={type} className="px-4 py-4 text-center">
+                                  <span
+                                    className={`text-sm font-bold ${avg !== null ? "text-primary" : "text-on-surface-variant/50"}`}
+                                  >
+                                    {avg !== null ? avg : "—"}
+                                  </span>
+                                </td>
+                              );
+                            })}
+                            <td className="px-4 py-4 text-center">
+                              {(() => {
+                                const totals = displayStudents
+                                  .map((s) => getStudentTotal(s.id))
+                                  .filter((v): v is number => v !== null);
+                                const classAvg =
+                                  totals.length > 0
+                                    ? Math.round((totals.reduce((a, b) => a + b, 0) / totals.length) * 10) / 10
+                                    : null;
+                                return (
+                                  <span
+                                    className={`text-sm font-bold ${classAvg !== null ? "text-primary" : "text-on-surface-variant/50"}`}
+                                  >
+                                    {classAvg !== null ? classAvg : "—"}
+                                  </span>
+                                );
+                              })()}
+                            </td>
+                            <td />
+                          </tr>
+                        </tfoot>
+                      )}
+                    </table>
+                  </div>
+                  {displayStudents.length > gradesPerPage && (
+                    <div className="flex items-center justify-between px-6 py-3 border-t border-outline-variant/10">
+                      <span className="text-sm text-on-surface-variant">
+                        Page {gradePage} of {gradeTotalPages}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setGradePage((p) => Math.max(1, p - 1))}
+                          disabled={gradePage === 1}
+                        >
+                          <MaterialIcon icon="chevron_left" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setGradePage((p) => Math.min(gradeTotalPages, p + 1))}
+                          disabled={gradePage >= gradeTotalPages}
+                        >
+                          <MaterialIcon icon="chevron_right" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                {/* Mobile: grade cards (<md) — same students + handlers as the desktop table above */}
+                <div className="md:hidden space-y-3">
+                  {studentsLoading ? (
+                    <Card>
+                      <CardBody>
+                        <TableSkeleton rows={5} />
+                      </CardBody>
+                    </Card>
+                  ) : displayStudents.length === 0 ? (
+                    <Card>
+                      <CardBody>
+                        <NoData
+                          title={
+                            statusFilter !== "all"
+                              ? `No ${statusFilter} students in this class`
+                              : "No students in this class"
+                          }
+                        />
+                      </CardBody>
+                    </Card>
+                  ) : (
+                    paginatedStudents.map((student) => {
+                      const total = getStudentTotal(student.id);
+                      const gradeInfo = total !== null ? getGrade(total) : null;
+                      const graded = isStudentGraded(student.id);
+                      const sStatus = studentStatusMap[student.id] || "draft";
+                      return (
+                        <Card key={student.id}>
+                          <CardBody className="space-y-4">
+                            <div className="flex items-center gap-3">
+                              <PersonInitials name={`${student.first_name} ${student.last_name}`} size={40} />
+                              <div className="min-w-0 flex-1">
+                                <p className="font-bold text-primary truncate">
+                                  {student.first_name} {student.last_name}
+                                </p>
+                                <p className="text-xs text-[var(--t3)]">{student.student_number || "-"}</p>
+                                <span
+                                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black mt-1 ${
+                                    sStatus === "draft"
+                                      ? "bg-[var(--amber-soft)] text-[var(--amber)]"
+                                      : sStatus === "submitted"
+                                        ? "bg-blue-50 text-blue-700"
+                                        : sStatus === "approved"
+                                          ? "bg-[var(--green-soft)] text-[var(--green)]"
+                                          : "bg-surface-container text-[var(--on-surface)]"
+                                  }`}
+                                >
+                                  {sStatus === "draft"
+                                    ? "Draft"
+                                    : sStatus === "submitted"
+                                      ? "Submitted"
+                                      : sStatus === "approved"
+                                        ? "Approved"
+                                        : "Published"}
+                                </span>
+                              </div>
+                              {graded && <MaterialIcon icon="check_circle" className="text-green-500 text-lg" />}
+                            </div>
+                            {competencyMode ? (
+                              <div className="space-y-2">
+                                <label
+                                  htmlFor={`grade-card-${student.id}-competency`}
+                                  className="block text-xs font-semibold text-[var(--t3)] uppercase tracking-wider"
+                                >
+                                  Competency Level
+                                </label>
+                                <div className="relative">
+                                  <select
+                                    id={`grade-card-${student.id}-competency`}
+                                    className="w-full min-h-[44px] text-center font-bold py-2 px-1 rounded-lg border-none focus:outline-none transition-all bg-surface-container-low text-[var(--on-surface)]"
+                                    value={marks[`${student.id}_competency`] ?? ""}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      handleMarkChange(student.id, "competency", val ? val : "");
+                                    }}
+                                    onBlur={() => handleInlineBlur(student.id, "competency")}
+                                    disabled={isSubmitted}
+                                  >
+                                    <option value="">—</option>
+                                    {COMPETENCY_SCHEME.values?.map((cv) => (
+                                      <option key={cv.value} value={cv.value}>
+                                        {cv.value} - {cv.label}
+                                      </option>
+                                    ))}
+                                  </select>
+                                  {getSaveStatusForInput(student.id, "competency") === "saved" && (
+                                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white" />
+                                  )}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="grid grid-cols-2 gap-3">
+                                {activeAssessmentTypes.map((type) => (
+                                  <div key={type} className="space-y-1">
+                                    <label
+                                      htmlFor={`grade-card-${student.id}-${type}`}
+                                      className="block text-xs font-semibold text-[var(--t3)] uppercase tracking-wider"
+                                    >
+                                      {assessmentLabels[type] ?? type.toUpperCase()} ({ASSESSMENT_MAX[type] ?? 100})
+                                    </label>
                                     <div className="relative">
                                       <input
-                                        className={`w-16 mx-auto block text-center font-bold py-2 px-1 rounded-lg border-none focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed ${getInputBorderClass(student.id, type)}`}
+                                        id={`grade-card-${student.id}-${type}`}
+                                        className={`w-full min-h-[44px] block text-center font-bold py-2 px-1 rounded-lg border-none focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-surface-container-low text-[var(--on-surface)] ${getInputBorderClass(student.id, type)}`}
                                         type="number"
                                         inputMode="numeric"
                                         min={0}
@@ -1851,114 +2078,64 @@ export default function GradesPage() {
                                         onChange={(e) => handleMarkChange(student.id, type, e.target.value)}
                                         onBlur={() => handleInlineBlur(student.id, type)}
                                         disabled={isSubmitted || (caLocked && type.startsWith("ca"))}
-                                        onKeyDown={(e) => {
-                                          if (e.key === "Enter") {
-                                            e.currentTarget.blur();
-                                          }
-                                        }}
                                       />
                                       {getSaveStatusForInput(student.id, type) === "saved" && (
                                         <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white" />
                                       )}
                                     </div>
-                                  </td>
-                                ))
-                              )}
-                              <td className="px-4 py-5 text-center">
-                                <span
-                                  className={`font-black text-xl ${total !== null ? "text-primary" : "text-on-surface-variant"}`}
-                                >
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            <div className="flex items-center justify-between pt-3 border-t border-[var(--border)]">
+                              <span className="text-xs font-bold uppercase tracking-wider text-[var(--t3)]">
+                                Total{" "}
+                                <span className="text-base font-black text-[var(--on-surface)]">
                                   {total !== null ? total : "—"}
                                 </span>
-                              </td>
-                              <td className="px-8 py-5 text-right">
-                                <span
-                                  className={`px-4 py-1.5 rounded-full text-xs font-black ${gradeInfo ? "bg-surface-container" : "bg-surface-bright text-on-surface-variant"} ${gradeInfo?.color || ""}`}
-                                >
-                                  {gradeInfo ? gradeInfo.grade : "-"}
-                                </span>
-                              </td>
-                            </tr>
-                          );
-                        })
-                      )}
-                    </tbody>
-                    {displayStudents.length > 0 && !competencyMode && (
-                      <tfoot className="bg-surface-container-low/40">
-                        <tr>
-                          <td className="px-8 py-4">
-                            <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">
-                              Class Avg
-                            </span>
-                          </td>
-                          {activeAssessmentTypes.map((type) => {
-                            const vals = displayStudents
-                              .map((s) => marks[`${s.id}_${type}`])
-                              .filter((v): v is number => v !== null && v !== undefined);
-                            const avg =
-                              vals.length > 0
-                                ? Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10
-                                : null;
-                            return (
-                              <td key={type} className="px-4 py-4 text-center">
-                                <span
-                                  className={`text-sm font-bold ${avg !== null ? "text-primary" : "text-on-surface-variant/50"}`}
-                                >
-                                  {avg !== null ? avg : "—"}
-                                </span>
-                              </td>
-                            );
-                          })}
-                          <td className="px-4 py-4 text-center">
-                            {(() => {
-                              const totals = displayStudents
-                                .map((s) => getStudentTotal(s.id))
-                                .filter((v): v is number => v !== null);
-                              const classAvg =
-                                totals.length > 0
-                                  ? Math.round((totals.reduce((a, b) => a + b, 0) / totals.length) * 10) / 10
-                                  : null;
-                              return (
-                                <span
-                                  className={`text-sm font-bold ${classAvg !== null ? "text-primary" : "text-on-surface-variant/50"}`}
-                                >
-                                  {classAvg !== null ? classAvg : "—"}
-                                </span>
-                              );
-                            })()}
-                          </td>
-                          <td />
-                        </tr>
-                      </tfoot>
-                    )}
-                  </table>
-                </div>
-                {displayStudents.length > gradesPerPage && (
-                  <div className="flex items-center justify-between px-6 py-3 border-t border-outline-variant/10">
-                    <span className="text-sm text-on-surface-variant">
-                      Page {gradePage} of {gradeTotalPages}
-                    </span>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setGradePage((p) => Math.max(1, p - 1))}
-                        disabled={gradePage === 1}
-                      >
-                        <MaterialIcon icon="chevron_left" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setGradePage((p) => Math.min(gradeTotalPages, p + 1))}
-                        disabled={gradePage >= gradeTotalPages}
-                      >
-                        <MaterialIcon icon="chevron_right" />
-                      </Button>
+                              </span>
+                              <span
+                                className={`px-4 py-1.5 min-h-[44px] inline-flex items-center rounded-full text-xs font-black ${gradeInfo ? "bg-surface-container" : "bg-surface-bright text-[var(--t3)]"} ${gradeInfo?.color || ""}`}
+                              >
+                                {gradeInfo ? gradeInfo.grade : "-"}
+                              </span>
+                            </div>
+                          </CardBody>
+                        </Card>
+                      );
+                    })
+                  )}
+                  {displayStudents.length > gradesPerPage && (
+                    <div className="flex items-center justify-between px-2 py-1">
+                      <span className="text-sm text-[var(--t3)]">
+                        Page {gradePage} of {gradeTotalPages}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="min-h-[44px] min-w-[44px]"
+                          onClick={() => setGradePage((p) => Math.max(1, p - 1))}
+                          disabled={gradePage === 1}
+                          aria-label="Previous grades page"
+                        >
+                          <MaterialIcon icon="chevron_left" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="min-h-[44px] min-w-[44px]"
+                          onClick={() => setGradePage((p) => Math.min(gradeTotalPages, p + 1))}
+                          disabled={gradePage >= gradeTotalPages}
+                          aria-label="Next grades page"
+                        >
+                          <MaterialIcon icon="chevron_right" />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
+                  )}
+                </div>
+              </>
             )}
 
             {/* Mobile: Card View with Swipe */}

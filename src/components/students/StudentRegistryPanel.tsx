@@ -196,6 +196,96 @@ export default function StudentRegistryPanel({
   const [showPhotosOverride, setShowPhotosOverride] = useState<boolean | null>(null);
   const showPhotos = showPhotosOverride ?? !lowBandwidthMode;
   const [showQuickImport, setShowQuickImport] = useState(false);
+  // Page-scoped selection for bulk actions. Reset whenever what is on screen
+  // changes, so a checked row can never silently mean a different pupil.
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [
+    schoolId,
+    searchTerm,
+    selectedClass,
+    filterGender,
+    filterStatus,
+    filterPosition,
+    filterDefaulters,
+    sortBy,
+    currentPage,
+  ]);
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const pageIds = paginatedStudents.map((s) => s.id);
+  const allPageSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.has(id));
+  const toggleSelectPage = () => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (pageIds.every((id) => next.has(id))) {
+        pageIds.forEach((id) => next.delete(id));
+      } else {
+        pageIds.forEach((id) => next.add(id));
+      }
+      return next;
+    });
+  };
+
+  const exportSelectedCsv = useCallback(() => {
+    const rows = paginatedStudents.filter((s) => selectedIds.has(s.id));
+    if (rows.length === 0) return;
+    const header = ["Name", "Student Number", "Gender", "Class", "Parent", "Phone"];
+    const escape = (value: unknown) => `"${String(value ?? "").replace(/"/g, '""')}"`;
+    const lines = rows.map((s) =>
+      [
+        `${s.first_name} ${s.last_name}`,
+        s.student_number || "",
+        s.gender === "M" ? "Male" : "Female",
+        s.classes?.name || "",
+        s.parent_name || "",
+        s.parent_phone || "",
+      ]
+        .map(escape)
+        .join(","),
+    );
+    // BOM first: without it Excel opens UTF-8 names as latin-1.
+    const blob = new Blob(["\uFEFF" + header.join(",") + "\n" + lines.join("\n")], {
+      type: "text/csv;charset=utf-8",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "students-selected.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [paginatedStudents, selectedIds]);
+
+  const filtersActive =
+    searchTerm.trim() !== "" ||
+    selectedClass !== "all" ||
+    filterGender !== "all" ||
+    filterStatus !== "all" ||
+    filterPosition !== "all" ||
+    filterDefaulters;
+
+  const clearFilters = () => {
+    onSearchTermChange("");
+    onSelectedClassChange("all");
+    onFilterGenderChange("all");
+    onFilterStatusChange("all");
+    onFilterPositionChange("all");
+    onFilterDefaultersChange(false);
+  };
 
   const downloadStudentTemplate = useCallback(() => {
     const csv = buildStudentTemplateCsv();
@@ -644,6 +734,13 @@ export default function StudentRegistryPanel({
             gap: 12,
             alignItems: "center",
             flexWrap: "wrap",
+            // Sticky so search and filters stay reachable on a 100-row page.
+            position: "sticky",
+            top: 0,
+            zIndex: 10,
+            background: "var(--surface)",
+            borderTopLeftRadius: 22,
+            borderTopRightRadius: 22,
           }}
         >
           <div style={{ flex: 1, minWidth: 200, position: "relative" }}>
@@ -816,6 +913,22 @@ export default function StudentRegistryPanel({
           </div>
         </div>
 
+        {selectedIds.size > 0 && (
+          <div
+            className="flex flex-wrap items-center gap-2 px-4 py-2.5"
+            style={{ borderBottom: "1px solid var(--border)", background: "var(--navy-soft)" }}
+          >
+            <span className="text-xs font-bold text-[var(--navy)]">{selectedIds.size} selected on this page</span>
+            <button type="button" onClick={exportSelectedCsv} className="btn btn-primary btn-sm">
+              <MaterialIcon style={{ fontSize: 16 }}>download</MaterialIcon>
+              Export CSV
+            </button>
+            <button type="button" onClick={() => setSelectedIds(new Set())} className="btn btn-ghost btn-sm">
+              Clear
+            </button>
+          </div>
+        )}
+
         {loading ? (
           <TableSkeleton rows={8} />
         ) : filteredCount === 0 ? (
@@ -845,13 +958,24 @@ export default function StudentRegistryPanel({
               No students found
             </div>
             <div style={{ fontSize: 12, color: "var(--t3)" }}>
-              {searchTerm ? "Try a different search term" : "Add your first student to get started"}
+              {searchTerm
+                ? "Try a different search term"
+                : filtersActive
+                  ? "No students match the current filters"
+                  : "Add your first student to get started"}
             </div>
-            {!searchTerm && (
-              <button onClick={onAddStudent} className="btn btn-primary" style={{ marginTop: 16 }}>
-                <MaterialIcon icon="person_add" style={{ fontSize: "16px" }} />
-                Add Student
+            {filtersActive ? (
+              <button onClick={clearFilters} className="btn btn-secondary" style={{ marginTop: 16 }}>
+                <MaterialIcon icon="filter_alt_off" style={{ fontSize: "16px" }} />
+                Clear filters
               </button>
+            ) : (
+              !searchTerm && (
+                <button onClick={onAddStudent} className="btn btn-primary" style={{ marginTop: 16 }}>
+                  <MaterialIcon icon="person_add" style={{ fontSize: "16px" }} />
+                  Add Student
+                </button>
+              )
             )}
           </div>
         ) : (
@@ -860,6 +984,14 @@ export default function StudentRegistryPanel({
               <table>
                 <thead>
                   <tr>
+                    <th data-label="Select">
+                      <input
+                        type="checkbox"
+                        checked={allPageSelected}
+                        onChange={toggleSelectPage}
+                        aria-label="Select all students on this page"
+                      />
+                    </th>
                     <th data-label="Student">Student</th>
                     <th data-label="Number">Number</th>
                     <th data-label="Class">Class</th>
@@ -877,6 +1009,14 @@ export default function StudentRegistryPanel({
 
                     return (
                       <tr key={student.id}>
+                        <td data-label="Select">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(student.id)}
+                            onChange={() => toggleSelect(student.id)}
+                            aria-label={`Select ${student.first_name} ${student.last_name}`}
+                          />
+                        </td>
                         <td data-label="Student">
                           <Link
                             href={`/dashboard/students/${student.id}`}
@@ -1072,6 +1212,13 @@ export default function StudentRegistryPanel({
                     className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--sh1)]"
                   >
                     <div className="flex items-start gap-3">
+                      <input
+                        type="checkbox"
+                        className="mt-4 shrink-0"
+                        checked={selectedIds.has(student.id)}
+                        onChange={() => toggleSelect(student.id)}
+                        aria-label={`Select ${student.first_name} ${student.last_name}`}
+                      />
                       <div
                         className="relative h-12 w-12 shrink-0 overflow-hidden"
                         style={{

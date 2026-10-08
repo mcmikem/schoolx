@@ -126,6 +126,7 @@ export type GradeWorkflowStatus = "draft" | "submitted" | "approved" | "publishe
 
 export interface AutomatedAlertLogLike {
   trigger_id?: string | null;
+  trigger_key?: string | null;
   record_id?: string | null;
   sent_at?: string | null;
   created_at?: string | null;
@@ -399,7 +400,8 @@ export function filterAbsenceAlertsForCooldown(input: {
     const matchingLog = (input.recentLogs || []).find((log) => {
       const sentAt = log.sent_at || log.created_at;
       if (!sentAt) return false;
-      if (log.trigger_id !== input.triggerId || log.record_id !== alert.studentId) return false;
+      const logTrigger = log.trigger_key ?? log.trigger_id;
+      if (logTrigger !== input.triggerId || log.record_id !== alert.studentId) return false;
       if (log.status && !["sent", "queued"].includes(log.status)) return false;
       return new Date(sentAt).getTime() >= cutoff;
     });

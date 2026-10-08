@@ -131,6 +131,19 @@ export default function BatchPhotosPage() {
           maxHeight: 1024,
         });
 
+        // Re-runs re-upload the same bytes to the same path (idempotent), but
+        // rewriting an identical URL is a wasted write transaction — and right
+        // now every spare transaction counts. Skip it.
+        if (student.photo_url === publicUrl) {
+          uploadResults.push({
+            studentNumber,
+            studentName: `${student.first_name} ${student.last_name}`,
+            status: "success",
+            message: "Already up to date",
+          });
+          continue;
+        }
+
         const { error: updateError } = await withTimeout<{ error: { message: string } | null }>(
           supabase
             .from("students")

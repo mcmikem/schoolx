@@ -5,7 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useClasses } from "@/lib/hooks";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Card } from "@/components/ui/Card";
+import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 import { EmptyState } from "@/components/EmptyState";
 import { TableSkeleton } from "@/components/ui/Skeleton";
@@ -112,7 +112,17 @@ export default function AttendanceHistoryPage() {
 
   const exportCsv = () => {
     if (records.length === 0) return;
-    const headers = ["Student Number", "First Name", "Last Name", "Present", "Absent", "Late", "Excused", "Total", "Rate%"];
+    const headers = [
+      "Student Number",
+      "First Name",
+      "Last Name",
+      "Present",
+      "Absent",
+      "Late",
+      "Excused",
+      "Total",
+      "Rate%",
+    ];
     const rows = records.map((r: any) => [
       r.student_number || r.students?.student_number || "",
       r.first_name || r.students?.first_name || "",
@@ -141,171 +151,240 @@ export default function AttendanceHistoryPage() {
     URL.revokeObjectURL(url);
   };
 
-  const totalRate = summary.total > 0
-    ? ((summary.present / summary.total) * 100).toFixed(1)
-    : "0.0";
+  const totalRate = summary.total > 0 ? ((summary.present / summary.total) * 100).toFixed(1) : "0.0";
 
   return (
     <PageErrorBoundary>
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
-      <PageHeader
-        title="Attendance History"
-        subtitle="View and export attendance records"
-        actions={
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={exportCsv}
-            disabled={records.length === 0}
-            icon={<MaterialIcon icon="download" />}
-          >
-            Export CSV
-          </Button>
-        }
-      />
-
-      <Card className="p-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-[var(--t2)] mb-1">Start Date</label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-[var(--t2)] mb-1">End Date</label>
-            <input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-              className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-[var(--t2)] mb-1">Class</label>
-            <select
-              value={selectedClass || ""}
-              onChange={(e) => setSelectedClass(e.target.value || null)}
-              className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
+      <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+        <PageHeader
+          title="Attendance History"
+          subtitle="View and export attendance records"
+          actions={
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={exportCsv}
+              disabled={records.length === 0}
+              icon={<MaterialIcon icon="download" />}
             >
-              <option value="">All Classes</option>
-              {classes.map((c: any) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-          </div>
-          <div className="sm:col-span-2">
-            <label className="block text-sm font-medium text-[var(--t2)] mb-1">Search Student</label>
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name or student number..."
-              className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
-            />
-          </div>
-        </div>
-      </Card>
-
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <Card className="p-3 text-center">
-          <div className="text-2xl font-bold text-[var(--primary)]">{summary.total}</div>
-          <div className="text-xs text-[var(--t3)]">Total Records</div>
-        </Card>
-        <Card className="p-3 text-center">
-          <div className="text-2xl font-bold text-green-600">{summary.present}</div>
-          <div className="text-xs text-[var(--t3)]">Present</div>
-        </Card>
-        <Card className="p-3 text-center">
-          <div className="text-2xl font-bold text-red-600">{summary.absent}</div>
-          <div className="text-xs text-[var(--t3)]">Absent</div>
-        </Card>
-        <Card className="p-3 text-center">
-          <div className="text-2xl font-bold text-yellow-600">{summary.late}</div>
-          <div className="text-xs text-[var(--t3)]">Late</div>
-        </Card>
-        <Card className="p-3 text-center">
-          <div className="text-2xl font-bold text-purple-600">{summary.excused}</div>
-          <div className="text-xs text-[var(--t3)]">Excused</div>
-        </Card>
-      </div>
-
-      <Card className="p-3">
-        <div className="flex items-center gap-4 text-sm">
-          <span className="font-medium text-[var(--t1)]">Attendance Rate:</span>
-          <span className="text-lg font-bold text-green-600">{totalRate}%</span>
-          <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-green-500 rounded-full transition-all"
-              style={{ width: `${Math.min(100, parseFloat(totalRate))}%` }}
-            />
-          </div>
-        </div>
-      </Card>
-
-      {loading ? (
-        <TableSkeleton rows={8} />
-      ) : records.length === 0 ? (
-        <EmptyState
-          icon="history"
-          title="No attendance records found"
-          description="Try adjusting your date range or class filter"
+              Export CSV
+            </Button>
+          }
         />
-      ) : (
-        <Card>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-[var(--surface-container)]">
-                  <th className="p-3 text-left text-xs font-semibold text-[var(--t2)] uppercase">Student</th>
-                  <th className="p-3 text-left text-xs font-semibold text-[var(--t2)] uppercase">Number</th>
-                  <th className="p-3 text-center text-xs font-semibold text-[var(--t2)] uppercase">Present</th>
-                  <th className="p-3 text-center text-xs font-semibold text-[var(--t2)] uppercase">Absent</th>
-                  <th className="p-3 text-center text-xs font-semibold text-[var(--t2)] uppercase">Late</th>
-                  <th className="p-3 text-center text-xs font-semibold text-[var(--t2)] uppercase">Excused</th>
-                  <th className="p-3 text-center text-xs font-semibold text-[var(--t2)] uppercase">Total</th>
-                  <th className="p-3 text-center text-xs font-semibold text-[var(--t2)] uppercase">Rate</th>
-                </tr>
-              </thead>
-              <tbody>
-                {records.map((r: any, i: number) => {
-                  const firstName = r.first_name || r.students?.first_name || "";
-                  const lastName = r.last_name || r.students?.last_name || "";
-                  const studentNumber = r.student_number || r.students?.student_number || "";
-                  const rate = r.rate ?? (r.total > 0 ? Math.round((r.present / r.total) * 1000) / 10 : 0);
-                  return (
-                    <tr key={r.student_id || i} className="border-t border-[var(--border)] hover:bg-[var(--surface-container)]">
-                      <td className="p-3 text-sm font-medium text-[var(--t1)]">{firstName} {lastName}</td>
-                      <td className="p-3 text-sm text-[var(--t2)]">{studentNumber}</td>
-                      <td className="p-3 text-sm text-center text-green-600 font-medium">{r.present ?? 0}</td>
-                      <td className="p-3 text-sm text-center text-red-600 font-medium">{r.absent ?? 0}</td>
-                      <td className="p-3 text-sm text-center text-yellow-600 font-medium">{r.late ?? 0}</td>
-                      <td className="p-3 text-sm text-center text-purple-600 font-medium">{r.excused ?? 0}</td>
-                      <td className="p-3 text-sm text-center text-[var(--t1)]">{r.total ?? 0}</td>
-                      <td className="p-3 text-sm text-center">
-                        <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
-                          rate >= 90 ? "bg-green-100 text-green-800" :
-                          rate >= 75 ? "bg-yellow-100 text-yellow-800" :
-                          "bg-red-100 text-red-800"
-                        }`}>
+
+        <Card className="p-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-[var(--t2)] mb-1">Start Date</label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[var(--t2)] mb-1">End Date</label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[var(--t2)] mb-1">Class</label>
+              <select
+                value={selectedClass || ""}
+                onChange={(e) => setSelectedClass(e.target.value || null)}
+                className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
+              >
+                <option value="">All Classes</option>
+                {classes.map((c: any) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="sm:col-span-2">
+              <label className="block text-sm font-medium text-[var(--t2)] mb-1">Search Student</label>
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by name or student number..."
+                className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
+              />
+            </div>
+          </div>
+        </Card>
+
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+          <Card className="p-3 text-center">
+            <div className="text-2xl font-bold text-[var(--primary)]">{summary.total}</div>
+            <div className="text-xs text-[var(--t3)]">Total Records</div>
+          </Card>
+          <Card className="p-3 text-center">
+            <div className="text-2xl font-bold text-green-600">{summary.present}</div>
+            <div className="text-xs text-[var(--t3)]">Present</div>
+          </Card>
+          <Card className="p-3 text-center">
+            <div className="text-2xl font-bold text-red-600">{summary.absent}</div>
+            <div className="text-xs text-[var(--t3)]">Absent</div>
+          </Card>
+          <Card className="p-3 text-center">
+            <div className="text-2xl font-bold text-yellow-600">{summary.late}</div>
+            <div className="text-xs text-[var(--t3)]">Late</div>
+          </Card>
+          <Card className="p-3 text-center">
+            <div className="text-2xl font-bold text-purple-600">{summary.excused}</div>
+            <div className="text-xs text-[var(--t3)]">Excused</div>
+          </Card>
+        </div>
+
+        <Card className="p-3">
+          <div className="flex items-center gap-4 text-sm">
+            <span className="font-medium text-[var(--t1)]">Attendance Rate:</span>
+            <span className="text-lg font-bold text-green-600">{totalRate}%</span>
+            <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-green-500 rounded-full transition-all"
+                style={{ width: `${Math.min(100, parseFloat(totalRate))}%` }}
+              />
+            </div>
+          </div>
+        </Card>
+
+        {loading ? (
+          <TableSkeleton rows={8} />
+        ) : records.length === 0 ? (
+          <EmptyState
+            icon="history"
+            title="No attendance records found"
+            description="Try adjusting your date range or class filter"
+          />
+        ) : (
+          <Card>
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-[var(--surface-container)]">
+                    <th className="p-3 text-left text-xs font-semibold text-[var(--t2)] uppercase">Student</th>
+                    <th className="p-3 text-left text-xs font-semibold text-[var(--t2)] uppercase">Number</th>
+                    <th className="p-3 text-center text-xs font-semibold text-[var(--t2)] uppercase">Present</th>
+                    <th className="p-3 text-center text-xs font-semibold text-[var(--t2)] uppercase">Absent</th>
+                    <th className="p-3 text-center text-xs font-semibold text-[var(--t2)] uppercase">Late</th>
+                    <th className="p-3 text-center text-xs font-semibold text-[var(--t2)] uppercase">Excused</th>
+                    <th className="p-3 text-center text-xs font-semibold text-[var(--t2)] uppercase">Total</th>
+                    <th className="p-3 text-center text-xs font-semibold text-[var(--t2)] uppercase">Rate</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {records.map((r: any, i: number) => {
+                    const firstName = r.first_name || r.students?.first_name || "";
+                    const lastName = r.last_name || r.students?.last_name || "";
+                    const studentNumber = r.student_number || r.students?.student_number || "";
+                    const rate = r.rate ?? (r.total > 0 ? Math.round((r.present / r.total) * 1000) / 10 : 0);
+                    return (
+                      <tr
+                        key={r.student_id || i}
+                        className="border-t border-[var(--border)] hover:bg-[var(--surface-container)]"
+                      >
+                        <td className="p-3 text-sm font-medium text-[var(--t1)]">
+                          {firstName} {lastName}
+                        </td>
+                        <td className="p-3 text-sm text-[var(--t2)]">{studentNumber}</td>
+                        <td className="p-3 text-sm text-center text-green-600 font-medium">{r.present ?? 0}</td>
+                        <td className="p-3 text-sm text-center text-red-600 font-medium">{r.absent ?? 0}</td>
+                        <td className="p-3 text-sm text-center text-yellow-600 font-medium">{r.late ?? 0}</td>
+                        <td className="p-3 text-sm text-center text-purple-600 font-medium">{r.excused ?? 0}</td>
+                        <td className="p-3 text-sm text-center text-[var(--t1)]">{r.total ?? 0}</td>
+                        <td className="p-3 text-sm text-center">
+                          <span
+                            className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
+                              rate >= 90
+                                ? "bg-green-100 text-green-800"
+                                : rate >= 75
+                                  ? "bg-yellow-100 text-yellow-800"
+                                  : "bg-red-100 text-red-800"
+                            }`}
+                          >
+                            {rate}%
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div className="md:hidden space-y-3 p-3">
+              {records.map((r: any, i: number) => {
+                const firstName = r.first_name || r.students?.first_name || "";
+                const lastName = r.last_name || r.students?.last_name || "";
+                const studentNumber = r.student_number || r.students?.student_number || "";
+                const rate = r.rate ?? (r.total > 0 ? Math.round((r.present / r.total) * 1000) / 10 : 0);
+                return (
+                  <Card key={r.student_id || i}>
+                    <CardBody className="p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-[var(--surface-container)] text-[var(--t2)]">
+                            <MaterialIcon icon="person" />
+                          </span>
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium text-[var(--t1)]">
+                              {firstName} {lastName}
+                            </p>
+                            <p className="text-xs text-[var(--t2)]">{studentNumber}</p>
+                          </div>
+                        </div>
+                        <span
+                          className={`inline-flex min-h-[44px] shrink-0 items-center px-2 rounded-full text-xs font-medium ${
+                            rate >= 90
+                              ? "bg-green-100 text-green-800"
+                              : rate >= 75
+                                ? "bg-yellow-100 text-yellow-800"
+                                : "bg-red-100 text-red-800"
+                          }`}
+                        >
                           {rate}%
                         </span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          <div className="p-3 text-center text-xs text-[var(--t3)] border-t border-[var(--border)]">
-            {records.length} student(s)
-          </div>
-        </Card>
-      )}
-    </div>
+                      </div>
+                      <dl className="mt-3 grid grid-cols-3 gap-2 text-center sm:grid-cols-5">
+                        <div className="rounded-lg bg-[var(--surface-container)] px-2 py-2">
+                          <dt className="text-[11px] uppercase tracking-wide text-[var(--t3)]">Present</dt>
+                          <dd className="text-sm font-medium text-green-600">{r.present ?? 0}</dd>
+                        </div>
+                        <div className="rounded-lg bg-[var(--surface-container)] px-2 py-2">
+                          <dt className="text-[11px] uppercase tracking-wide text-[var(--t3)]">Absent</dt>
+                          <dd className="text-sm font-medium text-red-600">{r.absent ?? 0}</dd>
+                        </div>
+                        <div className="rounded-lg bg-[var(--surface-container)] px-2 py-2">
+                          <dt className="text-[11px] uppercase tracking-wide text-[var(--t3)]">Late</dt>
+                          <dd className="text-sm font-medium text-yellow-600">{r.late ?? 0}</dd>
+                        </div>
+                        <div className="rounded-lg bg-[var(--surface-container)] px-2 py-2">
+                          <dt className="text-[11px] uppercase tracking-wide text-[var(--t3)]">Excused</dt>
+                          <dd className="text-sm font-medium text-purple-600">{r.excused ?? 0}</dd>
+                        </div>
+                        <div className="rounded-lg bg-[var(--surface-container)] px-2 py-2">
+                          <dt className="text-[11px] uppercase tracking-wide text-[var(--t3)]">Total</dt>
+                          <dd className="text-sm font-medium text-[var(--t1)]">{r.total ?? 0}</dd>
+                        </div>
+                      </dl>
+                    </CardBody>
+                  </Card>
+                );
+              })}
+            </div>
+            <div className="p-3 text-center text-xs text-[var(--t3)] border-t border-[var(--border)]">
+              {records.length} student(s)
+            </div>
+          </Card>
+        )}
+      </div>
     </PageErrorBoundary>
   );
 }

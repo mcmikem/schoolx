@@ -1,6 +1,6 @@
 "use client";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { useUrlSyncedFilters } from "@/lib/hooks/useUrlSyncedFilters";
 import { useAuth } from "@/lib/auth-context";
@@ -510,8 +510,26 @@ export default function AttendancePage() {
   const excusedCount = Object.values(attendance).filter((s) => s === "excused").length;
   // In Call Out Names mode unmarked students save as present — reflect that in the UI.
   const unmarkedCount = students.filter((s) => !(s.id in attendance)).length;
+  const markedCount = students.length - unmarkedCount;
+  const markedPct = students.length > 0 ? Math.round((markedCount / students.length) * 100) : 0;
   const effectivePresentCount = rollCallMode ? presentCount + unmarkedCount : presentCount;
   const hasAttendanceRecords = rollCallMode ? students.length > 0 : Object.keys(attendance).length > 0;
+  // Briefly highlight the row "Next unmarked" scrolls to, so the eye lands on
+  // it in a 60-pupil list.
+  const [flashId, setFlashId] = useState<string | null>(null);
+  const flashTimer = useRef<number | null>(null);
+  const jumpToNextUnmarked = useCallback(() => {
+    const pool = filteredStudents.length > 0 ? filteredStudents : students;
+    const next = pool.find((s) => !(s.id in attendance));
+    if (!next) {
+      toast.info("Everyone on this list is marked");
+      return;
+    }
+    setFlashId(next.id);
+    if (flashTimer.current) window.clearTimeout(flashTimer.current);
+    flashTimer.current = window.setTimeout(() => setFlashId(null), 1600);
+    document.getElementById(`att-row-${next.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [filteredStudents, students, attendance, toast]);
   const saveDisabledReason = !selectedClass
     ? "Select a class to enable Save Changes."
     : !hasAttendanceRecords
@@ -944,6 +962,59 @@ export default function AttendancePage() {
               </div>
             </div>
 
+            {students.length > 0 && (
+              <div className="sticky top-0 z-10 -mx-1 px-1 py-2 bg-[var(--bg)]/95 backdrop-blur-sm">
+                <div className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 shadow-sm">
+                  <div
+                    className="relative h-10 w-10 shrink-0"
+                    role="img"
+                    aria-label={`${markedCount} of ${students.length} marked`}
+                  >
+                    <svg viewBox="0 0 36 36" className="h-10 w-10 -rotate-90">
+                      <circle cx="18" cy="18" r="15.5" fill="none" stroke="var(--border)" strokeWidth="4" />
+                      <circle
+                        cx="18"
+                        cy="18"
+                        r="15.5"
+                        fill="none"
+                        stroke="currentColor"
+                        className="text-emerald-500"
+                        strokeWidth="4"
+                        strokeLinecap="round"
+                        strokeDasharray={`${markedPct} 100`}
+                        pathLength={100}
+                      />
+                    </svg>
+                    <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-[var(--t1)]">
+                      {markedPct}%
+                    </span>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-bold text-[var(--t1)]">
+                      {markedCount} of {students.length} marked
+                    </div>
+                    <div className="truncate text-xs text-[var(--t3)]">
+                      {!isOnline
+                        ? "Offline — marks queue on this device"
+                        : offlineCount > 0
+                          ? `${offlineCount} waiting to sync`
+                          : "All synced"}
+                    </div>
+                  </div>
+                  {unmarkedCount > 0 && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={jumpToNextUnmarked}
+                      icon={<MaterialIcon icon="arrow_downward" />}
+                    >
+                      Next unmarked
+                    </Button>
+                  )}
+                </div>
+              </div>
+            )}
+
             {rollCallMode ? (
               <>
                 <div className="flex flex-wrap gap-2">
@@ -1084,8 +1155,9 @@ export default function AttendancePage() {
                     return (
                       <div
                         key={student.id}
+                        id={`att-row-${student.id}`}
                         onClick={() => handleTapStatus(student.id)}
-                        className={`${bgColor} rounded-xl border ${borderColor} p-4 flex items-center justify-between active:scale-[0.98] transition-transform cursor-pointer select-none min-h-[56px]`}
+                        className={`${bgColor} rounded-xl border ${borderColor} p-4 flex items-center justify-between active:scale-[0.98] transition-transform cursor-pointer select-none min-h-[56px] ${flashId === student.id ? "ring-2 ring-primary" : ""}`}
                       >
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                           <div className="flex-shrink-0">
@@ -1167,7 +1239,8 @@ export default function AttendancePage() {
                       return (
                         <div
                           key={student.id}
-                          className="bg-surface-container-lowest rounded-xl border border-outline-variant p-4"
+                          id={`att-row-${student.id}`}
+                          className={`bg-surface-container-lowest rounded-xl border border-outline-variant p-4 ${flashId === student.id ? "ring-2 ring-primary" : ""}`}
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
@@ -1243,8 +1316,9 @@ export default function AttendancePage() {
                       return (
                         <div
                           key={student.id}
+                          id={`att-row-${student.id}`}
                           onClick={() => handleTapStatus(student.id)}
-                          className="bg-surface-container-lowest rounded-xl border border-outline-variant p-4 flex items-center justify-between active:scale-[0.98] transition-transform cursor-pointer select-none"
+                          className={`bg-surface-container-lowest rounded-xl border border-outline-variant p-4 flex items-center justify-between active:scale-[0.98] transition-transform cursor-pointer select-none ${flashId === student.id ? "ring-2 ring-primary" : ""}`}
                         >
                           <div className="flex items-center gap-3">
                             <PersonInitials name={`${student.first_name} ${student.last_name}`} size={40} />

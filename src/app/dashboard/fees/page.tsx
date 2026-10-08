@@ -522,6 +522,21 @@ export default function FinanceHubPage() {
       .sort((a, b) => b.balance - a.balance);
   }, [studentBalances, searchTerm, selectedClass, statusFilter]);
 
+  // Totals for exactly what the list is showing, so the sticky bar answers
+  // "who owes how much" for this filter — not just the whole school.
+  const filteredTotals = useMemo(() => {
+    return filteredBalances.reduce(
+      (acc, s) => ({
+        expected: acc.expected + (s.expected || 0),
+        paid: acc.paid + (s.paid || 0),
+        balance: acc.balance + (s.balance || 0),
+      }),
+      { expected: 0, paid: 0, balance: 0 },
+    );
+  }, [filteredBalances]);
+  const filteredCollectionPct =
+    filteredTotals.expected > 0 ? Math.round((filteredTotals.paid / filteredTotals.expected) * 100) : 0;
+
   const stats = useMemo(() => {
     const totalExpected = studentBalances.reduce((sum, s) => sum + s.expected, 0);
     const totalPaid = studentBalances.reduce((sum, s) => sum + s.paid, 0);
@@ -1625,7 +1640,25 @@ export default function FinanceHubPage() {
                   description="Add students and fee structures to see balances"
                 />
               ) : (
-                <FeeTable balances={filteredBalances} onViewReceipt={handleViewReceipt} />
+                <>
+                  <div className="sticky top-0 z-10 -mx-1 px-1 py-2 bg-[var(--bg)]/95 backdrop-blur-sm">
+                    <div className="flex flex-wrap items-center gap-x-5 gap-y-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 shadow-sm text-sm">
+                      <span className="text-[var(--t2)]">
+                        Expected <strong className="tabular-nums">{formatCurrency(filteredTotals.expected)}</strong>
+                      </span>
+                      <span className="text-[var(--t2)]">
+                        Collected <strong className="tabular-nums">{formatCurrency(filteredTotals.paid)}</strong>
+                      </span>
+                      <span className="font-bold tabular-nums" style={{ color: "var(--red)" }}>
+                        Balance {formatCurrency(filteredTotals.balance)}
+                      </span>
+                      <span className="ml-auto text-xs font-semibold text-[var(--t3)]">
+                        {filteredBalances.length} pupils · {filteredCollectionPct}% collected
+                      </span>
+                    </div>
+                  </div>
+                  <FeeTable balances={filteredBalances} onViewReceipt={handleViewReceipt} />
+                </>
               ))}
 
             {balanceSubTab === "payments" && (

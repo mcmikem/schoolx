@@ -20,7 +20,13 @@ import { StaffReview, School } from "@/types";
 import { PageGuidance } from "@/components/PageGuidance";
 import SmartAdvisor from "@/components/dashboard/SmartAdvisor";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { compressStudentPhoto, compressedPhotoExtension, validateStudentPhoto } from "@/lib/student-photos";
+import {
+  IMAGE_CACHE_CONTROL,
+  compressStudentPhoto,
+  compressedPhotoExtension,
+  validateStudentPhoto,
+  withCacheBust,
+} from "@/lib/student-photos";
 import { QRCodeSVG } from "qrcode.react";
 
 interface StaffMember {
@@ -200,6 +206,9 @@ function DirectoryTab({
 }) {
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [loading, setLoading] = useState(true);
+  // Which row's ⋯ menu is open. One menu at a time: five buttons per row was
+  // noisy and put Delete one tap away from everything else.
+  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingStaff, setEditingStaff] = useState<StaffMember | null>(null);
@@ -449,6 +458,7 @@ function DirectoryTab({
       let uploadResult = await supabase.storage.from("student-photos").upload(filePath, compressed, {
         upsert: true,
         contentType: compressed.type,
+        cacheControl: IMAGE_CACHE_CONTROL,
       });
 
       if (uploadResult.error && uploadResult.error.message.includes("bucket")) {
@@ -461,6 +471,7 @@ function DirectoryTab({
         uploadResult = await supabase.storage.from("student-photos").upload(filePath, compressed, {
           upsert: true,
           contentType: compressed.type,
+          cacheControl: IMAGE_CACHE_CONTROL,
         });
       }
 
@@ -472,7 +483,7 @@ function DirectoryTab({
         data: { publicUrl },
       } = supabase.storage.from("student-photos").getPublicUrl(filePath);
 
-      return publicUrl;
+      return withCacheBust(publicUrl);
     },
     [school?.id, isDemo],
   );
@@ -1259,27 +1270,29 @@ function DirectoryTab({
     }
 
     return (
-      <div className="space-y-3">
-        {filteredStaff.map((member) => (
-          <Card key={member.id} className="p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
+      <div className="rounded-[22px] border border-[var(--border)] bg-[var(--surface)] shadow-[var(--sh1)] divide-y divide-[var(--border)]">
+        {filteredStaff.map((member) => {
+          const menuOpen = menuOpenId === member.id;
+          const closeMenu = () => setMenuOpenId(null);
+          return (
+            <div key={member.id} className="flex items-center justify-between gap-3 p-3 sm:px-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 shrink-0 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden">
                   {member.avatar_url ? (
                     <Image
                       src={member.avatar_url}
                       alt={member.full_name}
-                      width={48}
-                      height={48}
+                      width={40}
+                      height={40}
                       className="rounded-full object-cover"
                     />
                   ) : (
                     <span className="text-gray-700 font-semibold">{member.full_name?.charAt(0) || "U"}</span>
                   )}
                 </div>
-                <div>
-                  <div className="font-medium text-gray-900">{member.full_name}</div>
-                  <div className="flex items-center gap-2 mt-1">
+                <div className="min-w-0">
+                  <div className="truncate font-medium text-gray-900">{member.full_name}</div>
+                  <div className="flex flex-wrap items-center gap-1.5 mt-1">
                     {getRoleBadge(member.role)}
                     <span
                       className={`px-2 py-1 rounded-lg text-xs font-medium ${member.is_active ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
@@ -1287,46 +1300,85 @@ function DirectoryTab({
                       {member.is_active ? "Active" : "Inactive"}
                     </span>
                   </div>
-                  <div className="text-xs text-gray-500 mt-1">
+                  <div className="truncate text-xs text-gray-500 mt-1">
                     {member.phone}
                     {member.subject && <span className="ml-2">• {member.subject}</span>}
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <Button variant="ghost" size="sm" onClick={() => openEditModal(member)}>
-                  <MaterialIcon icon="edit" className="text-sm" />
-                  Edit
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => setIdCardPreviewStaff(member)}>
-                  <MaterialIcon icon="badge" className="text-sm" />
-                  ID Card
-                </Button>
+              <div className="relative shrink-0">
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => {
-                    const pass = prompt("Enter new password (min 6 chars):");
-                    if (pass) handleResetPassword(member.id, pass);
-                  }}
+                  aria-label={`Actions for ${member.full_name}`}
+                  aria-expanded={menuOpen}
+                  onClick={() => setMenuOpenId(menuOpen ? null : member.id)}
                 >
-                  <MaterialIcon icon="lock_reset" className="text-sm" />
-                  Reset
+                  <MaterialIcon icon="more_vert" className="text-lg" />
                 </Button>
-                <Button
-                  variant={member.is_active ? "secondary" : "primary"}
-                  size="sm"
-                  onClick={() => toggleStatus(member.id, member.is_active)}
-                >
-                  {member.is_active ? "Deactivate" : "Activate"}
-                </Button>
-                <Button variant="ghost" size="sm" onClick={() => handleDeleteStaff(member.id)}>
-                  <MaterialIcon icon="delete" className="text-sm" />
-                </Button>
+                {menuOpen && (
+                  <>
+                    <button aria-label="Close menu" className="fixed inset-0 z-10 cursor-default" onClick={closeMenu} />
+                    <div className="absolute right-0 top-full z-20 mt-1 w-52 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] py-1 shadow-lg">
+                      <button
+                        className="flex w-full items-center gap-2 px-4 py-2 text-sm text-[var(--t1)] hover:bg-[var(--surface-container-low)]"
+                        onClick={() => {
+                          closeMenu();
+                          openEditModal(member);
+                        }}
+                      >
+                        <MaterialIcon icon="edit" className="text-sm" />
+                        Edit
+                      </button>
+                      <button
+                        className="flex w-full items-center gap-2 px-4 py-2 text-sm text-[var(--t1)] hover:bg-[var(--surface-container-low)]"
+                        onClick={() => {
+                          closeMenu();
+                          setIdCardPreviewStaff(member);
+                        }}
+                      >
+                        <MaterialIcon icon="badge" className="text-sm" />
+                        ID Card
+                      </button>
+                      <button
+                        className="flex w-full items-center gap-2 px-4 py-2 text-sm text-[var(--t1)] hover:bg-[var(--surface-container-low)]"
+                        onClick={() => {
+                          closeMenu();
+                          const pass = prompt("Enter new password (min 6 chars):");
+                          if (pass) handleResetPassword(member.id, pass);
+                        }}
+                      >
+                        <MaterialIcon icon="lock_reset" className="text-sm" />
+                        Reset password
+                      </button>
+                      <button
+                        className="flex w-full items-center gap-2 px-4 py-2 text-sm text-[var(--t1)] hover:bg-[var(--surface-container-low)]"
+                        onClick={() => {
+                          closeMenu();
+                          toggleStatus(member.id, member.is_active);
+                        }}
+                      >
+                        <MaterialIcon icon={member.is_active ? "pause_circle" : "play_circle"} className="text-sm" />
+                        {member.is_active ? "Deactivate" : "Activate"}
+                      </button>
+                      <div className="my-1 border-t border-[var(--border)]" />
+                      <button
+                        className="flex w-full items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+                        onClick={() => {
+                          closeMenu();
+                          handleDeleteStaff(member.id);
+                        }}
+                      >
+                        <MaterialIcon icon="delete" className="text-sm" />
+                        Delete
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
-          </Card>
-        ))}
+          );
+        })}
       </div>
     );
   }

@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, Fragment } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 import { formatCurrency } from "@/lib/currency";
 
@@ -91,6 +91,50 @@ function getStatusBadge(status: string | undefined, percentage: number) {
 
 const ITEMS_PER_PAGE = 20;
 
+function BalanceLedger({ student }: { student: StudentBalance }) {
+  const formatDate = (value: string) => {
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString();
+  };
+  return (
+    <div className="space-y-1.5 text-sm">
+      <div className="flex items-center justify-between text-[var(--t2)]">
+        <span>Expected</span>
+        <span className="font-semibold tabular-nums">{formatCurrency(student.expected || 0)}</span>
+      </div>
+      {student.payments.map((p) => (
+        <div key={p.id} className="flex items-center justify-between gap-3 text-[var(--t2)]">
+          <span className="min-w-0 truncate">
+            Paid · {formatDate(p.date)}
+            {p.method ? ` · ${p.method}` : ""}
+            {p.reference ? ` · ${p.reference}` : ""}
+          </span>
+          <span className="shrink-0 font-semibold tabular-nums text-emerald-700">−{formatCurrency(p.amount || 0)}</span>
+        </div>
+      ))}
+      {student.adjustments.map((a) => (
+        <div key={a.id} className="flex items-center justify-between gap-3 text-[var(--t2)]">
+          <span className="min-w-0 truncate">
+            {a.adjustment_type || "Adjustment"}
+            {a.description ? ` · ${a.description}` : ""}
+          </span>
+          <span className="shrink-0 font-semibold tabular-nums">{formatCurrency(a.amount || 0)}</span>
+        </div>
+      ))}
+      {student.payments.length === 0 && student.adjustments.length === 0 && (
+        <div className="text-xs text-[var(--t3)]">No payments or adjustments recorded yet.</div>
+      )}
+      <div
+        className="flex items-center justify-between border-t border-[var(--border)] pt-1.5 font-bold tabular-nums"
+        style={{ color: student.balance > 0 ? "var(--red)" : "var(--green)" }}
+      >
+        <span>Balance</span>
+        <span>{formatCurrency(student.balance || 0)}</span>
+      </div>
+    </div>
+  );
+}
+
 export default function FeeTable({
   balances,
   onViewReceipt,
@@ -103,6 +147,9 @@ export default function FeeTable({
   const [page, setPage] = useState(1);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showBulkBar, setShowBulkBar] = useState(false);
+  // One expanded ledger at a time: who was charged what, paid what, and what
+  // is left — without leaving the balances list.
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -275,68 +322,96 @@ export default function FeeTable({
                 const percentage = total > 0 ? Math.round((paid / total) * 100) : 0;
 
                 return (
-                  <tr
-                    key={student.id}
-                    className={`hover:bg-surface-bright transition-colors ${selectedIds.has(student.id) ? "bg-[var(--primary)]/5" : ""}`}
-                  >
-                    <td className="px-6 py-4">
-                      <label className="sr-only">Select {student.name}</label>
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.has(student.id)}
-                        onChange={() => {
-                          toggleOne(student.id);
-                          setShowBulkBar(true);
-                        }}
-                        className="w-4 h-4 rounded"
-                        aria-label={`Select ${student.name}`}
-                      />
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 min-w-0">
-                        <div className="font-semibold text-[var(--t1)] text-sm truncate">{student.name}</div>
-                        {getStatusBadge(student.status, percentage)}
-                      </div>
-                      <div className="text-xs text-[var(--t3)] mt-0.5 tabular-nums">
-                        {student.student_number} · {formatCurrency(total)} expected
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-[var(--t2)] whitespace-nowrap">{student.class_name}</td>
-                    <td className="px-6 py-4 min-w-[180px]">
-                      <FeeProgressBar percentage={percentage} amount={paid} total={total} />
-                    </td>
-                    <td className="px-6 py-4 text-sm font-medium text-[var(--t2)] tabular-nums text-right whitespace-nowrap">
-                      {formatCurrency(paid)}
-                    </td>
-                    <td
-                      className="px-6 py-4 text-sm font-bold tabular-nums text-right whitespace-nowrap"
-                      style={{ color: student.balance > 0 ? "var(--red)" : "var(--green)" }}
+                  <Fragment key={student.id}>
+                    <tr
+                      className={`hover:bg-surface-bright transition-colors ${selectedIds.has(student.id) ? "bg-[var(--primary)]/5" : ""}`}
                     >
-                      {formatCurrency(student.balance)}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-end gap-1.5">
-                        {onRecordPayment && (
+                      <td className="px-6 py-4">
+                        <label className="sr-only">Select {student.name}</label>
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.has(student.id)}
+                          onChange={() => {
+                            toggleOne(student.id);
+                            setShowBulkBar(true);
+                          }}
+                          className="w-4 h-4 rounded"
+                          aria-label={`Select ${student.name}`}
+                        />
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className="font-semibold text-[var(--t1)] text-sm truncate">{student.name}</div>
+                          {getStatusBadge(student.status, percentage)}
+                        </div>
+                        <div className="text-xs text-[var(--t3)] mt-0.5 tabular-nums">
+                          {student.student_number} · {formatCurrency(total)} expected
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-sm text-[var(--t2)] whitespace-nowrap">{student.class_name}</td>
+                      <td className="px-6 py-4 min-w-[180px]">
+                        <FeeProgressBar percentage={percentage} amount={paid} total={total} />
+                      </td>
+                      <td className="px-6 py-4 text-sm font-medium text-[var(--t2)] tabular-nums text-right whitespace-nowrap">
+                        {formatCurrency(paid)}
+                      </td>
+                      <td
+                        className="px-6 py-4 text-sm font-bold tabular-nums text-right whitespace-nowrap"
+                        style={{ color: student.balance > 0 ? "var(--red)" : "var(--green)" }}
+                      >
+                        {formatCurrency(student.balance)}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex items-center justify-end gap-1.5">
                           <button
-                            onClick={() => onRecordPayment(student)}
-                            className="w-9 h-9 flex items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--primary)] transition-colors hover:bg-[var(--surface-container-low)] hover:border-[var(--border2)]"
-                            title={`Record payment for ${student.name}`}
-                            aria-label={`Record payment for ${student.name}`}
+                            onClick={() => setExpandedId(expandedId === student.id ? null : student.id)}
+                            className="w-9 h-9 flex items-center justify-center rounded-xl border border-transparent text-[var(--t3)] transition-colors hover:bg-[var(--surface-container-low)] hover:text-[var(--t1)] hover:border-[var(--border)]"
+                            title={
+                              expandedId === student.id
+                                ? `Hide ledger for ${student.name}`
+                                : `Show ledger for ${student.name}`
+                            }
+                            aria-label={
+                              expandedId === student.id
+                                ? `Hide ledger for ${student.name}`
+                                : `Show ledger for ${student.name}`
+                            }
+                            aria-expanded={expandedId === student.id}
                           >
-                            <MaterialIcon icon="payment" className="text-lg" />
+                            <MaterialIcon
+                              icon={expandedId === student.id ? "expand_less" : "expand_more"}
+                              className="text-lg"
+                            />
                           </button>
-                        )}
-                        <button
-                          onClick={() => onViewReceipt(student)}
-                          className="w-9 h-9 flex items-center justify-center rounded-xl border border-transparent text-[var(--t3)] transition-colors hover:bg-[var(--surface-container-low)] hover:text-[var(--t1)] hover:border-[var(--border)]"
-                          title={`View receipt for ${student.name}`}
-                          aria-label={`View receipt for ${student.name}`}
-                        >
-                          <MaterialIcon icon="visibility" className="text-lg" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+                          {onRecordPayment && (
+                            <button
+                              onClick={() => onRecordPayment(student)}
+                              className="w-9 h-9 flex items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--primary)] transition-colors hover:bg-[var(--surface-container-low)] hover:border-[var(--border2)]"
+                              title={`Record payment for ${student.name}`}
+                              aria-label={`Record payment for ${student.name}`}
+                            >
+                              <MaterialIcon icon="payment" className="text-lg" />
+                            </button>
+                          )}
+                          <button
+                            onClick={() => onViewReceipt(student)}
+                            className="w-9 h-9 flex items-center justify-center rounded-xl border border-transparent text-[var(--t3)] transition-colors hover:bg-[var(--surface-container-low)] hover:text-[var(--t1)] hover:border-[var(--border)]"
+                            title={`View receipt for ${student.name}`}
+                            aria-label={`View receipt for ${student.name}`}
+                          >
+                            <MaterialIcon icon="visibility" className="text-lg" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                    {expandedId === student.id && (
+                      <tr className="bg-[var(--surface-container-low)]/60">
+                        <td colSpan={7} className="px-6 py-4">
+                          <BalanceLedger student={student} />
+                        </td>
+                      </tr>
+                    )}
+                  </Fragment>
                 );
               })}
             </tbody>
@@ -467,6 +542,22 @@ export default function FeeTable({
                   Receipt
                 </button>
               </div>
+              <button
+                type="button"
+                onClick={() => setExpandedId(expandedId === student.id ? null : student.id)}
+                aria-expanded={expandedId === student.id}
+                className="mt-2 flex w-full items-center justify-center gap-1 py-1 text-xs font-semibold text-[var(--t3)]"
+              >
+                <MaterialIcon className="text-base">
+                  {expandedId === student.id ? "expand_less" : "expand_more"}
+                </MaterialIcon>
+                {expandedId === student.id ? "Hide ledger" : "View ledger"}
+              </button>
+              {expandedId === student.id && (
+                <div className="mt-2 rounded-xl bg-[var(--surface-container-low)] p-3">
+                  <BalanceLedger student={student} />
+                </div>
+              )}
             </div>
           );
         })}
