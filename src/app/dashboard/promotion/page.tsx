@@ -3,7 +3,7 @@ import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
-import { useOfflinePromotionHistory, useOfflineClassStudents } from '@/lib/offline-hooks';
+import { useOfflinePromotionHistory, useOfflineClassStudents } from "@/lib/offline-hooks";
 import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -92,7 +92,7 @@ export default function PromotionPage() {
         promotion_type: promotionType,
       }));
 
-    const { withTimeout: wtPromo, timeoutFallback } = await import('@/lib/hooks/utils');
+    const { withTimeout: wtPromo, timeoutFallback } = await import("@/lib/hooks/utils");
     const promoResult = await wtPromo(supabase.from("promotion_history").insert(historyRows), 15000, timeoutFallback());
     const promoError = promoResult?.error;
     if (promoError) throw promoError;
@@ -113,108 +113,174 @@ export default function PromotionPage() {
 
   return (
     <PageErrorBoundary>
-    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
-      <PageHeader title="Student Promotion" subtitle="Move students to the next class or mark as repeating" variant="premium" />
+      <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+        <PageHeader
+          title="Student Promotion"
+          subtitle="Move students to the next class or mark as repeating"
+          variant="premium"
+        />
 
-      <div className="grid lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          <Card>
-            <CardBody className="space-y-4 bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)]">
-              <h2 className="font-semibold text-[var(--on-surface)]">Select Class to Promote From</h2>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">From Class</label>
-                  <select value={selectedClass} onChange={(e) => { setSelectedClass(e.target.value); setSelectedStudents(new Set()); }} className="select w-full">
-                    <option value="">Select class...</option>
-                    {classes.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
+        <div className="grid lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            <Card>
+              <CardBody className="space-y-4 bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)]">
+                <h2 className="font-semibold text-[var(--on-surface)]">Select Class to Promote From</h2>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
+                      From Class
+                    </label>
+                    <select
+                      value={selectedClass}
+                      onChange={(e) => {
+                        setSelectedClass(e.target.value);
+                        setSelectedStudents(new Set());
+                      }}
+                      className="select w-full"
+                    >
+                      <option value="">Select class...</option>
+                      {classes.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
+                      To Class
+                    </label>
+                    <select
+                      value={targetClass}
+                      onChange={(e) => setTargetClass(e.target.value)}
+                      className="select w-full"
+                    >
+                      <option value="">Select target class...</option>
+                      {classes
+                        .filter((c) => c.id !== selectedClass)
+                        .map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                    </select>
+                  </div>
                 </div>
                 <div>
-                  <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">To Class</label>
-                  <select value={targetClass} onChange={(e) => setTargetClass(e.target.value)} className="select w-full">
-                    <option value="">Select target class...</option>
-                    {classes.filter((c) => c.id !== selectedClass).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
+                  <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
+                    Promotion Type
+                  </label>
+                  <div className="flex gap-3">
+                    {(["promoted", "repeating", "demoted"] as const).map((t) => (
+                      <button
+                        key={t}
+                        onClick={() => setPromotionType(t)}
+                        className={`rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] transition-all capitalize ${promotionType === t ? "border-transparent bg-[var(--primary)] text-[var(--on-primary)] shadow-[0_10px_20px_rgba(0,92,230,0.2)]" : "border-[var(--border)] bg-white text-[var(--on-surface-variant)] hover:bg-[var(--surface-container-low)]"}`}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
-              <div>
-                <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">Promotion Type</label>
-                <div className="flex gap-3">
-                  {(["promoted", "repeating", "demoted"] as const).map((t) => (
-                    <button key={t} onClick={() => setPromotionType(t)} className={`rounded-full border px-4 py-2 text-xs font-semibold uppercase tracking-[0.1em] transition-all capitalize ${promotionType === t ? "border-transparent bg-[var(--primary)] text-[var(--on-primary)] shadow-[0_10px_20px_rgba(0,92,230,0.2)]" : "border-[var(--border)] bg-white text-[var(--on-surface-variant)] hover:bg-[var(--surface-container-low)]"}`}>{t}</button>
-                  ))}
-                </div>
-              </div>
-            </CardBody>
-          </Card>
+              </CardBody>
+            </Card>
 
-          {selectedClass && (
+            {selectedClass && (
+              <Card>
+                <CardBody className="bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)]">
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="font-semibold text-[var(--on-surface)]">
+                      Students {loadingStudents ? "…" : `(${students.length})`}
+                    </h2>
+                    {students.length > 0 && (
+                      <button
+                        onClick={toggleAll}
+                        className="text-xs font-semibold text-[var(--primary)] hover:underline"
+                      >
+                        {selectedStudents.size === students.length ? "Deselect All" : "Select All"}
+                      </button>
+                    )}
+                  </div>
+                  {loadingStudents ? (
+                    <div className="text-center py-6 text-[var(--on-surface-variant)]">Loading students…</div>
+                  ) : students.length === 0 ? (
+                    <div className="text-center py-6 text-[var(--on-surface-variant)]">No students in this class</div>
+                  ) : (
+                    <div className="space-y-2 max-h-80 overflow-y-auto">
+                      {students.map((s) => (
+                        <label
+                          key={s.id}
+                          className={`cursor-pointer rounded-[18px] border p-3 transition-colors flex items-center gap-3 ${selectedStudents.has(s.id) ? "border-[var(--primary)]/30 bg-[var(--primary)]/10" : "border-[var(--border)] bg-white hover:bg-[var(--surface-container-low)]"}`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedStudents.has(s.id)}
+                            onChange={() => toggleStudent(s.id)}
+                            className="rounded"
+                          />
+                          <div>
+                            <p className="text-sm font-semibold text-[var(--on-surface)]">
+                              {s.first_name} {s.last_name}
+                            </p>
+                            <p className="text-[10px] text-[var(--on-surface-variant)]">{s.student_number}</p>
+                          </div>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+                </CardBody>
+              </Card>
+            )}
+
+            {selectedStudents.size > 0 && targetClass && (
+              <Button onClick={handlePromotion} loading={promoting} className="w-full">
+                <MaterialIcon icon="upgrade" />
+                {promotionType === "promoted"
+                  ? "Promote"
+                  : promotionType === "repeating"
+                    ? "Mark as Repeating"
+                    : "Demote"}{" "}
+                {selectedStudents.size} Student(s)
+              </Button>
+            )}
+          </div>
+
+          <div>
             <Card>
               <CardBody className="bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)]">
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="font-semibold text-[var(--on-surface)]">
-                    Students {loadingStudents ? "…" : `(${students.length})`}
-                  </h2>
-                  {students.length > 0 && (
-                    <button onClick={toggleAll} className="text-xs font-semibold text-[var(--primary)] hover:underline">
-                      {selectedStudents.size === students.length ? "Deselect All" : "Select All"}
-                    </button>
-                  )}
-                </div>
-                {loadingStudents ? (
-                  <div className="text-center py-6 text-[var(--on-surface-variant)]">Loading students…</div>
-                ) : students.length === 0 ? (
-                  <div className="text-center py-6 text-[var(--on-surface-variant)]">No students in this class</div>
+                <h2 className="mb-4 font-semibold text-[var(--on-surface)]">Promotion History</h2>
+                {history.length === 0 ? (
+                  <p className="text-sm text-[var(--on-surface-variant)] text-center py-6">No promotions yet</p>
                 ) : (
-                  <div className="space-y-2 max-h-80 overflow-y-auto">
-                    {students.map((s) => (
-                      <label key={s.id} className={`cursor-pointer rounded-[18px] border p-3 transition-colors flex items-center gap-3 ${selectedStudents.has(s.id) ? "border-[var(--primary)]/30 bg-[var(--primary)]/10" : "border-[var(--border)] bg-white hover:bg-[var(--surface-container-low)]"}`}>
-                        <input type="checkbox" checked={selectedStudents.has(s.id)} onChange={() => toggleStudent(s.id)} className="rounded" />
-                        <div>
-                          <p className="text-sm font-semibold text-[var(--on-surface)]">{s.first_name} {s.last_name}</p>
-                          <p className="text-[10px] text-[var(--on-surface-variant)]">{s.admission_number}</p>
+                  <div className="space-y-3 max-h-[500px] overflow-y-auto">
+                    {history.map((h) => (
+                      <div
+                        key={h.id}
+                        className="rounded-[18px] border border-[var(--border)] bg-[var(--surface-container-low)] p-3"
+                      >
+                        <p className="text-sm font-semibold text-[var(--on-surface)]">{h.student_name}</p>
+                        <p className="text-xs text-[var(--on-surface-variant)]">
+                          {h.from_class} → {h.to_class}
+                        </p>
+                        <div className="flex items-center justify-between mt-1">
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${PROMO_COLORS[h.promotion_type]}`}
+                          >
+                            {h.promotion_type}
+                          </span>
+                          <span className="text-[10px] text-[var(--on-surface-variant)]">
+                            {new Date(h.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}
+                          </span>
                         </div>
-                      </label>
+                      </div>
                     ))}
                   </div>
                 )}
               </CardBody>
             </Card>
-          )}
-
-          {selectedStudents.size > 0 && targetClass && (
-            <Button onClick={handlePromotion} loading={promoting} className="w-full">
-              <MaterialIcon icon="upgrade" />
-              {promotionType === "promoted" ? "Promote" : promotionType === "repeating" ? "Mark as Repeating" : "Demote"} {selectedStudents.size} Student(s)
-            </Button>
-          )}
-        </div>
-
-        <div>
-          <Card>
-            <CardBody className="bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)]">
-              <h2 className="mb-4 font-semibold text-[var(--on-surface)]">Promotion History</h2>
-              {history.length === 0 ? (
-                <p className="text-sm text-[var(--on-surface-variant)] text-center py-6">No promotions yet</p>
-              ) : (
-                <div className="space-y-3 max-h-[500px] overflow-y-auto">
-                  {history.map((h) => (
-                    <div key={h.id} className="rounded-[18px] border border-[var(--border)] bg-[var(--surface-container-low)] p-3">
-                      <p className="text-sm font-semibold text-[var(--on-surface)]">{h.student_name}</p>
-                      <p className="text-xs text-[var(--on-surface-variant)]">{h.from_class} → {h.to_class}</p>
-                      <div className="flex items-center justify-between mt-1">
-                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${PROMO_COLORS[h.promotion_type]}`}>{h.promotion_type}</span>
-                        <span className="text-[10px] text-[var(--on-surface-variant)]">{new Date(h.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardBody>
-          </Card>
+          </div>
         </div>
       </div>
-    </div>
     </PageErrorBoundary>
   );
 }

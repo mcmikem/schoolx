@@ -74,9 +74,13 @@ export default function SystemHealthPage() {
             10000,
             { count: 0, data: null, error: null } as SupabaseResponse<unknown>,
           ),
-          withTimeout(supabase.from("schools").select("id", { count: "exact", head: true }), 10000, { count: 0, data: null, error: null } as SupabaseResponse<unknown>),
+          withTimeout(supabase.from("schools").select("id", { count: "exact", head: true }), 10000, {
+            count: 0,
+            data: null,
+            error: null,
+          } as SupabaseResponse<unknown>),
           withTimeout(
-            supabase.from("users").select("id", { count: "exact", head: true }).eq("status", "active"),
+            supabase.from("users").select("id", { count: "exact", head: true }).eq("is_active", true),
             10000,
             { count: 0, data: null, error: null } as SupabaseResponse<unknown>,
           ),
@@ -96,11 +100,10 @@ export default function SystemHealthPage() {
         if (Array.isArray(buckets)) {
           const bucketInfo = await Promise.all(
             buckets.map(async (b: { name: string }) => {
-              const listResult = await withTimeout(
-                supabase.storage.from(b.name).list("", { limit: 1000 }),
-                10000,
-                { data: null, error: null } as any,
-              );
+              const listResult = await withTimeout(supabase.storage.from(b.name).list("", { limit: 1000 }), 10000, {
+                data: null,
+                error: null,
+              } as any);
               const files = listResult.data;
               return { name: b.name, fileCount: Array.isArray(files) ? files.length : 0 };
             }),
@@ -195,20 +198,12 @@ export default function SystemHealthPage() {
 
       const [smsDelete, automatedDelete] = await Promise.all([
         withTimeout(
-          supabase
-            .from("sms_logs")
-            .delete()
-            .eq("school_id", school.id)
-            .lt("sent_at", retentionCutoff),
+          supabase.from("sms_logs").delete().eq("school_id", school.id).lt("sent_at", retentionCutoff),
           15000,
           { error: null } as { error: unknown | null; data: unknown },
         ),
         withTimeout(
-          supabase
-            .from("automated_message_logs")
-            .delete()
-            .eq("school_id", school.id)
-            .lt("sent_at", retentionCutoff),
+          supabase.from("automated_message_logs").delete().eq("school_id", school.id).lt("sent_at", retentionCutoff),
           15000,
           { error: null } as { error: unknown | null; data: unknown },
         ),
@@ -242,7 +237,8 @@ export default function SystemHealthPage() {
   };
 
   const nextjsInfo =
-    process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA?.slice(0, 7) || `v${process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA ? "" : "client"}`;
+    process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ||
+    `v${process.env.NEXT_PUBLIC_VERCEL_GIT_COMMIT_SHA ? "" : "client"}`;
 
   return (
     <PageErrorBoundary>
@@ -336,7 +332,9 @@ export default function SystemHealthPage() {
                     </div>
                     <div>
                       <span className="text-[var(--t3)] text-xs">Environment</span>
-                      <p className="font-semibold text-[var(--t1)]">{process.env.NODE_ENV === "production" ? "Production" : "Development"}</p>
+                      <p className="font-semibold text-[var(--t1)]">
+                        {process.env.NODE_ENV === "production" ? "Production" : "Development"}
+                      </p>
                     </div>
                     <div>
                       <span className="text-[var(--t3)] text-xs">Schools</span>

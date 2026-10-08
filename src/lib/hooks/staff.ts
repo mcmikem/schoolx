@@ -168,7 +168,7 @@ export function useSalaryPayments(schoolId?: string) {
           .from("salary_payments")
           .insert([{ ...payment, school_id: querySchoolId }])
           .select(
-            "id, school_id, staff_id, academic_year_id, month, year, base_paid, allowances_paid, deductions_applied, net_paid, payment_date, payment_status, created_at",
+            "id, school_id, staff_id, month, year, base_paid, allowances_paid, deductions_applied, net_paid, payment_date, payment_status, created_at",
           )
           .single(),
         STAFF_TIMEOUT,
@@ -194,7 +194,7 @@ export function useSalaryPayments(schoolId?: string) {
           supabase
             .from("salary_payments")
             .select(
-              "id, school_id, staff_id, academic_year_id, month, year, base_paid, allowances_paid, deductions_applied, net_paid, payment_date, payment_status, created_at, staff:users(id, full_name)",
+              "id, school_id, staff_id, month, year, base_paid, allowances_paid, deductions_applied, net_paid, payment_date, payment_status, created_at, staff:users(id, full_name)",
             )
             .eq("school_id", querySchoolId)
             .order("payment_date", { ascending: false }),

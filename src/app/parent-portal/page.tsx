@@ -73,7 +73,7 @@ function ParentDashboardContent() {
         const { data: noticeData, error: noticeErr } = await withTimeout(
           supabase
             .from("notices")
-            .select("title, content, created_at, category")
+            .select("title, content, created_at, type")
             .eq("school_id", schoolId)
             .in("target_audience", ["all", "parents"])
             .order("created_at", { ascending: false })
@@ -152,7 +152,7 @@ function ParentDashboardContent() {
               supabase
                 .from("fee_payments")
                 .select(
-                  "id, amount, payment_date, payment_method, transaction_reference, student_fee_terms!inner(student_id, fee_terms(name))",
+                  "id, amount_paid, payment_date, payment_method, payment_reference, student_fee_terms!inner(student_id, fee_terms(name))",
                 )
                 .eq("student_fee_terms.student_id", scopedChild.id)
                 .order("payment_date", { ascending: false }),

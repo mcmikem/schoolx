@@ -524,7 +524,6 @@ export interface SalaryPayment {
   id: string;
   school_id: string;
   staff_id: string;
-  academic_year_id: string;
   month: number;
   year: number;
   base_paid: number;

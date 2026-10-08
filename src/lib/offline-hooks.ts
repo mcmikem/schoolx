@@ -463,7 +463,7 @@ export function useOfflineStudentsBasic(schoolId?: string, status?: string, opti
       if (!schoolId) return [];
       let query = supabase
         .from("students")
-        .select("id, class_id, first_name, last_name, admission_number, status")
+        .select("id, class_id, first_name, last_name, student_number, status")
         .eq("school_id", schoolId);
       if (status) query = query.eq("status", status);
       const { data, error } = await query;
@@ -550,7 +550,7 @@ export function useOfflineClassStudents(schoolId?: string, classId?: string, opt
       if (!schoolId || !classId) return [];
       const { data, error } = await supabase
         .from("students")
-        .select("id, first_name, last_name, admission_number")
+        .select("id, first_name, last_name, student_number")
         .eq("school_id", schoolId)
         .eq("class_id", classId)
         .order("first_name");

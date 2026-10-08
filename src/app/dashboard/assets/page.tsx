@@ -17,8 +17,8 @@ type Asset = {
   location: string;
   quantity: number;
   condition: "Good" | "Fair" | "Requires Maintenance" | "Condemned";
-  purchase_date?: string;
-  notes?: string;
+  purchased_date?: string;
+  description?: string;
 };
 
 const CONDITION_BADGE: Record<string, string> = {
@@ -73,8 +73,8 @@ export default function AssetsPage() {
         location: form.location,
         quantity: parseInt(form.quantity) || 1,
         condition: form.condition,
-        purchase_date: form.purchase_date || null,
-        notes: form.notes || null,
+        purchased_date: form.purchase_date || null,
+        description: form.notes || null,
       }),
       15000,
       timeoutFallback(),

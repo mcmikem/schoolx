@@ -62,15 +62,22 @@ export default function StudentLookupPage() {
       const { data, error } = await supabase
         .from("students")
         .select(
-          "id, first_name, last_name, admission_number, gender, classes(name), parent_phone, parent_name, fee_balance",
+          "id, first_name, last_name, student_number, gender, classes(name), parent_phone, parent_name, opening_balance",
         )
         .eq("school_id", school.id)
-        .or(`first_name.ilike.%${q}%,last_name.ilike.%${q}%,admission_number.ilike.%${q}%`)
+        .or(`first_name.ilike.%${q}%,last_name.ilike.%${q}%,student_number.ilike.%${q}%`)
         .limit(20);
       if (error) {
         toast.error("Search failed");
         setStudents([]);
-      } else setStudents(data || []);
+      } else
+        setStudents(
+          (data || []).map((student: any) => ({
+            ...student,
+            admission_number: student.student_number,
+            fee_balance: student.opening_balance,
+          })),
+        );
       setLoading(false);
     },
     [isDemo, school?.id, toast],

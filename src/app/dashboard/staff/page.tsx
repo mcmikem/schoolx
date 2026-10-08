@@ -672,7 +672,7 @@ function DirectoryTab({
             .eq("school_id", school.id)
             .eq("class_teacher_id", member.id)
             .maybeSingle(),
-          supabase.from("teacher_subjects").select("subject_id").eq("school_id", school.id).eq("teacher_id", member.id),
+          supabase.from("teacher_subjects").select("subject_id").eq("teacher_id", member.id),
         ]);
 
         classTeacherFor = classRes.data?.id || "";
@@ -768,7 +768,6 @@ function DirectoryTab({
 
           if (editForm.class_teacher_for && editForm.subject_ids.length > 0) {
             const payload = editForm.subject_ids.map((subjectId) => ({
-              school_id: school.id,
               teacher_id: editingStaff.id,
               class_id: editForm.class_teacher_for,
               subject_id: subjectId,
@@ -2438,7 +2437,7 @@ function LeaveTab({
         school_id: school.id,
         leave_request_id: requestId,
         approver_id: user.id,
-        action: newStatus,
+        status: newStatus,
         comments: null,
       });
 

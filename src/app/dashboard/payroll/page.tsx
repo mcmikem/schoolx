@@ -93,20 +93,32 @@ export default function PayrollPage() {
   useEffect(() => {
     if (!school?.id) return;
     setLoading(true);
-    supabase
-      .from("users")
-      .select("id, full_name, role, bank_account")
-      .eq("school_id", school.id)
-      .not("role", "in", '("student","parent")')
-      .then(({ data }) => {
-        setStaff(data || []);
-        const init: Record<string, { grade: string; customGross: number; deductions: number }> = {};
-        (data || []).forEach((s: PayrollStaff) => {
-          init[s.id] = { grade: ROLE_TO_GRADE[s.role] || GRADES[1], customGross: 0, deductions: 0 };
-        });
-        setPayroll(init);
-        setLoading(false);
+    Promise.all([
+      supabase
+        .from("users")
+        .select("id, full_name, role")
+        .eq("school_id", school.id)
+        .not("role", "in", '("student","parent")'),
+      supabase.from("staff").select("id, bank_account").eq("school_id", school.id),
+    ]).then(([usersRes, staffRes]) => {
+      const bankAccounts = new Map<string, string | null>(
+        ((staffRes.data || []) as { id: string; bank_account: string | null }[]).map((row) => [
+          row.id,
+          row.bank_account,
+        ]),
+      );
+      const rows = ((usersRes.data || []) as PayrollStaff[]).map((member) => ({
+        ...member,
+        bank_account: bankAccounts.get(member.id) ?? null,
+      }));
+      setStaff(rows);
+      const init: Record<string, { grade: string; customGross: number; deductions: number }> = {};
+      rows.forEach((s: PayrollStaff) => {
+        init[s.id] = { grade: ROLE_TO_GRADE[s.role] || GRADES[1], customGross: 0, deductions: 0 };
       });
+      setPayroll(init);
+      setLoading(false);
+    });
     supabase
       .from("payroll_history")
       .select("*")

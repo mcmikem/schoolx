@@ -156,12 +156,10 @@ export async function POST(request: NextRequest) {
             admin.from("fee_payments").insert({
               student_id: childId,
               school_id: schoolId,
-              amount: paidAmount,
               amount_paid: paidAmount,
               payment_date: new Date().toISOString(),
               payment_method: provider === "airtel" ? "Airtel Money" : "MTN MoMo",
               payment_reference: reference,
-              transaction_reference: reference,
               deleted_at: null,
             }),
             15000,

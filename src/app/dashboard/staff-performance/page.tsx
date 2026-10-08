@@ -12,7 +12,8 @@ import { Badge, Select } from "@/components/ui/index";
 
 interface StaffMember {
   id: string;
-  full_name: string;
+  first_name: string;
+  last_name: string;
   department: string;
   role: string;
 }
@@ -45,9 +46,9 @@ export default function StaffPerformancePage() {
       const { data: staffList, error: staffError } = await withTimeout(
         supabase
           .from("staff")
-          .select("id, full_name, department, role")
+          .select("id, first_name, last_name, department, role")
           .eq("school_id", schoolId)
-          .order("full_name"),
+          .order("last_name"),
         15000,
         { data: [], error: null } as any,
       );
@@ -67,34 +68,25 @@ export default function StaffPerformancePage() {
         return;
       }
 
-      const [{ data: reviews }, { data: attendance }, { data: subs }] =
-        await Promise.all([
-          withTimeout(
-            supabase
-              .from("staff_reviews")
-              .select("staff_id, rating")
-              .in("staff_id", staffIds),
-            15000,
-            { data: [], error: null } as any,
-          ),
-          withTimeout(
-            supabase
-              .from("staff_attendance")
-              .select("staff_id, status")
-              .in("staff_id", staffIds),
-            15000,
-            { data: [], error: null } as any,
-          ),
-          withTimeout(
-            supabase
-              .from("teacher_substitutions")
-              .select("teacher_id")
-              .eq("school_id", schoolId)
-              .in("teacher_id", staffIds),
-            15000,
-            { data: [], error: null } as any,
-          ),
-        ]);
+      const [{ data: reviews }, { data: attendance }, { data: subs }] = await Promise.all([
+        withTimeout(supabase.from("staff_reviews").select("staff_id, rating").in("staff_id", staffIds), 15000, {
+          data: [],
+          error: null,
+        } as any),
+        withTimeout(supabase.from("staff_attendance").select("staff_id, status").in("staff_id", staffIds), 15000, {
+          data: [],
+          error: null,
+        } as any),
+        withTimeout(
+          supabase
+            .from("teacher_substitutions")
+            .select("substitute_teacher_id")
+            .eq("school_id", schoolId)
+            .in("substitute_teacher_id", staffIds),
+          15000,
+          { data: [], error: null } as any,
+        ),
+      ]);
 
       const ratingMap: Record<string, number[]> = {};
       (reviews || []).forEach((r: any) => {
@@ -102,19 +94,17 @@ export default function StaffPerformancePage() {
         ratingMap[r.staff_id].push(Number(r.rating) || 0);
       });
 
-      const attendanceMap: Record<string, { total: number; present: number }> =
-        {};
+      const attendanceMap: Record<string, { total: number; present: number }> = {};
       (attendance || []).forEach((a: any) => {
-        if (!attendanceMap[a.staff_id])
-          attendanceMap[a.staff_id] = { total: 0, present: 0 };
+        if (!attendanceMap[a.staff_id]) attendanceMap[a.staff_id] = { total: 0, present: 0 };
         attendanceMap[a.staff_id].total += 1;
         if (a.status === "present") attendanceMap[a.staff_id].present += 1;
       });
 
       const subCounts: Record<string, number> = {};
       (subs || []).forEach((s: any) => {
-        if (s.teacher_id) {
-          subCounts[s.teacher_id] = (subCounts[s.teacher_id] || 0) + 1;
+        if (s.substitute_teacher_id) {
+          subCounts[s.substitute_teacher_id] = (subCounts[s.substitute_teacher_id] || 0) + 1;
         }
       });
 
@@ -122,16 +112,12 @@ export default function StaffPerformancePage() {
         const ratings = ratingMap[s.id] || [];
         const att = attendanceMap[s.id] || { total: 0, present: 0 };
         const avgRating =
-          ratings.length > 0
-            ? Math.round((ratings.reduce((a, b) => a + b, 0) / ratings.length) * 10) / 10
-            : 0;
-        const attendanceRate = att.total > 0
-          ? Math.round((att.present / att.total) * 100)
-          : 0;
+          ratings.length > 0 ? Math.round((ratings.reduce((a, b) => a + b, 0) / ratings.length) * 10) / 10 : 0;
+        const attendanceRate = att.total > 0 ? Math.round((att.present / att.total) * 100) : 0;
 
         return {
           staffId: s.id,
-          name: s.full_name,
+          name: [s.first_name, s.last_name].filter(Boolean).join(" "),
           department: s.department || "Unassigned",
           role: s.role || "Staff",
           avgRating,
@@ -161,36 +147,20 @@ export default function StaffPerformancePage() {
 
   const filteredStats = useMemo(() => {
     if (departmentFilter === "all") return stats;
-    return stats.filter(
-      (s) => (s.department || "Unassigned") === departmentFilter,
-    );
+    return stats.filter((s) => (s.department || "Unassigned") === departmentFilter);
   }, [stats, departmentFilter]);
 
   const totalStaff = stats.length;
-  const overallAvgRating =
-    stats.length > 0
-      ? stats.reduce((a, b) => a + b.avgRating, 0) / stats.length
-      : 0;
+  const overallAvgRating = stats.length > 0 ? stats.reduce((a, b) => a + b.avgRating, 0) / stats.length : 0;
   const overallAttendanceRate =
-    stats.length > 0
-      ? Math.round(
-          stats.reduce((a, b) => a + b.attendanceRate, 0) / stats.length,
-        )
-      : 0;
+    stats.length > 0 ? Math.round(stats.reduce((a, b) => a + b.attendanceRate, 0) / stats.length) : 0;
   const substitutionRate =
-    totalStaff > 0
-      ? Math.round(
-          (stats.filter((s) => s.hasSubstitution).length / totalStaff) * 100,
-        )
-      : 0;
+    totalStaff > 0 ? Math.round((stats.filter((s) => s.hasSubstitution).length / totalStaff) * 100) : 0;
 
   if (loading) {
     return (
       <div className="content space-y-6">
-        <PageHeader
-          title="Staff Performance"
-          subtitle="Analytics and performance metrics for all staff"
-        />
+        <PageHeader title="Staff Performance" subtitle="Analytics and performance metrics for all staff" />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[1, 2, 3, 4].map((i) => (
             <div
@@ -237,22 +207,14 @@ export default function StaffPerformancePage() {
   return (
     <PageErrorBoundary>
       <div className="content space-y-6">
-        <PageHeader
-          title="Staff Performance"
-          subtitle="Monitor staff reviews, attendance, and substitution metrics"
-        />
+        <PageHeader title="Staff Performance" subtitle="Monitor staff reviews, attendance, and substitution metrics" />
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {statCards.map((item) => (
-            <div
-              key={item.label}
-              className={`rounded-2xl border border-[var(--border)] p-4 ${item.color}`}
-            >
+            <div key={item.label} className={`rounded-2xl border border-[var(--border)] p-4 ${item.color}`}>
               <div className="flex items-center gap-2 mb-1">
                 <MaterialIcon icon={item.icon as any} size={18} />
-                <span className="text-[11px] font-black uppercase tracking-[0.18em] opacity-80">
-                  {item.label}
-                </span>
+                <span className="text-[11px] font-black uppercase tracking-[0.18em] opacity-80">{item.label}</span>
               </div>
               <div className="text-xl font-bold">{item.value}</div>
             </div>
@@ -262,9 +224,7 @@ export default function StaffPerformancePage() {
         <Card>
           <CardHeader>
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full">
-              <h3 className="font-semibold text-[var(--t1)]">
-                Staff Performance Breakdown
-              </h3>
+              <h3 className="font-semibold text-[var(--t1)]">Staff Performance Breakdown</h3>
               <div className="flex items-center gap-3">
                 <Select
                   value={departmentFilter}
@@ -282,43 +242,22 @@ export default function StaffPerformancePage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-[var(--border)] bg-[var(--surface-container-low)]">
-                    <th className="text-left px-4 py-3 font-semibold text-[var(--t2)]">
-                      Name
-                    </th>
-                    <th className="text-left px-4 py-3 font-semibold text-[var(--t2)]">
-                      Department
-                    </th>
-                    <th className="text-center px-4 py-3 font-semibold text-[var(--t2)]">
-                      Avg Rating
-                    </th>
-                    <th className="text-center px-4 py-3 font-semibold text-[var(--t2)]">
-                      Attendance %
-                    </th>
-                    <th className="text-center px-4 py-3 font-semibold text-[var(--t2)]">
-                      Reviews
-                    </th>
+                    <th className="text-left px-4 py-3 font-semibold text-[var(--t2)]">Name</th>
+                    <th className="text-left px-4 py-3 font-semibold text-[var(--t2)]">Department</th>
+                    <th className="text-center px-4 py-3 font-semibold text-[var(--t2)]">Avg Rating</th>
+                    <th className="text-center px-4 py-3 font-semibold text-[var(--t2)]">Attendance %</th>
+                    <th className="text-center px-4 py-3 font-semibold text-[var(--t2)]">Reviews</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--border)]">
                   {filteredStats.map((s) => (
-                    <tr
-                      key={s.staffId}
-                      className="hover:bg-[var(--surface-container-low)] transition-colors"
-                    >
-                      <td className="px-4 py-3 font-medium text-[var(--t1)]">
-                        {s.name}
-                      </td>
-                      <td className="px-4 py-3 text-[var(--t3)]">
-                        {s.department}
-                      </td>
+                    <tr key={s.staffId} className="hover:bg-[var(--surface-container-low)] transition-colors">
+                      <td className="px-4 py-3 font-medium text-[var(--t1)]">{s.name}</td>
+                      <td className="px-4 py-3 text-[var(--t3)]">{s.department}</td>
                       <td className="px-4 py-3 text-center">
                         {s.avgRating > 0 ? (
                           <div className="inline-flex items-center gap-1">
-                            <MaterialIcon
-                              icon="star"
-                              size={14}
-                              className="text-amber-500"
-                            />
+                            <MaterialIcon icon="star" size={14} className="text-amber-500" />
                             <span>{s.avgRating.toFixed(1)}</span>
                           </div>
                         ) : (
@@ -327,28 +266,17 @@ export default function StaffPerformancePage() {
                       </td>
                       <td className="px-4 py-3 text-center">
                         <Badge
-                          variant={
-                            s.attendanceRate >= 90
-                              ? "success"
-                              : s.attendanceRate >= 75
-                                ? "warning"
-                                : "error"
-                          }
+                          variant={s.attendanceRate >= 90 ? "success" : s.attendanceRate >= 75 ? "warning" : "error"}
                         >
                           {s.attendanceRate}%
                         </Badge>
                       </td>
-                      <td className="px-4 py-3 text-center text-[var(--t3)]">
-                        {s.reviewCount}
-                      </td>
+                      <td className="px-4 py-3 text-center text-[var(--t3)]">{s.reviewCount}</td>
                     </tr>
                   ))}
                   {filteredStats.length === 0 && (
                     <tr>
-                      <td
-                        colSpan={5}
-                        className="px-4 py-8 text-center text-[var(--t4)]"
-                      >
+                      <td colSpan={5} className="px-4 py-8 text-center text-[var(--t4)]">
                         No staff data available
                       </td>
                     </tr>

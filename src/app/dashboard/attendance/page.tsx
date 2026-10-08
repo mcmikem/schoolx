@@ -597,10 +597,10 @@ export default function AttendancePage() {
         const msgResult = await withTimeout(
           sb.from("messages").insert({
             school_id: school?.id,
-            recipient_phone: phone,
+            phone,
+            recipient_type: "individual",
             message: `SkoolMate Alert: ${student.first_name} was marked ABSENT today (${date}). Please confirm with school if this is unexpected.`,
             status: "sent",
-            type: "attendance_alert",
           }),
           15000,
           timeoutFallback(),

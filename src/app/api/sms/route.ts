@@ -99,14 +99,23 @@ async function handlePost(request: NextRequest) {
       try {
         const { data: student } = await supabase
           .from("students")
-          .select("id, parent_id, first_name, last_name")
+          .select("id, first_name, last_name")
           .eq("id", studentId)
           .maybeSingle();
 
-        if (student?.parent_id) {
+        const { data: link } = student
+          ? await supabase
+              .from("parent_students")
+              .select("parent_id")
+              .eq("student_id", student.id)
+              .limit(1)
+              .maybeSingle()
+          : { data: null };
+
+        if (student && link?.parent_id) {
           const { error: notifyError } = await supabase.from("parent_notifications").insert({
             school_id: schoolId,
-            parent_id: student.parent_id,
+            parent_id: link.parent_id,
             student_id: student.id,
             type: "message",
             title: "Message available",

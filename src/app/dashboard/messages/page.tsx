@@ -28,6 +28,7 @@ import MessageAutomation from "@/components/messages/MessageAutomation";
 import MessageTemplates from "@/components/messages/MessageTemplates";
 import { isWhatsAppConfigured, sendWhatsAppTextMessage } from "@/lib/whatsapp";
 import { createRecord, updateRecord, deleteRecord, upsertRecord, CrudWriteError } from "@/lib/crud-service";
+import { IMAGE_CACHE_CONTROL } from "@/lib/student-photos";
 
 const communicationTabs = [
   { id: "messages", label: "Messages" },
@@ -855,7 +856,7 @@ export default function CommunicationHubPage() {
             content: newNotice.content,
             type: newNotice.category,
             priority: isEmergency && newNotice.category !== "Emergency" ? "high" : newNotice.priority,
-            created_by: user.id,
+            published_by: user.id,
             expiry_date: newNotice.expires_at || null,
             image_url: newNotice.image_url || null,
           }),
@@ -905,7 +906,7 @@ export default function CommunicationHubPage() {
       const fileName = `notice-${Date.now()}.${ext}`;
       const { error } = await supabase.storage
         .from("notices")
-        .upload(fileName, file, { upsert: true, contentType: file.type });
+        .upload(fileName, file, { upsert: true, contentType: file.type, cacheControl: IMAGE_CACHE_CONTROL });
       if (error) throw error;
       const {
         data: { publicUrl },

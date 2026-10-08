@@ -517,8 +517,7 @@ export default function TimetablePage() {
     try {
       const { data } = await supabase
         .from("teacher_timetable")
-        .select("id, teacher_id, day_of_week, period_number, class_id, start_time, end_time, room")
-        .eq("school_id", school.id);
+        .select("id, teacher_id, day_of_week, period_number, class_id, start_time, end_time, room");
       setAllClassTimetables(data || []);
     } catch (err) {
       logger.error("Error fetching all timetables:", err);

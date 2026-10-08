@@ -144,7 +144,6 @@ export function SendSMSModal({ student, isOpen, onClose, onSent }: SendSMSModalP
             status: smsSent ? "sent" : "failed",
             sent_by: user.id,
             sent_at: new Date().toISOString(),
-            student_id: student.id,
           })
           .select("id")
           .single();

@@ -18,13 +18,13 @@ export async function POST(request: NextRequest) {
 
     const { data: classes } = await supabase
       .from("classes")
-      .select("id, name, teacher_id")
+      .select("id, name, class_teacher_id")
       .eq("school_id", school.schoolId);
 
     const classList = (classes || []) as {
       id: string;
       name: string;
-      teacher_id: string | null;
+      class_teacher_id: string | null;
     }[];
 
     if (classList.length === 0) return NextResponse.json({ success: true, message: "No classes" });
@@ -37,12 +37,12 @@ export async function POST(request: NextRequest) {
     const results = { nudgesSent: 0, errors: 0 };
 
     for (const cls of unmarkedClasses) {
-      if (!cls.teacher_id) continue;
+      if (!cls.class_teacher_id) continue;
 
       const { data: teacher } = await supabase
         .from("users")
         .select("full_name, phone")
-        .eq("id", cls.teacher_id)
+        .eq("id", cls.class_teacher_id)
         .maybeSingle();
 
       const teacherUser = teacher as any;

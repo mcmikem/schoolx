@@ -250,10 +250,9 @@ export const POST = withRateLimit(
         if (academicYear) {
           const terms = buildUgandaAcademicTerms(schoolData.id, currentYear);
           const { error: termsError } = await withTimeout(
-            supabaseAdmin.from("academic_terms").upsert(
-              terms.map((t) => ({ ...t, academic_year_id: academicYear.id })),
-              { onConflict: "school_id,academic_year,term_number" },
-            ),
+            supabaseAdmin.from("academic_terms").upsert(terms, {
+              onConflict: "school_id,academic_year,term_number",
+            }),
             15000,
             timeoutFallback(),
           );

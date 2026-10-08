@@ -8,11 +8,7 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/index";
 import { useAuth } from "@/lib/auth-context";
-import {
-  evaluateDataQuality,
-  type DataQualityIssue,
-  type DataQualityReport,
-} from "@/lib/data-quality-rules";
+import { evaluateDataQuality, type DataQualityIssue, type DataQualityReport } from "@/lib/data-quality-rules";
 import { withTimeout } from "@/lib/hooks/utils";
 import { logger } from "@/lib/logger";
 import { supabase } from "@/lib/supabase";
@@ -36,11 +32,9 @@ export default function DataQualityPage() {
     try {
       const studentsQuery = supabase
         .from("students")
-        .select("id, admission_number, parent_phone, parent_phone2, parent_name");
+        .select("id, student_number, parent_phone, parent_phone2, parent_name");
 
-      const usersQuery = supabase
-        .from("users")
-        .select("id, full_name, email, phone, role, status");
+      const usersQuery = supabase.from("users").select("id, full_name, email, phone, role, is_active");
 
       const schoolId = school?.id;
       const scopedStudentsQuery = schoolId ? studentsQuery.eq("school_id", schoolId) : studentsQuery;
@@ -54,7 +48,10 @@ export default function DataQualityPage() {
       const students = Array.isArray(studentsResult?.data) ? studentsResult.data : [];
       const users = Array.isArray(usersResult?.data) ? usersResult.data : [];
 
-      setReport(evaluateDataQuality({ students, users }));
+      const qualityStudents = students.map((row: any) => ({ ...row, admission_number: row.student_number }));
+      const qualityUsers = users.map((row: any) => ({ ...row, status: row.is_active ? "active" : "inactive" }));
+
+      setReport(evaluateDataQuality({ students: qualityStudents, users: qualityUsers }));
     } catch (error) {
       logger.error("Failed to run data quality checks:", error);
       toast.error("Failed to load data quality report");
@@ -69,9 +66,7 @@ export default function DataQualityPage() {
   }, [loadReport]);
 
   const badgeClasses = (issue: DataQualityIssue) =>
-    issue.severity === "critical"
-      ? "bg-rose-100 text-rose-700"
-      : "bg-amber-100 text-amber-700";
+    issue.severity === "critical" ? "bg-rose-100 text-rose-700" : "bg-amber-100 text-amber-700";
 
   return (
     <PageErrorBoundary>
@@ -124,10 +119,7 @@ export default function DataQualityPage() {
             ) : (
               <div className="space-y-3">
                 {report.issues.map((issue) => (
-                  <div
-                    key={issue.code}
-                    className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4"
-                  >
+                  <div key={issue.code} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
                         <p className="font-semibold text-[var(--t1)]">{issue.message}</p>

@@ -540,7 +540,7 @@ export async function POST(request: NextRequest) {
         .select("id")
         .eq("school_id", school.schoolId)
         .eq("academic_year", nextYear)
-        .eq("term", nextTerm)
+        .eq("term_number", nextTerm)
         .limit(1);
 
       if (!existingTerm || existingTerm.length === 0) {
@@ -550,7 +550,7 @@ export async function POST(request: NextRequest) {
           .select("start_date, end_date")
           .eq("school_id", school.schoolId)
           .eq("academic_year", year)
-          .eq("term", term)
+          .eq("term_number", term)
           .limit(1)
           .maybeSingle();
 

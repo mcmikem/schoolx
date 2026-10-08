@@ -95,7 +95,7 @@ export default function ParentFeesPage() {
             supabase
               .from("fee_payments")
               .select(
-                "id, amount, payment_date, payment_method, transaction_reference, student_fee_terms!inner(student_id, fee_terms(name))",
+                "id, amount_paid, payment_date, payment_method, payment_reference, student_fee_terms!inner(student_id, fee_terms(name))",
               )
               .eq("student_fee_terms.student_id", child.id)
               .order("payment_date", { ascending: false }),

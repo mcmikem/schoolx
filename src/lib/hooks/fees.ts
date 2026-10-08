@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import type { FeePayment, FeeStructure, FeeAdjustment, CreatePaymentInput } from "@/types";
 import { getLocalDateString, getQuerySchoolId, withTimeout, timeoutFallback, isTimeoutResult } from "./utils";
-import { getCachedData, setCachedData, invalidateCache } from "./queryCache";
+import { getCachedData, setCachedData, invalidateCache, revalidateShared } from "./queryCache";
 import { DEMO_FEE_PAYMENTS, DEMO_FEE_STRUCTURE, DEMO_EXPENSES, DEMO_BUDGETS, DemoExpense } from "@/lib/demo-data";
 import { isDemoSchool } from "@/lib/demo-utils";
 import { offlineDB, useOnlineStatus } from "@/lib/offline";
@@ -693,6 +693,23 @@ export function normalizeFeeSummary(row: unknown): FeeSummary | null {
  * on its own when the requested term has no fees that apply to anyone, so the
  * figures never drop to zero just because a term has not been set up yet.
  */
+/**
+ * The query-cache key for the fee_summary() RPC result. computeStats (the
+ * dashboard-stats hook in analytics.ts) reads the same RPC under this key, so
+ * when the Bursar panel and a dashboard mount in the same tick the second
+ * caller finds the first one's in-flight promise instead of paying for the
+ * call twice.
+ */
+export function feeSummaryCacheKey(schoolId?: string, term?: number | null, academicYear?: string | null): string {
+  return `fee_summary:${schoolId}:${term ?? "all"}:${academicYear ?? "all"}`;
+}
+
+/** Thrown inside the summary fetcher when withTimeout hits its deadline, so
+ *  nothing is cached and the panel keeps whatever it already holds. A plain
+ *  module-level sentinel (not a message match) so a real RPC error with
+ *  similar wording can never be mistaken for a timeout. */
+const FEE_SUMMARY_TIMEOUT = new Error("fee_summary() timed out");
+
 export function useFeeSummary(schoolId?: string, term?: number | null, academicYear?: string | null) {
   const [summary, setSummary] = useState<FeeSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -1124,7 +1141,7 @@ export function useBudget(schoolId?: string) {
         const [budgetsRes, expensesRes] = await Promise.all([
           supabase
             .from("budgets")
-            .select("id, school_id, name, amount, term, academic_year, created_at")
+            .select("id, school_id, name, total_budget, term, academic_year, created_at")
             .eq("school_id", querySchoolId)
             .order("created_at", { ascending: false }),
           supabase

@@ -2494,7 +2494,15 @@ CREATE TABLE IF NOT EXISTS subject_allocations (
 -- ============================================
 CREATE TABLE IF NOT EXISTS health_records (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    student_id UUID REFERENCES students(id) ON DELETE CASCADE,
+    school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
+    student_name TEXT,
+    "condition" TEXT,
+    severity TEXT,
+    treatment TEXT,
+    status TEXT,
+    admitted_at TIMESTAMPTZ,
+    discharged_at TIMESTAMPTZ,
     blood_type TEXT,
     allergies TEXT,
     medical_conditions TEXT,
@@ -2610,8 +2618,9 @@ CREATE TABLE IF NOT EXISTS expenses (
     expense_date DATE NOT NULL,
     vendor TEXT,
     receipt_number TEXT,
-    status TEXT CHECK (status IN ('pending', 'approved', 'paid')) DEFAULT 'pending',
+    status TEXT CHECK (status IN ('pending', 'approved', 'paid', 'rejected')) DEFAULT 'pending',
     approved_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    approved_at TIMESTAMPTZ,
     created_by UUID REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -2755,6 +2764,7 @@ CREATE TABLE IF NOT EXISTS student_promotions (
     from_class_id UUID REFERENCES classes(id) ON DELETE SET NULL,
     to_class_id UUID REFERENCES classes(id) ON DELETE SET NULL,
     academic_year TEXT NOT NULL,
+    promotion_type TEXT,
     promoted_by UUID REFERENCES users(id) ON DELETE SET NULL,
     promoted_at TIMESTAMPTZ DEFAULT NOW(),
     notes TEXT,
@@ -3309,7 +3319,7 @@ CREATE POLICY "School users subject_allocations all" ON subject_allocations FOR 
 
 ALTER TABLE health_records ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "School users health_records all" ON health_records;
-CREATE POLICY "School users health_records all" ON health_records FOR ALL TO authenticated USING (student_id IN (SELECT id FROM students WHERE school_id = my_school_id())) WITH CHECK (student_id IN (SELECT id FROM students WHERE school_id = my_school_id()));
+CREATE POLICY "School users health_records all" ON health_records FOR ALL TO authenticated USING ((student_id IN (SELECT id FROM students WHERE school_id = my_school_id())) OR (student_id IS NULL AND school_id = my_school_id())) WITH CHECK ((student_id IN (SELECT id FROM students WHERE school_id = my_school_id())) OR (student_id IS NULL AND school_id = my_school_id()));
 
 ALTER TABLE health_visits ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "School users health_visits all" ON health_visits;
