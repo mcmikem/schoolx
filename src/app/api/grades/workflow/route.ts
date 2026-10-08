@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { logger } from "@/lib/logger";
 import { rateLimit, supabaseClientOptions } from "@/lib/api-utils";
 import { getNextGradeWorkflowStatusActions, GradeWorkflowStatus } from "@/lib/operations";
+import { canAccessClass } from "@/lib/server/class-scope";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -57,6 +58,32 @@ export async function POST(request: NextRequest) {
 
     if (!class_id || !subject_id || !next_status || !term || !academic_year) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+
+    // This route runs on the service role and previously checked only that a
+    // session existed — any parent, student or teacher could drive grade
+    // status transitions for any class in any school.
+    const WORKFLOW_ROLES = [
+      "super_admin",
+      "school_admin",
+      "admin",
+      "headmaster",
+      "dean_of_studies",
+      "teacher",
+      "class_teacher",
+    ];
+    if (!WORKFLOW_ROLES.includes(userData.role)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const { data: classRow } = await supabaseAdmin.from("classes").select("school_id").eq("id", class_id).maybeSingle();
+
+    if (!classRow || (userData.role !== "super_admin" && classRow.school_id !== userData.school_id)) {
+      return NextResponse.json({ error: "Class does not belong to your school" }, { status: 403 });
+    }
+
+    if (!(await canAccessClass(supabaseAdmin, userData.role, userData.id, class_id))) {
+      return NextResponse.json({ error: "You can only manage grades for classes you teach" }, { status: 403 });
     }
 
     // 1. Fetch current status of grades for this set

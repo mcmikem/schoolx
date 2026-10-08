@@ -10,6 +10,7 @@ import {
   validateRequiredFields,
 } from "@/lib/api-utils";
 import { requireModuleEntitlement } from "@/lib/subscription-guard";
+import { canAccessClass } from "@/lib/server/class-scope";
 import { logger } from "@/lib/logger";
 
 const ATTENDANCE_ALLOWED_ROLES = [
@@ -78,6 +79,12 @@ export async function POST(request: NextRequest) {
 
     if (classData.school_id !== scope.schoolId) {
       return apiError("Class does not belong to the requested school", 403);
+    }
+
+    // Bulk marking runs on the service role, so the class-scoped RLS never
+    // sees it — repeat the check for teacher/class_teacher callers.
+    if (!(await canAccessClass(supabase, auth.context.user.role, auth.context.user.id, class_id))) {
+      return apiError("You can only mark attendance for classes you teach", 403);
     }
 
     const { data: students, error: studentsError } = await supabase

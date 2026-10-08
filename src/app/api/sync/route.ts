@@ -13,6 +13,7 @@ import {
 import type { Database } from "@/lib/supabase";
 import { SYNC_VALID_TABLES, SYNC_MAX_ITEMS, isValidSyncData } from "@/lib/server/sync-validation";
 import { buildAuditInsertRow } from "@/lib/server/audit-sync";
+import { canAccessClass, isClassScopedRole } from "@/lib/server/class-scope";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -36,6 +37,12 @@ const DIRECT_SCHOOL_TABLES = new Set([
   "timetable",
 ]);
 const OWNED_RELATION_TABLES = new Set(["attendance", "grades", "fee_payments"]);
+// Offline queues for class-scoped roles may only carry their own teaching
+// data. Everything else in SYNC_VALID_TABLES (students, classes, fee_structure,
+// messages, …) is management data — and this route writes with the service
+// role, so RLS never gets a chance to refuse it.
+const SYNC_CLASS_SCOPED_TABLES = new Set(["attendance", "grades"]);
+const SYNC_CLASS_SCOPED_ALLOWED_TABLES = new Set(["attendance", "grades", "audit_log"]);
 const SYNC_ALLOWED_ROLES = [
   "super_admin",
   "school_admin",
@@ -307,6 +314,30 @@ async function handleSyncPost(request: NextRequest) {
           failedCount++;
           errors.push(`Invalid data for item ${item.id}`);
           continue;
+        }
+
+        const callerRole = auth.context.user.role;
+        const callerId = auth.context.user.id;
+
+        if (isClassScopedRole(callerRole) && !SYNC_CLASS_SCOPED_ALLOWED_TABLES.has(item.table)) {
+          failedCount++;
+          errors.push(`Not permitted for your role: ${item.table}`);
+          continue;
+        }
+
+        if (isClassScopedRole(callerRole) && SYNC_CLASS_SCOPED_TABLES.has(item.table)) {
+          const rowClass = item.data?.class_id;
+          const allowed = await canAccessClass(
+            supabase,
+            callerRole,
+            callerId,
+            typeof rowClass === "string" ? rowClass : null,
+          );
+          if (!allowed) {
+            failedCount++;
+            errors.push(`You can only sync ${item.table} for classes you teach`);
+            continue;
+          }
         }
 
         // Basic tenancy enforcement: require school_id to match on all scoped tables.

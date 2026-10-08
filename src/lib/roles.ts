@@ -360,6 +360,16 @@ export const PERMISSION_LABELS: Record<keyof RolePermissions, string> = deepFree
   performance: "Performance",
 });
 
+/**
+ * Roles whose row access follows the classes they teach instead of the whole
+ * school — the client-side twin of `is_class_scoped_role()` in
+ * supabase/migrations/202611030001_teacher_class_scope.sql. Shared by UI
+ * gating (read-only registry) and src/lib/server/class-scope.ts (API checks).
+ */
+export function isClassScopedRole(role: string | null | undefined): boolean {
+  return role === "teacher" || role === "class_teacher";
+}
+
 export function canAccess(role: UserRole, feature: keyof RolePermissions): boolean {
   return ROLE_PERMISSIONS[role]?.[feature] ?? false;
 }

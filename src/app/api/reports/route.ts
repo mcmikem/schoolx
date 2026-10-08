@@ -11,6 +11,7 @@ import {
   createServiceRoleClientOrThrow,
 } from "@/lib/api-utils";
 import { requireActiveSubscription, requireModuleEntitlement } from "@/lib/subscription-guard";
+import { canAccessClass, isClassScopedRole } from "@/lib/server/class-scope";
 
 // Reports are available to school operations and academic leadership roles only;
 // parent/student-facing roles are intentionally excluded from aggregate report access.
@@ -223,6 +224,13 @@ export async function POST(request: NextRequest) {
       } else {
         return apiError("Not authorized to view this student report", 403);
       }
+    }
+
+    // The role list above only says "staff". A teacher's access stops at the
+    // classes they actually teach — mirrors the class-scoped RLS, which does
+    // not apply to this route because it runs on the service role.
+    if (isClassScopedRole(userRole) && !(await canAccessClass(supabase, userRole, userId, student.class_id))) {
+      return apiError("Not authorized to view this student report", 403);
     }
 
     // Fetch school info

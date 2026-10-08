@@ -8,6 +8,7 @@ import {
   assertUserRoleOrDeny,
   createServiceRoleClientOrThrow,
 } from "@/lib/api-utils";
+import { canAccessClass, isClassScopedRole } from "@/lib/server/class-scope";
 import { logger } from "@/lib/logger";
 
 const REPORT_ALLOWED_ROLES = [
@@ -50,6 +51,19 @@ export async function GET(request: NextRequest) {
     if (!scope.ok) return scope.response;
 
     const supabase = createServiceRoleClientOrThrow();
+
+    // Without class_id this route dumps the whole school's register. That is
+    // fine for management roles; a teacher must name a class they teach (the
+    // RLS equivalent, repeated here because this route bypasses RLS).
+    if (isClassScopedRole(auth.context.user.role)) {
+      if (!class_id) {
+        return apiError("class_id is required for your role", 400);
+      }
+      const allowed = await canAccessClass(supabase, auth.context.user.role, auth.context.user.id, class_id);
+      if (!allowed) {
+        return apiError("You can only read attendance for classes you teach", 403);
+      }
+    }
 
     let attendanceQuery = supabase
       .from("attendance")
