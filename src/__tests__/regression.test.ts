@@ -989,7 +989,7 @@ describe("Staff directory rows use one overflow menu", () => {
   it("opens actions from a per-row menu instead of five inline buttons", () => {
     const src = read("src/app/dashboard/staff/page.tsx");
     expect(src).toContain("menuOpenId");
-    expect(src).toContain('icon="more_vert"');
+    expect(src).toContain(">More<");
     for (const action of [
       "openEditModal(member)",
       "setIdCardPreviewStaff(member)",
@@ -1015,6 +1015,16 @@ describe("Staff directory rows use one overflow menu", () => {
     // so a 42703-only fallback left every single staff edit failing.
     expect(src).toContain('isMissingTableColumnError(error, "users", "subject")');
     expect(src).not.toContain('?.code === "42703"');
+  });
+
+  it("never sends the nonexistent school_id column to teacher_subjects", () => {
+    const src = read("src/app/dashboard/staff/page.tsx");
+    // teacher_subjects has no school_id (RLS scopes through teacher_id ->
+    // users.school_id), so filtering or inserting it fails with PGRST204 and
+    // the whole staff save aborts.
+    expect(src).not.toMatch(/teacher_subjects"\)\s*\n?\s*\.?delete\(\)\.eq\("school_id"/);
+    const insert = src.match(/teacherSubjectsPayload = [\s\S]{0,240}/);
+    expect(insert?.[0] ?? "").not.toContain("school_id");
   });
 });
 

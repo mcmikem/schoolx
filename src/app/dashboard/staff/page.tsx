@@ -615,7 +615,6 @@ function DirectoryTab({
         if (classAssignError) warnings.push(`class assignment failed: ${classAssignError.message}`);
 
         const teacherSubjectsPayload = newStaff.subject_ids.map((subjectId) => ({
-          school_id: school.id,
           teacher_id: createdUserId,
           class_id: newStaff.class_teacher_for,
           subject_id: subjectId,
@@ -787,7 +786,7 @@ function DirectoryTab({
         if (clearClassError) throw clearClassError;
 
         const { error: clearSubjectsError } = await withTimeout(
-          supabase.from("teacher_subjects").delete().eq("school_id", school.id).eq("teacher_id", editingStaff.id),
+          supabase.from("teacher_subjects").delete().eq("teacher_id", editingStaff.id),
           15000,
           saveTimeout("Clearing the previous subject assignments"),
         );
@@ -1353,7 +1352,8 @@ function DirectoryTab({
                   aria-expanded={menuOpen}
                   onClick={() => setMenuOpenId(menuOpen ? null : member.id)}
                 >
-                  <MaterialIcon icon="more_vert" className="text-lg" />
+                  <span className="text-sm">More</span>
+                  <MaterialIcon icon="expand_more" className="text-base" />
                 </Button>
                 {menuOpen && (
                   <>
