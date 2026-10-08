@@ -2029,7 +2029,7 @@ export default function GradesPage() {
                                 <div className="relative">
                                   <select
                                     id={`grade-card-${student.id}-competency`}
-                                    className="w-full min-h-[44px] text-center font-bold py-2 px-1 rounded-lg border-none focus:outline-none transition-all bg-surface-container-low text-[var(--on-surface)]"
+                                    className="w-full min-h-[44px] text-center text-base font-bold py-2 px-1 rounded-lg border-none focus:outline-none transition-all bg-surface-container-low text-[var(--on-surface)]"
                                     value={marks[`${student.id}_competency`] ?? ""}
                                     onChange={(e) => {
                                       const val = e.target.value;
@@ -2063,7 +2063,7 @@ export default function GradesPage() {
                                     <div className="relative">
                                       <input
                                         id={`grade-card-${student.id}-${type}`}
-                                        className={`w-full min-h-[44px] block text-center font-bold py-2 px-1 rounded-lg border-none focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-surface-container-low text-[var(--on-surface)] ${getInputBorderClass(student.id, type)}`}
+                                        className={`w-full min-h-[44px] block text-center text-base font-bold py-2 px-1 rounded-lg border-none focus:outline-none transition-all disabled:opacity-50 disabled:cursor-not-allowed bg-surface-container-low text-[var(--on-surface)] ${getInputBorderClass(student.id, type)}`}
                                         type="number"
                                         inputMode="numeric"
                                         min={0}

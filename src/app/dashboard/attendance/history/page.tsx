@@ -180,7 +180,7 @@ export default function AttendanceHistoryPage() {
                 type="date"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
+                className="w-full px-3 py-2 min-h-[44px] rounded-lg border border-[var(--border)] bg-[var(--surface)] text-base"
               />
             </div>
             <div>
@@ -189,7 +189,7 @@ export default function AttendanceHistoryPage() {
                 type="date"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
+                className="w-full px-3 py-2 min-h-[44px] rounded-lg border border-[var(--border)] bg-[var(--surface)] text-base"
               />
             </div>
             <div>
@@ -197,7 +197,7 @@ export default function AttendanceHistoryPage() {
               <select
                 value={selectedClass || ""}
                 onChange={(e) => setSelectedClass(e.target.value || null)}
-                className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
+                className="w-full px-3 py-2 min-h-[44px] rounded-lg border border-[var(--border)] bg-[var(--surface)] text-base"
               >
                 <option value="">All Classes</option>
                 {classes.map((c: any) => (
@@ -214,7 +214,7 @@ export default function AttendanceHistoryPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search by name or student number..."
-                className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
+                className="w-full px-3 py-2 min-h-[44px] rounded-lg border border-[var(--border)] bg-[var(--surface)] text-base"
               />
             </div>
           </div>

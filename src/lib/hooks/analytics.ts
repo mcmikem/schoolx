@@ -14,7 +14,7 @@ import { isDemoSchool } from "@/lib/demo-utils";
 import { offlineDB } from "@/lib/offline";
 import { logger } from "@/lib/logger";
 import { normalizeFeeSummary, feeSummaryCacheKey, type FeeSummary } from "./fees";
-import { getOrFetchCached } from "./queryCache";
+import { getOrFetchCached, getCachedData, setCachedData } from "./queryCache";
 
 interface DashboardStats {
   /** Every student on the roster — active, transferred, dropped, completed and
@@ -256,13 +256,24 @@ async function computeStats(
 export function useDashboardStats(schoolId?: string, options?: { term?: number | null; academicYear?: string | null }) {
   const term = options?.term ?? null;
   const academicYear = options?.academicYear ?? null;
-  const [stats, setStats] = useState<DashboardStats>(EMPTY_STATS);
-  const [loading, setLoading] = useState(true);
   const { isDemo } = useAuth();
   // Scoped to the term, because fee_summary() is: the same school in Term 1
   // and Term 3 owes different amounts, and one cache entry for both would show
   // the previous term's collection rate after a switch.
   const cacheKey = schoolId ? `${STATS_CACHE_PREFIX}${schoolId}:${term ?? "all"}:${academicYear ?? "all"}` : "";
+  // Synchronous memory seed. The IndexedDB seed below is async, so without
+  // this every revisit flashes skeletons until it lands. The memory cache
+  // mirrors every successful fetch with the same 5-minute TTL, so a fresh
+  // entry paints real numbers on the very first render with loading already
+  // false — the IndexedDB seed and background revalidation proceed unchanged.
+  const [stats, setStats] = useState<DashboardStats>(() => {
+    if (!schoolId || isDemo || isDemoSchool(schoolId)) return EMPTY_STATS;
+    return getCachedData<CachedStats>(cacheKey)?.stats ?? EMPTY_STATS;
+  });
+  const [loading, setLoading] = useState(() => {
+    if (!schoolId || isDemo || isDemoSchool(schoolId)) return false;
+    return !getCachedData<CachedStats>(cacheKey);
+  });
   const inFlightRef = useRef(false);
 
   const fetchStats = useCallback(
@@ -308,6 +319,9 @@ export function useDashboardStats(schoolId?: string, options?: { term?: number |
         if (presentKnown) {
           setStats(next);
           await writeCachedStats(cacheKey, next);
+          // Mirror into the synchronous memory cache so the next mount paints
+          // instantly without waiting for the IndexedDB read.
+          setCachedData(cacheKey, { stats: next, savedAt: Date.now() });
         } else {
           setStats((prev) => ({ ...next, presentToday: prev.presentToday }));
         }
