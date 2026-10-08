@@ -10,7 +10,10 @@ import {
 } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
 
-const PASSWORD_RESET_ALLOWED_ROLES = ["super_admin", "school_admin"];
+// The staff directory lets a headmaster (isHM) reset passwords, so the API
+// must accept the same roles the UI shows the action for — otherwise the
+// request dies with 403 after the prompt was answered.
+const PASSWORD_RESET_ALLOWED_ROLES = ["super_admin", "school_admin", "headmaster", "admin"];
 
 export async function POST(request: NextRequest) {
   try {

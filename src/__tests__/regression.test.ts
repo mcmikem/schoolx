@@ -993,7 +993,7 @@ describe("Staff directory rows use one overflow menu", () => {
     for (const action of [
       "openEditModal(member)",
       "setIdCardPreviewStaff(member)",
-      "handleResetPassword(member.id, pass)",
+      "setResetTarget(member)",
       "toggleStatus(member.id",
       "handleDeleteStaff(member.id)",
     ]) {
@@ -1025,6 +1025,34 @@ describe("Staff directory rows use one overflow menu", () => {
     expect(src).not.toMatch(/teacher_subjects"\)\s*\n?\s*\.?delete\(\)\.eq\("school_id"/);
     const insert = src.match(/teacherSubjectsPayload = [\s\S]{0,240}/);
     expect(insert?.[0] ?? "").not.toContain("school_id");
+  });
+
+  it("collects the new password in a modal instead of prompt()", () => {
+    const src = read("src/app/dashboard/staff/page.tsx");
+    // prompt() throws in this runtime ("prompt() is not supported"), which
+    // crashed the whole reset-password action before it reached the API.
+    expect(src).not.toMatch(/prompt\(["']/);
+    expect(src).toContain("setResetTarget(member)");
+    expect(src).toContain("handleResetPassword(resetTarget.id, resetPasswordValue)");
+  });
+
+  it("lets a headmaster reset a password instead of 403ing", () => {
+    const route = read("src/app/api/admin/reset-password/route.ts");
+    expect(route).toContain('"headmaster"');
+  });
+
+  it("deletes staff through an admin API, not a client-side row delete", () => {
+    const src = read("src/app/dashboard/staff/page.tsx");
+    // The raw delete died on foreign keys (attendance.recorded_by, …) and on
+    // RLS drift, so it now runs server-side with the auth user removed too.
+    expect(src).not.toContain('supabase.from("users").delete()');
+    expect(src).toContain("/api/admin/delete-staff/");
+
+    const route = read("src/app/api/admin/delete-staff/route.ts");
+    expect(route).toContain("DELETE_ALLOWED_ROLES");
+    expect(route).toContain('"headmaster"');
+    expect(route).toContain("auth.admin.deleteUser");
+    expect(route).toContain("USER_REFERENCE_COLUMNS");
   });
 });
 

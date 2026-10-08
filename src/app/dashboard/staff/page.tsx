@@ -231,6 +231,10 @@ function DirectoryTab({
   });
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+  // prompt() throws in this runtime ("prompt() is not supported"), so the
+  // password reset collects its input in a modal instead.
+  const [resetTarget, setResetTarget] = useState<StaffMember | null>(null);
+  const [resetPasswordValue, setResetPasswordValue] = useState("");
   const [newStaff, setNewStaff] = useState({
     full_name: "",
     phone: "",
@@ -859,28 +863,61 @@ function DirectoryTab({
   const handleDeleteStaff = async (id: string) => {
     setPendingAction(() => async () => {
       try {
-        const { error } = await supabase.from("users").delete().eq("id", id);
-        if (error) throw error;
+        if (isDemo) {
+          const removed = staff.find((s) => s.id === id);
+          setStaff(staff.filter((s) => s.id !== id));
+          if (removed) bumpTabCounts(removed, -1);
+          toast.success("Staff member deleted (Demo Mode)");
+          return;
+        }
+
+        // Deletion runs server-side: RLS plus a dozen foreign keys that still
+        // point at the account (attendance.recorded_by, grades.recorded_by, …)
+        // made the raw client-side delete fail silently in production.
+        const result = await withTimeout(
+          fetch("/api/admin/delete-staff/", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ userId: id }),
+          }).then(async (response) => ({
+            status: response.status,
+            body: (await response.json().catch(() => null)) as {
+              success?: boolean;
+              error?: string;
+              message?: string;
+            } | null,
+          })),
+          45000,
+          null,
+        );
+
+        if (!result || !result.body) throw new Error("Deleting timed out. Please try again.");
+        if (!result.body.success) throw new Error(result.body.error || "Failed to delete staff");
+
         const removed = staff.find((s) => s.id === id);
         setStaff(staff.filter((s) => s.id !== id));
         if (removed) bumpTabCounts(removed, -1);
-        toast.success("Staff member deleted");
+        toast.success(result.body.message || "Staff member deleted");
       } catch (err: unknown) {
-        const errorMessage = err instanceof Error ? err.message : "Failed to delete staff";
-        toast.error(errorMessage);
+        logger.error("Failed to delete staff:", err);
+        toast.error(getErrorMessage(err, "Failed to delete staff"));
       }
     });
     setConfirmOpen(true);
   };
 
-  const handleResetPassword = async (id: string, pass: string) => {
+  const handleResetPassword = async (id: string, pass: string): Promise<boolean> => {
     if (pass.length < 6) {
       toast.error("Password must be at least 6 characters");
-      return;
+      return false;
+    }
+    if (isDemo) {
+      toast.success("Password reset (Demo Mode)");
+      return true;
     }
     try {
       setSaving(true);
-      const response = await fetch("/api/admin/reset-password", {
+      const response = await fetch("/api/admin/reset-password/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -891,8 +928,11 @@ function DirectoryTab({
       const result = await response.json();
       if (!result.success) throw new Error(result.error || "Failed to reset password");
       toast.success("Password reset successfully");
+      return true;
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to reset password");
+      logger.error("Failed to reset password:", err);
+      toast.error(getErrorMessage(err, "Failed to reset password"));
+      return false;
     } finally {
       setSaving(false);
     }
@@ -1383,8 +1423,8 @@ function DirectoryTab({
                         className="flex w-full items-center gap-2 px-4 py-2 text-sm text-[var(--t1)] hover:bg-[var(--surface-container-low)]"
                         onClick={() => {
                           closeMenu();
-                          const pass = prompt("Enter new password (min 6 chars):");
-                          if (pass) handleResetPassword(member.id, pass);
+                          setResetPasswordValue("");
+                          setResetTarget(member);
                         }}
                       >
                         <MaterialIcon icon="lock_reset" className="text-sm" />
@@ -2031,6 +2071,73 @@ function DirectoryTab({
                 </Button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {resetTarget && (
+        <div
+          className="fixed inset-0 bg-black/45 z-50 p-3 sm:p-4 flex items-start sm:items-center justify-center overflow-y-auto"
+          onClick={() => setResetTarget(null)}
+        >
+          <div
+            className="bg-white rounded-2xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-hidden shadow-xl my-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="p-6 border-b border-[var(--surface-container-high)]">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-[var(--t1)]">Reset password</h2>
+                <button
+                  onClick={() => setResetTarget(null)}
+                  className="p-2 text-[var(--t3)] hover:text-[var(--t1)]"
+                  aria-label="Close"
+                >
+                  <MaterialIcon icon="close" className="text-xl" />
+                </button>
+              </div>
+              <p className="text-sm text-[var(--t2)] mt-1">
+                {resetTarget.full_name} · {formatRoleLabel(resetTarget.role)}
+              </p>
+            </div>
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                const ok = await handleResetPassword(resetTarget.id, resetPasswordValue);
+                if (ok) {
+                  setResetTarget(null);
+                  setResetPasswordValue("");
+                }
+              }}
+              className="p-6 space-y-4"
+            >
+              <div>
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">New password</label>
+                <input
+                  type="password"
+                  autoFocus
+                  placeholder="Min 6 characters"
+                  value={resetPasswordValue}
+                  onChange={(e) => setResetPasswordValue(e.target.value)}
+                  className="input"
+                  required
+                  minLength={6}
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <Button type="button" variant="secondary" onClick={() => setResetTarget(null)} className="flex-1">
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  disabled={saving || resetPasswordValue.length < 6}
+                  loading={saving}
+                  className="flex-1"
+                >
+                  {saving ? "Saving..." : "Reset password"}
+                </Button>
+              </div>
+            </form>
           </div>
         </div>
       )}
