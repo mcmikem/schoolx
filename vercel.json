@@ -2,35 +2,35 @@
   "name": "schoolx",
   "crons": [
     {
-      "path": "/api/cron/sms-reminders",
+      "path": "/api/cron/sms-reminders/",
       "schedule": "0 8 * * 1-5"
     },
     {
-      "path": "/api/automation/attendance-heartbeat",
+      "path": "/api/automation/attendance-heartbeat/",
       "schedule": "30 9 * * 1-5"
     },
     {
-      "path": "/api/automation/auto-attendance-followup",
+      "path": "/api/automation/auto-attendance-followup/",
       "schedule": "0 11 * * 1-5"
     },
     {
-      "path": "/api/automation/auto-fee-reminder",
+      "path": "/api/automation/auto-fee-reminder/",
       "schedule": "0 10 * * 1"
     },
     {
-      "path": "/api/automation/auto-installment-reminder",
+      "path": "/api/automation/auto-installment-reminder/",
       "schedule": "0 9 1,15 * *"
     },
     {
-      "path": "/api/automation/auto-inventory-alerts",
+      "path": "/api/automation/auto-inventory-alerts/",
       "schedule": "0 7 * * 1"
     },
     {
-      "path": "/api/automation/auto-promote",
+      "path": "/api/automation/auto-promote/",
       "schedule": "0 6 15 3,7,11 *"
     },
     {
-      "path": "/api/automation/auto-payroll",
+      "path": "/api/automation/auto-payroll/",
       "schedule": "0 2 28 * *"
     }
   ]
