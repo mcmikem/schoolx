@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
     // Check cooldown - filter out students who were already notified recently
     const { data: recentLogs } = await supabase
       .from("automated_message_logs")
-      .select("trigger_id, record_id, status, sent_at")
+      .select("trigger_id, trigger_key, record_id, status, sent_at")
       .eq("school_id", school.schoolId)
       .gte("sent_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
 
@@ -158,8 +158,9 @@ export async function POST(request: NextRequest) {
           const attLogResult = await withTimeout(
             supabase.from("automated_message_logs").insert({
               school_id: school.schoolId,
-              trigger_id: "auto-attendance-followup",
-              recipient_id: alert.parentPhone,
+              trigger_id: null,
+              trigger_key: "auto-attendance-followup",
+              recipient_id: null,
               record_id: alert.studentId,
               status: "sent",
               sent_at: sentAt,

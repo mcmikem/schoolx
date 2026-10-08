@@ -86,11 +86,12 @@ export async function POST(request: NextRequest) {
         if (smsRes.success) {
           // Log success
           const { withTimeout, timeoutFallback } = await import("@/lib/hooks/utils");
-          await withTimeout(
+          const logResult = await withTimeout(
             supabase.from("automated_message_logs").insert({
               school_id: school.schoolId,
-              trigger_id: "auto-installment-reminder",
-              recipient_id: reminder.parentPhone,
+              trigger_id: null,
+              trigger_key: "auto-installment-reminder",
+              recipient_id: null,
               record_id: reminder.planId,
               status: "sent",
               sent_at: new Date().toISOString(),
@@ -98,6 +99,9 @@ export async function POST(request: NextRequest) {
             15000,
             timeoutFallback(),
           );
+          if (logResult?.error) {
+            logger.warn("Installment reminder log insert failed:", logResult.error);
+          }
           results.sent++;
         } else {
           results.errors++;

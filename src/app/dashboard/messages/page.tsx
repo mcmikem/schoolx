@@ -410,7 +410,7 @@ export default function CommunicationHubPage() {
       if (!school?.id) return;
       const { data, error } = await supabase
         .from("automated_message_logs")
-        .select("id, trigger_id, record_id, recipient_id, status, sent_at, created_at, sms_triggers(name)")
+        .select("id, trigger_id, trigger_key, record_id, recipient_id, status, sent_at, created_at, sms_triggers(name)")
         .eq("school_id", school.id)
         .order("sent_at", { ascending: false })
         .limit(10);

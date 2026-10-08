@@ -34,6 +34,8 @@ function getRecipientBadge(type: string): "info" | "success" | "warning" {
     individual: "info",
     class: "success",
     all: "warning",
+    bulk: "info",
+    staff_and_parents: "warning",
   };
   return variants[type] || "info";
 }
@@ -57,12 +59,7 @@ export default function MessageHistory({
         <CardTitle>Recent Messages</CardTitle>
       </CardHeader>
       <CardBody>
-        <Tabs
-          tabs={recentTabs}
-          activeTab={recentTab}
-          onChange={onRecentTabChange}
-          className="mb-4"
-        />
+        <Tabs tabs={recentTabs} activeTab={recentTab} onChange={onRecentTabChange} className="mb-4" />
         {loading ? (
           <TableSkeleton rows={3} />
         ) : filteredMessages.length === 0 ? (
@@ -70,46 +67,36 @@ export default function MessageHistory({
             icon="sms"
             title="No messages sent yet"
             description={
-              recentTab === "all"
-                ? "Send your first message to get started"
-                : `No ${recentTab} messages found`
+              recentTab === "all" ? "Send your first message to get started" : `No ${recentTab} messages found`
             }
           />
         ) : (
           <div className="space-y-4">
             {filteredMessages.map((msg) => (
-              <div
-                key={msg.id}
-                className="p-4 bg-[var(--surface-container-low)] rounded-xl"
-              >
+              <div key={msg.id} className="p-4 bg-[var(--surface-container-low)] rounded-xl">
                 <div className="flex items-center justify-between mb-2">
                   <Badge variant={getRecipientBadge(msg.recipient_type)}>
                     {msg.recipient_type === "individual"
                       ? "Individual"
                       : msg.recipient_type === "class"
                         ? "By Class"
-                        : "All Parents"}
+                        : msg.recipient_type === "bulk"
+                          ? "Bulk Selection"
+                          : msg.recipient_type === "staff_and_parents"
+                            ? "Staff + Parents"
+                            : "All Parents"}
                   </Badge>
-                  <Badge variant={getStatusBadge(msg.status)}>
-                    {msg.status}
-                  </Badge>
+                  <Badge variant={getStatusBadge(msg.status)}>{msg.status}</Badge>
                 </div>
-                <p className="text-sm text-[var(--on-surface)] mb-2">
-                  {msg.message}
-                </p>
-                <p className="text-xs text-[var(--t3)]">
-                  {new Date(msg.created_at).toLocaleDateString()}
-                </p>
+                <p className="text-sm text-[var(--on-surface)] mb-2">{msg.message}</p>
+                <p className="text-xs text-[var(--t3)]">{new Date(msg.created_at).toLocaleDateString()}</p>
               </div>
             ))}
           </div>
         )}
         {messages.length >= messageLimit && (
           <div className="mt-4 text-center">
-            <Button
-              variant="secondary"
-              onClick={onLoadMore}
-            >
+            <Button variant="secondary" onClick={onLoadMore}>
               Load More
             </Button>
           </div>

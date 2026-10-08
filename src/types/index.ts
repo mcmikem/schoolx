@@ -380,7 +380,7 @@ export interface ParentNotification {
 export interface Message {
   id: string;
   school_id: string;
-  recipient_type: "individual" | "class" | "all" | "bulk" | "staff";
+  recipient_type: "individual" | "class" | "all" | "bulk" | "staff_and_parents";
   recipient_id?: string;
   phone?: string;
   message: string;

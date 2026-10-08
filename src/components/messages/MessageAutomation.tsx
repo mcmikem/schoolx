@@ -150,7 +150,8 @@ export default function MessageAutomation({
                       />
                       <div>
                         <p className="text-sm font-medium text-[var(--t1)]">
-                          {log.sms_triggers?.name || "Automation Rule"}{" "}
+                          {log.sms_triggers?.name ||
+                            (log.trigger_key ? log.trigger_key.replace(/-/g, " ") : "Automation Rule")}{" "}
                           {log.status === "sent" ? "processed successfully" : "failed"}
                         </p>
                         <p className="text-[10px] text-[var(--t3)]">

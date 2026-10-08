@@ -453,8 +453,8 @@ WITH CHECK (school_id = my_school_id());
 CREATE TABLE IF NOT EXISTS messages (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
-    recipient_type TEXT CHECK (recipient_type IN ('individual', 'class', 'all', 'bulk', 'staff')) NOT NULL,
-    recipient_id TEXT,
+    recipient_type TEXT CHECK (recipient_type IN ('individual', 'class', 'all', 'bulk', 'staff_and_parents')) NOT NULL,
+    recipient_id UUID,
     phone TEXT,
     message TEXT NOT NULL,
     status TEXT CHECK (status IN ('pending', 'sent', 'delivered', 'failed')) DEFAULT 'pending',
@@ -590,7 +590,8 @@ CREATE TABLE IF NOT EXISTS automated_message_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
     trigger_id UUID REFERENCES sms_triggers(id) ON DELETE SET NULL,
-    recipient_id TEXT,
+    trigger_key TEXT,
+    recipient_id UUID REFERENCES users(id) ON DELETE SET NULL,
     status TEXT NOT NULL CHECK (status IN ('sent', 'failed')) DEFAULT 'sent',
     record_id TEXT,
     sent_at TIMESTAMPTZ DEFAULT NOW(),
@@ -1229,7 +1230,7 @@ CREATE TABLE IF NOT EXISTS sms_logs (
     student_id UUID REFERENCES students(id) ON DELETE SET NULL,
     parent_phone TEXT NOT NULL,
     message TEXT NOT NULL,
-    status TEXT NOT NULL DEFAULT 'sent' CHECK (status IN ('sent', 'failed', 'pending')),
+    status TEXT NOT NULL DEFAULT 'sent' CHECK (status IN ('sent', 'failed', 'pending', 'demo')),
     metadata JSONB DEFAULT '{}',
     sent_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -2853,7 +2854,7 @@ CREATE TABLE IF NOT EXISTS subscription_payments (
     plan TEXT CHECK (plan IN ('free_trial', 'basic', 'premium', 'max', 'starter', 'growth', 'enterprise', 'lifetime')) NOT NULL,
     amount NUMERIC(12,2) NOT NULL,
     currency TEXT DEFAULT 'UGX',
-    provider TEXT CHECK (provider IN ('stripe', 'paypal', 'mtn', 'airtel')) NOT NULL,
+    provider TEXT CHECK (provider IN ('stripe', 'paypal', 'mtn', 'airtel', 'system')) NOT NULL,
     transaction_id TEXT NOT NULL,
     payment_status TEXT CHECK (payment_status IN ('pending', 'completed', 'failed', 'refunded')) DEFAULT 'pending',
     customer_id TEXT,

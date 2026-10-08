@@ -427,6 +427,22 @@ describe("cron route security gate", () => {
     expect(res.status).toBe(401);
   });
 
+  test("accepts the Authorization: Bearer header Vercel Cron sends", async () => {
+    process.env.CRON_SECRET = "test-cron-secret";
+    useClient();
+    const { POST } = await import("../app/api/automation/auto-fee-reminder/route");
+    const res = await POST(post({ authorization: "Bearer test-cron-secret" }));
+    expect(res.status).not.toBe(401);
+  });
+
+  test("rejects with 401 when the Bearer token mismatches", async () => {
+    process.env.CRON_SECRET = "test-cron-secret";
+    useClient();
+    const { POST } = await import("../app/api/automation/auto-fee-reminder/route");
+    const res = await POST(post({ authorization: "Bearer wrong" }));
+    expect(res.status).toBe(401);
+  });
+
   test("returns 500 when CRON_SECRET is not configured", async () => {
     delete process.env.CRON_SECRET;
     useClient();

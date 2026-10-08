@@ -97,7 +97,7 @@ async function handlePost(request: NextRequest) {
 
     const { data: recentLogs } = await supabase
       .from("automated_message_logs")
-      .select("trigger_id, record_id, status, sent_at, created_at")
+      .select("trigger_id, trigger_key, record_id, status, sent_at, created_at")
       .eq("school_id", scope.schoolId)
       .eq("trigger_id", trigger.id)
       .gte("created_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
@@ -152,7 +152,7 @@ async function handlePost(request: NextRequest) {
       const { error: logError } = await supabase.from("automated_message_logs").insert({
         school_id: scope.schoolId,
         trigger_id: trigger.id,
-        recipient_id: alert.parentPhone || null,
+        recipient_id: null,
         record_id: alert.studentId,
         status: smsDelivered ? "sent" : "failed",
         sent_at: smsDelivered ? sentAt : null,

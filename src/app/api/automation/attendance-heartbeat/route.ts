@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
 
       const { data: teacher } = await supabase
         .from("users")
-        .select("full_name, phone")
+        .select("id, full_name, phone")
         .eq("id", cls.class_teacher_id)
         .maybeSingle();
 
@@ -62,8 +62,9 @@ export async function POST(request: NextRequest) {
             const hbResult = await withTimeout(
               supabase.from("automated_message_logs").insert({
                 school_id: school.schoolId,
-                trigger_id: "attendance-heartbeat",
-                recipient_id: teacherUser.phone,
+                trigger_id: null,
+                trigger_key: "attendance-heartbeat",
+                recipient_id: cls.class_teacher_id,
                 record_id: cls.id,
                 status: "sent",
               } as any),

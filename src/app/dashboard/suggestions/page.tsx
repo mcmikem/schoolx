@@ -158,8 +158,8 @@ export default function SuggestionBoxPage() {
           created_by: user.auth_id,
           title: form.title.trim(),
           description: form.description.trim(),
-          category: form.category,
-          status: "pending",
+          category: toLegacyCategory(form.category),
+          status: "open",
         });
         insertError = modernInsert.error;
       }

@@ -233,7 +233,7 @@ export async function POST(request: NextRequest) {
           CREATE TABLE IF NOT EXISTS messages (
             id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
             school_id UUID REFERENCES schools(id) ON DELETE CASCADE,
-            recipient_type TEXT CHECK (recipient_type IN ('individual', 'class', 'all')) NOT NULL,
+            recipient_type TEXT CHECK (recipient_type IN ('individual', 'class', 'all', 'bulk', 'staff_and_parents')) NOT NULL,
             recipient_id UUID,
             phone TEXT,
             message TEXT NOT NULL,
