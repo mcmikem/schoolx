@@ -10,6 +10,7 @@ import { FEATURE_STAGES, FeatureStage, DEFAULT_FEATURE_STAGE } from "@/lib/featu
 import MaterialIcon from "@/components/MaterialIcon";
 import SchoolColorPicker from "@/components/SchoolColorPicker";
 import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
+import { IMAGE_CACHE_CONTROL, withCacheBust } from "@/lib/student-photos";
 
 interface GeneralSettingsProps {
   schoolData: {
@@ -186,21 +187,9 @@ export default function GeneralSettings({
 
     setUploadingLogo(true);
     try {
-      try {
-        const bucketCheck = await fetch("/api/storage/", { method: "GET" });
-        const bucketResult = await readApiJson(bucketCheck);
-        assertApiSuccess(bucketCheck, bucketResult);
-
-        if (!bucketResult.exists) {
-          toast.info("Setting up storage...");
-          const createResponse = await fetch("/api/storage/", { method: "POST" });
-          const createResult = await readApiJson(createResponse);
-          assertApiSuccess(createResponse, createResult);
-        }
-      } catch (storageInitError) {
-        logger.warn("Storage pre-check failed, proceeding with direct upload:", storageInitError);
-      }
-
+      // No storage pre-check here: the upload below already creates the bucket
+      // when Supabase reports it missing, and the two extra round trips went
+      // through the same starved instance as the upload itself.
       toast.info("Processing image...");
       const compressedFile = await compressImage(file);
 
@@ -212,6 +201,7 @@ export default function GeneralSettings({
       let uploadData = await supabase.storage.from("school-logos").upload(fileName, compressedFile, {
         upsert: true,
         contentType: "image/jpeg",
+        cacheControl: IMAGE_CACHE_CONTROL,
       });
 
       logger.debug("Upload result:", uploadData);
@@ -229,6 +219,7 @@ export default function GeneralSettings({
         uploadData = await supabase.storage.from("school-logos").upload(fileName, compressedFile, {
           upsert: true,
           contentType: "image/jpeg",
+          cacheControl: IMAGE_CACHE_CONTROL,
         });
 
         data = uploadData.data;
@@ -297,6 +288,7 @@ export default function GeneralSettings({
       let uploadData = await supabase.storage.from("school-logos").upload(fileName, compressedFile, {
         upsert: true,
         contentType: "image/png",
+        cacheControl: IMAGE_CACHE_CONTROL,
       });
 
       let { data, error } = uploadData;
@@ -310,6 +302,7 @@ export default function GeneralSettings({
         uploadData = await supabase.storage.from("school-logos").upload(fileName, compressedFile, {
           upsert: true,
           contentType: "image/png",
+          cacheControl: IMAGE_CACHE_CONTROL,
         });
         data = uploadData.data;
         error = uploadData.error;
@@ -321,10 +314,15 @@ export default function GeneralSettings({
         data: { publicUrl },
       } = supabase.storage.from("school-logos").getPublicUrl(fileName);
 
+      // The signature filename is the school id + type, so it is overwritten in
+      // place — the URL has to change or the browser keeps the old signature
+      // for a year.
+      const versionedUrl = withCacheBust(publicUrl);
+
       const updateField =
         type === "signature_headteacher"
-          ? { signature_headteacher_url: publicUrl }
-          : { signature_class_teacher_url: publicUrl };
+          ? { signature_headteacher_url: versionedUrl }
+          : { signature_class_teacher_url: versionedUrl };
 
       const { error: updateError } = await supabase.from("schools").update(updateField).eq("id", school.id);
 

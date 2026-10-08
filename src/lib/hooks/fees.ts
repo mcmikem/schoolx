@@ -677,23 +677,6 @@ export function normalizeFeeSummary(row: unknown): FeeSummary | null {
 }
 
 /**
- * Headline fee totals for the whole school, summed by the fee_summary()
- * database function in one round trip.
- *
- * The Bursar dashboard used to add these up in the browser from the first page
- * of students (100 rows) and payments (50 rows), so every school past those
- * limits reported the wrong money. Returns `null` whenever the RPC cannot
- * answer — demo mode, offline, a timeout, or a deployment where the migration
- * has not run yet — so callers fall back to the client-side computation
- * instead of rendering zeros.
- *
- * `term` / `academicYear` scope the figures to the term the dashboard header
- * names. Pass both to keep Expected and Collected on the same term; pass
- * neither to sum every fee the school has configured. The function degrades
- * on its own when the requested term has no fees that apply to anyone, so the
- * figures never drop to zero just because a term has not been set up yet.
- */
-/**
  * The query-cache key for the fee_summary() RPC result. computeStats (the
  * dashboard-stats hook in analytics.ts) reads the same RPC under this key, so
  * when the Bursar panel and a dashboard mount in the same tick the second
@@ -710,6 +693,28 @@ export function feeSummaryCacheKey(schoolId?: string, term?: number | null, acad
  *  similar wording can never be mistaken for a timeout. */
 const FEE_SUMMARY_TIMEOUT = new Error("fee_summary() timed out");
 
+/**
+ * Headline fee totals for the whole school, summed by the fee_summary()
+ * database function in one round trip.
+ *
+ * The Bursar dashboard used to add these up in the browser from the first page
+ * of students (100 rows) and payments (50 rows), so every school past those
+ * limits reported the wrong money. Returns `null` whenever the RPC cannot
+ * answer — demo mode, offline, a timeout, or a deployment where the migration
+ * has not run yet — so callers fall back to the client-side computation
+ * instead of rendering zeros.
+ *
+ * `term` / `academicYear` scope the figures to the term the dashboard header
+ * names. Pass both to keep Expected and Collected on the same term; pass
+ * neither to sum every fee the school has configured. The function degrades
+ * on its own when the requested term has no fees that apply to anyone, so the
+ * figures never drop to zero just because a term has not been set up yet.
+ *
+ * The RPC goes through revalidateShared under feeSummaryCacheKey: the panel
+ * always re-reads (its own mutations must show up immediately) but concurrent
+ * mounts — and the dashboard-stats hook below — join the same in-flight
+ * promise instead of firing duplicate calls.
+ */
 export function useFeeSummary(schoolId?: string, term?: number | null, academicYear?: string | null) {
   const [summary, setSummary] = useState<FeeSummary | null>(null);
   const [loading, setLoading] = useState(true);
@@ -717,7 +722,7 @@ export function useFeeSummary(schoolId?: string, term?: number | null, academicY
   const { isDemo } = useAuth();
   const isOnline = useOnlineStatus();
   const prevIsDemo = useRef(isDemo);
-  const cacheKey = `fee_summary:${schoolId}:${term ?? "all"}:${academicYear ?? "all"}`;
+  const cacheKey = feeSummaryCacheKey(schoolId, term, academicYear);
 
   useEffect(() => {
     if (prevIsDemo.current && !isDemo) {
@@ -745,27 +750,31 @@ export function useFeeSummary(schoolId?: string, term?: number | null, academicY
 
     try {
       setLoading(true);
-      const result = await withTimeout(
-        supabase
-          .rpc("fee_summary", {
-            p_school_id: querySchoolId,
-            p_term: term ?? null,
-            p_academic_year: academicYear ?? null,
-          })
-          .maybeSingle(),
-        8000,
-        timeoutFallback<FeeSummary>(),
-      );
-      // A deadline means the answer is UNKNOWN — keep whatever we already
-      // hold rather than overwriting good numbers with an empty result.
-      if (isTimeoutResult(result)) return;
-      if (result.error) throw result.error;
-
-      const normalized = normalizeFeeSummary(result.data);
+      const normalized = await revalidateShared<FeeSummary | null>(cacheKey, async () => {
+        const result = await withTimeout(
+          supabase
+            .rpc("fee_summary", {
+              p_school_id: querySchoolId,
+              p_term: term ?? null,
+              p_academic_year: academicYear ?? null,
+            })
+            .maybeSingle(),
+          8000,
+          timeoutFallback<FeeSummary>(),
+        );
+        // A deadline means the answer is UNKNOWN — throw the sentinel so the
+        // rejection is never cached and whatever we already hold stays on
+        // screen rather than being overwritten with an empty result.
+        if (isTimeoutResult(result)) throw FEE_SUMMARY_TIMEOUT;
+        if (result.error) throw result.error;
+        return normalizeFeeSummary(result.data);
+      });
       setSummary(normalized);
-      if (normalized) setCachedData(cacheKey, normalized);
       setError(null);
     } catch (err: unknown) {
+      // A timeout keeps the previous numbers with no error flag, exactly as
+      // before — only real failures fall back to client-side totals.
+      if (err === FEE_SUMMARY_TIMEOUT) return;
       logger.warn("[useFeeSummary] RPC unavailable, falling back to client totals:", err);
       setError(getErrorMessage(err, "Failed to load fee totals"));
     } finally {

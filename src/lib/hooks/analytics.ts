@@ -12,7 +12,8 @@ import {
 import { isDemoSchool } from "@/lib/demo-utils";
 import { offlineDB } from "@/lib/offline";
 import { logger } from "@/lib/logger";
-import { normalizeFeeSummary } from "./fees";
+import { normalizeFeeSummary, feeSummaryCacheKey, type FeeSummary } from "./fees";
+import { getOrFetchCached } from "./queryCache";
 
 interface DashboardStats {
   /** Every student on the roster — active, transferred, dropped, completed and
@@ -148,23 +149,35 @@ async function computeStats(
   // computed over the whole school in one round trip.
   const [feeSummary, rosterTotal, maleCount, femaleCount, activeTotal, presentCount, classCount, teacherCount] =
     await Promise.all([
-      withTimeout(
-        supabase
-          .rpc("fee_summary", {
-            p_school_id: schoolId,
-            p_term: term ?? null,
-            p_academic_year: academicYear ?? null,
-          })
-          .maybeSingle()
-          .then((r) => {
-            if (r.error) throw r.error;
-            const summary = normalizeFeeSummary(r.data);
-            if (!summary) throw new Error("fee_summary() returned no row");
-            return summary;
-          }),
-        15000,
-        null,
-      ),
+      // Same key the Bursar panel's useFeeSummary reads under: when both mount
+      // in the same tick the second caller joins the first one's in-flight
+      // promise instead of firing a duplicate fee_summary() call, and a panel
+      // opened minutes earlier leaves a warm cache behind. A rejection is
+      // never cached, so a timeout still falls through to null below and the
+      // board keeps its previous snapshot.
+      getOrFetchCached<FeeSummary>(feeSummaryCacheKey(schoolId, term, academicYear), async () => {
+        const summary = await withTimeout(
+          supabase
+            .rpc("fee_summary", {
+              p_school_id: schoolId,
+              p_term: term ?? null,
+              p_academic_year: academicYear ?? null,
+            })
+            .maybeSingle()
+            .then((r) => {
+              if (r.error) throw r.error;
+              const normalized = normalizeFeeSummary(r.data);
+              if (!normalized) throw new Error("fee_summary() returned no row");
+              return normalized;
+            }),
+          15000,
+          null,
+        );
+        if (summary === null) throw new Error("Timed out reading fee_summary()");
+        return summary;
+      })
+        .then((r) => r.data)
+        .catch(() => null),
       countStudents(schoolId),
       countStudents(schoolId, { gender: "M" }),
       countStudents(schoolId, { gender: "F" }),

@@ -30,6 +30,7 @@ import { logger } from "@/lib/logger";
 import { getErrorMessage } from "@/lib/validation";
 import { APP_NAME } from "@/lib/app-name";
 import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
+import { IMAGE_CACHE_CONTROL } from "@/lib/student-photos";
 
 // ── Zod schemas for per-field validation (replaces manual String.trim checks)
 const schoolDetailsSchema = z.object({
@@ -518,7 +519,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
       const filePath = `school-${school.id}-${Date.now()}.${ext}`;
       const { error: uploadError } = await supabase.storage
         .from("school-logos")
-        .upload(filePath, compressed, { contentType: file.type, upsert: true });
+        .upload(filePath, compressed, { contentType: file.type, upsert: true, cacheControl: IMAGE_CACHE_CONTROL });
       if (uploadError) throw uploadError;
       const { data: urlData } = supabase.storage.from("school-logos").getPublicUrl(filePath);
       const logoUrl = urlData?.publicUrl;

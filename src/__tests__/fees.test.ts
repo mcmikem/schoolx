@@ -1,6 +1,11 @@
 import { calculateStudentFeePosition } from "../lib/operations";
 import { validateAdjustment, validatePayment, generateInvoice } from "../lib/server/fee-logic";
-import { normalizeFeeSummary, HIGH_RISK_ARREARS_THRESHOLD, MAX_RETURNED_DEFAULTERS } from "../lib/hooks/fees";
+import {
+  normalizeFeeSummary,
+  feeSummaryCacheKey,
+  HIGH_RISK_ARREARS_THRESHOLD,
+  MAX_RETURNED_DEFAULTERS,
+} from "../lib/hooks/fees";
 
 describe("calculateStudentFeePosition", () => {
   it("returns unpaid when there are no payments or adjustments", () => {
@@ -600,5 +605,27 @@ describe("MAX_RETURNED_DEFAULTERS", () => {
     expect(summary?.defaulters).toHaveLength(MAX_RETURNED_DEFAULTERS);
     expect(summary?.defaulters[0].student_id).toBe("s0");
     expect(summary?.defaulters.at(-1)?.student_id).toBe("s19");
+  });
+});
+
+describe("feeSummaryCacheKey", () => {
+  it("is stable for the same scope", () => {
+    expect(feeSummaryCacheKey("school-1", 2, "2026")).toBe(feeSummaryCacheKey("school-1", 2, "2026"));
+  });
+
+  it("scopes the key by school, term and academic year", () => {
+    const base = feeSummaryCacheKey("school-1", 2, "2026");
+    expect(feeSummaryCacheKey("school-2", 2, "2026")).not.toBe(base);
+    expect(feeSummaryCacheKey("school-1", 1, "2026")).not.toBe(base);
+    expect(feeSummaryCacheKey("school-1", 2, "2025")).not.toBe(base);
+  });
+
+  it("treats a missing term or year as the whole-school aggregate", () => {
+    expect(feeSummaryCacheKey("school-1", null, null)).toBe(feeSummaryCacheKey("school-1"));
+    expect(feeSummaryCacheKey("school-1", undefined, undefined)).toBe(feeSummaryCacheKey("school-1", null, null));
+  });
+
+  it("uses the fee_summary: prefix so fee mutations can invalidate the family", () => {
+    expect(feeSummaryCacheKey("school-1", 2, "2026").startsWith("fee_summary:")).toBe(true);
   });
 });

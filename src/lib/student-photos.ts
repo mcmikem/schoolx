@@ -6,6 +6,25 @@ const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 
 /**
+ * One year, in the seconds `cacheControl` takes. Supabase defaults every
+ * object to 3600s, so a roster of 300 photos and the school logo in the page
+ * header were all re-fetched from Sydney once an hour on every device. These
+ * images only change when somebody replaces them, which the version token on
+ * the URL announces.
+ */
+export const IMAGE_CACHE_CONTROL = "31536000";
+
+/**
+ * Cache-bust an object whose path does not change between uploads.
+ * `{school}/students/{id}.jpg` is overwritten in place, so without a new
+ * version on the URL a year-long cached copy would show the old photo forever.
+ * `extractStorageObjectPath` strips the query, so cleanup keeps working.
+ */
+export function withCacheBust(publicUrl: string): string {
+  return `${publicUrl}${publicUrl.includes("?") ? "&" : "?"}v=${Date.now()}`;
+}
+
+/**
  * Preferred upload encoding, in order. WebP is usually much smaller than JPEG
  * for portraits at comparable quality; JPEG remains as the fallback for
  * browsers/devices whose canvas cannot encode WebP.
@@ -213,6 +232,7 @@ export async function uploadStudentPhoto(options: {
     supabase.storage.from("student-photos").upload(filePath, compressedFile, {
       upsert: true,
       contentType: compressedFile.type,
+      cacheControl: IMAGE_CACHE_CONTROL,
     }),
     UPLOAD_TIMEOUT_MS,
     UPLOAD_TIMEOUT_RESULT,
@@ -229,6 +249,7 @@ export async function uploadStudentPhoto(options: {
       supabase.storage.from("student-photos").upload(filePath, compressedFile, {
         upsert: true,
         contentType: compressedFile.type,
+        cacheControl: IMAGE_CACHE_CONTROL,
       }),
       UPLOAD_TIMEOUT_MS,
       UPLOAD_TIMEOUT_RESULT,
@@ -243,5 +264,5 @@ export async function uploadStudentPhoto(options: {
     data: { publicUrl },
   } = supabase.storage.from("student-photos").getPublicUrl(filePath);
 
-  return { publicUrl, filePath };
+  return { publicUrl: withCacheBust(publicUrl), filePath };
 }

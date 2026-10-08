@@ -1,5 +1,6 @@
 import {
   getOrFetchCached,
+  revalidateShared,
   getCachedData,
   setCachedData,
   invalidateCache,
@@ -165,5 +166,74 @@ describe("dedupeRead", () => {
 
     expect(a).toEqual(["one"]);
     expect(b).toEqual(["two"]);
+  });
+});
+
+describe("revalidateShared", () => {
+  beforeEach(() => {
+    clearAllCache();
+  });
+
+  it("collapses concurrent callers into a single fetch", async () => {
+    let calls = 0;
+    let release: (v: number) => void = () => {};
+    const gate = new Promise<number>((resolve) => {
+      release = resolve;
+    });
+    const fetcher = async () => {
+      calls++;
+      return gate;
+    };
+
+    const a = revalidateShared("fee_summary:s:t:y", fetcher);
+    const b = revalidateShared("fee_summary:s:t:y", fetcher);
+    release(7);
+
+    await expect(Promise.all([a, b])).resolves.toEqual([7, 7]);
+    expect(calls).toBe(1);
+  });
+
+  it("always refetches instead of answering from cache", async () => {
+    setCachedData("fee_summary:s:t:y", 1);
+    let calls = 0;
+
+    const result = await revalidateShared("fee_summary:s:t:y", async () => {
+      calls++;
+      return 2;
+    });
+
+    expect(calls).toBe(1);
+    expect(result).toBe(2);
+  });
+
+  it("publishes the result so getOrFetchCached readers skip the network", async () => {
+    let calls = 0;
+    await revalidateShared("fee_summary:s:t:y", async () => {
+      calls++;
+      return { total: 9 };
+    });
+
+    const read = await getOrFetchCached("fee_summary:s:t:y", async () => {
+      calls++;
+      return { total: -1 };
+    });
+
+    expect(read).toEqual({ data: { total: 9 }, fromCache: true });
+    expect(calls).toBe(1);
+  });
+
+  it("does not cache a rejection and releases the key for retries", async () => {
+    let calls = 0;
+    const failing = async () => {
+      calls++;
+      throw new Error("timeout");
+    };
+
+    await expect(revalidateShared("fee_summary:s:t:y", failing)).rejects.toThrow("timeout");
+    // The rejection itself must leave nothing behind for readers to mistake
+    // for an answer.
+    expect(getCachedData("fee_summary:s:t:y")).toBeNull();
+    await expect(revalidateShared("fee_summary:s:t:y", async () => "recovered")).resolves.toBe("recovered");
+    expect(calls).toBe(1);
   });
 });

@@ -12,6 +12,7 @@ import { loadSchoolSetting, saveSchoolSetting } from "@/lib/school-settings";
 import Image from "next/image";
 import { withTimeout, timeoutFallback, storageTimeoutFallback } from "@/lib/hooks/utils";
 import { safeGetItem, safeSetItem } from "@/lib/safe-storage";
+import { IMAGE_CACHE_CONTROL, withCacheBust } from "@/lib/student-photos";
 
 interface Props {
   onComplete?: () => void;
@@ -355,7 +356,9 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
       const compressed = await compressImage(file);
       const filePath = `signature-${school.id}-${type}.jpg`;
       let { error: uploadError } = await withTimeout(
-        supabase.storage.from("school-logos").upload(filePath, compressed, { contentType: "image/jpeg", upsert: true }),
+        supabase.storage
+          .from("school-logos")
+          .upload(filePath, compressed, { contentType: "image/jpeg", upsert: true, cacheControl: IMAGE_CACHE_CONTROL }),
         30000,
         storageTimeoutFallback(),
       );
@@ -366,9 +369,11 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
           allowedMimeTypes: ["image/jpeg", "image/png", "image/webp"],
         });
         const retry = await withTimeout(
-          supabase.storage
-            .from("school-logos")
-            .upload(filePath, compressed, { contentType: "image/jpeg", upsert: true }),
+          supabase.storage.from("school-logos").upload(filePath, compressed, {
+            contentType: "image/jpeg",
+            upsert: true,
+            cacheControl: IMAGE_CACHE_CONTROL,
+          }),
           30000,
           storageTimeoutFallback(),
         );
@@ -377,7 +382,9 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
         throw uploadError;
       }
       const { data: urlData } = supabase.storage.from("school-logos").getPublicUrl(filePath);
-      return urlData?.publicUrl || null;
+      // Stable path overwritten in place — version the URL so a long-lived
+      // cached copy cannot show yesterday's signature.
+      return urlData?.publicUrl ? withCacheBust(urlData.publicUrl) : null;
     } catch (err) {
       logger.error("Signature upload failed:", err);
       return null;

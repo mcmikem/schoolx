@@ -68,6 +68,34 @@ export async function getOrFetchCached<T>(
   return { data: await request, fromCache: false };
 }
 
+/**
+ * Always run the fetcher, but share one in-flight promise per key and publish
+ * the result to the cache.
+ *
+ * Unlike getOrFetchCached this never answers from cache, so a caller that must
+ * revalidate (a screen whose own actions just changed the rows) still hits the
+ * database — it just stops paying for the same call once per component that
+ * mounted in the same tick. Concurrent callers therefore see one round trip
+ * instead of N, and everyone else reading the key gets a warm cache.
+ */
+export async function revalidateShared<T>(key: string, fetcher: () => Promise<T>): Promise<T> {
+  const cacheKey = getCacheKey(key);
+  const existing = INFLIGHT.get(cacheKey);
+  if (existing) return (await existing) as T;
+
+  const request = fetcher()
+    .then((data) => {
+      setCachedData(key, data);
+      return data;
+    })
+    .finally(() => {
+      INFLIGHT.delete(cacheKey);
+    });
+
+  INFLIGHT.set(cacheKey, request);
+  return await request;
+}
+
 export function invalidateCachePattern(pattern: string): void {
   const prefix = getCacheKey(pattern);
   CACHE.forEach((_value, key) => {
