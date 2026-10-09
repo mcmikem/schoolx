@@ -23,6 +23,9 @@ interface MessageComposerProps {
   onMessageChange: (msg: string) => void;
   sending: boolean;
   onSend: () => void;
+  /** Reachable parents for the current composer target (0 when unknown). */
+  recipientCount: number;
+  classRecipientCounts: Record<string, number>;
 }
 
 const messageTypeTabs = [
@@ -45,7 +48,18 @@ export default function MessageComposer({
   onMessageChange,
   sending,
   onSend,
+  recipientCount,
+  classRecipientCounts,
 }: MessageComposerProps) {
+  const noRecipients = messageType !== "individual" && recipientCount === 0;
+  const sendLabel =
+    messageType === "individual"
+      ? deliveryChannel === "whatsapp"
+        ? "Send WhatsApp"
+        : deliveryChannel === "auto"
+          ? "Send Auto"
+          : "Send SMS"
+      : `Send to ${recipientCount} parent${recipientCount !== 1 ? "s" : ""}`;
   return (
     <Card>
       <CardHeader>
@@ -67,7 +81,7 @@ export default function MessageComposer({
               key={option.value}
               type="button"
               onClick={() => onDeliveryChannelChange(option.value as "auto" | "sms" | "whatsapp")}
-              className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold transition-colors ${
+              className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 min-h-[44px] text-xs font-semibold transition-colors ${
                 deliveryChannel === option.value
                   ? "border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--primary)]"
                   : "border-[var(--border)] bg-[var(--surface)] text-[var(--t2)] hover:border-[var(--primary)]/30"
@@ -113,7 +127,7 @@ export default function MessageComposer({
                 <option value="">Choose class</option>
                 {classes.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.name}
+                    {c.name} · {classRecipientCounts[c.id] ?? 0} parents
                   </option>
                 ))}
               </select>
@@ -134,15 +148,20 @@ export default function MessageComposer({
           />
           <p className="text-xs text-[var(--t3)] mt-2">{message.length}/160 characters</p>
         </div>
-        <Button onClick={onSend} disabled={sending || !message.trim()} loading={sending}>
+        {messageType !== "individual" && (
+          <p className="text-sm text-[var(--t2)]" role="status">
+            To:{" "}
+            <strong className="text-[var(--on-surface)] tabular-nums">
+              {recipientCount} parent{recipientCount !== 1 ? "s" : ""}
+            </strong>
+            {messageType === "class" && !selectedClass && (
+              <span className="text-[var(--t3)]"> — choose a class first</span>
+            )}
+          </p>
+        )}
+        <Button onClick={onSend} disabled={sending || !message.trim() || noRecipients} loading={sending}>
           <MaterialIcon icon="send" className="text-lg" />
-          {sending
-            ? "Sending..."
-            : deliveryChannel === "whatsapp"
-              ? "Send WhatsApp"
-              : deliveryChannel === "auto"
-                ? "Send Auto"
-                : "Send SMS"}
+          {sending ? "Sending..." : sendLabel}
         </Button>
       </CardBody>
     </Card>

@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
@@ -8,7 +8,9 @@ import { useStaff } from "@/lib/hooks";
 import { supabase } from "@/lib/supabase";
 import { DEMO_CLASSES, DEMO_MESSAGES, DEMO_STUDENTS, DEMO_NOTICES, DEMO_STAFF } from "@/lib/demo-data";
 import { logger } from "@/lib/logger";
-import { detectConsecutiveAbsenceAlerts } from "@/lib/operations";
+import { detectConsecutiveAbsenceAlerts, calculateStudentFeePosition } from "@/lib/operations";
+import type { FinancialAdjustmentType } from "@/lib/operations";
+import { withTimeout } from "@/lib/hooks/utils";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -29,6 +31,7 @@ import MessageTemplates from "@/components/messages/MessageTemplates";
 import { isWhatsAppConfigured, sendWhatsAppTextMessage } from "@/lib/whatsapp";
 import { createRecord, updateRecord, deleteRecord, upsertRecord, CrudWriteError } from "@/lib/crud-service";
 import { IMAGE_CACHE_CONTROL } from "@/lib/student-photos";
+import { filterBulkRecipients } from "@/lib/bulk-recipients";
 
 const communicationTabs = [
   { id: "messages", label: "Messages" },
@@ -176,12 +179,131 @@ export default function CommunicationHubPage() {
       last_name: string;
       parent_phone: string;
       class_id: string;
+      opening_balance?: number | null;
       classes?: { name: string };
     }>
   >([]);
   const [bulkSending, setBulkSending] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [bulkLoading, setBulkLoading] = useState(true);
+  // Pupil ids with an unpaid fee balance. Loaded LAZILY when the
+  // outstanding-fees audience is picked — never on page mount. Null means
+  // "not loaded": every consumer must treat that as zero recipients, never
+  // as "send to everyone".
+  const [debtorIds, setDebtorIds] = useState<string[] | null>(null);
+  const [debtorsLoading, setDebtorsLoading] = useState(false);
+  const [debtorsError, setDebtorsError] = useState<string | null>(null);
+
+  const loadDebtors = useCallback(async () => {
+    if (!school?.id || debtorsLoading) return;
+    setDebtorsLoading(true);
+    setDebtorsError(null);
+    try {
+      const sid = school.id;
+      // deleted_at is filtered client-side (not in the query) so schools on
+      // older schemas without the column still work — a missing column reads
+      // as undefined, which is kept.
+      const keepLive = <T extends { deleted_at?: string | null }>(rows: T[] | null) =>
+        (rows ?? []).filter((r) => !r.deleted_at);
+      const [structure, payments, adjustments] = await Promise.all([
+        withTimeout(
+          supabase
+            .from("fee_structure")
+            .select("id, amount, class_id, deleted_at")
+            .eq("school_id", sid)
+            .limit(2000)
+            .then((r) => {
+              if (r.error) throw r.error;
+              return keepLive(r.data);
+            }),
+          15000,
+          null,
+        ),
+        withTimeout(
+          supabase
+            .from("fee_payments")
+            .select("student_id, amount_paid, deleted_at")
+            .eq("school_id", sid)
+            .limit(10000)
+            .then((r) => {
+              if (r.error) throw r.error;
+              return keepLive(r.data);
+            }),
+          15000,
+          null,
+        ),
+        withTimeout(
+          supabase
+            .from("fee_adjustments")
+            .select("student_id, adjustment_type, amount, deleted_at")
+            .eq("school_id", sid)
+            .limit(10000)
+            .then((r) => {
+              if (r.error) throw r.error;
+              return keepLive(r.data);
+            }),
+          15000,
+          null,
+        ),
+      ]);
+      if (!structure || !payments || !adjustments)
+        throw new Error("Fee data timed out. Try again on a better connection.");
+      const paymentsByStudent = new Map<string, { amount_paid: number }[]>();
+      for (const p of payments) {
+        const list = paymentsByStudent.get(p.student_id) ?? [];
+        list.push({ amount_paid: Number(p.amount_paid || 0) });
+        paymentsByStudent.set(p.student_id, list);
+      }
+      const adjustmentsByStudent = new Map<string, { adjustment_type: FinancialAdjustmentType; amount: number }[]>();
+      for (const a of adjustments) {
+        const list = adjustmentsByStudent.get(a.student_id) ?? [];
+        list.push({
+          adjustment_type: a.adjustment_type as FinancialAdjustmentType,
+          amount: Number(a.amount || 0),
+        });
+        adjustmentsByStudent.set(a.student_id, list);
+      }
+      // Same maths as the bursar screen (calculateStudentFeePosition), so a
+      // "debtor" here means exactly what the fees page calls unpaid/partial.
+      const ids = allStudents
+        .filter((s) => {
+          if (!s.parent_phone) return false;
+          const applicable = structure.filter((f) => !f.class_id || f.class_id === s.class_id);
+          const position = calculateStudentFeePosition({
+            feeTotal: applicable.reduce((sum, f) => sum + Number(f.amount || 0), 0),
+            payments: (paymentsByStudent.get(s.id) ?? []).map((p) => ({
+              amount_paid: p.amount_paid,
+            })),
+            adjustments: (adjustmentsByStudent.get(s.id) ?? []).map((a) => ({
+              adjustment_type: a.adjustment_type,
+              amount: a.amount,
+            })),
+            openingBalance: Number(s.opening_balance || 0),
+          });
+          return position.balance > 0;
+        })
+        .map((s) => s.id);
+      setDebtorIds(ids);
+    } catch (err: unknown) {
+      logger.warn("Loading fee debtors failed:", err);
+      setDebtorsError(getErrorMessage(err, "Couldn't load fee balances"));
+      setDebtorIds(null);
+    } finally {
+      setDebtorsLoading(false);
+    }
+  }, [school?.id, allStudents, debtorsLoading]);
+
+  // Reachable-parent counts for the single-message composer, so class sends
+  // state their audience before sending.
+  const composerClassCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const s of allStudents) {
+      if (!s.parent_phone || !s.class_id) continue;
+      counts[s.class_id] = (counts[s.class_id] ?? 0) + 1;
+    }
+    return counts;
+  }, [allStudents]);
+  const composerReachable = useMemo(() => allStudents.filter((s) => s.parent_phone).length, [allStudents]);
 
   const [absencePreview, setAbsencePreview] = useState<{ count: number; threshold: number }>({
     count: 0,
@@ -297,7 +419,7 @@ export default function CommunicationHubPage() {
         supabase.from("classes").select("id, name").eq("school_id", school.id).order("name"),
         supabase
           .from("students")
-          .select("id, first_name, last_name, parent_phone, class_id, classes(name)")
+          .select("id, first_name, last_name, parent_phone, class_id, opening_balance, classes(name)")
           .eq("school_id", school.id)
           .eq("status", "active"),
         supabase.from("sms_templates").select("*").eq("school_id", school.id).eq("is_active", true),
@@ -694,14 +816,18 @@ export default function CommunicationHubPage() {
     }
     setBulkSending(true);
     try {
-      const filtered = allStudents.filter((s) => s.parent_phone);
-      const targetStudents =
-        audience === "class" && bulkSelectedClass
-          ? filtered.filter((s) => s.class_id === bulkSelectedClass)
-          : audience === "custom"
-            ? filtered.filter((s) => selectedStudents.includes(s.id))
-            : filtered;
-      const phones = Array.from(new Set(targetStudents.map((s) => s.parent_phone).filter(Boolean)));
+      // The debtor list must be loaded before an outstanding-fees send can
+      // proceed — without it there is no safe recipient set.
+      if (audience === "outstanding_fees" && !debtorIds) {
+        toast.error("Debtor list hasn't loaded yet. Wait for the count, then try again.");
+        return;
+      }
+      const filtered = filterBulkRecipients(allStudents, audience, {
+        classId: bulkSelectedClass,
+        selectedIds: selectedStudents,
+        debtorIds,
+      });
+      const phones = Array.from(new Set(filtered.map((s) => s.parent_phone).filter(Boolean)));
       const delivery = await deliverMessage(phones, bulkMessage.trim());
       if (delivery.success) {
         await createRecord(
@@ -1028,6 +1154,18 @@ export default function CommunicationHubPage() {
               onMessageChange={setMessage}
               sending={sending}
               onSend={handleSendMessage}
+              recipientCount={
+                messageType === "individual"
+                  ? phone.trim()
+                    ? 1
+                    : 0
+                  : messageType === "class"
+                    ? selectedClass
+                      ? (composerClassCounts[selectedClass] ?? 0)
+                      : 0
+                    : composerReachable
+              }
+              classRecipientCounts={composerClassCounts}
             />
             <MessageHistory
               recentTab={recentTab}
@@ -1063,6 +1201,10 @@ export default function CommunicationHubPage() {
             onShowConfirmChange={setShowConfirm}
             bulkSending={bulkSending}
             onBulkSend={handleBulkSend}
+            debtorIds={debtorIds}
+            debtorsLoading={debtorsLoading}
+            debtorsError={debtorsError}
+            onLoadDebtors={loadDebtors}
           />
         </TabPanel>
 

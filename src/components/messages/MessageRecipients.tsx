@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 import MaterialIcon from "@/components/MaterialIcon";
+import { filterBulkRecipients, countUniquePhones } from "@/lib/bulk-recipients";
 
 type AudienceType = "all" | "class" | "outstanding_fees" | "custom";
 
@@ -46,6 +47,12 @@ interface MessageRecipientsProps {
   onShowConfirmChange: (show: boolean) => void;
   bulkSending: boolean;
   onBulkSend: () => void;
+  /** Pupil ids with a fee balance above zero. Null until loaded — the
+   *  outstanding-fees audience must never fall through to "everyone". */
+  debtorIds: string[] | null;
+  debtorsLoading: boolean;
+  debtorsError: string | null;
+  onLoadDebtors: () => void;
 }
 
 const audienceOptions = [
@@ -73,41 +80,95 @@ export default function MessageRecipients({
   onShowConfirmChange,
   bulkSending,
   onBulkSend,
+  debtorIds,
+  debtorsLoading,
+  debtorsError,
+  onLoadDebtors,
 }: MessageRecipientsProps) {
+  // Preview and send share filterBulkRecipients so they can never disagree
+  // about who an audience means (see src/lib/bulk-recipients.ts).
   const bulkRecipients = useMemo(() => {
-    let filtered = allStudents.filter((s) => s.parent_phone);
-    if (audience === "class" && bulkSelectedClass)
-      filtered = filtered.filter((s) => s.class_id === bulkSelectedClass);
-    else if (audience === "custom")
-      filtered = filtered.filter((s) => selectedStudents.includes(s.id));
-    const phones = new Set(filtered.map((s) => s.parent_phone));
-    return { students: filtered, phoneCount: phones.size };
-  }, [allStudents, audience, bulkSelectedClass, selectedStudents]);
+    const students = filterBulkRecipients(allStudents, audience, {
+      classId: bulkSelectedClass,
+      selectedIds: selectedStudents,
+      debtorIds,
+    });
+    return { students, phoneCount: countUniquePhones(students) };
+  }, [allStudents, audience, bulkSelectedClass, selectedStudents, debtorIds]);
 
-  const smsCount = useMemo(
-    () => Math.ceil(bulkMessage.length / 160) || 0,
-    [bulkMessage],
+  const smsCount = useMemo(() => Math.ceil(bulkMessage.length / 160) || 0, [bulkMessage]);
+
+  /** Reachable parents per class — printed inside the class options and the
+   *  By Class tile so the choice is made with the count known upfront. */
+  const classPhoneCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const s of allStudents) {
+      if (!s.parent_phone || !s.class_id) continue;
+      counts.set(s.class_id, (counts.get(s.class_id) ?? 0) + 1);
+    }
+    return counts;
+  }, [allStudents]);
+
+  const reachableParents = useMemo(
+    () => new Set(allStudents.filter((s) => s.parent_phone).map((s) => s.parent_phone)).size,
+    [allStudents],
   );
 
-  const costEstimate = useMemo(
-    () => bulkRecipients.phoneCount * smsCount * 30,
-    [bulkRecipients.phoneCount, smsCount],
-  );
+  /** Recipients grouped by class for the confirm step — a bulk send must show
+   *  WHO, not just how many. */
+  const recipientsByClass = useMemo(() => {
+    const groups = new Map<string, number>();
+    for (const s of bulkRecipients.students) {
+      const name = s.classes?.name || "No class";
+      groups.set(name, (groups.get(name) ?? 0) + 1);
+    }
+    return [...groups.entries()].sort((a, b) => b[1] - a[1]);
+  }, [bulkRecipients.students]);
+
+  const tileCount = (value: AudienceType): string | null => {
+    if (value === "all") return `${reachableParents} parents`;
+    if (value === "class")
+      return bulkSelectedClass
+        ? `${classPhoneCounts.get(bulkSelectedClass) ?? 0} parents`
+        : `${classes.length} classes`;
+    if (value === "outstanding_fees") {
+      if (debtorsError) return "Couldn't load — tap to retry";
+      if (debtorIds) return `${debtorIds.length} debtors`;
+      return debtorsLoading ? "Counting…" : "Tap to load";
+    }
+    return `${selectedStudents.length} selected`;
+  };
+
+  const debtorsBlocked = audience === "outstanding_fees" && debtorIds === null;
+  // Cost computed inline (not via costEstimate below) to avoid reading a
+  // const before its declaration.
+  const sendCost = bulkRecipients.phoneCount * smsCount * 30;
+  const sendLabel =
+    audience === "outstanding_fees" && debtorIds === null
+      ? debtorsLoading
+        ? "Counting debtors…"
+        : "Send to debtors"
+      : `Send to ${bulkRecipients.phoneCount} parent${bulkRecipients.phoneCount !== 1 ? "s" : ""} · UGX ${sendCost.toLocaleString()}`;
+
+  const costEstimate = useMemo(() => bulkRecipients.phoneCount * smsCount * 30, [bulkRecipients.phoneCount, smsCount]);
 
   return (
     <>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-6">
           <Card className="p-6">
-            <h2 className="text-lg font-semibold text-[var(--t1)] mb-4">
-              Target Audience
-            </h2>
+            <h2 className="text-lg font-semibold text-[var(--t1)] mb-4">Target Audience</h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {audienceOptions.map((opt) => (
                 <button
                   key={opt.value}
-                  onClick={() => onAudienceChange(opt.value)}
-                  className={`p-4 rounded-xl border-2 text-center transition-all ${audience === opt.value ? "border-[var(--primary)] bg-[var(--primary)]/5" : "border-[var(--border)] hover:border-[var(--t3)]"}`}
+                  onClick={() => {
+                    onAudienceChange(opt.value);
+                    // Debtors load lazily on explicit tap — never prefetch the
+                    // fee tables for audiences that do not need them.
+                    if (opt.value === "outstanding_fees" && debtorIds === null && !debtorsLoading) onLoadDebtors();
+                  }}
+                  className={`p-4 rounded-xl border-2 text-center transition-all min-h-[44px] ${audience === opt.value ? "border-[var(--primary)] bg-[var(--primary)]/5" : "border-[var(--border)] hover:border-[var(--t3)]"}`}
                 >
                   <MaterialIcon
                     className={`text-2xl mb-1 ${audience === opt.value ? "text-[var(--primary)]" : "text-[var(--t3)]"}`}
@@ -119,14 +180,15 @@ export default function MessageRecipients({
                   >
                     {opt.label}
                   </div>
+                  {tileCount(opt.value) && (
+                    <div className="text-xs text-[var(--t3)] mt-0.5 tabular-nums">{tileCount(opt.value)}</div>
+                  )}
                 </button>
               ))}
             </div>
             {audience === "class" && (
               <div className="mt-4">
-                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">
-                  Select Class
-                </label>
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Select Class</label>
                 {classes.length === 0 ? (
                   <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm text-amber-800">
                     No classes available
@@ -140,10 +202,37 @@ export default function MessageRecipients({
                     <option value="">Choose class</option>
                     {classes.map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.name}
+                        {c.name} · {classPhoneCounts.get(c.id) ?? 0} parents
                       </option>
                     ))}
                   </select>
+                )}
+              </div>
+            )}
+            {audience === "outstanding_fees" && (
+              <div className="mt-4">
+                {debtorsLoading && (
+                  <div className="rounded-xl px-3 py-2.5 text-sm text-[var(--t2)] bg-[var(--surface-container)]">
+                    Counting pupils with unpaid fees…
+                  </div>
+                )}
+                {debtorsError && (
+                  <div className="rounded-xl px-3 py-2.5 text-sm bg-red-50 border border-red-200 text-red-800 flex items-center justify-between gap-3">
+                    <span>Couldn&apos;t load fee balances. No message will be sent until they load.</span>
+                    <button
+                      type="button"
+                      onClick={onLoadDebtors}
+                      className="shrink-0 min-h-[44px] px-4 font-semibold rounded-lg bg-red-600 text-white text-sm"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                )}
+                {debtorIds && (
+                  <div className="rounded-xl px-3 py-2.5 text-sm text-[var(--t2)] bg-[var(--surface-container)]">
+                    <strong className="text-[var(--t1)]">{debtorIds.length} debtors</strong> will receive this message.
+                    Pupils with fully paid fees are excluded.
+                  </div>
                 )}
               </div>
             )}
@@ -166,9 +255,7 @@ export default function MessageRecipients({
                       />
                       <span className="text-sm text-[var(--t1)]">
                         {s.first_name} {s.last_name}
-                        <span className="text-[var(--t3)] ml-1">
-                          ({s.classes?.name || "No class"})
-                        </span>
+                        <span className="text-[var(--t3)] ml-1">({s.classes?.name || "No class"})</span>
                       </span>
                     </label>
                   ))}
@@ -178,14 +265,10 @@ export default function MessageRecipients({
           </Card>
 
           <Card className="p-6">
-            <h2 className="text-lg font-semibold text-[var(--t1)] mb-4">
-              Message
-            </h2>
+            <h2 className="text-lg font-semibold text-[var(--t1)] mb-4">Message</h2>
             {templates.length > 0 && (
               <div className="mb-4">
-                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">
-                  Use Template
-                </label>
+                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Use Template</label>
                 <select
                   value={selectedTemplateId}
                   onChange={(e) => onTemplateSelect(e.target.value)}
@@ -211,16 +294,12 @@ export default function MessageRecipients({
                 className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)] min-h-[120px] resize-none"
               />
               <div className="flex items-center justify-between mt-2">
-                <p
-                  className={`text-xs ${bulkMessage.length > 160 ? "text-red-600 font-medium" : "text-[var(--t3)]"}`}
-                >
+                <p className={`text-xs ${bulkMessage.length > 160 ? "text-red-600 font-medium" : "text-[var(--t3)]"}`}>
                   {bulkMessage.length} characters ({smsCount} SMS
                   {smsCount > 1 ? "es" : ""} per recipient)
                 </p>
                 {bulkMessage.length > 160 && (
-                  <p className="text-xs text-red-600">
-                    Message will be split into {smsCount} SMS segments
-                  </p>
+                  <p className="text-xs text-red-600">Message will be split into {smsCount} SMS segments</p>
                 )}
               </div>
             </div>
@@ -229,42 +308,30 @@ export default function MessageRecipients({
 
         <div className="space-y-6">
           <Card className="p-6">
-            <h2 className="text-lg font-semibold text-[var(--t1)] mb-4">
-              Summary
-            </h2>
+            <h2 className="text-lg font-semibold text-[var(--t1)] mb-4">Summary</h2>
             <div className="space-y-4">
               <div className="flex justify-between items-center py-2 border-b border-[var(--border)]">
                 <span className="text-sm text-[var(--t3)]">Recipients</span>
-                <span className="font-bold text-[var(--t1)]">
-                  {bulkRecipients.phoneCount} parents
-                </span>
+                <span className="font-bold text-[var(--t1)]">{bulkRecipients.phoneCount} parents</span>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-[var(--border)]">
-                <span className="text-sm text-[var(--t3)]">
-                  SMS per parent
-                </span>
+                <span className="text-sm text-[var(--t3)]">SMS per parent</span>
                 <span className="font-bold text-[var(--t1)]">{smsCount}</span>
               </div>
               <div className="flex justify-between items-center py-2 border-b border-[var(--border)]">
                 <span className="text-sm text-[var(--t3)]">Total SMS</span>
-                <span className="font-bold text-[var(--t1)]">
-                  {bulkRecipients.phoneCount * smsCount}
-                </span>
+                <span className="font-bold text-[var(--t1)]">{bulkRecipients.phoneCount * smsCount}</span>
               </div>
               <div className="flex justify-between items-center py-2">
                 <span className="text-sm text-[var(--t3)]">Est. Cost</span>
-                <span className="font-bold text-[var(--t1)]">
-                  UGX {costEstimate.toLocaleString()}
-                </span>
+                <span className="font-bold text-[var(--t1)]">UGX {costEstimate.toLocaleString()}</span>
               </div>
             </div>
           </Card>
 
           <Card className="p-4 bg-[var(--surface-container)]">
             <p className="text-sm text-[var(--t3)]">
-              <MaterialIcon className="text-sm align-text-bottom mr-1">
-                info
-              </MaterialIcon>
+              <MaterialIcon className="text-sm align-text-bottom mr-1">info</MaterialIcon>
               This SMS will be sent to{" "}
               <strong className="text-[var(--t1)]">
                 {bulkRecipients.phoneCount} parent
@@ -282,11 +349,11 @@ export default function MessageRecipients({
 
           <Button
             onClick={() => onShowConfirmChange(true)}
-            disabled={!bulkMessage.trim() || bulkRecipients.phoneCount === 0}
+            disabled={!bulkMessage.trim() || bulkRecipients.phoneCount === 0 || debtorsBlocked}
             className="w-full"
           >
             <MaterialIcon icon="send" className="text-lg" />
-            Send Bulk SMS
+            {sendLabel}
           </Button>
         </div>
       </div>
@@ -301,9 +368,7 @@ export default function MessageRecipients({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6 border-b border-[var(--border)]">
-              <h2 className="text-lg font-semibold text-[var(--t1)]">
-                Confirm Bulk SMS
-              </h2>
+              <h2 className="text-lg font-semibold text-[var(--t1)]">Confirm Bulk SMS</h2>
             </div>
             <div className="p-6 space-y-4">
               <div className="bg-[var(--surface-container)] rounded-xl p-4">
@@ -312,32 +377,37 @@ export default function MessageRecipients({
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-[var(--surface-container)] rounded-xl p-4 text-center">
-                  <div className="text-2xl font-bold text-[var(--t1)]">
-                    {bulkRecipients.phoneCount}
-                  </div>
+                  <div className="text-2xl font-bold text-[var(--t1)]">{bulkRecipients.phoneCount}</div>
                   <div className="text-xs text-[var(--t3)]">Recipients</div>
                 </div>
                 <div className="bg-[var(--surface-container)] rounded-xl p-4 text-center">
-                  <div className="text-2xl font-bold text-[var(--t1)]">
-                    UGX {costEstimate.toLocaleString()}
-                  </div>
+                  <div className="text-2xl font-bold text-[var(--t1)]">UGX {costEstimate.toLocaleString()}</div>
                   <div className="text-xs text-[var(--t3)]">Est. Cost</div>
                 </div>
               </div>
+              {recipientsByClass.length > 1 && (
+                <div className="bg-[var(--surface-container)] rounded-xl p-4">
+                  <div className="text-sm text-[var(--t3)] mb-2">Breakdown by class</div>
+                  <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                    {recipientsByClass.map(([name, count]) => (
+                      <div key={name} className="flex items-center justify-between text-sm">
+                        <span className="text-[var(--t1)] truncate">{name}</span>
+                        <span className="font-semibold text-[var(--t1)] tabular-nums shrink-0 ml-3">
+                          {count} parent{count !== 1 ? "s" : ""}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="flex gap-3 pt-2">
-                <Button
-                  variant="secondary"
-                  className="flex-1"
-                  onClick={() => onShowConfirmChange(false)}
-                >
+                <Button variant="secondary" className="flex-1" onClick={() => onShowConfirmChange(false)}>
                   Cancel
                 </Button>
-                <Button
-                  className="flex-1"
-                  disabled={bulkSending}
-                  onClick={onBulkSend}
-                >
-                  {bulkSending ? "Sending..." : "Confirm & Send"}
+                <Button className="flex-1" disabled={bulkSending} onClick={onBulkSend}>
+                  {bulkSending
+                    ? "Sending..."
+                    : `Send to ${bulkRecipients.phoneCount} parent${bulkRecipients.phoneCount !== 1 ? "s" : ""} · UGX ${costEstimate.toLocaleString()}`}
                 </Button>
               </div>
             </div>
