@@ -13,6 +13,7 @@ import { logAuditEventWithOfflineSupport } from "@/lib/audit";
 import { DEMO_ATTENDANCE, DEMO_STUDENTS } from "@/lib/demo-data";
 import MaterialIcon from "@/components/MaterialIcon";
 import PersonInitials from "@/components/ui/PersonInitials";
+import { SwipeRow } from "@/components/attendance/SwipeRow";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { logger } from "@/lib/logger";
 import { Tabs, TabPanel } from "@/components/ui/Tabs";
@@ -1066,7 +1067,7 @@ export default function AttendancePage() {
                     { icon: "event", text: "Choose the date (defaults to today)" },
                     {
                       icon: "touch_app",
-                      text: "Tap once for Absent, again for Late, again for Excused",
+                      text: "Swipe right for Present, left for Absent — or tap to cycle Late and Excused",
                     },
                     {
                       icon: "toggle_on",
@@ -1302,10 +1303,12 @@ export default function AttendancePage() {
                             ? "bg-tertiary/5"
                             : "bg-[#f3e8ff]";
                     return (
-                      <div
+                      <SwipeRow
                         key={student.id}
                         id={`att-row-${student.id}`}
-                        onClick={() => handleTapStatus(student.id)}
+                        onSwipeRight={() => markAttendance(student.id, "present")}
+                        onSwipeLeft={() => markAttendance(student.id, "absent")}
+                        onTap={() => handleTapStatus(student.id)}
                         className={`${bgColor} rounded-xl border ${borderColor} p-4 flex items-center justify-between active:scale-[0.98] transition-transform cursor-pointer select-none min-h-[56px] ${flashId === student.id ? "ring-2 ring-primary" : ""}`}
                       >
                         <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -1339,7 +1342,7 @@ export default function AttendancePage() {
                             <MaterialIcon icon={config.icon} className="text-white text-lg" />
                           </div>
                         </div>
-                      </div>
+                      </SwipeRow>
                     );
                   })}
                   {filteredStudents.length === 0 && (
@@ -1464,10 +1467,12 @@ export default function AttendancePage() {
                       const status = attendance[student.id] as AttendanceStatus | undefined;
                       const config = status ? STATUS_CONFIG[status] : null;
                       return (
-                        <div
+                        <SwipeRow
                           key={student.id}
                           id={`att-row-${student.id}`}
-                          onClick={() => handleTapStatus(student.id)}
+                          onSwipeRight={() => markAttendance(student.id, "present")}
+                          onSwipeLeft={() => markAttendance(student.id, "absent")}
+                          onTap={() => handleTapStatus(student.id)}
                           className={`bg-surface-container-lowest rounded-xl border border-outline-variant p-4 flex items-center justify-between active:scale-[0.98] transition-transform cursor-pointer select-none ${flashId === student.id ? "ring-2 ring-primary" : ""}`}
                         >
                           <div className="flex items-center gap-3">
@@ -1504,10 +1509,12 @@ export default function AttendancePage() {
                               )}
                             </div>
                           </div>
-                        </div>
+                        </SwipeRow>
                       );
                     })}
-                    <p className="text-center text-xs text-on-surface-variant pt-2">Tap a student to cycle status</p>
+                    <p className="text-center text-xs text-on-surface-variant pt-2">
+                      Swipe right for Present, left for Absent — or tap to cycle
+                    </p>
                   </div>
                 </TabPanel>
 
