@@ -70,6 +70,10 @@ const DEMO_STATS: DashboardStats = {
 // so a generous TTL is safe and keeps revisits fast on 3G — and keeps a room
 // full of phones from re-running the full 8-query batch every few minutes.
 const STATS_TTL = 15 * 60 * 1000;
+// One automatic retry after a timed-out read: a blip on a busy database must
+// not leave the dashboard showing zeros until the next focus or TTL refresh.
+const STATS_RETRY_DELAY_MS = 5000;
+const STATS_MAX_RETRIES = 1;
 
 const STATS_CACHE_PREFIX = "dashboard-stats:";
 
@@ -105,6 +109,19 @@ async function writeCachedStats(cacheKey: string, stats: DashboardStats): Promis
 // rendered: computeStats turns it into a rejection so the dashboard keeps the
 // last figure it actually verified instead of showing 0.
 const COUNT_UNKNOWN = -1;
+
+/** Sentinels for "the database was slow", not "the query is broken".
+ *  Mirroring useFeeSummary's FEE_SUMMARY_TIMEOUT: module-level Error instances
+ *  (never a message match) so a real failure with similar wording can never be
+ *  mistaken for a deadline. useDashboardStats logs these as warnings and
+ *  retries once, so a busy database cannot paint the dashboard with zeros or
+ *  surface a console error. */
+const FEE_SUMMARY_TIMEOUT = new Error("Timed out reading fee_summary()");
+const ROSTER_TIMEOUT = new Error("Timed out reading student counts");
+
+function isStatsTimeout(err: unknown): boolean {
+  return err === FEE_SUMMARY_TIMEOUT || err === ROSTER_TIMEOUT;
+}
 
 /**
  * Count students, optionally narrowed to one status and/or gender.
@@ -155,8 +172,9 @@ async function computeStats(
       // in the same tick the second caller joins the first one's in-flight
       // promise instead of firing a duplicate fee_summary() call, and a panel
       // opened minutes earlier leaves a warm cache behind. A rejection is
-      // never cached, so a timeout still falls through to null below and the
-      // board keeps its previous snapshot.
+      // never cached. It is also deliberately NOT swallowed here: a deadline
+      // must reach computeStats as FEE_SUMMARY_TIMEOUT (warning + retry)
+      // while a real RPC failure must surface as itself (console error).
       getOrFetchCached<FeeSummary>(feeSummaryCacheKey(schoolId, term, academicYear), async () => {
         const summary = await withTimeout(
           supabase
@@ -175,11 +193,9 @@ async function computeStats(
           15000,
           null,
         );
-        if (summary === null) throw new Error("Timed out reading fee_summary()");
+        if (summary === null) throw FEE_SUMMARY_TIMEOUT;
         return summary;
-      })
-        .then((r) => r.data)
-        .catch(() => null),
+      }).then((r) => r.data),
       countStudents(schoolId),
       countStudents(schoolId, { gender: "M" }),
       countStudents(schoolId, { gender: "F" }),
@@ -227,9 +243,9 @@ async function computeStats(
   // Unknown money or student counts must not be written into the cache as
   // zero. Reject instead: fetchStats keeps the previous snapshot (and its
   // OfflineDB copy) and the caller keeps rendering something it stands behind.
-  if (!feeSummary) throw new Error("Timed out reading fee_summary()");
+  if (!feeSummary) throw FEE_SUMMARY_TIMEOUT;
   if (rosterTotal < 0 || maleCount < 0 || femaleCount < 0 || activeTotal < 0) {
-    throw new Error("Timed out reading student counts");
+    throw ROSTER_TIMEOUT;
   }
 
   return {
@@ -275,6 +291,10 @@ export function useDashboardStats(schoolId?: string, options?: { term?: number |
     return !getCachedData<CachedStats>(cacheKey);
   });
   const inFlightRef = useRef(false);
+  const [retryToken, setRetryToken] = useState(0);
+  const retriesRef = useRef(0);
+  const handledRetryRef = useRef(0);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchStats = useCallback(
     async (opts?: { force?: boolean }) => {
@@ -312,6 +332,13 @@ export function useDashboardStats(schoolId?: string, options?: { term?: number |
         // the same tick, StrictMode remounts) into one database round trip.
         // In-flight only — nothing stale is ever served from this.
         const next = await dedupeRead(cacheKey, () => computeStats(querySchoolId, term, academicYear));
+        // A successful read rearms the retry budget and cancels a pending
+        // retry, so the timer never fires a pointless forced refresh.
+        retriesRef.current = 0;
+        if (retryTimerRef.current) {
+          clearTimeout(retryTimerRef.current);
+          retryTimerRef.current = null;
+        }
         // A timed-out presentToday (-1) must not be cached (it would overwrite a
         // last-known-good snapshot) and must not downgrade the currently shown
         // value to "unknown". The UI keeps the previous value and shows "--".
@@ -326,7 +353,18 @@ export function useDashboardStats(schoolId?: string, options?: { term?: number |
           setStats((prev) => ({ ...next, presentToday: prev.presentToday }));
         }
       } catch (err) {
-        logger.error("Error fetching stats:", err);
+        if (isStatsTimeout(err)) {
+          logger.warn("[useDashboardStats] stats read timed out — keeping the last snapshot:", err);
+          if (retriesRef.current < STATS_MAX_RETRIES && !retryTimerRef.current) {
+            retriesRef.current += 1;
+            retryTimerRef.current = setTimeout(() => {
+              retryTimerRef.current = null;
+              setRetryToken((token) => token + 1);
+            }, STATS_RETRY_DELAY_MS);
+          }
+        } else {
+          logger.error("Error fetching stats:", err);
+        }
       } finally {
         inFlightRef.current = false;
         setLoading(false);
@@ -401,6 +439,19 @@ export function useDashboardStats(schoolId?: string, options?: { term?: number |
     window.addEventListener("dashboard-stats:refresh", handleRefresh);
     return () => window.removeEventListener("dashboard-stats:refresh", handleRefresh);
   }, [fetchStats, schoolId]);
+
+  // The retry itself: re-runs the read once after a timed-out attempt.
+  useEffect(() => {
+    if (retryToken === 0 || handledRetryRef.current === retryToken) return;
+    handledRetryRef.current = retryToken;
+    void fetchStats({ force: true });
+  }, [retryToken, fetchStats]);
+
+  useEffect(() => {
+    return () => {
+      if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+    };
+  }, []);
 
   return { stats, loading, refetch: () => fetchStats({ force: true }) };
 }

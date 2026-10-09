@@ -1,6 +1,20 @@
-import { renderHook } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import { useDashboardStats } from "@/lib/hooks/analytics";
 import { setCachedData, clearAllCache } from "@/lib/hooks/queryCache";
+import { supabase } from "@/lib/supabase";
+import { logger } from "@/lib/logger";
+
+jest.mock("@/lib/logger", () => ({
+  logger: {
+    debug: jest.fn(),
+    info: jest.fn(),
+    log: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    group: jest.fn(),
+    groupEnd: jest.fn(),
+  },
+}));
 
 jest.mock("@/lib/auth-context", () => ({
   useAuth: () => ({ isDemo: false }),
@@ -80,6 +94,65 @@ describe("useDashboardStats instant paint", () => {
 
     expect(result.current.stats.totalStudents).toBe(0);
     expect(result.current.loading).toBe(true);
+    unmount();
+  });
+});
+
+describe("useDashboardStats timeout handling", () => {
+  beforeEach(() => {
+    clearAllCache();
+    jest.clearAllMocks();
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it("warns instead of erroring when fee_summary times out, then retries once", async () => {
+    const rpc = supabase.rpc as unknown as jest.Mock;
+    rpc.mockImplementationOnce(() => ({ maybeSingle: () => new Promise(() => {}) }));
+
+    const { result, unmount } = renderHook(() => useDashboardStats("school-1"));
+    await act(async () => {});
+    expect(rpc).toHaveBeenCalledTimes(1);
+
+    // fee_summary never resolves, so its 15s deadline fires first.
+    await act(async () => {
+      jest.advanceTimersByTime(15_000);
+    });
+    const warnCalls = (logger.warn as jest.Mock).mock.calls;
+    const statsWarn = warnCalls.find((call) => String(call[0]).includes("useDashboardStats"));
+    expect(statsWarn).toBeDefined();
+    expect(String(statsWarn?.[0])).toContain("timed out");
+    expect((statsWarn?.[1] as Error).message).toContain("fee_summary");
+    expect(logger.error).not.toHaveBeenCalled();
+    expect(rpc).toHaveBeenCalledTimes(1);
+
+    // One retry after the backoff, which succeeds with the default mock.
+    await act(async () => {
+      jest.advanceTimersByTime(5_000);
+    });
+    expect(rpc).toHaveBeenCalledTimes(2);
+    await act(async () => {});
+
+    expect(result.current.stats.totalStudents).toBe(4);
+    expect(result.current.stats.feesCollected).toBe(600);
+    expect(logger.error).not.toHaveBeenCalled();
+    unmount();
+  });
+
+  it("still reports real failures as errors", async () => {
+    const rpc = supabase.rpc as unknown as jest.Mock;
+    rpc.mockImplementationOnce(() => ({
+      maybeSingle: () => Promise.resolve({ data: null, error: { message: "boom", code: "XX000" } }),
+    }));
+
+    const { unmount } = renderHook(() => useDashboardStats("school-1"));
+    await act(async () => {});
+
+    expect(logger.error).toHaveBeenCalledWith("Error fetching stats:", expect.anything());
+    expect(logger.warn).not.toHaveBeenCalled();
     unmount();
   });
 });
