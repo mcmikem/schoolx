@@ -78,4 +78,25 @@ describe("SwipeRow", () => {
     expect(onSwipeRight).not.toHaveBeenCalled();
     expect(onSwipeLeft).not.toHaveBeenCalled();
   });
+
+  it("lets inner buttons handle their own taps (desktop rows)", () => {
+    const onTap = jest.fn();
+    const onSwipeRight = jest.fn();
+    const onSwipeLeft = jest.fn();
+    render(
+      <SwipeRow onSwipeRight={onSwipeRight} onSwipeLeft={onSwipeLeft} onTap={onTap}>
+        <span>Jane Doe</span>
+        <button type="button">Mark present</button>
+      </SwipeRow>,
+    );
+    const innerButton = screen.getByText("Mark present");
+
+    fireEvent.click(innerButton);
+
+    // The row tap must not fire — the button owns that press.
+    expect(onTap).not.toHaveBeenCalled();
+    // But the row body still taps through.
+    fireEvent.click(screen.getByText("Jane Doe"));
+    expect(onTap).toHaveBeenCalledTimes(1);
+  });
 });

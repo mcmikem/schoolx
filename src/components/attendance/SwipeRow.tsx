@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState, type ReactNode, type TouchEvent } from "react";
+import { useRef, useState, type ReactNode, type TouchEvent, type MouseEvent as ReactMouseEvent } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 
 /** Finger travel that commits a swipe. Below this the row snaps back. */
@@ -91,11 +91,15 @@ export function SwipeRow({ id, onSwipeRight, onSwipeLeft, onTap, className = "",
     }
   };
 
-  const handleClick = () => {
+  const handleClick = (e: ReactMouseEvent<HTMLDivElement>) => {
     if (suppressClickRef.current) {
       suppressClickRef.current = false;
       return;
     }
+    // Rows can contain their own buttons (e.g. the desktop list's explicit
+    // status buttons) — those handle themselves; the row tap is only for
+    // presses on the row body.
+    if ((e.target as HTMLElement).closest("button, a, input, select, textarea")) return;
     onTap();
   };
 

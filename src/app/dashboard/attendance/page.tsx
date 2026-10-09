@@ -16,7 +16,6 @@ import PersonInitials from "@/components/ui/PersonInitials";
 import { SwipeRow } from "@/components/attendance/SwipeRow";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { logger } from "@/lib/logger";
-import { Tabs, TabPanel } from "@/components/ui/Tabs";
 import { Button } from "@/components/ui/index";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
@@ -151,8 +150,9 @@ export default function AttendancePage() {
   const [confirmMarkAll, setConfirmMarkAll] = useState(false);
   const [absenteeAlertEnabled, setAbsenteeAlertEnabled] = useState(false);
   const [loadingAutomation, setLoadingAutomation] = useState(true);
-  const [viewMode, setViewMode] = useState<"desktop" | "mobile">("desktop");
-  const [rollCallMode, setRollCallMode] = useState(false);
+  // One marking list, no List/Cards tabs and no Call-Out mode toggle: the
+  // list below is responsive (buttons disclose on md+) and swipeable
+  // everywhere, so there is nothing to switch between.
   const [bulkMode, setBulkMode] = useState(false);
   const [copyingYesterday, setCopyingYesterday] = useState(false);
   const [bulkDateFrom, setBulkDateFrom] = useState(() => {
@@ -180,13 +180,6 @@ export default function AttendancePage() {
     () => (urlFilters.get("status") as "all" | AttendanceStatus) || "all",
   );
   const [searchQuery, setSearchQuery] = useState(() => urlFilters.get("q") || "");
-  const [attendPage, setAttendPage] = useState(() => {
-    const p = urlFilters.get("page");
-    return p ? Math.max(1, parseInt(p, 10) || 1) : 1;
-  });
-  const attendPerPage = 20;
-  const attendOffset = (attendPage - 1) * attendPerPage;
-  const attendTotalPages = Math.max(1, Math.ceil(students.length / attendPerPage));
 
   const isClassTeacher = user?.role === "teacher";
   const isAdmin =
@@ -201,10 +194,6 @@ export default function AttendancePage() {
   // teacher only teaches a subject (and the column used to be unselected, so
   // teachers got an empty dropdown either way).
   const filteredClasses = classes;
-
-  useEffect(() => {
-    setAttendPage(1);
-  }, [selectedClass, date]);
 
   // Persist the class this teacher actually used so the next day's roll call
   // opens on it instead of forcing a dropdown hunt on a 2GB phone.
@@ -233,12 +222,6 @@ export default function AttendancePage() {
     }
   }, [selectedClass, classesLoading, classes.length, filteredClasses, school?.id, user?.id]);
 
-  useEffect(() => {
-    if (students.length > 0 && attendPage > Math.ceil(students.length / attendPerPage)) {
-      setAttendPage(1);
-    }
-  }, [students.length, attendPage, attendPerPage]);
-
   // URL-synced filters
   useEffect(() => {
     urlFilters.setMany({
@@ -249,21 +232,6 @@ export default function AttendancePage() {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedClass, date, searchQuery, filterStatus]);
-
-  useEffect(() => {
-    if (attendPage > 1) urlFilters.set("page", String(attendPage));
-    else {
-      const params = new URLSearchParams(urlFilters.searchParams?.toString() || "");
-      if (params.has("page")) {
-        params.delete("page");
-        const qs = params.toString();
-        router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [attendPage]);
-
-  const paginatedStudents = students.slice(attendOffset, attendOffset + attendPerPage);
 
   const loadOfflineCount = useCallback(async () => {
     try {
@@ -333,16 +301,15 @@ export default function AttendancePage() {
     (offlineAttendance || []).forEach((record: any) => {
       attendanceMap[record.student_id] = record.status;
     });
-    if (rollCallMode) {
-      const defaulted: Record<string, string> = {};
-      (offlineStudents || []).forEach((s) => {
-        defaulted[s.id] = attendanceMap[s.id] || "present";
-      });
-      setAttendance(defaulted);
-    } else {
-      setAttendance(attendanceMap);
-    }
-  }, [selectedClass, school?.id, offlineStudents, offlineAttendance, studentsLoading, attendanceLoading, rollCallMode]);
+    // Everyone starts Present: unmarked pupils save as present, so a save is
+    // never silently partial and reopening a day shows saved values with the
+    // rest defaulting present.
+    const defaulted: Record<string, string> = {};
+    (offlineStudents || []).forEach((s) => {
+      defaulted[s.id] = attendanceMap[s.id] || "present";
+    });
+    setAttendance(defaulted);
+  }, [selectedClass, school?.id, offlineStudents, offlineAttendance, studentsLoading, attendanceLoading]);
 
   const markAttendance = (studentId: string, status: string) => {
     setAttendance((prev) => ({ ...prev, [studentId]: status }));
@@ -426,12 +393,12 @@ export default function AttendancePage() {
     if (!selectedClass || !user?.id) return;
 
     const source = attendanceOverride ?? attendance;
-    // Call Out Names promises "everyone starts as Present": unmarked
-    // students are recorded present so a save is never silently partial.
-    const effective: Record<string, string> =
-      rollCallMode && !attendanceOverride
-        ? Object.fromEntries(students.map((s) => [s.id, source[s.id] ?? "present"]))
-        : source;
+    // Unmarked pupils are recorded present so a save is never silently
+    // partial — the register says so above the list, and the save bar shows
+    // the resulting counts before anything is written.
+    const effective: Record<string, string> = !attendanceOverride
+      ? Object.fromEntries(students.map((s) => [s.id, source[s.id] ?? "present"]))
+      : source;
 
     const records = Object.entries(effective).map(([studentId, status]) =>
       normalizeAttendanceInput({
@@ -582,12 +549,13 @@ export default function AttendancePage() {
   const absentCount = Object.values(attendance).filter((s) => s === "absent").length;
   const lateCount = Object.values(attendance).filter((s) => s === "late").length;
   const excusedCount = Object.values(attendance).filter((s) => s === "excused").length;
-  // In Call Out Names mode unmarked students save as present — reflect that in the UI.
+  // Everyone starts Present, so unmarked pupils count (and save) as present —
+  // reflected here and in the save gate below.
   const unmarkedCount = students.filter((s) => !(s.id in attendance)).length;
   const markedCount = students.length - unmarkedCount;
   const markedPct = students.length > 0 ? Math.round((markedCount / students.length) * 100) : 0;
-  const effectivePresentCount = rollCallMode ? presentCount + unmarkedCount : presentCount;
-  const hasAttendanceRecords = rollCallMode ? students.length > 0 : Object.keys(attendance).length > 0;
+  const effectivePresentCount = presentCount + unmarkedCount;
+  const hasAttendanceRecords = students.length > 0;
   // Briefly highlight the row "Next unmarked" scrolls to, so the eye lands on
   // it in a 60-pupil list.
   const [flashId, setFlashId] = useState<string | null>(null);
@@ -1071,7 +1039,7 @@ export default function AttendancePage() {
                     },
                     {
                       icon: "toggle_on",
-                      text: "Call Out Names Mode: the roster starts marked Present — tap only those Absent",
+                      text: "Everyone starts as Present — swipe right for Present, left for Absent, tap to cycle",
                     },
                     {
                       icon: "save",
@@ -1082,33 +1050,13 @@ export default function AttendancePage() {
               </div>
             </details>
 
-            <div className="dashboard-toolbar">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <MaterialIcon icon="mic" className="text-xl text-primary" />
-                  <div>
-                    <div className="font-semibold text-on-surface">Call Out Names</div>
-                    <div className="text-xs text-on-surface-variant">
-                      Everyone starts as Present — tap only those Absent
-                    </div>
-                  </div>
+            <div className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 shadow-sm">
+              <MaterialIcon icon="mic" className="text-xl text-primary shrink-0" />
+              <div className="min-w-0">
+                <div className="font-semibold text-on-surface text-sm">Everyone starts as Present</div>
+                <div className="text-xs text-on-surface-variant">
+                  Swipe right for Present, left for Absent — or tap to cycle. Mark only the exceptions.
                 </div>
-                <button
-                  onClick={() => setRollCallMode(!rollCallMode)}
-                  title={rollCallMode ? "Switch to list view" : "Call out names one by one"}
-                  className={`relative w-14 h-8 rounded-full transition-colors duration-200 min-w-[56px] ${
-                    rollCallMode ? "bg-primary" : "bg-surface-container-highest"
-                  }`}
-                  role="switch"
-                  aria-checked={rollCallMode}
-                  aria-label="Toggle Call Out Names Mode"
-                >
-                  <div
-                    className={`absolute top-1 w-6 h-6 rounded-full bg-white shadow transition-transform duration-200 ${
-                      rollCallMode ? "translate-x-7" : "translate-x-1"
-                    }`}
-                  />
-                </button>
               </div>
             </div>
 
@@ -1165,478 +1113,330 @@ export default function AttendancePage() {
               </div>
             )}
 
-            {rollCallMode ? (
-              <>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant="secondary"
-                    onClick={handleMarkAllPresent}
-                    icon={<MaterialIcon icon="check_circle" />}
-                    size="sm"
-                  >
-                    Mark All Present
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={() => setShowQuickAbsentModal(true)}
-                    icon={<MaterialIcon icon="person_remove" />}
-                    size="sm"
-                  >
-                    Quick Absent
-                  </Button>
-                  <div className="flex-1" />
-                  <div className="text-sm text-on-surface-variant self-center font-medium">
-                    {presentCount} present, {absentCount} absent, {lateCount} late, {excusedCount} excused
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  <input
-                    type="text"
-                    placeholder="Search student name..."
-                    className="w-full md:w-48 rounded-xl border border-outline-variant bg-surface-container-lowest px-3 py-2 min-h-[44px] text-base"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                </div>
-                <div className="flex gap-2">
-                  {(["all", "present", "absent", "late", "excused"] as const).map((f) => (
-                    <button
-                      key={f}
-                      onClick={() => setFilterStatus(f)}
-                      className={`px-3 py-2 rounded-lg text-sm font-medium transition-all min-h-[44px] ${
-                        filterStatus === f
-                          ? "bg-primary text-on-primary"
-                          : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
-                      }`}
-                    >
-                      {f === "all"
-                        ? "All"
-                        : f === "present"
-                          ? "Present"
-                          : f === "absent"
-                            ? "Absent"
-                            : f === "late"
-                              ? "Late"
-                              : "Excused"}
-                      {f !== "all" && (
-                        <span className="ml-1 opacity-70">
-                          (
-                          {f === "present"
-                            ? presentCount
-                            : f === "absent"
-                              ? absentCount
-                              : f === "late"
-                                ? lateCount
-                                : excusedCount}
-                          )
-                        </span>
-                      )}
-                    </button>
-                  ))}
-                </div>
-                {(searchQuery || filterStatus !== "all" || selectedClass) && (
-                  <div className="flex flex-wrap items-center gap-2">
-                    {searchQuery && (
-                      <span className="inline-flex items-center gap-1.5 pl-3 pr-1 py-1 rounded-full bg-[var(--primary-50)] border border-[var(--primary-200)] text-xs font-medium text-[var(--primary-700)]">
-                        Search: “{searchQuery}”{" "}
-                        <button
-                          onClick={() => setSearchQuery("")}
-                          className="w-5 h-5 rounded-full bg-white/70 hover:bg-white flex items-center justify-center"
-                        >
-                          <MaterialIcon icon="close" className="text-[14px]" />
-                        </button>
-                      </span>
-                    )}
-                    {selectedClass && (
-                      <span className="inline-flex items-center gap-1.5 pl-3 pr-1 py-1 rounded-full bg-[var(--primary-50)] border border-[var(--primary-200)] text-xs font-medium text-[var(--primary-700)]">
-                        Class: {filteredClasses.find((c) => c.id === selectedClass)?.name || selectedClass}{" "}
-                        <button
-                          onClick={() => setSelectedClass(null)}
-                          className="w-5 h-5 rounded-full bg-white/70 hover:bg-white flex items-center justify-center"
-                        >
-                          <MaterialIcon icon="close" className="text-[14px]" />
-                        </button>
-                      </span>
-                    )}
-                    {filterStatus !== "all" && (
-                      <span className="inline-flex items-center gap-1.5 pl-3 pr-1 py-1 rounded-full bg-[var(--primary-50)] border border-[var(--primary-200)] text-xs font-medium text-[var(--primary-700)]">
-                        Status: {filterStatus}{" "}
-                        <button
-                          onClick={() => setFilterStatus("all")}
-                          className="w-5 h-5 rounded-full bg-white/70 hover:bg-white flex items-center justify-center"
-                        >
-                          <MaterialIcon icon="close" className="text-[14px]" />
-                        </button>
-                      </span>
-                    )}
-                    <button
-                      onClick={() => {
-                        setSearchQuery("");
-                        setFilterStatus("all");
-                      }}
-                      className="text-xs font-semibold text-[var(--primary)] hover:underline ml-1"
-                    >
-                      Clear filters
-                    </button>
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  {filteredStudents.map((student) => {
-                    const status = (attendance[student.id] || "present") as AttendanceStatus;
-                    const config = STATUS_CONFIG[status];
-                    const borderColor =
-                      status === "present"
-                        ? "border-secondary/30"
-                        : status === "absent"
-                          ? "border-error/30"
-                          : status === "late"
-                            ? "border-tertiary/30"
-                            : "border-[#7c3aed]/30";
-                    const bgColor =
-                      status === "present"
-                        ? "bg-secondary/5"
-                        : status === "absent"
-                          ? "bg-error/5"
-                          : status === "late"
-                            ? "bg-tertiary/5"
-                            : "bg-[#f3e8ff]";
-                    return (
-                      <SwipeRow
-                        key={student.id}
-                        id={`att-row-${student.id}`}
-                        onSwipeRight={() => markAttendance(student.id, "present")}
-                        onSwipeLeft={() => markAttendance(student.id, "absent")}
-                        onTap={() => handleTapStatus(student.id)}
-                        className={`${bgColor} rounded-xl border ${borderColor} p-4 flex items-center justify-between active:scale-[0.98] transition-transform cursor-pointer select-none min-h-[56px] ${flashId === student.id ? "ring-2 ring-primary" : ""}`}
-                      >
-                        <div className="flex items-center gap-3 flex-1 min-w-0">
-                          <div className="flex-shrink-0">
-                            <RollCallPhoto student={student} />
-                          </div>
-                          <div className="min-w-0">
-                            <div className="font-bold text-on-surface text-base truncate">
-                              {student.first_name} {student.last_name}
-                            </div>
-                            <div className="text-xs text-on-surface-variant">{student.student_number}</div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2 flex-shrink-0">
-                          <span
-                            className={`text-xs font-semibold px-2 py-1 rounded-md ${config.bg} ${status === "present" ? "text-on-secondary-container" : status === "absent" ? "text-on-error-container" : status === "late" ? "text-on-tertiary-container" : "text-[#7c3aed]"}`}
-                          >
-                            {config.label}
-                          </span>
-                          <div
-                            className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-                              status === "present"
-                                ? "bg-secondary"
-                                : status === "absent"
-                                  ? "bg-error"
-                                  : status === "late"
-                                    ? "bg-tertiary"
-                                    : "bg-[#7c3aed]"
-                            }`}
-                          >
-                            <MaterialIcon icon={config.icon} className="text-white text-lg" />
-                          </div>
-                        </div>
-                      </SwipeRow>
-                    );
-                  })}
-                  {filteredStudents.length === 0 && (
-                    <div className="text-center py-8 text-on-surface-variant">No students with this status</div>
-                  )}
-                </div>
-
-                <div className="fixed bottom-[calc(64px+env(safe-area-inset-bottom,0px))] left-0 right-0 md:relative md:bottom-auto p-4 md:p-0 bg-surface/95 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none border-t border-outline-variant md:border-0 z-10">
-                  <Button
-                    onClick={() => saveAttendance()}
-                    disabled={saving}
-                    loading={saving}
-                    icon={<MaterialIcon icon="save" />}
-                    className="w-full"
-                    size="lg"
-                  >
-                    Save: {effectivePresentCount} present, {absentCount} absent, {lateCount} late, {excusedCount}{" "}
-                    excused
-                  </Button>
-                </div>
-              </>
-            ) : (
-              <>
-                <div className="flex gap-2">
-                  <Button
-                    variant="secondary"
-                    onClick={handleMarkAllPresent}
-                    icon={<MaterialIcon icon={allMarked ? "undo" : "check_circle"} />}
-                  >
-                    {allMarked ? "Reset All" : "Mark All Present"}
-                  </Button>
-                  <Tabs
-                    tabs={[
-                      { id: "desktop", label: "List" },
-                      { id: "mobile", label: "Cards" },
-                    ]}
-                    activeTab={viewMode}
-                    onChange={(id) => setViewMode(id as "desktop" | "mobile")}
-                  />
-                </div>
-
-                <TabPanel activeTab={viewMode} tabId="desktop">
-                  <div className="space-y-3">
-                    {paginatedStudents.map((student) => {
-                      const status = attendance[student.id] as AttendanceStatus | undefined;
-                      const config = status ? STATUS_CONFIG[status] : null;
-                      return (
-                        <div
-                          key={student.id}
-                          id={`att-row-${student.id}`}
-                          className={`bg-surface-container-lowest rounded-xl border border-outline-variant p-4 ${flashId === student.id ? "ring-2 ring-primary" : ""}`}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <RollCallPhoto student={student} />
-                              <div>
-                                <div className="font-bold text-primary">
-                                  {student.first_name} {student.last_name}
-                                  {student.boarding_status && student.boarding_status !== "day" && (
-                                    <span className="ml-2 px-1.5 py-0.5 bg-teal-100 text-teal-700 text-[10px] font-bold rounded uppercase">
-                                      {student.boarding_status}
-                                    </span>
-                                  )}
-                                </div>
-                                <div className="text-xs text-on-surface-variant">{student.student_number}</div>
-                              </div>
-                            </div>
-                            <div className="flex gap-2">
-                              {STATUS_CYCLE.map((s) => {
-                                const sConfig = STATUS_CONFIG[s];
-                                const isActive = status === s;
-                                return (
-                                  <button
-                                    key={s}
-                                    onClick={() => markAttendance(student.id, s)}
-                                    className={`px-3 py-1.5 min-h-[44px] rounded-lg text-sm font-medium border transition-all ${
-                                      isActive
-                                        ? `${sConfig.bg} border-${s === "absent" ? "error" : s === "present" ? "secondary" : s === "late" ? "tertiary" : "[#7c3aed]"}`
-                                        : "bg-surface-container-lowest text-on-surface-variant border-outline-variant/30 hover:border-outline-variant"
-                                    }`}
-                                  >
-                                    {sConfig.label}
-                                  </button>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  {students.length > attendPerPage && (
-                    <div className="flex items-center justify-between px-4 py-3 border-t border-outline-variant/10">
-                      <span className="text-sm text-on-surface-variant">
-                        Page {attendPage} of {attendTotalPages}
-                      </span>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setAttendPage((p) => Math.max(1, p - 1))}
-                          disabled={attendPage === 1}
-                        >
-                          <MaterialIcon icon="chevron_left" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setAttendPage((p) => Math.min(attendTotalPages, p + 1))}
-                          disabled={attendPage >= attendTotalPages}
-                        >
-                          <MaterialIcon icon="chevron_right" />
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </TabPanel>
-
-                <TabPanel activeTab={viewMode} tabId="mobile">
-                  <div className="space-y-2">
-                    {paginatedStudents.map((student) => {
-                      const status = attendance[student.id] as AttendanceStatus | undefined;
-                      const config = status ? STATUS_CONFIG[status] : null;
-                      return (
-                        <SwipeRow
-                          key={student.id}
-                          id={`att-row-${student.id}`}
-                          onSwipeRight={() => markAttendance(student.id, "present")}
-                          onSwipeLeft={() => markAttendance(student.id, "absent")}
-                          onTap={() => handleTapStatus(student.id)}
-                          className={`bg-surface-container-lowest rounded-xl border border-outline-variant p-4 flex items-center justify-between active:scale-[0.98] transition-transform cursor-pointer select-none ${flashId === student.id ? "ring-2 ring-primary" : ""}`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <RollCallPhoto student={student} />
-                            <div>
-                              <div className="font-bold text-primary text-sm">
-                                {student.first_name} {student.last_name}
-                              </div>
-                              <div className="text-xs text-on-surface-variant">{student.student_number}</div>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {config && (
-                              <span className="text-xs font-medium text-on-surface-variant">{config.label}</span>
-                            )}
-                            <div
-                              className={`w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-                                status === "present"
-                                  ? "bg-secondary"
-                                  : status === "late"
-                                    ? "bg-tertiary"
-                                    : status === "absent"
-                                      ? "bg-error"
-                                      : status === "excused"
-                                        ? "bg-[#7c3aed]"
-                                        : "bg-surface-container border-2 border-dashed border-outline-variant"
-                              }`}
-                            >
-                              {status && (
-                                <MaterialIcon
-                                  icon={STATUS_CONFIG[status as AttendanceStatus].icon}
-                                  className="text-white text-lg"
-                                />
-                              )}
-                            </div>
-                          </div>
-                        </SwipeRow>
-                      );
-                    })}
-                    <p className="text-center text-xs text-on-surface-variant pt-2">
-                      Swipe right for Present, left for Absent — or tap to cycle
-                    </p>
-                  </div>
-                </TabPanel>
-
-                <div className="fixed bottom-[calc(64px+env(safe-area-inset-bottom,0px))] left-0 right-0 md:relative md:bottom-auto p-4 md:p-0 bg-surface/95 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none border-t border-outline-variant md:border-0 z-10">
-                  <Button
-                    onClick={() => saveAttendance()}
-                    disabled={saving || Object.keys(attendance).length === 0}
-                    loading={saving}
-                    icon={<MaterialIcon icon="save" />}
-                    className="w-full"
-                  >
-                    {isOnline ? "Save Attendance" : "Save Offline"}
-                  </Button>
-                </div>
-              </>
-            )}
-
-            <Modal
-              isOpen={showQuickAbsentModal}
-              onClose={() => {
-                setShowQuickAbsentModal(false);
-                setSelectedAbsentIds(new Set());
-              }}
-              title="Quick Mark Absent"
-              size="lg"
-            >
-              <div className="mb-4">
-                <p className="text-sm text-on-surface-variant mb-3">
-                  Select students who are absent. All others remain present.
-                </p>
-                <div className="flex gap-2 mb-3">
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => setSelectedAbsentIds(new Set(students.map((s) => s.id)))}
-                  >
-                    Select All
-                  </Button>
-                  <Button variant="secondary" size="sm" onClick={() => setSelectedAbsentIds(new Set())}>
-                    Clear All
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => {
-                      const alreadyAbsent = students.filter((s) => attendance[s.id] === "absent").map((s) => s.id);
-                      setSelectedAbsentIds(new Set(alreadyAbsent));
-                    }}
-                  >
-                    Select Current Absent
-                  </Button>
-                </div>
-                <div className="text-sm font-medium text-on-surface mb-2">
-                  {selectedAbsentIds.size} student(s) selected
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="text-sm font-bold text-on-surface mr-1">Mark register</div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="secondary"
+                  onClick={handleMarkAllPresent}
+                  icon={<MaterialIcon icon="check_circle" />}
+                  size="sm"
+                >
+                  Mark All Present
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => setShowQuickAbsentModal(true)}
+                  icon={<MaterialIcon icon="person_remove" />}
+                  size="sm"
+                >
+                  Quick Absent
+                </Button>
+                <div className="flex-1" />
+                <div className="text-sm text-on-surface-variant self-center font-medium">
+                  {presentCount} present, {absentCount} absent, {lateCount} late, {excusedCount} excused
                 </div>
               </div>
-              <div className="space-y-1 max-h-80 overflow-y-auto">
-                {students.map((student) => {
-                  const isSelected = selectedAbsentIds.has(student.id);
-                  const currentStatus = attendance[student.id] || "present";
-                  return (
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              <input
+                type="text"
+                placeholder="Search student name..."
+                className="w-full md:w-48 rounded-xl border border-outline-variant bg-surface-container-lowest px-3 py-2 min-h-[44px] text-base"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <div className="flex gap-2">
+              {(["all", "present", "absent", "late", "excused"] as const).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setFilterStatus(f)}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all min-h-[44px] ${
+                    filterStatus === f
+                      ? "bg-primary text-on-primary"
+                      : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
+                  }`}
+                >
+                  {f === "all"
+                    ? "All"
+                    : f === "present"
+                      ? "Present"
+                      : f === "absent"
+                        ? "Absent"
+                        : f === "late"
+                          ? "Late"
+                          : "Excused"}
+                  {f !== "all" && (
+                    <span className="ml-1 opacity-70">
+                      (
+                      {f === "present"
+                        ? presentCount
+                        : f === "absent"
+                          ? absentCount
+                          : f === "late"
+                            ? lateCount
+                            : excusedCount}
+                      )
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+            {(searchQuery || filterStatus !== "all" || selectedClass) && (
+              <div className="flex flex-wrap items-center gap-2">
+                {searchQuery && (
+                  <span className="inline-flex items-center gap-1.5 pl-3 pr-1 py-1 rounded-full bg-[var(--primary-50)] border border-[var(--primary-200)] text-xs font-medium text-[var(--primary-700)]">
+                    Search: “{searchQuery}”{" "}
                     <button
-                      key={student.id}
-                      onClick={() => toggleAbsentSelection(student.id)}
-                      className={`w-full flex items-center gap-3 p-3 rounded-xl min-h-[48px] transition-colors text-left ${
-                        isSelected
-                          ? "bg-error/10 border border-error/30"
-                          : "bg-surface-container hover:bg-surface-container-high"
-                      }`}
+                      onClick={() => setSearchQuery("")}
+                      className="w-5 h-5 rounded-full bg-white/70 hover:bg-white flex items-center justify-center"
                     >
-                      <div
-                        className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                          isSelected ? "bg-error border-error" : "border-outline-variant"
-                        }`}
-                      >
-                        {isSelected && <MaterialIcon icon="check" className="text-white text-sm" />}
+                      <MaterialIcon icon="close" className="text-[14px]" />
+                    </button>
+                  </span>
+                )}
+                {selectedClass && (
+                  <span className="inline-flex items-center gap-1.5 pl-3 pr-1 py-1 rounded-full bg-[var(--primary-50)] border border-[var(--primary-200)] text-xs font-medium text-[var(--primary-700)]">
+                    Class: {filteredClasses.find((c) => c.id === selectedClass)?.name || selectedClass}{" "}
+                    <button
+                      onClick={() => setSelectedClass(null)}
+                      className="w-5 h-5 rounded-full bg-white/70 hover:bg-white flex items-center justify-center"
+                    >
+                      <MaterialIcon icon="close" className="text-[14px]" />
+                    </button>
+                  </span>
+                )}
+                {filterStatus !== "all" && (
+                  <span className="inline-flex items-center gap-1.5 pl-3 pr-1 py-1 rounded-full bg-[var(--primary-50)] border border-[var(--primary-200)] text-xs font-medium text-[var(--primary-700)]">
+                    Status: {filterStatus}{" "}
+                    <button
+                      onClick={() => setFilterStatus("all")}
+                      className="w-5 h-5 rounded-full bg-white/70 hover:bg-white flex items-center justify-center"
+                    >
+                      <MaterialIcon icon="close" className="text-[14px]" />
+                    </button>
+                  </span>
+                )}
+                <button
+                  onClick={() => {
+                    setSearchQuery("");
+                    setFilterStatus("all");
+                  }}
+                  className="text-xs font-semibold text-[var(--primary)] hover:underline ml-1"
+                >
+                  Clear filters
+                </button>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              {filteredStudents.map((student) => {
+                const status = (attendance[student.id] || "present") as AttendanceStatus;
+                const config = STATUS_CONFIG[status];
+                const borderColor =
+                  status === "present"
+                    ? "border-secondary/30"
+                    : status === "absent"
+                      ? "border-error/30"
+                      : status === "late"
+                        ? "border-tertiary/30"
+                        : "border-[#7c3aed]/30";
+                const bgColor =
+                  status === "present"
+                    ? "bg-secondary/5"
+                    : status === "absent"
+                      ? "bg-error/5"
+                      : status === "late"
+                        ? "bg-tertiary/5"
+                        : "bg-[#f3e8ff]";
+                return (
+                  <SwipeRow
+                    key={student.id}
+                    id={`att-row-${student.id}`}
+                    onSwipeRight={() => markAttendance(student.id, "present")}
+                    onSwipeLeft={() => markAttendance(student.id, "absent")}
+                    onTap={() => handleTapStatus(student.id)}
+                    className={`${bgColor} rounded-xl border ${borderColor} p-4 flex items-center justify-between active:scale-[0.98] transition-transform cursor-pointer select-none min-h-[56px] ${flashId === student.id ? "ring-2 ring-primary" : ""}`}
+                  >
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="flex-shrink-0">
+                        <RollCallPhoto student={student} />
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium text-on-surface text-sm truncate">
+                      <div className="min-w-0">
+                        <div className="font-bold text-on-surface text-base truncate">
                           {student.first_name} {student.last_name}
                         </div>
                         <div className="text-xs text-on-surface-variant">{student.student_number}</div>
                       </div>
-                      {currentStatus !== "present" && (
-                        <span
-                          className={`text-xs px-2 py-0.5 rounded ${
-                            currentStatus === "absent"
-                              ? "bg-error-container text-on-error-container"
-                              : "bg-tertiary-container text-on-tertiary-container"
-                          }`}
-                        >
-                          {STATUS_CONFIG[currentStatus as AttendanceStatus]?.label}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-              <div className="flex gap-3 mt-4 pt-4 border-t border-outline-variant">
-                <Button
-                  variant="secondary"
-                  onClick={() => {
-                    setShowQuickAbsentModal(false);
-                    setSelectedAbsentIds(new Set());
-                  }}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  variant="primary"
-                  onClick={handleQuickAbsentApply}
-                  disabled={selectedAbsentIds.size === 0}
-                  icon={<MaterialIcon icon="person_remove" />}
-                  className="flex-1"
-                >
-                  Mark {selectedAbsentIds.size} Absent
-                </Button>
-              </div>
-            </Modal>
+                    </div>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <span
+                        className={`text-xs font-semibold px-2 py-1 rounded-md ${config.bg} ${status === "present" ? "text-on-secondary-container" : status === "absent" ? "text-on-error-container" : status === "late" ? "text-on-tertiary-container" : "text-[#7c3aed]"}`}
+                      >
+                        {config.label}
+                      </span>
+                      <div
+                        className={`md:hidden w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                          status === "present"
+                            ? "bg-secondary"
+                            : status === "absent"
+                              ? "bg-error"
+                              : status === "late"
+                                ? "bg-tertiary"
+                                : "bg-[#7c3aed]"
+                        }`}
+                      >
+                        <MaterialIcon icon={config.icon} className="text-white text-lg" />
+                      </div>
+                      <div className="hidden md:flex gap-1.5">
+                        {STATUS_CYCLE.map((s) => {
+                          const sConfig = STATUS_CONFIG[s];
+                          const isActive = status === s;
+                          return (
+                            <button
+                              key={s}
+                              type="button"
+                              onClick={() => markAttendance(student.id, s)}
+                              aria-pressed={isActive}
+                              aria-label={`Mark ${student.first_name} ${s}`}
+                              className={`px-3 py-1.5 min-h-[44px] rounded-lg text-sm font-medium border transition-all ${
+                                isActive
+                                  ? `${sConfig.bg} border-current font-bold`
+                                  : "bg-surface-container-lowest text-on-surface-variant border-outline-variant/30 hover:border-outline-variant"
+                              }`}
+                            >
+                              {sConfig.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </SwipeRow>
+                );
+              })}
+              {filteredStudents.length === 0 && (
+                <div className="text-center py-8 text-on-surface-variant">No students with this status</div>
+              )}
+            </div>
+
+            <div className="fixed bottom-[calc(64px+env(safe-area-inset-bottom,0px))] left-0 right-0 md:relative md:bottom-auto p-4 md:p-0 bg-surface/95 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none border-t border-outline-variant md:border-0 z-10">
+              <Button
+                onClick={() => saveAttendance()}
+                disabled={saving}
+                loading={saving}
+                icon={<MaterialIcon icon="save" />}
+                className="w-full"
+                size="lg"
+              >
+                Save: {effectivePresentCount} present, {absentCount} absent, {lateCount} late, {excusedCount} excused
+              </Button>
+            </div>
           </>
         )}
+
+        <Modal
+          isOpen={showQuickAbsentModal}
+          onClose={() => {
+            setShowQuickAbsentModal(false);
+            setSelectedAbsentIds(new Set());
+          }}
+          title="Quick Mark Absent"
+          size="lg"
+        >
+          <div className="mb-4">
+            <p className="text-sm text-on-surface-variant mb-3">
+              Select students who are absent. All others remain present.
+            </p>
+            <div className="flex gap-2 mb-3">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setSelectedAbsentIds(new Set(students.map((s) => s.id)))}
+              >
+                Select All
+              </Button>
+              <Button variant="secondary" size="sm" onClick={() => setSelectedAbsentIds(new Set())}>
+                Clear All
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  const alreadyAbsent = students.filter((s) => attendance[s.id] === "absent").map((s) => s.id);
+                  setSelectedAbsentIds(new Set(alreadyAbsent));
+                }}
+              >
+                Select Current Absent
+              </Button>
+            </div>
+            <div className="text-sm font-medium text-on-surface mb-2">{selectedAbsentIds.size} student(s) selected</div>
+          </div>
+          <div className="space-y-1 max-h-80 overflow-y-auto">
+            {students.map((student) => {
+              const isSelected = selectedAbsentIds.has(student.id);
+              const currentStatus = attendance[student.id] || "present";
+              return (
+                <button
+                  key={student.id}
+                  onClick={() => toggleAbsentSelection(student.id)}
+                  className={`w-full flex items-center gap-3 p-3 rounded-xl min-h-[48px] transition-colors text-left ${
+                    isSelected
+                      ? "bg-error/10 border border-error/30"
+                      : "bg-surface-container hover:bg-surface-container-high"
+                  }`}
+                >
+                  <div
+                    className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                      isSelected ? "bg-error border-error" : "border-outline-variant"
+                    }`}
+                  >
+                    {isSelected && <MaterialIcon icon="check" className="text-white text-sm" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-on-surface text-sm truncate">
+                      {student.first_name} {student.last_name}
+                    </div>
+                    <div className="text-xs text-on-surface-variant">{student.student_number}</div>
+                  </div>
+                  {currentStatus !== "present" && (
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded ${
+                        currentStatus === "absent"
+                          ? "bg-error-container text-on-error-container"
+                          : "bg-tertiary-container text-on-tertiary-container"
+                      }`}
+                    >
+                      {STATUS_CONFIG[currentStatus as AttendanceStatus]?.label}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex gap-3 mt-4 pt-4 border-t border-outline-variant">
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setShowQuickAbsentModal(false);
+                setSelectedAbsentIds(new Set());
+              }}
+              className="flex-1"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              onClick={handleQuickAbsentApply}
+              disabled={selectedAbsentIds.size === 0}
+              icon={<MaterialIcon icon="person_remove" />}
+              className="flex-1"
+            >
+              Mark {selectedAbsentIds.size} Absent
+            </Button>
+          </div>
+        </Modal>
         <ConfirmDialog
           isOpen={confirmMarkAll}
           onClose={() => setConfirmMarkAll(false)}
