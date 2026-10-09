@@ -1195,3 +1195,22 @@ describe("Teacher class scope", () => {
     expect(mig).toMatch(/CREATE POLICY "School users teacher_subjects write"[\s\S]{0,300}NOT is_class_scoped_role\(\)/);
   });
 });
+
+describe("Headmaster dashboard task list", () => {
+  const read = (rel: string) => require("fs").readFileSync(require("path").join(process.cwd(), rel), "utf8");
+
+  it("renders every open task exactly once", () => {
+    const src = read("src/app/dashboard/dashboards/HeadmasterDashboard.tsx");
+    expect(src).toContain('const primaryTask = tasks.find((t) => t.priority === "urgent") ?? tasks[0] ?? null');
+    expect(src).toContain("<UpNextCard task={primaryTask} />");
+    expect(src).toContain("tasks={tasks.filter((t) => t !== primaryTask)}");
+    expect(src).not.toContain("tasks.slice(1)");
+  });
+
+  it("offers the no-class-teacher task to admins", () => {
+    const src = read("src/app/dashboard/dashboards/HeadmasterDashboard.tsx");
+    expect(src).toContain('id: "class-teachers"');
+    expect(src).toContain("with no class teacher");
+    expect(src).toContain('href: "/dashboard/classes"');
+  });
+});

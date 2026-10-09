@@ -195,6 +195,8 @@ function HeadmasterDashboardContent() {
     pendingExpenses,
   ]);
 
+  const primaryTask = tasks.find((t) => t.priority === "urgent") ?? tasks[0] ?? null;
+
   const isDataLoading = statsLoading || loadingExtra;
 
   if (!school?.id) {
@@ -329,7 +331,7 @@ function HeadmasterDashboardContent() {
           <div className="grid grid-cols-1 items-start xl:grid-cols-3 gap-5">
             {/* ── Left Column: Metrics + Task Manager ── */}
             <div className="xl:col-span-2 space-y-5">
-              <UpNextCard task={tasks.find((t) => t.priority === "urgent") ?? tasks[0] ?? null} />
+              <UpNextCard task={primaryTask} />
 
               <div className="stat-grid !mb-0 md:!grid-cols-3 lg:!grid-cols-3">
                 <StatCard
@@ -401,7 +403,10 @@ function HeadmasterDashboardContent() {
                   storageKey={`hm-tasks-${school?.id}`}
                   defaultOpen
                 >
-                  <TaskManager tasks={tasks.slice(1)} emptyMessage="All caught up! No pending tasks." />
+                  <TaskManager
+                    tasks={tasks.filter((t) => t !== primaryTask)}
+                    emptyMessage="All caught up! No pending tasks."
+                  />
                 </CollapsibleSection>
               )}
 
