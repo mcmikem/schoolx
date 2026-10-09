@@ -34,13 +34,13 @@ const STATUS_CONFIG: Record<AttendanceStatus, { color: string; bg: string; label
   absent: {
     color: "bg-error",
     bg: "bg-error-container",
-    label: "Not In School",
+    label: "Absent",
     icon: "cancel",
   },
   present: {
     color: "bg-secondary",
     bg: "bg-secondary-container",
-    label: "In School",
+    label: "Present",
     icon: "check_circle",
   },
   late: {
@@ -58,10 +58,44 @@ const STATUS_CONFIG: Record<AttendanceStatus, { color: string; bg: string; label
 };
 
 function cycleStatus(current: string | undefined): AttendanceStatus {
-  // First tap on an unmarked student marks Away — the most common action.
+  // First tap on an unmarked student marks Absent — the most common action.
   if (!current) return "absent";
   const idx = STATUS_CYCLE.indexOf(current as AttendanceStatus);
   return STATUS_CYCLE[(idx + 1) % STATUS_CYCLE.length];
+}
+
+/** Tally a saved batch by status for the post-save summary. */
+function countStatuses(statuses: string[]): { present: number; absent: number; late: number; excused: number } {
+  return {
+    present: statuses.filter((s) => s === "present").length,
+    absent: statuses.filter((s) => s === "absent").length,
+    late: statuses.filter((s) => s === "late").length,
+    excused: statuses.filter((s) => s === "excused").length,
+  };
+}
+
+/**
+ * Roll-call face: the pupil's photo at a size worth recognizing across a
+ * desk, falling back to initials when no photo was ever uploaded (or the
+ * stored URL died). Faces — not admission numbers — are what a teacher
+ * scans during roll call, so the photo is the lead element of every row and
+ * the row's color wash behind it carries the status at a glance.
+ */
+function RollCallPhoto({ student }: { student: Student }) {
+  const [broken, setBroken] = useState(false);
+  const name = `${student.first_name} ${student.last_name}`;
+  if (!student.photo_url || broken) {
+    return <PersonInitials name={name} size={56} />;
+  }
+  return (
+    <img
+      src={student.photo_url}
+      alt={name}
+      loading="lazy"
+      onError={() => setBroken(true)}
+      className="w-14 h-14 rounded-full object-cover flex-shrink-0 bg-surface-container"
+    />
+  );
 }
 
 export default function AttendancePage() {
@@ -98,6 +132,19 @@ export default function AttendancePage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
+  // Post-save done state: after a save the register is replaced by a summary
+  // (counts + next actions) instead of dropping the teacher back on the same
+  // list with nothing changed. Cleared on class/date change or explicit back.
+  const [savedSummary, setSavedSummary] = useState<{
+    present: number;
+    absent: number;
+    late: number;
+    excused: number;
+    total: number;
+    offline: boolean;
+    className: string;
+    date: string;
+  } | null>(null);
   const [offlineCount, setOfflineCount] = useState(0);
   const [allMarked, setAllMarked] = useState(false);
   const [confirmMarkAll, setConfirmMarkAll] = useState(false);
@@ -368,11 +415,17 @@ export default function AttendancePage() {
     return list;
   }, [students, attendance, filterStatus, searchQuery]);
 
+  // A new class or date means a new register — drop the previous save summary
+  // so the teacher always lands back on the marking list, never a stale done.
+  useEffect(() => {
+    setSavedSummary(null);
+  }, [selectedClass, date]);
+
   const saveAttendance = async (attendanceOverride?: Record<string, string>) => {
     if (!selectedClass || !user?.id) return;
 
     const source = attendanceOverride ?? attendance;
-    // Call Out Names promises "everyone starts as In School": unmarked
+    // Call Out Names promises "everyone starts as Present": unmarked
     // students are recorded present so a save is never silently partial.
     const effective: Record<string, string> =
       rollCallMode && !attendanceOverride
@@ -434,6 +487,14 @@ export default function AttendancePage() {
         toast.success("Attendance saved");
         notifyDashboardStatsChanged(school?.id);
         await loadOfflineCount();
+        const summaryCounts = countStatuses(Object.values(effective));
+        setSavedSummary({
+          ...summaryCounts,
+          total: records.length,
+          offline: false,
+          className: filteredClasses.find((c) => c.id === selectedClass)?.name || "",
+          date,
+        });
       } catch (err) {
         logger.warn("Failed to save attendance, saving offline:", err);
         await saveOffline(records);
@@ -467,6 +528,14 @@ export default function AttendancePage() {
       }
       toast.success(`Saved locally (${records.length} records)`);
       await loadOfflineCount();
+      const summaryCounts = countStatuses(records.map((r) => String((r as { status?: unknown }).status ?? "")));
+      setSavedSummary({
+        ...summaryCounts,
+        total: records.length,
+        offline: true,
+        className: filteredClasses.find((c) => c.id === selectedClass)?.name || "",
+        date,
+      });
     } catch (err) {
       logger.error("Offline save failed:", err);
       toast.error("Failed to save locally");
@@ -737,8 +806,8 @@ export default function AttendancePage() {
 
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
           {[
-            { label: "In School", value: presentCount, tone: "text-secondary" },
-            { label: "Away", value: absentCount, tone: "text-error" },
+            { label: "Present", value: presentCount, tone: "text-secondary" },
+            { label: "Absent", value: absentCount, tone: "text-error" },
             { label: "Late", value: lateCount, tone: "text-tertiary" },
             { label: "Excused", value: excusedCount, tone: "text-[#7c3aed]" },
             { label: "Offline queue", value: offlineCount, tone: "text-primary" },
@@ -910,11 +979,76 @@ export default function AttendancePage() {
           <>
             <div className="mb-4 flex gap-2">
               <Button variant="secondary" disabled icon={<MaterialIcon icon="check_circle" />}>
-                Mark All In School
+                Mark All Present
               </Button>
             </div>
             <EmptyState icon="group" title="No students in this class" description="Add students to this class first" />
           </>
+        ) : savedSummary ? (
+          <div className="max-w-lg mx-auto text-center py-8 px-4">
+            <div
+              className={`w-20 h-20 rounded-full mx-auto flex items-center justify-center ${
+                savedSummary.offline ? "bg-tertiary-container" : "bg-secondary-container"
+              }`}
+            >
+              <MaterialIcon
+                icon={savedSummary.offline ? "cloud_off" : "check_circle"}
+                className={`text-5xl ${savedSummary.offline ? "text-on-tertiary-container" : "text-on-secondary-container"}`}
+              />
+            </div>
+            <h2 className="mt-4 text-xl font-bold text-on-surface">
+              {savedSummary.offline ? "Saved offline — will sync" : "Attendance saved"}
+            </h2>
+            <p className="mt-1 text-sm text-on-surface-variant">
+              {savedSummary.className} · {savedSummary.date} · {savedSummary.total} pupils
+            </p>
+            <div className="mt-6 grid grid-cols-2 gap-3 text-left">
+              <div className="rounded-2xl border border-secondary/30 bg-secondary/5 p-4">
+                <div className="text-3xl font-bold text-secondary tabular-nums">{savedSummary.present}</div>
+                <div className="text-sm font-medium text-on-surface-variant">Present</div>
+              </div>
+              <div className="rounded-2xl border border-error/30 bg-error/5 p-4">
+                <div className="text-3xl font-bold text-error tabular-nums">{savedSummary.absent}</div>
+                <div className="text-sm font-medium text-on-surface-variant">Absent</div>
+              </div>
+              <div className="rounded-2xl border border-tertiary/30 bg-tertiary/5 p-4">
+                <div className="text-3xl font-bold text-tertiary tabular-nums">{savedSummary.late}</div>
+                <div className="text-sm font-medium text-on-surface-variant">Late</div>
+              </div>
+              <div className="rounded-2xl border border-[#7c3aed]/30 bg-[#f3e8ff] p-4">
+                <div className="text-3xl font-bold text-[#7c3aed] tabular-nums">{savedSummary.excused}</div>
+                <div className="text-sm font-medium text-on-surface-variant">Excused</div>
+              </div>
+            </div>
+            <div className="mt-6 flex flex-col gap-2">
+              <Button
+                onClick={() => router.push("/dashboard/attendance/history/")}
+                icon={<MaterialIcon icon="bar_chart" />}
+                className="w-full"
+                size="lg"
+              >
+                View report
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setSelectedClass(null);
+                  setSavedSummary(null);
+                }}
+                icon={<MaterialIcon icon="group_add" />}
+                className="w-full"
+              >
+                Mark another class
+              </Button>
+              <button
+                type="button"
+                onClick={() => setSavedSummary(null)}
+                className="w-full min-h-[44px] text-sm font-semibold text-[var(--primary)]"
+              >
+                Back to register
+              </button>
+            </div>
+          </div>
         ) : (
           <>
             <details className="rounded-xl border border-outline-variant bg-surface-container-lowest px-4 py-3">
@@ -932,15 +1066,15 @@ export default function AttendancePage() {
                     { icon: "event", text: "Choose the date (defaults to today)" },
                     {
                       icon: "touch_app",
-                      text: "Tap once for Away, again for Late, again for Excused",
+                      text: "Tap once for Absent, again for Late, again for Excused",
                     },
                     {
                       icon: "toggle_on",
-                      text: "Call Out Names Mode: the roster starts marked In School — tap only those Away",
+                      text: "Call Out Names Mode: the roster starts marked Present — tap only those Absent",
                     },
                     {
                       icon: "save",
-                      text: "Click Save when done - unmarked students are recorded as In School",
+                      text: "Click Save when done - unmarked students are recorded as Present",
                     },
                   ]}
                 />
@@ -954,7 +1088,7 @@ export default function AttendancePage() {
                   <div>
                     <div className="font-semibold text-on-surface">Call Out Names</div>
                     <div className="text-xs text-on-surface-variant">
-                      Everyone starts as In School — tap only those Away
+                      Everyone starts as Present — tap only those Absent
                     </div>
                   </div>
                 </div>
@@ -1039,7 +1173,7 @@ export default function AttendancePage() {
                     icon={<MaterialIcon icon="check_circle" />}
                     size="sm"
                   >
-                    Mark All In School
+                    Mark All Present
                   </Button>
                   <Button
                     variant="secondary"
@@ -1047,11 +1181,11 @@ export default function AttendancePage() {
                     icon={<MaterialIcon icon="person_remove" />}
                     size="sm"
                   >
-                    Quick Away
+                    Quick Absent
                   </Button>
                   <div className="flex-1" />
                   <div className="text-sm text-on-surface-variant self-center font-medium">
-                    {presentCount} present, {absentCount} away, {lateCount} late, {excusedCount} excused
+                    {presentCount} present, {absentCount} absent, {lateCount} late, {excusedCount} excused
                   </div>
                 </div>
 
@@ -1078,9 +1212,9 @@ export default function AttendancePage() {
                       {f === "all"
                         ? "All"
                         : f === "present"
-                          ? "In School"
+                          ? "Present"
                           : f === "absent"
-                            ? "Away"
+                            ? "Absent"
                             : f === "late"
                               ? "Late"
                               : "Excused"}
@@ -1176,7 +1310,7 @@ export default function AttendancePage() {
                       >
                         <div className="flex items-center gap-3 flex-1 min-w-0">
                           <div className="flex-shrink-0">
-                            <PersonInitials name={`${student.first_name} ${student.last_name}`} size={40} />
+                            <RollCallPhoto student={student} />
                           </div>
                           <div className="min-w-0">
                             <div className="font-bold text-on-surface text-base truncate">
@@ -1222,7 +1356,8 @@ export default function AttendancePage() {
                     className="w-full"
                     size="lg"
                   >
-                    Save: {effectivePresentCount} present, {absentCount} away, {lateCount} late, {excusedCount} excused
+                    Save: {effectivePresentCount} present, {absentCount} absent, {lateCount} late, {excusedCount}{" "}
+                    excused
                   </Button>
                 </div>
               </>
@@ -1234,7 +1369,7 @@ export default function AttendancePage() {
                     onClick={handleMarkAllPresent}
                     icon={<MaterialIcon icon={allMarked ? "undo" : "check_circle"} />}
                   >
-                    {allMarked ? "Reset All" : "Mark All In School"}
+                    {allMarked ? "Reset All" : "Mark All Present"}
                   </Button>
                   <Tabs
                     tabs={[
@@ -1259,7 +1394,7 @@ export default function AttendancePage() {
                         >
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                              <PersonInitials name={`${student.first_name} ${student.last_name}`} size={40} />
+                              <RollCallPhoto student={student} />
                               <div>
                                 <div className="font-bold text-primary">
                                   {student.first_name} {student.last_name}
@@ -1336,7 +1471,7 @@ export default function AttendancePage() {
                           className={`bg-surface-container-lowest rounded-xl border border-outline-variant p-4 flex items-center justify-between active:scale-[0.98] transition-transform cursor-pointer select-none ${flashId === student.id ? "ring-2 ring-primary" : ""}`}
                         >
                           <div className="flex items-center gap-3">
-                            <PersonInitials name={`${student.first_name} ${student.last_name}`} size={40} />
+                            <RollCallPhoto student={student} />
                             <div>
                               <div className="font-bold text-primary text-sm">
                                 {student.first_name} {student.last_name}
