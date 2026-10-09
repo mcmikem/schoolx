@@ -294,18 +294,25 @@ export default function AttendancePage() {
     if (!selectedClass || !school?.id) return;
     setAllMarked(false);
     setLoading(studentsLoading || attendanceLoading);
-    setStudents(
-      (offlineStudents || []).filter((student) => student.class_id === selectedClass && student.status === "active"),
+    const classPupils = (offlineStudents || []).filter(
+      (student) => student.class_id === selectedClass && student.status === "active",
     );
+    setStudents(classPupils);
+    // The records query is school+date scoped, so other classes' marks for
+    // the same day arrive here too. Scope everything to this register's
+    // pupils — otherwise counts, chips, and the save bar report the whole
+    // school (e.g. "264 present" for a 26-pupil class).
+    const classIds = new Set(classPupils.map((s) => s.id));
     const attendanceMap: Record<string, string> = {};
     (offlineAttendance || []).forEach((record: any) => {
+      if (!classIds.has(record.student_id)) return;
       attendanceMap[record.student_id] = record.status;
     });
     // Everyone starts Present: unmarked pupils save as present, so a save is
     // never silently partial and reopening a day shows saved values with the
     // rest defaulting present.
     const defaulted: Record<string, string> = {};
-    (offlineStudents || []).forEach((s) => {
+    classPupils.forEach((s) => {
       defaulted[s.id] = attendanceMap[s.id] || "present";
     });
     setAttendance(defaulted);
@@ -559,6 +566,18 @@ export default function AttendancePage() {
   // Briefly highlight the row "Next unmarked" scrolls to, so the eye lands on
   // it in a 60-pupil list.
   const [flashId, setFlashId] = useState<string | null>(null);
+  // One-time swipe teaching nudge: the first row slides right and back
+  // once per session (see swipe-peek keyframes), demonstrating the gesture
+  // instead of only describing it in the hint line.
+  const [peekDone] = useState(() => {
+    try {
+      if (typeof window === "undefined" || window.sessionStorage.getItem("att-swipe-peek")) return true;
+      window.sessionStorage.setItem("att-swipe-peek", "1");
+      return false;
+    } catch {
+      return true;
+    }
+  });
   const flashTimer = useRef<number | null>(null);
   const jumpToNextUnmarked = useCallback(() => {
     const pool = filteredStudents.length > 0 ? filteredStudents : students;
@@ -1232,7 +1251,7 @@ export default function AttendancePage() {
             )}
 
             <div className="space-y-2">
-              {filteredStudents.map((student) => {
+              {filteredStudents.map((student, index) => {
                 const status = (attendance[student.id] || "present") as AttendanceStatus;
                 const config = STATUS_CONFIG[status];
                 const borderColor =
@@ -1258,7 +1277,7 @@ export default function AttendancePage() {
                     onSwipeRight={() => markAttendance(student.id, "present")}
                     onSwipeLeft={() => markAttendance(student.id, "absent")}
                     onTap={() => handleTapStatus(student.id)}
-                    className={`${bgColor} rounded-xl border ${borderColor} p-4 flex items-center justify-between active:scale-[0.98] transition-transform cursor-pointer select-none min-h-[56px] ${flashId === student.id ? "ring-2 ring-primary" : ""}`}
+                    className={`${bgColor} rounded-xl border ${borderColor} p-4 flex items-center justify-between active:scale-[0.98] transition-transform cursor-pointer select-none min-h-[56px] ${flashId === student.id ? "ring-2 ring-primary" : ""} ${!peekDone && index === 0 ? "animate-[swipe-peek_1.4s_ease-in-out_0.8s]" : ""}`}
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       <div className="flex-shrink-0">

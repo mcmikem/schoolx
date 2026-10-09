@@ -289,6 +289,22 @@ button {
   animation: fadeIn 0.4s ease-out forwards;
 }
 
+/* One-time swipe teaching nudge: the first register row slides right and
+   back once, showing the gesture instead of describing it. Applied via a
+   session-gated class, never replayed until the next session. */
+@keyframes swipe-peek {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  35% {
+    transform: translateX(52px);
+  }
+  70% {
+    transform: translateX(0);
+  }
+}
+
 @media (max-width: 640px) {
   .content {
     padding: var(--ms) !important;
