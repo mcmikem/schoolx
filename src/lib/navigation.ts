@@ -447,8 +447,6 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> = dee
       items: [
         { href: "/dashboard/messages", label: "Messages", icon: "chat" },
         { href: "/dashboard/settings", label: "Settings", icon: "settings" },
-        { href: "/dashboard/permissions", label: "Role Permissions", icon: "admin_panel_settings" },
-        { href: "/dashboard/data-quality", label: "Data Quality", icon: "rule" },
       ],
     },
   ],
@@ -505,10 +503,7 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> = dee
       label: "Assignments",
       icon: "assignment",
       defaultOpen: true,
-      items: [
-        { href: "/dashboard/homework", label: "Homework", icon: "assignment" },
-        { href: "/dashboard/messages", label: "Messages", icon: "chat" },
-      ],
+      items: [{ href: "/dashboard/homework", label: "Homework", icon: "assignment" }],
     },
     {
       label: "Planning",

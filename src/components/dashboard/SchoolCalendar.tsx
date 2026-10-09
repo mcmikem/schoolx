@@ -4,6 +4,8 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { timeoutFallback, withTimeout } from "@/lib/hooks/utils";
 import { offlineDB } from "@/lib/offline";
 import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth-context";
+import { isDemoSchool } from "@/lib/demo-utils";
 
 const DAYS_HEADER = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -16,6 +18,7 @@ function localISODate(date: Date): string {
 }
 
 export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string; userId?: string }) {
+  const { isDemo } = useAuth();
   const [calendarEvents, setCalendarEvents] = useState<
     Array<{ id: string; title: string; start_date: string; event_type: string }>
   >([]);
@@ -28,6 +31,7 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
   const dayInputRef = useRef<HTMLInputElement>(null);
   const seedCalendarAttemptedRef = useRef(false);
   const fetchedForSchoolRef = useRef<string | null>(null);
+  const readSucceededRef = useRef(false);
 
   const refreshEvents = useCallback(async () => {
     if (!schoolId) return;
@@ -41,8 +45,11 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
       timeoutFallback(),
     );
     if (!error && data) {
+      readSucceededRef.current = true;
       setCalendarEvents(data as any);
       await offlineDB.cacheFromServer("events", data as any);
+    } else {
+      readSucceededRef.current = false;
     }
   }, [schoolId]);
 
@@ -78,6 +85,10 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
     if (!schoolId || eventsLoading) return;
     if (calendarEvents.length > 0) return;
     if (seedCalendarAttemptedRef.current) return;
+    // Only seed after a successful read — a failed/empty-by-error read must not
+    // trigger 40+ default event inserts. Demo sessions cannot write to the DB.
+    if (!readSucceededRef.current) return;
+    if (isDemo || isDemoSchool(schoolId)) return;
     seedCalendarAttemptedRef.current = true;
     const seedCalendar = async () => {
       const { buildUgandaCalendarEvents } = await import("@/lib/uganda-school-calendar");
@@ -89,7 +100,7 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
       if (!error) await refreshEvents();
     };
     seedCalendar();
-  }, [schoolId, calendarEvents.length, eventsLoading, refreshEvents]);
+  }, [schoolId, calendarEvents.length, eventsLoading, refreshEvents, isDemo]);
 
   const addCalendarEvent = async () => {
     if (!schoolId || !newEventTitle.trim() || !newEventDate) return;

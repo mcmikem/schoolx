@@ -2,9 +2,10 @@
 import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import MaterialIcon from "@/components/MaterialIcon";
+import { canOpenSettingsPage } from "@/lib/role-tab-access";
 
 export default function ExpiredNotice() {
-  const { school, signOut } = useAuth();
+  const { school, signOut, user } = useAuth();
   const [loading, setLoading] = useState(false);
 
   const handleContactSupport = () => {
@@ -51,13 +52,23 @@ export default function ExpiredNotice() {
         </div>
 
         <div className="flex flex-col gap-3">
-          <a
-            href="/dashboard/billing"
-            className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 active:scale-[0.98] transition-all text-white font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-amber-500/30"
-          >
-            <MaterialIcon style={{ fontSize: 20 }}>rocket_launch</MaterialIcon>
-            Upgrade Now - Starting €9/mo
-          </a>
+          {canOpenSettingsPage(user?.role) ? (
+            <a
+              href="/dashboard/billing"
+              className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 active:scale-[0.98] transition-all text-white font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-amber-500/30"
+            >
+              <MaterialIcon style={{ fontSize: 20 }}>rocket_launch</MaterialIcon>
+              Upgrade Now - Starting €9/mo
+            </a>
+          ) : (
+            <button
+              onClick={handleContactSupport}
+              className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 active:scale-[0.98] transition-all text-white font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-amber-500/30"
+            >
+              <MaterialIcon style={{ fontSize: 20 }}>support_agent</MaterialIcon>
+              Contact Support to Upgrade
+            </button>
+          )}
 
           <button
             onClick={signOut}

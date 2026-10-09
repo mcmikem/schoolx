@@ -5,6 +5,8 @@ import { useSearchParams } from "next/navigation";
 import { useMemo } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 import ContactSupport from "@/components/ContactSupport";
+import { useAuth } from "@/lib/auth-context";
+import { canOpenSettingsPage } from "@/lib/role-tab-access";
 
 function formatModuleLabel(moduleName: string): string {
   return moduleName
@@ -14,11 +16,13 @@ function formatModuleLabel(moduleName: string): string {
 }
 
 export default function NoAccessPage() {
+  const { user } = useAuth();
   const params = useSearchParams();
   const reason = params.get("reason") || "permission";
   const from = params.get("from") || "/dashboard";
   const required = params.get("required") || "this section";
   const moduleName = params.get("module") || "feature";
+  const canReviewAccess = canOpenSettingsPage(user?.role);
 
   const summary = useMemo(() => {
     if (reason === "feature") {
@@ -44,19 +48,21 @@ export default function NoAccessPage() {
         <p className="text-sm text-[var(--t2)] mt-2">{summary.message}</p>
         <p className="text-xs text-[var(--t3)] mt-2 break-words">Requested page: {from}</p>
 
-        <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className={`mt-6 grid grid-cols-1 gap-3 ${canReviewAccess ? "sm:grid-cols-2" : ""}`}>
           <Link
             href="/dashboard"
             className="rounded-xl bg-[var(--primary)] text-white px-4 py-2.5 text-sm font-semibold text-center"
           >
             Go to Dashboard Home
           </Link>
-          <Link
-            href={reason === "feature" ? "/dashboard/settings?tab=subscription" : "/dashboard/settings"}
-            className="rounded-xl border border-[var(--border)] px-4 py-2.5 text-sm font-semibold text-[var(--t1)] text-center"
-          >
-            {reason === "feature" ? "View Upgrade Options" : "Review My Access"}
-          </Link>
+          {canReviewAccess && (
+            <Link
+              href={reason === "feature" ? "/dashboard/settings?tab=subscription" : "/dashboard/settings"}
+              className="rounded-xl border border-[var(--border)] px-4 py-2.5 text-sm font-semibold text-[var(--t1)] text-center"
+            >
+              {reason === "feature" ? "View Upgrade Options" : "Review My Access"}
+            </Link>
+          )}
         </div>
 
         <div className="mt-5">

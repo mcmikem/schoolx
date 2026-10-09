@@ -17,6 +17,8 @@ import { logger } from "@/lib/logger";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import GenerateTimetableModal from "@/components/timetable/GenerateTimetableModal";
 import type { Class, Subject, TimetableSlot } from "@/types";
+import { DEMO_SUBJECTS, DEMO_TIMETABLE } from "@/lib/demo-data";
+import { buildDefaultTimetableSlots } from "@/lib/school-setup";
 
 // ── Uganda 2026 Public Holidays ─────────────────────────────────────────────
 const UGANDA_PUBLIC_HOLIDAYS_2026 = [
@@ -456,8 +458,51 @@ const DAYS = [
   { value: 5, label: "Fri", full: "Friday" },
 ];
 
+const DEMO_DAY_VALUES: Record<string, number> = {
+  sunday: 0,
+  monday: 1,
+  tuesday: 2,
+  wednesday: 3,
+  thursday: 4,
+  friday: 5,
+  saturday: 6,
+};
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function minutesOf(time: string): number {
+  const [hours = 0, minutes = 0] = time.split(":").map(Number);
+  return hours * 60 + minutes;
+}
+
+function demoPeriodForStart(startTime: string): number {
+  const slots = buildDefaultTimetableSlots("demo");
+  const exact = slots.find((slot) => slot.start_time === startTime);
+  if (exact) return exact.order_number;
+  const lessons = slots.filter((slot) => slot.is_lesson !== false);
+  const target = minutesOf(startTime);
+  return lessons.reduce(
+    (best, slot) =>
+      Math.abs(minutesOf(slot.start_time) - target) < Math.abs(minutesOf(best.start_time) - target) ? slot : best,
+    lessons[0],
+  ).order_number;
+}
+
+function mapDemoTimetable(classId?: string): TimetableEntry[] {
+  return DEMO_TIMETABLE.filter((row) => !classId || row.class_id === classId).map((row) => {
+    const subject = DEMO_SUBJECTS.find((item) => item.id === row.subject_id);
+    return {
+      ...row,
+      day_of_week: DEMO_DAY_VALUES[row.day_of_week] ?? 1,
+      period_number: demoPeriodForStart(row.start_time),
+      academic_year: "",
+      subjects: { name: subject?.name || "Unknown", code: subject?.code || "" },
+    };
+  });
+}
+
 export default function TimetablePage() {
-  const { school, user } = useAuth();
+  const { school, user, isDemo } = useAuth();
   const toast = useToast();
   const { classes } = useClasses(school?.id);
   const { subjects } = useSubjects(school?.id);
@@ -490,6 +535,12 @@ export default function TimetablePage() {
   // Fetch the timetable for the selected class
   const fetchTimetable = useCallback(async () => {
     if (!selectedClassId) return;
+    if (!UUID_PATTERN.test(selectedClassId)) {
+      // Demo/local fixtures use non-UUID ids — Postgres rejects them with 22P02
+      setTimetable(isDemo ? mapDemoTimetable(selectedClassId) : []);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -508,11 +559,26 @@ export default function TimetablePage() {
     } finally {
       setLoading(false);
     }
-  }, [selectedClassId, setLoading, setTimetable, toast]);
+  }, [selectedClassId, isDemo, setLoading, setTimetable, toast]);
 
   // Fetch ALL class timetables for the school to enable cross-class conflict detection
   // Note: depends only on school?.id, not classes array (to avoid re-render loops)
   const fetchAllTimetables = useCallback(async () => {
+    if (isDemo) {
+      setAllClassTimetables(
+        mapDemoTimetable().map(({ id, teacher_id, day_of_week, period_number, class_id, start_time, end_time }) => ({
+          id,
+          teacher_id,
+          day_of_week,
+          period_number,
+          class_id,
+          start_time,
+          end_time,
+          room: null,
+        })),
+      );
+      return;
+    }
     if (!school?.id) return;
     try {
       const { data } = await supabase
@@ -522,7 +588,7 @@ export default function TimetablePage() {
     } catch (err) {
       logger.error("Error fetching all timetables:", err);
     }
-  }, [school?.id]);
+  }, [school?.id, isDemo]);
 
   useEffect(() => {
     if (selectedClassId) fetchTimetable();

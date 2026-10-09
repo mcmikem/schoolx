@@ -1,5 +1,6 @@
-import { roleBasedRoutes } from "@/components/dashboard/AccessControlGuard";
+import { isRouteAllowed, roleBasedRoutes } from "@/components/dashboard/AccessControlGuard";
 import { canAccess, type RolePermissions, type UserRole } from "@/lib/roles";
+import { canOpenSettingsPage } from "@/lib/role-tab-access";
 
 const SENSITIVE_ROUTES: Record<string, keyof RolePermissions> = {
   "/dashboard/users": "staff",
@@ -125,5 +126,43 @@ describe("route guard sensitive routes", () => {
       const permission = permissionFor(path);
       expect({ path, allowed: permission ? canAccess("teacher", permission) : true }).toEqual({ path, allowed: false });
     }
+  });
+});
+
+describe("settings route exception", () => {
+  it("opens settings only to roles whose tab list covers the subscription tab", () => {
+    for (const role of ["bursar", "headmaster", "admin", "school_admin", "super_admin"] as UserRole[]) {
+      expect({ role, allowed: canOpenSettingsPage(role) }).toEqual({ role, allowed: true });
+    }
+    for (const role of ["teacher", "dean_of_studies", "secretary", "dorm_master"] as UserRole[]) {
+      expect({ role, allowed: canOpenSettingsPage(role) }).toEqual({ role, allowed: false });
+    }
+    expect(canOpenSettingsPage(undefined)).toBe(false);
+  });
+
+  it("lets the bursar open settings but still blocks the routes only admins manage", () => {
+    expect(isRouteAllowed("bursar", "/dashboard/settings")).toBe(true);
+    expect(isRouteAllowed("bursar", "/dashboard/settings?tab=subscription")).toBe(true);
+    expect(isRouteAllowed("bursar", "/dashboard/permissions")).toBe(false);
+    expect(isRouteAllowed("bursar", "/dashboard/data-quality")).toBe(false);
+    expect(isRouteAllowed("bursar", "/dashboard/users")).toBe(false);
+    expect(isRouteAllowed("bursar", "/dashboard/attendance")).toBe(false);
+    expect(isRouteAllowed("bursar", "/dashboard/grades")).toBe(false);
+    expect(isRouteAllowed("bursar", "/dashboard/staff")).toBe(false);
+    expect(isRouteAllowed("bursar", "/dashboard/billing")).toBe(true);
+  });
+
+  it("keeps settings closed to class-scoped roles", () => {
+    for (const role of ["teacher", "class_teacher", "dorm_master"] as UserRole[]) {
+      expect({ role, allowed: isRouteAllowed(role, "/dashboard/settings") }).toEqual({ role, allowed: false });
+    }
+    expect(isRouteAllowed("headmaster", "/dashboard/settings")).toBe(true);
+  });
+
+  it("leaves ungated teacher routes open", () => {
+    for (const path of ["/dashboard/timetable", "/dashboard/grades", "/dashboard/classes", "/dashboard/students"]) {
+      expect({ path, allowed: isRouteAllowed("teacher", path) }).toEqual({ path, allowed: true });
+    }
+    expect(isRouteAllowed(undefined, "/dashboard")).toBe(false);
   });
 });

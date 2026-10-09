@@ -16,6 +16,7 @@ import {
 } from "@/lib/modules/catalog";
 import { deepFreeze } from "@/lib/deep-freeze";
 import { resolveRouteAccess, useRoleRouteOverrides } from "@/lib/role-access-overrides";
+import { canOpenSettingsPage } from "@/lib/role-tab-access";
 
 const roleBasedRoutes: Record<string, keyof RolePermissions> = deepFreeze({
   "/dashboard/students": "students",
@@ -119,6 +120,18 @@ const MODULE_FOR_ROUTE: Record<string, ModuleKey> = deepFreeze({ ..._MODULE_FOR_
 
 export { roleBasedRoutes, MODULE_FOR_ROUTE };
 
+export function findRouteKey(path: string): string | undefined {
+  return Object.keys(roleBasedRoutes).find((key) => path.startsWith(key));
+}
+
+export function isRouteAllowed(role: UserRole | undefined, path: string): boolean {
+  if (!role) return false;
+  const routeKey = findRouteKey(path);
+  if (!routeKey) return true;
+  if (canAccess(role, roleBasedRoutes[routeKey])) return true;
+  return routeKey === "/dashboard/settings" && canOpenSettingsPage(role);
+}
+
 const PAGE_TITLE_OVERRIDES: Record<string, string> = deepFreeze({
   "/dashboard": "Dashboard Overview",
   "/dashboard/moes": "MoES Module",
@@ -185,11 +198,11 @@ export function useAccessControl() {
     if (!user || !pathname || pathname === "/dashboard") return;
     if (pathname.startsWith("/dashboard/no-access")) return;
 
-    const routeKey = Object.keys(roleBasedRoutes).find((key) => pathname.startsWith(key));
+    const routeKey = findRouteKey(pathname);
     if (routeKey) {
       const permission = roleBasedRoutes[routeKey];
       const role = user.role as UserRole;
-      const baseAllowed = role ? canAccess(role, permission) : false;
+      const baseAllowed = isRouteAllowed(role, pathname);
       const allowed = role ? resolveRouteAccess(role, pathname, baseAllowed, overrides) : baseAllowed;
       if (user.role && !allowed) {
         const lastDenied = sessionStorage.getItem("lastDeniedPath");

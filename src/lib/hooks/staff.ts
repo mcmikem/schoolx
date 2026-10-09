@@ -7,6 +7,7 @@ import { getQuerySchoolId, withTimeout, timeoutFallback } from "./utils";
 import { DEMO_STAFF, DemoStaff } from "@/lib/demo-data";
 import { isDemoSchool } from "@/lib/demo-utils";
 import { logger } from "@/lib/logger";
+import { getErrorMessage } from "@/lib/validation";
 
 type SupabaseResponse<T> = { data: T | null; error: unknown | null; count?: number | null };
 
@@ -281,7 +282,7 @@ export function useStaffReviews(schoolId?: string, staffId?: string) {
         }
         setReviews((data as unknown as StaffReview[]) || []);
       } catch (err) {
-        logger.error("Error fetching reviews:", err instanceof Error ? err.message : "unknown");
+        logger.error("Error fetching reviews:", getErrorMessage(err));
         setReviews([]);
       } finally {
         setLoading(false);

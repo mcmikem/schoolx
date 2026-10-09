@@ -39,6 +39,15 @@ describe("Production Hardening Regression Tests", () => {
       const proxy = require("fs").readFileSync(require("path").join(process.cwd(), "src/proxy.ts"), "utf8");
       expect(proxy).toContain("httpOnly: false");
     });
+
+    it("should keep the live fees payment-plans tab out of the legacy billing redirect", () => {
+      const read = (file: string) => require("fs").readFileSync(require("path").join(process.cwd(), file), "utf8");
+      const proxy = read("src/proxy.ts");
+      expect(proxy).toContain('tab === "payments"');
+      expect(proxy).not.toContain('tab === "payment-plans"');
+      expect(read("src/app/dashboard/payment-plans/page.tsx")).toContain('"/dashboard/fees?tab=payment-plans"');
+      expect(read("src/app/dashboard/fees/page.tsx")).toContain('id: "payment-plans" as const');
+    });
   });
 
   describe("Automation Fixes", () => {

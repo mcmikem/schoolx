@@ -223,11 +223,12 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const normalizedPath = pathname.endsWith("/") && pathname.length > 1 ? pathname.slice(0, -1) : pathname;
 
-  // Backward compatibility for stale cached clients that still use old
-  // upgrade/payment-plan fee tab URLs.
+  // Backward compatibility for stale cached clients that still use the old
+  // "payments" fee tab URL. "payment-plans" is a live fees tab ("Paying in
+  // Bits") and must not be bounced to billing.
   if (normalizedPath === "/dashboard/fees") {
     const tab = request.nextUrl.searchParams.get("tab");
-    if (tab === "payment-plans" || tab === "payments") {
+    if (tab === "payments") {
       return NextResponse.redirect(new URL("/dashboard/billing", request.url));
     }
   }

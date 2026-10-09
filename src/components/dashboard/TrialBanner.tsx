@@ -2,9 +2,10 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/lib/auth-context";
 import MaterialIcon from "@/components/MaterialIcon";
+import { canOpenSettingsPage } from "@/lib/role-tab-access";
 
 export default function TrialBanner() {
-  const { school, isDemo } = useAuth();
+  const { school, isDemo, user } = useAuth();
   const [dismissed, setDismissed] = useState(false);
   const [daysLeft, setDaysLeft] = useState(0);
 
@@ -69,13 +70,19 @@ export default function TrialBanner() {
             <MaterialIcon icon="shopping_bag" style={{ fontSize: 14 }} />
             Shop Omuto Essentials
           </a>
-          <a
-            href="/dashboard/billing"
-            className="inline-flex items-center gap-1 text-xs font-bold text-slate-900 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 transition-all shadow-lg shadow-amber-500/20"
-          >
-            <MaterialIcon icon="rocket_launch" style={{ fontSize: 14 }} />
-            Upgrade Now
-          </a>
+          {canOpenSettingsPage(user?.role) ? (
+            <a
+              href="/dashboard/billing"
+              className="inline-flex items-center gap-1 text-xs font-bold text-slate-900 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 transition-all shadow-lg shadow-amber-500/20"
+            >
+              <MaterialIcon icon="rocket_launch" style={{ fontSize: 14 }} />
+              Upgrade Now
+            </a>
+          ) : (
+            <span className="hidden sm:inline-flex items-center gap-1 text-xs font-medium text-amber-200 px-3 py-1.5 rounded-lg bg-slate-800">
+              Ask an administrator to upgrade
+            </span>
+          )}
           <button onClick={handleDismiss} className="p-1 text-slate-500 hover:text-slate-300 transition-colors">
             <MaterialIcon icon="close" style={{ fontSize: 16 }} />
           </button>

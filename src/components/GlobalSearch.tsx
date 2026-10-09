@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
 import { canAccess, type UserRole, type RolePermissions } from "@/lib/roles";
 import { roleBasedRoutes } from "@/components/dashboard/AccessControlGuard";
+import { canOpenSettingsPage } from "@/lib/role-tab-access";
 
 const RECENT_SEARCHES_KEY = "skoolmate_recent_searches";
 const MAX_RECENT_SEARCHES = 8;
@@ -196,9 +197,11 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
         ] as SearchResult[]
       ).filter((p) => {
         const permission = roleBasedRoutes[p.href];
-        return !permission || can(permission);
+        if (!permission) return true;
+        if (p.href === "/dashboard/settings" && canOpenSettingsPage(user?.role)) return true;
+        return can(permission);
       }),
-    [can],
+    [can, user?.role],
   );
 
   const searchDatabase = useCallback(

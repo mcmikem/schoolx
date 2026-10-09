@@ -29,6 +29,7 @@ import UserManager from "@/components/settings/UserManager";
 import SystemPreferences from "@/components/settings/SystemPreferences";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { type ModuleKey } from "@/lib/modules/catalog";
+import { tabsForRole } from "@/lib/role-tab-access";
 
 interface SchoolSettings {
   sms_notifications: boolean;
@@ -96,22 +97,10 @@ const ANDROID_APP_URL = process.env.NEXT_PUBLIC_ANDROID_APP_URL || "";
 const WINDOWS_APP_URL = process.env.NEXT_PUBLIC_WINDOWS_APP_URL || "";
 const MAC_APP_URL = process.env.NEXT_PUBLIC_MAC_APP_URL || "";
 
-const ROLE_TAB_ACCESS: Record<string, string[]> = {
-  school_admin: ["general", "config", "users", "notifications", "messaging", "checklist", "backup", "subscription"],
-  admin: ["general", "config", "users", "notifications", "messaging", "checklist", "backup", "subscription"],
-  headmaster: ["general", "config", "users", "notifications", "messaging", "checklist", "backup", "subscription"],
-  super_admin: ["general", "config", "users", "notifications", "messaging", "checklist", "backup", "subscription"],
-  bursar: ["general", "notifications", "messaging", "subscription"],
-  dean_of_studies: ["general", "config", "notifications"],
-  teacher: ["general", "notifications"],
-  secretary: ["general", "notifications"],
-  dorm_master: ["general", "notifications"],
-};
-
 export default function SettingsPage() {
   const router = useRouter();
   const { school, user, refreshSchool } = useAuth();
-  const allowedTabIds = ROLE_TAB_ACCESS[user?.role || "teacher"] || ROLE_TAB_ACCESS.teacher;
+  const allowedTabIds = tabsForRole(user?.role);
   const tabs = ALL_SETTINGS_TABS.filter((t) => allowedTabIds.includes(t.id));
   const toast = useToast();
   const { classes, loading: loadingClasses, refetch: refetchClasses } = useClasses(school?.id);

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import CollapsibleSidebar from "@/components/CollapsibleSidebar";
 import ContactSupport from "@/components/ContactSupport";
-import { MODULE_FOR_ROUTE, roleBasedRoutes } from "@/components/dashboard/AccessControlGuard";
+import { MODULE_FOR_ROUTE, isRouteAllowed } from "@/components/dashboard/AccessControlGuard";
 import MaterialIcon from "@/components/MaterialIcon";
 import { useSidebar } from "@/contexts/SidebarContext";
 import { useAcademic } from "@/lib/academic-context";
@@ -32,10 +32,7 @@ function filterGroupsByFeatureStage(
 
   const canAccessRoute = (href: string): boolean => {
     if (!typedRole) return false;
-    const routeKey = Object.keys(roleBasedRoutes).find((key) => href.startsWith(key));
-    if (!routeKey) return true;
-    const baseAllowed = canAccess(typedRole, roleBasedRoutes[routeKey]);
-    return resolveRouteAccess(typedRole, href, baseAllowed, overrides);
+    return resolveRouteAccess(typedRole, href, isRouteAllowed(typedRole, href), overrides);
   };
 
   return groups
