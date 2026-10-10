@@ -73,9 +73,15 @@ jest.mock("@/lib/school-setup", () => ({
   buildDefaultTimetableSlots: jest.fn(),
 }));
 
-jest.mock("@/lib/supabase", () => ({
-  supabase: {},
-}));
+jest.mock("@/lib/supabase", () => {
+  const chainable: Record<string, unknown> = {};
+  chainable.select = () => chainable;
+  chainable.eq = () => chainable;
+  chainable.order = () => chainable;
+  chainable.then = (resolve: unknown, reject: unknown) =>
+    Promise.resolve({ data: [], error: null }).then(resolve as never, reject as never);
+  return { supabase: { from: () => chainable } };
+});
 
 jest.mock("@/lib/utils", () => ({
   greetingFor: () => "Good morning",

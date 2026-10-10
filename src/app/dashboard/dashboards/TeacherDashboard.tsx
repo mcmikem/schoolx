@@ -15,11 +15,21 @@ import { useAcademic } from "@/lib/academic-context";
 import { useAuth } from "@/lib/auth-context";
 import { getDefaultSubjects } from "@/lib/curriculum";
 import { useAllStudents, useClasses, useDashboardStats, useSubjects } from "@/lib/hooks";
-import { withTimeout } from "@/lib/hooks/utils";
+import { getLocalDateString, withTimeout } from "@/lib/hooks/utils";
 import { isClassScopedRole } from "@/lib/roles";
 import { buildDefaultClasses, buildDefaultTimetableSlots, type SchoolSetupType } from "@/lib/school-setup";
 import { supabase } from "@/lib/supabase";
 import { greetingFor, todayLabelFor } from "@/lib/utils";
+
+interface TodaySlot {
+  id: string;
+  period_number: number | null;
+  start_time: string | null;
+  end_time: string | null;
+  room: string | null;
+  classes?: { name?: string | null } | null;
+  subjects?: { name?: string | null } | null;
+}
 
 export function TeacherDashboardContent() {
   const router = useRouter();
@@ -34,6 +44,10 @@ export function TeacherDashboardContent() {
   const { stats, loading: statsLoading } = useDashboardStats(school?.id, { term: currentTerm, academicYear });
   const [settingUp, setSettingUp] = useState(false);
   const [loadingTimedOut, setLoadingTimedOut] = useState(false);
+  // Distinct class_ids with at least one attendance row today. RLS scopes the
+  // rows to this teacher's classes. null = still checking (or check failed).
+  const [markedClassIds, setMarkedClassIds] = useState<Set<string> | null>(null);
+  const [todaySlots, setTodaySlots] = useState<TodaySlot[] | null>(null);
   const dataLoading = !rosterReady || classesLoading || subjectsLoading || statsLoading;
 
   useEffect(() => {
@@ -46,6 +60,63 @@ export function TeacherDashboardContent() {
     }, 3000);
     return () => window.clearTimeout(timer);
   }, [dataLoading]);
+
+  useEffect(() => {
+    if (dataLoading || !user?.id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const rows = await withTimeout(
+          supabase
+            .from("attendance")
+            .select("class_id")
+            .eq("date", getLocalDateString())
+            .then((r) => {
+              if (r.error) throw r.error;
+              return (r.data || []) as { class_id: string | null }[];
+            }),
+          15000,
+          null,
+        );
+        if (cancelled || rows == null) return;
+        setMarkedClassIds(new Set(rows.map((r) => r.class_id).filter(Boolean) as string[]));
+      } catch {
+        // Keep markedClassIds null: the card shows "Checking…" rather than lying.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [dataLoading, user?.id]);
+
+  useEffect(() => {
+    if (dataLoading || !user?.id) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const slots = await withTimeout(
+          supabase
+            .from("teacher_timetable")
+            .select("id, period_number, start_time, end_time, room, classes(name), subjects(name)")
+            .eq("teacher_id", user.id)
+            .eq("day_of_week", new Date().getDay())
+            .order("period_number")
+            .then((r) => {
+              if (r.error) throw r.error;
+              return (r.data || []) as TodaySlot[];
+            }),
+          15000,
+          null,
+        );
+        if (!cancelled && slots != null) setTodaySlots(slots);
+      } catch {
+        if (!cancelled) setTodaySlots([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [dataLoading, user?.id]);
 
   const currentDate = new Date();
   const greeting = greetingFor(currentDate);
@@ -64,7 +135,13 @@ export function TeacherDashboardContent() {
   const classesWithNoStudents = myClasses.filter(
     (cls) => students.filter((s) => s.class_id === cls.id).length === 0,
   ).length;
-  const attendancePending = !statsLoading && stats?.presentToday === 0 && myClasses.length > 0;
+  const markedCount = markedClassIds ? myClasses.filter((cls) => markedClassIds.has(cls.id)).length : null;
+  const allClassesMarked = markedCount !== null && myClasses.length > 0 && markedCount === myClasses.length;
+  // Per-class truth: pending until every assigned class has a register for
+  // today. Falls back to the school-wide presentToday count when the per-class
+  // check hasn't resolved (slow network / offline).
+  const attendancePending =
+    !statsLoading && myClasses.length > 0 && (markedCount === null ? stats?.presentToday === 0 : !allClassesMarked);
 
   const todayActions = [
     {
@@ -221,24 +298,42 @@ export function TeacherDashboardContent() {
       {stats && (
         <section aria-label="Today status" className="mb-5 grid grid-cols-2 gap-3">
           <div
-            className={`rounded-2xl border p-4 ${!attendancePending ? "border-[var(--green-soft)] bg-[var(--green-soft)]" : "border-[var(--red-soft)] bg-[var(--red-soft)]"}`}
+            className={`rounded-2xl border p-4 ${
+              allClassesMarked
+                ? "border-[var(--green-soft)] bg-[var(--green-soft)]"
+                : markedCount !== null && markedCount > 0
+                  ? "border-amber-200 bg-amber-50"
+                  : "border-[var(--red-soft)] bg-[var(--red-soft)]"
+            }`}
           >
             <div className="flex items-center gap-2">
               <MaterialIcon
-                icon={!attendancePending ? "check_circle" : "how_to_reg"}
-                className={`text-lg ${!attendancePending ? "text-[var(--green)]" : "text-[var(--red)]"}`}
+                icon={allClassesMarked ? "check_circle" : "how_to_reg"}
+                className={`text-lg ${allClassesMarked ? "text-[var(--green)]" : markedCount !== null && markedCount > 0 ? "text-amber-600" : "text-[var(--red)]"}`}
               />
               <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--t3)]">Attendance</span>
             </div>
-            <p className={`mt-1 text-lg font-bold ${!attendancePending ? "text-[var(--green)]" : "text-[var(--red)]"}`}>
-              {!attendancePending ? "Done" : "Pending"}
+            <p
+              className={`mt-1 text-lg font-bold ${allClassesMarked ? "text-[var(--green)]" : markedCount !== null && markedCount > 0 ? "text-amber-700" : "text-[var(--red)]"}`}
+            >
+              {markedCount === null
+                ? "Checking…"
+                : allClassesMarked
+                  ? "Done"
+                  : markedCount === 0
+                    ? "Pending"
+                    : `${markedCount} of ${myClasses.length} marked`}
             </p>
             <p className="text-[10px] text-[var(--t3)] mt-0.5">
-              {stats.presentToday > 0
-                ? `${stats.presentToday} present today`
-                : stats.presentToday < 0
-                  ? "Checking…"
-                  : "Not taken yet"}
+              {markedCount === null
+                ? "Checking registers…"
+                : allClassesMarked
+                  ? stats.presentToday > 0
+                    ? `${stats.presentToday} present today`
+                    : "Marked for all classes"
+                  : markedCount === 0
+                    ? "Not taken yet"
+                    : "Finish marking the rest"}
             </p>
           </div>
           <div className="rounded-2xl border border-[var(--surface-container-low)] bg-white p-4">
@@ -347,6 +442,75 @@ export function TeacherDashboardContent() {
               </div>
             </div>
           )}
+
+          {/* Today's Schedule */}
+          <div className="rounded-2xl border border-[var(--surface-container-low)] bg-white p-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--amber)]/10">
+                  <MaterialIcon icon="calendar_month" className="text-sm text-[var(--amber)]" />
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-[var(--t1)] font-['Sora']">Today's Schedule</p>
+                  <p className="text-[11px] text-[var(--t3)]">{todayLabel}</p>
+                </div>
+              </div>
+              <Link
+                href="/dashboard/timetable"
+                className="rounded-xl bg-[var(--t1)] px-4 py-2 text-[11px] font-bold text-white hover:opacity-90 transition-opacity"
+              >
+                Open timetable
+              </Link>
+            </div>
+            <div className="mt-3 space-y-2">
+              {todaySlots === null ? (
+                <div className="h-10 w-full animate-pulse rounded-xl bg-[var(--surface-container-low)]" />
+              ) : todaySlots.length === 0 ? (
+                <p className="py-2 text-xs text-[var(--t3)]">No lessons scheduled for today.</p>
+              ) : (
+                todaySlots.map((slot) => {
+                  const now = new Date();
+                  const minutes = now.getHours() * 60 + now.getMinutes();
+                  const starts = slot.start_time
+                    ? Number(slot.start_time.slice(0, 2)) * 60 + Number(slot.start_time.slice(3, 5))
+                    : null;
+                  const ends = slot.end_time
+                    ? Number(slot.end_time.slice(0, 2)) * 60 + Number(slot.end_time.slice(3, 5))
+                    : null;
+                  const isNow = starts !== null && ends !== null && minutes >= starts && minutes < ends;
+                  return (
+                    <div
+                      key={slot.id}
+                      className={`flex items-center gap-3 rounded-xl border px-3 py-2 text-xs ${
+                        isNow
+                          ? "border-[var(--t1)] bg-[var(--primary-50)]"
+                          : "border-[var(--surface-container-low)] bg-[var(--surface-bright)]"
+                      }`}
+                    >
+                      <span className="w-6 shrink-0 text-center font-bold text-[var(--t2)]">
+                        {slot.period_number ?? "–"}
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-semibold text-[var(--t1)]">
+                          {slot.classes?.name || "Class"}
+                          {slot.subjects?.name ? ` · ${slot.subjects.name}` : ""}
+                        </p>
+                        <p className="text-[10px] text-[var(--t3)]">
+                          {slot.start_time && slot.end_time ? `${slot.start_time}–${slot.end_time}` : ""}
+                          {slot.room ? ` · ${slot.room}` : ""}
+                        </p>
+                      </div>
+                      {isNow && (
+                        <span className="shrink-0 rounded-full bg-[var(--t1)] px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-white">
+                          Now
+                        </span>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
         </div>
 
         {/* ── Right Column: Calendar ── */}
