@@ -12,7 +12,7 @@ import { offlineDB, useOnlineStatus } from "@/lib/offline";
 import { logAuditEventWithOfflineSupport } from "@/lib/audit";
 import { DEMO_ATTENDANCE, DEMO_STUDENTS } from "@/lib/demo-data";
 import MaterialIcon from "@/components/MaterialIcon";
-import PersonInitials from "@/components/ui/PersonInitials";
+import { RollCallPhoto } from "@/components/attendance/RollCallPhoto";
 import { SwipeRow } from "@/components/attendance/SwipeRow";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { logger } from "@/lib/logger";
@@ -72,30 +72,6 @@ function countStatuses(statuses: string[]): { present: number; absent: number; l
     late: statuses.filter((s) => s === "late").length,
     excused: statuses.filter((s) => s === "excused").length,
   };
-}
-
-/**
- * Roll-call face: the pupil's photo at a size worth recognizing across a
- * desk, falling back to initials when no photo was ever uploaded (or the
- * stored URL died). Faces — not admission numbers — are what a teacher
- * scans during roll call, so the photo is the lead element of every row and
- * the row's color wash behind it carries the status at a glance.
- */
-function RollCallPhoto({ student }: { student: Student }) {
-  const [broken, setBroken] = useState(false);
-  const name = `${student.first_name} ${student.last_name}`;
-  if (!student.photo_url || broken) {
-    return <PersonInitials name={name} size={56} />;
-  }
-  return (
-    <img
-      src={student.photo_url}
-      alt={name}
-      loading="lazy"
-      onError={() => setBroken(true)}
-      className="w-14 h-14 rounded-full object-cover flex-shrink-0 bg-surface-container"
-    />
-  );
 }
 
 export default function AttendancePage() {
@@ -1281,7 +1257,10 @@ export default function AttendancePage() {
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       <div className="flex-shrink-0">
-                        <RollCallPhoto student={student} />
+                        <RollCallPhoto
+                          name={`${student.first_name} ${student.last_name}`}
+                          photoUrl={student.photo_url}
+                        />
                       </div>
                       <div className="min-w-0">
                         <div className="font-bold text-on-surface text-base truncate">
