@@ -1,5 +1,5 @@
 "use client";
-import { useRef, useState, type ReactNode, type TouchEvent, type MouseEvent as ReactMouseEvent } from "react";
+import { useEffect, useRef, useState, type ReactNode, type MouseEvent as ReactMouseEvent } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 
 /** Finger travel that commits a swipe. Below this the row snaps back. */
@@ -26,9 +26,16 @@ interface SwipeRowProps {
  * Roll-call swipe row: swipe right marks Present, swipe left marks Absent,
  * tap keeps whatever onTap does (usually cycling all four statuses).
  *
- * - `touch-action: pan-y` keeps vertical scrolling native; only horizontal
- *   travel is intercepted, and a mostly-vertical gesture abandons the swipe
- *   so lists never trap the scroll.
+ * Gesture handling uses NATIVE touch listeners (not React synthetic ones) so
+ * the move listener can be non-passive: once horizontal intent locks in, it
+ * calls preventDefault() to claim the gesture. Without that claim, mobile
+ * browsers hand the touch to the scroller mid-drag — the row follows the
+ * finger for a beat, then dies, which reads as "swipe doesn't work". A
+ * `touch-action: pan-y` style alone does not hold the gesture reliably once
+ * the OS scroll heuristics engage (typically right after the first touch).
+ *
+ * - Vertical intent that wins first abandons the swipe: lists never trap
+ *   the scroll, and direction locks so later wobble can't flip the call.
  * - The click after a committed swipe is swallowed — without this the tap
  *   handler would fire right after the swipe and undo it.
  * - Transform is written straight to the DOM (no re-render per pixel); only
@@ -36,70 +43,103 @@ interface SwipeRowProps {
  */
 export function SwipeRow({ id, onSwipeRight, onSwipeLeft, onTap, className = "", children }: SwipeRowProps) {
   const fgRef = useRef<HTMLDivElement>(null);
-  const startRef = useRef<{ x: number; y: number } | null>(null);
-  const deadRef = useRef(false);
-  const suppressClickRef = useRef(false);
   const [lean, setLean] = useState<0 | 1 | -1>(0);
+  // Mutable gesture machine + latest commit callbacks. Refs (never state) so
+  // the natively-attached listeners below always see fresh values without
+  // re-subscribing every render.
+  const machine = useRef<{
+    start: { x: number; y: number } | null;
+    dir: 0 | 1 | -1;
+    suppressClick: boolean;
+    actions: { onSwipeRight: () => void; onSwipeLeft: () => void };
+  }>({ start: null, dir: 0, suppressClick: false, actions: { onSwipeRight, onSwipeLeft } });
+  machine.current.actions = { onSwipeRight, onSwipeLeft };
 
-  const setOffset = (dx: number, animate: boolean) => {
+  useEffect(() => {
     const el = fgRef.current;
     if (!el) return;
-    el.style.transition = animate ? "" : "none";
-    el.style.transform = dx === 0 ? "" : `translateX(${dx}px)`;
-  };
+    const m = machine.current;
 
-  const handleTouchStart = (e: TouchEvent<HTMLDivElement>) => {
-    const t = e.touches[0];
-    startRef.current = { x: t.clientX, y: t.clientY };
-    deadRef.current = false;
-  };
-
-  const handleTouchMove = (e: TouchEvent<HTMLDivElement>) => {
-    const start = startRef.current;
-    if (!start || deadRef.current) return;
-    const t = e.touches[0];
-    const dx = t.clientX - start.x;
-    const dy = t.clientY - start.y;
-    if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 10) {
-      deadRef.current = true;
+    const setOffset = (dx: number, animate: boolean) => {
+      el.style.transition = animate ? "" : "none";
+      el.style.transform = dx === 0 ? "" : `translateX(${dx}px)`;
+    };
+    const reset = () => {
+      m.start = null;
+      m.dir = 0;
       setOffset(0, true);
       setLean(0);
-      return;
-    }
-    setOffset(dx, false);
-    const next = dx > 24 ? 1 : dx < -24 ? -1 : 0;
-    setLean((prev) => (prev === next ? prev : (next as 0 | 1 | -1)));
-  };
+    };
 
-  const handleTouchEnd = (e: TouchEvent<HTMLDivElement>) => {
-    const start = startRef.current;
-    startRef.current = null;
-    if (!start || deadRef.current) {
-      setOffset(0, true);
-      setLean(0);
-      return;
-    }
-    const t = e.changedTouches[0];
-    const action = resolveSwipe(t.clientX - start.x);
-    setOffset(0, true);
-    setLean(0);
-    if (action) {
-      suppressClickRef.current = true;
+    const onStart = (e: TouchEvent) => {
+      const t = e.touches[0];
+      m.start = { x: t.clientX, y: t.clientY };
+      m.dir = 0;
+    };
+
+    const onMove = (e: TouchEvent) => {
+      const start = m.start;
+      if (!start || m.dir === -1) return;
+      const t = e.touches[0];
+      const dx = t.clientX - start.x;
+      const dy = t.clientY - start.y;
+      if (m.dir === 0) {
+        if (Math.abs(dy) > 14 && Math.abs(dy) > Math.abs(dx)) {
+          // Vertical intent won first — hands off to the scroll.
+          m.dir = -1;
+          reset();
+          return;
+        }
+        if (Math.abs(dx) > 14 && Math.abs(dx) > Math.abs(dy)) m.dir = 1;
+      }
+      if (m.dir === 1) {
+        // Horizontal intent locked: claim the gesture so the browser cannot
+        // hand it to the scroller halfway through the drag.
+        e.preventDefault();
+      }
+      setOffset(dx, false);
+      const next = (dx > 24 ? 1 : dx < -24 ? -1 : 0) as 0 | 1 | -1;
+      setLean((prev) => (prev === next ? prev : next));
+    };
+
+    const commit = (dx: number) => {
+      const action = resolveSwipe(dx);
+      if (!action) return;
+      m.suppressClick = true;
       if (typeof navigator.vibrate === "function") navigator.vibrate(10);
-      if (action === "present") onSwipeRight();
-      else onSwipeLeft();
-    }
-  };
+      if (action === "present") m.actions.onSwipeRight();
+      else m.actions.onSwipeLeft();
+    };
+
+    const onEnd = (e: TouchEvent) => {
+      const start = m.start;
+      const dead = m.dir === -1;
+      const dx = start ? e.changedTouches[0].clientX - start.x : 0;
+      reset();
+      if (!start || dead) return;
+      commit(dx);
+    };
+
+    el.addEventListener("touchstart", onStart, { passive: true });
+    el.addEventListener("touchmove", onMove, { passive: false });
+    el.addEventListener("touchend", onEnd);
+    el.addEventListener("touchcancel", reset);
+    return () => {
+      el.removeEventListener("touchstart", onStart);
+      el.removeEventListener("touchmove", onMove);
+      el.removeEventListener("touchend", onEnd);
+      el.removeEventListener("touchcancel", reset);
+    };
+  }, []);
 
   const handleClick = (e: ReactMouseEvent<HTMLDivElement>) => {
-    if (suppressClickRef.current) {
-      suppressClickRef.current = false;
-      return;
-    }
     // Rows can contain their own buttons (e.g. the desktop list's explicit
     // status buttons) — those handle themselves; the row tap is only for
-    // presses on the row body.
-    if ((e.target as HTMLElement).closest("button, a, input, select, textarea")) return;
+    // presses on the row body. Either way the post-swipe flag is consumed.
+    const fromControl = !!(e.target as HTMLElement).closest("button, a, input, select, textarea");
+    const suppressed = machine.current.suppressClick;
+    machine.current.suppressClick = false;
+    if (suppressed || fromControl) return;
     onTap();
   };
 
@@ -119,14 +159,7 @@ export function SwipeRow({ id, onSwipeRight, onSwipeLeft, onTap, className = "",
           <MaterialIcon icon="cancel" className="text-lg" />
         </span>
       </div>
-      <div
-        ref={fgRef}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        onClick={handleClick}
-        className={className}
-      >
+      <div ref={fgRef} onClick={handleClick} className={className}>
         {children}
       </div>
     </div>

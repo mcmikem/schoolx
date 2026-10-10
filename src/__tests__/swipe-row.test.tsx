@@ -79,6 +79,46 @@ describe("SwipeRow", () => {
     expect(onSwipeLeft).not.toHaveBeenCalled();
   });
 
+  it("keeps a horizontal swipe alive through mid-gesture diagonal wobble", () => {
+    const { surface, onSwipeRight, onSwipeLeft } = renderRow({});
+    fireEvent.touchStart(surface, { touches: [{ clientX: 100, clientY: 100 }] });
+    // Clear horizontal intent first…
+    fireEvent.touchMove(surface, { touches: [{ clientX: 140, clientY: 105 }] });
+    // …then a wobbly stretch where vertical momentarily wins — must not kill it.
+    fireEvent.touchMove(surface, { touches: [{ clientX: 170, clientY: 160 }] });
+    fireEvent.touchMove(surface, { touches: [{ clientX: 220, clientY: 190 }] });
+    fireEvent.touchEnd(surface, { changedTouches: [{ clientX: 260, clientY: 200 }] });
+
+    expect(onSwipeRight).toHaveBeenCalledTimes(1);
+    expect(onSwipeLeft).not.toHaveBeenCalled();
+  });
+
+  it("abandons the swipe when vertical intent wins first", () => {
+    const { surface, onSwipeRight, onSwipeLeft } = renderRow({});
+    fireEvent.touchStart(surface, { touches: [{ clientX: 100, clientY: 100 }] });
+    fireEvent.touchMove(surface, { touches: [{ clientX: 105, clientY: 160 }] });
+    // Even a long horizontal run afterwards must not resurrect it (scroll owns it).
+    fireEvent.touchMove(surface, { touches: [{ clientX: 300, clientY: 200 }] });
+    fireEvent.touchEnd(surface, { changedTouches: [{ clientX: 300, clientY: 200 }] });
+
+    expect(onSwipeRight).not.toHaveBeenCalled();
+    expect(onSwipeLeft).not.toHaveBeenCalled();
+  });
+
+  it("claims the gesture from the scroller once horizontal intent locks", () => {
+    const { surface } = renderRow({});
+    fireEvent.touchStart(surface, { touches: [{ clientX: 100, clientY: 100 }] });
+    // Below the lock threshold: cancelable, not yet claimed.
+    const undecided = fireEvent.touchMove(surface, { touches: [{ clientX: 105, clientY: 100 }] });
+    // Past it: preventDefault claims the touch so the browser cannot hand
+    // the drag to the scroller halfway through (the real-device killer).
+    const claimed = fireEvent.touchMove(surface, { touches: [{ clientX: 160, clientY: 102 }] });
+
+    expect(undecided).toBe(true);
+    expect(claimed).toBe(false);
+    fireEvent.touchEnd(surface, { changedTouches: [{ clientX: 160, clientY: 102 }] });
+  });
+
   it("lets inner buttons handle their own taps (desktop rows)", () => {
     const onTap = jest.fn();
     const onSwipeRight = jest.fn();
