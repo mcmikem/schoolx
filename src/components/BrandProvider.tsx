@@ -4,39 +4,43 @@ import { useAuth } from "@/lib/auth-context";
 import { useTheme } from "@/lib/theme-context";
 
 /**
- * Helper to generate a simple monochrome palette from a base hex color.
- * It returns an object mapping Tailwind shade keys to the same base color.
- * More sophisticated shade generation could be added later (e.g., using HSL).
+ * Build a real tint ramp from a brand hex color. Low shades blend toward
+ * white (tinted surfaces stay light, text on them stays readable), the
+ * middle holds the brand, high shades deepen toward black.
  */
-function generateMonochromePalette(base: string) {
-  const shades: Record<string, string> = {};
-  const suffixes = ["50", "100", "200", "300", "400", "500", "600", "700", "800", "900"];
-  for (const s of suffixes) {
-    // For now, assign the base color to every shade.
-    // This ensures Tailwind variables resolve to a consistent brand color.
-    // Future improvement: generate light/dark variations via HSL manipulation.
-    shades[`--primary-${s}`] = base;
-  }
-  return shades;
+export function generateMonochromePalette(base: string) {
+  return {
+    "--primary-50": mixToward(base, "#ffffff", 0.93),
+    "--primary-100": mixToward(base, "#ffffff", 0.82),
+    "--primary-200": mixToward(base, "#ffffff", 0.62),
+    "--primary-300": mixToward(base, "#ffffff", 0.42),
+    "--primary-400": mixToward(base, "#ffffff", 0.22),
+    "--primary-500": base,
+    "--primary-600": base,
+    "--primary-700": mixToward(base, "#000000", 0.15),
+    "--primary-800": mixToward(base, "#000000", 0.3),
+    "--primary-900": mixToward(base, "#000000", 0.45),
+  } as Record<string, string>;
 }
 
-/** Blend a hex color toward white by `amount` (0..1). Used to make brand
-    colors readable against dark surfaces without changing the light look. */
-function lighten(hex: string, amount: number): string {
-  const full = hex.replace("#", "");
-  const h =
-    full.length === 3
-      ? full
-          .split("")
-          .map((c) => c + c)
-          .join("")
-      : full;
-  const r = parseInt(h.slice(0, 2), 16);
-  const g = parseInt(h.slice(2, 4), 16);
-  const b = parseInt(h.slice(4, 6), 16);
-  const mix = (c: number) => Math.round(c + (255 - c) * amount);
+/** Blend a hex color toward a target hex by `amount` (0..1). */
+export function mixToward(hex: string, target: string, amount: number): string {
+  const parse = (h: string): [number, number, number] => {
+    const full = h.replace("#", "");
+    const six =
+      full.length === 3
+        ? full
+            .split("")
+            .map((c) => c + c)
+            .join("")
+        : full;
+    return [parseInt(six.slice(0, 2), 16), parseInt(six.slice(2, 4), 16), parseInt(six.slice(4, 6), 16)];
+  };
+  const [r, g, b] = parse(hex);
+  const [tr, tg, tb] = parse(target);
+  const mix = (c: number, t: number) => Math.round(c + (t - c) * amount);
   const toHex = (n: number) => n.toString(16).padStart(2, "0");
-  return `#${toHex(mix(r))}${toHex(mix(g))}${toHex(mix(b))}`;
+  return `#${toHex(mix(r, tr))}${toHex(mix(g, tg))}${toHex(mix(b, tb))}`;
 }
 
 export default function BrandProvider({ children }: { children: ReactNode }) {
@@ -51,8 +55,8 @@ export default function BrandProvider({ children }: { children: ReactNode }) {
     // In dark mode the brand color is lightened so solid fills and text stay
     // readable against dark surfaces (the inline var otherwise pins the light
     // value and the stylesheet token can never apply).
-    const primary = isDark ? lighten(base, 0.55) : base;
-    const accentColor = isDark ? lighten(accent, 0.45) : accent;
+    const primary = isDark ? mixToward(base, "#ffffff", 0.55) : base;
+    const accentColor = isDark ? mixToward(accent, "#ffffff", 0.45) : accent;
 
     root.style.setProperty("--primary", primary);
     root.style.setProperty("--accent", accentColor);
