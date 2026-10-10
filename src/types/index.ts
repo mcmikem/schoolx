@@ -69,6 +69,7 @@ export interface User {
   avatar_url?: string;
   is_active: boolean;
   created_at: string;
+  password_reset_required?: boolean;
 }
 
 // Student types

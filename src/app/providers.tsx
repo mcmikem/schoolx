@@ -10,6 +10,7 @@ import { setupErrorLogging } from "@/lib/error-logger";
 import { logger } from "@/lib/logger";
 import { NotificationsProvider } from "@/lib/notifications";
 import { ThemeProvider } from "@/lib/theme-context";
+import ForcePasswordChangeGate from "@/components/ForcePasswordChangeGate";
 import { ReactQueryProvider } from "./providers/ReactQueryProvider";
 
 function FaviconUpdater() {
@@ -236,6 +237,7 @@ export default function Providers({ children }: { children: ReactNode }) {
           <ThemeProvider>
             <ServiceWorkerRegistration>
               <AuthProvider>
+                <ForcePasswordChangeGate />
                 <LoadingChecker>
                   <MobileKeyboardHandler />
                   <FaviconUpdater />

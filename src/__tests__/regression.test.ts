@@ -661,6 +661,37 @@ describe("Production Hardening Regression Tests", () => {
       expect(mig).toContain("WHERE phone IS NOT NULL");
     });
   });
+
+  describe("Forced password change", () => {
+    const gatePath = "src/components/ForcePasswordChangeGate.tsx";
+    const readSrc = (p: string) => require("fs").readFileSync(require("path").join(process.cwd(), p), "utf8");
+
+    it("ships password_reset_required from /api/auth/me", () => {
+      expect(readSrc("src/app/api/auth/me/route.ts")).toContain('"password_reset_required"');
+    });
+
+    it("the gate enforces both reset flags and clears both", () => {
+      const src = readSrc(gatePath);
+      expect(src).toContain("user.password_reset_required === true");
+      expect(src).toContain("must_change_password === true");
+      expect(src).toContain("supabase.auth.updateUser");
+      expect(src).toContain("must_change_password: false");
+      expect(src).toContain(".update({ password_reset_required: false })");
+    });
+
+    it("mounts the gate inside the AuthProvider so every portal is covered", () => {
+      const providers = readSrc("src/app/providers.tsx");
+      expect(providers).toContain("<ForcePasswordChangeGate />");
+      expect(providers.indexOf("<ForcePasswordChangeGate />")).toBeGreaterThan(providers.indexOf("<AuthProvider>"));
+    });
+
+    it("admin reset-password marks the account for a forced change", () => {
+      const route = readSrc("src/app/api/admin/reset-password/route.ts");
+      expect(route).toContain(".update({ password_reset_required: true })");
+      // Flag write must come after the GoTrue rotation succeeds.
+      expect(route.indexOf("updateUserById")).toBeLessThan(route.indexOf("password_reset_required: true"));
+    });
+  });
 });
 
 describe("NCDC Curriculum Data", () => {

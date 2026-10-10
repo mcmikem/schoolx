@@ -92,6 +92,7 @@ export async function GET(request: NextRequest) {
     "school_id",
     "is_active",
     "created_at",
+    "password_reset_required",
   ].join(", ");
 
   let userData: Record<string, unknown> | null = null;

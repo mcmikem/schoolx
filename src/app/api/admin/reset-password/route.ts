@@ -79,6 +79,16 @@ export async function POST(request: NextRequest) {
       return apiError(updateError.message, 500);
     }
 
+    // The password above was chosen by an admin; force the recipient to pick
+    // their own on next load (ForcePasswordChangeGate reads this flag).
+    const { error: flagError } = await supabase
+      .from("users")
+      .update({ password_reset_required: true })
+      .eq("id", userId);
+    if (flagError) {
+      logger.error("Failed to flag password_reset_required:", flagError);
+    }
+
     return apiSuccess({ success: true }, "Password reset successful");
   } catch (error) {
     logger.error("[Admin Reset Password Error]", error);
