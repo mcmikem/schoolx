@@ -638,6 +638,28 @@ describe("Production Hardening Regression Tests", () => {
       // which only runs after the guard above has passed.
       expect(guard).toBeLessThan(clobber);
     });
+
+    it("never treats a failed phone lookup as no account", () => {
+      const src = readRoute();
+      // maybeSingle() errors on duplicate (school_id, phone) rows; the old
+      // code ignored that error and fell through to creating a second auth
+      // account for the same number. Unique index 202611100001 enforces the
+      // invariant; the route must still fail loudly if a database is behind.
+      expect(src).not.toContain('eq("phone", phoneNormalized)\n      .eq("school_id", schoolId)\n      .maybeSingle()');
+      expect(src).toContain(".limit(2)");
+      expect(src).toContain("lookupError");
+      expect(src).toContain('conflict: "duplicate_phone_rows"');
+    });
+
+    it("keeps the database enforcing one account per school phone", () => {
+      const mig = require("fs").readFileSync(
+        require("path").join(process.cwd(), "supabase/migrations/202611100001_users_phone_unique.sql"),
+        "utf8",
+      );
+      expect(mig).toContain("users_school_id_phone_key");
+      expect(mig).toContain("CREATE UNIQUE INDEX");
+      expect(mig).toContain("WHERE phone IS NOT NULL");
+    });
   });
 });
 

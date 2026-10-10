@@ -83,14 +83,40 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Student has no valid parent phone number" }, { status: 400 });
   }
 
-  // Check if parent account already exists for this school
+  // Check if parent account already exists for this school. limit(2) instead
+  // of maybeSingle(): duplicate (school_id, phone) rows make maybeSingle
+  // error, and a swallowed error reads as "no account" and falls through to
+  // creating a second auth user for the same number. The unique index from
+  // migration 202611100001 makes duplicates impossible on migrated databases;
+  // the explicit check keeps the failure loud either way.
   const phoneNormalized = normalizeAuthPhone(parentPhone);
-  const { data: existingUser } = await supabaseAdmin
+  const { data: existingMatches, error: lookupError } = await supabaseAdmin
     .from("users")
     .select("id, role, auth_id, full_name")
     .eq("phone", phoneNormalized)
     .eq("school_id", schoolId)
-    .maybeSingle();
+    .limit(2);
+
+  if (lookupError) {
+    logger.error("[create-parent-portal] parent phone lookup failed:", lookupError);
+    return NextResponse.json({ error: "Failed to check for an existing parent account" }, { status: 500 });
+  }
+  if ((existingMatches?.length ?? 0) > 1) {
+    logger.warn("[create-parent-portal] refusing: phone matches duplicate account rows", {
+      phone: phoneNormalized,
+      schoolId,
+      studentId,
+    });
+    return NextResponse.json(
+      {
+        error:
+          "This phone number matches more than one account in the school. Nothing was changed. Ask your administrator to remove the duplicate account, then try again.",
+        conflict: "duplicate_phone_rows",
+      },
+      { status: 409 },
+    );
+  }
+  const existingUser = existingMatches?.[0];
 
   const parentName = fullName?.trim() || student.parent_name?.trim() || `Parent of ${student.first_name}`;
   const generatedPassword = generateTemporaryPassword();
