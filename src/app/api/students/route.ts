@@ -12,13 +12,9 @@ import {
 import { logger } from "@/lib/logger";
 import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import { requireModuleEntitlement } from "@/lib/subscription-guard";
+import { generateStudentNumber } from "@/lib/student-number";
 
 const STUDENT_MGMT_ROLES = ["super_admin", "school_admin", "admin", "headmaster", "secretary"];
-
-function generateStudentNumber() {
-  const year = new Date().getFullYear();
-  return `SM/${year}/${String(Date.now() % 1000000).padStart(6, "0")}`;
-}
 
 export async function GET(request: NextRequest) {
   try {
@@ -169,20 +165,46 @@ export async function POST(request: NextRequest) {
       status: studentData.status || "active",
     };
 
-    const { data, error } = await withTimeout(
-      supabase.from("students").insert(payload).select("id, student_number").single(),
-      15000,
-      timeoutFallback(),
-    );
+    // Only an auto-generated number may be rotated on a 23505 clash — if the
+    // caller supplied their own student_number and it is taken, that is a
+    // genuine 409 for them to resolve, not something to silently reassign.
+    const suppliedStudentNumber = Boolean(String(studentData.student_number || "").trim());
+    const MAX_ATTEMPTS = 3;
+    let lastError: { message: string; code?: string } | null = null;
 
-    if (error) {
-      logger.error("[API Students] Insert failed:", error);
-      return apiError(error.message, 500);
+    for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
+      if (!suppliedStudentNumber && attempt > 0) {
+        payload.student_number = generateStudentNumber();
+      }
+
+      const { data, error } = await withTimeout(
+        supabase.from("students").insert(payload).select("id, student_number").single(),
+        15000,
+        timeoutFallback(),
+      );
+
+      if (!error) {
+        logger.info(`Created student ${data.id} (${payload.first_name} ${payload.last_name}) in school ${schoolId}`);
+        return apiSuccess({ id: data.id, student_number: data.student_number }, "Student created successfully", 201);
+      }
+
+      lastError = error;
+      const isUniqueClash = error.code === "23505" || /duplicate key|unique constraint/i.test(error.message || "");
+      if (!isUniqueClash || suppliedStudentNumber) break;
+      logger.warn(`[API Students] student_number clash, retrying (attempt ${attempt + 1}):`, error.message);
     }
 
-    logger.info(`Created student ${data.id} (${payload.first_name} ${payload.last_name}) in school ${schoolId}`);
+    if (lastError) {
+      logger.error("[API Students] Insert failed:", lastError);
+      const isUniqueClash =
+        lastError.code === "23505" || /duplicate key|unique constraint/i.test(lastError.message || "");
+      if (isUniqueClash && suppliedStudentNumber) {
+        return apiError("That student number is already in use. Pick a different one.", 409);
+      }
+      return apiError(lastError.message, 500);
+    }
 
-    return apiSuccess({ id: data.id, student_number: data.student_number }, "Student created successfully", 201);
+    return apiError("Failed to create student", 500);
   } catch (error) {
     return handleApiError(error);
   }

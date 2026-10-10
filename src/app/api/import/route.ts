@@ -10,6 +10,7 @@ import {
   withSecurity,
   supabaseClientOptions,
 } from "@/lib/api-utils";
+import { generateStudentNumber } from "@/lib/student-number";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -76,14 +77,10 @@ async function handlePost(request: NextRequest) {
     );
     const availableClasses = [...new Set((classes || []).map((c) => String((c as { name: string }).name)))];
 
-    // Get current count for generating student numbers
-    const { count } = await supabase
-      .from("students")
-      .select("*", { count: "exact", head: true })
-      .eq("school_id", scope.schoolId);
-
-    let studentCount = count || 0;
-
+    // Auto-generated student numbers use the same collision-safe generator as
+    // the single-student API. The old scheme (`STU{row_index}`) reused fixed
+    // numbers, so re-importing a file collided with rows already in the table
+    // and every matching row silently failed.
     for (const student of students as StudentRow[]) {
       try {
         // Find class ID (aliases cover "P.1" vs "p1" vs "Primary 1")
@@ -100,9 +97,8 @@ async function handlePost(request: NextRequest) {
           continue;
         }
 
-        // Generate student number if not provided
-        studentCount++;
-        const studentNumber = student.student_number || `STU${String(studentCount).padStart(5, "0")}`;
+        const suppliedNumber = String(student.student_number || "").trim();
+        const studentNumber = suppliedNumber || generateStudentNumber();
 
         // Validate gender
         const gender =
@@ -134,7 +130,12 @@ async function handlePost(request: NextRequest) {
         });
 
         if (error) {
-          results.errors.push(`${student.first_name} ${student.last_name}: Import failed`);
+          const clash = error.code === "23505" || /duplicate key|unique constraint/i.test(error.message || "");
+          results.errors.push(
+            clash
+              ? `${student.first_name} ${student.last_name}: Student number "${studentNumber}" already in use`
+              : `${student.first_name} ${student.last_name}: Import failed`,
+          );
           results.failed++;
         } else {
           results.success++;

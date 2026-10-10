@@ -692,6 +692,38 @@ describe("Production Hardening Regression Tests", () => {
       expect(route.indexOf("updateUserById")).toBeLessThan(route.indexOf("password_reset_required: true"));
     });
   });
+
+  describe("Student number generation", () => {
+    const readSrc = (p: string) => require("fs").readFileSync(require("path").join(process.cwd(), p), "utf8");
+
+    it("generator is a shared collision-safe helper (no timestamp-mod)", () => {
+      const helper = readSrc("src/lib/student-number.ts");
+      expect(helper).toContain("Math.random()");
+      expect(helper).not.toContain("Date.now() % 1000000");
+      for (const route of ["src/app/api/students/route.ts", "src/app/api/import/route.ts"]) {
+        expect(readSrc(route)).toContain('from "@/lib/student-number"');
+      }
+    });
+
+    it("single-student API retries an auto-generated 23505 clash", () => {
+      const src = readSrc("src/app/api/students/route.ts");
+      expect(src).toContain('error.code === "23505"');
+      expect(src).toContain("MAX_ATTEMPTS");
+      expect(src).toContain("suppliedStudentNumber");
+      // Caller-supplied duplicates are a 409, never silently reassigned.
+      expect(src).toContain("already in use. Pick a different one.");
+      expect(src).toContain("409");
+    });
+
+    it("bulk import no longer seeds STU{row-index} numbers", () => {
+      const src = readSrc("src/app/api/import/route.ts");
+      expect(src).not.toContain('padStart(5, "0")');
+      expect(src).not.toContain("let studentCount");
+      expect(src).toContain("generateStudentNumber()");
+      // A unique clash must name the offending number, not hide as "failed".
+      expect(src).toContain("already in use");
+    });
+  });
 });
 
 describe("NCDC Curriculum Data", () => {
