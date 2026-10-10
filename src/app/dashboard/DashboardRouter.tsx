@@ -48,8 +48,7 @@ function RoleDashboardHeader({
         aria-hidden
         className="pointer-events-none absolute inset-0 opacity-60"
         style={{
-          background:
-            "linear-gradient(135deg, var(--primary-50) 0%, transparent 55%, var(--surface-container-low) 100%)",
+          background: "var(--primary-50)",
         }}
       />
       <div className="relative">

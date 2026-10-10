@@ -310,7 +310,7 @@ export default function RoleBasedWalkthrough() {
         <div className="p-6 sm:p-8">
           <div className="flex items-start gap-4 mb-5">
             <div className="flex-shrink-0">
-              <div className="w-14 h-14 rounded-[18px] bg-[linear-gradient(135deg,var(--primary)_0%,var(--primary-700)_100%)] flex items-center justify-center shadow-lg">
+              <div className="w-14 h-14 rounded-[18px] bg-[var(--primary)] flex items-center justify-center shadow-lg">
                 <MaterialIcon icon={step.icon} className="text-2xl text-white" />
               </div>
             </div>

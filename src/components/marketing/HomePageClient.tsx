@@ -186,7 +186,6 @@ export default function HomePage() {
       <main className="min-h-screen bg-[var(--bg)] text-[var(--t1)]" id="main-content">
         {/* ===== HERO ===== */}
         <section className="relative overflow-hidden">
-          <div className="absolute inset-x-0 top-0 h-[620px] bg-[radial-gradient(circle_at_top_left,_rgba(23,50,95,0.13),_transparent_42%),radial-gradient(circle_at_top_right,_rgba(46,148,72,0.10),_transparent_38%),linear-gradient(180deg,_#ffffff_0%,_var(--bg)_72%)]" />
           <div className="absolute left-[8%] top-24 h-40 w-40 rounded-full bg-[var(--brand-surface-blue-soft)] blur-3xl opacity-50" />
           <div className="absolute right-[10%] top-40 h-48 w-48 rounded-full bg-[var(--brand-green-soft-2)] blur-3xl opacity-50" />
 
@@ -564,7 +563,7 @@ export default function HomePage() {
               </div>
 
               <FadeIn delay={200}>
-                <div className="rounded-[34px] border border-[var(--brand-border)] bg-[linear-gradient(180deg,var(--brand-surface-tint)_0%,var(--brand-surface-blue)_100%)] p-6 shadow-sm lg:p-8">
+                <div className="rounded-[34px] border border-[var(--brand-border)] bg-[var(--brand-surface-tint)] p-6 shadow-sm lg:p-8">
                   <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--brand-ink)]">
                     What changes when the system runs well
                   </p>
@@ -729,7 +728,7 @@ export default function HomePage() {
                     </FadeIn>
                   ))}
 
-                  <div className="rounded-[30px] border border-[var(--brand-border)] bg-[linear-gradient(180deg,var(--brand-surface)_0%,var(--brand-surface-tint)_100%)] p-6">
+                  <div className="rounded-[30px] border border-[var(--brand-border)] bg-[var(--brand-surface)] p-6">
                     <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--brand-ink)]">
                       The result
                     </p>

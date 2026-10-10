@@ -264,7 +264,7 @@ export default function OwlAssistant() {
         {open ? (
           <div
             className="w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-transform hover:scale-105 active:scale-95"
-            style={{ background: "linear-gradient(135deg, #0b1c39 0%, #17325f 100%)" }}
+            style={{ background: "#0b1c39" }}
           >
             <MaterialIcon icon="close" className="text-white text-2xl" />
           </div>
@@ -305,7 +305,7 @@ export default function OwlAssistant() {
           <div
             className="px-4 py-3 flex items-center gap-3"
             style={{
-              background: "linear-gradient(135deg, #0b1c39 0%, #17325f 100%)",
+              background: "#0b1c39",
             }}
           >
             <div className="shrink-0">

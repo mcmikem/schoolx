@@ -34,10 +34,10 @@ export default function TrialBanner() {
   if (dismissed || isDemo || school?.subscription_status !== "trial") return null;
 
   return (
-    <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border-b border-slate-700 px-3 py-2">
+    <div className="bg-slate-900 border-b border-slate-700 px-3 py-2">
       <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          <div className="w-7 h-7 bg-gradient-to-br from-amber-400 to-orange-500 rounded-lg flex items-center justify-center shrink-0">
+          <div className="w-7 h-7 bg-amber-400 rounded-lg flex items-center justify-center shrink-0">
             <MaterialIcon icon="school" className="text-white" style={{ fontSize: 16 }} />
           </div>
           <div className="min-w-0">
@@ -73,7 +73,7 @@ export default function TrialBanner() {
           {canOpenSettingsPage(user?.role) ? (
             <a
               href="/dashboard/billing"
-              className="inline-flex items-center gap-1 text-xs font-bold text-slate-900 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-400 to-orange-500 hover:from-amber-500 hover:to-orange-600 transition-all shadow-lg shadow-amber-500/20"
+              className="inline-flex items-center gap-1 text-xs font-bold text-slate-900 px-3 py-1.5 rounded-lg bg-amber-400 hover:bg-amber-500 transition-all shadow-lg shadow-amber-500/20"
             >
               <MaterialIcon icon="rocket_launch" style={{ fontSize: 14 }} />
               Upgrade Now

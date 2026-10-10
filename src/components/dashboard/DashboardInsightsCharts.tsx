@@ -44,9 +44,7 @@ export default function DashboardInsightsCharts({
   isDemo,
   loading,
 }: DashboardInsightsChartsProps) {
-  const activeStudents = students.filter(
-    (s) => s.status === "active" || !s.status,
-  );
+  const activeStudents = students.filter((s) => s.status === "active" || !s.status);
 
   const trendData = useMemo(
     () =>
@@ -64,12 +62,8 @@ export default function DashboardInsightsCharts({
     const totalFromStats = stats?.totalStudents || 0;
 
     if (totalFromStats > 0) {
-      const boys = activeStudents.filter(
-        (s) => s.gender === "M" || s.gender === "Male",
-      ).length;
-      const girls = activeStudents.filter(
-        (s) => s.gender === "F" || s.gender === "Female",
-      ).length;
+      const boys = activeStudents.filter((s) => s.gender === "M" || s.gender === "Male").length;
+      const girls = activeStudents.filter((s) => s.gender === "F" || s.gender === "Female").length;
 
       const known = boys + girls;
       if (known > 0 && known < totalFromStats) {
@@ -93,12 +87,8 @@ export default function DashboardInsightsCharts({
       ];
     }
 
-    const boys = activeStudents.filter(
-      (s) => s.gender === "M" || s.gender === "Male",
-    ).length;
-    const girls = activeStudents.filter(
-      (s) => s.gender === "F" || s.gender === "Female",
-    ).length;
+    const boys = activeStudents.filter((s) => s.gender === "M" || s.gender === "Male").length;
+    const girls = activeStudents.filter((s) => s.gender === "F" || s.gender === "Female").length;
 
     const results = [
       { name: "Boys", value: boys || 0, color: "var(--navy)" },
@@ -125,9 +115,7 @@ export default function DashboardInsightsCharts({
   const healthScore = useMemo(() => {
     const attendanceWeight = 0.4;
     const feeWeight = 0.6;
-    return Math.round(
-      attendanceRate * attendanceWeight + collectionRate * feeWeight,
-    );
+    return Math.round(attendanceRate * attendanceWeight + collectionRate * feeWeight);
   }, [attendanceRate, collectionRate]);
 
   if (loading) {
@@ -147,12 +135,8 @@ export default function DashboardInsightsCharts({
       <div className="lg:col-span-2 glass-premium rounded-[var(--r2)] p-6 flex flex-col gap-4 min-h-[350px]">
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-sm font-bold text-[var(--t1)] font-heading">
-              Fees & Attendance Tracker
-            </h3>
-            <p className="text-[11px] text-[var(--t3)] font-medium">
-              How money and attendance changed this year
-            </p>
+            <h3 className="text-sm font-bold text-[var(--t1)] font-heading">Fees & Attendance Tracker</h3>
+            <p className="text-[11px] text-[var(--t3)] font-medium">How money and attendance changed this year</p>
           </div>
           <div className="hidden md:flex items-center gap-2 flex-wrap justify-end">
             <span className="rounded-full bg-[var(--navy-soft)] px-3 py-1 text-[10px] font-bold uppercase tracking-[0.18em] text-[var(--navy)]">
@@ -165,15 +149,11 @@ export default function DashboardInsightsCharts({
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1.5">
               <div className="w-2.5 h-2.5 rounded-full bg-[var(--navy)]" />
-              <span className="text-[10px] font-bold text-[var(--t3)] uppercase">
-                Fees
-              </span>
+              <span className="text-[10px] font-bold text-[var(--t3)] uppercase">Fees</span>
             </div>
             <div className="flex items-center gap-1.5">
               <div className="w-2.5 h-2.5 rounded-full bg-[var(--green)]" />
-              <span className="text-[10px] font-bold text-[var(--t3)] uppercase">
-                Attendance
-              </span>
+              <span className="text-[10px] font-bold text-[var(--t3)] uppercase">Attendance</span>
             </div>
           </div>
         </div>
@@ -196,19 +176,12 @@ export default function DashboardInsightsCharts({
         </div>
 
         <div className="flex-1 min-w-0 mt-2 relative">
-          {!isDemo &&
-          trendData.every((d) => d.fees === 0 && d.attendance == null) ? (
+          {!isDemo && trendData.every((d) => d.fees === 0 && d.attendance == null) ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 bg-[var(--bg)]/50 backdrop-blur-sm rounded-xl border border-dashed border-[var(--border)]">
-              <MaterialIcon
-                icon="analytics"
-                style={{ fontSize: 40, color: "var(--t4)", opacity: 0.5 }}
-              />
-              <div className="mt-2 text-sm font-bold text-[var(--t2)]">
-                No Activity Data Yet
-              </div>
+              <MaterialIcon icon="analytics" style={{ fontSize: 40, color: "var(--t4)", opacity: 0.5 }} />
+              <div className="mt-2 text-sm font-bold text-[var(--t2)]">No Activity Data Yet</div>
               <p className="text-[11px] text-[var(--t4)] max-w-[200px]">
-                Once you start recording attendance and fees, your performance
-                trends will appear here.
+                Once you start recording attendance and fees, your performance trends will appear here.
               </p>
             </div>
           ) : (
@@ -216,35 +189,15 @@ export default function DashboardInsightsCharts({
               <AreaChart width={700} height={260} data={trendData}>
                 <defs>
                   <linearGradient id="colorFees" x1="0" y1="0" x2="0" y2="1">
-                    <stop
-                      offset="5%"
-                      stopColor="var(--navy)"
-                      stopOpacity={0.1}
-                    />
-                    <stop
-                      offset="95%"
-                      stopColor="var(--navy)"
-                      stopOpacity={0}
-                    />
+                    <stop offset="5%" stopColor="var(--navy)" stopOpacity={0.1} />
+                    <stop offset="95%" stopColor="var(--navy)" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="colorAtt" x1="0" y1="0" x2="0" y2="1">
-                    <stop
-                      offset="5%"
-                      stopColor="var(--green)"
-                      stopOpacity={0.1}
-                    />
-                    <stop
-                      offset="95%"
-                      stopColor="var(--green)"
-                      stopOpacity={0}
-                    />
+                    <stop offset="5%" stopColor="var(--green)" stopOpacity={0.1} />
+                    <stop offset="95%" stopColor="var(--green)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  vertical={false}
-                  stroke="var(--border)"
-                />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
                 <XAxis
                   dataKey="name"
                   axisLine={false}
@@ -286,10 +239,8 @@ export default function DashboardInsightsCharts({
 
       <div className="flex flex-col gap-6">
         <div className="glass-premium rounded-[var(--r2)] p-5 flex flex-col items-center justify-center relative overflow-hidden group">
-          <div className="absolute top-0 left-0 w-full h-1 bg-[var(--grad-teal)] opacity-20" />
-          <h3 className="text-xs font-bold text-[var(--t3)] uppercase tracking-widest mb-4">
-            Total School Status
-          </h3>
+          <div className="absolute top-0 left-0 w-full h-1 bg-teal-500 opacity-20" />
+          <h3 className="text-xs font-bold text-[var(--t3)] uppercase tracking-widest mb-4">Total School Status</h3>
 
           <div className="relative w-40 h-28 flex items-center justify-center">
             <svg viewBox="0 0 100 60" className="w-full h-full">
@@ -310,13 +261,7 @@ export default function DashboardInsightsCharts({
                 style={{ transition: "stroke-dasharray 1s ease-out" }}
               />
               <defs>
-                <linearGradient
-                  id="gauge-grad"
-                  x1="0%"
-                  y1="0%"
-                  x2="100%"
-                  y2="0%"
-                >
+                <linearGradient id="gauge-grad" x1="0%" y1="0%" x2="100%" y2="0%">
                   <stop offset="0%" stopColor="var(--red)" />
                   <stop offset="50%" stopColor="var(--amber)" />
                   <stop offset="100%" stopColor="var(--green)" />
@@ -324,97 +269,56 @@ export default function DashboardInsightsCharts({
               </defs>
             </svg>
             <div className="absolute bottom-2 flex flex-col items-center">
-              <span className="text-3xl font-extrabold text-[var(--t1)] font-heading leading-none">
-                {healthScore}%
-              </span>
-              <span className="text-[10px] font-bold text-[var(--green)] uppercase mt-1">
-                Doing Well
-              </span>
+              <span className="text-3xl font-extrabold text-[var(--t1)] font-heading leading-none">{healthScore}%</span>
+              <span className="text-[10px] font-bold text-[var(--green)] uppercase mt-1">Doing Well</span>
             </div>
           </div>
 
           <div className="w-full mt-4 flex items-center justify-between px-2">
             <div className="flex flex-col items-center">
-              <span className="text-[10px] text-[var(--t3)] font-bold">
-                Attendance
-              </span>
-              <span className="text-xs font-extrabold text-[var(--green)]">
-                {attendanceRate}%
-              </span>
+              <span className="text-[10px] text-[var(--t3)] font-bold">Attendance</span>
+              <span className="text-xs font-extrabold text-[var(--green)]">{attendanceRate}%</span>
             </div>
             <div className="w-[1px] h-6 bg-[var(--border)]" />
             <div className="flex flex-col items-center">
-              <span className="text-[10px] text-[var(--t3)] font-bold">
-                FEES
-              </span>
-              <span className="text-xs font-extrabold text-[var(--amber)]">
-                {collectionRate}%
-              </span>
+              <span className="text-[10px] text-[var(--t3)] font-bold">FEES</span>
+              <span className="text-xs font-extrabold text-[var(--amber)]">{collectionRate}%</span>
             </div>
           </div>
         </div>
 
         <div className="glass-premium rounded-[var(--r2)] p-5 flex flex-col flex-1">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-xs font-bold text-[var(--t3)] uppercase tracking-widest">
-              Student Summary
-            </h3>
-            <MaterialIcon
-              icon="groups"
-              style={{ fontSize: 18, color: "var(--navy)" }}
-            />
+            <h3 className="text-xs font-bold text-[var(--t3)] uppercase tracking-widest">Student Summary</h3>
+            <MaterialIcon icon="groups" style={{ fontSize: 18, color: "var(--navy)" }} />
           </div>
 
           <div className="flex-1 flex items-center relative">
             {!isDemo && activeStudents.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center text-center p-4">
-                <MaterialIcon
-                  icon="person_off"
-                  style={{ fontSize: 32, color: "var(--t4)", opacity: 0.5 }}
-                />
-                <div className="mt-1 text-xs font-bold text-[var(--t2)]">
-                  No Students
-                </div>
-                <p className="text-[10px] text-[var(--t4)] max-w-[150px]">
-                  Enroll students to see breakdown.
-                </p>
+                <MaterialIcon icon="person_off" style={{ fontSize: 32, color: "var(--t4)", opacity: 0.5 }} />
+                <div className="mt-1 text-xs font-bold text-[var(--t2)]">No Students</div>
+                <p className="text-[10px] text-[var(--t4)] max-w-[150px]">Enroll students to see breakdown.</p>
               </div>
             ) : (
               <>
                 <div className="w-24 h-24 min-w-[96px] min-h-[96px]">
-                    <PieChart width={96} height={96}>
-                      <Pie
-                        data={demoData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={30}
-                        outerRadius={45}
-                        paddingAngle={5}
-                      >
-                        {demoData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                    </PieChart>
+                  <PieChart width={96} height={96}>
+                    <Pie data={demoData} cx="50%" cy="50%" innerRadius={30} outerRadius={45} paddingAngle={5}>
+                      {demoData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                  </PieChart>
                 </div>
                 <div className="flex-1 flex flex-col gap-2 ml-4">
                   {demoData.map((item) => (
-                    <div
-                      key={item.name}
-                      className="flex items-center justify-between"
-                    >
+                    <div key={item.name} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <div
-                          className="w-2 h-2 rounded-full"
-                          style={{ backgroundColor: item.color }}
-                        />
-                        <span className="text-xs font-bold text-[var(--t2)]">
-                          {item.name}
-                        </span>
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }} />
+                        <span className="text-xs font-bold text-[var(--t2)]">{item.name}</span>
                       </div>
-                      <span className="text-xs font-extrabold text-[var(--t1)]">
-                        {item.value}
-                      </span>
+                      <span className="text-xs font-extrabold text-[var(--t1)]">{item.value}</span>
                     </div>
                   ))}
                 </div>
@@ -425,21 +329,14 @@ export default function DashboardInsightsCharts({
 
         <div className="glass-premium rounded-[var(--r2)] p-5 flex flex-col items-center justify-between border-t-4 border-t-[var(--amber)]">
           <div className="w-full flex justify-between items-center mb-2">
-            <h3 className="text-xs font-bold text-[var(--t3)] uppercase tracking-widest">
-              Revenue Forecast
-            </h3>
-            <MaterialIcon
-              icon="trending_up"
-              className="text-[var(--amber)] text-lg"
-            />
+            <h3 className="text-xs font-bold text-[var(--t3)] uppercase tracking-widest">Revenue Forecast</h3>
+            <MaterialIcon icon="trending_up" className="text-[var(--amber)] text-lg" />
           </div>
 
           <div className="w-full space-y-3">
             <div>
               <div className="flex justify-between text-[11px] font-bold mb-1">
-                <span className="text-[var(--t2)] tracking-tight">
-                  Realized vs Goal
-                </span>
+                <span className="text-[var(--t2)] tracking-tight">Realized vs Goal</span>
                 <span className="text-[var(--amber)]">{collectionRate}%</span>
               </div>
               <div className="h-2 w-full bg-[var(--border)] rounded-full overflow-hidden">
@@ -447,16 +344,14 @@ export default function DashboardInsightsCharts({
                   className="h-full bg-motif-amber animate-pulse-slow transition-all duration-1000"
                   style={{
                     width: `${collectionRate}%`,
-                    background: "var(--grad-amber)",
+                    background: "var(--amber)",
                   }}
                 />
               </div>
             </div>
 
             <div className="flex flex-col gap-1">
-              <span className="text-[10px] text-[var(--t3)] font-bold uppercase">
-                Balance to Collect
-              </span>
+              <span className="text-[10px] text-[var(--t3)] font-bold uppercase">Balance to Collect</span>
               <span className="text-lg font-heading text-[var(--t1)]">
                 UGX {(stats?.feesBalance || 0).toLocaleString()}
               </span>

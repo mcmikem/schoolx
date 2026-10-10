@@ -37,8 +37,7 @@ export default function StudentPhotoField({
         marginBottom: 20,
         padding: 16,
         borderRadius: 16,
-        background:
-          "linear-gradient(135deg, rgba(0,31,63,0.04), rgba(46,148,72,0.05))",
+        background: "var(--surface-container-low)",
         border: "1px solid var(--border)",
       }}
     >
@@ -90,10 +89,7 @@ export default function StudentPhotoField({
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              background:
-                gender === "M"
-                  ? "linear-gradient(180deg, rgba(11,28,57,0.08), rgba(46,148,72,0.06))"
-                  : "linear-gradient(180deg, rgba(11,28,57,0.08), rgba(190,67,89,0.06))",
+              background: "rgba(11,28,57,0.08)",
             }}
           >
             <OwlMascot size={Math.max(42, Math.round(size * 0.62))} premium ring glow />
@@ -113,9 +109,7 @@ export default function StudentPhotoField({
         >
           {title}
         </div>
-        <div style={{ fontSize: 15, fontWeight: 700, color: "var(--t1)" }}>
-          Identity-ready student record
-        </div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: "var(--t1)" }}>Identity-ready student record</div>
         <p
           style={{
             fontSize: 12,
@@ -124,8 +118,7 @@ export default function StudentPhotoField({
             lineHeight: 1.55,
           }}
         >
-          {description ||
-            "This photo will appear on the student profile, ID card, and report-ready documents."}
+          {description || "This photo will appear on the student profile, ID card, and report-ready documents."}
         </p>
         <div
           style={{

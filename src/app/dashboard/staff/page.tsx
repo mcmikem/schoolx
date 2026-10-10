@@ -1021,7 +1021,7 @@ function DirectoryTab({
           .id-card {
             width: 360px;
             height: 228px;
-            background: linear-gradient(145deg, #ffffff 0%, #f8fbff 100%);
+            background: #ffffff;
             border-radius: 18px;
             overflow: hidden;
             box-shadow: 0 14px 34px rgba(15, 23, 42, 0.18);
@@ -1038,10 +1038,10 @@ function DirectoryTab({
             width: 165px;
             height: 165px;
             border-radius: 999px;
-            background: radial-gradient(circle, rgba(${primaryRgb.r},${primaryRgb.g},${primaryRgb.b},0.18) 0%, rgba(${primaryRgb.r},${primaryRgb.g},${primaryRgb.b},0) 72%);
+            background: transparent;
           }
           .left-section {
-            background: linear-gradient(185deg, ${schoolColor} 0%, ${schoolAccent} 55%, ${schoolColor} 100%);
+            background: ${schoolColor};
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -1941,17 +1941,17 @@ function DirectoryTab({
               </div>
             </div>
             <div className="p-6 overflow-y-auto max-h-[calc(100vh-10rem)] sm:max-h-[calc(100vh-11rem)]">
-              <div className="mx-auto w-full max-w-[430px] rounded-[22px] overflow-hidden border border-[#dbe3f5] shadow-[0_16px_30px_rgba(15,23,42,0.16)] bg-gradient-to-br from-[#ffffff] to-[#f7fbff] grid grid-cols-[110px_1fr] relative">
+              <div className="mx-auto w-full max-w-[430px] rounded-[22px] overflow-hidden border border-[#dbe3f5] shadow-[0_16px_30px_rgba(15,23,42,0.16)] bg-[#ffffff] grid grid-cols-[110px_1fr] relative">
                 <div
                   className="absolute -bottom-10 -right-10 w-40 h-40 rounded-full"
                   style={{
-                    background: `radial-gradient(circle, ${staffCardPrimary}33 0%, ${staffCardPrimary}00 72%)`,
+                    background: "transparent",
                   }}
                 />
                 <div
                   className="p-3 text-white flex flex-col items-center justify-between relative z-10"
                   style={{
-                    background: `linear-gradient(180deg, ${staffCardPrimary} 0%, ${staffCardAccent} 55%, ${staffCardPrimary} 100%)`,
+                    background: `${staffCardPrimary}`,
                   }}
                 >
                   {school?.logo_url ? (

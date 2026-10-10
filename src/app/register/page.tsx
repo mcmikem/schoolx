@@ -842,7 +842,7 @@ function RegisterPageContent() {
                   )}
 
                   {/* IKEA Effect: "Your school so far" preview — builds ownership before final commitment */}
-                  <div className="rounded-2xl border border-[var(--t1)]/10 bg-gradient-to-br from-[#f0f7ff] to-white p-5 shadow-sm">
+                  <div className="rounded-2xl border border-[var(--t1)]/10 bg-[#f0f7ff] p-5 shadow-sm">
                     <div className="flex items-center gap-2 mb-3">
                       <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[var(--t1)] text-white">
                         <MaterialIcon icon="school" className="text-lg" />

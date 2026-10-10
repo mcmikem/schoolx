@@ -355,7 +355,7 @@ export default function MarketerDashboard() {
       <div className="flex items-center gap-4">
         <div
           className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-sm"
-          style={{ background: "linear-gradient(135deg, var(--red-ink), var(--violet))" }}
+          style={{ background: "var(--red-ink)" }}
         >
           <span className="material-symbols-outlined text-white" style={{ fontSize: 24 }}>
             campaign
@@ -1081,7 +1081,7 @@ function RegisterTab({
         <button
           type="submit"
           disabled={submitting}
-          className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-[var(--red-ink)] to-[var(--violet)] text-white font-bold text-[13px] hover:opacity-90 transition-opacity disabled:opacity-50"
+          className="w-full py-2.5 px-4 rounded-xl bg-[var(--red-ink)] text-white font-bold text-[13px] hover:opacity-90 transition-opacity disabled:opacity-50"
         >
           {submitting ? "Registering..." : "Register School"}
         </button>
@@ -1302,7 +1302,7 @@ function LeadsTab({ onConvertToSchool }: { onConvertToSchool?: (lead: LeadRow) =
             </div>
             <button
               type="submit"
-              className="px-4 py-2 rounded-xl bg-gradient-to-r from-[var(--red-ink)] to-[var(--violet)] text-white text-[12px] font-bold hover:opacity-90"
+              className="px-4 py-2 rounded-xl bg-[var(--red-ink)] text-white text-[12px] font-bold hover:opacity-90"
             >
               Create Lead
             </button>
@@ -1503,7 +1503,7 @@ function ResourcesTab() {
               rel="noopener noreferrer"
               className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 hover:shadow-md hover:border-[var(--primary)]/30 transition-all group"
             >
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3 bg-gradient-to-br from-[var(--red-ink)]/10 to-[var(--violet)]/10 text-[var(--violet)] group-hover:scale-110 transition-transform">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3 bg-[var(--red-ink)]/10 text-[var(--violet)] group-hover:scale-110 transition-transform">
                 <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
                   {r.icon}
                 </span>
@@ -1517,7 +1517,7 @@ function ResourcesTab() {
               href={r.href}
               className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 hover:shadow-md hover:border-[var(--primary)]/30 transition-all group"
             >
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3 bg-gradient-to-br from-[var(--red-ink)]/10 to-[var(--violet)]/10 text-[var(--violet)] group-hover:scale-110 transition-transform">
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3 bg-[var(--red-ink)]/10 text-[var(--violet)] group-hover:scale-110 transition-transform">
                 <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
                   {r.icon}
                 </span>
@@ -1633,7 +1633,7 @@ function ReferralsTab() {
             <button
               onClick={createReferral}
               disabled={creating}
-              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-[var(--red-ink)] to-[var(--violet)] text-white text-[11px] font-bold hover:opacity-90 transition-opacity disabled:opacity-50"
+              className="px-3 py-1.5 rounded-xl bg-[var(--red-ink)] text-white text-[11px] font-bold hover:opacity-90 transition-opacity disabled:opacity-50"
             >
               + Generate
             </button>
@@ -1899,7 +1899,7 @@ function SettingsTab() {
           <button
             type="submit"
             disabled={saving}
-            className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-[var(--red-ink)] to-[var(--violet)] text-white font-bold text-[13px] hover:opacity-90 transition-opacity disabled:opacity-50"
+            className="w-full py-2.5 px-4 rounded-xl bg-[var(--red-ink)] text-white font-bold text-[13px] hover:opacity-90 transition-opacity disabled:opacity-50"
           >
             {saving ? "Saving..." : "Save Changes"}
           </button>

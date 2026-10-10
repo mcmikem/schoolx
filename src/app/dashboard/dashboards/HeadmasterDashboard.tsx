@@ -251,7 +251,7 @@ function HeadmasterDashboardContent() {
         </div>
       ) : null}
       {isFirstRun ? (
-        <div className="rounded-[24px] border border-[var(--border)] bg-[linear-gradient(150deg,var(--green-soft)_0%,var(--surface-container-low)_44%,var(--surface-bright)_100%)] p-6 text-center mb-6">
+        <div className="rounded-[24px] border border-[var(--border)] bg-[var(--green-soft)] p-6 text-center mb-6">
           <span className="material-symbols-outlined text-[var(--t1)] text-4xl">rocket_launch</span>
           <h2 className="text-lg font-bold text-[var(--t1)] mt-2">Welcome to {school?.name || "your school"}!</h2>
           <p className="text-sm text-[var(--t3)] mt-1 max-w-md mx-auto">

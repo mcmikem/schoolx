@@ -71,7 +71,7 @@ export default function SetupAdminPage() {
 
   if (done) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-[var(--primary)] to-[var(--primary-700)] flex items-center justify-center px-4">
+      <div className="min-h-screen bg-[var(--primary)] flex items-center justify-center px-4">
         <div className="bg-[var(--surface)] rounded-2xl shadow-[var(--sh2)] border border-[var(--border)] w-full max-w-md p-8 text-center">
           <CheckCircle className="w-16 h-16 text-[var(--green)] mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-[var(--t1)] mb-2">Super Admin Created!</h2>
@@ -91,7 +91,7 @@ export default function SetupAdminPage() {
 
   return (
     <PageErrorBoundary>
-      <div className="min-h-screen bg-gradient-to-br from-[var(--primary)] to-[var(--primary-700)] flex items-center justify-center px-4">
+      <div className="min-h-screen bg-[var(--primary)] flex items-center justify-center px-4">
         <div className="bg-[var(--surface)] rounded-2xl shadow-[var(--sh2)] border border-[var(--border)] w-full max-w-md p-8">
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-14 h-14 bg-[var(--primary-50)] rounded-xl mb-4">

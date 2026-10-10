@@ -102,7 +102,7 @@ export default function ParentAcademicsPage() {
 
         <div className="grid grid-cols-2 gap-4">
           <Card>
-            <CardBody className="text-center bg-[linear-gradient(180deg,var(--portal-surface-tint)_0%,var(--portal-surface)_100%)]">
+            <CardBody className="text-center bg-[var(--portal-surface-tint)]">
               <p className={`text-4xl font-black ${gradeColor(avgScore)}`}>{avgScore}%</p>
               <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)] mt-1">
                 Average Score
@@ -110,7 +110,7 @@ export default function ParentAcademicsPage() {
             </CardBody>
           </Card>
           <Card>
-            <CardBody className="text-center bg-[linear-gradient(180deg,var(--portal-surface-tint)_0%,var(--portal-surface)_100%)]">
+            <CardBody className="text-center bg-[var(--portal-surface-tint)]">
               <p className="text-4xl font-black text-[var(--on-surface)]">{filtered.length}</p>
               <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)] mt-1">
                 Subjects Recorded

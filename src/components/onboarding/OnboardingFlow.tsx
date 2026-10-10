@@ -1218,7 +1218,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
 
       <div className="relative flex w-full h-full min-h-0 md:h-auto md:max-h-[80vh] md:min-h-0 flex-col md:flex-row md:overflow-hidden md:rounded-[36px] md:shadow-[0_38px_90px_rgba(15,23,42,0.16)] md:ring-1 md:ring-black/5">
         {/* Left Side: Progress & Info - Desktop only */}
-        <div className="relative hidden md:flex md:w-1/3 md:min-h-[600px] flex-col overflow-hidden bg-[linear-gradient(160deg,#0b1c39_0%,#17325f_54%,#1a4b79_100%)] p-10 text-white">
+        <div className="relative hidden md:flex md:w-1/3 md:min-h-[600px] flex-col overflow-hidden bg-[#0b1c39] p-10 text-white">
           <button
             onClick={onDismiss ?? onComplete}
             className="absolute top-4 right-4 z-20 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"

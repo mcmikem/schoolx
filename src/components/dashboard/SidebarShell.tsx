@@ -181,7 +181,7 @@ export default function SidebarShell({ onNavigate }: { onNavigate?: () => void }
 
       {showExpanded && canInviteStaff && (
         <div className="px-3 pb-1">
-          <div className="rounded-2xl p-4 text-white bg-[linear-gradient(150deg,#0e2a1e_0%,#14532d_60%,#1f8a70_135%)] shadow-[0_16px_32px_rgba(14,42,30,0.35)]">
+          <div className="rounded-2xl p-4 text-white bg-[#0e2a1e] shadow-[0_16px_32px_rgba(14,42,30,0.35)]">
             <p className="text-[13px] font-bold tracking-tight">Bring your team aboard</p>
             <p className="text-[11px] text-white/70 mt-1 leading-snug">
               Invite teachers and bursars to run the school together.

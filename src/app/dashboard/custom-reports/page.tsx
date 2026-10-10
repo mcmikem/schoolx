@@ -285,7 +285,7 @@ export default function CustomReportsBuilder() {
     <PageErrorBoundary>
       <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-6">
         <div className="glass-premium rounded-3xl p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6 border-l-4 border-indigo-500 shadow-xl shadow-indigo-500/5 relative overflow-hidden group">
-          <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-indigo-500/10 to-transparent z-0 pointer-events-none opacity-50" />
+          <div className="absolute top-0 left-0 w-full h-full bg-indigo-500/10 z-0 pointer-events-none opacity-50" />
           <div className="relative z-10 flex-1">
             <input
               className="text-3xl font-black tracking-tight text-[var(--t1)] bg-transparent border-0 outline-none w-full md:w-3/4 mb-1 border-b-2 border-transparent hover:border-[var(--border)] focus:border-indigo-500 transition-colors placeholder:text-[var(--t4)]"

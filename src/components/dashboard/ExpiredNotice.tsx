@@ -15,9 +15,9 @@ export default function ExpiredNotice() {
   return (
     <div className="fixed inset-0 bg-[var(--surface-bright)] flex flex-col items-center justify-center p-4 z-[9997] overflow-y-auto">
       <div className="bg-white rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] p-6 sm:p-8 max-w-md w-full border border-red-100/50 text-center relative overflow-hidden">
-        <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-red-500 to-orange-400"></div>
+        <div className="absolute top-0 left-0 right-0 h-2 bg-red-500"></div>
 
-        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-gradient-to-br from-red-100 to-orange-100 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-5">
+        <div className="w-14 h-14 sm:w-16 sm:h-16 bg-red-100 text-red-600 rounded-2xl flex items-center justify-center mx-auto mb-5">
           <MaterialIcon style={{ fontSize: "28px" }}>lock_clock</MaterialIcon>
         </div>
 
@@ -55,7 +55,7 @@ export default function ExpiredNotice() {
           {canOpenSettingsPage(user?.role) ? (
             <a
               href="/dashboard/billing"
-              className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 active:scale-[0.98] transition-all text-white font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-amber-500/30"
+              className="w-full bg-amber-500 hover:bg-amber-600 active:scale-[0.98] transition-all text-white font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-amber-500/30"
             >
               <MaterialIcon style={{ fontSize: 20 }}>rocket_launch</MaterialIcon>
               Upgrade Now - Starting €9/mo
@@ -63,7 +63,7 @@ export default function ExpiredNotice() {
           ) : (
             <button
               onClick={handleContactSupport}
-              className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 active:scale-[0.98] transition-all text-white font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-amber-500/30"
+              className="w-full bg-amber-500 hover:bg-amber-600 active:scale-[0.98] transition-all text-white font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-amber-500/30"
             >
               <MaterialIcon style={{ fontSize: 20 }}>support_agent</MaterialIcon>
               Contact Support to Upgrade
@@ -98,9 +98,9 @@ export default function ExpiredNotice() {
               href="https://omuto.org/osx.php"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-3 p-3 rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 hover:from-amber-100 hover:to-orange-50 transition-colors group"
+              className="flex items-center gap-3 p-3 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 transition-colors group"
             >
-              <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-lg bg-amber-500 flex items-center justify-center">
                 <MaterialIcon className="text-white" style={{ fontSize: 18 }}>
                   school
                 </MaterialIcon>

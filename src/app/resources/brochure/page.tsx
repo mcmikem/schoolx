@@ -14,7 +14,7 @@ export default function BrochurePage() {
         body { margin: 0; padding: 0; font-family: 'Helvetica', 'Arial', sans-serif; color: #1a1a2e; }
         .page { width: 210mm; min-height: 297mm; padding: 0; position: relative; page-break-after: always; }
         .page:last-child { page-break-after: avoid; }
-        .cover { background: linear-gradient(135deg, #001f3f 0%, #003d7a 50%, #005ce6 100%); color: white; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+        .cover { background: #001f3f; color: white; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
         .cover h1 { font-size: 42pt; font-weight: 800; margin: 0 0 8pt; letter-spacing: -1pt; line-height: 1.1; }
         .cover .subtitle { font-size: 16pt; opacity: 0.85; margin: 0 0 40pt; font-weight: 300; }
         .cover .tagline { font-size: 11pt; opacity: 0.7; letter-spacing: 3pt; text-transform: uppercase; margin-bottom: 12pt; }
@@ -39,7 +39,7 @@ export default function BrochurePage() {
         ul { margin: 6pt 0; padding-left: 18pt; }
         ul li { font-size: 10pt; line-height: 1.6; color: #333; margin-bottom: 3pt; }
         .center { text-align: center; }
-        .cta-box { background: linear-gradient(135deg, #001f3f, #005ce6); color: white; border-radius: 12pt; padding: 28pt; text-align: center; margin: 20pt 0; }
+        .cta-box { background: #001f3f; color: white; border-radius: 12pt; padding: 28pt; text-align: center; margin: 20pt 0; }
         .cta-box h3 { color: white !important; font-size: 18pt !important; margin: 0 0 8pt !important; }
         .cta-box p { color: rgba(255,255,255,0.85) !important; font-size: 11pt; margin: 0 0 16pt !important; }
         .cta-box .contact { font-size: 10pt; color: rgba(255,255,255,0.9); }

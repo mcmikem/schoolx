@@ -44,12 +44,8 @@ export default function FinanceSummaryPulse({
         <div key={card.label} className="card-premium p-5 border border-[var(--border)]">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <div className="text-[11px] font-black text-[var(--t3)] uppercase tracking-[0.24em]">
-                {card.label}
-              </div>
-              <div className="text-2xl font-extrabold text-[var(--t1)] mt-2">
-                {card.value}
-              </div>
+              <div className="text-[11px] font-black text-[var(--t3)] uppercase tracking-[0.24em]">{card.label}</div>
+              <div className="text-2xl font-extrabold text-[var(--t1)] mt-2">{card.value}</div>
             </div>
             <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${card.tint}`}>
               <MaterialIcon icon={card.icon} className="text-[20px]" />
@@ -58,12 +54,10 @@ export default function FinanceSummaryPulse({
         </div>
       ))}
 
-      <div className="card-premium p-5 border border-[var(--navy)] bg-[linear-gradient(135deg,var(--navy)_0%,var(--navy-mid)_100%)] text-white">
+      <div className="card-premium p-5 border border-[var(--navy)] bg-[var(--navy)] text-white">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <div className="text-[11px] font-black text-white/75 uppercase tracking-[0.24em]">
-              Realization
-            </div>
+            <div className="text-[11px] font-black text-white/75 uppercase tracking-[0.24em]">Realization</div>
             <div className="text-2xl font-extrabold mt-2">{realizationRate}%</div>
           </div>
           <div className="w-11 h-11 rounded-2xl bg-white/15 flex items-center justify-center">
@@ -71,10 +65,7 @@ export default function FinanceSummaryPulse({
           </div>
         </div>
         <div className="w-full bg-white/15 h-2 rounded-full mt-4 overflow-hidden">
-          <div
-            className="bg-white h-full transition-all duration-1000"
-            style={{ width: `${realizationRate}%` }}
-          />
+          <div className="bg-white h-full transition-all duration-1000" style={{ width: `${realizationRate}%` }} />
         </div>
       </div>
     </div>

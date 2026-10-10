@@ -226,10 +226,7 @@ button {
   --ease: cubic-bezier(0.25, 0.46, 0.45, 0.94);
   --dur: 200ms;
 
-  /* Premium Gradients */
-  --grad-teal: linear-gradient(135deg, #14b8a6 0%, #2dd4bf 100%);
-  --grad-navy: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
-  --grad-amber: linear-gradient(135deg, #ea580c 0%, #f97316 100%);
+  /* (Retired gradient tokens removed — all call sites now use flat colors.) */
 }
 
 .glass-premium {
@@ -240,38 +237,16 @@ button {
   box-shadow: 0 16px 38px -18px rgba(0, 69, 173, 0.2);
 }
 
-/* Base X Motif Pattern */
+/* Base X Motif Pattern — flat edition: the grid lines and color glows were
+   layered gradients. The motif now reads as a flat tint; the kente stripe
+   (hard-stop colors, real identity — not a wash) stays untouched below. */
 .bg-motif {
   background-color: #f5f8fe;
-  background-image:
-    linear-gradient(rgba(0, 92, 230, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0, 92, 230, 0.025) 1px, transparent 1px),
-    radial-gradient(
-      circle at top right,
-      rgba(0, 92, 230, 0.09),
-      transparent 34%
-    ),
-    radial-gradient(
-      circle at bottom left,
-      rgba(67, 179, 163, 0.06),
-      transparent 28%
-    );
-  background-size:
-    32px 32px,
-    32px 32px,
-    auto,
-    auto;
-  background-position:
-    top left,
-    top left,
-    top right,
-    bottom left;
+  background-image: none;
 }
 
 .bg-motif-fade {
-  background:
-    radial-gradient(circle at top right, var(--navy-soft) 0%, transparent 70%),
-    radial-gradient(circle at bottom left, var(--surface) 0%, transparent 70%);
+  background: none;
 }
 
 @keyframes fadeIn {
@@ -537,10 +512,7 @@ button {
 
   .bg-motif {
     background-color: #0f1419 !important;
-    background-image: radial-gradient(
-      rgba(255, 255, 255, 0.05) 0.5px,
-      transparent 0.5px
-    ) !important;
+    background-image: none !important;
   }
 
   .card-premium {
@@ -671,10 +643,9 @@ button {
     color: var(--t2);
   }
 
-  /* Light page gradients → dark */
-  [data-theme="dark"] [class*="bg-[linear-gradient"] {
-    background: linear-gradient(145deg, #0f1419 0%, #141b23 40%, #0f1419 100%);
-  }
+  /* Dead remap removed with the last inline page gradient: with no
+     bg-[linear-gradient...] utilities left in markup, this rule only
+     reintroduced a gradient in dark mode. */
 
   /* Native form controls, autofill, placeholders */
   [data-theme="dark"] input[type="checkbox"],
@@ -1167,10 +1138,10 @@ table tr {
     min-height: 12px;
   }
   .weekbar-solid {
-    background: linear-gradient(180deg, var(--primary-400) 0%, var(--primary-600) 100%);
+    background: var(--primary-600);
   }
   .weekbar-max {
-    background: linear-gradient(180deg, var(--green) 0%, var(--primary-700) 100%);
+    background: var(--green);
   }
   .weekbar-empty {
     background: repeating-linear-gradient(
@@ -2444,3 +2415,30 @@ html.lite [role="button"] {
     max-width: none;
   }
 }
+
+/* ── Flat + tight visual direction ─────────────────────────────────────
+   No gradients, small radii. Circles (avatars, dots, photos) and pills
+   (chips, badges) are functional shapes and keep rounded-full; everything
+   else tightens to 6–10px. Unlayered on purpose: plain author rules beat
+   Tailwind's layered utilities at equal specificity, so one block retunes
+   ~2,000 call sites without touching markup. */
+.rounded-lg { border-radius: 6px; }
+.rounded-xl { border-radius: 8px; }
+.rounded-2xl { border-radius: 8px; }
+.rounded-3xl { border-radius: 10px; }
+[class*="rounded-[14px]"],
+[class*="rounded-[15px]"],
+[class*="rounded-[16px]"],
+[class*="rounded-[18px]"],
+[class*="rounded-[20px]"],
+[class*="rounded-[22px]"],
+[class*="rounded-[24px]"],
+[class*="rounded-[26px]"],
+[class*="rounded-[28px]"],
+[class*="rounded-[30px]"],
+[class*="rounded-[32px]"],
+[class*="rounded-[34px]"],
+[class*="rounded-[36px]"],
+[class*="rounded-[40px]"],
+[class*="rounded-[2.5rem]"],
+[class*="rounded-[4mm]"] { border-radius: 8px; }

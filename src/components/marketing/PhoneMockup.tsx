@@ -50,7 +50,7 @@ export function PhoneMockup() {
           width: 3,
           height: 22,
           borderRadius: "4px 0 0 4px",
-          background: "linear-gradient(180deg,#56565a,#323234)",
+          background: "#56565a",
         }}
       />
       <div
@@ -61,7 +61,7 @@ export function PhoneMockup() {
           width: 3,
           height: 36,
           borderRadius: "4px 0 0 4px",
-          background: "linear-gradient(180deg,#56565a,#323234)",
+          background: "#56565a",
         }}
       />
       <div
@@ -72,7 +72,7 @@ export function PhoneMockup() {
           width: 3,
           height: 36,
           borderRadius: "4px 0 0 4px",
-          background: "linear-gradient(180deg,#56565a,#323234)",
+          background: "#56565a",
         }}
       />
       <div
@@ -83,13 +83,13 @@ export function PhoneMockup() {
           width: 3,
           height: 48,
           borderRadius: "0 4px 4px 0",
-          background: "linear-gradient(180deg,#56565a,#323234)",
+          background: "#56565a",
         }}
       />
 
       <div
         style={{
-          background: "linear-gradient(160deg, #424244 0%, #1d1d1f 50%, #111113 100%)",
+          background: "#424244",
           borderRadius: 52,
           padding: 4,
           boxShadow: "inset 0 1px 0 rgba(255,255,255,0.14), 0 0 0 1px rgba(0,0,0,0.6)",

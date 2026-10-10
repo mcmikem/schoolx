@@ -123,7 +123,7 @@ export default function GraduationPage() {
         .border-inner { border: 2px solid #1e3a5f; padding: 40px; position: relative; }
         h1 { font-size: 14px; letter-spacing: 4px; text-transform: uppercase; color: #1e3a5f; margin: 0 0 8px; }
         .school-name { font-size: 28px; font-weight: 700; color: #1e3a5f; margin: 8px 0; }
-        .deco { width: 60%; height: 2px; background: linear-gradient(90deg,transparent,#1e3a5f,transparent); margin: 12px auto; }
+        .deco { width: 60%; height: 2px; background: #1e3a5f; margin: 12px auto; }
         .title { font-size: 22px; font-weight: 700; letter-spacing: 6px; text-transform: uppercase; color: #1e3a5f; margin: 16px 0; }
         .student-name { font-size: 36px; font-weight: 700; color: #000; margin: 16px 0; letter-spacing: 2px; }
         .text { font-size: 16px; line-height: 1.8; color: #333; }

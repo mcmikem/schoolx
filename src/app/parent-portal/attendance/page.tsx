@@ -95,7 +95,7 @@ export default function ParentAttendancePage() {
             { label: "Late", value: stats.late, icon: "schedule", color: "text-amber-600" },
           ].map((s) => (
             <Card key={s.label}>
-              <CardBody className="text-center space-y-2 bg-[linear-gradient(180deg,var(--portal-surface-tint)_0%,var(--portal-surface)_100%)]">
+              <CardBody className="text-center space-y-2 bg-[var(--portal-surface-tint)]">
                 <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-[15px] border border-[var(--border)] bg-[var(--surface-container-low)]">
                   <MaterialIcon icon={s.icon} className={`text-xl ${s.color}`} />
                 </div>

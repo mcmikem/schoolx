@@ -11,8 +11,7 @@ interface PageHeaderProps {
 export function PageHeader({ title, subtitle, actions, children, variant = "standard" }: PageHeaderProps) {
   if (variant === "premium") {
     return (
-      <div className="relative overflow-hidden rounded-[var(--r2)] border border-[var(--border)] bg-[linear-gradient(135deg,rgba(255,255,255,0.96)_0%,rgba(240,247,255,0.98)_54%,rgba(236,253,245,0.92)_100%)] p-5 sm:p-6 mb-8 shadow-[var(--sh2)] motif-kente-border">
-        <div className="absolute inset-0 pointer-events-none opacity-80 bg-[radial-gradient(circle_at_top_right,rgba(0,86,210,0.10),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(13,148,136,0.10),transparent_28%)]" />
+      <div className="relative overflow-hidden rounded-[var(--r2)] border border-[var(--border)] bg-white p-5 sm:p-6 mb-8 shadow-[var(--sh2)] motif-kente-border">
         <div className="absolute top-0 right-0 p-6 opacity-[0.05] pointer-events-none">
           <span className="material-symbols-outlined text-[110px]">dashboard</span>
         </div>

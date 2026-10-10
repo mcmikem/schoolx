@@ -129,7 +129,7 @@ export default function SmartAdvisor({
             className="w-full max-w-md bg-[var(--surface)] h-full shadow-2xl overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="p-4 border-b border-[var(--border)] bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-between sticky top-0">
+            <div className="p-4 border-b border-[var(--border)] bg-amber-500 text-white flex items-center justify-between sticky top-0">
               <div className="flex items-center gap-2">
                 <MaterialIcon style={{ fontSize: 20 }}>auto_awesome</MaterialIcon>
                 <span className="text-sm font-semibold">Daily School Advisor</span>
@@ -140,10 +140,7 @@ export default function SmartAdvisor({
             </div>
             <div className="p-4 space-y-3">
               {insights.map((insight, i) => (
-                <div
-                  key={i}
-                  className="p-4 rounded-xl bg-gradient-to-br from-amber-50 to-orange-50 border border-amber/20"
-                >
+                <div key={i} className="p-4 rounded-xl bg-amber-50 border border-amber/20">
                   <p className="text-sm font-medium text-[var(--t1)] leading-relaxed">{insight}</p>
                 </div>
               ))}

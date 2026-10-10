@@ -382,7 +382,7 @@ export default function LoginPage() {
 
   return (
     <PageErrorBoundary>
-      <div className="min-h-screen bg-[linear-gradient(145deg,#f0f5fc_0%,#e8f0fb_40%,#f4f8ff_100%)] flex items-center justify-center px-4 py-10">
+      <div className="min-h-screen bg-[#f0f5fc] flex items-center justify-center px-4 py-10">
         <div className="w-full max-w-md rounded-3xl border border-white/60 bg-white/90 p-8 shadow-[0_24px_48px_rgba(15,23,42,0.08)] backdrop-blur-xl">
           <div className="mb-6">
             <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-slate-600 hover:text-slate-900">

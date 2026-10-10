@@ -127,7 +127,7 @@ export default function AboutPage() {
               </div>
 
               <FadeIn delay={200}>
-                <div className="rounded-[34px] border border-[#d7e4fb] bg-[linear-gradient(180deg,#ffffff_0%,#f5f9ff_100%)] p-6 shadow-sm lg:p-8">
+                <div className="rounded-[34px] border border-[#d7e4fb] bg-white p-6 shadow-sm lg:p-8">
                   <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--t1)]">
                     What changes when the system runs well
                   </p>

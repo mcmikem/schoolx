@@ -123,7 +123,7 @@ export default function PromotionPage() {
         <div className="grid lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
             <Card>
-              <CardBody className="space-y-4 bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)]">
+              <CardBody className="space-y-4 bg-white">
                 <h2 className="font-semibold text-[var(--on-surface)]">Select Class to Promote From</h2>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -187,7 +187,7 @@ export default function PromotionPage() {
 
             {selectedClass && (
               <Card>
-                <CardBody className="bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)]">
+                <CardBody className="bg-white">
                   <div className="flex justify-between items-center mb-4">
                     <h2 className="font-semibold text-[var(--on-surface)]">
                       Students {loadingStudents ? "…" : `(${students.length})`}
@@ -247,7 +247,7 @@ export default function PromotionPage() {
 
           <div>
             <Card>
-              <CardBody className="bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)]">
+              <CardBody className="bg-white">
                 <h2 className="mb-4 font-semibold text-[var(--on-surface)]">Promotion History</h2>
                 {history.length === 0 ? (
                   <p className="text-sm text-[var(--on-surface-variant)] text-center py-6">No promotions yet</p>

@@ -130,12 +130,6 @@ export default function StudentWorkspaceShell({
                 );
               })}
             </div>
-            {showTabsOverflowHint && (
-              <>
-                <div className="pointer-events-none absolute inset-y-0 left-0 w-5 bg-gradient-to-r from-[var(--surface)] to-transparent" />
-                <div className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-[var(--surface)] to-transparent" />
-              </>
-            )}
           </div>
           {showTabsOverflowHint && (
             <div className="sm:hidden px-2 pb-2 text-[11px] text-[var(--t3)] flex items-center gap-1">

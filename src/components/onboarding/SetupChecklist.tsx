@@ -212,10 +212,7 @@ export default function SetupChecklist({ onComplete, showAll = false, autoHide =
 
         {/* Progress Bar */}
         <div className="w-full h-3 bg-[var(--surface-container)] rounded-full mb-6 overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-teal-500 to-[var(--primary)] transition-all duration-500"
-            style={{ width: `${progress}%` }}
-          />
+          <div className="h-full bg-teal-500 transition-all duration-500" style={{ width: `${progress}%` }} />
         </div>
 
         {/* Checklist Items */}

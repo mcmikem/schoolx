@@ -65,7 +65,7 @@ export function SchoolReadinessGuide({ items, title = "School Readiness" }: Scho
 
 export function TeacherQuickGuide() {
   return (
-    <div className="rounded-[24px] border border-[var(--border)] bg-[linear-gradient(150deg,var(--green-soft)_0%,var(--surface-container-low)_44%,var(--surface-bright)_100%)] p-4 mb-6">
+    <div className="rounded-[24px] border border-[var(--border)] bg-[var(--green-soft)] p-4 mb-6">
       <div className="flex items-center gap-2 mb-3">
         <span className="material-symbols-outlined text-[var(--t1)] text-lg">school</span>
         <span className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--t1)]">My Day</span>

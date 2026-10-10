@@ -38,7 +38,6 @@ export default function IDCardsPage() {
     if (!cardWindow) return;
 
     const schoolColor = school?.primary_color || "#002045";
-    const accentColor = school?.accent_color || "#2563eb";
     const schoolLogo = school?.logo_url || "";
     const schoolName = school?.name || "School";
     const escapeHtml = (s: string) =>
@@ -66,7 +65,7 @@ export default function IDCardsPage() {
       }
       .left-section {
         width: 100px;
-        background: linear-gradient(180deg, ${schoolColor} 0%, ${accentColor} 100%);
+        background: ${schoolColor};
         display: flex;
         flex-direction: column;
         align-items: center;
