@@ -40,3 +40,17 @@ describe("attendance post-save done state", () => {
     expect(page).toContain("photo_url");
   });
 });
+
+describe("attendance mark-and-advance", () => {
+  it("tucks marked rows away so the next unmarked pupil slides up", () => {
+    expect(page).toContain("collapsedIds");
+    expect(page).toContain("visibleStudents");
+    // Review views (active filter/search) always show everything matching.
+    expect(page).toContain("isReviewing");
+  });
+
+  it("flashes an unmissable confirmation on every mark", () => {
+    expect(page).toContain("confirmedId");
+    expect(page).toContain("Use the filters above to review or correct");
+  });
+});

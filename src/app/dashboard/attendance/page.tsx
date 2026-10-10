@@ -297,6 +297,31 @@ export default function AttendancePage() {
   const markAttendance = (studentId: string, status: string) => {
     setAttendance((prev) => ({ ...prev, [studentId]: status }));
     setAllMarked(false);
+    flashConfirm(studentId);
+    scheduleCollapse(studentId);
+  };
+
+  // Post-mark feedback: the row flashes its new status, then tucks away so
+  // the next unmarked pupil slides up — no scrolling through marked rows.
+  // Both timers are per-mark (never cleared by later marks) so rapid marking
+  // never strands a row confirmed-but-visible or collapses one unflashed.
+  const [confirmedId, setConfirmedId] = useState<string | null>(null);
+  const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
+  const flashConfirm = (studentId: string) => {
+    setConfirmedId(studentId);
+    window.setTimeout(() => {
+      setConfirmedId((cur) => (cur === studentId ? null : cur));
+    }, 900);
+  };
+  const scheduleCollapse = (studentId: string) => {
+    window.setTimeout(() => {
+      setCollapsedIds((prev) => {
+        if (prev.has(studentId)) return prev;
+        const next = new Set(prev);
+        next.add(studentId);
+        return next;
+      });
+    }, 900);
   };
 
   const handleTapStatus = (studentId: string) => {
@@ -317,6 +342,8 @@ export default function AttendancePage() {
   const handleMarkAllPresent = () => {
     if (allMarked) {
       setAttendance({});
+      setCollapsedIds(new Set());
+      setConfirmedId(null);
       setAllMarked(false);
       toast.info("Marks cleared");
     } else {
@@ -337,6 +364,8 @@ export default function AttendancePage() {
       return updated;
     });
     toast.success(`${selectedAbsentIds.size} student(s) marked absent`);
+    // Freshly-marked absentees tuck away with the rest of this session's marks.
+    setCollapsedIds((prev) => new Set([...prev, ...selectedAbsentIds]));
     setSelectedAbsentIds(new Set());
     setAllMarked(false);
     setShowQuickAbsentModal(false);
@@ -366,10 +395,18 @@ export default function AttendancePage() {
     return list;
   }, [students, attendance, filterStatus, searchQuery]);
 
+  // Marked rows tuck away automatically — but only while browsing the whole
+  // register. An active filter or search means "I'm looking for someone",
+  // so review views always show everything matching.
+  const isReviewing = filterStatus !== "all" || searchQuery.trim() !== "";
+  const visibleStudents = isReviewing ? filteredStudents : filteredStudents.filter((s) => !collapsedIds.has(s.id));
+
   // A new class or date means a new register — drop the previous save summary
   // so the teacher always lands back on the marking list, never a stale done.
   useEffect(() => {
     setSavedSummary(null);
+    setCollapsedIds(new Set());
+    setConfirmedId(null);
   }, [selectedClass, date]);
 
   const saveAttendance = async (attendanceOverride?: Record<string, string>) => {
@@ -556,7 +593,7 @@ export default function AttendancePage() {
   });
   const flashTimer = useRef<number | null>(null);
   const jumpToNextUnmarked = useCallback(() => {
-    const pool = filteredStudents.length > 0 ? filteredStudents : students;
+    const pool = visibleStudents.length > 0 ? visibleStudents : students;
     const next = pool.find((s) => !(s.id in attendance));
     if (!next) {
       toast.info("Everyone on this list is marked");
@@ -566,7 +603,7 @@ export default function AttendancePage() {
     if (flashTimer.current) window.clearTimeout(flashTimer.current);
     flashTimer.current = window.setTimeout(() => setFlashId(null), 1600);
     document.getElementById(`att-row-${next.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, [filteredStudents, students, attendance, toast]);
+  }, [visibleStudents, students, attendance, toast]);
   const saveDisabledReason = !selectedClass
     ? "Select a class to enable Save Changes."
     : !hasAttendanceRecords
@@ -725,6 +762,41 @@ export default function AttendancePage() {
           }
         />
 
+        <div
+          aria-label="Teacher attendance register summary"
+          className="rounded-[28px] border border-[var(--border)] bg-white p-4 shadow-[0_16px_35px_rgba(15,23,42,0.06)]"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--primary)]">Register</p>
+              <h2 className="mt-1 text-lg font-bold text-[var(--t1)] font-['Sora']">Mark today&apos;s class</h2>
+            </div>
+            <span className="rounded-full bg-[var(--primary-50)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--t1)]">
+              {selectedClassName?.name || "Choose class"}
+            </span>
+          </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-5">
+            {[
+              { label: "Present", value: presentCount, tone: "text-secondary" },
+              { label: "Absent", value: absentCount, tone: "text-error" },
+              { label: "Late", value: lateCount, tone: "text-tertiary" },
+              { label: "Excused", value: excusedCount, tone: "text-[#7c3aed]" },
+              { label: "Offline", value: offlineCount, tone: "text-primary" },
+            ].map((item) => (
+              <div
+                key={item.label}
+                className="rounded-2xl border border-[var(--surface-container-low)] bg-[var(--surface-bright)] p-3 text-center"
+              >
+                <div className={`text-xl font-bold ${item.tone}`}>{item.value}</div>
+                <div className="mt-1 text-[10px] font-medium uppercase tracking-[0.08em] text-[var(--t3)]">
+                  {item.label}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="bg-surface-container-lowest rounded-xl border border-outline-variant p-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <div
@@ -768,29 +840,11 @@ export default function AttendancePage() {
           </button>
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-          {[
-            { label: "Present", value: presentCount, tone: "text-secondary" },
-            { label: "Absent", value: absentCount, tone: "text-error" },
-            { label: "Late", value: lateCount, tone: "text-tertiary" },
-            { label: "Excused", value: excusedCount, tone: "text-[#7c3aed]" },
-            { label: "Offline queue", value: offlineCount, tone: "text-primary" },
-          ].map((item) => (
-            <div
-              key={item.label}
-              className="bg-surface-container-lowest rounded-xl border border-outline-variant p-3 text-center"
-            >
-              <div className={`text-2xl md:text-3xl font-bold ${item.tone}`}>{item.value}</div>
-              <div className="text-xs md:text-sm text-on-surface-variant mt-1">{item.label}</div>
-            </div>
-          ))}
-        </div>
-
-        <div className="bg-surface-container-lowest rounded-xl border border-outline-variant p-4">
+        <div className="bg-surface-container-lowest rounded-[24px] border border-outline-variant p-4">
           <div className="flex flex-col sm:flex-row gap-4">
             <div className="flex-1">
-              <label className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2 block">
-                Select Class
+              <label className="text-[10px] font-black uppercase tracking-[0.14em] text-on-surface-variant mb-2 block">
+                Select class
                 {isClassTeacher && !isAdmin && (
                   <span className="ml-2 normal-case font-medium text-primary">(your classes)</span>
                 )}
@@ -839,7 +893,7 @@ export default function AttendancePage() {
             </div>
             <div className="flex items-end gap-2">
               <div className={bulkMode ? "sm:w-40" : "sm:w-48"}>
-                <label className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2 block">
+                <label className="text-[10px] font-black uppercase tracking-[0.14em] text-on-surface-variant mb-2 block">
                   Date
                 </label>
                 <input
@@ -852,7 +906,7 @@ export default function AttendancePage() {
               </div>
               <button
                 onClick={() => setBulkMode(!bulkMode)}
-                className={`px-3 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all min-h-[44px] ${
+                className={`px-3 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.12em] transition-all min-h-[44px] ${
                   bulkMode
                     ? "bg-primary text-on-primary shadow-md"
                     : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
@@ -1050,7 +1104,7 @@ export default function AttendancePage() {
               <div className="min-w-0">
                 <div className="font-semibold text-on-surface text-sm">Everyone starts as Present</div>
                 <div className="text-xs text-on-surface-variant">
-                  Swipe right for Present, left for Absent — or tap to cycle. Mark only the exceptions.
+                  Swipe right for Present, left for Absent — or tap to cycle. Marked pupils tuck away automatically.
                 </div>
               </div>
             </div>
@@ -1108,9 +1162,14 @@ export default function AttendancePage() {
               </div>
             )}
 
-            <div className="flex flex-wrap items-center gap-2">
-              <div className="text-sm font-bold text-on-surface mr-1">Mark register</div>
-              <div className="flex flex-wrap gap-2">
+            <div className="rounded-[24px] border border-[var(--border)] bg-[var(--surface)] p-3 shadow-sm">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-sm font-bold text-on-surface">Mark register</div>
+                <div className="text-xs text-on-surface-variant font-medium">
+                  {presentCount} present · {absentCount} absent
+                </div>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
                 <Button
                   variant="secondary"
                   onClick={handleMarkAllPresent}
@@ -1127,14 +1186,10 @@ export default function AttendancePage() {
                 >
                   Quick Absent
                 </Button>
-                <div className="flex-1" />
-                <div className="text-sm text-on-surface-variant self-center font-medium">
-                  {presentCount} present, {absentCount} absent, {lateCount} late, {excusedCount} excused
-                </div>
               </div>
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <input
                 type="text"
                 placeholder="Search student name..."
@@ -1143,41 +1198,43 @@ export default function AttendancePage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <div className="flex gap-2">
-              {(["all", "present", "absent", "late", "excused"] as const).map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setFilterStatus(f)}
-                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-all min-h-[44px] ${
-                    filterStatus === f
-                      ? "bg-primary text-on-primary"
-                      : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
-                  }`}
-                >
-                  {f === "all"
-                    ? "All"
-                    : f === "present"
-                      ? "Present"
-                      : f === "absent"
-                        ? "Absent"
-                        : f === "late"
-                          ? "Late"
-                          : "Excused"}
-                  {f !== "all" && (
-                    <span className="ml-1 opacity-70">
-                      (
-                      {f === "present"
-                        ? presentCount
+            <div className="-mx-1 overflow-x-auto pb-1">
+              <div className="flex min-w-max gap-2 px-1">
+                {(["all", "present", "absent", "late", "excused"] as const).map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => setFilterStatus(f)}
+                    className={`px-3 py-2 rounded-xl text-sm font-medium transition-all min-h-[44px] ${
+                      filterStatus === f
+                        ? "bg-primary text-on-primary"
+                        : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
+                    }`}
+                  >
+                    {f === "all"
+                      ? "All"
+                      : f === "present"
+                        ? "Present"
                         : f === "absent"
-                          ? absentCount
+                          ? "Absent"
                           : f === "late"
-                            ? lateCount
-                            : excusedCount}
-                      )
-                    </span>
-                  )}
-                </button>
-              ))}
+                            ? "Late"
+                            : "Excused"}
+                    {f !== "all" && (
+                      <span className="ml-1 opacity-70">
+                        (
+                        {f === "present"
+                          ? presentCount
+                          : f === "absent"
+                            ? absentCount
+                            : f === "late"
+                              ? lateCount
+                              : excusedCount}
+                        )
+                      </span>
+                    )}
+                  </button>
+                ))}
+              </div>
             </div>
             {(searchQuery || filterStatus !== "all" || selectedClass) && (
               <div className="flex flex-wrap items-center gap-2">
@@ -1227,7 +1284,7 @@ export default function AttendancePage() {
             )}
 
             <div className="space-y-2">
-              {filteredStudents.map((student, index) => {
+              {visibleStudents.map((student, index) => {
                 const status = (attendance[student.id] || "present") as AttendanceStatus;
                 const config = STATUS_CONFIG[status];
                 const borderColor =
@@ -1253,7 +1310,7 @@ export default function AttendancePage() {
                     onSwipeRight={() => markAttendance(student.id, "present")}
                     onSwipeLeft={() => markAttendance(student.id, "absent")}
                     onTap={() => handleTapStatus(student.id)}
-                    className={`${bgColor} rounded-xl border ${borderColor} p-4 flex items-center justify-between active:scale-[0.98] transition-transform cursor-pointer select-none min-h-[56px] ${flashId === student.id ? "ring-2 ring-primary" : ""} ${!peekDone && index === 0 ? "animate-[swipe-peek_1.4s_ease-in-out_0.8s]" : ""}`}
+                    className={`${bgColor} rounded-xl border ${borderColor} p-4 flex items-center justify-between active:scale-[0.98] transition-transform cursor-pointer select-none min-h-[56px] relative ${flashId === student.id ? "ring-2 ring-primary" : ""} ${!peekDone && index === 0 ? "animate-[swipe-peek_1.4s_ease-in-out_0.8s]" : ""}`}
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       <div className="flex-shrink-0">
@@ -1311,12 +1368,77 @@ export default function AttendancePage() {
                         })}
                       </div>
                     </div>
+                    {confirmedId === student.id && (
+                      <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-end gap-2 rounded-xl bg-surface/70 pr-5 animate-fade-in">
+                        <span
+                          className={`text-base font-bold ${
+                            status === "present"
+                              ? "text-secondary"
+                              : status === "absent"
+                                ? "text-error"
+                                : status === "late"
+                                  ? "text-tertiary"
+                                  : "text-[#7c3aed]"
+                          }`}
+                        >
+                          {config.label}
+                        </span>
+                        <MaterialIcon
+                          icon={config.icon}
+                          className={`text-4xl ${
+                            status === "present"
+                              ? "text-secondary"
+                              : status === "absent"
+                                ? "text-error"
+                                : status === "late"
+                                  ? "text-tertiary"
+                                  : "text-[#7c3aed]"
+                          }`}
+                        />
+                      </div>
+                    )}
                   </SwipeRow>
                 );
               })}
-              {filteredStudents.length === 0 && (
-                <div className="text-center py-8 text-on-surface-variant">No students with this status</div>
-              )}
+              {visibleStudents.length === 0 &&
+                (collapsedIds.size > 0 && !isReviewing ? (
+                  <div className="text-center py-10 px-4">
+                    <div className="w-16 h-16 rounded-full mx-auto flex items-center justify-center bg-secondary-container">
+                      <MaterialIcon icon="check_circle" className="text-4xl text-on-secondary-container" />
+                    </div>
+                    <p className="mt-3 font-bold text-on-surface text-base">All {students.length} marked</p>
+                    <p className="mt-1 text-sm text-on-surface-variant">
+                      {presentCount} present · {absentCount} absent · {lateCount} late · {excusedCount} excused. Use the
+                      filters above to review or correct.
+                    </p>
+                    <Button
+                      onClick={() => saveAttendance()}
+                      disabled={saving}
+                      loading={saving}
+                      icon={<MaterialIcon icon="save" />}
+                      className="mt-4"
+                      size="lg"
+                    >
+                      Save attendance
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 px-4 text-on-surface-variant">
+                    <p>No students with this status</p>
+                    {(searchQuery.trim() !== "" || filterStatus !== "all") && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchQuery("");
+                          setFilterStatus("all");
+                        }}
+                        className="mt-2 min-h-[44px] px-4 text-sm font-semibold text-[var(--primary)]"
+                      >
+                        Clear search and filters
+                      </button>
+                    )}
+                  </div>
+                ))}
             </div>
 
             <div className="fixed bottom-[calc(64px+env(safe-area-inset-bottom,0px))] left-0 right-0 md:relative md:bottom-auto p-4 md:p-0 bg-surface/95 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none border-t border-outline-variant md:border-0 z-10">
