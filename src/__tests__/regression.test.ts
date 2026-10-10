@@ -865,7 +865,10 @@ describe("Student totals agree across screens", () => {
     const panel = read("src/components/students/StudentRegistryPanel.tsx");
     // Before the roster resolves, totalStudents is 0 — that transient zero
     // used to force the import card open (and keep it open) on every school.
-    expect(panel.match(/totalStudents === 0 && !loading/g)).toHaveLength(2);
+    // All three zero gates (open effect, force-open, onboarding tips) also
+    // require canManage: a read-only teacher's empty roster is RLS reality,
+    // not a school that needs setting up.
+    expect(panel.match(/canManage && totalStudents === 0 && !loading/g)).toHaveLength(3);
   });
 
   it("waits for the school context instead of flashing an empty roster", () => {

@@ -356,10 +356,10 @@ export default function StudentRegistryPanel({
   }, []);
 
   useEffect(() => {
-    if (totalStudents === 0 && !loading) {
+    if (canManage && totalStudents === 0 && !loading) {
       setShowQuickImport(true);
     }
-  }, [totalStudents, loading]);
+  }, [canManage, totalStudents, loading]);
 
   const resolveHouse = (student: StudentRow) => {
     if (student.house_id && houseMap[student.house_id]) {
@@ -400,7 +400,7 @@ export default function StudentRegistryPanel({
   };
 
   const shouldForceShowQuickImport =
-    (totalStudents === 0 && !loading) ||
+    (canManage && totalStudents === 0 && !loading) ||
     templateStatus === "parsing" ||
     templateStatus === "ready" ||
     importingTemplate ||
@@ -433,157 +433,164 @@ export default function StudentRegistryPanel({
 
   return (
     <>
-      {totalStudents === 0 && <OnboardingTips schoolId={schoolId} />}
+      {canManage && totalStudents === 0 && !loading && <OnboardingTips schoolId={schoolId} />}
 
-      <div className="dashboard-surface p-5 sm:p-6 mb-5">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <div className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--navy)] mb-2">Quick import</div>
-            <p className="text-sm text-[var(--t3)] max-w-2xl">
-              Keep this closed until you need bulk import. Templates, upload, and preview stay one tap away.
-            </p>
-          </div>
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm"
-            onClick={() => setShowQuickImport((value) => !value)}
-            aria-expanded={showQuickImport || shouldForceShowQuickImport}
-          >
-            {showQuickImport || shouldForceShowQuickImport ? "Hide import tools" : "Open import tools"}
-          </button>
-        </div>
-        {lowBandwidthMode && (
-          <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-[var(--amber-soft)] px-3 py-1 text-xs font-semibold text-[var(--amber)]">
-            <MaterialIcon icon="network_check" className="text-sm" />
-            Data saver on — photos hidden
-            <button
-              type="button"
-              onClick={() => setShowPhotosOverride((current) => (current === true ? null : true))}
-              className="btn btn-ghost btn-xs underline"
-            >
-              {showPhotosOverride === true ? "Hide photos" : "Show photos"}
-            </button>
-          </div>
-        )}
-        {(showQuickImport || shouldForceShowQuickImport) && (
-          <div className="mt-5 rounded-[20px] border border-[var(--border)] bg-[var(--surface)]/60 p-4 space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-sm font-semibold text-[var(--t1)]">Upload student list</div>
-              <button type="button" className="btn btn-ghost btn-sm" onClick={downloadStudentTemplate}>
-                <MaterialIcon icon="download" className="text-sm" />
-                Get template
+      {(canManage || lowBandwidthMode) && (
+        <div className="dashboard-surface p-5 sm:p-6 mb-5">
+          {canManage && (
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <div className="text-sm font-semibold uppercase tracking-[0.3em] text-[var(--navy)] mb-2">
+                  Quick import
+                </div>
+                <p className="text-sm text-[var(--t3)] max-w-2xl">
+                  Keep this closed until you need bulk import. Templates, upload, and preview stay one tap away.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => setShowQuickImport((value) => !value)}
+                aria-expanded={showQuickImport || shouldForceShowQuickImport}
+              >
+                {showQuickImport || shouldForceShowQuickImport ? "Hide import tools" : "Open import tools"}
               </button>
             </div>
-            <input
-              type="file"
-              accept=".csv,.xlsx"
-              onChange={onTemplateUpload}
-              className="w-full text-sm text-slate-600"
-              disabled={templateStatus === "parsing"}
-            />
-            <p className="text-xs text-[var(--t3)]">
-              One header row, no example learners, every field the registration form takes. Columns are matched by name,
-              so order does not matter. Dates accept <span className="font-medium text-[var(--t2)]">15/03/2015</span> or{" "}
-              <span className="font-medium text-[var(--t2)]">2015-03-15</span>;{" "}
-              <span className="font-medium text-[var(--t2)]">Class</span> accepts P.1, P1 or Primary 1. Leave a cell
-              blank and it imports blank.
-            </p>
-            {templateStatus === "parsing" && <p className="text-xs text-[var(--green)]">Parsing file...</p>}
-            {templateErrors && <p className="text-xs text-[var(--amber)]">{templateErrors}</p>}
-            {templateStatus === "ready" && (
-              <button onClick={onSeedTemplate} className="btn btn-primary btn-sm" disabled={importingTemplate}>
-                {importingTemplate ? (
-                  <span className="flex items-center gap-2">
-                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    Seeding {templateRowsCount} students...
-                  </span>
-                ) : (
-                  "Seed students from template"
-                )}
+          )}
+          {lowBandwidthMode && (
+            <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-[var(--amber-soft)] px-3 py-1 text-xs font-semibold text-[var(--amber)]">
+              <MaterialIcon icon="network_check" className="text-sm" />
+              Data saver on — photos hidden
+              <button
+                type="button"
+                onClick={() => setShowPhotosOverride((current) => (current === true ? null : true))}
+                className="btn btn-ghost btn-xs underline"
+              >
+                {showPhotosOverride === true ? "Hide photos" : "Show photos"}
               </button>
-            )}
-            {importingTemplate && (
-              <div className="w-full bg-surface-container rounded-full h-2 overflow-hidden">
-                <div
-                  className="bg-[var(--primary)] h-full transition-all duration-300"
-                  style={{
-                    width: `${((importProgress?.completed || 0) / Math.max(importProgress?.total || templateRowsCount, 1)) * 100}%`,
-                  }}
-                />
+            </div>
+          )}
+          {canManage && (showQuickImport || shouldForceShowQuickImport) && (
+            <div className="mt-5 rounded-[20px] border border-[var(--border)] bg-[var(--surface)]/60 p-4 space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-sm font-semibold text-[var(--t1)]">Upload student list</div>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={downloadStudentTemplate}>
+                  <MaterialIcon icon="download" className="text-sm" />
+                  Get template
+                </button>
               </div>
-            )}
-            {(importProgress || importSummary) && (
-              <div className="mt-2 text-xs text-[var(--t3)]">
-                {importingTemplate && importProgress ? (
-                  <>
-                    Imported {importProgress.completed}/{importProgress.total} rows
-                    {importProgress.success > 0 ? `, ${importProgress.success} saved` : ""}
-                    {importProgress.failed > 0 ? `, ${importProgress.failed} failed` : ""}
-                    {(importProgress.skipped || 0) > 0 ? `, ${importProgress.skipped} already on file` : ""}
-                  </>
-                ) : importSummary ? (
-                  <>
-                    Import complete: {importSummary.success} saved, {importSummary.failed} failed
-                    {importSummary.skipped > 0
-                      ? `, ${importSummary.skipped} skipped because they are already on file`
-                      : ""}
-                  </>
-                ) : null}
-              </div>
-            )}
-            {importSummary?.errors?.length ? (
-              <div className="mt-3 rounded-2xl border border-[var(--border)] bg-[var(--bg)]/80 p-3">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--t3)] mb-2">
-                  Import issues
-                </div>
-                <ul className="space-y-1 text-xs text-[var(--t2)]">
-                  {importSummary.errors.slice(0, 5).map((error, index) => (
-                    <li key={`${error}-${index}`}>• {error}</li>
-                  ))}
-                  {importSummary.errors.length > 5 && (
-                    <li>• {importSummary.errors.length - 5} more issue(s) were hidden</li>
+              <input
+                type="file"
+                accept=".csv,.xlsx"
+                onChange={onTemplateUpload}
+                className="w-full text-sm text-slate-600"
+                disabled={templateStatus === "parsing"}
+              />
+              <p className="text-xs text-[var(--t3)]">
+                One header row, no example learners, every field the registration form takes. Columns are matched by
+                name, so order does not matter. Dates accept{" "}
+                <span className="font-medium text-[var(--t2)]">15/03/2015</span> or{" "}
+                <span className="font-medium text-[var(--t2)]">2015-03-15</span>;{" "}
+                <span className="font-medium text-[var(--t2)]">Class</span> accepts P.1, P1 or Primary 1. Leave a cell
+                blank and it imports blank.
+              </p>
+              {templateStatus === "parsing" && <p className="text-xs text-[var(--green)]">Parsing file...</p>}
+              {templateErrors && <p className="text-xs text-[var(--amber)]">{templateErrors}</p>}
+              {templateStatus === "ready" && (
+                <button onClick={onSeedTemplate} className="btn btn-primary btn-sm" disabled={importingTemplate}>
+                  {importingTemplate ? (
+                    <span className="flex items-center gap-2">
+                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      Seeding {templateRowsCount} students...
+                    </span>
+                  ) : (
+                    "Seed students from template"
                   )}
-                </ul>
-              </div>
-            ) : null}
-            {templatePreviewRows.length > 0 && (
-              <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg)]/70 p-3">
-                <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--t3)] mb-2">
-                  Parsed preview ({templatePreviewRows.length} row
-                  {templatePreviewRows.length === 1 ? "" : "s"})
+                </button>
+              )}
+              {importingTemplate && (
+                <div className="w-full bg-surface-container rounded-full h-2 overflow-hidden">
+                  <div
+                    className="bg-[var(--primary)] h-full transition-all duration-300"
+                    style={{
+                      width: `${((importProgress?.completed || 0) / Math.max(importProgress?.total || templateRowsCount, 1)) * 100}%`,
+                    }}
+                  />
                 </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-xs">
-                    <thead>
-                      <tr>
-                        {Object.keys(templatePreviewRows[0]).map((col) => (
-                          <th
-                            key={col}
-                            className="px-2 py-1 text-left text-[11px] uppercase tracking-[0.2em] text-[var(--t3)]"
-                          >
-                            {col}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {templatePreviewRows.map((row, index) => (
-                        <tr key={index} className="border-t border-[var(--border)]">
-                          {Object.values(row).map((value, idx) => (
-                            <td key={`${index}-${idx}`} className="px-2 py-1 truncate max-w-[120px]">
-                              {value || "\u2014"}
-                            </td>
+              )}
+              {(importProgress || importSummary) && (
+                <div className="mt-2 text-xs text-[var(--t3)]">
+                  {importingTemplate && importProgress ? (
+                    <>
+                      Imported {importProgress.completed}/{importProgress.total} rows
+                      {importProgress.success > 0 ? `, ${importProgress.success} saved` : ""}
+                      {importProgress.failed > 0 ? `, ${importProgress.failed} failed` : ""}
+                      {(importProgress.skipped || 0) > 0 ? `, ${importProgress.skipped} already on file` : ""}
+                    </>
+                  ) : importSummary ? (
+                    <>
+                      Import complete: {importSummary.success} saved, {importSummary.failed} failed
+                      {importSummary.skipped > 0
+                        ? `, ${importSummary.skipped} skipped because they are already on file`
+                        : ""}
+                    </>
+                  ) : null}
+                </div>
+              )}
+              {importSummary?.errors?.length ? (
+                <div className="mt-3 rounded-2xl border border-[var(--border)] bg-[var(--bg)]/80 p-3">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--t3)] mb-2">
+                    Import issues
+                  </div>
+                  <ul className="space-y-1 text-xs text-[var(--t2)]">
+                    {importSummary.errors.slice(0, 5).map((error, index) => (
+                      <li key={`${error}-${index}`}>• {error}</li>
+                    ))}
+                    {importSummary.errors.length > 5 && (
+                      <li>• {importSummary.errors.length - 5} more issue(s) were hidden</li>
+                    )}
+                  </ul>
+                </div>
+              ) : null}
+              {templatePreviewRows.length > 0 && (
+                <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg)]/70 p-3">
+                  <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--t3)] mb-2">
+                    Parsed preview ({templatePreviewRows.length} row
+                    {templatePreviewRows.length === 1 ? "" : "s"})
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr>
+                          {Object.keys(templatePreviewRows[0]).map((col) => (
+                            <th
+                              key={col}
+                              className="px-2 py-1 text-left text-[11px] uppercase tracking-[0.2em] text-[var(--t3)]"
+                            >
+                              {col}
+                            </th>
                           ))}
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {templatePreviewRows.map((row, index) => (
+                          <tr key={index} className="border-t border-[var(--border)]">
+                            {Object.values(row).map((value, idx) => (
+                              <td key={`${index}-${idx}`} className="px-2 py-1 truncate max-w-[120px]">
+                                {value || "\u2014"}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       <div className="card mb-5" style={{ padding: 0 }}>
         <div
@@ -791,7 +798,9 @@ export default function StudentRegistryPanel({
                 ? "Try a different search term"
                 : filtersActive
                   ? "No students match the current filters"
-                  : "Add your first student to get started"}
+                  : canManage
+                    ? "Add your first student to get started"
+                    : "No students are visible to your account yet"}
             </div>
             {filtersActive ? (
               <button onClick={clearFilters} className="btn btn-secondary" style={{ marginTop: 16 }}>
