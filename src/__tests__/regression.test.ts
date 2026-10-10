@@ -861,6 +861,13 @@ describe("Student totals agree across screens", () => {
     expect(hook).not.toContain('countResult && typeof countResult.count === "number" ? countResult.count || 0 : 0');
   });
 
+  it("only auto-opens quick import once the school is known to be empty", () => {
+    const panel = read("src/components/students/StudentRegistryPanel.tsx");
+    // Before the roster resolves, totalStudents is 0 — that transient zero
+    // used to force the import card open (and keep it open) on every school.
+    expect(panel.match(/totalStudents === 0 && !loading/g)).toHaveLength(2);
+  });
+
   it("gets per-class counts from the whole roster, not the first 100 rows", () => {
     for (const rel of [
       "src/app/dashboard/dashboards/DeanDashboard.tsx",

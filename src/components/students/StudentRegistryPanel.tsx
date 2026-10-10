@@ -352,10 +352,10 @@ export default function StudentRegistryPanel({
   }, []);
 
   useEffect(() => {
-    if (totalStudents === 0) {
+    if (totalStudents === 0 && !loading) {
       setShowQuickImport(true);
     }
-  }, [totalStudents]);
+  }, [totalStudents, loading]);
 
   const resolveHouse = (student: StudentRow) => {
     if (student.house_id && houseMap[student.house_id]) {
@@ -396,7 +396,7 @@ export default function StudentRegistryPanel({
   };
 
   const shouldForceShowQuickImport =
-    totalStudents === 0 ||
+    (totalStudents === 0 && !loading) ||
     templateStatus === "parsing" ||
     templateStatus === "ready" ||
     importingTemplate ||
