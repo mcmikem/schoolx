@@ -149,14 +149,29 @@ export function TopLoadingBar() {
   );
 }
 
-export function MinimalLoadingScreen({ message = "Verifying your session..." }: { message?: string }) {
+export function MinimalLoadingScreen({
+  message = "Getting your school ready…",
+  subMessage = "Checking your sign-in — just a moment.",
+}: {
+  message?: string;
+  subMessage?: string;
+}) {
   return (
-    <div className="min-h-screen bg-[var(--bg)] flex flex-col">
+    <div className="min-h-screen bg-[var(--surface-container-low)] flex flex-col">
       <TopLoadingBar />
-      <div className="flex-1 flex items-center justify-center">
-        <div className="text-center">
-          <OwlMascot size={52} premium ring glow animated />
-          <p className="mt-4 text-sm text-[var(--t3)]">{message}</p>
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div
+          role="status"
+          aria-live="polite"
+          className="w-full max-w-xs rounded-2xl border border-[var(--border)] bg-[var(--surface)]/85 backdrop-blur-md px-8 py-7 shadow-lg text-center"
+        >
+          <OwlMascot size={56} premium ring glow animated />
+          <div
+            className="mx-auto mt-4 h-6 w-6 animate-spin rounded-full border-2 border-[var(--border)] border-t-[var(--primary)]"
+            aria-hidden="true"
+          />
+          <p className="mt-3 text-base font-semibold text-[var(--t1)]">{message}</p>
+          <p className="mt-1 text-xs text-[var(--t3)]">{subMessage}</p>
         </div>
       </div>
       <StuckLoadingOverlay />

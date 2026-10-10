@@ -389,7 +389,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
   // Show minimal loading bar while auth is initializing.
   if (!authInitialized) {
-    return <MinimalLoadingScreen message="Verifying your session..." />;
+    return <MinimalLoadingScreen />;
   }
 
   // Auth initialized and no user — redirect guard above will fire.
