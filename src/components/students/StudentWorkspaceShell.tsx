@@ -1,92 +1,45 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import MaterialIcon from "@/components/MaterialIcon";
-import { Card } from "@/components/ui/Card";
 
 type StudentWorkspaceTab = "registry" | "transfers" | "dropouts" | "promotion";
 
 interface StudentWorkspaceShellProps {
-  lowBandwidthMode?: boolean;
   totalStudents: number;
   boysCount: number;
   girlsCount: number;
-  activeStudents: number;
   classesCount: number;
-  currentTerm?: number | null;
-  academicYear?: string | null;
+  activeStudents: number;
   transferredCount: number;
   atRiskCount: number;
   likelyDropoutCount: number;
   activeTab: StudentWorkspaceTab;
   onTabChange: (tab: StudentWorkspaceTab) => void;
-  onImport: () => void;
-  onAddStudent: () => void;
-  onGeneratePle: () => void;
-  onExport: () => void;
-  /** False for class-scoped roles: no registering, importing or bulk edits. */
-  canManage?: boolean;
 }
 
 const WORKFLOW_TABS: Array<{
   id: StudentWorkspaceTab;
   label: string;
   icon: string;
-  description: string;
 }> = [
-  {
-    id: "registry",
-    label: "Registry",
-    icon: "group",
-    description: "Admissions, search, updates, and family records.",
-  },
-  {
-    id: "transfers",
-    label: "Transfers",
-    icon: "swap_horiz",
-    description: "Move learners in and out with full handover history.",
-  },
-  {
-    id: "dropouts",
-    label: "Retention",
-    icon: "warning",
-    description: "Track risk, intervene early, and document follow-up.",
-  },
-  {
-    id: "promotion",
-    label: "Promotion",
-    icon: "trending_up",
-    description: "Prepare class progression and bulk year transitions.",
-  },
+  { id: "registry", label: "Registry", icon: "group" },
+  { id: "transfers", label: "Transfers", icon: "swap_horiz" },
+  { id: "dropouts", label: "Retention", icon: "warning" },
+  { id: "promotion", label: "Promotion", icon: "trending_up" },
 ];
 
-const TAB_DESCRIPTIONS: Record<StudentWorkspaceTab, string> = {
-  registry: "Add, search, and update student records",
-  transfers: "Record students joining or leaving",
-  dropouts: "Spot and follow up at-risk learners",
-  promotion: "Move students to the next class",
-};
-
 export default function StudentWorkspaceShell({
-  lowBandwidthMode = false,
   totalStudents,
   boysCount,
   girlsCount,
-  activeStudents,
   classesCount,
-  currentTerm,
-  academicYear,
+  activeStudents,
   transferredCount,
   atRiskCount,
   likelyDropoutCount,
   activeTab,
   onTabChange,
-  onImport,
-  onAddStudent,
-  onGeneratePle,
-  onExport,
-  canManage = true,
 }: StudentWorkspaceShellProps) {
   const tabsScrollerRef = useRef<HTMLDivElement | null>(null);
   const [showTabsOverflowHint, setShowTabsOverflowHint] = useState(false);
@@ -117,74 +70,24 @@ export default function StudentWorkspaceShell({
     promotion: activeStudents,
   };
 
+  const stats = [
+    { label: "Total enrolled", value: totalStudents, color: "var(--navy)", icon: "group" },
+    { label: "Boys", value: boysCount, color: "var(--navy)", icon: "male" },
+    { label: "Girls", value: girlsCount, color: "var(--green)", icon: "female" },
+    { label: "Classes", value: classesCount, color: "var(--green)", icon: "school" },
+  ];
+
   return (
-    <div className="space-y-4 sm:space-y-5">
-      <section className="dashboard-surface p-4 sm:p-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <h2 className="ph-title">Student Operations Center</h2>
-            <p className="mt-1 text-sm text-[var(--t2)]">
-              Keep admissions, transfers, retention, and progression in one workflow.
-            </p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <span className="dashboard-pill bg-[var(--navy-soft)] text-[var(--navy)]">{totalStudents} enrolled</span>
-              <span className="dashboard-pill bg-[var(--navy-soft)] text-[var(--navy)]">{classesCount} classes</span>
-              <span className="dashboard-pill bg-[var(--amber-soft)] text-[var(--amber)]">
-                Term {currentTerm || "–"}
-              </span>
-              {atRiskCount + likelyDropoutCount > 0 && (
-                <span className="dashboard-pill bg-[var(--red-soft)] text-[var(--red)]">
-                  {atRiskCount + likelyDropoutCount} at risk
-                </span>
-              )}
-              {lowBandwidthMode && (
-                <span className="dashboard-pill bg-[var(--amber-soft)] text-[var(--amber)]">Data saver mode</span>
-              )}
-            </div>
-          </div>
-
-          <div className="w-full lg:w-auto space-y-2">
-            {canManage && (
-              <button onClick={onAddStudent} className="btn btn-primary w-full lg:w-auto">
-                <MaterialIcon icon="person_add" size={15} />
-                Register Student
-              </button>
-            )}
-            <div className="flex gap-2 overflow-x-auto no-scrollbar pb-1">
-              {canManage && (
-                <button onClick={onImport} className="btn btn-ghost whitespace-nowrap">
-                  <MaterialIcon icon="cloud_upload" size={15} />
-                  Import CSV
-                </button>
-              )}
-              {canManage && (
-                <button onClick={onGeneratePle} className="btn btn-ghost whitespace-nowrap">
-                  <MaterialIcon icon="tag" size={15} />
-                  PLE Numbers
-                </button>
-              )}
-              <button onClick={onExport} className="btn btn-ghost whitespace-nowrap">
-                <MaterialIcon icon="download" size={15} />
-                Export
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
+    <div className="space-y-4">
       <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        {[
-          { label: "Total enrolled", value: totalStudents, color: "var(--navy)" },
-          { label: "Boys", value: boysCount, color: "var(--navy)" },
-          { label: "Girls", value: girlsCount, color: "var(--green)" },
-          {
-            label: "At risk",
-            value: atRiskCount + likelyDropoutCount,
-            color: atRiskCount + likelyDropoutCount > 0 ? "var(--amber)" : "var(--t3)",
-          },
-        ].map((s) => (
+        {stats.map((s) => (
           <div key={s.label} className="card p-4">
-            <div className="text-[11px] font-bold uppercase tracking-widest text-[var(--t3)]">{s.label}</div>
+            <div className="flex items-center justify-between gap-2">
+              <div className="text-[11px] font-bold uppercase tracking-widest text-[var(--t3)]">{s.label}</div>
+              <span className="w-7 h-7 rounded-lg bg-[var(--surface-container-low)] flex items-center justify-center shrink-0">
+                <MaterialIcon style={{ fontSize: 15, color: s.color }}>{s.icon}</MaterialIcon>
+              </span>
+            </div>
             <div className="mt-2 text-2xl font-extrabold" style={{ color: s.color, fontFamily: "Sora, sans-serif" }}>
               {s.value}
             </div>
@@ -240,51 +143,6 @@ export default function StudentWorkspaceShell({
               Swipe left or right to see all tabs
             </div>
           )}
-        </div>
-        <div className="px-4 sm:px-5 py-3 bg-[var(--surface-container-low)]">
-          <p className="text-[13px] text-[var(--t2)]">{TAB_DESCRIPTIONS[activeTab]}</p>
-        </div>
-      </section>
-
-      <section className="space-y-2">
-        <div className="px-1 text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--t3)]">Quick tools</div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <Link
-            href="/dashboard/students/id-cards"
-            className="card flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg)] transition-colors no-underline"
-          >
-            <div className="w-9 h-9 rounded-xl bg-[var(--navy-soft)] flex items-center justify-center flex-shrink-0">
-              <MaterialIcon icon="id_card" size={17} className="text-[var(--navy)]" />
-            </div>
-            <div>
-              <div className="text-[13px] font-semibold text-[var(--t1)]">ID Card Studio</div>
-              <div className="text-[11px] text-[var(--t3)]">Print student identity cards</div>
-            </div>
-          </Link>
-          <Link
-            href="/dashboard/reports"
-            className="card flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg)] transition-colors no-underline"
-          >
-            <div className="w-9 h-9 rounded-xl bg-[var(--navy-soft)] flex items-center justify-center flex-shrink-0">
-              <MaterialIcon icon="description" size={17} className="text-[var(--navy)]" />
-            </div>
-            <div>
-              <div className="text-[13px] font-semibold text-[var(--t1)]">Individual Reports</div>
-              <div className="text-[11px] text-[var(--t3)]">Preview & print report cards</div>
-            </div>
-          </Link>
-          <Link
-            href="/dashboard/report-cards"
-            className="card flex items-center gap-3 px-4 py-3 hover:bg-[var(--bg)] transition-colors no-underline"
-          >
-            <div className="w-9 h-9 rounded-xl bg-[var(--navy-soft)] flex items-center justify-center flex-shrink-0">
-              <MaterialIcon icon="print" size={17} className="text-[var(--navy)]" />
-            </div>
-            <div>
-              <div className="text-[13px] font-semibold text-[var(--t1)]">Batch Reports</div>
-              <div className="text-[11px] text-[var(--t3)]">Print whole-class report runs</div>
-            </div>
-          </Link>
         </div>
       </section>
     </div>

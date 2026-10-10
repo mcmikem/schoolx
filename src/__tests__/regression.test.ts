@@ -849,6 +849,18 @@ describe("Student totals agree across screens", () => {
     expect(src).not.toContain("students.length} students enrolled");
   });
 
+  it("never caches a failed roster count as zero", () => {
+    const hook = read("src/lib/hooks/students.ts");
+    // A head-count query that times out used to be stored as 0 and served
+    // from the 5-minute cache: the hub header then read "0 students enrolled",
+    // the onboarding tips took over, and a populated school looked empty.
+    expect(hook).toContain(
+      'const count = typeof countResult?.count === "number" && countResult.count > 0 ? countResult.count : rows.length;',
+    );
+    expect(hook).toMatch(/const \[countResult, data\] = await Promise\.all\(\[/);
+    expect(hook).not.toContain('countResult && typeof countResult.count === "number" ? countResult.count || 0 : 0');
+  });
+
   it("gets per-class counts from the whole roster, not the first 100 rows", () => {
     for (const rel of [
       "src/app/dashboard/dashboards/DeanDashboard.tsx",
@@ -1160,14 +1172,12 @@ describe("Teacher class scope", () => {
   it("students registry is read-only for class-scoped roles", () => {
     const page = read("src/app/dashboard/students/page.tsx");
     expect(page).toContain("const canManageStudents = !isClassScopedRole(user?.role)");
-    // Both the workspace shell (register/import) and the registry rows
-    // (edit/delete) get the flag.
-    expect(page.match(/canManage=\{canManageStudents\}/g)).toHaveLength(2);
+    // Register/import/PLE live in the header actions and are gated inline;
+    // the registry rows get the flag for edit/delete.
+    expect(page.match(/\{canManageStudents && \(/g)).toHaveLength(3);
+    expect(page).toMatch(/canManage=\{canManageStudents\}/);
     expect(page).toContain("onAddStudent={() => setShowAddModal(true)}");
     expect(page).toContain("onDeleteStudent={(id) => setDeleteConfirm({ open: true, studentId: id })}");
-
-    const shell = read("src/components/students/StudentWorkspaceShell.tsx");
-    expect(shell).toMatch(/\{canManage && \(\n\s+<button onClick=\{onAddStudent\}/);
 
     const panel = read("src/components/students/StudentRegistryPanel.tsx");
     expect(panel).toContain("canManage?: boolean");

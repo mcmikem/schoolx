@@ -836,26 +836,29 @@ export function useStudents(schoolId?: string, options?: StudentQueryOptions): U
       // an empty cache and issued its own identical pair of round-trips, which
       // is expensive when each query crosses an ocean to reach the database.
       const { data: entry } = await getOrFetchCached<StudentsCacheEntry>(cacheKey, async () => {
-        const countResult = await withTimeout(
-          supabase.from("students").select("id", { count: "exact", head: true }).eq("school_id", querySchoolId),
-          5000,
-          null,
-        );
-        const count = countResult && typeof countResult.count === "number" ? countResult.count || 0 : 0;
-
         const timeoutFallback = getStudentSelectTimeoutFallback(null, lastResolvedStudentsRef.current);
-        const data = await withTimeout(
-          fetchStudentsWithFallback({
-            schoolId: querySchoolId,
-            offset,
-            limit,
-            fields: slim ? "slim" : "full",
-          }),
-          8000,
-          timeoutFallback,
-        );
+        const [countResult, data] = await Promise.all([
+          withTimeout(
+            supabase.from("students").select("id", { count: "exact", head: true }).eq("school_id", querySchoolId),
+            5000,
+            null,
+          ),
+          withTimeout(
+            fetchStudentsWithFallback({
+              schoolId: querySchoolId,
+              offset,
+              limit,
+              fields: slim ? "slim" : "full",
+            }),
+            8000,
+            timeoutFallback,
+          ),
+        ]);
 
-        return { students: (data as unknown as StudentWithClass[]) || [], count };
+        const rows = (data as unknown as StudentWithClass[]) || [];
+        const count = typeof countResult?.count === "number" && countResult.count > 0 ? countResult.count : rows.length;
+
+        return { students: rows, count };
       });
 
       setStudents(entry.students);

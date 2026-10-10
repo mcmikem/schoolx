@@ -3,7 +3,6 @@
 import Image from "next/image";
 import Link from "next/link";
 import { type ChangeEvent, type MutableRefObject, useCallback, useEffect, useMemo, useState } from "react";
-import { EmptyState } from "@/components/EmptyState";
 import MaterialIcon from "@/components/MaterialIcon";
 import OnboardingTips from "@/components/OnboardingTips";
 import PersonInitials from "@/components/ui/PersonInitials";
@@ -94,9 +93,6 @@ interface StudentRegistryPanelProps {
   schoolId?: string;
   lowBandwidthMode: boolean;
   totalStudents: number;
-  boysCount: number;
-  girlsCount: number;
-  classesCount: number;
   classes: ClassOption[];
   houseMap: Record<string, HouseMeta>;
   templateStatus: "idle" | "parsing" | "ready";
@@ -147,9 +143,6 @@ export default function StudentRegistryPanel({
   schoolId,
   lowBandwidthMode,
   totalStudents,
-  boysCount,
-  girlsCount,
-  classesCount,
   classes,
   houseMap,
   templateStatus,
@@ -291,6 +284,58 @@ export default function StudentRegistryPanel({
     onFilterDefaultersChange(false);
   };
 
+  const removeFilterChip = (key: string) => {
+    switch (key) {
+      case "search":
+        onSearchTermChange("");
+        break;
+      case "class":
+        onSelectedClassChange("all");
+        break;
+      case "gender":
+        onFilterGenderChange("all");
+        break;
+      case "status":
+        onFilterStatusChange("all");
+        break;
+      case "position":
+        onFilterPositionChange("all");
+        break;
+      case "defaulters":
+        onFilterDefaultersChange(false);
+        break;
+    }
+  };
+
+  const activeFilterChips: Array<{ key: string; label: string; display: string }> = [];
+  if (searchTerm.trim()) {
+    activeFilterChips.push({ key: "search", label: "Search", display: searchTerm });
+  }
+  if (selectedClass !== "all") {
+    const classOption = classes.find((classItem) => classItem.id === selectedClass);
+    activeFilterChips.push({
+      key: "class",
+      label: "Class",
+      display: classOption ? `${classOption.name}${classOption.stream ? ` ${classOption.stream}` : ""}` : selectedClass,
+    });
+  }
+  if (filterGender !== "all") {
+    activeFilterChips.push({ key: "gender", label: "Gender", display: filterGender === "M" ? "Boys" : "Girls" });
+  }
+  if (filterStatus !== "all") {
+    activeFilterChips.push({ key: "status", label: "Status", display: filterStatus });
+  }
+  if (filterPosition !== "all") {
+    activeFilterChips.push({
+      key: "position",
+      label: "Position",
+      display: filterPosition === "monitor" ? "Class monitors" : "Prefects",
+    });
+  }
+  if (filterDefaulters) {
+    activeFilterChips.push({ key: "defaulters", label: "Defaulters", display: "Fee defaulters" });
+  }
+
   const downloadStudentTemplate = useCallback(() => {
     const csv = buildStudentTemplateCsv();
     // The BOM keeps Excel from reading UTF-8 names as latin-1, which turns
@@ -417,208 +462,92 @@ export default function StudentRegistryPanel({
           </div>
         )}
         {(showQuickImport || shouldForceShowQuickImport) && (
-          <div className="grid gap-4 md:grid-cols-2 mt-6">
-            <div className="space-y-3 rounded-[20px] border border-[var(--border)] bg-[var(--surface)]/60 p-4">
-              <div className="flex items-center justify-between gap-3">
-                <div className="text-sm font-semibold text-[var(--t1)]">Upload student list</div>
-                <button type="button" className="btn btn-ghost btn-sm" onClick={downloadStudentTemplate}>
-                  <MaterialIcon icon="download" className="text-sm" />
-                  Get template
-                </button>
-              </div>
-              <input
-                type="file"
-                accept=".csv,.xlsx"
-                onChange={onTemplateUpload}
-                className="w-full text-sm text-slate-600"
-                disabled={templateStatus === "parsing"}
-              />
-              <p className="text-xs text-[var(--t3)]">
-                The template has one header row and no example learners, so nothing is invented if you upload it as-is.
-                It carries every field the registration form takes. Columns are matched by name, so order does not
-                matter. Dates may be written as <span className="font-medium text-[var(--t2)]">15/03/2015</span> or{" "}
-                <span className="font-medium text-[var(--t2)]">2015-03-15</span>;{" "}
-                <span className="font-medium text-[var(--t2)]">Class</span> accepts P.1, P1 or Primary 1, and{" "}
-                <span className="font-medium text-[var(--t2)]">House</span> accepts the name your school uses. Leave a
-                cell blank and it imports blank.
-              </p>
-              {templateStatus === "parsing" && <p className="text-xs text-[var(--green)]">Parsing file...</p>}
-              {templateErrors && <p className="text-xs text-[var(--amber)]">{templateErrors}</p>}
-              {templateStatus === "ready" && (
-                <button onClick={onSeedTemplate} className="btn btn-primary btn-sm" disabled={importingTemplate}>
-                  {importingTemplate ? (
-                    <span className="flex items-center gap-2">
-                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      Seeding {templateRowsCount} students...
-                    </span>
-                  ) : (
-                    "Seed students from template"
-                  )}
-                </button>
-              )}
-              {importingTemplate && (
-                <div className="w-full bg-surface-container rounded-full h-2 overflow-hidden">
-                  <div
-                    className="bg-[var(--primary)] h-full transition-all duration-300"
-                    style={{
-                      width: `${((importProgress?.completed || 0) / Math.max(importProgress?.total || templateRowsCount, 1)) * 100}%`,
-                    }}
-                  />
-                </div>
-              )}
-              {(importProgress || importSummary) && (
-                <div className="mt-2 text-xs text-[var(--t3)]">
-                  {importingTemplate && importProgress ? (
-                    <>
-                      Imported {importProgress.completed}/{importProgress.total} rows
-                      {importProgress.success > 0 ? `, ${importProgress.success} saved` : ""}
-                      {importProgress.failed > 0 ? `, ${importProgress.failed} failed` : ""}
-                      {(importProgress.skipped || 0) > 0 ? `, ${importProgress.skipped} already on file` : ""}
-                    </>
-                  ) : importSummary ? (
-                    <>
-                      Import complete: {importSummary.success} saved, {importSummary.failed} failed
-                      {importSummary.skipped > 0
-                        ? `, ${importSummary.skipped} skipped because they are already on file`
-                        : ""}
-                    </>
-                  ) : null}
-                </div>
-              )}
-              {importSummary?.errors?.length ? (
-                <div className="mt-3 rounded-2xl border border-[var(--border)] bg-[var(--bg)]/80 p-3">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--t3)] mb-2">
-                    Import issues
-                  </div>
-                  <ul className="space-y-1 text-xs text-[var(--t2)]">
-                    {importSummary.errors.slice(0, 5).map((error, index) => (
-                      <li key={`${error}-${index}`}>• {error}</li>
-                    ))}
-                    {importSummary.errors.length > 5 && (
-                      <li>• {importSummary.errors.length - 5} more issue(s) were hidden</li>
-                    )}
-                  </ul>
-                </div>
-              ) : null}
-              {filteredTotal === 0 ? (
-                <div className="p-8 text-center">
-                  <EmptyState
-                    icon="people"
-                    title="No students found"
-                    description={
-                      searchTerm ? `No students matching "${searchTerm}"` : "Start by adding students to your school."
-                    }
-                    action={canManage ? { label: "Add Student", onClick: onAddStudent } : undefined}
-                  />
-                </div>
-              ) : (
-                <div className="tbl-wrap table-responsive hidden md:block">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th data-label="Student">Student</th>
-                        <th data-label="Number">Number</th>
-                        <th data-label="Class">Class</th>
-                        <th data-label="House">House</th>
-                        <th data-label="Parent">Parent</th>
-                        <th data-label="Phone">Phone</th>
-                        <th data-label="Actions"></th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {paginatedStudents.map((student) => (
-                        <tr key={student.id}>
-                          <td data-label="Student">
-                            <Link
-                              href={`/dashboard/students/${student.id}`}
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 10,
-                                textDecoration: "none",
-                              }}
-                            >
-                              <div>
-                                {student.photo_url && showPhotos ? (
-                                  <Image
-                                    src={student.photo_url}
-                                    alt={`${student.first_name} ${student.last_name}`}
-                                    width={36}
-                                    height={36}
-                                    unoptimized
-                                    style={{
-                                      width: "100%",
-                                      height: "100%",
-                                      objectFit: "cover",
-                                    }}
-                                  />
-                                ) : (
-                                  <PersonInitials name={`${student.first_name} ${student.last_name}`} size={36} />
-                                )}
-                              </div>
-                              <div>
-                                <div style={{ fontWeight: 600, color: "var(--t1)" }}>
-                                  {student.first_name} {student.last_name}
-                                </div>
-                                <div style={{ fontSize: 11, color: "var(--t3)" }}>
-                                  {student.gender === "M" ? "Male" : "Female"}
-                                </div>
-                              </div>
-                            </Link>
-                          </td>
-                          <td data-label="Number">{student.student_number || "-"}</td>
-                          <td data-label="Class">{student.classes?.name || "-"}</td>
-                          <td data-label="House">
-                            {(() => {
-                              const house = resolveHouse(student);
-                              if (!house) return "-";
-                              return (
-                                <span className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--bg)] px-2 py-1 text-xs font-semibold text-[var(--t1)]">
-                                  <span
-                                    className="h-2.5 w-2.5 rounded-full"
-                                    style={{ backgroundColor: getHouseColor(house) }}
-                                  />
-                                  {house.name}
-                                </span>
-                              );
-                            })()}
-                          </td>
-                          <td data-label="Parent">{student.parent_name || "-"}</td>
-                          <td data-label="Phone">{student.parent_phone || "-"}</td>
-                          <td data-label="Actions">
-                            <Link href={`/dashboard/students/${student.id}`} className="btn btn-ghost btn-sm">
-                              View
-                            </Link>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {pageSize !== -1 && filteredTotal > pageSize && (
-                    <div className="flex items-center justify-between p-4 border-t border-[var(--border)]">
-                      <span style={{ fontSize: 12, color: "var(--t3)" }}>
-                        Page {currentPage} of {totalPages}
-                      </span>
-                      <div className="flex gap-2">
-                        <button onClick={onPreviousPage} disabled={currentPage === 1} className="btn btn-ghost btn-sm">
-                          Previous
-                        </button>
-                        <button
-                          onClick={onNextPage}
-                          disabled={currentPage >= totalPages}
-                          className="btn btn-ghost btn-sm"
-                        >
-                          Next
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
+          <div className="mt-5 rounded-[20px] border border-[var(--border)] bg-[var(--surface)]/60 p-4 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-sm font-semibold text-[var(--t1)]">Upload student list</div>
+              <button type="button" className="btn btn-ghost btn-sm" onClick={downloadStudentTemplate}>
+                <MaterialIcon icon="download" className="text-sm" />
+                Get template
+              </button>
             </div>
-            <div className="rounded-[20px] border border-[var(--border)] bg-[var(--navy-soft)] p-4 space-y-3">
-              <div className="text-sm font-semibold text-[var(--t1)]">Preview & AI hints</div>
-              {templatePreviewRows.length > 0 ? (
+            <input
+              type="file"
+              accept=".csv,.xlsx"
+              onChange={onTemplateUpload}
+              className="w-full text-sm text-slate-600"
+              disabled={templateStatus === "parsing"}
+            />
+            <p className="text-xs text-[var(--t3)]">
+              One header row, no example learners, every field the registration form takes. Columns are matched by name,
+              so order does not matter. Dates accept <span className="font-medium text-[var(--t2)]">15/03/2015</span> or{" "}
+              <span className="font-medium text-[var(--t2)]">2015-03-15</span>;{" "}
+              <span className="font-medium text-[var(--t2)]">Class</span> accepts P.1, P1 or Primary 1. Leave a cell
+              blank and it imports blank.
+            </p>
+            {templateStatus === "parsing" && <p className="text-xs text-[var(--green)]">Parsing file...</p>}
+            {templateErrors && <p className="text-xs text-[var(--amber)]">{templateErrors}</p>}
+            {templateStatus === "ready" && (
+              <button onClick={onSeedTemplate} className="btn btn-primary btn-sm" disabled={importingTemplate}>
+                {importingTemplate ? (
+                  <span className="flex items-center gap-2">
+                    <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Seeding {templateRowsCount} students...
+                  </span>
+                ) : (
+                  "Seed students from template"
+                )}
+              </button>
+            )}
+            {importingTemplate && (
+              <div className="w-full bg-surface-container rounded-full h-2 overflow-hidden">
+                <div
+                  className="bg-[var(--primary)] h-full transition-all duration-300"
+                  style={{
+                    width: `${((importProgress?.completed || 0) / Math.max(importProgress?.total || templateRowsCount, 1)) * 100}%`,
+                  }}
+                />
+              </div>
+            )}
+            {(importProgress || importSummary) && (
+              <div className="mt-2 text-xs text-[var(--t3)]">
+                {importingTemplate && importProgress ? (
+                  <>
+                    Imported {importProgress.completed}/{importProgress.total} rows
+                    {importProgress.success > 0 ? `, ${importProgress.success} saved` : ""}
+                    {importProgress.failed > 0 ? `, ${importProgress.failed} failed` : ""}
+                    {(importProgress.skipped || 0) > 0 ? `, ${importProgress.skipped} already on file` : ""}
+                  </>
+                ) : importSummary ? (
+                  <>
+                    Import complete: {importSummary.success} saved, {importSummary.failed} failed
+                    {importSummary.skipped > 0
+                      ? `, ${importSummary.skipped} skipped because they are already on file`
+                      : ""}
+                  </>
+                ) : null}
+              </div>
+            )}
+            {importSummary?.errors?.length ? (
+              <div className="mt-3 rounded-2xl border border-[var(--border)] bg-[var(--bg)]/80 p-3">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--t3)] mb-2">
+                  Import issues
+                </div>
+                <ul className="space-y-1 text-xs text-[var(--t2)]">
+                  {importSummary.errors.slice(0, 5).map((error, index) => (
+                    <li key={`${error}-${index}`}>• {error}</li>
+                  ))}
+                  {importSummary.errors.length > 5 && (
+                    <li>• {importSummary.errors.length - 5} more issue(s) were hidden</li>
+                  )}
+                </ul>
+              </div>
+            ) : null}
+            {templatePreviewRows.length > 0 && (
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg)]/70 p-3">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--t3)] mb-2">
+                  Parsed preview ({templatePreviewRows.length} row
+                  {templatePreviewRows.length === 1 ? "" : "s"})
+                </div>
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
@@ -646,96 +575,19 @@ export default function StudentRegistryPanel({
                     </tbody>
                   </table>
                 </div>
-              ) : (
-                <p className="text-xs text-[var(--t3)]">Upload a file to preview the parsed rows.</p>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-5">
-        <div className="card p-4 shadow-[0_4px_16px_rgba(0,0,0,0.08),0_1px_4px_rgba(0,0,0,0.04)]">
-          <div className="flex items-center gap-3 mb-2.5">
-            <div className="w-9 h-9 rounded-lg bg-[var(--navy-soft)] flex items-center justify-center">
-              <MaterialIcon style={{ fontSize: 18, color: "var(--navy)" }}>group</MaterialIcon>
-            </div>
-            <span className="text-[10px] font-bold tracking-[0.07em] uppercase text-[var(--t3)]">Total</span>
-          </div>
-          <div
-            style={{
-              fontFamily: "Sora",
-              fontSize: 28,
-              fontWeight: 800,
-              color: "var(--navy)",
-            }}
-          >
-            {totalStudents}
-          </div>
-        </div>
-        <div className="card p-4 shadow-[0_4px_16px_rgba(0,0,0,0.08),0_1px_4px_rgba(0,0,0,0.04)]">
-          <div className="flex items-center gap-3 mb-2.5">
-            <div className="w-9 h-9 rounded-lg bg-[rgba(23,50,95,.1)] flex items-center justify-center">
-              <MaterialIcon style={{ fontSize: 18, color: "var(--navy)" }}>male</MaterialIcon>
-            </div>
-            <span className="text-[10px] font-bold tracking-[0.07em] uppercase text-[var(--t3)]">Boys</span>
-          </div>
-          <div
-            style={{
-              fontFamily: "Sora",
-              fontSize: 28,
-              fontWeight: 800,
-              color: "var(--navy)",
-            }}
-          >
-            {boysCount}
-          </div>
-        </div>
-        <div className="card p-4">
-          <div className="flex items-center gap-3 mb-2.5">
-            <div className="w-9 h-9 rounded-lg bg-[rgba(192,57,43,.1)] flex items-center justify-center">
-              <MaterialIcon style={{ fontSize: 18, color: "var(--red)" }}>female</MaterialIcon>
-            </div>
-            <span className="text-[10px] font-bold tracking-[0.07em] uppercase text-[var(--t3)]">Girls</span>
-          </div>
-          <div
-            style={{
-              fontFamily: "Sora",
-              fontSize: 28,
-              fontWeight: 800,
-              color: "var(--navy)",
-            }}
-          >
-            {girlsCount}
-          </div>
-        </div>
-        <div className="card p-4 shadow-[0_4px_16px_rgba(0,0,0,0.08),0_1px_4px_rgba(0,0,0,0.04)]">
-          <div className="flex items-center gap-3 mb-2.5">
-            <div className="w-9 h-9 rounded-lg bg-[var(--green-soft)] flex items-center justify-center">
-              <MaterialIcon style={{ fontSize: 18, color: "var(--green)" }}>school</MaterialIcon>
-            </div>
-            <span className="text-[10px] font-bold tracking-[0.07em] uppercase text-[var(--t3)]">Classes</span>
-          </div>
-          <div
-            style={{
-              fontFamily: "Sora",
-              fontSize: 28,
-              fontWeight: 800,
-              color: "var(--navy)",
-            }}
-          >
-            {classesCount}
-          </div>
-        </div>
-      </div>
-
-      <div className="card" style={{ padding: 0, marginBottom: 20 }}>
+      <div className="card mb-5" style={{ padding: 0 }}>
         <div
           style={{
             padding: 14,
             borderBottom: "1px solid var(--border)",
             display: "flex",
-            gap: 12,
+            gap: 10,
             alignItems: "center",
             flexWrap: "wrap",
             // Sticky so search and filters stay reachable on a 100-row page.
@@ -747,16 +599,10 @@ export default function StudentRegistryPanel({
             borderTopRightRadius: 22,
           }}
         >
-          <div style={{ flex: 1, minWidth: 200, position: "relative" }}>
+          <div className="relative" style={{ flex: 1, minWidth: 220 }}>
             <MaterialIcon
-              style={{
-                position: "absolute",
-                left: 12,
-                top: "50%",
-                transform: "translateY(-50%)",
-                fontSize: 16,
-                color: "var(--t3)",
-              }}
+              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--t4)]"
+              size={16}
             >
               search
             </MaterialIcon>
@@ -766,31 +612,24 @@ export default function StudentRegistryPanel({
               placeholder="Search by name, parent, or student number..."
               value={searchTerm}
               onChange={(e) => onSearchTermChange(e.target.value)}
-              style={{
-                width: "100%",
-                padding: "10px 12px 10px 38px",
-                border: "1px solid var(--border)",
-                borderRadius: 8,
-                fontSize: 13,
-                background: "var(--bg)",
-                color: "var(--t1)",
-              }}
+              className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-container-lowest)] py-2.5 pl-9 pr-9 text-sm text-[var(--t1)] placeholder:text-[var(--t4)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
             />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => onSearchTermChange("")}
+                aria-label="Clear search"
+                className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-[var(--surface-container)] text-[var(--t3)] hover:bg-[var(--border)]"
+              >
+                <MaterialIcon size={15}>close</MaterialIcon>
+              </button>
+            )}
           </div>
           <select
             value={selectedClass}
             onChange={(e) => onSelectedClassChange(e.target.value)}
-            style={{
-              padding: "10px 14px",
-              border: "1px solid var(--border)",
-              borderRadius: 8,
-              fontSize: 12,
-              fontWeight: 600,
-              background: "var(--surface)",
-              color: "var(--t1)",
-              minWidth: 140,
-              cursor: "pointer",
-            }}
+            aria-label="Filter by class"
+            className="cursor-pointer rounded-xl border border-[var(--border)] bg-[var(--surface-container-lowest)] px-3 py-2.5 text-xs font-semibold text-[var(--t1)]"
           >
             <option value="all">All Classes</option>
             {classes.map((classItem) => (
@@ -803,16 +642,8 @@ export default function StudentRegistryPanel({
           <select
             value={filterGender}
             onChange={(e) => onFilterGenderChange(e.target.value as "all" | "M" | "F")}
-            style={{
-              padding: "10px 14px",
-              border: "1px solid var(--border)",
-              borderRadius: 8,
-              fontSize: 12,
-              fontWeight: 600,
-              background: "var(--surface)",
-              color: "var(--t1)",
-              cursor: "pointer",
-            }}
+            aria-label="Filter by gender"
+            className="cursor-pointer rounded-xl border border-[var(--border)] bg-[var(--surface-container-lowest)] px-3 py-2.5 text-xs font-semibold text-[var(--t1)]"
           >
             <option value="all">All Genders</option>
             <option value="M">Boys only</option>
@@ -821,16 +652,8 @@ export default function StudentRegistryPanel({
           <select
             value={filterStatus}
             onChange={(e) => onFilterStatusChange(e.target.value)}
-            style={{
-              padding: "10px 14px",
-              border: "1px solid var(--border)",
-              borderRadius: 8,
-              fontSize: 12,
-              fontWeight: 600,
-              background: "var(--surface)",
-              color: "var(--t1)",
-              cursor: "pointer",
-            }}
+            aria-label="Filter by status"
+            className="cursor-pointer rounded-xl border border-[var(--border)] bg-[var(--surface-container-lowest)] px-3 py-2.5 text-xs font-semibold text-[var(--t1)]"
           >
             <option value="all">All Statuses</option>
             <option value="active">Active</option>
@@ -841,32 +664,14 @@ export default function StudentRegistryPanel({
           <select
             value={filterPosition}
             onChange={(e) => onFilterPositionChange(e.target.value)}
-            style={{
-              padding: "10px 14px",
-              border: "1px solid var(--border)",
-              borderRadius: 8,
-              fontSize: 12,
-              fontWeight: 600,
-              background: "var(--surface)",
-              color: "var(--t1)",
-              cursor: "pointer",
-            }}
+            aria-label="Filter by position"
+            className="cursor-pointer rounded-xl border border-[var(--border)] bg-[var(--surface-container-lowest)] px-3 py-2.5 text-xs font-semibold text-[var(--t1)]"
           >
             <option value="all">All Positions</option>
             <option value="monitor">Class Monitors</option>
             <option value="prefect">Prefects</option>
           </select>
-          <label
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              cursor: "pointer",
-              fontSize: 12,
-              fontWeight: 600,
-              color: "var(--t1)",
-            }}
-          >
+          <label className="flex cursor-pointer items-center gap-1.5 text-xs font-semibold text-[var(--t1)]">
             <input
               type="checkbox"
               checked={filterDefaulters}
@@ -877,16 +682,8 @@ export default function StudentRegistryPanel({
           <select
             value={sortBy}
             onChange={(e) => onSortByChange(e.target.value as "name" | "number" | "class")}
-            style={{
-              padding: "10px 14px",
-              border: "1px solid var(--border)",
-              borderRadius: 8,
-              fontSize: 12,
-              fontWeight: 600,
-              background: "var(--surface)",
-              color: "var(--t1)",
-              cursor: "pointer",
-            }}
+            aria-label="Sort students"
+            className="cursor-pointer rounded-xl border border-[var(--border)] bg-[var(--surface-container-lowest)] px-3 py-2.5 text-xs font-semibold text-[var(--t1)]"
           >
             <option value="name">Sort by Name</option>
             <option value="number">Sort by Number</option>
@@ -896,16 +693,7 @@ export default function StudentRegistryPanel({
             value={pageSize}
             onChange={(e) => onPageSizeChange(Number(e.target.value))}
             aria-label="Rows per page"
-            style={{
-              padding: "10px 14px",
-              border: "1px solid var(--border)",
-              borderRadius: 8,
-              fontSize: 12,
-              fontWeight: 600,
-              background: "var(--surface)",
-              color: "var(--t1)",
-              cursor: "pointer",
-            }}
+            className="cursor-pointer rounded-xl border border-[var(--border)] bg-[var(--surface-container-lowest)] px-3 py-2.5 text-xs font-semibold text-[var(--t1)]"
           >
             <option value={20}>20 / page</option>
             <option value={50}>50 / page</option>
@@ -916,6 +704,37 @@ export default function StudentRegistryPanel({
             Showing {paginatedStudents.length} of {filteredTotal} students
           </div>
         </div>
+
+        {activeFilterChips.length > 0 && (
+          <div
+            className="flex flex-wrap items-center gap-2 px-4 py-2.5"
+            style={{ borderBottom: "1px solid var(--border)", background: "var(--surface-container-lowest)" }}
+          >
+            {activeFilterChips.map((chip) => (
+              <span
+                key={chip.key}
+                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)] py-1 pl-3 pr-1 text-xs font-medium text-[var(--t2)]"
+              >
+                <span className="text-[var(--t4)]">{chip.label}:</span> {chip.display}
+                <button
+                  type="button"
+                  onClick={() => removeFilterChip(chip.key)}
+                  aria-label={`Clear ${chip.label} filter`}
+                  className="flex h-5 w-5 items-center justify-center rounded-full bg-white/80 text-[var(--t4)] hover:text-[var(--t1)]"
+                >
+                  <MaterialIcon size={13}>close</MaterialIcon>
+                </button>
+              </span>
+            ))}
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="text-xs font-bold text-[var(--primary)] hover:underline"
+            >
+              Clear filters
+            </button>
+          </div>
+        )}
 
         {selectedIds.size > 0 && (
           <div

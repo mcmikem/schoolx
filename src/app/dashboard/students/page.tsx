@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import BulkImport from "@/components/BulkImport";
@@ -568,10 +569,89 @@ export default function StudentHubPage() {
             )
           }
           variant="premium"
-        />
+          actions={
+            <>
+              {canManageStudents && (
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(true)}
+                  className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-[13px] font-bold text-white bg-[var(--primary)] hover:bg-[var(--navy)] transition-colors"
+                >
+                  <MaterialIcon size={16}>person_add</MaterialIcon>
+                  Register Student
+                </button>
+              )}
+              {canManageStudents && (
+                <button
+                  type="button"
+                  onClick={() => setShowBulkImportModal(true)}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-white/80 px-3.5 py-2 text-[13px] font-bold text-[var(--t2)] hover:text-[var(--navy)] hover:border-[var(--navy)] transition-colors"
+                >
+                  <MaterialIcon size={16}>upload_file</MaterialIcon>
+                  Import CSV
+                </button>
+              )}
+              {canManageStudents && (
+                <button
+                  type="button"
+                  onClick={generatePLEIndexNumbers}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-white/80 px-3.5 py-2 text-[13px] font-bold text-[var(--t2)] hover:text-[var(--navy)] hover:border-[var(--navy)] transition-colors"
+                >
+                  <MaterialIcon size={16}>confirmation_number</MaterialIcon>
+                  PLE Numbers
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={handleExport}
+                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-white/80 px-3.5 py-2 text-[13px] font-bold text-[var(--t2)] hover:text-[var(--navy)] hover:border-[var(--navy)] transition-colors"
+              >
+                <MaterialIcon size={16}>download</MaterialIcon>
+                Export
+              </button>
+            </>
+          }
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="dashboard-pill bg-[var(--navy-soft)] text-[var(--navy)]">{academicYear}</span>
+            <span className="dashboard-pill bg-[var(--amber-soft)] text-[var(--amber)]">Term {currentTerm || "–"}</span>
+            {dropouts.atRiskCount > 0 && (
+              <span className="dashboard-pill bg-[var(--red-soft)] text-[var(--red)]">
+                {dropouts.atRiskCount} at risk
+              </span>
+            )}
+            {isConstrainedNetwork && (
+              <span className="dashboard-pill bg-[var(--amber-soft)] text-[var(--amber)]">Data saver mode</span>
+            )}
+            <div className="ml-auto flex flex-wrap items-center gap-2">
+              <Link
+                href="/dashboard/students/id-cards"
+                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-white/70 px-3 py-1.5 text-[12px] font-bold text-[var(--t2)] no-underline hover:text-[var(--navy)] hover:border-[var(--navy)] transition-colors"
+              >
+                <MaterialIcon size={15}>id_card</MaterialIcon>
+                ID Card Studio
+              </Link>
+              <Link
+                href="/dashboard/reports"
+                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-white/70 px-3 py-1.5 text-[12px] font-bold text-[var(--t2)] no-underline hover:text-[var(--navy)] hover:border-[var(--navy)] transition-colors"
+              >
+                <MaterialIcon size={15}>description</MaterialIcon>
+                Individual Reports
+              </Link>
+              <Link
+                href="/dashboard/report-cards"
+                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-white/70 px-3 py-1.5 text-[12px] font-bold text-[var(--t2)] no-underline hover:text-[var(--navy)] hover:border-[var(--navy)] transition-colors"
+              >
+                <MaterialIcon size={15}>print</MaterialIcon>
+                Batch Reports
+              </Link>
+            </div>
+          </div>
+        </PageHeader>
 
         <PageGuidance
           title="How to manage students"
+          defaultOpen={false}
           tips={[
             { icon: "person_add", text: "Add students one by one or import from a spreadsheet." },
             { icon: "swap_horiz", text: "Use Transfers when a student moves to another class or school." },
@@ -580,33 +660,22 @@ export default function StudentHubPage() {
         />
 
         <StudentWorkspaceShell
-          lowBandwidthMode={isConstrainedNetwork}
           totalStudents={totalCount}
           boysCount={boysCount}
           girlsCount={girlsCount}
           activeStudents={students.filter((s) => s.status === "active").length}
           classesCount={classes.length}
-          currentTerm={currentTerm}
-          academicYear={academicYear}
           transferredCount={(transfers.transferredInCount || 0) + (transfers.transferredOutCount || 0)}
           atRiskCount={dropouts.atRiskCount}
           likelyDropoutCount={dropouts.likelyDropoutCount}
           activeTab={activeTab}
           onTabChange={handleTabChange}
-          onImport={() => setShowBulkImportModal(true)}
-          onAddStudent={() => setShowAddModal(true)}
-          onGeneratePle={generatePLEIndexNumbers}
-          onExport={handleExport}
-          canManage={canManageStudents}
         />
 
         <TabPanel activeTab={activeTab} tabId="registry">
           <StudentRegistryPanel
             schoolId={school?.id}
             totalStudents={totalCount}
-            boysCount={boysCount}
-            girlsCount={girlsCount}
-            classesCount={classes.length}
             classes={classes}
             houseMap={houseMap}
             lowBandwidthMode={isConstrainedNetwork}
