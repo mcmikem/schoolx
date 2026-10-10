@@ -147,7 +147,12 @@ export function SwipeRow({ id, onSwipeRight, onSwipeLeft, onTap, className = "",
     <div id={id} className="relative overflow-hidden rounded-xl select-none" style={{ touchAction: "pan-y" }}>
       <div
         aria-hidden="true"
-        className="absolute inset-0 flex items-center justify-between px-5 rounded-xl text-sm font-bold text-white"
+        // Decorative reveal MUST stay out of hit-testing: it blankets the
+        // whole row, and without pointer-events:none every touch lands on it
+        // and bubbles past the foreground div — silently killing swipe AND
+        // tap on real devices (jsdom tests dispatch directly, so they never
+        // caught it). Pinned by the regression test below.
+        className="absolute inset-0 flex items-center justify-between px-5 rounded-xl text-sm font-bold text-white pointer-events-none"
         style={{ background: lean > 0 ? "#059669" : lean < 0 ? "#dc2626" : "transparent" }}
       >
         <span className="flex items-center gap-1" style={{ opacity: lean > 0 ? 1 : 0 }}>

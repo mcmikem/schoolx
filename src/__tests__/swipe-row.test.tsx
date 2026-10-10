@@ -40,6 +40,19 @@ function renderRow(handlers: { onSwipeRight?: () => void; onSwipeLeft?: () => vo
 }
 
 describe("SwipeRow", () => {
+  it("keeps the decorative reveal layer out of hit-testing", () => {
+    const { container } = render(
+      <SwipeRow onSwipeRight={() => {}} onSwipeLeft={() => {}} onTap={() => {}}>
+        <span>Jane Doe</span>
+      </SwipeRow>,
+    );
+    // The reveal blankets the row: without pointer-events:none, real
+    // browsers deliver every touch to IT (bubbling past the foreground
+    // div), so swipe and tap die on devices while jsdom tests stay green.
+    const reveal = container.querySelector('[aria-hidden="true"]') as HTMLElement;
+    expect(reveal.className).toContain("pointer-events-none");
+  });
+
   it("marks Present on a long right swipe and swallows the follow-up click", () => {
     const { surface, onSwipeRight, onSwipeLeft, onTap } = renderRow({});
     swipe(surface, 50, 50 + SWIPE_COMMIT_PX + 40);
