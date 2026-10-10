@@ -868,6 +868,18 @@ describe("Student totals agree across screens", () => {
     expect(panel.match(/totalStudents === 0 && !loading/g)).toHaveLength(2);
   });
 
+  it("waits for the school context instead of flashing an empty roster", () => {
+    const hook = read("src/lib/hooks/students.ts");
+    // While school?.id is still hydrating the hook used to report
+    // loading=false with count 0, so the hub header read "0 students
+    // enrolled" until the fetch landed.
+    const start = hook.indexOf("if (!schoolId) {");
+    const branch = hook.slice(start, hook.indexOf("const querySchoolId", start));
+    expect(branch).not.toContain("setLoading(false)");
+    // The offline cache fast path must seed the count it flips loading with.
+    expect(hook).toContain("setTotalCount((prev) => (prev === 0 ? slice.length : prev));");
+  });
+
   it("gets per-class counts from the whole roster, not the first 100 rows", () => {
     for (const rel of [
       "src/app/dashboard/dashboards/DeanDashboard.tsx",

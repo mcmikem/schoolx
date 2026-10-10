@@ -818,7 +818,10 @@ export function useStudents(schoolId?: string, options?: StudentQueryOptions): U
     }
 
     if (!schoolId) {
-      setLoading(false);
+      // Keep loading=true while the auth context is still hydrating the
+      // school: flipping it to false here made every consumer render its
+      // "0 students" state (and the hub opened its import card) for the
+      // window between mount and school?.id arriving.
       return;
     }
 
@@ -1245,6 +1248,10 @@ export function useStudents(schoolId?: string, options?: StudentQueryOptions): U
       );
       const slice = sorted.slice(0, limit);
       setStudents(slice);
+      // Seed the count too: flipping loading to false while totalCount was
+      // still 0 flashed "0 students enrolled" and force-opened the hub's
+      // import card before the head-count query landed.
+      setTotalCount((prev) => (prev === 0 ? slice.length : prev));
       lastResolvedStudentsRef.current = slice;
       setLoading(false);
     });
