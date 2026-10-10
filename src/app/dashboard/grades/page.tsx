@@ -271,11 +271,18 @@ export default function GradesPage() {
   };
   const touchStartX = useRef(0);
   const mobileCardRef = useRef<HTMLDivElement>(null);
+  const lastHydratedGradesSignature = useRef("");
 
   const [gradePage, setGradePage] = useState(1);
   const gradesPerPage = 20;
   const [statusFilter, setStatusFilter] = useState<"all" | GradeWorkflowStatus>("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const existingGradesSignature = useMemo(() => JSON.stringify(existingGrades ?? []), [existingGrades]);
+  const staffSignature = useMemo(
+    () => JSON.stringify((staff ?? []).map((member) => ({ id: member.id, full_name: member.full_name }))),
+    [staff],
+  );
+  const toastSignature = useMemo(() => JSON.stringify(Object.keys(toast || {})), [toast]);
 
   const filteredStudents = useMemo(() => {
     if (!selectedClass) return [];
@@ -337,6 +344,10 @@ export default function GradesPage() {
 
   // Initialize marks from existing grades (offline-aware)
   useEffect(() => {
+    const hydrationSignature = `${existingGradesSignature}:${staffSignature}`;
+    if (lastHydratedGradesSignature.current === hydrationSignature) return;
+    lastHydratedGradesSignature.current = hydrationSignature;
+
     if ((existingGrades?.length || 0) > 0) {
       const marksMap: StudentMarks = {};
       const newMarksBy: Record<string, { name: string; type: string }> = {};
@@ -358,7 +369,6 @@ export default function GradesPage() {
         }
       });
 
-      // Check for zero variance (Scenario 7)
       const scores = Object.values(marksMap).filter((v) => v !== null) as number[];
       if (scores.length >= 5) {
         const first = scores[0];
@@ -389,7 +399,7 @@ export default function GradesPage() {
       setLockedByName("");
       setSubmissionStatus("draft");
     }
-  }, [existingGrades, staff, toast]);
+  }, [existingGradesSignature, staffSignature, toastSignature]);
 
   const handleLockCA = async () => {
     if (!selectedClass || !selectedSubject || !user?.id) return;
@@ -1254,7 +1264,7 @@ export default function GradesPage() {
           ))}
         </div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <section aria-label="grades overview" className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
           {[
             {
               label: "Selected class",
@@ -1276,7 +1286,7 @@ export default function GradesPage() {
               <div className="mt-1 text-sm font-bold truncate">{item.value as any}</div>
             </div>
           ))}
-        </div>
+        </section>
 
         {/* Marks Entry Info */}
         {selectedClass && selectedSubject && Object.keys(marksBy).length > 0 && (

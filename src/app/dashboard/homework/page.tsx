@@ -1,6 +1,6 @@
 "use client";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
@@ -8,10 +8,8 @@ import { useClasses, useSubjects } from "@/lib/hooks";
 import { useToast } from "@/components/Toast";
 import { useFormDraft } from "@/lib/useAutoSave";
 import { supabase } from "@/lib/supabase";
-import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
+import { isTimeoutResult, withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import MaterialIcon from "@/components/MaterialIcon";
-import { Tabs } from "@/components/ui/Tabs";
-import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 import { logger } from "@/lib/logger";
@@ -35,6 +33,11 @@ interface Homework {
   classes?: { name: string };
 }
 
+function parseHomeworkDueDate(value: string): Date {
+  const [year, month, day] = value.slice(0, 10).split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
 export default function HomeworkPage() {
   const { school, user } = useAuth();
   const { academicYear, currentTerm } = useAcademic();
@@ -44,11 +47,25 @@ export default function HomeworkPage() {
 
   const [homework, setHomework] = useState<Homework[]>([]);
   const [loading, setLoading] = useState(true);
+  const [homeworkError, setHomeworkError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedClass, setSelectedClass] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+
+  const homeworkOverview = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const assigned = homework.length;
+    const dueSoon = homework.filter((item) => {
+      const due = parseHomeworkDueDate(item.due_date);
+      const diff = due.getTime() - today.getTime();
+      return diff >= 0 && diff <= 1000 * 60 * 60 * 24 * 7;
+    }).length;
+    const overdue = homework.filter((item) => parseHomeworkDueDate(item.due_date) < today).length;
+    return { assigned, dueSoon, overdue };
+  }, [homework]);
 
   // Auto-save for homework form
   const homeworkDraft = useFormDraft("homework_add_form");
@@ -84,6 +101,7 @@ export default function HomeworkPage() {
   const fetchHomework = useCallback(async () => {
     if (!school?.id) return;
     setLoading(true);
+    setHomeworkError(null);
     try {
       let query = supabase
         .from("homework")
@@ -97,11 +115,17 @@ export default function HomeworkPage() {
         query = query.eq("class_id", selectedClass);
       }
 
-      const { data, error } = await query;
+      const result = await withTimeout(query, 10000, timeoutFallback());
+      if (isTimeoutResult(result)) {
+        setHomeworkError("Class tests are taking too long to load. Check your connection and try again.");
+        return;
+      }
+      const { data, error } = result;
       if (error) throw error;
       setHomework(data || []);
     } catch (err) {
       logger.error("Error:", err);
+      setHomeworkError("Could not load class tests. Check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -141,7 +165,7 @@ export default function HomeworkPage() {
       const error = res?.error;
 
       if (error) throw error;
-      toast.success("Homework assigned");
+      toast.success("Class test added");
       setShowModal(false);
       homeworkDraft.clearSaved(); // Clear auto-save after success
       setNewHomework({
@@ -165,7 +189,7 @@ export default function HomeworkPage() {
         const { error } = await supabase.from("homework").delete().eq("id", id);
         if (error) throw error;
         setHomework((prev) => prev.filter((hw) => hw.id !== id));
-        toast.success("Homework deleted");
+        toast.success("Class test deleted");
       } catch (err: unknown) {
         toast.error(getErrorMessage(err, "Failed to delete homework"));
       } finally {
@@ -176,12 +200,17 @@ export default function HomeworkPage() {
   };
 
   const getStatusBadge = (homework: Homework) => {
-    const dueDate = new Date(homework.due_date);
-    const now = new Date();
-    const isOverdue = dueDate < now;
+    const dueDate = parseHomeworkDueDate(homework.due_date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const isOverdue = dueDate < today;
+    const isDueToday = dueDate.getTime() === today.getTime();
 
     if (isOverdue) {
       return <span className="px-2 py-1 rounded-lg text-xs font-medium bg-red-100 text-red-600">Overdue</span>;
+    }
+    if (isDueToday) {
+      return <span className="px-2 py-1 rounded-lg text-xs font-medium bg-amber-100 text-amber-700">Due today</span>;
     }
     return <span className="px-2 py-1 rounded-lg text-xs font-medium bg-green-100 text-green-600">Active</span>;
   };
@@ -189,112 +218,181 @@ export default function HomeworkPage() {
   return (
     <PageErrorBoundary>
       <div className="p-4 sm:p-6 lg:p-8 space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h2 className="font-bold text-2xl text-gray-900">Class Tests & Assessments</h2>
-            <p className="text-gray-500 mt-1">Track continuous assessments, quizzes, and test scores</p>
+            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">Teacher workflow</p>
+            <h2 className="mt-1 text-2xl font-bold text-gray-900">Class Tests</h2>
           </div>
           <button
             onClick={() => setShowModal(true)}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gray-900 text-white font-semibold text-sm hover:bg-gray-800 shadow-lg transition-all"
+            className="flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-slate-800"
           >
             <MaterialIcon icon="add" className="text-lg" />
-            Add Test
+            Add class test
           </button>
         </div>
 
-        {/* Filters */}
-        <div className="flex gap-3 flex-wrap">
-          <select
-            value={selectedClass}
-            onChange={(e) => {
-              setSelectedClass(e.target.value);
-            }}
-            className="px-4 py-2 rounded-xl border border-gray-200 bg-white text-sm font-medium"
-          >
-            <option value="">All Classes</option>
-            {classes.length > 0 ? (
-              classes.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))
-            ) : (
-              <option disabled>No classes available</option>
-            )}
-          </select>
-        </div>
-
-        {/* Tests Grid */}
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 animate-pulse">
-                <div className="skeleton h-5 w-24 mb-3"></div>
-                <div className="skeleton h-6 w-full mb-2"></div>
-                <div className="skeleton h-4 w-3/4"></div>
+        <div
+          aria-label="class tests overview"
+          className="rounded-3xl border border-slate-200 bg-white/80 p-4 shadow-sm backdrop-blur-sm"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">
+                Quick class test summary
+              </p>
+              <h3 className="mt-1 text-lg font-semibold text-slate-900">This week at a glance</h3>
+            </div>
+            <div className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-emerald-700">
+              Live
+            </div>
+          </div>
+          <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {[
+              { label: "Assigned", value: homeworkOverview.assigned },
+              { label: "Due soon", value: homeworkOverview.dueSoon },
+              { label: "Overdue", value: homeworkOverview.overdue },
+            ].map((item) => (
+              <div key={item.label} className="rounded-2xl border border-slate-100 bg-slate-50 p-3">
+                <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">{item.label}</div>
+                <div className="mt-2 text-lg font-bold text-slate-800">{item.value}</div>
               </div>
             ))}
+          </div>
+        </div>
+
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          <button
+            type="button"
+            onClick={() => setSelectedClass("")}
+            aria-pressed={selectedClass === ""}
+            className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-medium ${selectedClass === "" ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-700"}`}
+          >
+            All classes
+          </button>
+          {classes.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => setSelectedClass(c.id)}
+              aria-pressed={selectedClass === c.id}
+              className={`shrink-0 rounded-full px-3 py-1.5 text-sm font-medium ${selectedClass === c.id ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-700"}`}
+            >
+              {c.name}
+            </button>
+          ))}
+        </div>
+
+        {homeworkError && homework.length > 0 && (
+          <div
+            role="alert"
+            className="flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"
+          >
+            <span>{homeworkError} Showing the last loaded class tests.</span>
+            <button
+              type="button"
+              onClick={fetchHomework}
+              className="shrink-0 rounded-lg px-3 py-2 font-semibold hover:bg-amber-100"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {loading ? (
+          <div
+            role="status"
+            aria-label="Loading class tests"
+            aria-live="polite"
+            className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3"
+          >
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="mb-4 h-4 w-24 animate-pulse rounded bg-slate-200" />
+                <div className="mb-2 h-5 w-full animate-pulse rounded bg-slate-200" />
+                <div className="mb-4 h-4 w-3/4 animate-pulse rounded bg-slate-200" />
+                <div className="h-12 w-full animate-pulse rounded-xl bg-slate-100" />
+              </div>
+            ))}
+          </div>
+        ) : homeworkError && homework.length === 0 ? (
+          <div role="alert" className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center">
+            <MaterialIcon icon="wifi_off" className="text-3xl text-amber-700" />
+            <h3 className="mt-2 font-semibold text-amber-950">Class tests unavailable</h3>
+            <p className="mt-1 text-sm text-amber-800">{homeworkError}</p>
+            <button
+              type="button"
+              onClick={fetchHomework}
+              className="mt-4 min-h-11 rounded-xl bg-slate-900 px-4 py-2.5 font-semibold text-white"
+            >
+              Try again
+            </button>
           </div>
         ) : homework.length === 0 ? (
           <div className="bg-white rounded-2xl p-12 text-center shadow-sm border border-gray-100">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <MaterialIcon className="text-3xl text-gray-400">assignment</MaterialIcon>
             </div>
-            <h3 className="font-bold text-gray-900 mb-2">No Homework Assigned</h3>
-            <p className="text-gray-500 mb-4">Assign your first homework to get started</p>
+            <h3 className="font-bold text-gray-900 mb-2">No Class Tests Yet</h3>
+            <p className="text-gray-500 mb-4">Add your first class test to get started</p>
             <button
               onClick={() => setShowModal(true)}
               className="px-6 py-2.5 bg-gray-900 text-white rounded-xl font-semibold"
             >
-              Assign Homework
+              Add Class Test
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {homework.map((hw) => (
               <div
                 key={hw.id}
-                className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
+                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md"
               >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
-                      <MaterialIcon className="text-blue-600">menu_book</MaterialIcon>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                      <MaterialIcon className="text-lg">menu_book</MaterialIcon>
                     </div>
                     <div>
-                      <p className="text-xs text-gray-500 font-medium">{hw.subjects?.name || "Subject"}</p>
-                      <p className="text-xs text-gray-400">{hw.classes?.name}</p>
+                      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
+                        {hw.subjects?.name || "Subject"}
+                      </p>
+                      <p className="text-xs text-slate-500">{hw.classes?.name}</p>
                     </div>
                   </div>
                   {getStatusBadge(hw)}
                 </div>
 
-                <h3 className="font-bold text-gray-900 mb-2">{hw.title}</h3>
-                <p className="text-sm text-gray-500 line-clamp-2 mb-4">{hw.description}</p>
+                <h3 className="mt-4 text-base font-semibold text-slate-900">{hw.title}</h3>
+                <p className="mt-2 text-sm text-slate-600 line-clamp-3">{hw.description}</p>
 
-                <div className="flex items-center justify-between pt-3 border-t border-gray-100">
-                  <div className="flex items-center gap-3 text-xs text-gray-500">
-                    <span className="flex items-center gap-1">
-                      <MaterialIcon className="text-sm">calendar_today</MaterialIcon>
-                      {hw.due_date}
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <MaterialIcon className="text-sm">grade</MaterialIcon>
-                      {hw.marks} marks
+                <div className="mt-4 space-y-2 border-t border-slate-100 pt-3 text-xs text-slate-500">
+                  <div className="flex items-center gap-2">
+                    <MaterialIcon className="text-sm">calendar_today</MaterialIcon>
+                    <span>
+                      {parseHomeworkDueDate(hw.due_date).toLocaleDateString("en-UG", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
                     </span>
                   </div>
-                  <button
-                    onClick={() => handleDeleteHomework(hw.id)}
-                    disabled={deletingId === hw.id}
-                    className="p-2 hover:bg-red-50 rounded-lg text-gray-400 hover:text-red-500 disabled:opacity-50 transition-colors"
-                    title="Delete homework"
-                  >
-                    <MaterialIcon className="text-sm">
-                      {deletingId === hw.id ? "hourglass_empty" : "delete"}
-                    </MaterialIcon>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <MaterialIcon className="text-sm">grade</MaterialIcon>
+                    <span>{hw.marks} marks</span>
+                  </div>
                 </div>
+
+                <button
+                  onClick={() => handleDeleteHomework(hw.id)}
+                  disabled={deletingId === hw.id}
+                  className="mt-4 inline-flex items-center gap-2 rounded-lg border border-red-100 bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-600 disabled:opacity-50"
+                  title="Delete class test"
+                >
+                  <MaterialIcon className="text-sm">{deletingId === hw.id ? "hourglass_empty" : "delete"}</MaterialIcon>
+                  Remove
+                </button>
               </div>
             ))}
           </div>
@@ -310,11 +408,14 @@ export default function HomeworkPage() {
               className="bg-white rounded-2xl max-w-lg w-full max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto p-6 my-auto"
               onClick={(e) => e.stopPropagation()}
             >
-              <h3 className="font-bold text-xl text-gray-900 mb-4">Assign Homework</h3>
+              <h3 className="font-bold text-xl text-gray-900 mb-4">Add Class Test</h3>
               <form onSubmit={handleCreateHomework} className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">Title</label>
+                  <label htmlFor="homework-title" className="text-sm font-medium text-gray-700 mb-2 block">
+                    Title *
+                  </label>
                   <input
+                    id="homework-title"
                     type="text"
                     value={newHomework.title}
                     onChange={(e) => handleNewHomeworkChange({ title: e.target.value })}
@@ -323,23 +424,30 @@ export default function HomeworkPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 block">Description</label>
+                  <label htmlFor="homework-description" className="text-sm font-medium text-gray-700 mb-2 block">
+                    Description *
+                  </label>
                   <textarea
+                    id="homework-description"
                     value={newHomework.description}
                     onChange={(e) => handleNewHomeworkChange({ description: e.target.value })}
                     className="input"
                     rows={3}
+                    required
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium text-gray-700 mb-2 block">Class</label>
+                    <label htmlFor="homework-class" className="text-sm font-medium text-gray-700 mb-2 block">
+                      Class *
+                    </label>
                     {classes.length === 0 ? (
                       <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-800">
                         No classes available
                       </div>
                     ) : (
                       <select
+                        id="homework-class"
                         value={newHomework.class_id}
                         onChange={(e) => handleNewHomeworkChange({ class_id: e.target.value })}
                         className="input"
@@ -355,13 +463,16 @@ export default function HomeworkPage() {
                     )}
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-700 mb-2 block">Subject</label>
+                    <label htmlFor="homework-subject" className="text-sm font-medium text-gray-700 mb-2 block">
+                      Subject *
+                    </label>
                     {subjects.length === 0 ? (
                       <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-sm text-amber-800">
                         No subjects available
                       </div>
                     ) : (
                       <select
+                        id="homework-subject"
                         value={newHomework.subject_id}
                         onChange={(e) => handleNewHomeworkChange({ subject_id: e.target.value })}
                         className="input"
@@ -379,8 +490,11 @@ export default function HomeworkPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium text-gray-700 mb-2 block">Due Date</label>
+                    <label htmlFor="homework-due-date" className="text-sm font-medium text-gray-700 mb-2 block">
+                      Due Date *
+                    </label>
                     <input
+                      id="homework-due-date"
                       type="date"
                       value={newHomework.due_date}
                       onChange={(e) => handleNewHomeworkChange({ due_date: e.target.value })}
@@ -389,8 +503,11 @@ export default function HomeworkPage() {
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-700 mb-2 block">Marks</label>
+                    <label htmlFor="homework-marks" className="text-sm font-medium text-gray-700 mb-2 block">
+                      Marks *
+                    </label>
                     <input
+                      id="homework-marks"
                       type="number"
                       inputMode="numeric"
                       value={newHomework.marks}
@@ -468,7 +585,7 @@ export default function HomeworkPage() {
             setConfirmOpen(false);
             pendingAction?.();
           }}
-          title="Delete Homework"
+          title="Delete Class Test"
           message="Delete this homework assignment?"
           variant="danger"
         />

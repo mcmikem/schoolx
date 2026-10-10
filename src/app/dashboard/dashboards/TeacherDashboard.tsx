@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState } from "react";
 import OwlMascot from "@/components/brand/OwlMascot";
 import SchoolCalendar from "@/components/dashboard/SchoolCalendar";
 import SchoolHero from "@/components/dashboard/SchoolHero";
-import { TeacherQuickGuide } from "@/components/dashboard/SchoolReadinessGuide";
 import TaskManager from "@/components/dashboard/TaskManager";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import MaterialIcon from "@/components/MaterialIcon";
@@ -22,7 +21,7 @@ import { buildDefaultClasses, buildDefaultTimetableSlots, type SchoolSetupType }
 import { supabase } from "@/lib/supabase";
 import { greetingFor, todayLabelFor } from "@/lib/utils";
 
-function TeacherDashboardContent() {
+export function TeacherDashboardContent() {
   const router = useRouter();
   const toast = useToast();
   const { school, user, isDemo } = useAuth();
@@ -81,7 +80,7 @@ function TeacherDashboardContent() {
       tone: "text-[var(--t1)]",
     },
     {
-      label: "Post homework",
+      label: "Add class test",
       href: "/dashboard/homework",
       icon: "assignment",
       tone: "text-[var(--green)]",
@@ -109,14 +108,16 @@ function TeacherDashboardContent() {
     if (classesWithNoStudents > 0) {
       items.push({
         id: "no-students",
-        label: `${classesWithNoStudents} class${classesWithNoStudents > 1 ? "es" : ""} with no students assigned`,
+        label: isClassScopedRole(user?.role)
+          ? `${classesWithNoStudents} class${classesWithNoStudents > 1 ? "es" : ""} need a student roster — ask your school administrator`
+          : `${classesWithNoStudents} class${classesWithNoStudents > 1 ? "es" : ""} with no students assigned`,
         icon: "warning",
         priority: "attention" as const,
         href: "/dashboard/students",
-        cta: "Assign",
+        cta: isClassScopedRole(user?.role) ? "View roster" : "Assign",
       });
     }
-    if (needsSetup) {
+    if (needsSetup && !isClassScopedRole(user?.role)) {
       items.push({
         id: "setup",
         label: "Complete class and subject setup",
@@ -127,7 +128,7 @@ function TeacherDashboardContent() {
       });
     }
     return items;
-  }, [attendancePending, classesWithNoStudents, needsSetup]);
+  }, [attendancePending, classesWithNoStudents, needsSetup, user?.role]);
 
   if ((!school?.id || dataLoading) && !loadingTimedOut) {
     return (
@@ -166,17 +167,9 @@ function TeacherDashboardContent() {
           <OwlMascot size={64} premium ring glow animated />
           <h2 className="mt-4 text-lg font-bold text-[var(--t1)] font-['Sora']">No classes assigned yet</h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-[var(--t3)]">
-            Your school administrator hasn&apos;t assigned you to a class or subject. Once they do, your classes,
-            students, attendance and marks will appear here.
+            Your school administrator hasn&apos;t assigned you to a class or subject. Contact them to request your
+            teaching assignments; your classes, students, attendance and marks will appear here once assigned.
           </p>
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
-            <Link
-              href="/dashboard/timetable"
-              className="rounded-xl bg-[var(--t1)] px-5 py-2.5 text-xs font-bold text-white hover:opacity-90 transition-opacity"
-            >
-              Open my timetable
-            </Link>
-          </div>
         </div>
         <div className="mt-5">
           <SchoolCalendar schoolId={school?.id} userId={user?.id} />
@@ -188,8 +181,6 @@ function TeacherDashboardContent() {
 
   return (
     <div className="content overflow-x-hidden">
-      <TeacherQuickGuide />
-
       <SchoolHero
         school={school}
         greeting={greeting}
@@ -216,9 +207,19 @@ function TeacherDashboardContent() {
         }
       />
 
+      {isClassScopedRole(user?.role) && needsSetup && myClasses.length > 0 && (
+        <div
+          role="status"
+          className="mb-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950"
+        >
+          Your teaching subjects are not assigned yet. Ask your school administrator to complete your class and subject
+          setup.
+        </div>
+      )}
+
       {/* ── My Day Summary ── */}
       {stats && (
-        <div className="mb-5 grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <section aria-label="Today status" className="mb-5 grid grid-cols-2 gap-3">
           <div
             className={`rounded-2xl border p-4 ${!attendancePending ? "border-[var(--green-soft)] bg-[var(--green-soft)]" : "border-[var(--red-soft)] bg-[var(--red-soft)]"}`}
           >
@@ -250,72 +251,41 @@ function TeacherDashboardContent() {
               {tasks.length === 1 ? "Pending item" : tasks.length > 0 ? "Pending items" : "All clear"}
             </p>
           </div>
-          <div className="rounded-2xl border border-[var(--surface-container-low)] bg-white p-4">
-            <div className="flex items-center gap-2">
-              <MaterialIcon icon="school" className="text-lg text-[var(--amber)]" />
-              <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--t3)]">Classes</span>
-            </div>
-            <p className="mt-1 text-lg font-bold text-[var(--t1)]">{myClasses.length}</p>
-            <p className="text-[10px] text-[var(--t3)] mt-0.5">{mySubjects.length} subjects</p>
-          </div>
-          <div className="rounded-2xl border border-[var(--surface-container-low)] bg-white p-4">
-            <div className="flex items-center gap-2">
-              <MaterialIcon icon="group" className="text-lg text-[var(--green)]" />
-              <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--t3)]">Students</span>
-            </div>
-            <p className="mt-1 text-lg font-bold text-[var(--t1)]">{stats.totalStudents}</p>
-            <p className="text-[10px] text-[var(--t3)] mt-0.5">Enrolled</p>
-          </div>
-        </div>
+        </section>
       )}
 
       {/* ── Two-Column Layout ── */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
         {/* ── Left Column ── */}
         <div className="xl:col-span-2 space-y-5">
-          {/* Today Actions + At a Glance row */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            <div className="rounded-2xl border border-[var(--surface-container-low)] bg-white p-4">
-              <div className="mb-3 flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--t1)]/10">
-                  <MaterialIcon icon="today" className="text-sm text-[var(--t1)]" />
+          {/* Quick actions */}
+          <div>
+            <div
+              aria-label="Teacher quick actions"
+              className="rounded-[24px] border border-[var(--surface-container-low)] bg-white p-4 shadow-[0_12px_30px_rgba(15,23,42,0.04)]"
+            >
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[var(--t1)]/10">
+                    <MaterialIcon icon="today" className="text-sm text-[var(--t1)]" />
+                  </div>
+                  <h2 className="text-sm font-bold text-[var(--t1)] font-['Sora']">Quick actions</h2>
                 </div>
-                <h2 className="text-sm font-bold text-[var(--t1)] font-['Sora']">Today Actions</h2>
+                <span className="rounded-full bg-[var(--primary-50)] px-2 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--t1)]">
+                  Today
+                </span>
               </div>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
                 {todayActions.map((action) => (
                   <Link
                     key={action.href}
                     href={action.href}
-                    className="flex items-center gap-2.5 rounded-xl border border-[var(--surface-container-low)] bg-[var(--surface-bright)] p-3 transition-all hover:border-[var(--border)] hover:bg-[var(--primary-50)] hover:shadow-sm active:scale-95"
+                    className="flex min-h-[72px] flex-col justify-between gap-2 rounded-2xl border border-[var(--surface-container-low)] bg-[var(--surface-bright)] p-3 transition-all hover:border-[var(--border)] hover:bg-[var(--primary-50)] hover:shadow-sm active:scale-[0.98]"
                   >
-                    <span className={`material-symbols-outlined text-lg ${action.tone}`}>{action.icon}</span>
-                    <span className="text-[11px] font-bold text-[var(--t1)]">{action.label}</span>
+                    <span className={`material-symbols-outlined text-xl ${action.tone}`}>{action.icon}</span>
+                    <span className="text-[11px] font-bold leading-tight text-[var(--t1)]">{action.label}</span>
                   </Link>
                 ))}
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-[var(--surface-container-low)] bg-white p-4">
-              <div className="mb-3 flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--green)]/10">
-                  <MaterialIcon icon="insights" className="text-sm text-[var(--green)]" />
-                </div>
-                <h2 className="text-sm font-bold text-[var(--t1)] font-['Sora']">At a Glance</h2>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                <div className="rounded-xl bg-[var(--surface-bright)] border border-[var(--surface-container-low)] p-3 text-center">
-                  <span className="text-xl font-bold text-[var(--t1)]">{myClasses.length}</span>
-                  <p className="text-[10px] font-medium text-[var(--t3)]">Classes</p>
-                </div>
-                <div className="rounded-xl bg-[var(--surface-bright)] border border-[var(--surface-container-low)] p-3 text-center">
-                  <span className="text-xl font-bold text-[var(--t1)]">{mySubjects.length}</span>
-                  <p className="text-[10px] font-medium text-[var(--t3)]">Subjects</p>
-                </div>
-                <div className="rounded-xl bg-[var(--surface-bright)] border border-[var(--surface-container-low)] p-3 text-center">
-                  <span className="text-xl font-bold text-[var(--t1)]">{stats.totalStudents}</span>
-                  <p className="text-[10px] font-medium text-[var(--t3)]">Students</p>
-                </div>
               </div>
             </div>
           </div>
@@ -336,61 +306,47 @@ function TeacherDashboardContent() {
                 <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--t1)]/10">
                   <MaterialIcon icon="school" className="text-sm text-[var(--t1)]" />
                 </div>
-                <h2 className="text-sm font-bold text-[var(--t1)] font-['Sora']">My Classes</h2>
+                <h2 className="text-sm font-bold text-[var(--t1)] font-['Sora']">My classes</h2>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {myClasses.map((cls: any) => {
-                  const count = students.filter((s) => s.class_id === cls.id).length;
-                  return (
-                    <div
-                      key={cls.id}
-                      className="group rounded-2xl bg-white border border-[var(--surface-container-low)] p-4 transition-all hover:shadow-md hover:-translate-y-0.5"
-                    >
-                      <p className="text-base font-bold text-[var(--t1)]">{cls.name}</p>
-                      <p className="text-xs text-[var(--t3)] mt-0.5">
-                        {count} student{count !== 1 ? "s" : ""}
-                      </p>
-                      <div className="flex gap-2 mt-3">
-                        <Link
-                          href={`/dashboard/attendance?class=${cls.id}`}
-                          className="flex-1 rounded-xl bg-[var(--t1)] py-1.5 text-center text-[10px] font-bold text-white hover:opacity-90 transition-opacity"
-                        >
-                          Attendance
-                        </Link>
-                        <Link
-                          href={`/dashboard/grades?class=${cls.id}`}
-                          className="flex-1 rounded-xl bg-[var(--primary-50)] py-1.5 text-center text-[10px] font-bold text-[var(--t1)] hover:bg-[var(--border)] transition-colors"
-                        >
-                          Grades
-                        </Link>
+              <div className="-mx-1 overflow-x-auto pb-1">
+                <div className="flex min-w-max gap-3 px-1">
+                  {myClasses.map((cls: any) => {
+                    const count = students.filter((s) => s.class_id === cls.id).length;
+                    return (
+                      <div
+                        key={cls.id}
+                        className="group min-w-[220px] flex-1 rounded-[22px] bg-white border border-[var(--surface-container-low)] p-4 shadow-[0_8px_20px_rgba(15,23,42,0.04)] transition-all hover:shadow-md hover:-translate-y-0.5"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <p className="text-base font-bold text-[var(--t1)]">{cls.name}</p>
+                          <span className="rounded-full bg-[var(--primary-50)] px-2 py-1 text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--t1)]">
+                            {count} {count === 1 ? "student" : "students"}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-xs text-[var(--t3)]">
+                          {count === 0 ? "No students assigned yet" : "Ready for teaching"}
+                        </p>
+                        <div className="mt-4 flex gap-2">
+                          <Link
+                            href={`/dashboard/attendance?class=${cls.id}`}
+                            className="flex-1 rounded-xl bg-[var(--t1)] py-2.5 text-center text-[10px] font-bold text-white hover:opacity-90 transition-opacity"
+                          >
+                            Attendance
+                          </Link>
+                          <Link
+                            href={`/dashboard/grades?class=${cls.id}`}
+                            className="flex-1 rounded-xl bg-[var(--primary-50)] py-2.5 text-center text-[10px] font-bold text-[var(--t1)] hover:bg-[var(--border)] transition-colors"
+                          >
+                            Grades
+                          </Link>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             </div>
           )}
-
-          {/* Today's Schedule */}
-          <div className="rounded-2xl border border-[var(--surface-container-low)] bg-white p-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--amber)]/10">
-                  <MaterialIcon icon="calendar_month" className="text-sm text-[var(--amber)]" />
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-[var(--t1)] font-['Sora']">Today's Schedule</p>
-                  <p className="text-[11px] text-[var(--t3)]">View your classes and periods for today</p>
-                </div>
-              </div>
-              <Link
-                href="/dashboard/timetable"
-                className="rounded-xl bg-[var(--t1)] px-4 py-2 text-[11px] font-bold text-white hover:opacity-90 transition-opacity"
-              >
-                Open timetable
-              </Link>
-            </div>
-          </div>
         </div>
 
         {/* ── Right Column: Calendar ── */}

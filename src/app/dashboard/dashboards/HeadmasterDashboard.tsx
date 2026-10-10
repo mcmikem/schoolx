@@ -46,6 +46,10 @@ function HeadmasterDashboardContent() {
   const girlsCount = stats.femaleStudents;
 
   const totalExpected = stats.feesCollected + stats.feesBalance;
+  const compactFeesCollected = useMemo(
+    () => new Intl.NumberFormat("en-UG", { notation: "compact", maximumFractionDigits: 1 }).format(stats.feesCollected),
+    [stats.feesCollected],
+  );
 
   const collectionRate = useMemo(
     () => (totalExpected > 0 ? Math.round((stats.feesCollected / totalExpected) * 100) : 0),
@@ -327,6 +331,32 @@ function HeadmasterDashboardContent() {
           </div>
           <SetupChecklist autoHide />
 
+          <div className="card mb-5">
+            <div className="panel-head !mb-3">
+              <h2 className="panel-title">Common actions</h2>
+            </div>
+            <nav
+              aria-label="Headmaster common actions"
+              className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6"
+            >
+              {quickActions.map((action) => (
+                <Link
+                  key={action.href}
+                  href={action.href}
+                  className="group flex min-h-16 flex-col items-center justify-center gap-1 rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] px-2 py-3 text-center transition-colors hover:border-[var(--primary)]/30 hover:bg-[var(--primary-50)]"
+                >
+                  <MaterialIcon
+                    icon={action.icon}
+                    className="text-lg text-[var(--t3)] group-hover:text-[var(--primary)]"
+                  />
+                  <span className="text-xs font-semibold text-[var(--t2)] group-hover:text-[var(--primary)]">
+                    {action.label}
+                  </span>
+                </Link>
+              ))}
+            </nav>
+          </div>
+
           {/* ── Two-Column Layout ── */}
           <div className="grid grid-cols-1 items-start xl:grid-cols-3 gap-5">
             {/* ── Left Column: Metrics + Task Manager ── */}
@@ -376,17 +406,13 @@ function HeadmasterDashboardContent() {
                 />
                 <StatCard
                   label="Fees collected"
-                  value={statsLoading ? "—" : totalExpected > 0 ? `${collectionRate}%` : "Not set"}
+                  value={statsLoading ? "—" : totalExpected > 0 ? `UGX ${compactFeesCollected}` : "Not set"}
                   subValue={
                     statsLoading
                       ? undefined
-                      : overdueFeeCount > 0
-                        ? `${overdueFeeCount} overdue`
-                        : totalExpected > 0
-                          ? collectionRate >= 70
-                            ? "On track"
-                            : "Behind target"
-                          : "No fees set"
+                      : totalExpected > 0
+                        ? `${collectionRate}% of expected${overdueFeeCount > 0 ? ` · ${overdueFeeCount} overdue` : ""}`
+                        : "No fees set"
                   }
                   icon="payments"
                   accentColor={totalExpected > 0 ? (collectionRate >= 70 ? "green" : "amber") : "red"}
@@ -416,28 +442,6 @@ function HeadmasterDashboardContent() {
             {/* ── Right Column: Calendar + Quick Actions ── */}
             <div className="space-y-5">
               <SchoolCalendar schoolId={school?.id} userId={user?.id} />
-
-              <div className="card">
-                <div className="panel-head !mb-3">
-                  <h2 className="panel-title">Common actions</h2>
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  {quickActions.map((action) => (
-                    <Link
-                      key={action.href}
-                      href={action.href}
-                      className="group flex flex-col items-center gap-1 rounded-[20px] border border-[var(--border)] bg-[var(--surface-container-low)] py-3 transition-all hover:border-[var(--primary)]/30 hover:bg-[var(--primary-50)] hover:shadow-[var(--sh1)] active:scale-95"
-                    >
-                      <span className="material-symbols-outlined text-lg text-[var(--t3)] group-hover:text-[var(--primary)]">
-                        {action.icon}
-                      </span>
-                      <span className="text-xs font-semibold text-[var(--t2)] group-hover:text-[var(--primary)]">
-                        {action.label}
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-              </div>
             </div>
           </div>
         </>

@@ -9,6 +9,7 @@ import { useSidebar } from "@/contexts/SidebarContext";
 import { useAcademic } from "@/lib/academic-context";
 import { useAuth } from "@/lib/auth-context";
 import { useNotifications } from "@/lib/notifications";
+import { canOpenSettingsPage } from "@/lib/role-tab-access";
 import { canAccess, type UserRole } from "@/lib/roles";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/lib/theme-context";
@@ -222,14 +223,16 @@ function UserMenu({ open, onClose, onSignOut }: { open: boolean; onClose: () => 
         </div>
         <div className="text-[11px] text-[var(--t3)] truncate">{user?.role?.replace("_", " ") || "User"}</div>
       </div>
-      <Link
-        href="/dashboard/settings"
-        onClick={onClose}
-        className="flex items-center gap-2 px-4 py-[10px] text-[13px] text-[var(--t2)] no-underline hover:bg-[var(--bg)] transition-colors"
-      >
-        <MaterialIcon icon="settings" style={{ fontSize: 16 }} />
-        Settings
-      </Link>
+      {canOpenSettingsPage(user?.role) && (
+        <Link
+          href="/dashboard/settings"
+          onClick={onClose}
+          className="flex items-center gap-2 px-4 py-[10px] text-[13px] text-[var(--t2)] no-underline hover:bg-[var(--bg)] transition-colors"
+        >
+          <MaterialIcon icon="settings" style={{ fontSize: 16 }} />
+          Settings
+        </Link>
+      )}
       <div className="border-t border-[var(--border)]" />
       <button
         onClick={onSignOut}

@@ -382,12 +382,14 @@ export default function ClassesPage() {
       <div className="p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto space-y-6">
         <PageHeader
           title="Classes"
-          subtitle="Manage class groups, streams and class teachers"
+          subtitle={canManage ? "Manage class groups, streams and class teachers" : "Your classes and student counts"}
           actions={
-            <Button onClick={openAdd}>
-              <MaterialIcon icon="add" />
-              Add Class
-            </Button>
+            canManage ? (
+              <Button onClick={openAdd}>
+                <MaterialIcon icon="add" />
+                Add Class
+              </Button>
+            ) : undefined
           }
         />
 
@@ -529,22 +531,24 @@ export default function ClassesPage() {
                           </div>
                         </td>
                         <td className="px-4 py-3">
-                          <div className="flex items-center gap-1 justify-end">
-                            <button
-                              onClick={() => openEdit(cls)}
-                              className="p-1.5 rounded-lg hover:bg-[var(--surface-container)] transition-colors text-[var(--on-surface-variant)] hover:text-[var(--primary)]"
-                              title="Edit class"
-                            >
-                              <MaterialIcon icon="edit" style={{ fontSize: 16 }} />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteConfirm(cls)}
-                              className="p-1.5 rounded-lg hover:bg-red-50 transition-colors text-[var(--on-surface-variant)] hover:text-red-600"
-                              title="Delete class"
-                            >
-                              <MaterialIcon icon="delete" style={{ fontSize: 16 }} />
-                            </button>
-                          </div>
+                          {canManage && (
+                            <div className="flex items-center gap-1 justify-end">
+                              <button
+                                onClick={() => openEdit(cls)}
+                                className="p-1.5 rounded-lg hover:bg-[var(--surface-container)] transition-colors text-[var(--on-surface-variant)] hover:text-[var(--primary)]"
+                                title="Edit class"
+                              >
+                                <MaterialIcon icon="edit" style={{ fontSize: 16 }} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteConfirm(cls)}
+                                className="p-1.5 rounded-lg hover:bg-red-50 transition-colors text-[var(--on-surface-variant)] hover:text-red-600"
+                                title="Delete class"
+                              >
+                                <MaterialIcon icon="delete" style={{ fontSize: 16 }} />
+                              </button>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     );

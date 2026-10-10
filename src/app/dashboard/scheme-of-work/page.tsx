@@ -40,6 +40,7 @@ export default function SchemeOfWorkPage() {
   const [selectedClass, setSelectedClass] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("");
   const [term, setTerm] = useState("1");
+  const [activeWeek, setActiveWeek] = useState(1);
   const [weeks, setWeeks] = useState<SchemeWeek[]>(createEmptyWeeks());
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -163,6 +164,7 @@ export default function SchemeOfWorkPage() {
 
   const selectedSubjectName = subjects.find((s) => s.id === selectedSubject)?.name;
   const selectedClassName = classes.find((c) => c.id === selectedClass)?.name;
+  const plannedWeekCount = weeks.filter((week) => week.topic.trim()).length;
 
   return (
     <PageErrorBoundary>
@@ -181,7 +183,10 @@ export default function SchemeOfWorkPage() {
         <div className="flex flex-wrap gap-3 mb-6">
           <select
             value={selectedClass}
-            onChange={(e) => setSelectedClass(e.target.value)}
+            onChange={(e) => {
+              setSelectedClass(e.target.value);
+              setActiveWeek(1);
+            }}
             className="px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm font-medium"
           >
             <option value="">Select Class</option>
@@ -193,7 +198,10 @@ export default function SchemeOfWorkPage() {
           </select>
           <select
             value={selectedSubject}
-            onChange={(e) => setSelectedSubject(e.target.value)}
+            onChange={(e) => {
+              setSelectedSubject(e.target.value);
+              setActiveWeek(1);
+            }}
             className="px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm font-medium"
           >
             <option value="">Select Subject</option>
@@ -205,7 +213,10 @@ export default function SchemeOfWorkPage() {
           </select>
           <select
             value={term}
-            onChange={(e) => setTerm(e.target.value)}
+            onChange={(e) => {
+              setTerm(e.target.value);
+              setActiveWeek(1);
+            }}
             className="px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm font-medium"
           >
             <option value="1">Term 1</option>
@@ -225,8 +236,43 @@ export default function SchemeOfWorkPage() {
           </div>
         ) : (
           <div className="space-y-4">
+            <section
+              aria-label="scheme progress"
+              className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--t3)]">Term plan</p>
+                  <p className="mt-1 text-sm font-semibold text-[var(--t1)]">
+                    {plannedWeekCount} of {weeks.length} weeks planned
+                  </p>
+                </div>
+                <span className="rounded-xl bg-[var(--primary)]/10 px-3 py-2 text-sm font-bold text-[var(--primary)]">
+                  Week {activeWeek}
+                </span>
+              </div>
+              <nav aria-label="Select scheme week" className="mt-4 flex gap-2 overflow-x-auto pb-1 md:hidden">
+                {weeks.map((week) => (
+                  <button
+                    key={week.week}
+                    type="button"
+                    aria-pressed={week.week === activeWeek}
+                    onClick={() => setActiveWeek(week.week)}
+                    className={`h-10 min-w-10 shrink-0 rounded-lg border px-2 text-sm font-semibold ${
+                      week.week === activeWeek
+                        ? "border-[var(--primary)] bg-[var(--primary)] text-white"
+                        : week.topic.trim()
+                          ? "border-[var(--primary)]/30 bg-[var(--primary)]/5 text-[var(--primary)]"
+                          : "border-[var(--border)] bg-[var(--surface)] text-[var(--t3)]"
+                    }`}
+                  >
+                    {week.week}
+                  </button>
+                ))}
+              </nav>
+            </section>
             {weeks.map((week, idx) => (
-              <Card key={week.week} className="p-4">
+              <Card key={week.week} className={`p-4 ${week.week === activeWeek ? "" : "hidden md:block"}`}>
                 <div className="flex items-center gap-3 mb-3">
                   <div className="w-10 h-10 rounded-lg bg-[var(--primary)] text-white flex items-center justify-center font-bold">
                     {week.week}

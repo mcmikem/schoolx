@@ -24,6 +24,7 @@ import { PageGuidance } from "@/components/PageGuidance";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { normalizeAttendanceInput, validateAttendanceInput } from "@/lib/validation";
 import type { Student } from "@/types";
+import { canAccess, type UserRole } from "@/lib/roles";
 import { withTimeout, timeoutFallback, notifyDashboardStatsChanged, getLocalDateString } from "@/lib/hooks/utils";
 import { getAutomationStatus, toggleAutomation } from "@/lib/sms-automation";
 
@@ -76,6 +77,9 @@ function countStatuses(statuses: string[]): { present: number; absent: number; l
 
 export default function AttendancePage() {
   const { school, user, isDemo } = useAuth();
+  const canNotifyParents = user?.role ? canAccess(user.role as UserRole, "messages") : false;
+  const canManageSmsAutomation = user?.role ? canAccess(user.role as UserRole, "autoSMS") : false;
+  const canExport = user?.role ? canAccess(user.role as UserRole, "export") : false;
   const toast = useToast();
   const isOnline = useOnlineStatus();
   const { classes, loading: classesLoading } = useClasses(school?.id);
@@ -715,7 +719,7 @@ export default function AttendancePage() {
           actions={
             <div className="flex flex-col items-start sm:items-end gap-1">
               <div className="flex items-center gap-2">
-                {absentCount > 0 && (
+                {canNotifyParents && absentCount > 0 && (
                   <Button
                     variant="secondary"
                     size="sm"
@@ -737,15 +741,17 @@ export default function AttendancePage() {
                 >
                   Save Changes
                 </Button>
-                <Button
-                  onClick={exportAttendance}
-                  disabled={!selectedClass || students.length === 0}
-                  variant="secondary"
-                  size="sm"
-                  icon={<MaterialIcon icon="download" />}
-                >
-                  Export
-                </Button>
+                {canExport && (
+                  <Button
+                    onClick={exportAttendance}
+                    disabled={!selectedClass || students.length === 0}
+                    variant="secondary"
+                    size="sm"
+                    icon={<MaterialIcon icon="download" />}
+                  >
+                    Export
+                  </Button>
+                )}
                 <Button
                   onClick={handleCopyYesterday}
                   disabled={!selectedClass || copyingYesterday}
@@ -797,48 +803,50 @@ export default function AttendancePage() {
           </div>
         </div>
 
-        <div className="bg-surface-container-lowest rounded-xl border border-outline-variant p-4 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <div
-              className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${absenteeAlertEnabled ? "bg-error-container" : "bg-surface-container-high"}`}
+        {canManageSmsAutomation && (
+          <div className="bg-surface-container-lowest rounded-xl border border-outline-variant p-4 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3 min-w-0">
+              <div
+                className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${absenteeAlertEnabled ? "bg-error-container" : "bg-surface-container-high"}`}
+              >
+                <MaterialIcon
+                  icon={absenteeAlertEnabled ? "notifications_active" : "notifications_off"}
+                  className={absenteeAlertEnabled ? "text-error" : "text-on-surface-variant"}
+                />
+              </div>
+              <div className="min-w-0">
+                <div className="font-semibold text-on-surface text-sm flex items-center gap-2">
+                  Absentee SMS Alerts
+                  {loadingAutomation ? (
+                    <span className="text-xs text-on-surface-variant">Loading...</span>
+                  ) : (
+                    <span
+                      className={`text-xs font-bold px-2 py-0.5 rounded-full ${absenteeAlertEnabled ? "bg-error-container text-error" : "bg-surface-container-high text-on-surface-variant"}`}
+                    >
+                      {absenteeAlertEnabled ? "ON" : "OFF"}
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs text-on-surface-variant mt-0.5">
+                  Auto-SMS parents when students are marked absent
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={handleToggleAbsenteeAlert}
+              disabled={loadingAutomation}
+              title={absenteeAlertEnabled ? "Disable absentee SMS alerts" : "Enable absentee SMS alerts"}
+              className={`relative w-14 h-8 rounded-full transition-colors duration-200 min-w-[56px] shrink-0 ${absenteeAlertEnabled ? "bg-error" : "bg-surface-container-highest"}`}
+              role="switch"
+              aria-checked={absenteeAlertEnabled}
+              aria-label="Toggle absentee SMS alerts"
             >
-              <MaterialIcon
-                icon={absenteeAlertEnabled ? "notifications_active" : "notifications_off"}
-                className={absenteeAlertEnabled ? "text-error" : "text-on-surface-variant"}
+              <div
+                className={`absolute top-1 w-6 h-6 rounded-full bg-white shadow transition-transform duration-200 ${absenteeAlertEnabled ? "translate-x-7" : "translate-x-1"}`}
               />
-            </div>
-            <div className="min-w-0">
-              <div className="font-semibold text-on-surface text-sm flex items-center gap-2">
-                Absentee SMS Alerts
-                {loadingAutomation ? (
-                  <span className="text-xs text-on-surface-variant">Loading...</span>
-                ) : (
-                  <span
-                    className={`text-xs font-bold px-2 py-0.5 rounded-full ${absenteeAlertEnabled ? "bg-error-container text-error" : "bg-surface-container-high text-on-surface-variant"}`}
-                  >
-                    {absenteeAlertEnabled ? "ON" : "OFF"}
-                  </span>
-                )}
-              </div>
-              <div className="text-xs text-on-surface-variant mt-0.5">
-                Auto-SMS parents when students are marked absent
-              </div>
-            </div>
+            </button>
           </div>
-          <button
-            onClick={handleToggleAbsenteeAlert}
-            disabled={loadingAutomation}
-            title={absenteeAlertEnabled ? "Disable absentee SMS alerts" : "Enable absentee SMS alerts"}
-            className={`relative w-14 h-8 rounded-full transition-colors duration-200 min-w-[56px] shrink-0 ${absenteeAlertEnabled ? "bg-error" : "bg-surface-container-highest"}`}
-            role="switch"
-            aria-checked={absenteeAlertEnabled}
-            aria-label="Toggle absentee SMS alerts"
-          >
-            <div
-              className={`absolute top-1 w-6 h-6 rounded-full bg-white shadow transition-transform duration-200 ${absenteeAlertEnabled ? "translate-x-7" : "translate-x-1"}`}
-            />
-          </button>
-        </div>
+        )}
 
         <div className="bg-surface-container-lowest rounded-[24px] border border-outline-variant p-4">
           <div className="flex flex-col sm:flex-row gap-4">
@@ -1441,7 +1449,7 @@ export default function AttendancePage() {
                 ))}
             </div>
 
-            <div className="fixed bottom-[calc(64px+env(safe-area-inset-bottom,0px))] left-0 right-0 md:relative md:bottom-auto p-4 md:p-0 bg-surface/95 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none border-t border-outline-variant md:border-0 z-10">
+            <div className="mobile-sticky-action fixed bottom-[calc(84px+env(safe-area-inset-bottom,0px))] left-0 right-0 p-4 md:relative md:bottom-auto md:p-0 bg-surface/95 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none border-t border-outline-variant md:border-0 z-10">
               <Button
                 onClick={() => saveAttendance()}
                 disabled={saving}

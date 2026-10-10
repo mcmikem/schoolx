@@ -86,6 +86,16 @@ export default function SyllabusTrackerPage() {
   ]);
 
   const isLoading = syllabusLoading || performanceLoading;
+  const completedTopicCount = syllabi.filter((syllabus) => syllabus.status === "completed").length;
+  const inProgressTopicCount = syllabi.filter((syllabus) => syllabus.status === "in_progress").length;
+  const averageProgress = syllabi.length
+    ? Math.round(
+        syllabi.reduce(
+          (total, syllabus) => total + (syllabus.progress?.overall_percentage ?? syllabus.completion_percentage ?? 0),
+          0,
+        ) / syllabi.length,
+      )
+    : 0;
 
   const getProgressColor = (percentage: number): string => {
     if (percentage >= 80) return "bg-green-500";
@@ -113,10 +123,10 @@ export default function SyllabusTrackerPage() {
         />
 
         {/* Filters */}
-        <div className="sticky top-0 z-40 bg-[var(--surface)] border-b border-[var(--border)] px-4 py-3 sm:px-6">
-          <div className="flex flex-wrap gap-3 items-center">
+        <div className="border-b border-[var(--border)] bg-[var(--surface)] px-4 py-3 sm:px-6 md:sticky md:top-0 md:z-40">
+          <div className="grid grid-cols-2 items-end gap-2 sm:flex sm:flex-wrap sm:gap-3">
             {/* Class Filter */}
-            <div className="flex-1 min-w-[200px]">
+            <div className="min-w-0 flex-1">
               <label className="block text-xs font-semibold text-[var(--t3)] mb-1.5">Class</label>
               <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="input w-full">
                 <option value="">All Classes</option>
@@ -129,7 +139,7 @@ export default function SyllabusTrackerPage() {
             </div>
 
             {/* Subject Filter */}
-            <div className="flex-1 min-w-[200px]">
+            <div className="min-w-0 flex-1">
               <label className="block text-xs font-semibold text-[var(--t3)] mb-1.5">Subject</label>
               <select
                 value={selectedSubject}
@@ -146,7 +156,7 @@ export default function SyllabusTrackerPage() {
             </div>
 
             {/* Term Filter */}
-            <div className="flex-1 min-w-[150px]">
+            <div className="min-w-0 flex-1">
               <label className="block text-xs font-semibold text-[var(--t3)] mb-1.5">Term</label>
               <select value={selectedTerm} onChange={(e) => setSelectedTerm(e.target.value)} className="input w-full">
                 <option value="1">Term 1</option>
@@ -156,22 +166,28 @@ export default function SyllabusTrackerPage() {
             </div>
 
             {/* View Mode Toggle */}
-            <div className="flex gap-1 border border-[var(--border)] rounded-lg p-1 bg-[var(--bg)]/50">
+            <div className="col-span-2 flex justify-self-end gap-1 rounded-lg border border-[var(--border)] bg-[var(--bg)]/50 p-1 sm:col-span-1 sm:ml-auto">
               <button
+                type="button"
                 onClick={() => setViewMode("grid")}
                 className={`p-2 rounded transition-colors ${
                   viewMode === "grid" ? "bg-[var(--primary)] text-white" : "text-[var(--t3)] hover:text-[var(--t2)]"
                 }`}
                 title="Grid view"
+                aria-label="Grid view"
+                aria-pressed={viewMode === "grid"}
               >
                 <MaterialIcon>grid_view</MaterialIcon>
               </button>
               <button
+                type="button"
                 onClick={() => setViewMode("list")}
                 className={`p-2 rounded transition-colors ${
                   viewMode === "list" ? "bg-[var(--primary)] text-white" : "text-[var(--t3)] hover:text-[var(--t2)]"
                 }`}
                 title="List view"
+                aria-label="List view"
+                aria-pressed={viewMode === "list"}
               >
                 <MaterialIcon>list</MaterialIcon>
               </button>
@@ -180,8 +196,8 @@ export default function SyllabusTrackerPage() {
         </div>
 
         {/* Tabs */}
-        <div className="border-b border-[var(--border)] bg-[var(--surface)]">
-          <div className="flex px-4 sm:px-6">
+        <div className="overflow-x-auto border-b border-[var(--border)] bg-[var(--surface)]">
+          <div role="tablist" aria-label="Syllabus views" className="flex min-w-max px-4 sm:px-6">
             {[
               { id: "timeline", label: "Timeline & Progress" },
               { id: "performance", label: "Topic Performance" },
@@ -189,8 +205,11 @@ export default function SyllabusTrackerPage() {
             ].map((tab) => (
               <button
                 key={tab.id}
+                type="button"
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`px-4 py-3 border-b-2 font-medium text-sm transition-colors ${
+                role="tab"
+                aria-selected={activeTab === tab.id}
+                className={`min-h-12 shrink-0 whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium transition-colors sm:px-4 ${
                   activeTab === tab.id
                     ? "border-[var(--primary)] text-[var(--primary)]"
                     : "border-transparent text-[var(--t3)] hover:text-[var(--t2)]"
@@ -204,6 +223,41 @@ export default function SyllabusTrackerPage() {
 
         {/* Content Area */}
         <div className="p-4 sm:p-6">
+          {!isLoading && activeTab === "timeline" && syllabi.length > 0 && (
+            <section
+              aria-label="syllabus overview"
+              className="mb-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--t3)]">
+                    Syllabus overview
+                  </p>
+                  <h2 className="mt-1 truncate text-base font-semibold text-[var(--t1)]">
+                    {subjects.find((subject) => subject.id === selectedSubject)?.name || "Selected subject"}
+                    {selectedClass
+                      ? ` · ${classes.find((classItem) => classItem.id === selectedClass)?.name || "Class"}`
+                      : ""}
+                  </h2>
+                </div>
+                <span className="shrink-0 rounded-xl bg-[var(--primary)]/10 px-3 py-2 text-sm font-bold text-[var(--primary)]">
+                  {averageProgress}%
+                </span>
+              </div>
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                {[
+                  { label: "Topics", value: syllabi.length },
+                  { label: "In progress", value: inProgressTopicCount },
+                  { label: "Completed", value: completedTopicCount },
+                ].map((item) => (
+                  <div key={item.label} className="rounded-xl bg-[var(--surface-container-low)] p-2.5">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--t3)]">{item.label}</p>
+                    <p className="mt-1 text-lg font-bold text-[var(--t1)]">{item.value}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
           {isLoading && (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">

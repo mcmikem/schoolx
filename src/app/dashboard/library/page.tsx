@@ -9,12 +9,14 @@ import { useToast } from "@/components/Toast";
 import { getErrorMessage } from "@/lib/validation";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
+import { isClassScopedRole } from "@/lib/roles";
 
 const CATEGORIES = ["All", "Textbooks", "Fiction", "Science", "History", "Reference", "Religious"];
 const BLANK_FORM = { title: "", author: "", isbn: "", category: "Textbooks", total_copies: "1" };
 
 export default function LibraryPage() {
-  const { school } = useAuth();
+  const { school, user } = useAuth();
+  const canManageCatalog = !isClassScopedRole(user?.role);
   const toast = useToast();
   const [books, setBooks] = useState<any[]>([]);
   const [category, setCategory] = useState("All");
@@ -189,12 +191,14 @@ export default function LibraryPage() {
               />
               <MaterialIcon icon="search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             </div>
-            <button
-              onClick={() => setShowAdd(true)}
-              className="flex items-center gap-2 px-5 py-3 bg-indigo-600 text-white rounded-2xl font-bold hover:scale-105 transition-all shadow-lg shadow-indigo-600/20"
-            >
-              <MaterialIcon icon="add" /> New Volume
-            </button>
+            {canManageCatalog && (
+              <button
+                onClick={() => setShowAdd(true)}
+                className="flex items-center gap-2 px-5 py-3 bg-indigo-600 text-white rounded-2xl font-bold hover:scale-105 transition-all shadow-lg shadow-indigo-600/20"
+              >
+                <MaterialIcon icon="add" /> New Volume
+              </button>
+            )}
           </div>
         </div>
 
@@ -286,22 +290,24 @@ export default function LibraryPage() {
                         <span className="text-lg font-black text-slate-800 leading-none">{book.available_copies}</span>
                         <span className="text-[8px] font-black text-slate-400">IN SHELF</span>
                       </div>
-                      <div className="flex gap-1">
-                        <button
-                          onClick={() => openEdit(book)}
-                          className="p-2 bg-slate-50 hover:bg-indigo-600 hover:text-white rounded-xl transition-all"
-                          title="Edit book"
-                        >
-                          <MaterialIcon icon="edit" style={{ fontSize: 18 }} />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteConfirm(book)}
-                          className="p-2 bg-slate-50 hover:bg-red-600 hover:text-white rounded-xl transition-all"
-                          title="Delete book"
-                        >
-                          <MaterialIcon icon="delete" style={{ fontSize: 18 }} />
-                        </button>
-                      </div>
+                      {canManageCatalog && (
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => openEdit(book)}
+                            className="p-2 bg-slate-50 hover:bg-indigo-600 hover:text-white rounded-xl transition-all"
+                            title="Edit book"
+                          >
+                            <MaterialIcon icon="edit" style={{ fontSize: 18 }} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteConfirm(book)}
+                            className="p-2 bg-slate-50 hover:bg-red-600 hover:text-white rounded-xl transition-all"
+                            title="Delete book"
+                          >
+                            <MaterialIcon icon="delete" style={{ fontSize: 18 }} />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

@@ -51,6 +51,6 @@ describe("attendance mark-and-advance", () => {
 
   it("flashes an unmissable confirmation on every mark", () => {
     expect(page).toContain("confirmedId");
-    expect(page).toContain("Use the filters above to review or correct");
+    expect(page).toContain("to review or correct");
   });
 });

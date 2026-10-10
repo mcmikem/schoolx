@@ -796,6 +796,14 @@ export default function TimetablePage() {
     return timetable.find((t) => t.day_of_week === day && t.period_number === periodNumber);
   };
 
+  const openEntryModal = (day: number, slot: Slot) => {
+    setSelectedSlot(slot);
+    setSelectedDay(day);
+    setConflicts([]);
+    setRoomValue("");
+    setShowEntryModal(true);
+  };
+
   const dayTabs = DAYS.map((day) => ({ id: day.value.toString(), label: day.full }));
   const mainTabs = [
     { id: "timetable", label: "Class Timetable" },
@@ -894,6 +902,11 @@ export default function TimetablePage() {
           },
         ];
 
+  const selectedClass = classes.find((classItem) => classItem.id === selectedClassId);
+  const selectedDayInfo = DAYS.find((day) => day.value === selectedDay);
+  const dayLessonSlots = effectiveSlots.filter((slot) => !(slot.is_break ?? slot.is_lesson === false));
+  const scheduledLessons = timetable.filter((entry) => entry.day_of_week === selectedDay).length;
+
   return (
     <PageErrorBoundary>
       <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
@@ -923,6 +936,26 @@ export default function TimetablePage() {
         </TabPanel>
 
         <TabPanel activeTab={mainTab} tabId="timetable">
+          <div
+            aria-label="timetable overview"
+            className="mb-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm md:hidden"
+          >
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--t3)]">Day overview</p>
+            <div className="mt-2 flex items-end justify-between gap-3">
+              <div className="min-w-0">
+                <h2 className="truncate text-lg font-bold text-[var(--t1)]">
+                  {selectedDayInfo?.full || "Class timetable"}
+                </h2>
+                <p className="mt-0.5 truncate text-sm text-[var(--t3)]">{selectedClass?.name || "Select a class"}</p>
+              </div>
+              <div className="shrink-0 rounded-xl bg-[var(--primary)]/10 px-3 py-2 text-right">
+                <p className="text-lg font-bold leading-none text-[var(--primary)]">
+                  {scheduledLessons}/{dayLessonSlots.length}
+                </p>
+                <p className="mt-1 text-[9px] font-bold uppercase tracking-wider text-[var(--t3)]">Lessons</p>
+              </div>
+            </div>
+          </div>
           {globalClashes.length > 0 && (
             <div className="bg-red-50 border border-red-200 rounded-xl p-4">
               <div className="flex items-start gap-3">
@@ -979,99 +1012,167 @@ export default function TimetablePage() {
             {loading ? (
               <TableSkeleton rows={6} />
             ) : (
-              DAYS.map((day) => (
-                <TabPanel key={day.value} activeTab={selectedDay.toString()} tabId={day.value.toString()}>
-                  <div className="overflow-x-auto">
-                    <table className="w-full border-collapse">
-                      <thead>
-                        <tr>
-                          <th className="p-4 bg-[var(--surface-container-low)] border-b border-r border-[var(--border)] text-[var(--t4)] text-xs uppercase font-bold w-32 text-left">
-                            Period
-                          </th>
-                          <th className="p-4 bg-[var(--surface-container-low)] border-b border-r border-[var(--border)] text-[var(--t1)] font-semibold text-left">
-                            {day.full}
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {effectiveSlots.map((slot) => {
-                          const isBreak = slot.is_break ?? slot.is_lesson === false;
-                          const entry = getEntry(day.value, slot.order_number ?? slot.period_number);
-                          return (
-                            <tr key={slot.id} className={isBreak ? "bg-[var(--surface-container-low)]/50" : ""}>
-                              <td className="p-4 border-b border-r border-[var(--border)]">
-                                <p className="text-sm font-semibold text-[var(--t1)]">{slot.name}</p>
-                                <p className="text-xs text-[var(--t4)]">
-                                  {slot.start_time?.slice(0, 5)} – {slot.end_time?.slice(0, 5)}
-                                </p>
-                              </td>
-                              <td
-                                className={`p-2 border-b border-[var(--border)] min-h-[100px] relative ${isBreak ? "opacity-50" : ""}`}
-                              >
-                                {entry ? (
-                                  <div className="bg-[var(--primary)]/10 border border-[var(--primary)]/20 rounded-lg p-3 h-full group">
-                                    <p className="text-xs font-bold text-[var(--primary)] uppercase tracking-wider mb-1">
-                                      {entry.subjects?.code || "SUB"}
-                                    </p>
-                                    <p className="text-sm font-semibold text-[var(--t1)] leading-tight mb-2">
-                                      {entry.subjects?.name}
-                                    </p>
-                                    <div className="flex items-center justify-between">
-                                      <div className="flex flex-col gap-0.5">
-                                        <div className="flex items-center gap-1.5 text-xs text-[var(--t4)]">
-                                          <MaterialIcon icon="person" className="text-sm" />
-                                          {teacherNameById[entry.teacher_id] || "Teacher"}
-                                        </div>
-                                        {entry.room && (
+              <>
+                <div className="space-y-2 p-3 md:hidden">
+                  {effectiveSlots.map((slot) => {
+                    const isBreak = slot.is_break ?? slot.is_lesson === false;
+                    const entry = getEntry(selectedDay, slot.order_number ?? slot.period_number);
+                    const time = `${slot.start_time?.slice(0, 5)} – ${slot.end_time?.slice(0, 5)}`;
+
+                    if (isBreak) {
+                      return (
+                        <div
+                          key={slot.id}
+                          className="flex items-center gap-3 rounded-xl bg-[var(--surface-container-low)] px-3 py-2.5"
+                        >
+                          <span className="w-14 shrink-0 text-[11px] font-medium text-[var(--t4)]">{time}</span>
+                          <span className="h-px flex-1 bg-[var(--border)]" />
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--t4)]">
+                            {slot.name}
+                          </span>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <div key={slot.id} className="flex items-stretch gap-3">
+                        <div className="flex w-14 shrink-0 flex-col justify-center text-[10px] font-medium leading-4 text-[var(--t4)]">
+                          <span>{slot.start_time?.slice(0, 5)}</span>
+                          <span>{slot.end_time?.slice(0, 5)}</span>
+                        </div>
+                        {entry ? (
+                          <div className="flex min-w-0 flex-1 items-center justify-between gap-3 rounded-xl border border-[var(--primary)]/20 bg-[var(--primary)]/10 p-3">
+                            <div className="min-w-0">
+                              <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--primary)]">
+                                {entry.subjects?.code || "SUB"} · {slot.name}
+                              </p>
+                              <p className="mt-1 truncate text-sm font-semibold text-[var(--t1)]">
+                                {entry.subjects?.name || "Lesson"}
+                              </p>
+                              <p className="mt-1 truncate text-xs text-[var(--t3)]">
+                                {teacherNameById[entry.teacher_id] || "Teacher"}
+                                {entry.room ? ` · ${entry.room}` : ""}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => setPendingDeleteEntryId(entry.id)}
+                              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-red-600 hover:bg-red-50"
+                              title="Remove entry"
+                              aria-label={`Remove ${entry.subjects?.name || "lesson"}`}
+                            >
+                              <MaterialIcon icon="delete" className="text-lg" />
+                            </button>
+                          </div>
+                        ) : selectedClassId ? (
+                          <button
+                            onClick={() => openEntryModal(selectedDay, slot)}
+                            className="flex min-h-16 min-w-0 flex-1 items-center gap-3 rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface)] px-3 text-left text-sm text-[var(--t3)] transition-colors hover:border-[var(--primary)]/40 hover:bg-[var(--primary)]/5"
+                          >
+                            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-[var(--surface-container-low)] text-[var(--primary)]">
+                              <MaterialIcon icon="add" />
+                            </span>
+                            <span>
+                              <span className="block font-semibold text-[var(--t2)]">Add lesson</span>
+                              <span className="block text-xs text-[var(--t4)]">{slot.name}</span>
+                            </span>
+                          </button>
+                        ) : (
+                          <div className="flex min-h-16 flex-1 items-center rounded-xl border border-dashed border-[var(--border)] px-3 text-sm text-[var(--t4)]">
+                            Select a class to view periods
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="hidden overflow-x-auto md:block">
+                  {DAYS.map((day) => (
+                    <TabPanel key={day.value} activeTab={selectedDay.toString()} tabId={day.value.toString()}>
+                      <table className="w-full border-collapse">
+                        <thead>
+                          <tr>
+                            <th className="p-4 bg-[var(--surface-container-low)] border-b border-r border-[var(--border)] text-[var(--t4)] text-xs uppercase font-bold w-32 text-left">
+                              Period
+                            </th>
+                            <th className="p-4 bg-[var(--surface-container-low)] border-b border-r border-[var(--border)] text-[var(--t1)] font-semibold text-left">
+                              {day.full}
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {effectiveSlots.map((slot) => {
+                            const isBreak = slot.is_break ?? slot.is_lesson === false;
+                            const entry = getEntry(day.value, slot.order_number ?? slot.period_number);
+                            return (
+                              <tr key={slot.id} className={isBreak ? "bg-[var(--surface-container-low)]/50" : ""}>
+                                <td className="p-4 border-b border-r border-[var(--border)]">
+                                  <p className="text-sm font-semibold text-[var(--t1)]">{slot.name}</p>
+                                  <p className="text-xs text-[var(--t4)]">
+                                    {slot.start_time?.slice(0, 5)} – {slot.end_time?.slice(0, 5)}
+                                  </p>
+                                </td>
+                                <td
+                                  className={`p-2 border-b border-[var(--border)] min-h-[100px] relative ${isBreak ? "opacity-50" : ""}`}
+                                >
+                                  {entry ? (
+                                    <div className="bg-[var(--primary)]/10 border border-[var(--primary)]/20 rounded-lg p-3 h-full group">
+                                      <p className="text-xs font-bold text-[var(--primary)] uppercase tracking-wider mb-1">
+                                        {entry.subjects?.code || "SUB"}
+                                      </p>
+                                      <p className="text-sm font-semibold text-[var(--t1)] leading-tight mb-2">
+                                        {entry.subjects?.name}
+                                      </p>
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex flex-col gap-0.5">
                                           <div className="flex items-center gap-1.5 text-xs text-[var(--t4)]">
-                                            <MaterialIcon icon="location_on" className="text-sm" />
-                                            {entry.room}
+                                            <MaterialIcon icon="person" className="text-sm" />
+                                            {teacherNameById[entry.teacher_id] || "Teacher"}
                                           </div>
-                                        )}
+                                          {entry.room && (
+                                            <div className="flex items-center gap-1.5 text-xs text-[var(--t4)]">
+                                              <MaterialIcon icon="location_on" className="text-sm" />
+                                              {entry.room}
+                                            </div>
+                                          )}
+                                        </div>
+                                        <button
+                                          onClick={() => setPendingDeleteEntryId(entry.id)}
+                                          className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 rounded text-red-500 transition-all"
+                                          title="Remove entry"
+                                        >
+                                          <MaterialIcon icon="delete" className="text-sm" />
+                                        </button>
                                       </div>
-                                      <button
-                                        onClick={() => setPendingDeleteEntryId(entry.id)}
-                                        className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 rounded text-red-500 transition-all"
-                                        title="Remove entry"
-                                      >
-                                        <MaterialIcon icon="delete" className="text-sm" />
-                                      </button>
                                     </div>
-                                  </div>
-                                ) : (
-                                  !isBreak &&
-                                  selectedClassId && (
-                                    <button
-                                      onClick={() => {
-                                        setSelectedSlot(slot);
-                                        setSelectedDay(day.value);
-                                        setConflicts([]);
-                                        setRoomValue("");
-                                        setShowEntryModal(true);
-                                      }}
-                                      className="w-full h-full min-h-[60px] flex items-center justify-center border-2 border-dashed border-[var(--border)] hover:border-[var(--primary)]/30 hover:bg-[var(--primary)]/5 rounded-xl transition-all"
-                                    >
-                                      <MaterialIcon
-                                        icon="add"
-                                        className="text-[var(--t4)] hover:text-[var(--primary)]"
-                                      />
-                                    </button>
-                                  )
-                                )}
-                                {isBreak && (
-                                  <div className="flex items-center justify-center text-xs font-bold text-[var(--t4)] uppercase tracking-[0.2em]">
-                                    {slot.name}
-                                  </div>
-                                )}
-                              </td>
-                            </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                </TabPanel>
-              ))
+                                  ) : (
+                                    !isBreak &&
+                                    selectedClassId && (
+                                      <button
+                                        onClick={() => openEntryModal(day.value, slot)}
+                                        className="w-full h-full min-h-[60px] flex items-center justify-center border-2 border-dashed border-[var(--border)] hover:border-[var(--primary)]/30 hover:bg-[var(--primary)]/5 rounded-xl transition-all"
+                                      >
+                                        <MaterialIcon
+                                          icon="add"
+                                          className="text-[var(--t4)] hover:text-[var(--primary)]"
+                                        />
+                                      </button>
+                                    )
+                                  )}
+                                  {isBreak && (
+                                    <div className="flex items-center justify-center text-xs font-bold text-[var(--t4)] uppercase tracking-[0.2em]">
+                                      {slot.name}
+                                    </div>
+                                  )}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </TabPanel>
+                  ))}
+                </div>
+              </>
             )}
           </Card>
 

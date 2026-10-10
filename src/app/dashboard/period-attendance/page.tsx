@@ -120,7 +120,7 @@ export default function PeriodAttendancePage() {
           }
         />
 
-        <div className="flex flex-col sm:flex-row gap-3 mb-6">
+        <div className="mb-6 grid grid-cols-2 gap-2 sm:flex sm:gap-3">
           {classes.length === 0 ? (
             <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-2 text-sm text-amber-800">
               No classes available
@@ -129,7 +129,7 @@ export default function PeriodAttendancePage() {
             <select
               value={selectedClass || ""}
               onChange={(e) => setSelectedClass(e.target.value || null)}
-              className="px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm font-medium sm:w-48"
+              className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm font-medium sm:w-48 sm:px-4"
               aria-label="Select class"
             >
               <option value="">Select class</option>
@@ -143,7 +143,7 @@ export default function PeriodAttendancePage() {
           <select
             value={selectedPeriod}
             onChange={(e) => setSelectedPeriod(e.target.value)}
-            className="px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm font-medium sm:w-40"
+            className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm font-medium sm:w-40 sm:px-4"
             aria-label="Select period"
           >
             {PERIODS.map((p) => (
@@ -156,7 +156,7 @@ export default function PeriodAttendancePage() {
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
-            className="px-4 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm font-medium sm:w-48"
+            className="col-span-2 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm font-medium sm:col-span-1 sm:w-48 sm:px-4"
             aria-label="Attendance date"
           />
         </div>
@@ -183,7 +183,7 @@ export default function PeriodAttendancePage() {
         )}
 
         {!selectedClass ? (
-          <Card className="p-12 text-center">
+          <Card className="p-6 text-center sm:p-12">
             <MaterialIcon className="text-5xl text-[var(--t3)] opacity-50 mx-auto">fact_check</MaterialIcon>
             <h3 className="text-lg font-semibold text-[var(--t1)] mt-4 mb-2">Select a class</h3>
             <p className="text-[var(--t3)]">Choose a class to mark period attendance</p>
@@ -197,7 +197,7 @@ export default function PeriodAttendancePage() {
             ))}
           </div>
         ) : students.length === 0 ? (
-          <Card className="p-12 text-center">
+          <Card className="p-6 text-center sm:p-12">
             <MaterialIcon className="text-5xl text-[var(--t3)] opacity-50 mx-auto">group</MaterialIcon>
             <h3 className="text-lg font-semibold text-[var(--t1)] mt-4 mb-2">No students</h3>
             <p className="text-[var(--t3)]">Add students to this class first</p>
@@ -207,8 +207,8 @@ export default function PeriodAttendancePage() {
             <div className="space-y-3 mb-6">
               {students.map((student: any) => (
                 <Card key={student.id} className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex min-w-0 items-center gap-3">
                       <PersonInitials name={`${student.first_name} ${student.last_name}`} size={40} />
                       <div>
                         <div className="font-medium text-[var(--t1)]">
@@ -217,12 +217,14 @@ export default function PeriodAttendancePage() {
                         <div className="text-xs text-[var(--t3)]">{student.student_number}</div>
                       </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="grid grid-cols-2 gap-2 sm:flex">
                       {STATUS_OPTIONS.map((option) => (
                         <button
                           key={option.status}
+                          type="button"
                           onClick={() => markAttendance(student.id, option.status)}
-                          className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-colors ${
+                          aria-pressed={attendanceMap[student.id] === option.status}
+                          className={`min-h-10 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${
                             attendanceMap[student.id] === option.status
                               ? option.color
                               : "bg-white text-gray-500 border-gray-200 hover:border-gray-300"
@@ -237,13 +239,15 @@ export default function PeriodAttendancePage() {
               ))}
             </div>
 
-            <Button
-              onClick={saveAttendance}
-              disabled={saving || Object.keys(attendanceMap).length === 0}
-              className="w-full"
-            >
-              {saving ? "Saving..." : "Save Period Attendance"}
-            </Button>
+            <div className="mobile-sticky-action sticky bottom-[calc(84px+env(safe-area-inset-bottom,0px))] z-10 -mx-4 border-t border-[var(--border)] bg-[var(--surface)]/95 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+              <Button
+                onClick={saveAttendance}
+                disabled={saving || Object.keys(attendanceMap).length === 0}
+                className="w-full"
+              >
+                {saving ? "Saving..." : "Save Period Attendance"}
+              </Button>
+            </div>
           </>
         )}
       </div>

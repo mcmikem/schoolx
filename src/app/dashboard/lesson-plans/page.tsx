@@ -65,6 +65,11 @@ export default function LessonPlansPage() {
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<LessonPlan | null>(null);
+  const planOverview = [
+    { label: "Plans", value: plans.length },
+    { label: "Draft", value: plans.filter((plan) => plan.status === "draft").length },
+    { label: "Completed", value: plans.filter((plan) => plan.status === "completed").length },
+  ];
 
   const [form, setForm] = useState({
     class_id: "",
@@ -304,12 +309,27 @@ export default function LessonPlansPage() {
           }
         />
 
+        <section
+          aria-label="lesson plan overview"
+          className="mb-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm md:hidden"
+        >
+          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--t3)]">Current term overview</p>
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            {planOverview.map((item) => (
+              <div key={item.label} className="rounded-xl bg-[var(--surface-container-low)] p-3">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--t3)]">{item.label}</p>
+                <p className="mt-1 text-lg font-bold text-[var(--t1)]">{item.value}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
         {loading ? (
           <div className="text-center py-12">
             <div className="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin mx-auto"></div>
           </div>
         ) : plans.length === 0 ? (
-          <Card className="p-12 text-center">
+          <Card className="p-6 text-center sm:p-12">
             <MaterialIcon className="text-5xl text-[var(--t3)] opacity-50 mx-auto">assignment</MaterialIcon>
             <p className="mt-2 text-[var(--t3)]">No lesson plans yet</p>
             <Button className="mt-4" onClick={() => setShowForm(true)}>
@@ -317,7 +337,7 @@ export default function LessonPlansPage() {
             </Button>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3 md:gap-4">
             {plans.map((plan) => (
               <Card key={plan.id} className="p-4 hover:shadow-md cursor-pointer" onClick={() => openEdit(plan)}>
                 <div className="flex items-start justify-between mb-3">
@@ -344,8 +364,8 @@ export default function LessonPlansPage() {
         )}
 
         {showForm && (
-          <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-50 p-4 overflow-y-auto">
-            <div className="bg-[var(--surface)] rounded-2xl w-full max-w-3xl my-8">
+          <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-3 sm:items-center sm:p-4">
+            <div className="my-0 max-h-[calc(100dvh-1.5rem)] w-full max-w-3xl overflow-y-auto rounded-2xl bg-[var(--surface)] sm:my-8 sm:max-h-[calc(100vh-4rem)]">
               <div className="p-6 border-b border-[var(--border)] sticky top-0 bg-[var(--surface)] z-10">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xl font-bold text-[var(--t1)]">
@@ -363,8 +383,8 @@ export default function LessonPlansPage() {
                 </div>
               </div>
 
-              <form onSubmit={handleSubmit} className="p-6 space-y-6">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <form onSubmit={handleSubmit} className="space-y-6 p-4 sm:p-6">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-4">
                   <div>
                     <label className="block text-xs font-medium text-[var(--t3)] mb-1">Class *</label>
                     <select
@@ -427,10 +447,13 @@ export default function LessonPlansPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div>
-                    <label className="block text-xs font-medium text-[var(--t3)] mb-1">Lesson Title *</label>
+                    <label htmlFor="lesson-plan-title" className="block text-xs font-medium text-[var(--t3)] mb-1">
+                      Lesson Title *
+                    </label>
                     <input
+                      id="lesson-plan-title"
                       type="text"
                       value={form.title}
                       onChange={(e) => setForm({ ...form, title: e.target.value })}
@@ -464,15 +487,19 @@ export default function LessonPlansPage() {
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div>
-                    <label className="block text-xs font-medium text-[var(--t3)] mb-1">Topic</label>
+                    <label htmlFor="lesson-plan-topic" className="block text-xs font-medium text-[var(--t3)] mb-1">
+                      Topic *
+                    </label>
                     <input
+                      id="lesson-plan-topic"
                       type="text"
                       value={form.topic}
                       onChange={(e) => setForm({ ...form, topic: e.target.value })}
                       className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-sm"
                       placeholder="Main topic"
+                      required
                     />
                   </div>
                   <div>
@@ -546,7 +573,7 @@ export default function LessonPlansPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div>
                     <label className="block text-xs font-medium text-[var(--t3)] mb-1">Resources</label>
                     <textarea
@@ -569,7 +596,7 @@ export default function LessonPlansPage() {
                   </div>
                 </div>
 
-                <div className="flex gap-3 pt-4">
+                <div className="flex flex-col-reverse gap-3 pt-4 sm:flex-row">
                   {selectedPlan && (
                     <Button
                       type="button"

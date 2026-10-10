@@ -484,6 +484,11 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> = dee
           label: "Class Attendance",
           icon: "how_to_reg",
         },
+        {
+          href: "/dashboard/period-attendance",
+          label: "Period Attendance",
+          icon: "schedule",
+        },
       ],
     },
     {
@@ -503,7 +508,7 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> = dee
       label: "Assignments",
       icon: "assignment",
       defaultOpen: true,
-      items: [{ href: "/dashboard/homework", label: "Homework", icon: "assignment" }],
+      items: [{ href: "/dashboard/homework", label: "Class Tests", icon: "assignment" }],
     },
     {
       label: "Planning",

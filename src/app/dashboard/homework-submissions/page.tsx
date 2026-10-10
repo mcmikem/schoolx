@@ -57,18 +57,19 @@ export default function HomeworkSubmissionsPage() {
   );
 
   // Compose full submissions list
-  const submittedIds = new Set(submissionsData?.map((s) => s.student_id) || []);
-  const submissions = (allStudents || []).map((student) => ({
-    id: submittedIds.has(student.id) ? submissionsData?.find((s) => s.student_id === student.id)?.id : null,
-    student_id: student.id,
-    homework_id: selectedHomework?.id,
-    status: submittedIds.has(student.id) ? "submitted" : "pending",
-    submitted_at: submissionsData?.find((s) => s.student_id === student.id)?.submitted_at,
-    marks:
-      submissionsData?.find((s) => s.student_id === student.id)?.marks ??
-      submissionsData?.find((s) => s.student_id === student.id)?.marks_obtained,
-    students: student,
-  }));
+  const submissions = (allStudents || []).map((student) => {
+    const existingSubmission = submissionsData?.find((item) => item.student_id === student.id);
+    return {
+      id: existingSubmission?.id || null,
+      student_id: student.id,
+      homework_id: selectedHomework?.id,
+      status: existingSubmission?.status === "graded" ? "graded" : existingSubmission ? "submitted" : "pending",
+      submitted_at: existingSubmission?.submitted_at,
+      marks: existingSubmission?.marks ?? existingSubmission?.marks_obtained,
+      feedback: existingSubmission?.feedback,
+      students: student,
+    };
+  });
 
   const markSubmission = async (submission: any, marks: number, feedback: string) => {
     const { withTimeout, timeoutFallback } = await import("@/lib/hooks/utils");
@@ -143,8 +144,8 @@ export default function HomeworkSubmissionsPage() {
           </div>
         </Card>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className={`lg:col-span-1 ${selectedHomework ? "hidden lg:block" : "block"}`}>
             <Card>
               <div className="p-4 border-b border-[var(--border)]">
                 <h3 className="font-semibold text-[var(--t1)]">Homework List</h3>
@@ -154,10 +155,11 @@ export default function HomeworkSubmissionsPage() {
                   <div className="p-4 text-center text-[var(--t3)]">No homework found</div>
                 ) : (
                   homeworks.map((hw) => (
-                    <div
+                    <button
                       key={hw.id}
+                      type="button"
                       onClick={() => setSelectedHomework(hw)}
-                      className={`p-4 border-b border-[var(--border)] cursor-pointer transition-colors ${
+                      className={`w-full p-4 border-b border-[var(--border)] text-left transition-colors ${
                         selectedHomework?.id === hw.id
                           ? "bg-[var(--primary)]/10"
                           : "hover:bg-[var(--surface-container)]"
@@ -168,28 +170,91 @@ export default function HomeworkSubmissionsPage() {
                         {hw.classes?.name} - Due {new Date(hw.due_date).toLocaleDateString()}
                       </div>
                       <div className="text-xs mt-1 text-[var(--primary)]">{hw.marks} marks</div>
-                    </div>
+                    </button>
                   ))
                 )}
               </div>
             </Card>
           </div>
 
-          <div className="lg:col-span-2">
+          <div className={`lg:col-span-2 ${selectedHomework ? "block" : "hidden lg:block"}`}>
             {selectedHomework ? (
               <Card>
-                <div className="p-4 border-b border-[var(--border)] flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold text-[var(--t1)]">{selectedHomework.subjects?.name} - Submissions</h3>
+                <div className="flex flex-col gap-3 border-b border-[var(--border)] p-4 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0">
+                    <h3 className="truncate font-semibold text-[var(--t1)]">
+                      {selectedHomework.subjects?.name} - Submissions
+                    </h3>
                     <p className="text-sm text-[var(--t3)]">{selectedHomework.classes?.name}</p>
                   </div>
-                  <div className="flex gap-4 text-sm">
-                    <span className="text-red-600">{pendingCount} Pending</span>
-                    <span className="text-blue-600">{submittedCount} Submitted</span>
-                    <span className="text-green-600">{gradedCount} Graded</span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedHomework(null)}
+                    className="min-h-10 self-start rounded-lg border border-[var(--border)] px-3 text-sm font-semibold text-[var(--t1)] lg:hidden"
+                    aria-label="Change homework"
+                  >
+                    Change homework
+                  </button>
+                  <div aria-label="submission overview" className="grid grid-cols-3 gap-2 sm:min-w-[280px]">
+                    {[
+                      { label: "Pending", value: pendingCount, tone: "text-red-600" },
+                      { label: "Submitted", value: submittedCount, tone: "text-blue-600" },
+                      { label: "Graded", value: gradedCount, tone: "text-green-600" },
+                    ].map((item) => (
+                      <div
+                        key={item.label}
+                        className="rounded-xl bg-[var(--surface-container-low)] px-2 py-2 text-center"
+                      >
+                        <p className={`text-lg font-bold leading-none ${item.tone}`}>{item.value}</p>
+                        <p className="mt-1 text-[10px] font-semibold text-[var(--t3)]">{item.label}</p>
+                      </div>
+                    ))}
                   </div>
                 </div>
-                <div className="overflow-x-auto">
+                <div className="space-y-3 p-3 md:hidden">
+                  {submissions.map((sub) => (
+                    <div
+                      key={sub.student_id}
+                      className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-semibold text-[var(--t1)]">
+                            {sub.students?.first_name} {sub.students?.last_name}
+                          </p>
+                          <p className="mt-1 text-xs text-[var(--t3)]">
+                            {sub.submitted_at ? new Date(sub.submitted_at).toLocaleDateString() : "Not submitted"}
+                          </p>
+                        </div>
+                        <span
+                          className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${
+                            sub.status === "graded"
+                              ? "bg-green-100 text-green-800"
+                              : sub.status === "submitted"
+                                ? "bg-blue-100 text-blue-800"
+                                : "bg-red-100 text-red-800"
+                          }`}
+                        >
+                          {sub.status}
+                        </span>
+                      </div>
+                      <div className="mt-3 flex items-center justify-between gap-3 border-t border-[var(--border)] pt-3">
+                        <p className="text-sm font-semibold text-[var(--t1)]">
+                          {sub.marks != null
+                            ? `${sub.marks}/${selectedHomework.marks || selectedHomework.total_marks || 0} marks`
+                            : "No marks yet"}
+                        </p>
+                        <GradingModal
+                          submission={sub}
+                          maxMarks={selectedHomework.marks || selectedHomework.total_marks || 0}
+                          idPrefix="mobile"
+                          onSave={(marks, feedback) => markSubmission(sub, marks, feedback)}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="hidden overflow-x-auto md:block">
                   <table className="w-full">
                     <thead>
                       <tr className="bg-[var(--surface-container)]">
@@ -231,6 +296,7 @@ export default function HomeworkSubmissionsPage() {
                             <GradingModal
                               submission={sub}
                               maxMarks={selectedHomework.marks || selectedHomework.total_marks || 0}
+                              idPrefix="desktop"
                               onSave={(marks, feedback) => markSubmission(sub, marks, feedback)}
                             />
                           </td>
@@ -256,15 +322,19 @@ export default function HomeworkSubmissionsPage() {
 function GradingModal({
   submission,
   maxMarks,
+  idPrefix,
   onSave,
 }: {
   submission: any;
   maxMarks: number;
+  idPrefix: string;
   onSave: (marks: number, feedback: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [marks, setMarks] = useState(submission.marks || 0);
   const [feedback, setFeedback] = useState(submission.feedback || "");
+  const marksInputId = `${idPrefix}-submission-marks-${submission.student_id}`;
+  const feedbackInputId = `${idPrefix}-submission-feedback-${submission.student_id}`;
 
   return (
     <>
@@ -273,15 +343,18 @@ function GradingModal({
       </Button>
       {open && (
         <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-[var(--surface)] rounded-2xl p-6 w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
+          <div className="my-auto max-h-[calc(100dvh-1.5rem)] w-full max-w-md overflow-y-auto rounded-2xl bg-[var(--surface)] p-4 sm:max-h-[calc(100vh-2rem)] sm:p-6">
             <h3 className="text-lg font-bold text-[var(--t1)] mb-4">Grade Submission</h3>
             <p className="text-sm text-[var(--t3)] mb-4">
               {submission.students?.first_name} {submission.students?.last_name}
             </p>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Marks (out of {maxMarks})</label>
+                <label htmlFor={marksInputId} className="block text-sm font-medium mb-1">
+                  Marks (out of {maxMarks})
+                </label>
                 <input
+                  id={marksInputId}
                   type="number"
                   inputMode="numeric"
                   min="0"
@@ -292,8 +365,11 @@ function GradingModal({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Feedback</label>
+                <label htmlFor={feedbackInputId} className="block text-sm font-medium mb-1">
+                  Feedback
+                </label>
                 <textarea
+                  id={feedbackInputId}
                   value={feedback}
                   onChange={(e) => setFeedback(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
@@ -302,7 +378,7 @@ function GradingModal({
                 />
               </div>
             </div>
-            <div className="flex gap-3 mt-6">
+            <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row">
               <Button variant="secondary" className="flex-1" onClick={() => setOpen(false)}>
                 Cancel
               </Button>

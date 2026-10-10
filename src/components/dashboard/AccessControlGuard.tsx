@@ -21,6 +21,7 @@ import { canOpenSettingsPage } from "@/lib/role-tab-access";
 const roleBasedRoutes: Record<string, keyof RolePermissions> = deepFreeze({
   "/dashboard/students": "students",
   "/dashboard/attendance": "attendance",
+  "/dashboard/period-attendance": "attendance",
   "/dashboard/grades": "grades",
   "/dashboard/fees": "fees",
   "/dashboard/messages": "messages",

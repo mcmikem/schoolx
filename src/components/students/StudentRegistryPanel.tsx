@@ -7,7 +7,9 @@ import MaterialIcon from "@/components/MaterialIcon";
 import OnboardingTips from "@/components/OnboardingTips";
 import PersonInitials from "@/components/ui/PersonInitials";
 import { TableSkeleton } from "@/components/ui/Skeleton";
+import { useAuth } from "@/lib/auth-context";
 import { buildStudentTemplateCsv } from "@/lib/import/students";
+import { canAccess, type UserRole } from "@/lib/roles";
 
 interface StudentClassInfo {
   id: string;
@@ -186,6 +188,8 @@ export default function StudentRegistryPanel({
   onDeleteStudent,
   canManage = true,
 }: StudentRegistryPanelProps) {
+  const { user } = useAuth();
+  const canExport = user?.role ? canAccess(user.role as UserRole, "export") : false;
   // Data saver is right about the cost — 500 passport photos is real 3G
   // traffic — but it used to be a silent swap: the avatar turned into initials
   // and the only clue was a banner further down the toolbar. The toggle hands
@@ -742,10 +746,12 @@ export default function StudentRegistryPanel({
             style={{ borderBottom: "1px solid var(--border)", background: "var(--navy-soft)" }}
           >
             <span className="text-xs font-bold text-[var(--navy)]">{selectedIds.size} selected on this page</span>
-            <button type="button" onClick={exportSelectedCsv} className="btn btn-primary btn-sm">
-              <MaterialIcon style={{ fontSize: 16 }}>download</MaterialIcon>
-              Export CSV
-            </button>
+            {canExport && (
+              <button type="button" onClick={exportSelectedCsv} className="btn btn-primary btn-sm">
+                <MaterialIcon style={{ fontSize: 16 }}>download</MaterialIcon>
+                Export CSV
+              </button>
+            )}
             <button type="button" onClick={() => setSelectedIds(new Set())} className="btn btn-ghost btn-sm">
               Clear
             </button>

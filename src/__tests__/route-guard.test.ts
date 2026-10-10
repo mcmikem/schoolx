@@ -1,9 +1,10 @@
 import { isRouteAllowed, roleBasedRoutes } from "@/components/dashboard/AccessControlGuard";
 import { canAccess, type RolePermissions, type UserRole } from "@/lib/roles";
-import { canOpenSettingsPage } from "@/lib/role-tab-access";
+import { canOpenSettingsPage, tabsForRole } from "@/lib/role-tab-access";
 
 const SENSITIVE_ROUTES: Record<string, keyof RolePermissions> = {
   "/dashboard/users": "staff",
+  "/dashboard/period-attendance": "attendance",
   "/dashboard/bulk-sms": "messages",
   "/dashboard/suggestions": "messages",
   "/dashboard/sms-delivery": "messages",
@@ -40,8 +41,8 @@ describe("route guard sensitive routes", () => {
 
   it("only opens a sensitive route to roles that hold its permission", () => {
     const expectedAllowed: Record<string, string[]> = {
-      teacher: [],
-      dean_of_studies: ["/dashboard/teacher-performance", "/dashboard/schools"],
+      teacher: ["/dashboard/period-attendance"],
+      dean_of_studies: ["/dashboard/teacher-performance", "/dashboard/schools", "/dashboard/period-attendance"],
       secretary: ["/dashboard/bulk-sms", "/dashboard/suggestions", "/dashboard/sms-delivery"],
       bursar: [
         "/dashboard/bulk-sms",
@@ -54,7 +55,7 @@ describe("route guard sensitive routes", () => {
       ],
       board: ["/dashboard/schools"],
       marketer: ["/dashboard/schools"],
-      dorm_master: [],
+      dorm_master: ["/dashboard/period-attendance"],
       parent: [],
     };
     for (const [role, expected] of Object.entries(expectedAllowed)) {
@@ -75,6 +76,7 @@ describe("route guard sensitive routes", () => {
 
   it("keeps nav entries reachable for the roles whose nav lists them", () => {
     const navOwners: Record<string, UserRole[]> = {
+      "/dashboard/period-attendance": ["teacher"],
       "/dashboard/bulk-sms": ["headmaster", "secretary"],
       "/dashboard/suggestions": ["headmaster", "secretary"],
       "/dashboard/teacher-performance": ["headmaster", "admin"],
@@ -130,12 +132,19 @@ describe("route guard sensitive routes", () => {
 });
 
 describe("settings route exception", () => {
-  it("opens settings only to roles whose tab list covers the subscription tab", () => {
-    for (const role of ["bursar", "headmaster", "admin", "school_admin", "super_admin"] as UserRole[]) {
+  it("opens settings to every role that has at least one settings tab (settings-lite)", () => {
+    for (const role of [
+      "bursar",
+      "headmaster",
+      "admin",
+      "school_admin",
+      "super_admin",
+      "teacher",
+      "dean_of_studies",
+      "secretary",
+      "dorm_master",
+    ] as UserRole[]) {
       expect({ role, allowed: canOpenSettingsPage(role) }).toEqual({ role, allowed: true });
-    }
-    for (const role of ["teacher", "dean_of_studies", "secretary", "dorm_master"] as UserRole[]) {
-      expect({ role, allowed: canOpenSettingsPage(role) }).toEqual({ role, allowed: false });
     }
     expect(canOpenSettingsPage(undefined)).toBe(false);
   });
@@ -152,11 +161,18 @@ describe("settings route exception", () => {
     expect(isRouteAllowed("bursar", "/dashboard/billing")).toBe(true);
   });
 
-  it("keeps settings closed to class-scoped roles", () => {
+  it("gives class-scoped roles settings-lite but keeps admin settings routes closed", () => {
     for (const role of ["teacher", "class_teacher", "dorm_master"] as UserRole[]) {
-      expect({ role, allowed: isRouteAllowed(role, "/dashboard/settings") }).toEqual({ role, allowed: false });
+      expect({ role, allowed: isRouteAllowed(role, "/dashboard/settings") }).toEqual({ role, allowed: true });
+      expect({ role, allowed: isRouteAllowed(role, "/dashboard/users") }).toEqual({ role, allowed: false });
+      expect({ role, allowed: isRouteAllowed(role, "/dashboard/academic-terms") }).toEqual({ role, allowed: false });
+      expect({ role, allowed: isRouteAllowed(role, "/dashboard/permissions") }).toEqual({ role, allowed: false });
     }
     expect(isRouteAllowed("headmaster", "/dashboard/settings")).toBe(true);
+  });
+
+  it("keeps the teacher settings tab list to general and notifications", () => {
+    expect(tabsForRole("teacher")).toEqual(["general", "notifications"]);
   });
 
   it("leaves ungated teacher routes open", () => {

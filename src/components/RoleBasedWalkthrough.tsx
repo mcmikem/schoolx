@@ -20,7 +20,8 @@ const HEADMASTER_STEPS: WalkthroughStep[] = [
     id: "welcome",
     title: "Welcome to SkoolMate",
     description: "Your all-in-one school management dashboard",
-    detail: "This is your command centre. From here you can manage students, staff, fees, attendance, grades, and parent communication — all in one place.",
+    detail:
+      "This is your command centre. From here you can manage students, staff, fees, attendance, grades, and parent communication — all in one place.",
     icon: "celebration",
     href: "/dashboard",
   },
@@ -28,7 +29,8 @@ const HEADMASTER_STEPS: WalkthroughStep[] = [
     id: "setup",
     title: "Complete School Setup",
     description: "Configure your school profile and academic structure",
-    detail: "Set up your school name, term dates, class structure, and curriculum subjects. This is the foundation everything else builds on.",
+    detail:
+      "Set up your school name, term dates, class structure, and curriculum subjects. This is the foundation everything else builds on.",
     icon: "settings_applications",
     href: "/dashboard/setup",
   },
@@ -36,7 +38,8 @@ const HEADMASTER_STEPS: WalkthroughStep[] = [
     id: "staff",
     title: "Add Staff Members",
     description: "Build your team — teachers, admins, bursars",
-    detail: "Add staff accounts with role-based permissions. Teachers get access to attendance and grades, bursars handle fees, admins oversee operations.",
+    detail:
+      "Add staff accounts with role-based permissions. Teachers get access to attendance and grades, bursars handle fees, admins oversee operations.",
     icon: "badge",
     href: "/dashboard/staff",
   },
@@ -44,7 +47,8 @@ const HEADMASTER_STEPS: WalkthroughStep[] = [
     id: "students",
     title: "Register Students",
     description: "Add learners individually or bulk-import",
-    detail: "Register students with parent contact details. Use the CSV import for large batches — the system assigns admission numbers automatically.",
+    detail:
+      "Register students with parent contact details. Use the CSV import for large batches — the system assigns admission numbers automatically.",
     icon: "group_add",
     href: "/dashboard/students",
   },
@@ -52,7 +56,8 @@ const HEADMASTER_STEPS: WalkthroughStep[] = [
     id: "fees",
     title: "Set Up Fee Structure",
     description: "Define fee items, amounts, and payment terms",
-    detail: "Create fee items (tuition, meals, transport, etc.), set amounts per class and term. The system tracks balances and sends reminders automatically.",
+    detail:
+      "Create fee items (tuition, meals, transport, etc.), set amounts per class and term. The system tracks balances and sends reminders automatically.",
     icon: "payments",
     href: "/dashboard/fees",
   },
@@ -60,7 +65,8 @@ const HEADMASTER_STEPS: WalkthroughStep[] = [
     id: "grades",
     title: "Configure Grading",
     description: "Set up grading rules and report card templates",
-    detail: "Define grade boundaries (A–E), passing marks, and report card layouts. Supports UNEB-compliant grading for Ugandan schools.",
+    detail:
+      "Define grade boundaries (A–E), passing marks, and report card layouts. Supports UNEB-compliant grading for Ugandan schools.",
     icon: "grade",
     href: "/dashboard/grades",
   },
@@ -68,7 +74,8 @@ const HEADMASTER_STEPS: WalkthroughStep[] = [
     id: "attendance",
     title: "Take Daily Attendance",
     description: "Mark who is present, away, or late",
-    detail: "Select a class and date, then tap to cycle through statuses. Use Roll Call mode for quick entry — parents of absentees get automatic SMS alerts.",
+    detail:
+      "Select a class and date, then tap to cycle through statuses. Use Roll Call mode for quick entry — parents of absentees get automatic SMS alerts.",
     icon: "how_to_reg",
     href: "/dashboard/attendance",
   },
@@ -76,7 +83,8 @@ const HEADMASTER_STEPS: WalkthroughStep[] = [
     id: "reports",
     title: "Generate Reports",
     description: "Report cards, analytics, and government submissions",
-    detail: "Generate termly report cards, view class performance analytics, and prepare UNEB/MoES submissions — all pre-formatted and printable.",
+    detail:
+      "Generate termly report cards, view class performance analytics, and prepare UNEB/MoES submissions — all pre-formatted and printable.",
     icon: "assessment",
     href: "/dashboard/reports",
   },
@@ -84,7 +92,8 @@ const HEADMASTER_STEPS: WalkthroughStep[] = [
     id: "sms",
     title: "Communicate with Parents",
     description: "Send SMS alerts, notices, and fee reminders",
-    detail: "Use bulk SMS for fee reminders and school notices. Automated triggers can notify parents on absenteeism, payment due dates, and report card releases.",
+    detail:
+      "Use bulk SMS for fee reminders and school notices. Automated triggers can notify parents on absenteeism, payment due dates, and report card releases.",
     icon: "sms",
     href: "/dashboard/messages",
   },
@@ -95,7 +104,8 @@ const TEACHER_STEPS: WalkthroughStep[] = [
     id: "welcome",
     title: "Welcome, Teacher!",
     description: "Your classroom command centre",
-    detail: "This is where you manage your daily classroom tasks — attendance, grades, homework, timetable, and student communication. Everything you need is a click away.",
+    detail:
+      "This is where you manage your daily classroom tasks — attendance, grades, class tests, and your timetable. Everything you need is a click away.",
     icon: "celebration",
     href: "/dashboard",
   },
@@ -103,7 +113,8 @@ const TEACHER_STEPS: WalkthroughStep[] = [
     id: "attendance",
     title: "Take Daily Attendance",
     description: "Mark students present, away, or late in seconds",
-    detail: "Go to Attendance, pick your class, and tap each student to mark them. Use Roll Call mode to quickly mark everyone present first, then just tap absentees.",
+    detail:
+      "Go to Attendance, pick your class, and tap each student to mark them. Use Roll Call mode to quickly mark everyone present first, then just tap absentees.",
     icon: "how_to_reg",
     href: "/dashboard/attendance",
   },
@@ -111,15 +122,17 @@ const TEACHER_STEPS: WalkthroughStep[] = [
     id: "grades",
     title: "Enter Student Marks",
     description: "Record assessments and track progress",
-    detail: "Navigate to Grades, select your class and assessment type, then enter marks per subject. The system calculates totals, averages, and grade positions automatically.",
+    detail:
+      "Navigate to Grades, select your class and assessment type, then enter marks per subject. The system calculates totals, averages, and grade positions automatically.",
     icon: "grade",
     href: "/dashboard/grades",
   },
   {
     id: "homework",
-    title: "Post Homework",
-    description: "Assign and track homework submissions",
-    detail: "Create homework assignments with instructions and due dates. Students and parents can view them through the parent portal.",
+    title: "Post Class Tests",
+    description: "Assign and track class test submissions",
+    detail:
+      "Create class tests with instructions, marks, and due dates. Students and parents can view them through the parent portal.",
     icon: "assignment",
     href: "/dashboard/homework",
   },
@@ -127,7 +140,8 @@ const TEACHER_STEPS: WalkthroughStep[] = [
     id: "timetable",
     title: "Check Your Timetable",
     description: "View your daily and weekly class schedule",
-    detail: "See your full timetable at a glance — which classes, subjects, and periods you have each day. Print or share with colleagues.",
+    detail:
+      "See your full timetable at a glance — which classes, subjects, and periods you have each day. Print or share with colleagues.",
     icon: "calendar_month",
     href: "/dashboard/timetable",
   },
@@ -135,17 +149,19 @@ const TEACHER_STEPS: WalkthroughStep[] = [
     id: "students",
     title: "View Student Profiles",
     description: "Access student info, history, and contacts",
-    detail: "Each student has a complete profile — personal details, parent contacts, attendance history, grades, fee status, and disciplinary records.",
+    detail:
+      "Each student has a complete profile — personal details, parent contacts, attendance history, grades, fee status, and disciplinary records.",
     icon: "group",
     href: "/dashboard/students",
   },
   {
-    id: "communicate",
-    title: "Send Parent Updates",
-    description: "Share progress and important notices",
-    detail: "Use SMS to alert parents about attendance issues, upcoming exams, or school events. You can message individual parents or whole classes at once.",
-    icon: "sms",
-    href: "/dashboard/messages",
+    id: "planning",
+    title: "Plan Your Lessons",
+    description: "Syllabus, scheme of work, and lesson plans",
+    detail:
+      "Use Planning in the sidebar to track curriculum coverage, build your scheme of work, and write lesson plans for each period.",
+    icon: "menu_book",
+    href: "/dashboard/lesson-plans",
   },
 ];
 
@@ -239,7 +255,10 @@ export default function RoleBasedWalkthrough() {
     setIsActive(false);
     setDismissed(true);
     if (userId) {
-      saveCompleted(userId, Array.from({ length: totalSteps }, (_, i) => steps[i]?.id || `step_${i}`));
+      saveCompleted(
+        userId,
+        Array.from({ length: totalSteps }, (_, i) => steps[i]?.id || `step_${i}`),
+      );
     }
   }, [userId, totalSteps, steps]);
 
@@ -265,10 +284,7 @@ export default function RoleBasedWalkthrough() {
 
   return (
     <div className="fixed inset-0 z-[999] flex items-start justify-center pt-12 sm:pt-24 px-4">
-      <div
-        className="absolute inset-0 bg-black/20 backdrop-blur-[2px]"
-        onClick={handleDismiss}
-      />
+      <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px]" onClick={handleDismiss} />
 
       <div className="relative w-full max-w-[520px] bg-white rounded-[28px] shadow-[0_32px_80px_rgba(0,0,0,0.2)] border border-[var(--border)] overflow-hidden animate-fade-in">
         <div className="absolute top-0 left-0 right-0 h-1 bg-[var(--border)]">
@@ -299,19 +315,13 @@ export default function RoleBasedWalkthrough() {
               </div>
             </div>
             <div className="flex-1 min-w-0 pt-1">
-              <h2 className="text-lg font-extrabold text-[var(--t1)] tracking-tight leading-snug">
-                {step.title}
-              </h2>
-              <p className="text-sm font-medium text-[var(--primary)] mt-0.5">
-                {step.description}
-              </p>
+              <h2 className="text-lg font-extrabold text-[var(--t1)] tracking-tight leading-snug">{step.title}</h2>
+              <p className="text-sm font-medium text-[var(--primary)] mt-0.5">{step.description}</p>
             </div>
           </div>
 
           <div className="bg-[var(--surface-container-low)] rounded-2xl p-4 mb-6 border border-[var(--border)]">
-            <p className="text-sm text-[var(--t2)] leading-relaxed">
-              {step.detail}
-            </p>
+            <p className="text-sm text-[var(--t2)] leading-relaxed">{step.detail}</p>
           </div>
 
           <div className="flex items-center justify-between">
@@ -343,7 +353,10 @@ export default function RoleBasedWalkthrough() {
                 }`}
               >
                 <span className="flex items-center gap-1.5">
-                  <MaterialIcon icon={isDone ? "check_circle" : isLastStep ? "check_circle" : "arrow_forward"} className="text-base" />
+                  <MaterialIcon
+                    icon={isDone ? "check_circle" : isLastStep ? "check_circle" : "arrow_forward"}
+                    className="text-base"
+                  />
                   {isDone ? "Done" : isLastStep ? "Finish" : "Next"}
                 </span>
               </button>

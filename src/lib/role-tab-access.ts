@@ -16,5 +16,7 @@ export function tabsForRole(role?: string): string[] {
 
 export function canOpenSettingsPage(role?: string): boolean {
   if (!role) return false;
-  return tabsForRole(role).includes("subscription");
+  // Any role with at least one settings tab gets the page (teacher/secretary/
+  // dorm_master see a settings-lite with only general + notifications).
+  return tabsForRole(role).length > 0;
 }

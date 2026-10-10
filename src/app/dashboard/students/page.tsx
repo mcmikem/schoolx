@@ -32,7 +32,7 @@ import { dedupeRead, withTimeout } from "@/lib/hooks/utils";
 import { loadSchoolHouses } from "@/lib/houses";
 import { logger } from "@/lib/logger";
 import { supabase } from "@/lib/supabase";
-import { isClassScopedRole } from "@/lib/roles";
+import { canAccess, isClassScopedRole, type UserRole } from "@/lib/roles";
 import { useTablePreferences } from "@/lib/useTablePreferences";
 
 type StudentWorkspaceTab = "registry" | "transfers" | "dropouts" | "promotion";
@@ -110,6 +110,7 @@ export default function StudentHubPage() {
   // refuses their inserts, updates and deletes — the UI just stops offering
   // actions that would fail.
   const canManageStudents = !isClassScopedRole(user?.role);
+  const canExportStudents = user?.role ? canAccess(user.role as UserRole, "export") : false;
   const toast = useToast();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -601,14 +602,16 @@ export default function StudentHubPage() {
                   PLE Numbers
                 </button>
               )}
-              <button
-                type="button"
-                onClick={handleExport}
-                className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-white/80 px-3.5 py-2 text-[13px] font-bold text-[var(--t2)] hover:text-[var(--navy)] hover:border-[var(--navy)] transition-colors"
-              >
-                <MaterialIcon size={16}>download</MaterialIcon>
-                Export
-              </button>
+              {canExportStudents && (
+                <button
+                  type="button"
+                  onClick={handleExport}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-white/80 px-3.5 py-2 text-[13px] font-bold text-[var(--t2)] hover:text-[var(--navy)] hover:border-[var(--navy)] transition-colors"
+                >
+                  <MaterialIcon size={16}>download</MaterialIcon>
+                  Export
+                </button>
+              )}
             </>
           }
         >
