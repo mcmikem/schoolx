@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
+import { splitBalance } from "@/lib/fee-triage";
 import { loadSchoolSetting } from "@/lib/school-settings";
 import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
@@ -718,6 +719,40 @@ export default function ParentFeesPage() {
                       placeholder="e.g. 100000"
                       className="input w-full"
                     />
+                    {stats.balance > 0 && (
+                      <div className="mt-3 rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] p-3">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]">
+                          Can&apos;t clear UGX {stats.balance.toLocaleString()} at once? Split it
+                        </p>
+                        <div className="mt-2 grid grid-cols-3 gap-2">
+                          {[2, 3, 4].map((n) => {
+                            const part = splitBalance(stats.balance, n);
+                            const picked = payAmount.trim() === String(part);
+                            return (
+                              <button
+                                key={n}
+                                type="button"
+                                onClick={() => setPayAmount(String(part))}
+                                aria-pressed={picked}
+                                className={`min-h-[44px] rounded-xl border px-2 py-2 text-center transition-colors ${
+                                  picked
+                                    ? "border-[var(--primary)] bg-[var(--primary)]/10 text-[var(--primary)]"
+                                    : "border-[var(--border)] bg-[var(--surface)] text-[var(--t2)] hover:border-[var(--primary)]/40"
+                                }`}
+                              >
+                                <span className="block text-sm font-bold tabular-nums">
+                                  {n} × {part.toLocaleString()}
+                                </span>
+                                <span className="block text-[10px] opacity-70">per payment</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                        <p className="mt-2 text-[11px] text-[var(--t3)]">
+                          Tap a split to fill the amount, then pay it the same way each time.
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -773,7 +808,10 @@ export default function ParentFeesPage() {
                     disabled={!selectedChild || !payAmount.trim()}
                     className="w-full"
                   >
-                    <MaterialIcon icon="check_circle" /> I&apos;ve paid — send to school
+                    <MaterialIcon icon="check_circle" />{" "}
+                    {payAmount.trim()
+                      ? `I've paid UGX ${Number(payAmount).toLocaleString()} — send to school`
+                      : "I've paid — send to school"}
                   </Button>
 
                   <p className="text-[11px] text-[var(--t3)] text-center leading-relaxed">

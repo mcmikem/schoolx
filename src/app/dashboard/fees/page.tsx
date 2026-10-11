@@ -15,6 +15,7 @@ import { useToast } from "@/components/Toast";
 import { useFormDraft } from "@/lib/useAutoSave";
 import { FilterBar } from "@/components/ui/FilterBar";
 import { withTimeout, timeoutFallback, getLocalDateString } from "@/lib/hooks/utils";
+import { TRIAGE_BANDS, bucketTriageBalances } from "@/lib/fee-triage";
 import { PAYMENT_METHODS } from "@/lib/constants";
 import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
@@ -509,6 +510,8 @@ export default function FinanceHubPage() {
     return students.map((s) => studentBalanceMap.get(s.id)!);
   }, [students, studentBalanceMap]);
 
+  const [bandFilter, setBandFilter] = useState<string | null>(null);
+
   const filteredBalances = useMemo(() => {
     return studentBalances
       .filter((s) => {
@@ -517,10 +520,27 @@ export default function FinanceHubPage() {
           s.student_number.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesClass = selectedClass === "all" || s.class_id === selectedClass;
         const matchesStatus = statusFilter === "all" || s.status === statusFilter;
-        return matchesSearch && matchesClass && matchesStatus;
+        const band = bandFilter ? TRIAGE_BANDS.find((b) => b.id === bandFilter) : null;
+        const matchesBand = !band || (s.balance >= band.min && s.balance < band.max);
+        return matchesSearch && matchesClass && matchesStatus && matchesBand;
       })
       .sort((a, b) => b.balance - a.balance);
-  }, [studentBalances, searchTerm, selectedClass, statusFilter]);
+  }, [studentBalances, searchTerm, selectedClass, statusFilter, bandFilter]);
+
+  // Distribution behind the follow-up threshold: bands of who owes what for
+  // the current search/class scope, so the bursar sets cutoffs with eyes
+  // open instead of guessing and getting 3 pupils or 300. Tapping a band
+  // filters the list to it; tapping again clears.
+  const triageBands = useMemo(() => {
+    const scoped = studentBalances.filter((s) => {
+      const matchesSearch =
+        s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        s.student_number.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesClass = selectedClass === "all" || s.class_id === selectedClass;
+      return matchesSearch && matchesClass;
+    });
+    return bucketTriageBalances(scoped);
+  }, [studentBalances, searchTerm, selectedClass]);
 
   // Totals for exactly what the list is showing, so the sticky bar answers
   // "who owes how much" for this filter — not just the whole school.
@@ -1608,6 +1628,7 @@ export default function FinanceHubPage() {
                     setSearchTerm("");
                     setSelectedClass("all");
                     setStatusFilter("all");
+                    setBandFilter(null);
                   }}
                   className="text-xs font-semibold text-[var(--primary)] hover:underline ml-1"
                 >
@@ -1655,6 +1676,41 @@ export default function FinanceHubPage() {
                       <span className="ml-auto text-xs font-semibold text-[var(--t3)]">
                         {filteredBalances.length} pupils · {filteredCollectionPct}% collected
                       </span>
+                    </div>
+                  </div>
+                  <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 shadow-sm">
+                    <div className="text-xs font-bold uppercase tracking-wider text-[var(--t3)]">Who owes what</div>
+                    <div className="mt-2 space-y-1">
+                      {triageBands.map((band) => {
+                        const active = bandFilter === band.id;
+                        return (
+                          <button
+                            key={band.id}
+                            type="button"
+                            disabled={band.count === 0}
+                            onClick={() => setBandFilter(active ? null : band.id)}
+                            aria-pressed={active}
+                            className={`flex w-full items-center gap-3 rounded-lg px-2 py-2 min-h-[44px] text-left transition-colors ${
+                              active
+                                ? "bg-[var(--primary)]/10 outline outline-1 outline-[var(--primary)]"
+                                : "hover:bg-[var(--surface-container-low)] disabled:opacity-45"
+                            }`}
+                          >
+                            <span className="w-20 shrink-0 text-sm font-semibold text-[var(--t1)] tabular-nums">
+                              {band.label}
+                            </span>
+                            <span className="h-2.5 flex-1 overflow-hidden rounded-full bg-[var(--surface-container)]">
+                              <span
+                                className="block h-full rounded-full bg-[var(--red)]"
+                                style={{ width: `${band.widthPct}%` }}
+                              />
+                            </span>
+                            <span className="w-32 shrink-0 text-right text-xs text-[var(--t2)] tabular-nums">
+                              {band.count} pupil{band.count !== 1 ? "s" : ""} · {formatCurrency(band.total)}
+                            </span>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                   <FeeTable balances={filteredBalances} onViewReceipt={handleViewReceipt} />
