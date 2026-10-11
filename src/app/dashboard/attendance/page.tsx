@@ -606,8 +606,8 @@ export default function AttendancePage() {
   const absentCount = Object.values(attendance).filter((s) => s === "absent").length;
   const lateCount = Object.values(attendance).filter((s) => s === "late").length;
   const excusedCount = Object.values(attendance).filter((s) => s === "excused").length;
-  // Everyone starts Present, so unmarked pupils count (and save) as present —
-  // reflected here and in the save gate below.
+  // Unmarked pupils count (and save) as present — reflected here and in the
+  // save gate below — but the row itself shows an honest "Unmarked" chip.
   const unmarkedCount = students.filter((s) => !(s.id in attendance)).length;
   const markedCount = students.length - unmarkedCount;
   const markedPct = students.length > 0 ? Math.round((markedCount / students.length) * 100) : 0;

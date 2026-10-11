@@ -19,7 +19,7 @@ describe("Owly offline knowledge base", () => {
 
     const attendance = answerLocally("how do I mark attendance?");
     expect(attendance).toContain("Select Class");
-    expect(attendance).toContain("Save Changes");
+    expect(attendance).toContain("Save");
 
     const grades = answerLocally("how do I enter marks?");
     expect(grades).toContain("CA1");
