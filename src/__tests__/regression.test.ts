@@ -1145,6 +1145,18 @@ describe("Staff directory rows use one overflow menu", () => {
     expect(src).not.toContain('?.code === "42703"');
   });
 
+  it("remembers a missing users.subject column instead of re-paying the doomed write", () => {
+    const src = read("src/app/dashboard/staff/page.tsx");
+    // users.subject does not exist on current deployments; without the memo
+    // every edit wastes a full cross-region round-trip on the failed write.
+    expect(src).toContain("usersSubjectColumnMissing = true");
+    expect(src).toContain("...(usersSubjectColumnMissing");
+    const flagAt = src.indexOf("let usersSubjectColumnMissing = false");
+    const setAt = src.indexOf("usersSubjectColumnMissing = true");
+    expect(flagAt).toBeGreaterThan(-1);
+    expect(setAt).toBeGreaterThan(flagAt);
+  });
+
   it("never sends the nonexistent school_id column to teacher_subjects", () => {
     const src = read("src/app/dashboard/staff/page.tsx");
     // teacher_subjects has no school_id (RLS scopes through teacher_id ->

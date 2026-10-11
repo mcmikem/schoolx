@@ -103,6 +103,12 @@ const ROLE_DESCRIPTIONS: Record<string, { desc: string; icon: string }> = {
 // read of "staff" has to say so explicitly or parents land in the directory.
 const NON_STAFF_ROLES = '("parent","student")';
 
+// Probed lazily: users.subject does not exist on current deployments (the
+// update fails 42703/PGRST204), but some older migrations added it, so the
+// first edit per session still offers it. Remember the miss so repeat saves
+// skip the field instead of paying a doomed cross-region round-trip each time.
+let usersSubjectColumnMissing = false;
+
 type StaffScope = "staff" | "parents";
 type TabCountKey = "active" | "inactive" | "parents";
 type TabCounts = Record<TabCountKey, number | null>;
@@ -735,13 +741,20 @@ function DirectoryTab({
         role: editForm.role,
         email: editForm.email || null,
         avatar_url: editForm.avatar_url || null,
-        subject:
-          editForm.subject_ids.length > 0
-            ? subjects
-                .filter((subject) => editForm.subject_ids.includes(subject.id))
-                .map((subject) => subject.name)
-                .join(", ")
-            : editForm.subject || null,
+        // Only attempt the denormalized subject column when the schema is
+        // known to have it; the teacher_subjects rows below are the real
+        // source of truth either way.
+        ...(usersSubjectColumnMissing
+          ? {}
+          : {
+              subject:
+                editForm.subject_ids.length > 0
+                  ? subjects
+                      .filter((subject) => editForm.subject_ids.includes(subject.id))
+                      .map((subject) => subject.name)
+                      .join(", ")
+                  : editForm.subject || null,
+            }),
       };
 
       // Deadlined: on a saturated database an unbounded save hangs until the
@@ -754,6 +767,7 @@ function DirectoryTab({
       } as unknown as { error: { message: string } | null });
 
       if (isMissingTableColumnError(error, "users", "subject")) {
+        usersSubjectColumnMissing = true;
         const { subject: _ignored, ...fallbackPayload } = updatePayload;
         const retry = await withTimeout(
           supabase.from("users").update(fallbackPayload).eq("id", editingStaff.id),
