@@ -83,14 +83,19 @@ jest.mock("@/components/ui/index", () => ({
   Badge: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
 }));
 
-describe("Grades page mobile summary", () => {
-  it("shows a quick grade summary card for mobile-friendly teacher workflow", () => {
+describe("Grades page progressive disclosure", () => {
+  it("leads with pickers and hides the heavy UI until a class + subject are chosen", () => {
     render(<GradesPage />);
 
-    expect(screen.getByLabelText(/grades overview/i)).toBeInTheDocument();
-    expect(screen.getByText(/selected class/i)).toBeInTheDocument();
-    expect(screen.getByText(/selected subject/i)).toBeInTheDocument();
-    expect(screen.getByText(/graded/i)).toBeInTheDocument();
-    expect(screen.getByText(/pending/i)).toBeInTheDocument();
+    // Pickers are the first controls, always visible.
+    expect(screen.getByText(/target class/i)).toBeInTheDocument();
+    expect(screen.getByText(/subject area/i)).toBeInTheDocument();
+    expect(screen.getByText(/select class/i)).toBeInTheDocument();
+    expect(screen.getByText(/select subject/i)).toBeInTheDocument();
+    // Empty state guides the next step.
+    expect(screen.getAllByText(/select a class and subject/i).length).toBeGreaterThan(0);
+    // The overview tiles (graded/pending) only appear after selection.
+    expect(screen.queryByLabelText(/grades overview/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^graded$/i)).not.toBeInTheDocument();
   });
 });
