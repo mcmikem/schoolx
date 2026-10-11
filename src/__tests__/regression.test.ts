@@ -1183,6 +1183,19 @@ describe("Staff directory rows use one overflow menu", () => {
     expect(banner).toContain("school?.is_tester");
   });
 
+  it("the write-policy intent pass migration freezes privilege columns and money writes", () => {
+    const mig = read("supabase/migrations/202611110002_role_intent_write_policies.sql");
+    // Self-update escalation: a user must not rewrite their own role.
+    expect(mig).toContain("users_guard_self_update");
+    expect(mig).toContain("NEW.role := OLD.role");
+    // Money tables: no more school-wide staff ALL, parents/students can't write.
+    expect(mig).toContain('DROP POLICY IF EXISTS "School users fee_payments write"');
+    expect(mig).toContain('DROP POLICY IF EXISTS "School users student_wallets all"');
+    expect(mig).toContain("School staff write wallet_transactions");
+    // Linking parents to students is staff work, not student/parent work.
+    expect(mig).toContain("School staff parent_students write");
+  });
+
   it("never sends the nonexistent school_id column to teacher_subjects", () => {
     const src = read("src/app/dashboard/staff/page.tsx");
     // teacher_subjects has no school_id (RLS scopes through teacher_id ->
