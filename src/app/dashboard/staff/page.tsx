@@ -6,6 +6,13 @@ import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
 import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
+import {
+  TeachingAssignmentsEditor,
+  validateTeachingAssignments,
+  normalizeTeachingAssignments,
+  groupTeachingAssignments,
+  type TeachingAssignment,
+} from "@/components/staff/TeachingAssignmentsEditor";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Tabs, TabPanel } from "@/components/ui/Tabs";
 import { Button } from "@/components/ui/index";
@@ -233,8 +240,8 @@ function DirectoryTab({
     subject: "",
     avatar_url: "",
     class_teacher_for: "",
-    subject_ids: [] as string[],
   });
+  const [editAssignments, setEditAssignments] = useState<TeachingAssignment[]>([]);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
   // prompt() throws in this runtime ("prompt() is not supported"), so the
@@ -250,8 +257,11 @@ function DirectoryTab({
     subject: "",
     avatar_url: "",
     class_teacher_for: "",
-    subject_ids: [] as string[],
   });
+  // Per-class teaching rows (class × subjects). Most teachers are not class
+  // teachers and teach different subjects in different classes, so this —
+  // not one class plus a flat subject list — is the source of truth.
+  const [newAssignments, setNewAssignments] = useState<TeachingAssignment[]>([{ class_id: "", subject_ids: [] }]);
   const [activeTab, setActiveTab] = useState("all");
   const [staffSearch, setStaffSearch] = useState("");
   // Server-side search runs on the debounced copy: filtering happens in the
@@ -531,8 +541,8 @@ function DirectoryTab({
         subject: "",
         avatar_url: "",
         class_teacher_for: "",
-        subject_ids: [],
       });
+      setNewAssignments([{ class_id: "", subject_ids: [] }]);
       return;
     }
 
@@ -557,12 +567,14 @@ function DirectoryTab({
       return;
     }
     if (newStaff.role === "teacher") {
-      if (!newStaff.class_teacher_for) {
-        toast.error("Select a class for this teacher");
-        return;
-      }
-      if (newStaff.subject_ids.length === 0) {
-        toast.error("Select at least one subject for this teacher");
+      // Class-teacher is optional — most teachers aren't one. Teaching rows
+      // are the requirement: at least one class with its subjects.
+      const assignmentsError = validateTeachingAssignments(
+        newAssignments,
+        (classId) => classes.find((c) => c.id === classId)?.name ?? "",
+      );
+      if (assignmentsError) {
+        toast.error(assignmentsError);
         return;
       }
     }
@@ -617,17 +629,23 @@ function DirectoryTab({
       const warnings: string[] = [];
 
       if (newStaff.role === "teacher") {
-        const { error: classAssignError } = await supabase
-          .from("classes")
-          .update({ class_teacher_id: createdUserId })
-          .eq("id", newStaff.class_teacher_for);
+        // Class-teacher is optional: only write it when chosen, so a teacher
+        // who just teaches can be added without hijacking someone's class.
+        if (newStaff.class_teacher_for) {
+          const { error: classAssignError } = await supabase
+            .from("classes")
+            .update({ class_teacher_id: createdUserId })
+            .eq("id", newStaff.class_teacher_for);
 
-        if (classAssignError) warnings.push(`class assignment failed: ${classAssignError.message}`);
+          if (classAssignError) warnings.push(`class assignment failed: ${classAssignError.message}`);
+        }
 
-        const teacherSubjectsPayload = newStaff.subject_ids.map((subjectId) => ({
+        // Each row carries its own class — Math in P.4 and English in P.5 no
+        // longer collapse into a single class_teacher_for.
+        const teacherSubjectsPayload = normalizeTeachingAssignments(newAssignments).map((row) => ({
           teacher_id: createdUserId,
-          class_id: newStaff.class_teacher_for,
-          subject_id: subjectId,
+          class_id: row.class_id,
+          subject_id: row.subject_id,
         }));
 
         if (teacherSubjectsPayload.length > 0) {
@@ -655,8 +673,8 @@ function DirectoryTab({
         subject: "",
         avatar_url: "",
         class_teacher_for: "",
-        subject_ids: [],
       });
+      setNewAssignments([{ class_id: "", subject_ids: [] }]);
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : "Failed to add staff";
       toast.error(errorMessage);
@@ -682,7 +700,7 @@ function DirectoryTab({
     setLoadingAssignments(true);
 
     let classTeacherFor = "";
-    let subjectIds: string[] = [];
+    let loadedAssignments: TeachingAssignment[] = [];
 
     if (!isDemo && school?.id && member.role === "teacher") {
       try {
@@ -693,11 +711,15 @@ function DirectoryTab({
             .eq("school_id", school.id)
             .eq("class_teacher_id", member.id)
             .maybeSingle(),
-          supabase.from("teacher_subjects").select("subject_id").eq("teacher_id", member.id),
+          supabase.from("teacher_subjects").select("subject_id, class_id").eq("teacher_id", member.id),
         ]);
 
         classTeacherFor = classRes.data?.id || "";
-        subjectIds = (subjectsRes.data || []).map((row) => row.subject_id);
+        // Preserve per-class rows: grouping keeps Math-in-P.4 separate from
+        // English-in-P.5 instead of collapsing to one flat subject list.
+        loadedAssignments = groupTeachingAssignments(
+          (subjectsRes.data || []) as { class_id: string | null; subject_id: string }[],
+        );
       } catch (err) {
         logger.error("Failed to load teacher assignment data:", err);
       }
@@ -705,7 +727,7 @@ function DirectoryTab({
 
     if (isDemo && member.role === "teacher") {
       const fallbackSubject = member.subject || "";
-      subjectIds = subjects
+      const matchedIds = subjects
         .filter((subject) =>
           fallbackSubject
             .toLowerCase()
@@ -714,6 +736,7 @@ function DirectoryTab({
             .includes(subject.name.toLowerCase()),
         )
         .map((subject) => subject.id);
+      if (matchedIds.length > 0) loadedAssignments = [{ class_id: "", subject_ids: matchedIds }];
     }
 
     setEditForm({
@@ -724,8 +747,8 @@ function DirectoryTab({
       subject: member.subject || "",
       avatar_url: member.avatar_url || "",
       class_teacher_for: classTeacherFor,
-      subject_ids: subjectIds,
     });
+    setEditAssignments(loadedAssignments);
     setLoadingAssignments(false);
     setShowEditModal(true);
   };
@@ -735,6 +758,11 @@ function DirectoryTab({
     if (!editingStaff) return;
     try {
       setSaving(true);
+      // Denormalized display names across ALL assignment rows (not one
+      // class's list) — teacher_subjects rows below stay the source of truth.
+      const assignedSubjectNames = (subjects || [])
+        .filter((subject) => normalizeTeachingAssignments(editAssignments).some((row) => row.subject_id === subject.id))
+        .map((subject) => subject.name);
       const updatePayload = {
         full_name: editForm.full_name,
         phone: editForm.phone.replace(/[^0-9]/g, ""),
@@ -747,13 +775,7 @@ function DirectoryTab({
         ...(usersSubjectColumnMissing
           ? {}
           : {
-              subject:
-                editForm.subject_ids.length > 0
-                  ? subjects
-                      .filter((subject) => editForm.subject_ids.includes(subject.id))
-                      .map((subject) => subject.name)
-                      .join(", ")
-                  : editForm.subject || null,
+              subject: assignedSubjectNames.length > 0 ? assignedSubjectNames.join(", ") : editForm.subject || null,
             }),
       };
 
@@ -825,19 +847,24 @@ function DirectoryTab({
             if (assignClassError) throw assignClassError;
           }
 
-          if (editForm.class_teacher_for && editForm.subject_ids.length > 0) {
-            const payload = editForm.subject_ids.map((subjectId) => ({
+          // Subjects persist whenever rows exist — no longer gated on also
+          // being class teacher (that gate silently dropped every subject
+          // edit for teachers heading no class).
+          if (editForm.role === "teacher") {
+            const payload = normalizeTeachingAssignments(editAssignments).map((row) => ({
               teacher_id: editingStaff.id,
-              class_id: editForm.class_teacher_for,
-              subject_id: subjectId,
+              class_id: row.class_id,
+              subject_id: row.subject_id,
             }));
 
-            const { error: assignSubjectsError } = await withTimeout(
-              supabase.from("teacher_subjects").insert(payload),
-              15000,
-              saveTimeout("Assigning subjects"),
-            );
-            if (assignSubjectsError) throw assignSubjectsError;
+            if (payload.length > 0) {
+              const { error: assignSubjectsError } = await withTimeout(
+                supabase.from("teacher_subjects").insert(payload),
+                15000,
+                saveTimeout("Assigning subjects"),
+              );
+              if (assignSubjectsError) throw assignSubjectsError;
+            }
           }
         }
       }
@@ -848,13 +875,7 @@ function DirectoryTab({
             ? {
                 ...s,
                 ...editForm,
-                subject:
-                  editForm.subject_ids.length > 0
-                    ? subjects
-                        .filter((subject) => editForm.subject_ids.includes(subject.id))
-                        .map((subject) => subject.name)
-                        .join(", ")
-                    : editForm.subject,
+                subject: assignedSubjectNames.length > 0 ? assignedSubjectNames.join(", ") : editForm.subject,
               }
             : s,
         ),
@@ -1684,7 +1705,9 @@ function DirectoryTab({
               {newStaff.role === "teacher" && (
                 <>
                   <div>
-                    <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Class Teacher For</label>
+                    <label className="text-sm font-medium text-[var(--t1)] mb-2 block">
+                      Class Teacher Of <span className="font-normal text-[var(--t3)]">(optional)</span>
+                    </label>
                     <select
                       value={newStaff.class_teacher_for}
                       onChange={(e) =>
@@ -1694,38 +1717,27 @@ function DirectoryTab({
                         })
                       }
                       className="input"
-                      required
                     >
-                      <option value="">Select class</option>
+                      <option value="">Not a class teacher</option>
                       {classes.map((cls) => (
                         <option key={cls.id} value={cls.id}>
                           {cls.name}
                         </option>
                       ))}
                     </select>
+                    <p className="text-xs text-[var(--t3)] mt-1">
+                      Only the teacher heading a class. Subject teachers skip this.
+                    </p>
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Subjects Taught</label>
-                    <div className="grid grid-cols-2 gap-2 rounded-xl border border-[var(--surface-container-high)] p-3 max-h-36 overflow-y-auto">
-                      {subjects.map((subject) => (
-                        <label key={subject.id} className="flex items-center gap-2 text-sm text-[var(--t1)]">
-                          <input
-                            type="checkbox"
-                            checked={newStaff.subject_ids.includes(subject.id)}
-                            onChange={(e) => {
-                              setNewStaff((prev) => ({
-                                ...prev,
-                                subject_ids: e.target.checked
-                                  ? [...prev.subject_ids, subject.id]
-                                  : prev.subject_ids.filter((id) => id !== subject.id),
-                              }));
-                            }}
-                          />
-                          {subject.name}
-                        </label>
-                      ))}
-                    </div>
+                    <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Teaches</label>
+                    <TeachingAssignmentsEditor
+                      classes={classes}
+                      subjects={subjects}
+                      value={newAssignments}
+                      onChange={setNewAssignments}
+                    />
                   </div>
                 </>
               )}
@@ -1876,7 +1888,9 @@ function DirectoryTab({
               {editForm.role === "teacher" && (
                 <>
                   <div>
-                    <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Class Teacher For</label>
+                    <label className="text-sm font-medium text-[var(--t1)] mb-2 block">
+                      Class Teacher Of <span className="font-normal text-[var(--t3)]">(optional)</span>
+                    </label>
                     <select
                       value={editForm.class_teacher_for}
                       onChange={(e) =>
@@ -1887,7 +1901,7 @@ function DirectoryTab({
                       }
                       className="input"
                     >
-                      <option value="">Select class</option>
+                      <option value="">Not a class teacher</option>
                       {classes.map((cls) => (
                         <option key={cls.id} value={cls.id}>
                           {cls.name}
@@ -1897,26 +1911,17 @@ function DirectoryTab({
                   </div>
 
                   <div>
-                    <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Subjects Taught</label>
-                    <div className="grid grid-cols-2 gap-2 rounded-xl border border-[var(--surface-container-high)] p-3 max-h-36 overflow-y-auto">
-                      {subjects.map((subject) => (
-                        <label key={subject.id} className="flex items-center gap-2 text-sm text-[var(--t1)]">
-                          <input
-                            type="checkbox"
-                            checked={editForm.subject_ids.includes(subject.id)}
-                            onChange={(e) => {
-                              setEditForm((prev) => ({
-                                ...prev,
-                                subject_ids: e.target.checked
-                                  ? [...prev.subject_ids, subject.id]
-                                  : prev.subject_ids.filter((id) => id !== subject.id),
-                              }));
-                            }}
-                          />
-                          {subject.name}
-                        </label>
-                      ))}
-                    </div>
+                    <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Teaches</label>
+                    {loadingAssignments ? (
+                      <p className="text-sm text-[var(--t3)]">Loading assignments…</p>
+                    ) : (
+                      <TeachingAssignmentsEditor
+                        classes={classes}
+                        subjects={subjects}
+                        value={editAssignments}
+                        onChange={setEditAssignments}
+                      />
+                    )}
                   </div>
                 </>
               )}

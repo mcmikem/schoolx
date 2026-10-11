@@ -182,6 +182,16 @@ export default function StudentHubPage() {
     studentId: string | null;
   }>({ open: false, studentId: null });
 
+  // "⋯ More" overflow holds low-frequency bulk actions (PLE number generation)
+  // so the header stays register/import/export only.
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+  const [pleConfirmOpen, setPleConfirmOpen] = useState(false);
+  const [generatingPle, setGeneratingPle] = useState(false);
+  const plePendingCount = useMemo(
+    () => students.filter((s) => s.classes?.name?.startsWith("P.7") && !s.ple_index_number).length,
+    [students],
+  );
+
   // Houses let a roster column name a house and have it resolved to the id the
   // insert needs, the same way Class is resolved.
   const importHouses = useMemo(() => Object.values(houseMap).map((h) => ({ id: h.id, name: h.name })), [houseMap]);
@@ -515,11 +525,13 @@ export default function StudentHubPage() {
   const girlsCount = students.filter((s) => s.gender === "F").length;
 
   const generatePLEIndexNumbers = async () => {
+    setPleConfirmOpen(false);
     const p7Students = students.filter((s) => s.classes?.name?.startsWith("P.7") && !s.ple_index_number);
     if (p7Students.length === 0) {
       toast.error("No P.7 students without index numbers");
       return;
     }
+    setGeneratingPle(true);
     try {
       const year = new Date().getFullYear();
       const schoolCode = school?.school_code || "SCHL";
@@ -538,6 +550,8 @@ export default function StudentHubPage() {
     } catch (err) {
       logger.warn("Failed to generate index numbers:", err);
       toast.error("Failed to generate index numbers");
+    } finally {
+      setGeneratingPle(false);
     }
   };
 
@@ -593,14 +607,50 @@ export default function StudentHubPage() {
                 </button>
               )}
               {canManageStudents && (
-                <button
-                  type="button"
-                  onClick={generatePLEIndexNumbers}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-white/80 px-3.5 py-2 text-[13px] font-bold text-[var(--t2)] hover:text-[var(--navy)] hover:border-[var(--navy)] transition-colors"
-                >
-                  <MaterialIcon size={16}>confirmation_number</MaterialIcon>
-                  PLE Numbers
-                </button>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setMoreMenuOpen((v) => !v)}
+                    aria-expanded={moreMenuOpen}
+                    aria-haspopup="menu"
+                    aria-label="More student actions"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[var(--border)] bg-white/80 text-[var(--t2)] hover:text-[var(--navy)] hover:border-[var(--navy)] transition-colors"
+                  >
+                    <MaterialIcon size={18}>more_horiz</MaterialIcon>
+                  </button>
+                  {moreMenuOpen && (
+                    <>
+                      <button
+                        type="button"
+                        className="fixed inset-0 z-20 cursor-default"
+                        aria-label="Close menu"
+                        onClick={() => setMoreMenuOpen(false)}
+                      />
+                      <div
+                        role="menu"
+                        className="absolute right-0 top-full z-30 mt-1 w-56 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-1.5 shadow-xl"
+                      >
+                        <button
+                          role="menuitem"
+                          type="button"
+                          onClick={() => {
+                            setMoreMenuOpen(false);
+                            setPleConfirmOpen(true);
+                          }}
+                          className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-[var(--t1)] hover:bg-[var(--surface-container)]"
+                        >
+                          <MaterialIcon size={16}>confirmation_number</MaterialIcon>
+                          Generate PLE Numbers
+                          {plePendingCount > 0 && (
+                            <span className="ml-auto rounded-full bg-[var(--amber-soft)] px-2 py-0.5 text-[11px] font-bold text-[var(--amber)]">
+                              {plePendingCount}
+                            </span>
+                          )}
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
               )}
               {canExportStudents && (
                 <button
@@ -858,6 +908,62 @@ export default function StudentHubPage() {
               houses={importHouses}
             />
           </Modal>
+        )}
+
+        {pleConfirmOpen && (
+          <div
+            className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto"
+            onClick={() => setPleConfirmOpen(false)}
+          >
+            <div
+              className="bg-[var(--surface)] rounded-2xl w-full max-w-md p-6 max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div style={{ textAlign: "center", marginBottom: 24 }}>
+                <MaterialIcon
+                  style={{
+                    fontSize: 48,
+                    color: "var(--primary)",
+                    marginBottom: 16,
+                  }}
+                >
+                  confirmation_number
+                </MaterialIcon>
+                <h3
+                  style={{
+                    fontSize: 18,
+                    fontWeight: 700,
+                    marginBottom: 8,
+                  }}
+                >
+                  Generate PLE Index Numbers?
+                </h3>
+                <p style={{ color: "var(--t3)", fontSize: 14 }}>
+                  {plePendingCount > 0
+                    ? `This will assign index numbers to ${plePendingCount} P.7 student${plePendingCount === 1 ? "" : "s"} who don't have one yet. Students who already have a number are left unchanged.`
+                    : "All P.7 students already have a PLE index number. Nothing will change."}
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <Button
+                  variant="ghost"
+                  onClick={() => setPleConfirmOpen(false)}
+                  className="flex-1"
+                  disabled={generatingPle}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={generatePLEIndexNumbers}
+                  className="flex-1"
+                  disabled={generatingPle || plePendingCount === 0}
+                  loading={generatingPle}
+                >
+                  Generate
+                </Button>
+              </div>
+            </div>
+          </div>
         )}
 
         {deleteConfirm.open && (

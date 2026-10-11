@@ -197,6 +197,10 @@ export default function StudentRegistryPanel({
   const [showPhotosOverride, setShowPhotosOverride] = useState<boolean | null>(null);
   const showPhotos = showPhotosOverride ?? !lowBandwidthMode;
   const [showQuickImport, setShowQuickImport] = useState(false);
+  // Filters popover: gender/status/position/defaulters/page-size live here so
+  // the toolbar is search + class + sort + Filters (touch-friendly, no
+  // horizontal scroll on a phone).
+  const [filtersOpen, setFiltersOpen] = useState(false);
   // Page-scoped selection for bulk actions. Reset whenever what is on screen
   // changes, so a checked row can never silently mean a different pupil.
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -339,6 +343,13 @@ export default function StudentRegistryPanel({
   if (filterDefaulters) {
     activeFilterChips.push({ key: "defaulters", label: "Defaulters", display: "Fee defaulters" });
   }
+  // Count of filters hidden inside the Filters popover (search/class have
+  // their own always-visible controls, so they don't count toward the badge).
+  const popoverFilterCount =
+    (filterGender !== "all" ? 1 : 0) +
+    (filterStatus !== "all" ? 1 : 0) +
+    (filterPosition !== "all" ? 1 : 0) +
+    (filterDefaulters ? 1 : 0);
 
   const downloadStudentTemplate = useCallback(() => {
     const csv = buildStudentTemplateCsv();
@@ -650,46 +661,122 @@ export default function StudentRegistryPanel({
               </option>
             ))}
           </select>
-          <select
-            value={filterGender}
-            onChange={(e) => onFilterGenderChange(e.target.value as "all" | "M" | "F")}
-            aria-label="Filter by gender"
-            className="cursor-pointer rounded-xl border border-[var(--border)] bg-[var(--surface-container-lowest)] px-3 py-2.5 text-xs font-semibold text-[var(--t1)]"
-          >
-            <option value="all">All Genders</option>
-            <option value="M">Boys only</option>
-            <option value="F">Girls only</option>
-          </select>
-          <select
-            value={filterStatus}
-            onChange={(e) => onFilterStatusChange(e.target.value)}
-            aria-label="Filter by status"
-            className="cursor-pointer rounded-xl border border-[var(--border)] bg-[var(--surface-container-lowest)] px-3 py-2.5 text-xs font-semibold text-[var(--t1)]"
-          >
-            <option value="all">All Statuses</option>
-            <option value="active">Active</option>
-            <option value="transferred">Transferred</option>
-            <option value="dropped">Dropped</option>
-            <option value="completed">Completed</option>
-          </select>
-          <select
-            value={filterPosition}
-            onChange={(e) => onFilterPositionChange(e.target.value)}
-            aria-label="Filter by position"
-            className="cursor-pointer rounded-xl border border-[var(--border)] bg-[var(--surface-container-lowest)] px-3 py-2.5 text-xs font-semibold text-[var(--t1)]"
-          >
-            <option value="all">All Positions</option>
-            <option value="monitor">Class Monitors</option>
-            <option value="prefect">Prefects</option>
-          </select>
-          <label className="flex cursor-pointer items-center gap-1.5 text-xs font-semibold text-[var(--t1)]">
-            <input
-              type="checkbox"
-              checked={filterDefaulters}
-              onChange={(e) => onFilterDefaultersChange(e.target.checked)}
-            />
-            Defaulters
-          </label>
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setFiltersOpen((v) => !v)}
+              aria-expanded={filtersOpen}
+              aria-haspopup="dialog"
+              className="flex cursor-pointer items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface-container-lowest)] px-3 py-2.5 text-xs font-semibold text-[var(--t1)] hover:bg-[var(--surface-container)]"
+            >
+              <MaterialIcon size={16}>filter_list</MaterialIcon>
+              Filters
+              {popoverFilterCount > 0 && (
+                <span className="ml-0.5 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[var(--primary)] px-1 text-[10px] font-bold text-white">
+                  {popoverFilterCount}
+                </span>
+              )}
+            </button>
+            {filtersOpen && (
+              <>
+                <button
+                  type="button"
+                  className="fixed inset-0 z-20 cursor-default"
+                  aria-label="Close filters"
+                  onClick={() => setFiltersOpen(false)}
+                />
+                <div
+                  role="dialog"
+                  aria-label="More filters"
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") setFiltersOpen(false);
+                  }}
+                  className="absolute left-0 top-full z-30 mt-1 w-64 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-xl"
+                >
+                  <div className="space-y-3">
+                    <label className="block">
+                      <span className="mb-1 block text-xs font-semibold text-[var(--t2)]">Gender</span>
+                      <select
+                        value={filterGender}
+                        onChange={(e) => onFilterGenderChange(e.target.value as "all" | "M" | "F")}
+                        aria-label="Filter by gender"
+                        className="w-full cursor-pointer rounded-xl border border-[var(--border)] bg-[var(--surface-container-lowest)] px-3 py-2.5 text-sm font-semibold text-[var(--t1)]"
+                      >
+                        <option value="all">All Genders</option>
+                        <option value="M">Boys only</option>
+                        <option value="F">Girls only</option>
+                      </select>
+                    </label>
+                    <label className="block">
+                      <span className="mb-1 block text-xs font-semibold text-[var(--t2)]">Status</span>
+                      <select
+                        value={filterStatus}
+                        onChange={(e) => onFilterStatusChange(e.target.value)}
+                        aria-label="Filter by status"
+                        className="w-full cursor-pointer rounded-xl border border-[var(--border)] bg-[var(--surface-container-lowest)] px-3 py-2.5 text-sm font-semibold text-[var(--t1)]"
+                      >
+                        <option value="all">All Statuses</option>
+                        <option value="active">Active</option>
+                        <option value="transferred">Transferred</option>
+                        <option value="dropped">Dropped</option>
+                        <option value="completed">Completed</option>
+                      </select>
+                    </label>
+                    <label className="block">
+                      <span className="mb-1 block text-xs font-semibold text-[var(--t2)]">Position</span>
+                      <select
+                        value={filterPosition}
+                        onChange={(e) => onFilterPositionChange(e.target.value)}
+                        aria-label="Filter by position"
+                        className="w-full cursor-pointer rounded-xl border border-[var(--border)] bg-[var(--surface-container-lowest)] px-3 py-2.5 text-sm font-semibold text-[var(--t1)]"
+                      >
+                        <option value="all">All Positions</option>
+                        <option value="monitor">Class Monitors</option>
+                        <option value="prefect">Prefects</option>
+                      </select>
+                    </label>
+                    <label className="flex cursor-pointer items-center gap-2 text-sm font-semibold text-[var(--t1)]">
+                      <input
+                        type="checkbox"
+                        checked={filterDefaulters}
+                        onChange={(e) => onFilterDefaultersChange(e.target.checked)}
+                        className="h-4 w-4"
+                      />
+                      Defaulters only
+                    </label>
+                    <label className="block">
+                      <span className="mb-1 block text-xs font-semibold text-[var(--t2)]">Rows per page</span>
+                      <select
+                        value={pageSize}
+                        onChange={(e) => onPageSizeChange(Number(e.target.value))}
+                        aria-label="Rows per page"
+                        className="w-full cursor-pointer rounded-xl border border-[var(--border)] bg-[var(--surface-container-lowest)] px-3 py-2.5 text-sm font-semibold text-[var(--t1)]"
+                      >
+                        <option value={20}>20 / page</option>
+                        <option value={50}>50 / page</option>
+                        <option value={100}>100 / page</option>
+                        <option value={-1}>All students</option>
+                      </select>
+                    </label>
+                    {popoverFilterCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onFilterGenderChange("all");
+                          onFilterStatusChange("all");
+                          onFilterPositionChange("all");
+                          onFilterDefaultersChange(false);
+                        }}
+                        className="w-full rounded-xl border border-[var(--border)] py-2 text-xs font-semibold text-[var(--t2)] hover:bg-[var(--surface-container)]"
+                      >
+                        Clear filters
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
           <select
             value={sortBy}
             onChange={(e) => onSortByChange(e.target.value as "name" | "number" | "class")}
@@ -699,17 +786,6 @@ export default function StudentRegistryPanel({
             <option value="name">Sort by Name</option>
             <option value="number">Sort by Number</option>
             <option value="class">Sort by Class</option>
-          </select>
-          <select
-            value={pageSize}
-            onChange={(e) => onPageSizeChange(Number(e.target.value))}
-            aria-label="Rows per page"
-            className="cursor-pointer rounded-xl border border-[var(--border)] bg-[var(--surface-container-lowest)] px-3 py-2.5 text-xs font-semibold text-[var(--t1)]"
-          >
-            <option value={20}>20 / page</option>
-            <option value={50}>50 / page</option>
-            <option value={100}>100 / page</option>
-            <option value={-1}>All students</option>
           </select>
           <div className="ml-auto text-xs font-semibold text-[var(--t3)]">
             Showing {paginatedStudents.length} of {filteredTotal} students
@@ -992,45 +1068,65 @@ export default function StudentRegistryPanel({
                           {student.parent_phone || "-"}
                         </td>
                         <td data-label="Actions">
-                          <div style={{ display: "flex", gap: 4 }}>
+                          <div style={{ display: "flex", gap: 2 }}>
                             <button
                               onClick={() => onSmsParent(student)}
                               title="SMS Parent"
+                              aria-label={`SMS parent of ${student.first_name} ${student.last_name}`}
                               style={{
                                 background: "none",
                                 border: "none",
                                 cursor: "pointer",
-                                padding: 6,
-                                borderRadius: 6,
+                                padding: 0,
+                                width: 44,
+                                height: 44,
+                                display: "inline-flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                borderRadius: 8,
                               }}
                             >
-                              <MaterialIcon style={{ fontSize: 16, color: "var(--t3)" }}>sms</MaterialIcon>
+                              <MaterialIcon style={{ fontSize: 18, color: "var(--t3)" }}>sms</MaterialIcon>
                             </button>
                             {canManage && (
                               <>
                                 <button
                                   onClick={() => onEditStudent(student)}
+                                  title="Edit student"
+                                  aria-label={`Edit ${student.first_name} ${student.last_name}`}
                                   style={{
                                     background: "none",
                                     border: "none",
                                     cursor: "pointer",
-                                    padding: 6,
-                                    borderRadius: 6,
+                                    padding: 0,
+                                    width: 44,
+                                    height: 44,
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    borderRadius: 8,
                                   }}
                                 >
-                                  <MaterialIcon style={{ fontSize: 16, color: "var(--t3)" }}>edit</MaterialIcon>
+                                  <MaterialIcon style={{ fontSize: 18, color: "var(--t3)" }}>edit</MaterialIcon>
                                 </button>
                                 <button
                                   onClick={() => onDeleteStudent(student.id)}
+                                  title="Remove student"
+                                  aria-label={`Remove ${student.first_name} ${student.last_name}`}
                                   style={{
                                     background: "none",
                                     border: "none",
                                     cursor: "pointer",
-                                    padding: 6,
-                                    borderRadius: 6,
+                                    padding: 0,
+                                    width: 44,
+                                    height: 44,
+                                    display: "inline-flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    borderRadius: 8,
                                   }}
                                 >
-                                  <MaterialIcon style={{ fontSize: 16, color: "var(--t3)" }}>delete</MaterialIcon>
+                                  <MaterialIcon style={{ fontSize: 18, color: "var(--t3)" }}>delete</MaterialIcon>
                                 </button>
                               </>
                             )}

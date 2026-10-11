@@ -257,6 +257,8 @@ export default function GradesPage() {
     value: string;
   }>({ open: false, type: "", value: "" });
   const [bulkImportOpen, setBulkImportOpen] = useState(false);
+  // Set-All popover: click-toggle (not hover-only) so it's touch/keyboard reachable.
+  const [setAllOpen, setSetAllOpen] = useState(false);
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const dirtyCellsRef = useRef<Set<string>>(new Set());
   const warnedOutliersRef = useRef<Set<string>>(new Set());
@@ -1264,172 +1266,156 @@ export default function GradesPage() {
           ))}
         </div>
 
-        <section aria-label="grades overview" className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
-          {[
-            {
-              label: "Selected class",
-              value: selectedClass
-                ? `${classes.find((c) => c.id === selectedClass)?.name || selectedClass}${
-                    classes.find((c) => c.id === selectedClass)?.stream
-                      ? ` ${classes.find((c) => c.id === selectedClass)?.stream}`
-                      : ""
-                  }`
-                : "None",
-              tone: "text-blue-700 bg-blue-50",
-            },
-            { label: "Selected subject", value: selectedSubjectName || "None", tone: "text-emerald-700 bg-emerald-50" },
-            { label: "Graded", value: gradedCount, tone: "text-slate-700 bg-slate-50" },
-            { label: "Pending", value: pendingCount, tone: "text-amber-700 bg-amber-50" },
-          ].map((item) => (
-            <div key={item.label} className={`rounded-2xl border border-slate-100 p-3 ${item.tone}`}>
-              <div className="text-[11px] font-black uppercase tracking-[0.18em] opacity-80">{item.label}</div>
-              <div className="mt-1 text-sm font-bold truncate">{item.value as any}</div>
-            </div>
-          ))}
-        </section>
-
-        {/* Marks Entry Info */}
-        {selectedClass && selectedSubject && Object.keys(marksBy).length > 0 && (
-          <div className="flex gap-4 flex-wrap">
-            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${statusTone}`}>
-              <MaterialIcon icon="task_alt" className="text-sm" />
-              <span>Work Status: {statusLabels[submissionStatus]}</span>
-            </div>
-            {Object.values(marksBy).some((m) => ["ca1", "ca2", "ca3"].includes(m.type)) && (
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-surface-container rounded-full text-xs font-medium">
-                <MaterialIcon icon="person" className="text-sm" />
-                <span>
-                  CA entered by:{" "}
-                  {marksBy[Object.keys(marksBy).find((k) => marksBy[k].type.startsWith("ca")) || ""]?.name || "Unknown"}
-                </span>
+        {/* Class & Subject pickers — the only controls before anything else */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="block text-sm font-semibold mb-2 text-primary">Target Class</label>
+            {classesLoading ? (
+              <div className="bg-[var(--navy-soft)] border border-[rgba(0,31,63,0.12)] rounded-xl p-4">
+                <p className="text-[var(--t1)] text-sm font-medium">Loading classes...</p>
+                <p className="text-[var(--t3)] text-xs mt-1">The class list is still being fetched for this school.</p>
               </div>
-            )}
-            {Object.values(marksBy).some((m) => m.type === "exam") && (
-              <div className="flex items-center gap-2 px-3 py-1.5 bg-surface-container rounded-full text-xs font-medium">
-                <MaterialIcon icon="supervisor_account" className="text-sm" />
-                <span>
-                  Exam entered by (Supervisor):{" "}
-                  {marksBy[Object.keys(marksBy).find((k) => marksBy[k].type === "exam") || ""]?.name || "Unknown"}
-                </span>
-              </div>
-            )}
-          </div>
-        )}
-
-        {caLocked && (
-          <div className="flex items-center gap-2 px-4 py-2 bg-[var(--red-soft)] border border-[var(--red)]/20 rounded-xl text-sm font-medium text-[var(--red)]">
-            <MaterialIcon icon="lock" className="text-lg" />
-            CA marks are locked for this subject/class. Contact DOS to unlock.
-          </div>
-        )}
-
-        {selectedClass && selectedSubject && nextWorkflowActions.length > 0 && (
-          <div className="flex flex-wrap gap-3">
-            {nextWorkflowActions.map((status) => (
-              <Button
-                key={status}
-                variant={status === "published" ? "primary" : "secondary"}
-                onClick={() => handleAdvanceWorkflow(status)}
-                disabled={saving}
-              >
-                {status === "submitted"
-                  ? "Submit to Dean"
-                  : status === "approved"
-                    ? "Approve Grades"
-                    : "Publish Grades"}
-              </Button>
-            ))}
-          </div>
-        )}
-
-        {/* Configuration Bento */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="col-span-1 md:col-span-2 bg-surface-container-low p-6 rounded-3xl space-y-4">
-            <p className="text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-              Class & Subject Configuration
-            </p>
-            <div className="flex flex-wrap gap-4">
-              <div className="flex-1 min-w-[200px]">
-                <label className="block text-sm font-semibold mb-2 text-primary">Target Class</label>
-                {classesLoading ? (
-                  <div className="bg-[var(--navy-soft)] border border-[rgba(0,31,63,0.12)] rounded-xl p-4">
-                    <p className="text-[var(--t1)] text-sm font-medium">Loading classes...</p>
-                    <p className="text-[var(--t3)] text-xs mt-1">
-                      The class list is still being fetched for this school.
+            ) : classes.length === 0 ? (
+              <div className="bg-[var(--amber-soft)] border border-[var(--amber)]/20 rounded-xl p-4">
+                {isClassScopedRole(user?.role) ? (
+                  <>
+                    <p className="text-[var(--t1)] text-sm font-medium">No classes assigned yet</p>
+                    <p className="text-[var(--amber)] text-xs mt-1">
+                      Your administrator hasn&apos;t assigned you to a class or subject yet.
                     </p>
-                  </div>
-                ) : classes.length === 0 ? (
-                  <div className="bg-[var(--amber-soft)] border border-[var(--amber)]/20 rounded-xl p-4">
-                    {isClassScopedRole(user?.role) ? (
-                      <>
-                        <p className="text-[var(--t1)] text-sm font-medium">No classes assigned yet</p>
-                        <p className="text-[var(--amber)] text-xs mt-1">
-                          Your administrator hasn&apos;t assigned you to a class or subject yet.
-                        </p>
-                      </>
-                    ) : (
-                      <>
-                        <p className="text-[var(--t1)] text-sm font-medium">No classes found</p>
-                        <p className="text-[var(--amber)] text-xs mt-1">Contact support if this persists.</p>
-                      </>
-                    )}
-                  </div>
+                  </>
                 ) : (
-                  <select
-                    value={selectedClass}
-                    onChange={(e) => setSelectedClass(e.target.value)}
-                    className="w-full bg-surface-container-lowest border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-primary text-sm font-medium"
-                  >
-                    <option value="">Select Class</option>
-                    {classes.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                        {c.stream ? ` ${c.stream}` : ""}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
-              <div className="flex-1 min-w-[200px]">
-                <label className="block text-sm font-semibold mb-2 text-primary">Subject Area</label>
-                {subjects.length === 0 ? (
-                  <div className="bg-[var(--amber-soft)] border border-[var(--amber)]/20 rounded-xl p-4">
-                    <p className="text-[var(--t1)] text-sm font-medium">No subjects found</p>
+                  <>
+                    <p className="text-[var(--t1)] text-sm font-medium">No classes found</p>
                     <p className="text-[var(--amber)] text-xs mt-1">Contact support if this persists.</p>
-                  </div>
-                ) : (
-                  <select
-                    value={selectedSubject}
-                    onChange={(e) => setSelectedSubject(e.target.value)}
-                    className="w-full bg-surface-container-lowest border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-primary text-sm font-medium"
-                  >
-                    <option value="">Select Subject</option>
-                    {subjects.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
+                  </>
                 )}
               </div>
-            </div>
+            ) : (
+              <select
+                value={selectedClass}
+                onChange={(e) => setSelectedClass(e.target.value)}
+                className="w-full bg-surface-container-lowest border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-primary text-sm font-medium"
+              >
+                <option value="">Select Class</option>
+                {classes.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                    {c.stream ? ` ${c.stream}` : ""}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
-          <div className="bg-primary text-on-primary p-6 rounded-3xl relative overflow-hidden flex flex-col justify-between">
-            <div className="absolute top-0 right-0 p-4 opacity-10">
-              <MaterialIcon icon="functions" className="text-6xl" />
-            </div>
-            <p className="text-xs uppercase tracking-widest font-bold opacity-70">Weightage</p>
-            <div>
-              <div className="flex justify-between items-baseline">
-                <span className="text-2xl font-bold font-headline">10+10+10+70</span>
-                <span className="text-xs font-medium">CA1+CA2+CA3 : Exam</span>
+          <div>
+            <label className="block text-sm font-semibold mb-2 text-primary">Subject Area</label>
+            {subjects.length === 0 ? (
+              <div className="bg-[var(--amber-soft)] border border-[var(--amber)]/20 rounded-xl p-4">
+                <p className="text-[var(--t1)] text-sm font-medium">No subjects found</p>
+                <p className="text-[var(--amber)] text-xs mt-1">Contact support if this persists.</p>
               </div>
-              <div className="w-full bg-white/20 h-1.5 rounded-full mt-3">
-                <div className="bg-secondary-fixed w-[30%] h-full rounded-full"></div>
-              </div>
-            </div>
+            ) : (
+              <select
+                value={selectedSubject}
+                onChange={(e) => setSelectedSubject(e.target.value)}
+                className="w-full bg-surface-container-lowest border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-primary text-sm font-medium"
+              >
+                <option value="">Select Subject</option>
+                {subjects.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
         </div>
+
+        {/* Everything below only appears once a class + subject are chosen */}
+        {selectedClass && selectedSubject && (
+          <>
+            <section aria-label="grades overview" className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
+              {[
+                {
+                  label: "Graded",
+                  value: gradedCount,
+                  tone: "text-slate-700 bg-slate-50",
+                },
+                { label: "Pending", value: pendingCount, tone: "text-amber-700 bg-amber-50" },
+                {
+                  label: "Weightage",
+                  value: "10+10+10+70",
+                  tone: "text-blue-700 bg-blue-50",
+                },
+              ].map((item) => (
+                <div key={item.label} className={`rounded-2xl border border-slate-100 p-3 ${item.tone}`}>
+                  <div className="text-[11px] font-black uppercase tracking-[0.18em] opacity-80">{item.label}</div>
+                  <div className="mt-1 text-sm font-bold truncate">
+                    {item.value === "10+10+10+70" ? (
+                      <span title="CA1+CA2+CA3 : Exam">10+10+10+70</span>
+                    ) : (
+                      (item.value as any)
+                    )}
+                  </div>
+                </div>
+              ))}
+            </section>
+
+            {/* Marks Entry Info */}
+            {Object.keys(marksBy).length > 0 && (
+              <div className="flex gap-4 flex-wrap">
+                <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${statusTone}`}>
+                  <MaterialIcon icon="task_alt" className="text-sm" />
+                  <span>Work Status: {statusLabels[submissionStatus]}</span>
+                </div>
+                {Object.values(marksBy).some((m) => ["ca1", "ca2", "ca3"].includes(m.type)) && (
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-surface-container rounded-full text-xs font-medium">
+                    <MaterialIcon icon="person" className="text-sm" />
+                    <span>
+                      CA entered by:{" "}
+                      {marksBy[Object.keys(marksBy).find((k) => marksBy[k].type.startsWith("ca")) || ""]?.name ||
+                        "Unknown"}
+                    </span>
+                  </div>
+                )}
+                {Object.values(marksBy).some((m) => m.type === "exam") && (
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-surface-container rounded-full text-xs font-medium">
+                    <MaterialIcon icon="supervisor_account" className="text-sm" />
+                    <span>
+                      Exam entered by (Supervisor):{" "}
+                      {marksBy[Object.keys(marksBy).find((k) => marksBy[k].type === "exam") || ""]?.name || "Unknown"}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {caLocked && (
+              <div className="flex items-center gap-2 px-4 py-2 bg-[var(--red-soft)] border border-[var(--red)]/20 rounded-xl text-sm font-medium text-[var(--red)]">
+                <MaterialIcon icon="lock" className="text-lg" />
+                CA marks are locked for this subject/class. Contact DOS to unlock.
+              </div>
+            )}
+
+            {/* Approve / Publish only — Submit lives exclusively in the sticky bar */}
+            {nextWorkflowActions.filter((s) => s !== "submitted").length > 0 && (
+              <div className="flex flex-wrap gap-3">
+                {nextWorkflowActions
+                  .filter((status) => status !== "submitted")
+                  .map((status) => (
+                    <Button
+                      key={status}
+                      variant={status === "published" ? "primary" : "secondary"}
+                      onClick={() => handleAdvanceWorkflow(status)}
+                      disabled={saving}
+                    >
+                      {status === "approved" ? "Approve Grades" : "Publish Grades"}
+                    </Button>
+                  ))}
+              </div>
+            )}
+          </>
+        )}
 
         {/* Completion Tracker */}
         {tab === "marks" && selectedClass && selectedSubject && filteredStudents.length > 0 && (
@@ -1529,14 +1515,16 @@ export default function GradesPage() {
           </div>
         )}
 
-        <Tabs
-          tabs={[
-            { id: "marks", label: "Marks Entry" },
-            { id: "coverage", label: "Topic Coverage" },
-          ]}
-          activeTab={tab}
-          onChange={(id) => setTab(id as "marks" | "coverage")}
-        />
+        {selectedClass && selectedSubject && (
+          <Tabs
+            tabs={[
+              { id: "marks", label: "Marks Entry" },
+              { id: "coverage", label: "Topic Coverage" },
+            ]}
+            activeTab={tab}
+            onChange={(id) => setTab(id as "marks" | "coverage")}
+          />
+        )}
 
         {/* Inline Entry Controls */}
         {tab === "marks" && selectedClass && selectedSubject && filteredStudents.length > 0 && (
@@ -1586,7 +1574,7 @@ export default function GradesPage() {
                   <MaterialIcon icon="psychology" className="text-base" />
                   Competency
                 </button>
-                <div className="relative group">
+                <div className="relative">
                   <button
                     className="px-3 py-2 rounded-xl text-sm font-medium bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-all flex items-center gap-1.5"
                     onClick={() =>
@@ -1607,107 +1595,91 @@ export default function GradesPage() {
                     <MaterialIcon icon="upload" className="text-base" />
                     Import
                   </button>
-                  <div className="absolute right-0 top-full mt-1 w-64 bg-surface-container-lowest rounded-2xl shadow-xl border border-outline-variant/10 p-4 hidden group-hover:block z-30">
-                    <p className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-3">
-                      Set All Students
-                    </p>
-                    {activeAssessmentTypes.map((type) => (
-                      <div key={type} className="flex items-center gap-2 mb-2">
-                        <span className="text-xs font-semibold text-on-surface-variant w-10">
-                          {type === "ca1"
-                            ? "CA1"
-                            : type === "ca2"
-                              ? "CA2"
-                              : type === "ca3"
-                                ? "CA3"
-                                : type === "ca4"
-                                  ? "CA4"
-                                  : type === "project"
-                                    ? "Proj"
-                                    : type.toUpperCase()}
-                        </span>
-                        <input
-                          type="number"
-                          inputMode="numeric"
-                          min={0}
-                          max={ASSESSMENT_MAX[type]}
-                          placeholder={`Max ${ASSESSMENT_MAX[type]}`}
-                          className="flex-1 bg-surface-container border-none rounded-lg text-sm py-1.5 px-2 focus:ring-2 focus:ring-primary"
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              const val = parseInt((e.target as HTMLInputElement).value);
-                              if (!isNaN(val)) handleQuickFill(type, val);
-                            }
-                          }}
-                          onBlur={(e) => {
-                            const val = parseInt(e.target.value);
-                            if (!isNaN(val)) handleQuickFill(type, val);
-                          }}
-                        />
-                      </div>
-                    ))}
-                    <div className="border-t border-outline-variant/10 mt-3 pt-3 flex gap-2">
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={handleCopyFromPreviousTerm}
-                        loading={loading}
-                        className="flex-1 text-xs"
-                      >
-                        Copy Prev Term
-                      </Button>
-                      <Button variant="danger" size="sm" onClick={handleClearAll} className="flex-1 text-xs">
-                        Clear All
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Progress Bar */}
-            <div className="bg-surface-container-low rounded-2xl p-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-sm ${
-                      completionStats.percentage === 100
-                        ? "bg-[var(--green)] text-white"
-                        : completionStats.percentage >= 50
-                          ? "bg-[var(--amber)] text-white"
-                          : "bg-[var(--red)] text-white"
+                  <button
+                    className={`px-3 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5 ${
+                      setAllOpen
+                        ? "bg-primary text-on-primary shadow-sm"
+                        : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
                     }`}
+                    onClick={() => setSetAllOpen((v) => !v)}
+                    aria-expanded={setAllOpen}
+                    aria-haspopup="dialog"
                   >
-                    {completionStats.percentage}%
-                  </div>
-                  <div>
-                    <p className="font-bold text-sm">
-                      {completionStats.graded}/{completionStats.total} students graded
-                    </p>
-                    <p className="text-xs text-on-surface-variant">
-                      {completionStats.notGraded > 0
-                        ? `${completionStats.notGraded} student${completionStats.notGraded > 1 ? "s" : ""} remaining`
-                        : "All students graded!"}
-                    </p>
-                  </div>
+                    <MaterialIcon icon="done_all" className="text-base" />
+                    Set All
+                  </button>
+                  {setAllOpen && (
+                    <>
+                      <button
+                        type="button"
+                        className="fixed inset-0 z-20 cursor-default"
+                        aria-label="Close Set All"
+                        onClick={() => setSetAllOpen(false)}
+                      />
+                      <div
+                        role="dialog"
+                        aria-label="Set All Students"
+                        onKeyDown={(e) => {
+                          if (e.key === "Escape") setSetAllOpen(false);
+                        }}
+                        className="absolute right-0 top-full mt-1 w-64 bg-surface-container-lowest rounded-2xl shadow-xl border border-outline-variant/10 p-4 z-30"
+                      >
+                        <p className="text-xs font-bold text-on-surface-variant uppercase tracking-wider mb-3">
+                          Set All Students
+                        </p>
+                        {activeAssessmentTypes.map((type) => (
+                          <div key={type} className="flex items-center gap-2 mb-2">
+                            <span className="text-xs font-semibold text-on-surface-variant w-10">
+                              {type === "ca1"
+                                ? "CA1"
+                                : type === "ca2"
+                                  ? "CA2"
+                                  : type === "ca3"
+                                    ? "CA3"
+                                    : type === "ca4"
+                                      ? "CA4"
+                                      : type === "project"
+                                        ? "Proj"
+                                        : type.toUpperCase()}
+                            </span>
+                            <input
+                              type="number"
+                              inputMode="numeric"
+                              min={0}
+                              max={ASSESSMENT_MAX[type]}
+                              placeholder={`Max ${ASSESSMENT_MAX[type]}`}
+                              className="flex-1 bg-surface-container border-none rounded-lg text-sm py-1.5 px-2 focus:ring-2 focus:ring-primary"
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  const val = parseInt((e.target as HTMLInputElement).value);
+                                  if (!isNaN(val)) handleQuickFill(type, val);
+                                }
+                              }}
+                              onBlur={(e) => {
+                                const val = parseInt(e.target.value);
+                                if (!isNaN(val)) handleQuickFill(type, val);
+                              }}
+                            />
+                          </div>
+                        ))}
+                        <div className="border-t border-outline-variant/10 mt-3 pt-3 flex gap-2">
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={handleCopyFromPreviousTerm}
+                            loading={loading}
+                            className="flex-1 text-xs"
+                          >
+                            Copy Prev Term
+                          </Button>
+                          <Button variant="danger" size="sm" onClick={handleClearAll} className="flex-1 text-xs">
+                            Clear All
+                          </Button>
+                        </div>
+                      </div>
+                    </>
+                  )}
                 </div>
-                <div className="text-right">
-                  <span className="text-xs font-medium text-on-surface-variant">
-                    {Object.keys(marks).filter((k) => marks[k] !== null).length} scores entered
-                  </span>
-                </div>
-              </div>
-              <div className="w-full bg-[var(--surface)]/60 h-2.5 rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all duration-500 ${
-                    completionStats.percentage === 100
-                      ? "bg-[var(--green)]"
-                      : completionStats.percentage >= 50
-                        ? "bg-[var(--amber)]"
-                        : "bg-[var(--red)]"
-                  }`}
-                  style={{ width: `${completionStats.percentage}%` }}
-                />
               </div>
             </div>
 
@@ -2409,7 +2381,7 @@ export default function GradesPage() {
           <EmptyState
             icon="edit_note"
             title="Select a class and subject"
-            description="Choose a class and subject from the filters above to start entering grades."
+            description="Choose a class and subject from the pickers above to start entering grades."
           />
         )}
 
