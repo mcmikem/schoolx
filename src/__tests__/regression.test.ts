@@ -1167,6 +1167,22 @@ describe("Staff directory rows use one overflow menu", () => {
     expect(src).toContain("Failed to write bulk-attendance audit row");
   });
 
+  it("the tester subscription bypass actually receives is_tester", () => {
+    const guard = read("src/lib/subscription-guard.ts");
+    // The guard checked school.is_tester but never selected the column, so
+    // the bypass was dead code and a tester with a lapsed status could be
+    // locked out like a non-paying school.
+    expect(guard).toContain(
+      'select("id, name, subscription_status, subscription_plan, trial_ends_at, next_payment_date, is_tester")',
+    );
+    expect(guard).toContain("if (school.is_tester)");
+  });
+
+  it("hides the upgrade banner from comped tester schools", () => {
+    const banner = read("src/components/dashboard/TrialBanner.tsx");
+    expect(banner).toContain("school?.is_tester");
+  });
+
   it("never sends the nonexistent school_id column to teacher_subjects", () => {
     const src = read("src/app/dashboard/staff/page.tsx");
     // teacher_subjects has no school_id (RLS scopes through teacher_id ->

@@ -31,7 +31,9 @@ export default function TrialBanner() {
     localStorage.setItem("trial-banner-dismissed", Date.now().toString());
   };
 
-  if (dismissed || isDemo || school?.subscription_status !== "trial") return null;
+  // Tester schools are comped through the current and next academic term —
+  // an "Upgrade now!" banner to a comp school is just noise.
+  if (dismissed || isDemo || school?.is_tester || school?.subscription_status !== "trial") return null;
 
   return (
     <div className="bg-slate-900 border-b border-slate-700 px-3 py-2">

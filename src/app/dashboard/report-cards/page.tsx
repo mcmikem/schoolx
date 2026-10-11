@@ -25,6 +25,13 @@ import {
   escapeHtml,
   generateCBCReportHTML,
 } from "@/lib/cbc-report";
+import {
+  bucketUgandaSubject,
+  sumUgandaTotals,
+  orderUgandaSubjects,
+  type UgandaSubjectResult,
+} from "@/lib/uganda-report";
+import { generateUgandaPrimaryHTML } from "@/components/reports/ugandaPrimaryReport";
 
 interface StudentReport {
   studentId: string;
@@ -41,6 +48,8 @@ interface StudentReport {
     competencyLevel?: string;
     competencyNotes?: string;
     isMissing?: boolean;
+    /** MID/END/AVG/AGG breakdown for the Uganda print layout (additive). */
+    uganda?: UgandaSubjectResult;
   }[];
   totalMarks: number;
   maxMarks: number;
@@ -251,7 +260,7 @@ export default function ReportCardsPage() {
         subjects: DEMO_SUBJECTS.find((subject) => subject.id === grade.subject_id) || null,
       }));
     } else {
-      const main = await fetchReportGrades(classId, ["ca1", "ca2", "ca3", "ca4", "project", "exam"]);
+      const main = await fetchReportGrades(classId, ["ca1", "ca2", "ca3", "ca4", "project", "exam", "u1", "u2", "eot"]);
       gradesData = main.rows;
       usedOffline = main.offline;
 
@@ -262,7 +271,13 @@ export default function ReportCardsPage() {
       }
     }
 
-    const studentSubjectScores: Record<string, Record<string, { total: number; name: string }>> = {};
+    const studentSubjectScores: Record<
+      string,
+      Record<
+        string,
+        { total: number; name: string; rows: { assessment_type: string; score: number; max_score?: number | null }[] }
+      >
+    > = {};
     const studentCompetencies: Record<string, Record<string, { level: string; notes: string; name: string }>> = {};
 
     for (const g of gradesData) {
@@ -274,9 +289,15 @@ export default function ReportCardsPage() {
         studentSubjectScores[g.student_id][g.subject_id] = {
           total: 0,
           name: subjName,
+          rows: [],
         };
       }
       studentSubjectScores[g.student_id][g.subject_id].total += Number(g.score || 0);
+      studentSubjectScores[g.student_id][g.subject_id].rows.push({
+        assessment_type: g.assessment_type,
+        score: Number(g.score || 0),
+        max_score: g.max_score ?? null,
+      });
     }
 
     for (const c of competencyData) {
@@ -315,6 +336,7 @@ export default function ReportCardsPage() {
           competencyLevel: comp?.level,
           competencyNotes: comp?.notes,
           isMissing: false,
+          uganda: bucketUgandaSubject(data.rows),
         };
       });
 
@@ -328,6 +350,7 @@ export default function ReportCardsPage() {
             gradeColor: "text-amber-500",
             competencyLevel: "not_started",
             isMissing: true,
+            uganda: bucketUgandaSubject([]),
           }
         );
       });
@@ -769,6 +792,122 @@ export default function ReportCardsPage() {
       ...prev,
       [studentId]: { classTeacher: auto, hm: auto },
     }));
+  };
+
+  // Term attendance + next-term start for the Uganda print layout. Best
+  // effort: any failure yields blanks ("—"), never zeros or thrown errors.
+  const fetchUgandaContext = async (
+    studentId: string,
+    classId: string,
+  ): Promise<{ present: number | null; total: number | null; nextTermBegins: string | null }> => {
+    const blank = { present: null, total: null, nextTermBegins: null };
+    if (isDemo || !school?.id) return blank;
+    try {
+      const { supabase: sb } = await import("@/lib/supabase");
+      const termsRes = await withTimeout(
+        sb
+          .from("academic_terms")
+          .select("term_number,start_date,end_date")
+          .eq("school_id", school.id)
+          .eq("academic_year", academicYear)
+          .then((r) => {
+            if (r.error) throw r.error;
+            return r.data ?? [];
+          }),
+        8000,
+        null,
+      );
+      if (!termsRes) return blank;
+      const current = (termsRes as { term_number: number; start_date: string; end_date: string }[]).find(
+        (t) => Number(t.term_number) === Number(currentTerm),
+      );
+      const following = (termsRes as { term_number: number; start_date: string }[]).find(
+        (t) => Number(t.term_number) === Number(currentTerm) + 1,
+      );
+      let present: number | null = null;
+      let total: number | null = null;
+      if (current?.start_date && current?.end_date) {
+        const attRes = await withTimeout(
+          sb
+            .from("attendance")
+            .select("student_id,date,status")
+            .eq("class_id", classId)
+            .gte("date", current.start_date)
+            .lte("date", current.end_date)
+            .limit(10000)
+            .then((r) => {
+              if (r.error) throw r.error;
+              return (r.data ?? []) as { student_id: string; date: string; status: string }[];
+            }),
+          12000,
+          null,
+        );
+        if (attRes) {
+          total = new Set(attRes.map((r) => r.date)).size;
+          present = attRes.filter((r) => r.student_id === studentId && r.status === "present").length;
+        }
+      }
+      return {
+        present,
+        total,
+        nextTermBegins: following?.start_date
+          ? new Date(`${following.start_date}T00:00:00`).toLocaleDateString("en-GB")
+          : null,
+      };
+    } catch (err) {
+      logger.warn("Uganda report context unavailable, printing with blanks:", err);
+      return { present: null, total: null, nextTermBegins: null };
+    }
+  };
+
+  const handlePrintUganda = async (report: StudentReport) => {
+    const studentComment = comments[report.studentId] || { classTeacher: "", hm: "" };
+    const ordered = orderUgandaSubjects(
+      report.subjects.map((s) => ({
+        name: s.name,
+        mid: s.uganda?.mid ?? null,
+        end: s.uganda?.end ?? null,
+        avg: s.uganda?.avg ?? null,
+        agg: s.uganda?.agg ?? null,
+        grade: s.uganda?.grade ?? "—",
+        remarks: s.competencyNotes || "",
+      })),
+    );
+    const totals = sumUgandaTotals(ordered);
+    const ctx = await fetchUgandaContext(report.studentId, selectedClass);
+    const html = generateUgandaPrimaryHTML({
+      school: {
+        name: school?.name || "SCHOOL NAME",
+        address: (school as any)?.address || "",
+        phone: (school as any)?.phone || school?.email || "",
+        logoUrl: school?.logo_url || "",
+        sigClassUrl: (school as any)?.signature_class_teacher_url || "",
+        sigHeadUrl: (school as any)?.signature_headteacher_url || "",
+      },
+      pupil: {
+        name: report.name,
+        studentNumber: report.studentNumber,
+        gender: report.gender === "M" ? "Male" : report.gender === "F" ? "Female" : report.gender || "",
+        className: report.className,
+        term: currentTerm,
+        year: academicYear,
+        attendancePresent: ctx.present,
+        attendanceTotal: ctx.total,
+      },
+      subjects: ordered,
+      totals,
+      comments: { classTeacher: studentComment.classTeacher, hm: studentComment.hm },
+      feeBalance: report.feeBalance,
+      nextTermBegins: ctx.nextTermBegins,
+    });
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+    printWindow.document.open();
+    printWindow.document.title = `Progress Report - ${report.name}`;
+    printWindow.document.write(html);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => printWindow.print(), 500);
   };
 
   const handlePrintReport = (report: StudentReport) => {
@@ -1545,6 +1684,13 @@ export default function ReportCardsPage() {
                           </td>
                           <td className="px-6 py-4">
                             <div className="flex gap-1.5 justify-end">
+                              <button
+                                onClick={() => handlePrintUganda(report)}
+                                title="Print Uganda progress report"
+                                className="p-2 rounded-lg hover:bg-[var(--surface-container)] text-[var(--t3)] min-h-[44px] min-w-[44px] flex items-center justify-center"
+                              >
+                                <MaterialIcon className="text-xl">description</MaterialIcon>
+                              </button>
                               <button
                                 onClick={() => handlePrintReport(report)}
                                 title="Print Report Card"

@@ -156,6 +156,15 @@ export default function AttendancePage() {
   } | null>(null);
   const [showQuickAbsentModal, setShowQuickAbsentModal] = useState(false);
   const [selectedAbsentIds, setSelectedAbsentIds] = useState<Set<string>>(new Set());
+  // Undo: keep the last single-row mark so a mis-tap is one tap to reverse.
+  const [undoMark, setUndoMark] = useState<{ studentId: string; prev?: string; name: string } | null>(null);
+  const undoTimer = useRef<number | null>(null);
+  // Explicit "bring collapsed rows back" escape hatch (also available in the
+  // all-marked empty state and the progress bar).
+  const [showMarked, setShowMarked] = useState(false);
+  // Overflow menu: Bulk + SMS settings live here so the register stays first.
+  const [overflowOpen, setOverflowOpen] = useState(false);
+  const [showSmsSettings, setShowSmsSettings] = useState(false);
   const [filterStatus, setFilterStatus] = useState<"all" | AttendanceStatus>(
     () => (urlFilters.get("status") as "all" | AttendanceStatus) || "all",
   );
@@ -288,21 +297,40 @@ export default function AttendancePage() {
       if (!classIds.has(record.student_id)) return;
       attendanceMap[record.student_id] = record.status;
     });
-    // Everyone starts Present: unmarked pupils save as present, so a save is
-    // never silently partial and reopening a day shows saved values with the
-    // rest defaulting present.
-    const defaulted: Record<string, string> = {};
-    classPupils.forEach((s) => {
-      defaulted[s.id] = attendanceMap[s.id] || "present";
-    });
-    setAttendance(defaulted);
+    // Only saved/edited marks live in state — unmarked rows show an honest
+    // "Unmarked" chip (first tap = Absent) and still save as Present, so a
+    // save is never silently partial.
+    setAttendance(attendanceMap);
   }, [selectedClass, school?.id, offlineStudents, offlineAttendance, studentsLoading, attendanceLoading]);
 
   const markAttendance = (studentId: string, status: string) => {
-    setAttendance((prev) => ({ ...prev, [studentId]: status }));
+    const prev = attendance[studentId];
+    const student = students.find((s) => s.id === studentId);
+    setUndoMark({ studentId, prev, name: student ? `${student.first_name} ${student.last_name}` : "student" });
+    if (undoTimer.current) window.clearTimeout(undoTimer.current);
+    undoTimer.current = window.setTimeout(() => setUndoMark(null), 4000);
+    setAttendance((prevMap) => ({ ...prevMap, [studentId]: status }));
     setAllMarked(false);
     flashConfirm(studentId);
     scheduleCollapse(studentId);
+  };
+
+  const undoLastMark = () => {
+    if (!undoMark) return;
+    setAttendance((prevMap) => {
+      const next = { ...prevMap };
+      if (undoMark.prev === undefined) delete next[undoMark.studentId];
+      else next[undoMark.studentId] = undoMark.prev;
+      return next;
+    });
+    setCollapsedIds((prev) => {
+      if (!prev.has(undoMark.studentId)) return prev;
+      const next = new Set(prev);
+      next.delete(undoMark.studentId);
+      return next;
+    });
+    setUndoMark(null);
+    if (undoTimer.current) window.clearTimeout(undoTimer.current);
   };
 
   // Post-mark feedback: the row flashes its new status, then tucks away so
@@ -400,17 +428,22 @@ export default function AttendancePage() {
   }, [students, attendance, filterStatus, searchQuery]);
 
   // Marked rows tuck away automatically — but only while browsing the whole
-  // register. An active filter or search means "I'm looking for someone",
-  // so review views always show everything matching.
+  // register with the collapse on. An active filter or search means "I'm
+  // looking for someone", and "Show marked" explicitly brings them back, so
+  // review views always show everything matching.
   const isReviewing = filterStatus !== "all" || searchQuery.trim() !== "";
-  const visibleStudents = isReviewing ? filteredStudents : filteredStudents.filter((s) => !collapsedIds.has(s.id));
+  const visibleStudents =
+    isReviewing || showMarked ? filteredStudents : filteredStudents.filter((s) => !collapsedIds.has(s.id));
 
   // A new class or date means a new register — drop the previous save summary
-  // so the teacher always lands back on the marking list, never a stale done.
+  // and tuck state so the teacher always lands back on the marking list, never
+  // a stale done.
   useEffect(() => {
     setSavedSummary(null);
     setCollapsedIds(new Set());
     setConfirmedId(null);
+    setShowMarked(false);
+    setUndoMark(null);
   }, [selectedClass, date]);
 
   const saveAttendance = async (attendanceOverride?: Record<string, string>) => {
@@ -609,7 +642,7 @@ export default function AttendancePage() {
     document.getElementById(`att-row-${next.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [visibleStudents, students, attendance, toast]);
   const saveDisabledReason = !selectedClass
-    ? "Select a class to enable Save Changes."
+    ? "Select a class to enable Save."
     : !hasAttendanceRecords
       ? "Mark at least one learner before saving."
       : "";
@@ -739,7 +772,7 @@ export default function AttendancePage() {
                   icon={<MaterialIcon icon="save" />}
                   className="shadow-md shadow-navy/20"
                 >
-                  Save Changes
+                  Save
                 </Button>
                 {canExport && (
                   <Button
@@ -762,6 +795,58 @@ export default function AttendancePage() {
                 >
                   Copy Yesterday
                 </Button>
+                {(canManageSmsAutomation || selectedClass) && (
+                  <div className="relative">
+                    <Button
+                      onClick={() => setOverflowOpen((v) => !v)}
+                      variant="secondary"
+                      size="sm"
+                      icon={<MaterialIcon icon="more_horiz" />}
+                      aria-expanded={overflowOpen}
+                      aria-haspopup="menu"
+                      aria-label="More attendance tools"
+                    />
+                    {overflowOpen && (
+                      <>
+                        <button
+                          type="button"
+                          className="fixed inset-0 z-10 cursor-default"
+                          aria-label="Close menu"
+                          onClick={() => setOverflowOpen(false)}
+                        />
+                        <div
+                          role="menu"
+                          className="absolute right-0 z-20 mt-1 w-64 rounded-xl border border-outline-variant bg-surface-container-lowest p-1.5 shadow-lg"
+                        >
+                          <button
+                            role="menuitem"
+                            type="button"
+                            onClick={() => {
+                              setOverflowOpen(false);
+                              setBulkMode(true);
+                            }}
+                            className="w-full text-left rounded-lg px-3 py-2.5 min-h-[44px] text-sm font-medium text-on-surface hover:bg-surface-container"
+                          >
+                            Bulk date-range marking
+                          </button>
+                          {canManageSmsAutomation && (
+                            <button
+                              role="menuitem"
+                              type="button"
+                              onClick={() => {
+                                setOverflowOpen(false);
+                                setShowSmsSettings((v) => !v);
+                              }}
+                              className="w-full text-left rounded-lg px-3 py-2.5 min-h-[44px] text-sm font-medium text-on-surface hover:bg-surface-container"
+                            >
+                              {showSmsSettings ? "Hide" : "Show"} Absentee SMS Alerts
+                            </button>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
               {saveDisabledReason && <p className="text-xs text-on-surface-variant">{saveDisabledReason}</p>}
             </div>
@@ -782,28 +867,36 @@ export default function AttendancePage() {
             </span>
           </div>
 
-          <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-5">
-            {[
-              { label: "Present", value: presentCount, tone: "text-secondary" },
-              { label: "Absent", value: absentCount, tone: "text-error" },
-              { label: "Late", value: lateCount, tone: "text-tertiary" },
-              { label: "Excused", value: excusedCount, tone: "text-[#7c3aed]" },
-              { label: "Offline", value: offlineCount, tone: "text-primary" },
-            ].map((item) => (
-              <div
-                key={item.label}
-                className="rounded-2xl border border-[var(--surface-container-low)] bg-[var(--surface-bright)] p-3 text-center"
-              >
-                <div className={`text-xl font-bold ${item.tone}`}>{item.value}</div>
-                <div className="mt-1 text-[10px] font-medium uppercase tracking-[0.08em] text-[var(--t3)]">
-                  {item.label}
-                </div>
-              </div>
-            ))}
-          </div>
+          <p className="mt-3 text-sm text-on-surface-variant">
+            <span className="font-bold text-on-surface">
+              {markedCount}/{students.length} marked
+            </span>
+            {" · "}
+            <span className="font-semibold text-secondary">{effectivePresentCount} present</span>
+            {" · "}
+            <span className="font-semibold text-error">{absentCount} absent</span>
+            {lateCount > 0 && (
+              <>
+                {" · "}
+                <span className="font-semibold text-tertiary">{lateCount} late</span>
+              </>
+            )}
+            {excusedCount > 0 && (
+              <>
+                {" · "}
+                <span className="font-semibold text-[#7c3aed]">{excusedCount} excused</span>
+              </>
+            )}
+            {offlineCount > 0 && (
+              <>
+                {" · "}
+                <span className="font-semibold text-primary">{offlineCount} offline</span>
+              </>
+            )}
+          </p>
         </div>
 
-        {canManageSmsAutomation && (
+        {canManageSmsAutomation && showSmsSettings && (
           <div className="bg-surface-container-lowest rounded-xl border border-outline-variant p-4 flex items-center justify-between gap-3">
             <div className="flex items-center gap-3 min-w-0">
               <div
@@ -912,21 +1005,20 @@ export default function AttendancePage() {
                   className="w-full bg-surface-container border-none rounded-xl py-3 px-4 min-h-[44px] text-base font-medium focus:ring-2 focus:ring-primary/20 disabled:opacity-40"
                 />
               </div>
-              <button
-                onClick={() => setBulkMode(!bulkMode)}
-                className={`px-3 py-3 rounded-xl text-[10px] font-black uppercase tracking-[0.12em] transition-all min-h-[44px] ${
-                  bulkMode
-                    ? "bg-primary text-on-primary shadow-md"
-                    : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
-                }`}
-                title="Toggle bulk date-range marking"
-              >
-                Bulk
-              </button>
             </div>
           </div>
           {bulkMode && (
             <div className="flex flex-col sm:flex-row gap-4 mt-4 pt-4 border-t border-outline-variant">
+              <div className="flex items-center justify-between gap-2 w-full sm:w-auto sm:order-3">
+                <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">Bulk marking</span>
+                <button
+                  type="button"
+                  onClick={() => setBulkMode(false)}
+                  className="min-h-[44px] px-3 text-sm font-semibold text-[var(--primary)]"
+                >
+                  Done
+                </button>
+              </div>
               <div className="sm:w-48">
                 <label className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2 block">
                   From Date
@@ -1092,11 +1184,11 @@ export default function AttendancePage() {
                     { icon: "event", text: "Choose the date (defaults to today)" },
                     {
                       icon: "touch_app",
-                      text: "Swipe right for Present, left for Absent — or tap to cycle Late and Excused",
+                      text: "Swipe right for Present, left for Absent — or tap once to mark Absent, again to cycle Late and Excused",
                     },
                     {
-                      icon: "toggle_on",
-                      text: "Everyone starts as Present — swipe right for Present, left for Absent, tap to cycle",
+                      icon: "radio_button_unchecked",
+                      text: "Rows start Unmarked — first tap marks Absent. Unmarked pupils are recorded as Present on save",
                     },
                     {
                       icon: "save",
@@ -1110,7 +1202,7 @@ export default function AttendancePage() {
             <div className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 shadow-sm">
               <MaterialIcon icon="mic" className="text-xl text-primary shrink-0" />
               <div className="min-w-0">
-                <div className="font-semibold text-on-surface text-sm">Everyone starts as Present</div>
+                <div className="font-semibold text-on-surface text-sm">Tap once to mark Absent</div>
                 <div className="text-xs text-on-surface-variant">
                   Swipe right for Present, left for Absent — or tap to cycle. Marked pupils tuck away automatically.
                 </div>
@@ -1156,7 +1248,7 @@ export default function AttendancePage() {
                           : "All synced"}
                     </div>
                   </div>
-                  {unmarkedCount > 0 && (
+                  {unmarkedCount > 0 && !showMarked && (
                     <Button
                       variant="secondary"
                       size="sm"
@@ -1164,6 +1256,16 @@ export default function AttendancePage() {
                       icon={<MaterialIcon icon="arrow_downward" />}
                     >
                       Next unmarked
+                    </Button>
+                  )}
+                  {collapsedIds.size > 0 && !isReviewing && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={() => setShowMarked((v) => !v)}
+                      icon={<MaterialIcon icon={showMarked ? "visibility_off" : "visibility"} />}
+                    >
+                      {showMarked ? "Hide marked" : `Show marked (${collapsedIds.size})`}
                     </Button>
                   )}
                 </div>
@@ -1293,18 +1395,22 @@ export default function AttendancePage() {
 
             <div className="space-y-2">
               {visibleStudents.map((student, index) => {
-                const status = (attendance[student.id] || "present") as AttendanceStatus;
-                const config = STATUS_CONFIG[status];
-                const borderColor =
-                  status === "present"
+                // WYSIWYG: an unmarked row shows "Unmarked" — never a fake
+                // Present. First tap still marks Absent (the common case).
+                const status = attendance[student.id] as AttendanceStatus | undefined;
+                const config = status ? STATUS_CONFIG[status] : null;
+                const borderColor = !status
+                  ? "border-outline-variant"
+                  : status === "present"
                     ? "border-secondary/30"
                     : status === "absent"
                       ? "border-error/30"
                       : status === "late"
                         ? "border-tertiary/30"
                         : "border-[#7c3aed]/30";
-                const bgColor =
-                  status === "present"
+                const bgColor = !status
+                  ? "bg-surface-container-lowest"
+                  : status === "present"
                     ? "bg-secondary/5"
                     : status === "absent"
                       ? "bg-error/5"
@@ -1336,22 +1442,31 @@ export default function AttendancePage() {
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <span
-                        className={`text-xs font-semibold px-2 py-1 rounded-md ${config.bg} ${status === "present" ? "text-on-secondary-container" : status === "absent" ? "text-on-error-container" : status === "late" ? "text-on-tertiary-container" : "text-[#7c3aed]"}`}
+                        className={`text-xs font-semibold px-2 py-1 rounded-md ${
+                          !config
+                            ? "bg-surface-container text-on-surface-variant"
+                            : `${config.bg} ${status === "present" ? "text-on-secondary-container" : status === "absent" ? "text-on-error-container" : status === "late" ? "text-on-tertiary-container" : "text-[#7c3aed]"}`
+                        }`}
                       >
-                        {config.label}
+                        {config ? config.label : "Unmarked"}
                       </span>
                       <div
                         className={`md:hidden w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-                          status === "present"
-                            ? "bg-secondary"
-                            : status === "absent"
-                              ? "bg-error"
-                              : status === "late"
-                                ? "bg-tertiary"
-                                : "bg-[#7c3aed]"
+                          !status
+                            ? "bg-surface-container-high text-on-surface-variant"
+                            : status === "present"
+                              ? "bg-secondary"
+                              : status === "absent"
+                                ? "bg-error"
+                                : status === "late"
+                                  ? "bg-tertiary"
+                                  : "bg-[#7c3aed]"
                         }`}
                       >
-                        <MaterialIcon icon={config.icon} className="text-white text-lg" />
+                        <MaterialIcon
+                          icon={config ? config.icon : "radio_button_unchecked"}
+                          className={`${config ? "text-white" : "text-on-surface-variant"} text-lg`}
+                        />
                       </div>
                       <div className="hidden md:flex gap-1.5">
                         {STATUS_CYCLE.map((s) => {
@@ -1376,7 +1491,7 @@ export default function AttendancePage() {
                         })}
                       </div>
                     </div>
-                    {confirmedId === student.id && (
+                    {confirmedId === student.id && config && (
                       <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-end gap-2 rounded-xl bg-surface/70 pr-5 animate-fade-in">
                         <span
                           className={`text-base font-bold ${
@@ -1417,18 +1532,26 @@ export default function AttendancePage() {
                     <p className="mt-3 font-bold text-on-surface text-base">All {students.length} marked</p>
                     <p className="mt-1 text-sm text-on-surface-variant">
                       {presentCount} present · {absentCount} absent · {lateCount} late · {excusedCount} excused. Use the
-                      filters above to review or correct.
+                      filters or &quot;Show marked&quot; to review or correct.
                     </p>
-                    <Button
-                      onClick={() => saveAttendance()}
-                      disabled={saving}
-                      loading={saving}
-                      icon={<MaterialIcon icon="save" />}
-                      className="mt-4"
-                      size="lg"
-                    >
-                      Save attendance
-                    </Button>
+                    <div className="mt-4 flex flex-col items-center gap-2">
+                      <Button
+                        onClick={() => saveAttendance()}
+                        disabled={saving}
+                        loading={saving}
+                        icon={<MaterialIcon icon="save" />}
+                        size="lg"
+                      >
+                        Save
+                      </Button>
+                      <button
+                        type="button"
+                        onClick={() => setShowMarked(true)}
+                        className="min-h-[44px] text-sm font-semibold text-[var(--primary)]"
+                      >
+                        Show marked rows
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <div className="text-center py-8 px-4 text-on-surface-variant">
@@ -1449,6 +1572,22 @@ export default function AttendancePage() {
                 ))}
             </div>
 
+            {undoMark && (
+              <div className="fixed bottom-[calc(160px+env(safe-area-inset-bottom,0px))] left-0 right-0 px-4 z-20 flex justify-center md:static md:px-0 md:justify-end md:mb-2">
+                <div className="flex items-center gap-3 rounded-xl border border-outline-variant bg-surface-container-lowest px-4 py-2.5 shadow-lg">
+                  <span className="text-sm text-on-surface">
+                    Marked <span className="font-semibold">{undoMark.name}</span>
+                    {undoMark.prev
+                      ? ` (${STATUS_CONFIG[undoMark.prev as AttendanceStatus]?.label ?? undoMark.prev})`
+                      : ""}
+                  </span>
+                  <Button variant="secondary" size="sm" onClick={undoLastMark} icon={<MaterialIcon icon="undo" />}>
+                    Undo
+                  </Button>
+                </div>
+              </div>
+            )}
+
             <div className="mobile-sticky-action fixed bottom-[calc(84px+env(safe-area-inset-bottom,0px))] left-0 right-0 p-4 md:relative md:bottom-auto md:p-0 bg-surface/95 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none border-t border-outline-variant md:border-0 z-10">
               <Button
                 onClick={() => saveAttendance()}
@@ -1458,7 +1597,14 @@ export default function AttendancePage() {
                 className="w-full"
                 size="lg"
               >
-                Save: {effectivePresentCount} present, {absentCount} absent, {lateCount} late, {excusedCount} excused
+                <span className="flex flex-col items-center leading-tight">
+                  <span>Save</span>
+                  <span className="text-[11px] font-medium opacity-80">
+                    {effectivePresentCount} present · {absentCount} absent
+                    {lateCount > 0 ? ` · ${lateCount} late` : ""}
+                    {excusedCount > 0 ? ` · ${excusedCount} excused` : ""}
+                  </span>
+                </span>
               </Button>
             </div>
           </>
@@ -1504,7 +1650,7 @@ export default function AttendancePage() {
           <div className="space-y-1 max-h-80 overflow-y-auto">
             {students.map((student) => {
               const isSelected = selectedAbsentIds.has(student.id);
-              const currentStatus = attendance[student.id] || "present";
+              const currentStatus = attendance[student.id];
               return (
                 <button
                   key={student.id}
@@ -1528,7 +1674,7 @@ export default function AttendancePage() {
                     </div>
                     <div className="text-xs text-on-surface-variant">{student.student_number}</div>
                   </div>
-                  {currentStatus !== "present" && (
+                  {currentStatus && currentStatus !== "present" && (
                     <span
                       className={`text-xs px-2 py-0.5 rounded ${
                         currentStatus === "absent"

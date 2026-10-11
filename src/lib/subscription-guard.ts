@@ -27,7 +27,7 @@ export async function requireActiveSubscription(params: {
 
   const { data: school, error } = await supabase
     .from("schools")
-    .select("id, name, subscription_status, subscription_plan, trial_ends_at, next_payment_date")
+    .select("id, name, subscription_status, subscription_plan, trial_ends_at, next_payment_date, is_tester")
     .eq("id", schoolId)
     .maybeSingle();
 

@@ -31,8 +31,6 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 const OwlAssistant = dynamic(() => import("@/components/OwlAssistant"), { ssr: false });
 // CommandPalette removed — GlobalSearch is now the single search system (see src/components/GlobalSearch.tsx)
-const BugReportButton = dynamic(() => import("@/components/BugReportButton"), { ssr: false });
-const WhatsAppHelpFab = dynamic(() => import("@/components/WhatsAppHelpFab"), { ssr: false });
 const RoleBasedWalkthrough = dynamic(() => import("@/components/RoleBasedWalkthrough"), { ssr: false });
 const OnboardingTour = dynamic(() => import("@/components/OnboardingTour"), { ssr: false });
 import { supabase } from "@/lib/supabase";
@@ -473,8 +471,6 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       {/* Onboarding tour — overlay is now click-through, no longer blocks the dashboard */}
       {onboardingCompleted && !isDemo && <OnboardingTour />}
       <OwlAssistant />
-      <WhatsAppHelpFab />
-      <BugReportButton />
       <PWAInstallPrompt />
     </ErrorBoundary>
   );

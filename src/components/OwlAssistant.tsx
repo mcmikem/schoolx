@@ -3,6 +3,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
+import { BugReportModal } from "@/components/BugReportButton";
 import { useAuth } from "@/lib/auth-context";
 import { answerLocally, getPageHints } from "@/lib/owly-knowledge";
 import { supabase } from "@/lib/supabase";
@@ -117,6 +118,7 @@ export default function OwlAssistant() {
   const { school, user } = useAuth();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [bugOpen, setBugOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>(() => loadStoredMessages() ?? [welcomeMessage()]);
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
@@ -256,14 +258,15 @@ export default function OwlAssistant() {
       {/* ── Floating Owly button ── */}
       <button
         onClick={() => setOpen((v) => !v)}
-        className="fixed z-[9990] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--green)] bottom-[84px] right-4 sm:bottom-6 sm:right-6"
-        style={{ width: 64, height: open ? 64 : 78, background: "none", border: "none", cursor: "pointer", padding: 0 }}
+        className="fixed z-[9990] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--green)] bottom-[88px] right-4 sm:bottom-6 sm:right-6"
+        style={{ width: 56, height: 56, background: "none", border: "none", cursor: "pointer", padding: 0 }}
         aria-label="Open SkoolMate Assistant"
+        aria-expanded={open}
         title="Owly — SkoolMate Assistant"
       >
         {open ? (
           <div
-            className="w-16 h-16 rounded-full flex items-center justify-center shadow-2xl transition-transform hover:scale-105 active:scale-95"
+            className="w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transition-transform hover:scale-105 active:scale-95"
             style={{ background: "#0b1c39" }}
           >
             <MaterialIcon icon="close" className="text-white text-2xl" />
@@ -271,18 +274,18 @@ export default function OwlAssistant() {
         ) : (
           <div
             className="relative transition-transform hover:scale-105 active:scale-95"
-            style={{ width: 64, height: 64 }}
+            style={{ width: 56, height: 56 }}
           >
             <Image
               src="/SkoolMate logos/SchoolMate icon.svg"
               alt="SkoolMate"
-              width={64}
-              height={64}
+              width={56}
+              height={56}
               loading="eager"
               className="rounded-2xl"
             />
             <span
-              className={`absolute top-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white ${
+              className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${
                 online ? "bg-green-400 animate-pulse" : "bg-amber-400"
               }`}
               aria-hidden
@@ -324,6 +327,17 @@ export default function OwlAssistant() {
                 {online ? "SkoolMate OS · School Management" : "Offline · built-in guide answering"}
               </p>
             </div>
+            {school?.is_tester && (
+              <button
+                type="button"
+                onClick={() => setBugOpen(true)}
+                className="flex items-center justify-center w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors shrink-0"
+                title="Report a bug"
+                aria-label="Report a bug"
+              >
+                <MaterialIcon icon="bug_report" className="text-base" />
+              </button>
+            )}
             <a
               href={generateSupportWhatsAppLink(contactCtx)}
               target="_blank"
@@ -463,6 +477,7 @@ export default function OwlAssistant() {
           </div>
         </div>
       )}
+      <BugReportModal open={bugOpen} onClose={() => setBugOpen(false)} />
     </>
   );
 }
