@@ -1157,6 +1157,16 @@ describe("Staff directory rows use one overflow menu", () => {
     expect(setAt).toBeGreaterThan(flagAt);
   });
 
+  it("writes a batch audit row for server-side bulk attendance", () => {
+    const src = read("src/app/api/attendance/bulk/route.ts");
+    // The client-side per-row audit helper never runs on the service-role
+    // upsert, so bulk marks were invisible to the audit trail entirely.
+    expect(src).toContain('from("audit_log").insert');
+    expect(src).toContain("Bulk attendance: marked");
+    // Non-fatal: the attendance rows themselves must not fail on audit error.
+    expect(src).toContain("Failed to write bulk-attendance audit row");
+  });
+
   it("never sends the nonexistent school_id column to teacher_subjects", () => {
     const src = read("src/app/dashboard/staff/page.tsx");
     // teacher_subjects has no school_id (RLS scopes through teacher_id ->

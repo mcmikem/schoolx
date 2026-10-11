@@ -164,6 +164,31 @@ export async function POST(request: NextRequest) {
       upserted += batch.length;
     }
 
+    // One batch-level audit row — the client-side per-row helper never runs
+    // here (service-role upsert), so without this the whole bulk mark is
+    // invisible to the audit trail. Non-fatal: the attendance itself saved.
+    const { error: auditError } = await supabase.from("audit_log").insert({
+      school_id: scope.schoolId,
+      user_id: auth.context.user.id,
+      user_name: auth.context.user.full_name || "unknown",
+      action: "create",
+      module: "attendance",
+      description: `Bulk attendance: marked ${status} for ${students.length} student(s) across ${dates.length} day(s) (${date_from} to ${date_to})`,
+      record_id: class_id,
+      new_value: {
+        class_id,
+        date_from,
+        date_to,
+        status,
+        students_count: students.length,
+        dates_count: dates.length,
+        records: upserted,
+      },
+    });
+    if (auditError) {
+      logger.error("Failed to write bulk-attendance audit row:", auditError);
+    }
+
     return apiSuccess({
       total_records: records.length,
       students_count: students.length,
