@@ -1196,6 +1196,40 @@ describe("Staff directory rows use one overflow menu", () => {
     expect(mig).toContain("School staff parent_students write");
   });
 
+  it("the dorm feature repair creates the missing tables and staff-gates dorm writes", () => {
+    const mig = read("supabase/migrations/202611110003_dorm_feature_repair.sql");
+    // The dorm UI reads/writes dorm_rooms and dorm_incidents — tables that
+    // never shipped, leaving the room map empty and every incident insert failing.
+    expect(mig).toContain("CREATE TABLE IF NOT EXISTS public.dorm_rooms");
+    expect(mig).toContain("CREATE TABLE IF NOT EXISTS public.dorm_incidents");
+    // Roll-call columns the attendance UI already writes.
+    expect(mig).toContain("ADD COLUMN IF NOT EXISTS check_type");
+    expect(mig).toContain("ADD COLUMN IF NOT EXISTS absence_reason");
+    // Morning and night roll call must coexist: one check per (dorm, student,
+    // date, check_type) instead of one per (dorm, student, date).
+    expect(mig).toContain("dorm_attendance_dorm_id_student_id_date_key");
+    expect(mig).toContain("UNIQUE (dorm_id, student_id, date, check_type)");
+    // Students must not assign themselves to a dorm or forge roll call.
+    expect(mig).toContain('DROP POLICY IF EXISTS "School users dorm_students all"');
+    expect(mig).toContain("School staff dorm_students write");
+    expect(mig).toContain('DROP POLICY IF EXISTS "School users dorm_attendance all"');
+    expect(mig).toContain("School staff dorm_attendance write");
+  });
+
+  it("the dorm page picks students from a roster instead of asking for a raw UUID", () => {
+    const src = read("src/app/dashboard/dorm/page.tsx");
+    // The old incident form made staff paste a student UUID by hand.
+    expect(src).not.toContain("Enter student ID");
+    expect(src).not.toContain('placeholder="Enter student ID"');
+    // Both entry points must exist: a working Add Room modal and an Add Dorm
+    // flow (previously the "+ Add Room" button opened a modal that was never
+    // rendered and there was no way to create the first dorm).
+    expect(src).toContain("showRoomModal &&");
+    expect(src).toContain("handleAddRoom");
+    expect(src).toContain("showDormModal &&");
+    expect(src).toContain("handleAddDorm");
+  });
+
   it("never sends the nonexistent school_id column to teacher_subjects", () => {
     const src = read("src/app/dashboard/staff/page.tsx");
     // teacher_subjects has no school_id (RLS scopes through teacher_id ->

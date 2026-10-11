@@ -2430,6 +2430,35 @@ CREATE TABLE IF NOT EXISTS dorm_students (
 );
 
 -- ============================================
+-- DORM ROOMS TABLE (visual room map)
+-- ============================================
+CREATE TABLE IF NOT EXISTS dorm_rooms (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    dorm_id UUID NOT NULL REFERENCES dorms(id) ON DELETE CASCADE,
+    room_number TEXT NOT NULL,
+    capacity INTEGER NOT NULL DEFAULT 0,
+    current_occupancy INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(dorm_id, room_number)
+);
+
+-- ============================================
+-- DORM INCIDENTS TABLE
+-- ============================================
+CREATE TABLE IF NOT EXISTS dorm_incidents (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    dorm_id UUID REFERENCES dorms(id) ON DELETE CASCADE,
+    student_id UUID REFERENCES students(id) ON DELETE SET NULL,
+    incident_type TEXT NOT NULL DEFAULT 'other' CHECK (incident_type IN ('misbehavior', 'health', 'maintenance', 'other')),
+    description TEXT NOT NULL,
+    incident_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'resolved')),
+    reported_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================
 -- STAFF ATTENDANCE TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS staff_attendance (
@@ -2714,12 +2743,15 @@ CREATE TABLE IF NOT EXISTS dorm_attendance (
     dorm_id UUID REFERENCES dorms(id) ON DELETE CASCADE,
     student_id UUID REFERENCES students(id) ON DELETE CASCADE,
     date DATE NOT NULL,
+    check_type TEXT NOT NULL DEFAULT 'night' CHECK (check_type IN ('morning', 'night')),
     status TEXT CHECK (status IN ('present', 'absent', 'sick', 'permission')) DEFAULT 'present',
+    absence_reason TEXT,
+    absence_notes TEXT,
     notes TEXT,
     checked_by UUID REFERENCES users(id) ON DELETE SET NULL,
     checked_at TIMESTAMPTZ DEFAULT NOW(),
     created_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(dorm_id, student_id, date)
+    UNIQUE(dorm_id, student_id, date, check_type)
 );
 
 -- ============================================
@@ -3308,7 +3340,22 @@ CREATE POLICY "School admins dorms write" ON dorms FOR ALL TO authenticated USIN
 
 ALTER TABLE dorm_students ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "School users dorm_students all" ON dorm_students;
-CREATE POLICY "School users dorm_students all" ON dorm_students FOR ALL TO authenticated USING (dorm_id IN (SELECT id FROM dorms WHERE school_id = my_school_id())) WITH CHECK (dorm_id IN (SELECT id FROM dorms WHERE school_id = my_school_id()));
+DROP POLICY IF EXISTS "School users dorm_students select" ON dorm_students;
+CREATE POLICY "School users dorm_students select" ON dorm_students FOR SELECT TO authenticated USING (dorm_id IN (SELECT id FROM dorms WHERE school_id = my_school_id()));
+DROP POLICY IF EXISTS "School staff dorm_students write" ON dorm_students;
+CREATE POLICY "School staff dorm_students write" ON dorm_students FOR ALL TO authenticated USING (dorm_id IN (SELECT id FROM dorms WHERE school_id = my_school_id()) AND (is_school_admin() OR is_school_staff(my_school_id()))) WITH CHECK (dorm_id IN (SELECT id FROM dorms WHERE school_id = my_school_id()) AND (is_school_admin() OR is_school_staff(my_school_id())));
+
+ALTER TABLE dorm_rooms ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users dorm_rooms select" ON dorm_rooms;
+CREATE POLICY "School users dorm_rooms select" ON dorm_rooms FOR SELECT TO authenticated USING (dorm_id IN (SELECT id FROM dorms WHERE school_id = my_school_id()));
+DROP POLICY IF EXISTS "School staff dorm_rooms write" ON dorm_rooms;
+CREATE POLICY "School staff dorm_rooms write" ON dorm_rooms FOR ALL TO authenticated USING (dorm_id IN (SELECT id FROM dorms WHERE school_id = my_school_id()) AND (is_school_admin() OR is_school_staff(my_school_id()))) WITH CHECK (dorm_id IN (SELECT id FROM dorms WHERE school_id = my_school_id()) AND (is_school_admin() OR is_school_staff(my_school_id())));
+
+ALTER TABLE dorm_incidents ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users dorm_incidents select" ON dorm_incidents;
+CREATE POLICY "School users dorm_incidents select" ON dorm_incidents FOR SELECT TO authenticated USING (school_id = my_school_id());
+DROP POLICY IF EXISTS "School staff dorm_incidents write" ON dorm_incidents;
+CREATE POLICY "School staff dorm_incidents write" ON dorm_incidents FOR ALL TO authenticated USING (school_id = my_school_id() AND (is_school_admin() OR is_school_staff(my_school_id()))) WITH CHECK (school_id = my_school_id() AND (is_school_admin() OR is_school_staff(my_school_id())));
 
 ALTER TABLE leave_requests ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "School users leave_requests all" ON leave_requests;
@@ -3373,7 +3420,10 @@ USING (class_id IN (SELECT my_children_class_ids()));
 
 ALTER TABLE dorm_attendance ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "School users dorm_attendance all" ON dorm_attendance;
-CREATE POLICY "School users dorm_attendance all" ON dorm_attendance FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+DROP POLICY IF EXISTS "School users dorm_attendance select" ON dorm_attendance;
+CREATE POLICY "School users dorm_attendance select" ON dorm_attendance FOR SELECT TO authenticated USING (school_id = my_school_id());
+DROP POLICY IF EXISTS "School staff dorm_attendance write" ON dorm_attendance;
+CREATE POLICY "School staff dorm_attendance write" ON dorm_attendance FOR ALL TO authenticated USING (school_id = my_school_id() AND (is_school_admin() OR is_school_staff(my_school_id()))) WITH CHECK (school_id = my_school_id() AND (is_school_admin() OR is_school_staff(my_school_id())));
 
 ALTER TABLE homework_submissions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "School users homework_submissions all" ON homework_submissions;
