@@ -335,6 +335,17 @@ export function TeacherDashboardContent() {
                     ? "Not taken yet"
                     : "Finish marking the rest"}
             </p>
+            {!allClassesMarked && markedCount !== null && (
+              <Link
+                href="/dashboard/attendance"
+                className={`mt-3 flex min-h-[44px] items-center justify-center gap-1 rounded-xl px-3 text-[13px] font-bold text-white transition-opacity hover:opacity-90 ${
+                  markedCount === 0 ? "bg-[var(--red)]" : "bg-amber-600"
+                }`}
+              >
+                {markedCount === 0 ? "Take attendance now" : "Finish marking"}
+                <MaterialIcon icon="arrow_forward" className="text-base" />
+              </Link>
+            )}
           </div>
           <div className="rounded-2xl border border-[var(--surface-container-low)] bg-white p-4">
             <div className="flex items-center gap-2">
@@ -401,7 +412,7 @@ export function TeacherDashboardContent() {
                 <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--t1)]/10">
                   <MaterialIcon icon="school" className="text-sm text-[var(--t1)]" />
                 </div>
-                <h2 className="text-sm font-bold text-[var(--t1)] font-['Sora']">My classes</h2>
+                <h2 className="text-sm font-bold text-[var(--t1)] font-['Sora']">My classes · {myClasses.length}</h2>
               </div>
               <div className="-mx-1 overflow-x-auto pb-1">
                 <div className="flex min-w-max gap-3 px-1">
@@ -424,13 +435,13 @@ export function TeacherDashboardContent() {
                         <div className="mt-4 flex gap-2">
                           <Link
                             href={`/dashboard/attendance?class=${cls.id}`}
-                            className="flex-1 rounded-xl bg-[var(--t1)] py-2.5 text-center text-[10px] font-bold text-white hover:opacity-90 transition-opacity"
+                            className="flex-1 rounded-xl bg-[var(--t1)] py-2.5 min-h-[44px] flex items-center justify-center text-xs font-bold text-white hover:opacity-90 transition-opacity"
                           >
                             Attendance
                           </Link>
                           <Link
                             href={`/dashboard/grades?class=${cls.id}`}
-                            className="flex-1 rounded-xl bg-[var(--primary-50)] py-2.5 text-center text-[10px] font-bold text-[var(--t1)] hover:bg-[var(--border)] transition-colors"
+                            className="flex-1 rounded-xl bg-[var(--primary-50)] py-2.5 min-h-[44px] flex items-center justify-center text-xs font-bold text-[var(--t1)] hover:bg-[var(--border)] transition-colors"
                           >
                             Grades
                           </Link>

@@ -211,7 +211,7 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
           <button
             type="button"
             onClick={() => navMonth(-1)}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--t3)] hover:bg-[var(--surface-container-low)] hover:text-[var(--primary)]"
+            className="flex h-11 w-11 items-center justify-center rounded-full text-[var(--t3)] hover:bg-[var(--surface-container-low)] hover:text-[var(--primary)]"
             aria-label="Previous month"
           >
             <MaterialIcon icon="chevron_left" className="text-lg" />
@@ -226,7 +226,7 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
           <button
             type="button"
             onClick={() => navMonth(1)}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--t3)] hover:bg-[var(--surface-container-low)] hover:text-[var(--primary)]"
+            className="flex h-11 w-11 items-center justify-center rounded-full text-[var(--t3)] hover:bg-[var(--surface-container-low)] hover:text-[var(--primary)]"
             aria-label="Next month"
           >
             <MaterialIcon icon="chevron_right" className="text-lg" />
@@ -247,7 +247,7 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
               type="button"
               key={cell.iso}
               onClick={() => setSelectedDate(cell.iso === selectedDate ? null : cell.iso)}
-              className={`relative flex items-center justify-center rounded-xl border min-h-[36px] text-center text-[11px] sm:text-xs font-semibold transition-colors ${
+              className={`relative flex items-center justify-center rounded-xl border min-h-[44px] text-center text-[11px] sm:text-xs font-semibold transition-colors ${
                 cell.iso === selectedDate
                   ? "border-[var(--primary)] bg-[var(--primary)] text-white"
                   : cell.isToday
@@ -324,26 +324,26 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
               value={newEventTitle}
               onChange={(e) => setNewEventTitle(e.target.value)}
               placeholder="Event title..."
-              className="min-w-0 flex-1 rounded-[var(--r)] border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
+              className="min-w-0 flex-1 rounded-[var(--r)] border border-[var(--border)] bg-[var(--surface)] px-3 py-2 min-h-[44px] text-base text-[var(--t1)] outline-none focus:border-[var(--primary)]"
             />
             <input
               type="date"
               value={newEventDate}
               onChange={(e) => setNewEventDate(e.target.value)}
-              className="rounded-[var(--r)] border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm text-[var(--t1)] outline-none focus:border-[var(--primary)]"
+              className="rounded-[var(--r)] border border-[var(--border)] bg-[var(--surface)] px-3 py-2 min-h-[44px] text-base text-[var(--t1)] outline-none focus:border-[var(--primary)]"
             />
             <button
               type="button"
               onClick={addCalendarEvent}
               disabled={!newEventTitle.trim() || !newEventDate}
-              className="rounded-full bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--primary-700)] disabled:opacity-50"
+              className="rounded-full bg-[var(--primary)] px-4 py-2 min-h-[44px] text-sm font-semibold text-white hover:bg-[var(--primary-700)] disabled:opacity-50"
             >
               Save
             </button>
             <button
               type="button"
               onClick={() => setShowAddEvent(false)}
-              className="rounded-full border border-[var(--border)] px-3 py-2 text-sm font-semibold text-[var(--t3)] hover:bg-[var(--surface)]"
+              className="rounded-full border border-[var(--border)] px-3 py-2 min-h-[44px] text-sm font-semibold text-[var(--t3)] hover:bg-[var(--surface)]"
             >
               Cancel
             </button>

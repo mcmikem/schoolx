@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
 import { DEMO_CLASSES, DEMO_STUDENTS } from "@/lib/demo-data";
 import MaterialIcon from "@/components/MaterialIcon";
+import { RollCallPhoto } from "@/components/attendance/RollCallPhoto";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/index";
 
@@ -62,7 +63,7 @@ export default function StudentLookupPage() {
       const { data, error } = await supabase
         .from("students")
         .select(
-          "id, first_name, last_name, student_number, gender, classes(name), parent_phone, parent_name, opening_balance",
+          "id, first_name, last_name, student_number, gender, photo_url, classes(name), parent_phone, parent_name, opening_balance",
         )
         .eq("school_id", school.id)
         .or(`first_name.ilike.%${q}%,last_name.ilike.%${q}%,student_number.ilike.%${q}%`)
@@ -162,48 +163,58 @@ export default function StudentLookupPage() {
         )}
 
         {students.length > 0 && (
-          <div className="overflow-x-auto rounded-3xl border border-[var(--border)] bg-[var(--surface)]">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="border-b border-[var(--border)]">
-                  {["Student", "Adm. No", "Class", "Parent", "Fee Balance", "Actions"].map((h) => (
-                    <th
-                      key={h}
-                      className="px-5 py-3 text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]"
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--border)]">
-                {students.map((s) => (
-                  <tr key={s.id} className="hover:bg-[var(--surface-container-low)] transition-colors">
-                    <td className="px-5 py-4 font-bold text-[var(--on-surface)]">
-                      {s.first_name} {s.last_name}
-                    </td>
-                    <td className="px-5 py-4 font-mono text-sm text-[var(--on-surface-variant)]">
-                      {s.admission_number}
-                    </td>
-                    <td className="px-5 py-4 text-sm text-[var(--on-surface-variant)]">{s.classes?.name || "—"}</td>
-                    <td className="px-5 py-4 text-sm text-[var(--on-surface-variant)]">{s.parent_name || "—"}</td>
-                    <td className="px-5 py-4">
-                      {s.fee_balance > 0 ? (
-                        <span className="text-red-600 font-bold text-sm">UGX {s.fee_balance?.toLocaleString()}</span>
-                      ) : (
-                        <span className="text-emerald-600 font-bold text-sm">Cleared</span>
-                      )}
-                    </td>
-                    <td className="px-5 py-4">
-                      <Button size="sm" variant="ghost" onClick={() => handleSMSParent(s)}>
-                        <MaterialIcon icon="sms" style={{ fontSize: 16 }} /> SMS Parent
-                      </Button>
-                    </td>
+          <>
+            <p className="mb-2 text-sm font-semibold text-[var(--on-surface-variant)] tabular-nums">
+              {students.length} student{students.length !== 1 ? "s" : ""} found
+            </p>
+            <div className="overflow-x-auto rounded-3xl border border-[var(--border)] bg-[var(--surface)]">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="border-b border-[var(--border)]">
+                    {["Student", "Adm. No", "Class", "Parent", "Fee Balance", "Actions"].map((h) => (
+                      <th
+                        key={h}
+                        className="px-5 py-3 text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]"
+                      >
+                        {h}
+                      </th>
+                    ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-[var(--border)]">
+                  {students.map((s) => (
+                    <tr key={s.id} className="hover:bg-[var(--surface-container-low)] transition-colors">
+                      <td className="px-5 py-4 font-bold text-[var(--on-surface)]">
+                        <span className="flex items-center gap-3">
+                          <RollCallPhoto name={`${s.first_name} ${s.last_name}`} photoUrl={s.photo_url} />
+                          <span>
+                            {s.first_name} {s.last_name}
+                          </span>
+                        </span>
+                      </td>
+                      <td className="px-5 py-4 font-mono text-sm text-[var(--on-surface-variant)]">
+                        {s.admission_number}
+                      </td>
+                      <td className="px-5 py-4 text-sm text-[var(--on-surface-variant)]">{s.classes?.name || "—"}</td>
+                      <td className="px-5 py-4 text-sm text-[var(--on-surface-variant)]">{s.parent_name || "—"}</td>
+                      <td className="px-5 py-4">
+                        {s.fee_balance > 0 ? (
+                          <span className="text-red-600 font-bold text-sm">UGX {s.fee_balance?.toLocaleString()}</span>
+                        ) : (
+                          <span className="text-emerald-600 font-bold text-sm">Cleared</span>
+                        )}
+                      </td>
+                      <td className="px-5 py-4">
+                        <Button size="sm" variant="ghost" onClick={() => handleSMSParent(s)}>
+                          <MaterialIcon icon="sms" style={{ fontSize: 16 }} /> SMS Parent
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
 
         {showModal && selectedStudent && (
