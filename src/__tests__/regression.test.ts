@@ -1230,6 +1230,39 @@ describe("Staff directory rows use one overflow menu", () => {
     expect(src).toContain("handleAddDorm");
   });
 
+  it("the missing-tables sweep creates the tables code already queries", () => {
+    const mig = read("supabase/migrations/202611110004_missing_tables_sweep.sql");
+    // Whole features were dead because the tables never existed / never got
+    // applied to prod: /dashboard/discipline, the inventory stock ledger,
+    // push subscriptions, the alert log, and the reset-token read path.
+    expect(mig).toContain("CREATE TABLE IF NOT EXISTS public.discipline");
+    expect(mig).toContain("CREATE TABLE IF NOT EXISTS public.inventory_transactions");
+    expect(mig).toContain("CREATE TABLE IF NOT EXISTS public.push_subscriptions");
+    expect(mig).toContain("CREATE TABLE IF NOT EXISTS public.inventory_alerts");
+    expect(mig).toContain("CREATE TABLE IF NOT EXISTS public.password_reset_tokens");
+    // New school-scoped tables follow the staff-write intent.
+    expect(mig).toContain("School staff discipline write");
+    expect(mig).toContain("School staff inventory_transactions write");
+  });
+
+  it("the marketer CSV import writes to marketer_leads, not the phantom leads table", () => {
+    const src = read("src/app/api/marketers/leads/import/route.ts");
+    // The list/create API uses marketer_leads; the import typo'd the table
+    // name so every CSV import failed with PGRST205.
+    expect(src).toContain('from("marketer_leads")');
+    expect(src).not.toMatch(/from\(["']leads["']\)/);
+  });
+
+  it("never queries the tables that do not exist in any schema", () => {
+    // The dorm defect class: references to tables that were never created.
+    // transport_vehicle_logs was a dead fetch in an unused hook; "leads" was
+    // the import-route typo (covered above); the Next.js scaffold page
+    // /supabase-todos was deleted rather than given a table.
+    const src = read("src/lib/hooks/welfare.ts");
+    expect(src).not.toContain("transport_vehicle_logs");
+    expect(() => read("src/app/supabase-todos/page.tsx")).toThrow();
+  });
+
   it("never sends the nonexistent school_id column to teacher_subjects", () => {
     const src = read("src/app/dashboard/staff/page.tsx");
     // teacher_subjects has no school_id (RLS scopes through teacher_id ->

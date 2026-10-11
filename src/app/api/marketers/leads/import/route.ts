@@ -78,7 +78,7 @@ export async function POST(request: NextRequest) {
       return apiError("No valid leads found in CSV", 400);
     }
 
-    const { error: insertError } = await supabaseAdmin.from("leads").insert(leads);
+    const { error: insertError } = await supabaseAdmin.from("marketer_leads").insert(leads);
 
     if (insertError) throw insertError;
 

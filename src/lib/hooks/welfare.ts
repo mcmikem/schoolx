@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { getQuerySchoolId } from "./utils";
 import { isDemoSchool } from "@/lib/demo-utils";
-import { DEMO_DORMS, DEMO_TRANSPORT_ROUTES, DEMO_TRANSPORT_LOGS } from "@/lib/demo-data";
+import { DEMO_DORMS, DEMO_TRANSPORT_ROUTES } from "@/lib/demo-data";
 import { logger } from "@/lib/logger";
 
 export function useDormManager(schoolId?: string, dormId?: string) {
@@ -105,7 +105,6 @@ export function useDormManager(schoolId?: string, dormId?: string) {
 }
 
 export function useTransportManager(schoolId?: string) {
-  const [logs, setLogs] = useState<any[]>([]);
   const [routes, setRoutes] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { isDemo } = useAuth();
@@ -119,7 +118,6 @@ export function useTransportManager(schoolId?: string) {
 
       if (isDemo || isDemoSchool(schoolId)) {
         setRoutes(DEMO_TRANSPORT_ROUTES as unknown as any[]);
-        setLogs(DEMO_TRANSPORT_LOGS as unknown as any[]);
         setLoading(false);
         return;
       }
@@ -128,19 +126,11 @@ export function useTransportManager(schoolId?: string) {
 
       try {
         setLoading(true);
-        const [routesRes, logsRes] = await Promise.all([
-          supabase
-            .from("transport_routes")
-            .select("id, route_name, vehicle_number, driver_name, transport_stops(id, stop_name, arrival_time)")
-            .eq("school_id", querySchoolId),
-          supabase
-            .from("transport_vehicle_logs")
-            .select("id, vehicle_id, log_date, description, status")
-            .eq("school_id", querySchoolId)
-            .order("log_date", { ascending: false }),
-        ]);
-        setRoutes(routesRes.data || []);
-        setLogs(logsRes.data || []);
+        const { data: routesRes } = await supabase
+          .from("transport_routes")
+          .select("id, route_name, vehicle_number, driver_name, transport_stops(id, stop_name, arrival_time)")
+          .eq("school_id", querySchoolId);
+        setRoutes(routesRes || []);
       } catch (err) {
         logger.error("Error fetching transport welfare data:", err);
       } finally {
@@ -150,5 +140,5 @@ export function useTransportManager(schoolId?: string) {
     fetchData();
   }, [schoolId, isDemo]);
 
-  return { routes, logs, loading };
+  return { routes, loading };
 }

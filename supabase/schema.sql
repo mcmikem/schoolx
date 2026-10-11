@@ -813,9 +813,30 @@ CREATE TABLE IF NOT EXISTS inventory_alerts (
     status TEXT DEFAULT 'pending',
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- ============================================
+-- INVENTORY TRANSACTIONS TABLE (stock ledger)
+-- ============================================
+CREATE TABLE IF NOT EXISTS inventory_transactions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    asset_id UUID NOT NULL REFERENCES assets(id) ON DELETE CASCADE,
+    transaction_type TEXT NOT NULL CHECK (transaction_type IN ('in', 'out', 'adjustment', 'return')),
+    quantity NUMERIC(12,2) NOT NULL DEFAULT 0,
+    recorded_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    notes TEXT,
+    transaction_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
 ALTER TABLE inventory_alerts ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "School users inventory_alerts all" ON inventory_alerts;
 CREATE POLICY "School users inventory_alerts all" ON inventory_alerts FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+
+ALTER TABLE inventory_transactions ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users inventory_transactions select" ON inventory_transactions;
+CREATE POLICY "School users inventory_transactions select" ON inventory_transactions FOR SELECT TO authenticated USING (school_id = my_school_id());
+DROP POLICY IF EXISTS "School staff inventory_transactions write" ON inventory_transactions;
+CREATE POLICY "School staff inventory_transactions write" ON inventory_transactions FOR ALL TO authenticated USING (school_id = my_school_id() AND (is_school_admin() OR is_school_staff(my_school_id()))) WITH CHECK (school_id = my_school_id() AND (is_school_admin() OR is_school_staff(my_school_id())));
 
 -- ============================================
 -- 30. NOTICE ACKNOWLEDGMENTS
@@ -2672,6 +2693,23 @@ CREATE TABLE IF NOT EXISTS behavior_logs (
 );
 
 -- ============================================
+-- DISCIPLINE TABLE (incident register behind /dashboard/discipline)
+-- ============================================
+CREATE TABLE IF NOT EXISTS discipline (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    student_id UUID REFERENCES students(id) ON DELETE CASCADE,
+    exam_id UUID REFERENCES exams(id) ON DELETE SET NULL,
+    incident_type TEXT NOT NULL,
+    description TEXT NOT NULL,
+    action_taken TEXT,
+    follow_up_date DATE,
+    resolved BOOLEAN NOT NULL DEFAULT false,
+    reported_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================
 -- LESSON PLANS TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS lesson_plans (
@@ -3400,6 +3438,12 @@ CREATE POLICY "School users expenses all" ON expenses FOR ALL TO authenticated U
 ALTER TABLE behavior_logs ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "School users behavior_logs all" ON behavior_logs;
 CREATE POLICY "School users behavior_logs all" ON behavior_logs FOR ALL TO authenticated USING (student_id IN (SELECT id FROM students WHERE school_id = my_school_id())) WITH CHECK (student_id IN (SELECT id FROM students WHERE school_id = my_school_id()));
+
+ALTER TABLE discipline ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users discipline select" ON discipline;
+CREATE POLICY "School users discipline select" ON discipline FOR SELECT TO authenticated USING (school_id = my_school_id());
+DROP POLICY IF EXISTS "School staff discipline write" ON discipline;
+CREATE POLICY "School staff discipline write" ON discipline FOR ALL TO authenticated USING (school_id = my_school_id() AND (is_school_admin() OR is_school_staff(my_school_id()))) WITH CHECK (school_id = my_school_id() AND (is_school_admin() OR is_school_staff(my_school_id())));
 
 ALTER TABLE lesson_plans ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "School staff lesson_plans all" ON lesson_plans;
