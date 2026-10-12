@@ -570,7 +570,7 @@ export function useOfflineEvents(schoolId?: string, options?: OfflineHookOptions
       if (!schoolId) return [];
       const { data, error } = await supabase
         .from("events")
-        .select("id, title, description, event_type, start_date, end_date")
+        .select("id, title, description, event_type, audience, start_date, end_date")
         .eq("school_id", schoolId)
         .order("start_date");
       if (error) throw error;

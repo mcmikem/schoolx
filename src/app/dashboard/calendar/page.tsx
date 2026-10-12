@@ -21,6 +21,7 @@ interface SchoolEvent {
   event_type: "exam" | "meeting" | "holiday" | "event" | "academic";
   start_date: string;
   end_date: string | null;
+  audience: "personal" | "school" | "parents";
 }
 
 type PlannerMode = "day" | "week" | "month" | "timeline";
@@ -191,12 +192,19 @@ export default function CalendarPage() {
     personal: false,
   });
 
+  const [audienceFilters, setAudienceFilters] = useState<Record<"personal" | "school" | "parents", boolean>>({
+    personal: false,
+    school: true,
+    parents: true,
+  });
+
   const [newEvent, setNewEvent] = useState({
     title: "",
     description: "",
     event_type: "event" as SchoolEvent["event_type"],
     start_date: "",
     end_date: "",
+    audience: "school" as "personal" | "school" | "parents",
   });
 
   const eventValidationError = !newEvent.title.trim()
@@ -214,12 +222,14 @@ export default function CalendarPage() {
     const q = searchQuery.trim().toLowerCase();
     const category = categoryByType[evt.event_type];
     const scope = calendarByType[evt.event_type];
+    const audience = evt.audience;
 
     const categoryAllowed = categoryFilters[category];
     const scopeAllowed = calendarScopes[scope];
+    const audienceAllowed = audienceFilters[audience];
     const queryAllowed = !q || evt.title.toLowerCase().includes(q) || (evt.description || "").toLowerCase().includes(q);
 
-    return categoryAllowed && scopeAllowed && queryAllowed;
+    return categoryAllowed && scopeAllowed && audienceAllowed && queryAllowed;
   };
 
   const getEventsForDate = (dateStr: string): SchoolEvent[] => {
@@ -375,6 +385,7 @@ export default function CalendarPage() {
           title: newEvent.title.trim(),
           description: newEvent.description.trim() || null,
           event_type: newEvent.event_type,
+          audience: newEvent.audience,
           start_date: newEvent.start_date,
           end_date: newEvent.end_date || null,
         }),
@@ -593,7 +604,39 @@ export default function CalendarPage() {
                     ))}
                   </div>
                 </div>
-
+                <div className="rounded-2xl border border-[var(--surface-container-high)] bg-white p-4">
+                  <h3 className="text-sm font-bold text-[var(--t3)]">Audience</h3>
+                  <div className="mt-3 space-y-2 text-sm">
+                    {(
+                      [
+                        ["personal", "Personal"],
+                        ["school", "School-wide"],
+                        ["parents", "Parents"],
+                      ] as const
+                    ).map(([key, label]) => (
+                      <button
+                        key={key}
+                        type="button"
+                        onClick={() =>
+                          setAudienceFilters((prev) => ({
+                            ...prev,
+                            [key as "personal" | "school" | "parents"]: !prev[key as "personal" | "school" | "parents"],
+                          }))
+                        }
+                        className="flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-left transition hover:bg-[var(--surface-container-low)]"
+                      >
+                        <span className="text-[var(--t3)]">{label}</span>
+                        <span
+                          className={`h-4 w-4 rounded border ${audienceFilters[key as "personal" | "school" | "parents"] ? "border-[var(--primary-700)] bg-[var(--primary-700)]" : "border-[var(--border)] bg-white"}`}
+                        >
+                          {audienceFilters[key as "personal" | "school" | "parents"] && (
+                            <MaterialIcon icon="check" className="text-[12px] text-white" />
+                          )}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <div className="rounded-2xl border border-[var(--surface-container-high)] bg-white p-4">
                   <h3 className="text-sm font-bold text-[var(--t3)]">Other Calendars</h3>
                   <div className="mt-3 space-y-2 text-sm">
@@ -872,6 +915,18 @@ export default function CalendarPage() {
                     <option value="meeting">Meeting</option>
                     <option value="holiday">Holiday</option>
                     <option value="academic">Academic</option>
+                  </select>
+                  <label className="mb-2 block text-sm font-medium text-[var(--t1)]">Audience</label>
+                  <select
+                    value={newEvent.audience}
+                    onChange={(e) =>
+                      setNewEvent({ ...newEvent, audience: e.target.value as "personal" | "school" | "parents" })
+                    }
+                    className="input"
+                  >
+                    <option value="school">School-wide</option>
+                    <option value="personal">Personal reminder</option>
+                    <option value="parents">Communicate to parents</option>
                   </select>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
