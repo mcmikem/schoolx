@@ -74,9 +74,14 @@ async function saveGrade(grade: {
   if (grade.score < 0 || grade.score > maxScore) {
     throw new Error(`Score must be between 0 and ${maxScore}`);
   }
-  const payload = { ...grade, max_score: maxScore };
 
-  if (grade.isDemo) {
+  // isDemo/schoolId are client-only flags — the grades table has no such
+  // columns and PostgREST rejects unknown keys with PGRST204. Strip them
+  // before any payload reaches the queue or the online upsert.
+  const { isDemo, schoolId, ...rest } = grade;
+  const payload = { ...rest, max_score: maxScore };
+
+  if (isDemo) {
     return { ...payload, id: `demo-grade-${Date.now()}`, created_at: new Date().toISOString() };
   }
 
@@ -2386,7 +2391,7 @@ export default function GradesPage() {
         )}
 
         {/* Sticky Action Bar */}
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-[var(--surface)]/80 dark:bg-[var(--surface-container-lowest)]/80 backdrop-blur-2xl px-6 py-4 rounded-full shadow-2xl z-40 border border-[var(--border)]/50 hidden md:flex">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-[var(--surface)] dark:bg-[var(--surface-container-lowest)] px-6 py-4 rounded-full shadow-2xl z-40 border border-[var(--border)]/50 hidden md:flex">
           <div className="flex items-center gap-2 text-secondary px-4 border-r border-[var(--border)]">
             <MaterialIcon className="text-xl">cloud_done</MaterialIcon>
             <span className="text-xs font-bold uppercase tracking-wider">Sync Active</span>

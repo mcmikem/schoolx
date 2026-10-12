@@ -2,9 +2,26 @@
 // This allows the app to work without internet connection
 
 import { useState, useEffect } from "react";
+import { logger } from "@/lib/logger";
 
 const DB_NAME = "omuto.org-db";
-const DB_VERSION = 9;
+const DB_VERSION = 10;
+
+/**
+ * IndexedDB key configuration for each object store, exported so unit tests can
+ * assert it without a live IndexedDB (jsdom ships none).
+ *
+ * `sync_queue` MUST be autoIncrement: its rows are added by `save()`/`delete()`
+ * without an `id`, and IndexedDB rejects an add whose keyPath (`id`) resolves
+ * to `undefined` unless the store generates the key itself. v9 created this
+ * store without `autoIncrement`, so every queue write threw a synchronous
+ * `DataError` and the offline write pipeline had never held a single row.
+ */
+export function storeOptions(storeName: string): { keyPath: string; autoIncrement?: boolean } {
+  if (storeName === "sync_metadata") return { keyPath: "table" };
+  if (storeName === "sync_queue") return { keyPath: "id", autoIncrement: true };
+  return { keyPath: "id" };
+}
 
 interface OfflineRecord {
   id?: string;
@@ -95,14 +112,26 @@ class OfflineDB {
         ];
 
         stores.forEach((storeName) => {
+          // IndexedDB cannot change a store's keyPath/autoIncrement in place —
+          // the options must be deleted and recreated. This is the v9→v10
+          // migration for sync_queue, which v9 created without autoIncrement.
+          if (storeName === "sync_queue" && db.objectStoreNames.contains(storeName)) {
+            db.deleteObjectStore(storeName);
+          }
+
           if (!db.objectStoreNames.contains(storeName)) {
+            const options = storeOptions(storeName);
+
             if (storeName === "sync_metadata") {
               const store = db.createObjectStore(storeName, {
-                keyPath: "table",
+                keyPath: options.keyPath,
               });
               store.createIndex("table", "table", { unique: true });
             } else {
-              const store = db.createObjectStore(storeName, { keyPath: "id" });
+              const store = db.createObjectStore(storeName, {
+                keyPath: options.keyPath,
+                ...(options.autoIncrement ? { autoIncrement: true } : {}),
+              });
               store.createIndex("school_id", "school_id", { unique: false });
               store.createIndex("created_at", "created_at", { unique: false });
 
@@ -169,14 +198,21 @@ class OfflineDB {
 
       store.put(record);
 
-      syncStore.add({
-        table,
-        data: record,
-        action: data.id ? "update" : "create",
-        timestamp: Date.now(),
-        synced: false,
-        attempts: 0,
-      });
+      // The local table write above is the durable one — a queue failure must
+      // never reject it. (With autoIncrement on sync_queue the add can no
+      // longer throw the v9 DataError; this guard covers quota/abort cases.)
+      try {
+        syncStore.add({
+          table,
+          data: record,
+          action: data.id ? "update" : "create",
+          timestamp: Date.now(),
+          synced: false,
+          attempts: 0,
+        });
+      } catch (queueErr) {
+        logger.warn("Failed to enqueue offline record for sync", { table, queueErr });
+      }
 
       transaction.oncomplete = () => {
         this.queueSync().catch(() => {});
@@ -235,14 +271,18 @@ class OfflineDB {
 
       store.delete(id);
 
-      syncStore.add({
-        table,
-        data: { id },
-        action: "delete",
-        timestamp: Date.now(),
-        synced: false,
-        attempts: 0,
-      });
+      try {
+        syncStore.add({
+          table,
+          data: { id },
+          action: "delete",
+          timestamp: Date.now(),
+          synced: false,
+          attempts: 0,
+        });
+      } catch (queueErr) {
+        logger.warn("Failed to enqueue offline delete for sync", { table, queueErr });
+      }
 
       transaction.oncomplete = () => {
         this.queueSync().catch(() => {});
@@ -492,13 +532,23 @@ class OfflineDB {
     return typeof navigator !== "undefined" ? navigator.onLine : true;
   }
 
-  // offlineDB.save() stamps every record with updated_at, but several tables
-  // (attendance, grades, report_cards) have no such column — sending it makes
-  // PostgREST reject the write. Strip client-only keys from sync payloads.
+  // offlineDB.save() stamps every record with updated_at, and callers pass
+  // client-only flags alongside the row. Sending any of these to PostgREST
+  // makes it reject the write with PGRST204 (unknown column), so strip them
+  // before the record enters the sync queue.
   // (canteen_sales does its own deletes inline and is left untouched.)
   private stripSyncKeys(data: Record<string, unknown>): Record<string, unknown> {
-    const { updated_at: _updatedAt, ...rest } = data;
+    const {
+      updated_at: _updatedAt,
+      isDemo: _isDemo,
+      schoolId: _schoolId,
+      pending_wallet_deduction: _pendingWallet,
+      ...rest
+    } = data;
     void _updatedAt;
+    void _isDemo;
+    void _schoolId;
+    void _pendingWallet;
     return rest;
   }
 

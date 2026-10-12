@@ -9,6 +9,7 @@ import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
 import { logger } from "@/lib/logger";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { canAccess, type UserRole } from "@/lib/roles";
 
 interface ExamSlot {
   id: string;
@@ -37,6 +38,10 @@ export default function ExamTimetablePage() {
   const { subjects } = useSubjects(school?.id, false);
   const { staff } = useStaff(school?.id);
 
+  // Exam scheduling is school-wide over the shared `events` table, so editing
+  // it is an admin concern. Teachers keep read-only access to the timetable.
+  const canManageExams = user?.role ? canAccess(user.role as UserRole, "settings") : false;
+
   const [examSlots, setExamSlots] = useState<ExamSlot[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -56,20 +61,19 @@ export default function ExamTimetablePage() {
     room: "",
     supervisor_id: "",
   });
-  const examValidationError = !newExam.exam_date || !newExam.subject_id || !newExam.class_id || !newExam.room.trim() || !newExam.supervisor_id
-    ? "Select date, subject, class, room, and supervisor to continue."
-    : newExam.end_time <= newExam.start_time
-      ? "End time must be later than start time."
-      : "";
+  const examValidationError =
+    !newExam.exam_date || !newExam.subject_id || !newExam.class_id || !newExam.room.trim() || !newExam.supervisor_id
+      ? "Select date, subject, class, room, and supervisor to continue."
+      : newExam.end_time <= newExam.start_time
+        ? "End time must be later than start time."
+        : "";
 
   const fetchExamTimetable = useCallback(async () => {
     if (!school?.id) return;
     try {
       const { data, error } = await supabase
         .from("events")
-        .select(
-          "*, subjects(name), classes(name), users!events_supervisor_id_fkey(full_name)",
-        )
+        .select("*, subjects(name), classes(name), users!events_supervisor_id_fkey(full_name)")
         .eq("school_id", school.id)
         .eq("event_type", "exam")
         .order("start_date", { ascending: true });
@@ -128,28 +132,16 @@ export default function ExamTimetablePage() {
         if (!overlaps) continue;
 
         if (slot.class_id === examClassId) {
-          conflicts.push(
-            `Class "${classes.find((c) => c.id === examClassId)?.name}" already has an exam at this time`,
-          );
+          conflicts.push(`Class "${classes.find((c) => c.id === examClassId)?.name}" already has an exam at this time`);
         }
 
-        if (
-          slot.room &&
-          examRoom &&
-          slot.room.toLowerCase() === examRoom.toLowerCase()
-        ) {
+        if (slot.room && examRoom && slot.room.toLowerCase() === examRoom.toLowerCase()) {
           conflicts.push(`Room "${examRoom}" is already booked for this time`);
         }
 
-        if (
-          slot.supervisor_id &&
-          examSupervisor &&
-          slot.supervisor_id === examSupervisor
-        ) {
+        if (slot.supervisor_id && examSupervisor && slot.supervisor_id === examSupervisor) {
           const sup = staff.find((s) => s.id === examSupervisor);
-          conflicts.push(
-            `Teacher "${sup?.full_name || "Unknown"}" is already supervising at this time`,
-          );
+          conflicts.push(`Teacher "${sup?.full_name || "Unknown"}" is already supervising at this time`);
         }
       }
 
@@ -160,6 +152,10 @@ export default function ExamTimetablePage() {
 
   const handleSaveExam = async () => {
     if (!school?.id || !user?.id) return;
+    if (!canManageExams) {
+      toast.error("You don't have permission to edit the exam timetable");
+      return;
+    }
 
     if (examValidationError) {
       toast.error(examValidationError);
@@ -246,6 +242,10 @@ export default function ExamTimetablePage() {
   };
 
   const handleDeleteExam = async (id: string) => {
+    if (!canManageExams) {
+      toast.error("You don't have permission to edit the exam timetable");
+      return;
+    }
     setPendingAction(() => async () => {
       try {
         await supabase.from("events").delete().eq("id", id);
@@ -299,523 +299,482 @@ export default function ExamTimetablePage() {
 
   return (
     <PageErrorBoundary>
-    <div className="content">
-      <div className="page-header">
-        <div>
-          <div className="ph-title">Exam Timetable</div>
-          <div className="ph-sub">
-            {academicYear} Term {currentTerm} • Build and manage exam schedule
-          </div>
-        </div>
-        <div className="ph-actions">
-          <button onClick={handlePrint} className="btn btn-secondary">
-            <MaterialIcon icon="print" style={{ fontSize: "16px" }} />
-            Print
-          </button>
-          <button
-            onClick={() => {
-              setEditingId(null);
-              setNewExam({
-                exam_date: "",
-                start_time: "09:00",
-                end_time: "11:00",
-                subject_id: "",
-                class_id: "",
-                room: "",
-                supervisor_id: "",
-              });
-              setShowAddModal(true);
-            }}
-            className="btn btn-primary"
-          >
-            <MaterialIcon icon="add" style={{ fontSize: "16px" }} />
-            Add Exam
-          </button>
-        </div>
-      </div>
-
-      {loading ? (
-        <div className="card" style={{ padding: 40 }}>
-          <div className="skeleton" style={{ height: 200 }}></div>
-        </div>
-      ) : examSlots.length === 0 ? (
-        <div className="card" style={{ padding: 40, textAlign: "center" }}>
-          <MaterialIcon
-            style={{ fontSize: 48, color: "var(--t3)", marginBottom: 12 }}
-          >
-            event_note
-          </MaterialIcon>
-          <div style={{ fontSize: 16, fontWeight: 600, color: "var(--t1)" }}>
-            No exam timetable created
-          </div>
-          <div style={{ fontSize: 13, color: "var(--t3)", marginTop: 4 }}>
-            Add exams to build the timetable
-          </div>
-        </div>
-      ) : (
-        Object.entries(groupByDate).map(([date, slots]) => (
-          <div
-            key={date}
-            className="card"
-            style={{ padding: 0, marginBottom: 20 }}
-          >
-            <div
-              style={{
-                padding: "14px 16px",
-                background: "var(--bg)",
-                borderBottom: "1px solid var(--border)",
-              }}
-            >
-              <div style={{ fontWeight: 700, color: "var(--t1)" }}>
-                {new Date(date).toLocaleDateString("en-US", {
-                  weekday: "long",
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
-              </div>
-            </div>
-            <div className="overflow-x-auto">
-            <table className="tbl">
-              <thead>
-                <tr>
-                  <th>Day</th>
-                  <th>Time</th>
-                  <th>Subject</th>
-                  <th>Class</th>
-                  <th>Room</th>
-                  <th>Supervisor</th>
-                  <th style={{ width: 60 }}></th>
-                </tr>
-              </thead>
-              <tbody>
-                {slots.map((slot) => {
-                  const subject = subjects.find(
-                    (s) => s.id === slot.subject_id,
-                  );
-                  const classObj = classes.find((c) => c.id === slot.class_id);
-                  const sup = staff.find((s) => s.id === slot.supervisor_id);
-
-                  return (
-                    <tr key={slot.id}>
-                      <td style={{ fontWeight: 600 }}>{slot.day}</td>
-                      <td style={{ fontFamily: "DM Mono", fontSize: 12 }}>
-                        {slot.start_time} - {slot.end_time}
-                      </td>
-                      <td>{subject?.name || "-"}</td>
-                      <td>{classObj?.name || "-"}</td>
-                      <td>{slot.room}</td>
-                      <td>{sup?.full_name || "-"}</td>
-                      <td>
-                        <div style={{ display: "flex", gap: 4 }}>
-                          <button
-                            onClick={() => handleEditExam(slot)}
-                            style={{
-                              background: "none",
-                              border: "none",
-                              cursor: "pointer",
-                              padding: 4,
-                            }}
-                          >
-                            <MaterialIcon
-                              style={{ fontSize: 16, color: "var(--t3)" }}
-                            >
-                              edit
-                            </MaterialIcon>
-                          </button>
-                          <button
-                            onClick={() => handleDeleteExam(slot.id)}
-                            style={{
-                              background: "none",
-                              border: "none",
-                              cursor: "pointer",
-                              padding: 4,
-                            }}
-                          >
-                            <MaterialIcon
-                              style={{ fontSize: 16, color: "var(--red)" }}
-                            >
-                              delete
-                            </MaterialIcon>
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+      <div className="content">
+        <div className="page-header">
+          <div>
+            <div className="ph-title">Exam Timetable</div>
+            <div className="ph-sub">
+              {academicYear} Term {currentTerm} • Build and manage exam schedule
             </div>
           </div>
-        ))
-      )}
-
-      {showAddModal && (
-        <div
-          className="modal-overlay"
-          onClick={() => {
-            setShowAddModal(false);
-            setConflicts([]);
-          }}
-        >
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <div
-                style={{ fontFamily: "Sora", fontSize: 16, fontWeight: 700 }}
-              >
-                {editingId ? "Edit Exam" : "Add Exam to Timetable"}
-              </div>
+          <div className="ph-actions">
+            <button onClick={handlePrint} className="btn btn-secondary">
+              <MaterialIcon icon="print" style={{ fontSize: "16px" }} />
+              Print
+            </button>
+            {canManageExams && (
               <button
                 onClick={() => {
-                  setShowAddModal(false);
-                  setConflicts([]);
+                  setEditingId(null);
+                  setNewExam({
+                    exam_date: "",
+                    start_time: "09:00",
+                    end_time: "11:00",
+                    subject_id: "",
+                    class_id: "",
+                    room: "",
+                    supervisor_id: "",
+                  });
+                  setShowAddModal(true);
                 }}
-                style={{
-                  background: "none",
-                  border: "none",
-                  cursor: "pointer",
-                  padding: 4,
-                }}
-              >
-                <MaterialIcon style={{ fontSize: 18, color: "var(--t3)" }}>
-                  close
-                </MaterialIcon>
-              </button>
-            </div>
-            <div className="modal-body" style={{ padding: 20 }}>
-              {conflicts.length > 0 && (
-                <div
-                  style={{
-                    padding: 12,
-                    background: "var(--red-soft)",
-                    borderRadius: 8,
-                    marginBottom: 16,
-                  }}
-                >
-                  <div
-                    style={{
-                      fontWeight: 700,
-                      color: "var(--red)",
-                      fontSize: 13,
-                      marginBottom: 8,
-                    }}
-                  >
-                    <MaterialIcon
-                      icon="warning"
-                      style={{ fontSize: 14, verticalAlign: "middle" }}
-                    />{" "}
-                    Conflicts detected
-                  </div>
-                  {conflicts.map((c, i) => (
-                    <div
-                      key={i}
-                      style={{
-                        fontSize: 12,
-                        color: "var(--red)",
-                        marginBottom: 4,
-                      }}
-                    >
-                      • {c}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 12,
-                  marginBottom: 16,
-                }}
-              >
-                <div>
-                  <label
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: ".5px",
-                      textTransform: "uppercase",
-                      color: "var(--t3)",
-                      marginBottom: 6,
-                      display: "block",
-                    }}
-                  >
-                    Exam Date *
-                  </label>
-                  <input
-                    type="date"
-                    value={newExam.exam_date}
-                    onChange={(e) =>
-                      setNewExam({ ...newExam, exam_date: e.target.value })
-                    }
-                    className="input"
-                  />
-                </div>
-                <div>
-                  <label
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: ".5px",
-                      textTransform: "uppercase",
-                      color: "var(--t3)",
-                      marginBottom: 6,
-                      display: "block",
-                    }}
-                  >
-                    Room *
-                  </label>
-                  <input
-                    type="text"
-                    value={newExam.room}
-                    onChange={(e) =>
-                      setNewExam({ ...newExam, room: e.target.value })
-                    }
-                    placeholder="e.g., Hall A, Room 101"
-                    className="input"
-                  />
-                </div>
-              </div>
-
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "1fr 1fr",
-                  gap: 12,
-                  marginBottom: 16,
-                }}
-              >
-                <div>
-                  <label
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: ".5px",
-                      textTransform: "uppercase",
-                      color: "var(--t3)",
-                      marginBottom: 6,
-                      display: "block",
-                    }}
-                  >
-                    Start Time *
-                  </label>
-                  <input
-                    type="time"
-                    value={newExam.start_time}
-                    onChange={(e) =>
-                      setNewExam({ ...newExam, start_time: e.target.value })
-                    }
-                    className="input"
-                  />
-                </div>
-                <div>
-                  <label
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: ".5px",
-                      textTransform: "uppercase",
-                      color: "var(--t3)",
-                      marginBottom: 6,
-                      display: "block",
-                    }}
-                  >
-                    End Time *
-                  </label>
-                  <input
-                    type="time"
-                    value={newExam.end_time}
-                    onChange={(e) =>
-                      setNewExam({ ...newExam, end_time: e.target.value })
-                    }
-                    className="input"
-                  />
-                </div>
-              </div>
-
-              <div style={{ marginBottom: 16 }}>
-                <label
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    letterSpacing: ".5px",
-                    textTransform: "uppercase",
-                    color: "var(--t3)",
-                    marginBottom: 6,
-                    display: "block",
-                  }}
-                >
-                  Subject *
-                </label>
-                {subjects.length === 0 ? (
-                  <div
-                    style={{
-                      background: "#FEF3C7",
-                      border: "1px solid #FCD34D",
-                      borderRadius: 8,
-                      padding: "8px 12px",
-                      fontSize: 12,
-                      color: "#92400E",
-                    }}
-                  >
-                    No subjects available
-                  </div>
-                ) : (
-                  <select
-                    value={newExam.subject_id}
-                    onChange={(e) =>
-                      setNewExam({ ...newExam, subject_id: e.target.value })
-                    }
-                    className="input"
-                  >
-                    <option value="">Select subject</option>
-                    {subjects.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
-
-              <div style={{ marginBottom: 16 }}>
-                <label
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    letterSpacing: ".5px",
-                    textTransform: "uppercase",
-                    color: "var(--t3)",
-                    marginBottom: 6,
-                    display: "block",
-                  }}
-                >
-                  Class *
-                </label>
-                {classes.length === 0 ? (
-                  <div
-                    style={{
-                      background: "#FEF3C7",
-                      border: "1px solid #FCD34D",
-                      borderRadius: 8,
-                      padding: "8px 12px",
-                      fontSize: 12,
-                      color: "#92400E",
-                    }}
-                  >
-                    No classes available
-                  </div>
-                ) : (
-                  <select
-                    value={newExam.class_id}
-                    onChange={(e) =>
-                      setNewExam({ ...newExam, class_id: e.target.value })
-                    }
-                    className="input"
-                  >
-                    <option value="">Select class</option>
-                    {classes.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
-
-              <div style={{ marginBottom: 16 }}>
-                <label
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    letterSpacing: ".5px",
-                    textTransform: "uppercase",
-                    color: "var(--t3)",
-                    marginBottom: 6,
-                    display: "block",
-                  }}
-                >
-                  Supervisor (Teacher) *
-                </label>
-                {staff.length === 0 ? (
-                  <div
-                    style={{
-                      background: "#FEF3C7",
-                      border: "1px solid #FCD34D",
-                      borderRadius: 8,
-                      padding: "8px 12px",
-                      fontSize: 12,
-                      color: "#92400E",
-                    }}
-                  >
-                    No teachers available
-                  </div>
-                ) : (
-                  <select
-                    value={newExam.supervisor_id}
-                    onChange={(e) =>
-                      setNewExam({ ...newExam, supervisor_id: e.target.value })
-                    }
-                    className="input"
-                  >
-                    <option value="">Select teacher</option>
-                    {staff.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.full_name}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
-            </div>
-            <div className="modal-footer">
-              <button
-                onClick={() => {
-                  setShowAddModal(false);
-                  setConflicts([]);
-                }}
-                className="btn btn-ghost"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSaveExam}
-                disabled={saving || conflicts.length > 0 || Boolean(examValidationError)}
                 className="btn btn-primary"
               >
-                {saving
-                  ? "Saving..."
-                  : conflicts.length > 0
-                    ? "Fix Conflicts First"
-                    : examValidationError
-                      ? "Complete Required Fields"
-                    : editingId
-                      ? "Update Exam"
-                      : "Add Exam"}
+                <MaterialIcon icon="add" style={{ fontSize: "16px" }} />
+                Add Exam
               </button>
-            </div>
-            {examValidationError && (
-              <div style={{ padding: "0 20px 16px", fontSize: 13, color: "var(--t3)" }}>
-                {examValidationError}
-              </div>
             )}
           </div>
         </div>
-      )}
 
-      <ConfirmDialog
-        isOpen={confirmOpen}
-        onClose={() => setConfirmOpen(false)}
-        onConfirm={() => {
-          setConfirmOpen(false);
-          pendingAction?.();
-        }}
-        title="Delete Exam"
-        message="Are you sure you want to delete this exam?"
-        variant="danger"
-      />
-    </div>
+        {loading ? (
+          <div className="card" style={{ padding: 40 }}>
+            <div className="skeleton" style={{ height: 200 }}></div>
+          </div>
+        ) : examSlots.length === 0 ? (
+          <div className="card" style={{ padding: 40, textAlign: "center" }}>
+            <MaterialIcon style={{ fontSize: 48, color: "var(--t3)", marginBottom: 12 }}>event_note</MaterialIcon>
+            <div style={{ fontSize: 16, fontWeight: 600, color: "var(--t1)" }}>No exam timetable created</div>
+            <div style={{ fontSize: 13, color: "var(--t3)", marginTop: 4 }}>Add exams to build the timetable</div>
+          </div>
+        ) : (
+          Object.entries(groupByDate).map(([date, slots]) => (
+            <div key={date} className="card" style={{ padding: 0, marginBottom: 20 }}>
+              <div
+                style={{
+                  padding: "14px 16px",
+                  background: "var(--bg)",
+                  borderBottom: "1px solid var(--border)",
+                }}
+              >
+                <div style={{ fontWeight: 700, color: "var(--t1)" }}>
+                  {new Date(date).toLocaleDateString("en-US", {
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </div>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="tbl">
+                  <thead>
+                    <tr>
+                      <th>Day</th>
+                      <th>Time</th>
+                      <th>Subject</th>
+                      <th>Class</th>
+                      <th>Room</th>
+                      <th>Supervisor</th>
+                      <th style={{ width: 60 }}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {slots.map((slot) => {
+                      const subject = subjects.find((s) => s.id === slot.subject_id);
+                      const classObj = classes.find((c) => c.id === slot.class_id);
+                      const sup = staff.find((s) => s.id === slot.supervisor_id);
+
+                      return (
+                        <tr key={slot.id}>
+                          <td style={{ fontWeight: 600 }}>{slot.day}</td>
+                          <td style={{ fontFamily: "DM Mono", fontSize: 12 }}>
+                            {slot.start_time} - {slot.end_time}
+                          </td>
+                          <td>{subject?.name || "-"}</td>
+                          <td>{classObj?.name || "-"}</td>
+                          <td>{slot.room}</td>
+                          <td>{sup?.full_name || "-"}</td>
+                          <td>
+                            {canManageExams && (
+                              <div style={{ display: "flex", gap: 4 }}>
+                                <button
+                                  onClick={() => handleEditExam(slot)}
+                                  style={{
+                                    background: "none",
+                                    border: "none",
+                                    cursor: "pointer",
+                                    padding: 4,
+                                  }}
+                                >
+                                  <MaterialIcon style={{ fontSize: 16, color: "var(--t3)" }}>edit</MaterialIcon>
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteExam(slot.id)}
+                                  style={{
+                                    background: "none",
+                                    border: "none",
+                                    cursor: "pointer",
+                                    padding: 4,
+                                  }}
+                                >
+                                  <MaterialIcon style={{ fontSize: 16, color: "var(--red)" }}>delete</MaterialIcon>
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ))
+        )}
+
+        {showAddModal && (
+          <div
+            className="modal-overlay"
+            onClick={() => {
+              setShowAddModal(false);
+              setConflicts([]);
+            }}
+          >
+            <div className="modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <div style={{ fontFamily: "Sora", fontSize: 16, fontWeight: 700 }}>
+                  {editingId ? "Edit Exam" : "Add Exam to Timetable"}
+                </div>
+                <button
+                  onClick={() => {
+                    setShowAddModal(false);
+                    setConflicts([]);
+                  }}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: 4,
+                  }}
+                >
+                  <MaterialIcon style={{ fontSize: 18, color: "var(--t3)" }}>close</MaterialIcon>
+                </button>
+              </div>
+              <div className="modal-body" style={{ padding: 20 }}>
+                {conflicts.length > 0 && (
+                  <div
+                    style={{
+                      padding: 12,
+                      background: "var(--red-soft)",
+                      borderRadius: 8,
+                      marginBottom: 16,
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontWeight: 700,
+                        color: "var(--red)",
+                        fontSize: 13,
+                        marginBottom: 8,
+                      }}
+                    >
+                      <MaterialIcon icon="warning" style={{ fontSize: 14, verticalAlign: "middle" }} /> Conflicts
+                      detected
+                    </div>
+                    {conflicts.map((c, i) => (
+                      <div
+                        key={i}
+                        style={{
+                          fontSize: 12,
+                          color: "var(--red)",
+                          marginBottom: 4,
+                        }}
+                      >
+                        • {c}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 12,
+                    marginBottom: 16,
+                  }}
+                >
+                  <div>
+                    <label
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        letterSpacing: ".5px",
+                        textTransform: "uppercase",
+                        color: "var(--t3)",
+                        marginBottom: 6,
+                        display: "block",
+                      }}
+                    >
+                      Exam Date *
+                    </label>
+                    <input
+                      type="date"
+                      value={newExam.exam_date}
+                      onChange={(e) => setNewExam({ ...newExam, exam_date: e.target.value })}
+                      className="input"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        letterSpacing: ".5px",
+                        textTransform: "uppercase",
+                        color: "var(--t3)",
+                        marginBottom: 6,
+                        display: "block",
+                      }}
+                    >
+                      Room *
+                    </label>
+                    <input
+                      type="text"
+                      value={newExam.room}
+                      onChange={(e) => setNewExam({ ...newExam, room: e.target.value })}
+                      placeholder="e.g., Hall A, Room 101"
+                      className="input"
+                    />
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: 12,
+                    marginBottom: 16,
+                  }}
+                >
+                  <div>
+                    <label
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        letterSpacing: ".5px",
+                        textTransform: "uppercase",
+                        color: "var(--t3)",
+                        marginBottom: 6,
+                        display: "block",
+                      }}
+                    >
+                      Start Time *
+                    </label>
+                    <input
+                      type="time"
+                      value={newExam.start_time}
+                      onChange={(e) => setNewExam({ ...newExam, start_time: e.target.value })}
+                      className="input"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        letterSpacing: ".5px",
+                        textTransform: "uppercase",
+                        color: "var(--t3)",
+                        marginBottom: 6,
+                        display: "block",
+                      }}
+                    >
+                      End Time *
+                    </label>
+                    <input
+                      type="time"
+                      value={newExam.end_time}
+                      onChange={(e) => setNewExam({ ...newExam, end_time: e.target.value })}
+                      className="input"
+                    />
+                  </div>
+                </div>
+
+                <div style={{ marginBottom: 16 }}>
+                  <label
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: ".5px",
+                      textTransform: "uppercase",
+                      color: "var(--t3)",
+                      marginBottom: 6,
+                      display: "block",
+                    }}
+                  >
+                    Subject *
+                  </label>
+                  {subjects.length === 0 ? (
+                    <div
+                      style={{
+                        background: "#FEF3C7",
+                        border: "1px solid #FCD34D",
+                        borderRadius: 8,
+                        padding: "8px 12px",
+                        fontSize: 12,
+                        color: "#92400E",
+                      }}
+                    >
+                      No subjects available
+                    </div>
+                  ) : (
+                    <select
+                      value={newExam.subject_id}
+                      onChange={(e) => setNewExam({ ...newExam, subject_id: e.target.value })}
+                      className="input"
+                    >
+                      <option value="">Select subject</option>
+                      {subjects.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+
+                <div style={{ marginBottom: 16 }}>
+                  <label
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: ".5px",
+                      textTransform: "uppercase",
+                      color: "var(--t3)",
+                      marginBottom: 6,
+                      display: "block",
+                    }}
+                  >
+                    Class *
+                  </label>
+                  {classes.length === 0 ? (
+                    <div
+                      style={{
+                        background: "#FEF3C7",
+                        border: "1px solid #FCD34D",
+                        borderRadius: 8,
+                        padding: "8px 12px",
+                        fontSize: 12,
+                        color: "#92400E",
+                      }}
+                    >
+                      No classes available
+                    </div>
+                  ) : (
+                    <select
+                      value={newExam.class_id}
+                      onChange={(e) => setNewExam({ ...newExam, class_id: e.target.value })}
+                      className="input"
+                    >
+                      <option value="">Select class</option>
+                      {classes.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+
+                <div style={{ marginBottom: 16 }}>
+                  <label
+                    style={{
+                      fontSize: 11,
+                      fontWeight: 700,
+                      letterSpacing: ".5px",
+                      textTransform: "uppercase",
+                      color: "var(--t3)",
+                      marginBottom: 6,
+                      display: "block",
+                    }}
+                  >
+                    Supervisor (Teacher) *
+                  </label>
+                  {staff.length === 0 ? (
+                    <div
+                      style={{
+                        background: "#FEF3C7",
+                        border: "1px solid #FCD34D",
+                        borderRadius: 8,
+                        padding: "8px 12px",
+                        fontSize: 12,
+                        color: "#92400E",
+                      }}
+                    >
+                      No teachers available
+                    </div>
+                  ) : (
+                    <select
+                      value={newExam.supervisor_id}
+                      onChange={(e) => setNewExam({ ...newExam, supervisor_id: e.target.value })}
+                      className="input"
+                    >
+                      <option value="">Select teacher</option>
+                      {staff.map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.full_name}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button
+                  onClick={() => {
+                    setShowAddModal(false);
+                    setConflicts([]);
+                  }}
+                  className="btn btn-ghost"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSaveExam}
+                  disabled={saving || conflicts.length > 0 || Boolean(examValidationError)}
+                  className="btn btn-primary"
+                >
+                  {saving
+                    ? "Saving..."
+                    : conflicts.length > 0
+                      ? "Fix Conflicts First"
+                      : examValidationError
+                        ? "Complete Required Fields"
+                        : editingId
+                          ? "Update Exam"
+                          : "Add Exam"}
+                </button>
+              </div>
+              {examValidationError && (
+                <div style={{ padding: "0 20px 16px", fontSize: 13, color: "var(--t3)" }}>{examValidationError}</div>
+              )}
+            </div>
+          </div>
+        )}
+
+        <ConfirmDialog
+          isOpen={confirmOpen}
+          onClose={() => setConfirmOpen(false)}
+          onConfirm={() => {
+            setConfirmOpen(false);
+            pendingAction?.();
+          }}
+          title="Delete Exam"
+          message="Are you sure you want to delete this exam?"
+          variant="danger"
+        />
+      </div>
     </PageErrorBoundary>
   );
 }

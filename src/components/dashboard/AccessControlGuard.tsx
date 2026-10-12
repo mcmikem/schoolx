@@ -52,6 +52,15 @@ const roleBasedRoutes: Record<string, keyof RolePermissions> = deepFreeze({
   "/dashboard/uneb": "grades",
   "/dashboard/uneb-registration": "grades",
   "/dashboard/timetable": "grades",
+  // Exam timetable is school-wide scheduling over the shared `events` table.
+  // Teachers keep read access (grades:true) but the page gates add/edit/delete
+  // behind settings — before this entry it fell through isRouteAllowed's
+  // default-allow, so every role including parent could write school events.
+  "/dashboard/exam-timetable": "grades",
+  // Setup wizard re-runs the full admin onboarding. Without this entry it
+  // fell through isRouteAllowed's default-allow and any authenticated role
+  // (teacher, bursar, parent) could re-trigger school setup.
+  "/dashboard/setup-wizard": "settings",
   "/dashboard/homework": "grades",
   "/dashboard/homework-submissions": "grades",
   "/dashboard/lesson-plans": "grades",

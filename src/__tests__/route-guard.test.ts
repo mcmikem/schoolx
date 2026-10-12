@@ -124,9 +124,42 @@ describe("route guard sensitive routes", () => {
       "/dashboard/workflows",
       "/dashboard/automation",
       "/dashboard/student-enrollments",
+      // Regression: setup-wizard was unmapped, so isRouteAllowed's default
+      // allow let any authenticated role re-run full admin onboarding.
+      "/dashboard/setup-wizard",
     ]) {
       const permission = permissionFor(path);
       expect({ path, allowed: permission ? canAccess("teacher", permission) : true }).toEqual({ path, allowed: false });
+    }
+  });
+
+  it("denies the setup wizard to every non-admin role", () => {
+    for (const role of [
+      "teacher",
+      "bursar",
+      "secretary",
+      "dorm_master",
+      "board",
+      "parent",
+      "marketer",
+      "dean_of_studies",
+    ] as UserRole[]) {
+      expect({ role, allowed: isRouteAllowed(role, "/dashboard/setup-wizard") }).toEqual({ role, allowed: false });
+    }
+    for (const role of ["headmaster", "school_admin", "admin", "super_admin"] as UserRole[]) {
+      expect({ role, allowed: isRouteAllowed(role, "/dashboard/setup-wizard") }).toEqual({ role, allowed: true });
+    }
+  });
+
+  it("keeps exam-timetable readable by teachers but gated to settings", () => {
+    // Teachers retain read access (mapped to grades, which they hold).
+    expect(isRouteAllowed("teacher", "/dashboard/exam-timetable")).toBe(true);
+    // Roles without grades lose the page entirely (no more default-allow).
+    for (const role of ["bursar", "secretary", "board", "parent", "marketer"] as UserRole[]) {
+      expect({ role, allowed: isRouteAllowed(role, "/dashboard/exam-timetable") }).toEqual({ role, allowed: false });
+    }
+    for (const role of ["headmaster", "school_admin", "admin", "super_admin"] as UserRole[]) {
+      expect({ role, allowed: isRouteAllowed(role, "/dashboard/exam-timetable") }).toEqual({ role, allowed: true });
     }
   });
 });

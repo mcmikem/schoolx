@@ -41,6 +41,7 @@ import { useToast } from "@/components/Toast";
 import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
+import { canAccess, type UserRole } from "@/lib/roles";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Tabs, TabPanel } from "@/components/ui/Tabs";
 import StudentDetailPanel from "@/components/students/StudentDetailPanel";
@@ -457,7 +458,12 @@ function getStatusConfig(status: string) {
 export default function StudentProfilePage() {
   const params = useParams<{ id: string }>();
   const studentId = params?.id || "";
-  const { isDemo, school } = useAuth();
+  const { isDemo, school, user } = useAuth();
+
+  // Teachers have students:true (read) but not settings/messages. Editing a
+  // student and messaging parents are admin concerns, so gate both.
+  const canEditStudent = user?.role ? canAccess(user.role as UserRole, "settings") : false;
+  const canSmsParent = user?.role ? canAccess(user.role as UserRole, "messages") : false;
   const [isConstrainedNetwork, setIsConstrainedNetwork] = useState(false);
 
   useEffect(() => {
@@ -792,20 +798,24 @@ export default function StudentProfilePage() {
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2 sm:justify-end">
-                  <button
-                    onClick={() => setShowEdit(true)}
-                    className="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
-                  >
-                    <Edit className="h-4 w-4" />
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => setSmsOpen(true)}
-                    className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--t1)] transition-colors hover:bg-[var(--surface-container-low)]"
-                  >
-                    <MessageSquare className="h-4 w-4" />
-                    SMS Parent
-                  </button>
+                  {canEditStudent && (
+                    <button
+                      onClick={() => setShowEdit(true)}
+                      className="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
+                    >
+                      <Edit className="h-4 w-4" />
+                      Edit
+                    </button>
+                  )}
+                  {canSmsParent && (
+                    <button
+                      onClick={() => setSmsOpen(true)}
+                      className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--t1)] transition-colors hover:bg-[var(--surface-container-low)]"
+                    >
+                      <MessageSquare className="h-4 w-4" />
+                      SMS Parent
+                    </button>
+                  )}
                   <Link
                     href="/dashboard/timetable"
                     className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--t1)] transition-colors hover:bg-[var(--surface-container-low)]"
@@ -1113,13 +1123,15 @@ export default function StudentProfilePage() {
                     <MessageSquare className="h-4 w-4 text-blue-600" />
                     SMS History
                   </h3>
-                  <button
-                    onClick={() => setSmsOpen(true)}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-700"
-                  >
-                    <MessageSquare className="h-3.5 w-3.5" />
-                    SMS Parent
-                  </button>
+                  {canSmsParent && (
+                    <button
+                      onClick={() => setSmsOpen(true)}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-700"
+                    >
+                      <MessageSquare className="h-3.5 w-3.5" />
+                      SMS Parent
+                    </button>
+                  )}
                 </div>
                 {smsHistoryLoading ? (
                   <Skeleton className="h-32 w-full rounded-xl" />
