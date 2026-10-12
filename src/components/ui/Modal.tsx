@@ -13,6 +13,8 @@ interface ModalProps {
   size?: "sm" | "md" | "lg" | "xl" | "full";
   showClose?: boolean;
   className?: string;
+  /** Rendered in the header, before the close button (autosave state, badges). */
+  headerAction?: React.ReactNode;
 }
 
 export function Modal({
@@ -23,6 +25,7 @@ export function Modal({
   size = "md",
   showClose = true,
   className = "",
+  headerAction,
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const previousActiveElement = useRef<HTMLElement | null>(null);
@@ -40,33 +43,28 @@ export function Modal({
     full: "max-w-[95vw] max-h-[95vh]",
   };
 
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onCloseRef.current();
-        return;
-      }
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === "Escape") {
+      onCloseRef.current();
+      return;
+    }
 
-      if (e.key === "Tab" && modalRef.current) {
-        const focusableElements = modalRef.current.querySelectorAll(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-        );
-        const firstElement = focusableElements[0] as HTMLElement;
-        const lastElement = focusableElements[
-          focusableElements.length - 1
-        ] as HTMLElement;
+    if (e.key === "Tab" && modalRef.current) {
+      const focusableElements = modalRef.current.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      );
+      const firstElement = focusableElements[0] as HTMLElement;
+      const lastElement = focusableElements[focusableElements.length - 1] as HTMLElement;
 
-        if (e.shiftKey && document.activeElement === firstElement) {
-          e.preventDefault();
-          lastElement?.focus();
-        } else if (!e.shiftKey && document.activeElement === lastElement) {
-          e.preventDefault();
-          firstElement?.focus();
-        }
+      if (e.shiftKey && document.activeElement === firstElement) {
+        e.preventDefault();
+        lastElement?.focus();
+      } else if (!e.shiftKey && document.activeElement === lastElement) {
+        e.preventDefault();
+        firstElement?.focus();
       }
-    },
-    [],
-  );
+    }
+  }, []);
 
   useEffect(() => {
     if (isOpen) {
@@ -75,9 +73,7 @@ export function Modal({
       document.addEventListener("keydown", handleKeyDown);
 
       setTimeout(() => {
-        const focusable = modalRef.current?.querySelector(
-          "button, input, select, textarea",
-        ) as HTMLElement;
+        const focusable = modalRef.current?.querySelector("button, input, select, textarea") as HTMLElement;
         focusable?.focus();
       }, 50);
     }
@@ -98,11 +94,7 @@ export function Modal({
       aria-modal="true"
       aria-labelledby={title ? "modal-title" : undefined}
     >
-      <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={onClose}
-        aria-hidden="true"
-      />
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
       <div
         ref={modalRef}
         className={cn(
@@ -114,33 +106,28 @@ export function Modal({
           className,
         )}
       >
-        {(title || showClose) && (
-          <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border)]">
+        {(title || showClose || headerAction) && (
+          <div className="flex items-center justify-between gap-3 px-6 py-4 border-b border-[var(--border)]">
             {title && (
-              <h2
-                id="modal-title"
-                className="text-lg font-semibold text-[var(--t1)] font-['Sora']"
-              >
+              <h2 id="modal-title" className="text-lg font-semibold text-[var(--t1)] font-['Sora']">
                 {title}
               </h2>
             )}
-            {showClose && (
-              <button
-                onClick={onClose}
-                className="p-2 rounded-xl hover:bg-[var(--surface-container)] transition-colors"
-                aria-label="Close modal"
-              >
-                <MaterialIcon
-                  icon="close"
-                  className="text-lg text-[var(--t3)]"
-                />
-              </button>
-            )}
+            <div className="flex items-center gap-3 ml-auto">
+              {headerAction}
+              {showClose && (
+                <button
+                  onClick={onClose}
+                  className="p-2 rounded-xl hover:bg-[var(--surface-container)] transition-colors"
+                  aria-label="Close modal"
+                >
+                  <MaterialIcon icon="close" className="text-lg text-[var(--t3)]" />
+                </button>
+              )}
+            </div>
           </div>
         )}
-        <div className="p-6 max-h-[calc(85vh-120px)] overflow-y-auto">
-          {children}
-        </div>
+        <div className="p-6 max-h-[calc(85vh-120px)] overflow-y-auto">{children}</div>
       </div>
     </div>
   );
@@ -159,12 +146,7 @@ interface ModalFooterProps {
 
 export function ModalFooter({ children, className = "" }: ModalFooterProps) {
   return (
-    <div
-      className={cn(
-        "flex items-center justify-end gap-3 mt-6 pt-4 border-t border-[var(--border)]",
-        className,
-      )}
-    >
+    <div className={cn("flex items-center justify-end gap-3 mt-6 pt-4 border-t border-[var(--border)]", className)}>
       {children}
     </div>
   );

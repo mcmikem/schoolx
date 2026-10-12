@@ -67,4 +67,18 @@ describe("fees tracker redesign", () => {
     expect(stats).toContain("unbilled");
     expect(stats).toContain("Set fees");
   });
+
+  it("renders Add New Fee through the shared Modal, not a hand-rolled wrapper", () => {
+    // Two independent causes pushed this dialog off-screen: iOS Safari resolves
+    // a viewport-fixed element that also carries a backdrop blur against the
+    // document once the page is scrolled, and an inline render let any ancestor
+    // transform/overflow become the containing block. The shared Modal portals
+    // to body and keeps the blur on a separate absolute layer.
+    const feeForm = read("src/components/fees/FeeFormModal.tsx");
+    expect(feeForm).toContain('from "@/components/ui/Modal"');
+    expect(feeForm).toContain("<Modal");
+    expect(feeForm).not.toMatch(/className="fixed inset-0/);
+    // Keep the autosave indicator the header used to carry.
+    expect(feeForm).toContain("headerAction");
+  });
 });
