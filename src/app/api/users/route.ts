@@ -14,6 +14,7 @@ import { logger } from "@/lib/logger";
 const VALID_ROLES = [
   "school_admin",
   "headmaster",
+  "admin",
   "dean_of_studies",
   "bursar",
   "teacher",
@@ -100,9 +101,11 @@ export async function POST(request: NextRequest) {
     const body: AddUserRequest = await request.json();
     const { schoolId, fullName, phone, password, role, email } = body;
 
-    if (!["school_admin", "super_admin"].includes(auth.context.user.role)) {
-      return apiError("Forbidden", 403);
-    }
+if (
+    !["school_admin", "super_admin", "headmaster"].includes(auth.context.user.role)
+  ) {
+    return apiError("Forbidden", 403);
+  }
 
     const scope =
       auth.context.user.role === "super_admin"

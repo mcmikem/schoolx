@@ -1698,6 +1698,7 @@ function DirectoryTab({
                   <option value="bursar">Bursar</option>
                   <option value="secretary">Secretary</option>
                   <option value="dorm_master">Dorm Master/Mistress</option>
+                  <option value="admin">Administrator</option>
                 </select>
                 <p className="text-xs text-[var(--t3)] mt-1">{ROLE_DESCRIPTIONS[newStaff.role]?.desc}</p>
               </div>
