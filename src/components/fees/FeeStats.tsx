@@ -56,14 +56,14 @@ function CollectionDonut({
     <div className="flex items-center gap-6">
       <div className="relative w-32 h-32 flex-shrink-0">
         <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-          <circle cx="50" cy="50" r={radius} fill="none" stroke="var(--surface-container)" strokeWidth="12" />
+          <circle cx="50" cy="50" r={radius} fill="none" stroke="bg-muted/200" strokeWidth="12" />
           {stats.fullyPaid > 0 && (
             <circle
               cx="50"
               cy="50"
               r={radius}
               fill="none"
-              stroke="var(--green)"
+              stroke="text-green-600"
               strokeWidth="12"
               strokeDasharray={`${paidDash} ${circumference - paidDash}`}
               strokeLinecap="round"
@@ -82,7 +82,7 @@ function CollectionDonut({
               cy="50"
               r={radius}
               fill="none"
-              stroke="var(--amber)"
+              stroke="text-amber-600"
               strokeWidth="12"
               strokeDasharray={`${partialDash} ${circumference - partialDash}`}
               strokeDashoffset={partialOffset}
@@ -102,7 +102,7 @@ function CollectionDonut({
               cy="50"
               r={radius}
               fill="none"
-              stroke="var(--red)"
+              stroke="text-red-600"
               strokeWidth="12"
               strokeDasharray={`${unpaidDash} ${circumference - unpaidDash}`}
               strokeDashoffset={unpaidOffset}
@@ -204,25 +204,25 @@ export default function FeeStats({ stats, paymentsCount, onFilter, activeFilter 
         <div
           className="stat-card"
           style={{
-            borderTop: "4px solid var(--red)",
+            borderTop: "4px solid text-red-600",
             boxShadow: "0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)",
           }}
         >
           <div className="stat-inner">
             <div className="stat-meta">
               <div className="stat-label">Total Arrears</div>
-              <div className="stat-icon-box" style={{ background: "var(--red-soft)", color: "var(--red)" }}>
+              <div className="stat-icon-box" style={{ background: "bg-red-100/20", color: "text-red-600" }}>
                 <MaterialIcon icon="account_balance_wallet" style={{ fontSize: "17px" }} />
               </div>
             </div>
-            <div className="stat-val" style={{ color: "var(--red)" }}>
+            <div className="stat-val" style={{ color: "text-red-600" }}>
               {formatCurrency(stats.totalBalance)}
             </div>
             <div
               style={{
                 marginTop: 10,
                 fontSize: 11,
-                color: "var(--red)",
+                color: "text-red-600",
                 fontWeight: 600,
               }}
             >

@@ -394,7 +394,7 @@ export default function CalendarPage() {
       );
       if (res?.error) throw res.error;
       setShowModal(false);
-      setNewEvent({ title: "", description: "", event_type: "event", start_date: "", end_date: "" });
+      setNewEvent({ title: "", description: "", event_type: "event", audience: "school" as "personal" | "school" | "parents", start_date: "", end_date: "" });
       toast.success("Event added");
       refetchEvents();
     } catch (err) {

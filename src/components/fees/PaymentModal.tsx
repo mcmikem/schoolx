@@ -61,6 +61,9 @@ export default function PaymentModal({
       ? Number(newPayment.amount_paid) - selectedStudent.balance
       : 0;
 
+  // Quick pay full balance button - shows when there's a balance and no amount entered yet
+  const canPayFull = selectedStudent && !newPayment.amount_paid && !newPayment.student_id;
+
   const step1Valid = !errors.student_id && !errors.amount_paid;
   const submitDisabledReason = !step1Valid
     ? "Complete the student and amount fields first."
