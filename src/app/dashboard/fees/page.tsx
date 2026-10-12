@@ -115,7 +115,9 @@ export default function FinanceHubPage() {
   useEffect(() => {
     if (studentsError) {
       logger.error("Fees page — students fetch error:", studentsError);
-      toast.error("Failed to load students: " + (studentsError instanceof Error ? studentsError.message : studentsError));
+      toast.error(
+        "Failed to load students: " + (studentsError instanceof Error ? studentsError.message : studentsError),
+      );
     }
   }, [studentsError, toast]);
 
@@ -1676,7 +1678,7 @@ export default function FinanceHubPage() {
                 />
               ) : (
                 <>
-                  <div className="sticky top-0 z-10 -mx-1 px-1 py-2 bg-[var(--bg)]/95 backdrop-blur-sm">
+                  <div className="sticky top-0 z-10 -mx-1 px-1 py-2 bg-[var(--bg)]/95 backdrop-blur-none">
                     <div className="flex flex-wrap items-center gap-x-5 gap-y-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 shadow-sm text-sm">
                       <span className="text-[var(--t2)]">
                         Expected <strong className="tabular-nums">{formatCurrency(filteredTotals.expected)}</strong>
@@ -1914,7 +1916,7 @@ export default function FinanceHubPage() {
 
         {feeDraft.showRestoreDialog && (
           <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
-            <div aria-hidden="true" className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+            <div aria-hidden="true" className="absolute inset-0 bg-black/50 backdrop-blur-none" />
             <div className="bg-surface-container-lowest rounded-2xl w-full max-w-sm p-6 max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto shadow-xl my-auto">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">

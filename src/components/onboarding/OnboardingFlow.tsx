@@ -1157,7 +1157,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col overflow-y-auto bg-white md:overflow-hidden md:bg-[var(--bg)]/90 md:backdrop-blur-xl md:items-center md:justify-center">
+    <div className="fixed inset-0 z-[100] flex flex-col overflow-y-auto bg-white md:overflow-hidden md:bg-[var(--bg)]/90 md:items-center md:justify-center">
       {/* Mobile header with progress */}
       <div className="md:hidden flex items-center gap-3 px-4 py-3 border-b border-slate-100 bg-white sticky top-0 z-10">
         <button
