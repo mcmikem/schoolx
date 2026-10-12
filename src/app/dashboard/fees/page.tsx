@@ -116,7 +116,10 @@ export default function FinanceHubPage() {
     if (studentsError) {
       logger.error("Fees page — students fetch error:", studentsError);
       toast.error(
-        "Failed to load students: " + (studentsError instanceof Error ? studentsError.message : studentsError),
+        "Failed to load students: " +
+          ((studentsError as unknown as Error) instanceof Error
+            ? (studentsError as unknown as Error).message
+            : String(studentsError)),
       );
     }
   }, [studentsError, toast]);
