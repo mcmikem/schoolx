@@ -14,15 +14,30 @@ import PersonInitials from "@/components/ui/PersonInitials";
  * onDragStart + pointer-events:none keep every touch on the row itself, so
  * swipe-to-mark works wherever a face is showing.
  */
-export function RollCallPhoto({ name, photoUrl }: { name: string; photoUrl?: string | null }) {
+export function RollCallPhoto({
+  name,
+  photoUrl,
+  decorative = false,
+}: {
+  name: string;
+  photoUrl?: string | null;
+  /**
+   * Set when the name is already rendered as text right next to the face.
+   * Announcing the name again via alt reads it twice per row; in the fees list,
+   * where the checkbox label also carries it, a screen reader said it three
+   * times before reaching the balance.
+   */
+  decorative?: boolean;
+}) {
   const [broken, setBroken] = useState(false);
   if (!photoUrl || broken) {
-    return <PersonInitials name={name} size={56} />;
+    return <PersonInitials name={name} size={56} aria-hidden={decorative ? true : undefined} />;
   }
   return (
     <img
       src={photoUrl}
-      alt={name}
+      alt={decorative ? "" : name}
+      aria-hidden={decorative ? true : undefined}
       loading="lazy"
       draggable={false}
       onDragStart={(e) => e.preventDefault()}

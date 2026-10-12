@@ -29,10 +29,12 @@ export default function PersonInitials({
   name,
   size = 40,
   className = "",
+  "aria-hidden": ariaHidden,
 }: {
   name: string;
   size?: number;
   className?: string;
+  "aria-hidden"?: true;
 }) {
   const initials = getInitials(name || "?");
   const color = getColor(name || "?");
@@ -40,6 +42,7 @@ export default function PersonInitials({
 
   return (
     <div
+      aria-hidden={ariaHidden}
       className={`${color} rounded-full inline-flex items-center justify-center font-semibold select-none shrink-0 ${className}`}
       style={{ width: size, height: size, fontSize }}
     >

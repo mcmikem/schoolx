@@ -15,7 +15,7 @@ import { useToast } from "@/components/Toast";
 import { useFormDraft } from "@/lib/useAutoSave";
 import { FilterBar } from "@/components/ui/FilterBar";
 import { withTimeout, timeoutFallback, getLocalDateString } from "@/lib/hooks/utils";
-import { TRIAGE_BANDS, bucketTriageBalances } from "@/lib/fee-triage";
+import { TRIAGE_BANDS, bucketTriageBalances, partitionFeeRoster } from "@/lib/fee-triage";
 import { PAYMENT_METHODS } from "@/lib/constants";
 import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
@@ -36,7 +36,6 @@ import FeeCashbook from "@/components/fees/FeeCashbook";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Tabs } from "@/components/ui/Tabs";
 import { Button } from "@/components/ui/index";
-import FinanceSummaryPulse from "@/components/fees/FinanceSummaryPulse";
 import { calculateStudentFeePosition } from "@/lib/operations";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useUndo, UndoNotification } from "@/lib/useUndo";
@@ -582,13 +581,14 @@ export default function FinanceHubPage() {
   const filteredCollectionPct =
     filteredTotals.expected > 0 ? Math.round((filteredTotals.paid / filteredTotals.expected) * 100) : 0;
 
+  // One exclusive partition drives every figure on the page. The old inline
+  // predicates counted an unbilled pupil (expected 0, paid 0) as BOTH fully paid
+  // (balance === 0) and unpaid (paid === 0), so the buckets over-summed the
+  // roster and the collection rate was quoted off a base that included pupils
+  // nobody had billed.
+  const partition = useMemo(() => partitionFeeRoster(studentBalances), [studentBalances]);
+
   const stats = useMemo(() => {
-    const totalExpected = studentBalances.reduce((sum, s) => sum + s.expected, 0);
-    const totalPaid = studentBalances.reduce((sum, s) => sum + s.paid, 0);
-    const totalBalance = studentBalances.reduce((sum, s) => sum + s.balance, 0);
-    const fullyPaid = studentBalances.filter((s) => s.balance === 0).length;
-    const partialPaid = studentBalances.filter((s) => s.paid > 0 && s.balance > 0).length;
-    const notPaid = studentBalances.filter((s) => s.paid === 0).length;
     const momoPayments = payments.filter((p) => p.payment_method === "mobile_money");
     const momoTotal = momoPayments.reduce((sum, p) => sum + Number(p.amount_paid), 0);
     const cashTotal = payments
@@ -598,17 +598,11 @@ export default function FinanceHubPage() {
       .filter((p) => p.payment_method === "bank")
       .reduce((sum, p) => sum + Number(p.amount_paid), 0);
     return {
-      totalExpected,
-      totalPaid,
-      totalBalance,
-      fullyPaid,
-      partialPaid,
-      notPaid,
       momoTotal,
       cashTotal,
       bankTotal,
     };
-  }, [studentBalances, payments]);
+  }, [payments]);
 
   const invoices = useMemo(() => {
     // Single source of truth: reuse studentBalanceMap (calculateStudentFeePosition
@@ -1448,6 +1442,7 @@ export default function FinanceHubPage() {
                 size="sm"
                 onClick={() => setShowFeeModal(true)}
                 className="shadow-md shadow-navy/20"
+                id="set-new-fees"
               >
                 <MaterialIcon icon="add" />
                 Set New Fees
@@ -1456,27 +1451,59 @@ export default function FinanceHubPage() {
           }
         />
 
-        <FinanceSummaryPulse
-          totalExpected={stats.totalExpected}
-          totalPaid={stats.totalPaid}
-          totalBalance={stats.totalBalance}
-          realizationRate={stats.totalExpected > 0 ? Math.round((stats.totalPaid / stats.totalExpected) * 100) : 0}
-          formatValue={(val) => formatCurrency(val).split(" ").pop() || "0"}
-        />
-
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {[
-            { label: "Payments", value: `${payments.length}`, tone: "text-emerald-700 bg-emerald-50" },
-            { label: "Active plans", value: `${activePlanCount}`, tone: "text-blue-700 bg-blue-50" },
-            { label: "Classes", value: `${classes.length}`, tone: "text-amber-700 bg-amber-50" },
-            { label: "Unpaid", value: `${stats.notPaid}`, tone: "text-rose-700 bg-rose-50" },
-          ].map((item) => (
-            <div key={item.label} className={`rounded-xl border border-[var(--border)] p-3 ${item.tone}`}>
-              <div className="text-[11px] font-black uppercase tracking-[0.18em] opacity-80">{item.label}</div>
-              <div className="mt-1 text-lg font-bold">{item.value}</div>
+        {/*
+          The money story, told once. This used to be rendered four separate
+          times (FinanceSummaryPulse, a 4-pill grid, FeeStats' cards and the
+          sticky list bar), each with its own rounding, so the same number
+          appeared in several places and none of them agreed.
+        */}
+        <section
+          aria-label="Term position"
+          className="rounded-2xl border border-[var(--border)] bg-[var(--surface-container-lowest)] overflow-hidden"
+        >
+          <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-[var(--border)]">
+            {[
+              { label: "Expected", value: partition.totalExpected, tone: "text-[var(--t1)]" },
+              { label: "Collected", value: partition.totalPaid, tone: "text-[var(--green)]" },
+              { label: "Outstanding", value: partition.totalBalance, tone: "text-[var(--red)]" },
+            ].map((cell, i) => (
+              <div key={cell.label} className="px-4 sm:px-5 py-4">
+                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--t3)]">{cell.label}</div>
+                <div className={`mt-1.5 text-xl sm:text-2xl font-extrabold tabular-nums leading-none ${cell.tone}`}>
+                  {formatCurrency(cell.value)}
+                </div>
+                {i === 0 && partition.billed < partition.roster && (
+                  <div className="mt-1.5 text-[11px] text-[var(--t3)] tabular-nums">
+                    {partition.billed} of {partition.roster} pupils billed
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          <div className="px-4 sm:px-5 py-3 bg-[var(--surface-container-low)] border-t border-[var(--border)]">
+            <div className="flex items-center justify-between gap-3 mb-2">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--t2)]">
+                {partition.realizationRate}% collected
+              </span>
+              <span className="text-[11px] text-[var(--t3)] tabular-nums">
+                {partition.cleared} cleared · {partition.partial + partition.owing} still owing
+              </span>
             </div>
-          ))}
-        </div>
+            <div
+              className="h-2 w-full rounded-full bg-[var(--surface-container)] overflow-hidden"
+              role="progressbar"
+              aria-valuenow={partition.realizationRate}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-label="Fees collected"
+            >
+              <div
+                className="h-full rounded-full bg-[var(--green)] transition-all duration-700"
+                style={{ width: `${Math.min(100, Math.max(0, partition.realizationRate))}%` }}
+              />
+            </div>
+          </div>
+        </section>
 
         <PageGuidance
           title="How to Manage Fees"
@@ -1535,7 +1562,7 @@ export default function FinanceHubPage() {
         {tab === "balances" && (
           <>
             <FeeStats
-              stats={stats}
+              stats={partition}
               paymentsCount={payments.length}
               onFilter={(status) =>
                 setStatusFilter(
@@ -1681,57 +1708,98 @@ export default function FinanceHubPage() {
                 />
               ) : (
                 <>
-                  <div className="sticky top-0 z-10 -mx-1 px-1 py-2 bg-[var(--bg)]/95 backdrop-blur-none">
+                  {/*
+                    Scope bar. Sticky because the bursar filters while scrolling
+                    a long debtor list, and it answers "what am I looking at"
+                    for the CURRENT filter — not the whole school, which the
+                    hero above already covers.
+                  */}
+                  <div className="sticky top-0 z-10 -mx-1 px-1 py-2 bg-[var(--bg)]/95">
                     <div className="flex flex-wrap items-center gap-x-5 gap-y-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 shadow-sm text-sm">
-                      <span className="text-[var(--t2)]">
-                        Expected <strong className="tabular-nums">{formatCurrency(filteredTotals.expected)}</strong>
+                      <span className="text-[var(--t3)] text-[11px] font-black uppercase tracking-[0.16em]">
+                        {filteredBalances.length === studentBalances.length ? "Showing" : "Filtered to"}
                       </span>
                       <span className="text-[var(--t2)]">
-                        Collected <strong className="tabular-nums">{formatCurrency(filteredTotals.paid)}</strong>
+                        Expected{" "}
+                        <strong className="tabular-nums text-[var(--t1)]">
+                          {formatCurrency(filteredTotals.expected)}
+                        </strong>
                       </span>
-                      <span className="font-bold tabular-nums" style={{ color: "var(--red)" }}>
+                      <span className="text-[var(--t2)]">
+                        Collected{" "}
+                        <strong className="tabular-nums text-[var(--green)]">
+                          {formatCurrency(filteredTotals.paid)}
+                        </strong>
+                      </span>
+                      <span className="font-bold tabular-nums text-[var(--red)]">
                         Balance {formatCurrency(filteredTotals.balance)}
                       </span>
-                      <span className="ml-auto text-xs font-semibold text-[var(--t3)]">
-                        {filteredBalances.length} pupils · {filteredCollectionPct}% collected
+                      <span className="ml-auto text-xs font-semibold text-[var(--t3)] tabular-nums">
+                        {filteredBalances.length} of {studentBalances.length} pupils · {filteredCollectionPct}%
+                        collected
                       </span>
                     </div>
                   </div>
-                  <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 shadow-sm">
-                    <div className="text-xs font-bold uppercase tracking-wider text-[var(--t3)]">Who owes what</div>
-                    <div className="mt-2 space-y-1">
-                      {triageBands.map((band) => {
-                        const active = bandFilter === band.id;
-                        return (
-                          <button
-                            key={band.id}
-                            type="button"
-                            disabled={band.count === 0}
-                            onClick={() => setBandFilter(active ? null : band.id)}
-                            aria-pressed={active}
-                            className={`flex w-full items-center gap-3 rounded-lg px-2 py-2 min-h-[44px] text-left transition-colors ${
-                              active
-                                ? "bg-[var(--primary)]/10 outline outline-1 outline-[var(--primary)]"
-                                : "hover:bg-[var(--surface-container-low)] disabled:opacity-45"
-                            }`}
-                          >
-                            <span className="w-20 shrink-0 text-sm font-semibold text-[var(--t1)] tabular-nums">
-                              {band.label}
-                            </span>
-                            <span className="h-2.5 flex-1 overflow-hidden rounded-full bg-[var(--surface-container)]">
+
+                  {/*
+                    Arrears distribution. Doubles as the follow-up control: tap a
+                    band to narrow the list to it. Sorted by value so the bands
+                    read as a descending scale rather than an arbitrary order.
+                  */}
+                  <div className="mt-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
+                    <div className="flex items-center justify-between gap-3 mb-2.5">
+                      <span className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--t3)]">
+                        Who owes what
+                      </span>
+                      {bandFilter && (
+                        <button
+                          type="button"
+                          onClick={() => setBandFilter(null)}
+                          className="text-[11px] font-bold text-[var(--primary)] hover:underline"
+                        >
+                          Clear band
+                        </button>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+                      {[...triageBands]
+                        .sort((a, b) => b.min - a.min)
+                        .map((band) => {
+                          const active = bandFilter === band.id;
+                          const empty = band.count === 0;
+                          return (
+                            <button
+                              key={band.id}
+                              type="button"
+                              disabled={empty}
+                              onClick={() => setBandFilter(active ? null : band.id)}
+                              aria-pressed={active}
+                              className={`relative overflow-hidden rounded-xl border px-3 py-2.5 min-h-[72px] text-left transition-colors disabled:opacity-40 ${
+                                active
+                                  ? "border-[var(--primary)] bg-[var(--primary)]/[0.06]"
+                                  : "border-[var(--border)] hover:bg-[var(--surface-container-low)]"
+                              }`}
+                            >
                               <span
-                                className="block h-full rounded-full bg-[var(--red)]"
+                                aria-hidden="true"
+                                className="absolute inset-x-0 bottom-0 h-1 bg-[var(--red)]"
                                 style={{ width: `${band.widthPct}%` }}
                               />
-                            </span>
-                            <span className="w-32 shrink-0 text-right text-xs text-[var(--t2)] tabular-nums">
-                              {band.count} pupil{band.count !== 1 ? "s" : ""} · {formatCurrency(band.total)}
-                            </span>
-                          </button>
-                        );
-                      })}
+                              <span className="block text-[11px] font-bold uppercase tracking-wider text-[var(--t3)]">
+                                {band.label}
+                              </span>
+                              <span className="mt-1 block text-lg font-extrabold tabular-nums leading-none text-[var(--t1)]">
+                                {band.count}
+                              </span>
+                              <span className="mt-0.5 block text-[11px] tabular-nums text-[var(--t3)]">
+                                {formatCurrency(band.total)}
+                              </span>
+                            </button>
+                          );
+                        })}
                     </div>
                   </div>
+
                   <FeeTable balances={filteredBalances} onViewReceipt={handleViewReceipt} />
                 </>
               ))}

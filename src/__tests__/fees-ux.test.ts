@@ -33,4 +33,38 @@ describe("fees tracker redesign", () => {
     expect(table).toContain("RollCallPhoto");
     expect(table).toContain("min-h-[44px]");
   });
+
+  it("does not read the pupil's name three times per row to a screen reader", () => {
+    // checkbox label + photo alt + visible text. The face is decorative here:
+    // the name is already rendered next to it.
+    const table = read("src/components/fees/FeeTable.tsx");
+    expect(table).toContain("decorative");
+    expect(table).not.toMatch(/RollCallPhoto[^/]*photoUrl=\{student\.photo_url\}\s*\/>/);
+  });
+
+  it("partitions the roster from one source instead of overlapping predicates", () => {
+    // balance === 0 counts an unbilled pupil as fully paid; paid === 0 counts
+    // the same pupil as unpaid. That double-count shipped "62 Fully Paid"
+    // beside "263 Unpaid" on a 201-pupil debtor list.
+    const page = read("src/app/dashboard/fees/page.tsx");
+    expect(page).toContain("partitionFeeRoster");
+    expect(page).not.toMatch(/filter\(\(s\) => s\.balance === 0\)\.length/);
+    expect(page).not.toMatch(/filter\(\(s\) => s\.paid === 0\)\.length/);
+  });
+
+  it("tells the money story once instead of restating it per block", () => {
+    // Four blocks used to each render Expected/Collected/Outstanding with their
+    // own rounding, so no two agreed.
+    const page = read("src/app/dashboard/fees/page.tsx");
+    expect(page).not.toMatch(/^import FinanceSummaryPulse/m);
+    expect(page).not.toMatch(/<FinanceSummaryPulse/);
+    const expectedCells = page.match(/>Expected</g) ?? [];
+    expect(expectedCells.length).toBeLessThanOrEqual(2);
+  });
+
+  it("surfaces unbilled pupils instead of silently excluding them", () => {
+    const stats = read("src/components/fees/FeeStats.tsx");
+    expect(stats).toContain("unbilled");
+    expect(stats).toContain("Set fees");
+  });
 });

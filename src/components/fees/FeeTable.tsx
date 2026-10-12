@@ -343,7 +343,7 @@ export default function FeeTable({
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3 min-w-0">
-                          <RollCallPhoto name={student.name} photoUrl={student.photo_url} />
+                          <RollCallPhoto name={student.name} photoUrl={student.photo_url} decorative />
                           <div className="min-w-0">
                             <div className="font-semibold text-[var(--t1)] text-sm truncate">{student.name}</div>
                             {getStatusBadge(student.status, percentage)}
@@ -502,7 +502,7 @@ export default function FeeTable({
                   />
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <RollCallPhoto name={student.name} photoUrl={student.photo_url} />
+                      <RollCallPhoto name={student.name} photoUrl={student.photo_url} decorative />
                       <span className="font-semibold text-[var(--t1)] text-[15px] truncate">{student.name}</span>
                       {getStatusBadge(student.status, percentage)}
                     </div>
