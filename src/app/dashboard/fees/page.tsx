@@ -111,6 +111,14 @@ export default function FinanceHubPage() {
   // for the window between mount and school?.id arriving.
   const studentsInitialLoading = studentsLoading && !school?.id;
 
+  // Surface any fetch errors so the bursar knows if students failed to load.
+  useEffect(() => {
+    if (studentsError) {
+      logger.error("Fees page — students fetch error:", studentsError);
+      toast.error("Failed to load students: " + (studentsError instanceof Error ? studentsError.message : studentsError));
+    }
+  }, [studentsError, toast]);
+
   const offset = (paymentsPage - 1) * itemsPerPage;
   const {
     data: payments,
