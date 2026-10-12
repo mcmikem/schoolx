@@ -286,7 +286,7 @@ export const KNOWLEDGE: OwlyEntry[] = [
     ],
     pages: ["fees", "finance", "invoicing"],
     title: "Record a fee payment",
-    where: "**Fees** (sidebar) — tabs: Student Balances · Paying in Bits · Invoices · Daily Money Log · Payment Claims",
+    where: "**Fees** (sidebar) — tabs: Student Balances · Payment Plans · Invoices · Daily Money Log · Payment Claims",
     steps: [
       "Click **Add Payment** (or press **Ctrl+N**)",
       "**Step 1 — Student**: select the student, enter **Amount (UGX)** — quick chips: Full · Half · 50k · 100k",
@@ -296,7 +296,7 @@ export const KNOWLEDGE: OwlyEntry[] = [
     ],
     facts: [
       "Set the term's charges under **Set New Fees** (Fee Name, Class, Amount, Term, Due Date)",
-      "Part-payment schedules: **Pay in Bits** → **Create Payment Plan** → number of installments",
+      "Part-payment schedules: **Payment Plans** → **Create Payment Plan** → number of installments",
       "Bursaries/discounts: **Scholarship/Discount** → **Record Fee Adjustment**",
       "Paying more than the balance needs the **Record excess as credit** tickbox",
       "Payment date is stamped automatically (there's no date picker)",
@@ -322,9 +322,9 @@ export const KNOWLEDGE: OwlyEntry[] = [
     id: "payment-plans",
     keywords: ["installment", "instalment", "payment plan", "pay in bits", "part payment", "structure"],
     title: "Let parents pay in installments",
-    where: "**Fees → Pay in Bits**",
+    where: "**Fees → Payment Plans**",
     steps: [
-      "Open **Pay in Bits** and click **Create Payment Plan**",
+      "Open **Payment Plans** and click **Create Payment Plan**",
       "Pick the student and the **Number of Installments** (2, 3, 4…)",
       "Click **Create Plan** — the schedule appears against the student's balance",
       "Record each instalment as a normal payment; the plan tracks what's left",

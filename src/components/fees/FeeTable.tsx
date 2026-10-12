@@ -1,6 +1,7 @@
 "use client";
 import { useState, useMemo, Fragment } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
+import { RollCallPhoto } from "@/components/attendance/RollCallPhoto";
 import { formatCurrency } from "@/lib/currency";
 
 export interface StudentBalance {
@@ -9,6 +10,7 @@ export interface StudentBalance {
   student_number: string;
   class_name: string;
   class_id: string;
+  photo_url?: string | null;
   expected: number;
   paid: number;
   balance: number;
@@ -340,9 +342,12 @@ export default function FeeTable({
                         />
                       </td>
                       <td className="px-6 py-4">
-                        <div className="flex items-center gap-2 min-w-0">
-                          <div className="font-semibold text-[var(--t1)] text-sm truncate">{student.name}</div>
-                          {getStatusBadge(student.status, percentage)}
+                        <div className="flex items-center gap-3 min-w-0">
+                          <RollCallPhoto name={student.name} photoUrl={student.photo_url} />
+                          <div className="min-w-0">
+                            <div className="font-semibold text-[var(--t1)] text-sm truncate">{student.name}</div>
+                            {getStatusBadge(student.status, percentage)}
+                          </div>
                         </div>
                         <div className="text-xs text-[var(--t3)] mt-0.5 tabular-nums">
                           {student.student_number} · {formatCurrency(total)} expected
@@ -365,7 +370,7 @@ export default function FeeTable({
                         <div className="flex items-center justify-end gap-1.5">
                           <button
                             onClick={() => setExpandedId(expandedId === student.id ? null : student.id)}
-                            className="w-9 h-9 flex items-center justify-center rounded-xl border border-transparent text-[var(--t3)] transition-colors hover:bg-[var(--surface-container-low)] hover:text-[var(--t1)] hover:border-[var(--border)]"
+                            className="w-11 h-11 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl border border-transparent text-[var(--t3)] transition-colors hover:bg-[var(--surface-container-low)] hover:text-[var(--t1)] hover:border-[var(--border)]"
                             title={
                               expandedId === student.id
                                 ? `Hide ledger for ${student.name}`
@@ -386,7 +391,7 @@ export default function FeeTable({
                           {onRecordPayment && (
                             <button
                               onClick={() => onRecordPayment(student)}
-                              className="w-9 h-9 flex items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--primary)] transition-colors hover:bg-[var(--surface-container-low)] hover:border-[var(--border2)]"
+                              className="w-11 h-11 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--primary)] transition-colors hover:bg-[var(--surface-container-low)] hover:border-[var(--border2)]"
                               title={`Record payment for ${student.name}`}
                               aria-label={`Record payment for ${student.name}`}
                             >
@@ -395,7 +400,7 @@ export default function FeeTable({
                           )}
                           <button
                             onClick={() => onViewReceipt(student)}
-                            className="w-9 h-9 flex items-center justify-center rounded-xl border border-transparent text-[var(--t3)] transition-colors hover:bg-[var(--surface-container-low)] hover:text-[var(--t1)] hover:border-[var(--border)]"
+                            className="w-11 h-11 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-xl border border-transparent text-[var(--t3)] transition-colors hover:bg-[var(--surface-container-low)] hover:text-[var(--t1)] hover:border-[var(--border)]"
                             title={`View receipt for ${student.name}`}
                             aria-label={`View receipt for ${student.name}`}
                           >
@@ -448,7 +453,7 @@ export default function FeeTable({
                     <button
                       key={item}
                       onClick={() => setPage(item as number)}
-                      className={`w-9 h-9 rounded-lg text-sm font-medium transition-colors ${safePage === item ? "bg-[var(--primary)] text-white" : "hover:bg-surface-container text-on-surface-variant"}`}
+                      className={`w-11 h-11 min-h-[44px] min-w-[44px] rounded-lg text-sm font-medium transition-colors ${safePage === item ? "bg-[var(--primary)] text-white" : "hover:bg-surface-container text-on-surface-variant"}`}
                     >
                       {item}
                     </button>
@@ -497,6 +502,7 @@ export default function FeeTable({
                   />
                   <div className="min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
+                      <RollCallPhoto name={student.name} photoUrl={student.photo_url} />
                       <span className="font-semibold text-[var(--t1)] text-[15px] truncate">{student.name}</span>
                       {getStatusBadge(student.status, percentage)}
                     </div>

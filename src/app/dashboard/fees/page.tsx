@@ -472,6 +472,7 @@ export default function FinanceHubPage() {
         id: student.id,
         name: `${student.first_name} ${student.last_name}`,
         student_number: student.student_number || "",
+        photo_url: (student as { photo_url?: string | null }).photo_url ?? null,
         class_name: student.classes?.name
           ? `${student.classes.name}${student.classes.stream ? ` ${student.classes.stream}` : ""}`
           : "",
@@ -511,6 +512,9 @@ export default function FinanceHubPage() {
   }, [students, studentBalanceMap]);
 
   const [bandFilter, setBandFilter] = useState<string | null>(null);
+  // The bursar's job is collecting: open on pupils who owe, with a visible
+  // way back to the full roster (cleared rows included).
+  const [hideCleared, setHideCleared] = useState(true);
 
   const filteredBalances = useMemo(() => {
     return studentBalances
@@ -522,10 +526,11 @@ export default function FinanceHubPage() {
         const matchesStatus = statusFilter === "all" || s.status === statusFilter;
         const band = bandFilter ? TRIAGE_BANDS.find((b) => b.id === bandFilter) : null;
         const matchesBand = !band || (s.balance >= band.min && s.balance < band.max);
-        return matchesSearch && matchesClass && matchesStatus && matchesBand;
+        const matchesOwing = !hideCleared || s.balance > 0;
+        return matchesSearch && matchesClass && matchesStatus && matchesBand && matchesOwing;
       })
       .sort((a, b) => b.balance - a.balance);
-  }, [studentBalances, searchTerm, selectedClass, statusFilter, bandFilter]);
+  }, [studentBalances, searchTerm, selectedClass, statusFilter, bandFilter, hideCleared]);
 
   // Distribution behind the follow-up threshold: bands of who owes what for
   // the current search/class scope, so the bursar sets cutoffs with eyes
@@ -1416,7 +1421,7 @@ export default function FinanceHubPage() {
               </Button>
               <Button variant="secondary" size="sm" onClick={() => setShowCreatePlan(true)}>
                 <MaterialIcon icon="event_note" />
-                Pay in Bits
+                Payment Plans
               </Button>
               <Button
                 variant="primary"
@@ -1453,27 +1458,9 @@ export default function FinanceHubPage() {
           ))}
         </div>
 
-        <div className="dashboard-toolbar">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div>
-              <div className="text-[11px] font-black uppercase tracking-[0.24em] text-[var(--t3)] mb-1">
-                Finance pulse
-              </div>
-              <div className="text-lg font-bold text-[var(--t1)]">
-                Collections, arrears, and payment-plan activity in one cleaner workflow
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <span className="dashboard-pill bg-emerald-50 text-emerald-700">{payments.length} payments</span>
-              <span className="dashboard-pill bg-blue-50 text-blue-700">{activePlanCount} active plans</span>
-              <span className="dashboard-pill bg-amber-50 text-amber-700">{classes.length} classes</span>
-              <span className="dashboard-pill bg-rose-50 text-rose-700">{stats.notPaid} unpaid</span>
-            </div>
-          </div>
-        </div>
-
         <PageGuidance
           title="How to Manage Fees"
+          defaultOpen={payments.length === 0}
           tips={[
             {
               icon: "account_balance",
@@ -1501,7 +1488,7 @@ export default function FinanceHubPage() {
         <div className="flex gap-1 p-1 bg-[var(--surface-container-low)] rounded-xl mb-6 overflow-x-auto">
           {[
             { id: "balances" as const, label: "Student Balances" },
-            { id: "payment-plans" as const, label: "Paying in Bits" },
+            { id: "payment-plans" as const, label: "Payment Plans" },
             { id: "invoices" as const, label: "Invoices" },
             { id: "cashbook" as const, label: "Daily Money Log" },
             { id: "claims" as const, label: "Payment Claims" },
@@ -1557,14 +1544,14 @@ export default function FinanceHubPage() {
                     placeholder="Search by name or student number..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full bg-surface-container-lowest border-none rounded-xl py-3 pl-12 pr-4 text-sm font-medium focus:ring-2 focus:ring-primary/20 transition-all"
+                    className="w-full bg-surface-container-lowest border-none rounded-xl py-3 pl-12 pr-4 text-base font-medium focus:ring-2 focus:ring-primary/20 transition-all min-h-[44px]"
                   />
                 </div>
                 <div className="flex gap-3 w-full lg:w-auto overflow-x-auto no-scrollbar">
                   <select
                     value={selectedClass}
                     onChange={(e) => setSelectedClass(e.target.value)}
-                    className="bg-surface-container-lowest border-none rounded-xl py-3 px-4 text-xs font-bold text-primary cursor-pointer min-w-[140px]"
+                    className="bg-surface-container-lowest border-none rounded-xl py-3 px-4 text-sm font-bold text-primary cursor-pointer min-w-[140px] min-h-[44px]"
                   >
                     <option value="all">All Classes</option>
                     {classes.map((c) => (
@@ -1577,7 +1564,7 @@ export default function FinanceHubPage() {
                   <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
-                    className="bg-surface-container-lowest border-none rounded-xl py-3 px-4 text-xs font-bold text-primary cursor-pointer min-w-[150px]"
+                    className="bg-surface-container-lowest border-none rounded-xl py-3 px-4 text-sm font-bold text-primary cursor-pointer min-w-[150px] min-h-[44px]"
                   >
                     <option value="all">All Statuses</option>
                     <option value="unpaid">Unpaid</option>
@@ -1585,6 +1572,17 @@ export default function FinanceHubPage() {
                     <option value="paid">Paid</option>
                     <option value="written_off">Written Off</option>
                   </select>
+                  <button
+                    type="button"
+                    onClick={() => setHideCleared((v) => !v)}
+                    aria-pressed={hideCleared}
+                    title={hideCleared ? "Show cleared pupils too" : "Show only pupils who owe"}
+                    className={`rounded-xl px-4 text-sm font-bold cursor-pointer min-h-[44px] whitespace-nowrap border-none transition-colors ${
+                      hideCleared ? "bg-[var(--primary)] text-white" : "bg-surface-container-lowest text-primary"
+                    }`}
+                  >
+                    {hideCleared ? `Owing (${filteredBalances.length})` : `All (${filteredBalances.length})`}
+                  </button>
                 </div>
               </div>
             </div>
@@ -1629,6 +1627,7 @@ export default function FinanceHubPage() {
                     setSelectedClass("all");
                     setStatusFilter("all");
                     setBandFilter(null);
+                    setHideCleared(true);
                   }}
                   className="text-xs font-semibold text-[var(--primary)] hover:underline ml-1"
                 >
@@ -1899,7 +1898,8 @@ export default function FinanceHubPage() {
         />
 
         {feeDraft.showRestoreDialog && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
+          <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
+            <div aria-hidden="true" className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
             <div className="bg-surface-container-lowest rounded-2xl w-full max-w-sm p-6 max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto shadow-xl my-auto">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
