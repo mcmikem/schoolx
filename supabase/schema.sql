@@ -3507,32 +3507,6 @@ DROP POLICY IF EXISTS "School users topic_coverage all" ON topic_coverage;
 CREATE POLICY "School users topic_coverage all" ON topic_coverage FOR ALL TO authenticated USING (class_id IN (SELECT id FROM classes WHERE school_id = my_school_id())) WITH CHECK (class_id IN (SELECT id FROM classes WHERE school_id = my_school_id()));
 
 -- ============================================
--- INVOICES TABLE
--- ============================================
-CREATE TABLE IF NOT EXISTS invoices (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
-    student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
-    invoice_number TEXT NOT NULL,
-    term INTEGER CHECK (term IN (1, 2, 3)) NOT NULL,
-    academic_year TEXT NOT NULL,
-    total_amount NUMERIC(12,2) NOT NULL,
-    paid_amount NUMERIC(12,2) NOT NULL DEFAULT 0,
-    balance NUMERIC(12,2) NOT NULL,
-    status TEXT CHECK (status IN ('draft', 'issued', 'paid', 'overdue', 'cancelled')) DEFAULT 'issued',
-    issued_at TIMESTAMPTZ DEFAULT NOW(),
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    UNIQUE(school_id, invoice_number)
-);
-
-CREATE INDEX IF NOT EXISTS idx_invoices_school ON invoices(school_id);
-CREATE INDEX IF NOT EXISTS idx_invoices_student ON invoices(student_id);
-CREATE INDEX IF NOT EXISTS idx_invoices_status ON invoices(status);
-ALTER TABLE invoices ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "School users invoices all" ON invoices;
-CREATE POLICY "School users invoices all" ON invoices FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
-
--- ============================================
 -- RECEIPTS TABLE
 -- ============================================
 CREATE TABLE IF NOT EXISTS receipts (
@@ -3861,66 +3835,8 @@ CREATE TABLE IF NOT EXISTS syllabus_timeline (
 );
 
 
-CREATE TABLE IF NOT EXISTS topic_performance (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
-    class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
-    subject_id UUID NOT NULL REFERENCES subjects(id) ON DELETE CASCADE,
-    syllabus_id UUID NOT NULL REFERENCES syllabus(id) ON DELETE CASCADE,
-    syllabus_timeline_id UUID REFERENCES syllabus_timeline(id) ON DELETE SET NULL,
-    
-    term INTEGER NOT NULL,
-    academic_year TEXT NOT NULL,
-    topic TEXT NOT NULL,
-    
-    -- Performance metrics
-    average_score DECIMAL(5, 2),
-    student_count INTEGER,
-    students_above_75 INTEGER DEFAULT 0,
-    students_50_to_75 INTEGER DEFAULT 0,
-    students_below_50 INTEGER DEFAULT 0,
-    
-    -- Mastery levels
-    mastery_level TEXT CHECK (mastery_level IN ('beginner', 'developing', 'proficient', 'advanced')) DEFAULT 'developing',
-    
-    -- Revision needed
-    revision_required BOOLEAN DEFAULT false,
-    revision_priority TEXT CHECK (revision_priority IN ('low', 'medium', 'high')) DEFAULT 'low',
-    
-    -- Feedback
-    common_misconceptions TEXT,
-    differentiation_needed TEXT,
-    
-    created_at TIMESTAMPTZ DEFAULT NOW(),
-    updated_at TIMESTAMPTZ DEFAULT NOW()
-);
 
 
-CREATE TABLE IF NOT EXISTS lesson_plan_templates (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
-    subject_id UUID REFERENCES subjects(id) ON DELETE SET NULL,
-    
-    name TEXT NOT NULL,
-    description TEXT,
-    
-    -- Template structure (JSON)
-    introduction_template TEXT,
-    main_content_template TEXT,
-    consolidation_template TEXT,
-    assessment_template TEXT,
-    
-    -- Default resources
-    default_materials TEXT, -- JSON array
-    suggested_duration INTEGER DEFAULT 40, -- minutes
-    
-    -- AI config
-    use_ai_generation BOOLEAN DEFAULT true,
-    ai_model TEXT DEFAULT 'openai', -- 'openai', 'claude', 'rules_based'
-    
-    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
 
 
 CREATE TABLE IF NOT EXISTS auto_planner_config (
@@ -3986,51 +3902,8 @@ CREATE TABLE IF NOT EXISTS lesson_plan_generations (
 );
 
 
-CREATE TABLE IF NOT EXISTS learning_objectives (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
-    subject_id UUID REFERENCES subjects(id) ON DELETE SET NULL,
-    
-    topic TEXT NOT NULL,
-    objective TEXT NOT NULL,
-    
-    -- Bloom's taxonomy level
-    bloom_level TEXT CHECK (bloom_level IN ('remember', 'understand', 'apply', 'analyze', 'evaluate', 'create')) DEFAULT 'understand',
-    
-    -- Competencies
-    competency TEXT,
-    cross_cutting_theme TEXT,
-    
-    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
 
 
-CREATE TABLE IF NOT EXISTS teaching_resources (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
-    subject_id UUID REFERENCES subjects(id) ON DELETE SET NULL,
-    
-    topic TEXT NOT NULL,
-    resource_name TEXT NOT NULL,
-    resource_type TEXT CHECK (resource_type IN ('video', 'image', 'document', 'link', 'file', 'simulation')) NOT NULL,
-    
-    -- URL or file reference
-    resource_url TEXT,
-    resource_file_path TEXT,
-    
-    -- Metadata
-    description TEXT,
-    difficulty_level TEXT CHECK (difficulty_level IN ('beginner', 'intermediate', 'advanced')),
-    duration_minutes INTEGER,
-    
-    -- Quality rating
-    rating INTEGER CHECK (rating >= 1 AND rating <= 5),
-    used_count INTEGER DEFAULT 0,
-    
-    created_by UUID REFERENCES users(id) ON DELETE SET NULL,
-    created_at TIMESTAMPTZ DEFAULT NOW()
-);
 
 
 CREATE TABLE IF NOT EXISTS bug_reports (
@@ -4240,26 +4113,14 @@ DROP POLICY IF EXISTS marketer_referral_codes_admin ON public.marketer_referral_
 CREATE POLICY marketer_referral_codes_admin ON public.marketer_referral_codes FOR ALL USING (EXISTS (SELECT 1 FROM public.users WHERE auth_id = auth.uid() AND role = 'super_admin'));
 
 ALTER TABLE syllabus_timeline ENABLE ROW LEVEL SECURITY;
-ALTER TABLE topic_performance ENABLE ROW LEVEL SECURITY;
-ALTER TABLE lesson_plan_templates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE auto_planner_config ENABLE ROW LEVEL SECURITY;
 ALTER TABLE lesson_plan_generations ENABLE ROW LEVEL SECURITY;
-ALTER TABLE learning_objectives ENABLE ROW LEVEL SECURITY;
-ALTER TABLE teaching_resources ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "School staff manage syllabus_timeline" ON syllabus_timeline;
 CREATE POLICY "School staff manage syllabus_timeline" ON syllabus_timeline FOR ALL USING (school_id IN (SELECT my_school_id()));
-DROP POLICY IF EXISTS "School staff view topic_performance" ON topic_performance;
-CREATE POLICY "School staff view topic_performance" ON topic_performance FOR SELECT USING (school_id IN (SELECT my_school_id()));
-DROP POLICY IF EXISTS "School staff manage templates" ON lesson_plan_templates;
-CREATE POLICY "School staff manage templates" ON lesson_plan_templates FOR ALL USING (school_id IN (SELECT my_school_id()));
 DROP POLICY IF EXISTS "School staff manage planner_config" ON auto_planner_config;
 CREATE POLICY "School staff manage planner_config" ON auto_planner_config FOR ALL USING (school_id IN (SELECT my_school_id()));
 DROP POLICY IF EXISTS "School staff manage generations" ON lesson_plan_generations;
 CREATE POLICY "School staff manage generations" ON lesson_plan_generations FOR ALL USING (school_id IN (SELECT my_school_id()));
-DROP POLICY IF EXISTS "School staff manage objectives" ON learning_objectives;
-CREATE POLICY "School staff manage objectives" ON learning_objectives FOR ALL USING (school_id IN (SELECT my_school_id()));
-DROP POLICY IF EXISTS "School staff manage resources" ON teaching_resources;
-CREATE POLICY "School staff manage resources" ON teaching_resources FOR ALL USING (school_id IN (SELECT my_school_id()));
 
 ALTER TABLE bug_reports ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "Bug reports insert" ON bug_reports;
@@ -5182,3 +5043,127 @@ CREATE POLICY "Demo attendance read anon" ON attendance
 CREATE POLICY "Demo grades read anon" ON grades
   FOR SELECT TO anon
   USING (student_id IN (SELECT id FROM students WHERE school_id = '00000000-0000-0000-0000-000000000001'));
+
+-- ============================================================
+-- MIGRATION-CREATED TABLES (documented from live database shape)
+-- These tables were created by migrations but never added here. Definitions
+-- were generated from the live schema in production (column names, types,
+-- nullability, defaults). Foreign keys and UNIQUE constraints live in the
+-- migrations themselves; RLS policy state is managed by migrations — the
+-- live database is the source of truth for policies.
+-- ============================================================
+
+CREATE TABLE IF NOT EXISTS exchange_rates (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    from_currency TEXT NOT NULL,
+    to_currency TEXT NOT NULL,
+    rate NUMERIC NOT NULL,
+    source TEXT DEFAULT 'manual'::text NOT NULL,
+    valid_from TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    valid_until TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS fee_payment_claims (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID NOT NULL,
+    student_id UUID NOT NULL,
+    amount NUMERIC NOT NULL,
+    claimed_method TEXT DEFAULT 'mobile_money'::text NOT NULL,
+    reference TEXT,
+    note TEXT,
+    status TEXT DEFAULT 'pending'::text NOT NULL,
+    submitted_by UUID,
+    reviewed_by UUID,
+    reviewed_at TIMESTAMPTZ,
+    review_note TEXT,
+    approved_payment_id UUID,
+    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS library_issues (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID,
+    book_id UUID,
+    student_id UUID,
+    issued_date DATE DEFAULT CURRENT_DATE NOT NULL,
+    due_date DATE,
+    returned_date DATE,
+    status TEXT DEFAULT 'issued'::text NOT NULL,
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS marketer_leads (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    marketer_id UUID NOT NULL,
+    school_id UUID,
+    school_name TEXT NOT NULL,
+    contact_name TEXT,
+    contact_phone TEXT,
+    contact_email TEXT,
+    district TEXT,
+    status TEXT DEFAULT 'new'::text NOT NULL,
+    notes TEXT,
+    next_follow_up TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS marketer_outreach (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    marketer_id UUID NOT NULL,
+    lead_id UUID,
+    school_id UUID,
+    type TEXT NOT NULL,
+    recipient_name TEXT,
+    recipient_contact TEXT,
+    subject TEXT,
+    content TEXT,
+    status TEXT DEFAULT 'sent'::text NOT NULL,
+    sent_at TIMESTAMPTZ DEFAULT NOW(),
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS marketer_referral_codes (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    marketer_id UUID NOT NULL,
+    code TEXT NOT NULL,
+    label TEXT,
+    clicks INTEGER DEFAULT 0 NOT NULL,
+    conversions INTEGER DEFAULT 0 NOT NULL,
+    is_active BOOLEAN DEFAULT true NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS otps (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    phone TEXT NOT NULL,
+    code TEXT NOT NULL,
+    expires_at TIMESTAMPTZ NOT NULL,
+    used BOOLEAN DEFAULT false,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS rate_limit_alerts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    ip_address TEXT,
+    user_id UUID,
+    endpoint TEXT NOT NULL,
+    threshold INTEGER NOT NULL,
+    actual_count INTEGER NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS webhook_events (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    provider TEXT NOT NULL,
+    event_type TEXT NOT NULL,
+    event_id TEXT,
+    raw_body JSONB,
+    status TEXT DEFAULT 'received'::text NOT NULL,
+    error_message TEXT,
+    processed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);

@@ -1,4 +1,4 @@
-import { createSupabaseServerClient } from "../supabase/server";
+import { createServiceRoleClientOrThrow } from "@/lib/api-utils";
 import { logger } from "../logger";
 
 export async function checkAndRecordIdempotency(
@@ -8,7 +8,11 @@ export async function checkAndRecordIdempotency(
   rawBody?: unknown,
 ): Promise<{ alreadyProcessed: boolean; shouldProcess: boolean }> {
   try {
-    const supabase = await createSupabaseServerClient();
+    // Webhook callbacks carry no user session, so the cookie-based server
+    // client is denied by RLS on every row: the duplicate check always missed
+    // and the insert always failed (silently), letting provider retries
+    // double-credit payments. This ledger is service-role only.
+    const supabase = createServiceRoleClientOrThrow();
 
     const { data: existing } = await supabase
       .from("webhook_events")
@@ -53,7 +57,7 @@ export async function checkAndRecordIdempotency(
 
 export async function markWebhookProcessed(eventId: string, provider: string, errorMessage?: string): Promise<void> {
   try {
-    const supabase = await createSupabaseServerClient();
+    const supabase = createServiceRoleClientOrThrow();
     await supabase
       .from("webhook_events")
       .update({

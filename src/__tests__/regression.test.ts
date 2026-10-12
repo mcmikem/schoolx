@@ -1263,6 +1263,64 @@ describe("Staff directory rows use one overflow menu", () => {
     expect(() => read("src/app/supabase-todos/page.tsx")).toThrow();
   });
 
+  it("payment webhook idempotency runs as the service role, not a cookie client", () => {
+    // Webhook callbacks have no user session, so the cookie-based client was
+    // denied by RLS on every row: the duplicate check always missed and the
+    // ledger insert always failed, letting provider retries double-credit.
+    const src = read("src/lib/payments/idempotency.ts");
+    expect(src).toContain("createServiceRoleClientOrThrow");
+    expect(src).not.toContain("createSupabaseServerClient");
+  });
+
+  it("the RLS hygiene pass locks down the tables that had RLS disabled", () => {
+    const mig = read("supabase/migrations/202611110005_rls_hygiene.sql");
+    // setup_checklist and refund_requests had RLS off entirely, leaving them
+    // readable/writable by any authenticated user through PostgREST.
+    expect(mig).toContain("ALTER TABLE public.setup_checklist ENABLE ROW LEVEL SECURITY");
+    expect(mig).toContain("ALTER TABLE public.refund_requests ENABLE ROW LEVEL SECURITY");
+    expect(mig).toContain("School staff setup_checklist write");
+    expect(mig).toContain("School staff refund_requests write");
+  });
+
+  it("the dead auth.role() policy generation is gone", () => {
+    // auth.role() is the JWT claim — 'authenticated'/'anon' — never a school
+    // role, so policies gating on it always evaluated false and granted
+    // nothing. They made it look like school roles were DB-enforced.
+    const mig = read("supabase/migrations/202611110006_drop_dead_auth_role_policies.sql");
+    expect(mig).toContain('DROP POLICY IF EXISTS "refund_insert" ON public.refund_requests');
+    expect(mig).toContain('DROP POLICY IF EXISTS "refund_select" ON public.refund_requests');
+    expect(mig).toContain('DROP POLICY IF EXISTS "refund_update" ON public.refund_requests');
+    expect(mig).toContain('DROP POLICY IF EXISTS "Service role can manage OTPs" ON public.otps');
+  });
+
+  it("schema.sql stops promising tables that do not exist and documents the real ones", () => {
+    const schema = read("supabase/schema.sql");
+    // The phantom half: documented but never applied to prod and unreferenced
+    // by any code — building against them (the dorm bug class) would break.
+    for (const phantom of [
+      "invoices",
+      "learning_objectives",
+      "lesson_plan_templates",
+      "teaching_resources",
+      "topic_performance",
+    ]) {
+      expect(schema).not.toContain(`CREATE TABLE IF NOT EXISTS ${phantom}`);
+    }
+    // The undocumented half: real tables that migrations created but schema.sql
+    // never recorded, generated from the live production shape.
+    for (const real of [
+      "marketer_leads",
+      "otps",
+      "webhook_events",
+      "exchange_rates",
+      "fee_payment_claims",
+      "library_issues",
+      "rate_limit_alerts",
+    ]) {
+      expect(schema).toContain(`CREATE TABLE IF NOT EXISTS ${real}`);
+    }
+  });
+
   it("never sends the nonexistent school_id column to teacher_subjects", () => {
     const src = read("src/app/dashboard/staff/page.tsx");
     // teacher_subjects has no school_id (RLS scopes through teacher_id ->
