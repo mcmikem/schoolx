@@ -388,18 +388,25 @@ export default function SettingsPage() {
   }, [activeTab, school?.id, fetchModuleData]);
 
   const saveSettings = async (key: string, value: string) => {
-    if (!school?.id) return;
+    if (!school?.id) return false;
     try {
       await saveSchoolSetting(school.id, key, value);
       toast.success("Setting saved");
+      return true;
     } catch (err) {
       logger.error("Error:", err);
+      toast.error("Failed to save setting");
+      return false;
     }
   };
 
   const handleSettingChange = async (key: keyof SchoolSettings, value: boolean | number) => {
+    const previous = settings[key];
     setSettings((prev) => ({ ...prev, [key]: value }));
-    await saveSettings(key, String(value));
+    const saved = await saveSettings(key, String(value));
+    if (!saved) {
+      setSettings((prev) => ({ ...prev, [key]: previous }));
+    }
   };
 
   const saveSupportPhone = async () => {
@@ -1563,7 +1570,8 @@ export default function SettingsPage() {
         </TabPanel>
 
         {showPaymentModal && (
-          <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto bg-black/50 backdrop-blur-sm p-3 sm:p-4">
+          <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
+            <div aria-hidden="true" className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
             <div className="bg-white rounded-2xl p-6 max-w-md w-full max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-bold text-[var(--on-surface)]">Complete Payment</h3>

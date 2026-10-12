@@ -97,6 +97,7 @@ export default function DormAttendancePage() {
           });
         } else {
           toInsert.push({
+            school_id: school?.id,
             dorm_id: selectedDormId,
             date,
             student_id: studentId,

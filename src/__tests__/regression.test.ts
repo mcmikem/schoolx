@@ -1321,6 +1321,52 @@ describe("Staff directory rows use one overflow menu", () => {
     }
   });
 
+  it("dorm roll-call writes carry school_id so the RLS WITH CHECK can pass", () => {
+    // dorm_attendance.school_id is nullable with no default, and the write
+    // policy requires school_id = my_school_id(); NULL = uuid is never true,
+    // so a payload without school_id is rejected on every insert.
+    const hook = read("src/lib/hooks/attendance.ts");
+    const hookPayload = hook.match(/const payload = \{[\s\S]{0,200}check_type[\s\S]{0,120}?\};/);
+    expect(hookPayload?.[0] ?? "").toContain("school_id");
+    const page = read("src/app/dashboard/dorm-attendance/page.tsx");
+    const insertBlock = page.match(/toInsert\.push\(\{[\s\S]{0,600}?\}\)/);
+    expect(insertBlock?.[0] ?? "").toContain("school_id");
+  });
+
+  it("is_school_staff counts every real employee role, not two impossible ones", () => {
+    // The UI grants dean_of_studies/bursar/secretary/dorm_master real pages
+    // (roles.ts) but the RLS allowlist omitted them, and included class_teacher
+    // / deputy_head which the users.role CHECK constraint rejects — those four
+    // roles got "permission denied" on every write to discipline, dorms,
+    // lesson_plans and inventory.
+    const mig = read("supabase/migrations/202611110007_fix_is_school_staff_allowlist.sql");
+    for (const role of ["dean_of_studies", "bursar", "secretary", "dorm_master", "board"]) {
+      expect(mig).toContain(`'${role}'`);
+    }
+    expect(mig).not.toContain("'class_teacher'");
+    expect(mig).not.toContain("'deputy_head'");
+  });
+
+  it("settings toggle failures roll back and surface a toast instead of lying", () => {
+    // The old flow optimistically flipped the toggle, swallowed the error with
+    // logger.error only, and never rolled back — "Enable boarding" looked
+    // saved and reverted on reload.
+    const src = read("src/app/dashboard/settings/page.tsx");
+    const handler = src.match(/const handleSettingChange = [\s\S]{0,400}?\n  \};/);
+    expect(handler?.[0] ?? "").toContain("previous");
+    expect(handler?.[0] ?? "").toContain("setSettings");
+    expect(src).toContain('toast.error("Failed to save setting")');
+  });
+
+  it("subject allocations never select the nonexistent school_id column", () => {
+    // subject_allocations has no school_id (RLS scopes via class_id), so the
+    // select+filter returned PGRST204 every fetch and timetable/lesson-plans
+    // rendered empty.
+    const src = read("src/lib/hooks/subjects.ts");
+    const fetchBlock = src.match(/from\('subject_allocations'\)[\s\S]{0,400}?if \(academicYear\)/);
+    expect(fetchBlock?.[0] ?? "").not.toContain("school_id");
+  });
+
   it("never sends the nonexistent school_id column to teacher_subjects", () => {
     const src = read("src/app/dashboard/staff/page.tsx");
     // teacher_subjects has no school_id (RLS scopes through teacher_id ->
@@ -1514,5 +1560,75 @@ describe("Headmaster dashboard task list", () => {
     expect(src).toContain('id: "class-teachers"');
     expect(src).toContain("with no class teacher");
     expect(src).toContain('href: "/dashboard/classes"');
+  });
+});
+
+describe("Offline sync queue holds rows", () => {
+  const read = (rel: string) => require("fs").readFileSync(require("path").join(process.cwd(), rel), "utf8");
+
+  it("creates sync_queue with an autoIncrement key", () => {
+    // v9 created sync_queue with { keyPath: "id" } and no autoIncrement, so
+    // every syncStore.add() (which omits id) threw a synchronous DataError and
+    // the offline write pipeline never held a single row.
+    const { storeOptions } = require("@/lib/offline") as typeof import("@/lib/offline");
+    expect(storeOptions("sync_queue")).toEqual({ keyPath: "id", autoIncrement: true });
+  });
+
+  it("strips client-only keys before a grade reaches the queue", () => {
+    // The grades table has no isDemo/schoolId column; PostgREST answers
+    // PGRST204 for unknown keys, which would make every offline grade fail.
+    const src = read("src/app/dashboard/grades/page.tsx");
+    expect(src).toContain("const { isDemo, schoolId, ...rest } = grade");
+    expect(src).toContain('await offlineDB.save("grades", payload');
+  });
+
+  it("bumps the IndexedDB version so existing clients migrate", () => {
+    const src = read("src/lib/offline.ts");
+    expect(src).toContain("const DB_VERSION = 10");
+    // The v9 store cannot change key options in place — it must be recreated.
+    expect(src).toContain("db.deleteObjectStore(storeName)");
+  });
+});
+
+describe("Exam timetable and setup wizard are role-gated", () => {
+  const { isRouteAllowed } =
+    require("@/components/dashboard/AccessControlGuard") as typeof import("@/components/dashboard/AccessControlGuard");
+  const { canAccess } = require("@/lib/roles") as typeof import("@/lib/roles");
+
+  it("denies the setup wizard to non-admin roles", () => {
+    // Both routes were missing from roleBasedRoutes, so isRouteAllowed's
+    // default-allow let any authenticated user — including teachers and
+    // parents — re-run full admin onboarding and write school-wide events.
+    for (const role of ["teacher", "bursar", "secretary", "parent", "marketer"] as const) {
+      expect({ role, allowed: isRouteAllowed(role, "/dashboard/setup-wizard") }).toEqual({ role, allowed: false });
+    }
+    expect(isRouteAllowed("headmaster", "/dashboard/setup-wizard")).toBe(true);
+    expect(isRouteAllowed("school_admin", "/dashboard/setup-wizard")).toBe(true);
+  });
+
+  it("keeps exam-timetable read-only for teachers", () => {
+    expect(isRouteAllowed("teacher", "/dashboard/exam-timetable")).toBe(true);
+    // Write actions are gated on settings, which teachers do not hold.
+    expect(canAccess("teacher", "settings")).toBe(false);
+    expect(canAccess("headmaster", "settings")).toBe(true);
+
+    const src = require("fs").readFileSync(
+      require("path").join(process.cwd(), "src/app/dashboard/exam-timetable/page.tsx"),
+      "utf8",
+    );
+    expect(src).toContain("canManageExams");
+    expect(src).toContain("{canManageExams && (");
+  });
+
+  it("gates student edit and SMS behind settings and messages", () => {
+    expect(canAccess("teacher", "settings")).toBe(false);
+    expect(canAccess("teacher", "messages")).toBe(false);
+
+    const src = require("fs").readFileSync(
+      require("path").join(process.cwd(), "src/app/dashboard/students/[id]/page.tsx"),
+      "utf8",
+    );
+    expect(src).toContain("{canEditStudent && (");
+    expect(src).toContain("{canSmsParent && (");
   });
 });

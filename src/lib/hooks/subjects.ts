@@ -1,103 +1,168 @@
-'use client'
-import { useState, useEffect, useCallback } from 'react'
-import { supabase } from '@/lib/supabase'
-import { useAuth } from '@/lib/auth-context'
-import type { Subject, School } from '@/types'
-import { getQuerySchoolId, withTimeout } from './utils'
-import type { PostgrestSingleResponse } from '@supabase/supabase-js'
-import { isDemoSchool } from '@/lib/demo-utils'
+"use client";
+import { useState, useEffect, useCallback } from "react";
+import { supabase } from "@/lib/supabase";
+import { useAuth } from "@/lib/auth-context";
+import type { Subject, School } from "@/types";
+import { getQuerySchoolId, withTimeout } from "./utils";
+import type { PostgrestSingleResponse } from "@supabase/supabase-js";
+import { isDemoSchool } from "@/lib/demo-utils";
 import { logger } from "@/lib/logger";
 
 export function useSubjects(schoolId?: string, autoSeed: boolean = true) {
-  const [subjects, setSubjects] = useState<Subject[]>([])
-  const [loading, setLoading] = useState(true)
-  const { isDemo, school } = useAuth()
-  const schoolType = ((school as School | null)?.school_type || 'primary') as School['school_type']
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { isDemo, school } = useAuth();
+  const schoolType = ((school as School | null)?.school_type || "primary") as School["school_type"];
 
   const fetchSubjects = useCallback(async () => {
-    if (!schoolId) { setLoading(false); return }
-    if (isDemo || isDemoSchool(schoolId)) {
-      const { getDefaultSubjects } = await import('@/lib/curriculum')
-      const defaultSubjects = getDefaultSubjects(schoolType)
-      setSubjects(defaultSubjects.map((s, idx) => ({ ...s, id: `demo-sub-${s.code}-${idx}`, school_id: schoolId, created_at: new Date().toISOString() })) as unknown as Subject[])
-      setLoading(false)
-      return
+    if (!schoolId) {
+      setLoading(false);
+      return;
     }
-    const querySchoolId = getQuerySchoolId(schoolId, isDemo)
+    if (isDemo || isDemoSchool(schoolId)) {
+      const { getDefaultSubjects } = await import("@/lib/curriculum");
+      const defaultSubjects = getDefaultSubjects(schoolType);
+      setSubjects(
+        defaultSubjects.map((s, idx) => ({
+          ...s,
+          id: `demo-sub-${s.code}-${idx}`,
+          school_id: schoolId,
+          created_at: new Date().toISOString(),
+        })) as unknown as Subject[],
+      );
+      setLoading(false);
+      return;
+    }
+    const querySchoolId = getQuerySchoolId(schoolId, isDemo);
     try {
-      setLoading(true)
-      const { data, error } = await supabase.from('subjects').select('id, name, code, level, is_compulsory, school_id, created_at').eq('school_id', querySchoolId).order('name')
-      if (error) throw error
-      let currentSubjects = data || []
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("subjects")
+        .select("id, name, code, level, is_compulsory, school_id, created_at")
+        .eq("school_id", querySchoolId)
+        .order("name");
+      if (error) throw error;
+      let currentSubjects = data || [];
       if (currentSubjects.length === 0 && autoSeed) {
-        const { getDefaultSubjects } = await import('@/lib/curriculum')
-        const defaultSubjects = getDefaultSubjects(schoolType)
-        const seeds = defaultSubjects.map(s => ({ name: s.name, code: s.code, level: s.level, is_compulsory: s.is_compulsory, school_id: querySchoolId }))
-        const { data: inserted, error: insertError } = await withTimeout(supabase.from('subjects').insert(seeds).select('id, name, code, level, is_compulsory, school_id, created_at'), 15000, { data: null, error: { message: "Subject seed timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as unknown as PostgrestSingleResponse<never>)
-        if (!insertError && inserted) currentSubjects = inserted.sort((a: any, b: any) => a.name.localeCompare(b.name))
+        const { getDefaultSubjects } = await import("@/lib/curriculum");
+        const defaultSubjects = getDefaultSubjects(schoolType);
+        const seeds = defaultSubjects.map((s) => ({
+          name: s.name,
+          code: s.code,
+          level: s.level,
+          is_compulsory: s.is_compulsory,
+          school_id: querySchoolId,
+        }));
+        const { data: inserted, error: insertError } = await withTimeout(
+          supabase.from("subjects").insert(seeds).select("id, name, code, level, is_compulsory, school_id, created_at"),
+          15000,
+          {
+            data: null,
+            error: { message: "Subject seed timed out", name: "TimeoutError", details: "", hint: "", code: "" },
+          } as unknown as PostgrestSingleResponse<never>,
+        );
+        if (!insertError && inserted) currentSubjects = inserted.sort((a: any, b: any) => a.name.localeCompare(b.name));
       }
-      setSubjects(currentSubjects as Subject[])
-    } catch (err) { logger.error('Error fetching subjects:', err) }
-    finally { setLoading(false) }
-  }, [schoolId, autoSeed, isDemo, schoolType])
+      setSubjects(currentSubjects as Subject[]);
+    } catch (err) {
+      logger.error("Error fetching subjects:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [schoolId, autoSeed, isDemo, schoolType]);
 
-  useEffect(() => { fetchSubjects() }, [fetchSubjects])
-  return { subjects, loading }
+  useEffect(() => {
+    fetchSubjects();
+  }, [fetchSubjects]);
+  return { subjects, loading };
 }
 
 export function useSubjectAllocations(schoolId?: string, academicYear?: string) {
-  const [allocations, setAllocations] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const { isDemo } = useAuth()
+  const [allocations, setAllocations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { isDemo } = useAuth();
 
-  const createAllocation = async (allocation: { teacher_id: string; subject_id: string; class_id: string; academic_year: string; term?: number; is_class_teacher?: boolean }) => {
+  const createAllocation = async (allocation: {
+    teacher_id: string;
+    subject_id: string;
+    class_id: string;
+    academic_year: string;
+    term?: number;
+    is_class_teacher?: boolean;
+  }) => {
     if (isDemo || isDemoSchool(schoolId)) {
-      const newAlloc = { ...allocation, id: `demo-alloc-${Date.now()}`, school_id: schoolId || '00000000-0000-0000-0000-000000000001', created_at: new Date().toISOString() }
-      setAllocations(prev => [...prev, newAlloc])
-      return newAlloc
+      const newAlloc = {
+        ...allocation,
+        id: `demo-alloc-${Date.now()}`,
+        school_id: schoolId || "00000000-0000-0000-0000-000000000001",
+        created_at: new Date().toISOString(),
+      };
+      setAllocations((prev) => [...prev, newAlloc]);
+      return newAlloc;
     }
-    const querySchoolId = getQuerySchoolId(schoolId, isDemo)
+    const querySchoolId = getQuerySchoolId(schoolId, isDemo);
     try {
-      const { data, error } = await withTimeout(supabase.from('subject_allocations')
-        .insert({ ...allocation, school_id: querySchoolId })
-        .select('id, school_id, teacher_id, subject_id, class_id, academic_year, term, is_class_teacher, created_at')
-        .single(), 15000, { data: null, error: { message: "Allocation creation timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as unknown as PostgrestSingleResponse<never>)
-      if (error) throw error
-      setAllocations(prev => [...prev, data])
-      return data
-    } catch (err: any) { throw new Error(err.message) }
-  }
+      const { data, error } = await withTimeout(
+        supabase
+          .from("subject_allocations")
+          .insert({ ...allocation, school_id: querySchoolId })
+          .select("id, school_id, teacher_id, subject_id, class_id, academic_year, term, is_class_teacher, created_at")
+          .single(),
+        15000,
+        {
+          data: null,
+          error: { message: "Allocation creation timed out", name: "TimeoutError", details: "", hint: "", code: "" },
+        } as unknown as PostgrestSingleResponse<never>,
+      );
+      if (error) throw error;
+      setAllocations((prev) => [...prev, data]);
+      return data;
+    } catch (err: any) {
+      throw new Error(err.message);
+    }
+  };
 
   const deleteAllocation = async (id: string) => {
     if (isDemo || isDemoSchool(schoolId)) {
-      setAllocations(prev => prev.filter(a => a.id !== id))
-      return
+      setAllocations((prev) => prev.filter((a) => a.id !== id));
+      return;
     }
     try {
-      const { error } = await withTimeout(supabase.from('subject_allocations').delete().eq('id', id), 15000, { error: { message: "Allocation deletion timed out", name: "TimeoutError", details: "", hint: "", code: "" } } as unknown as PostgrestSingleResponse<never>)
-      if (error) throw error
-      setAllocations(prev => prev.filter(a => a.id !== id))
-    } catch (err: any) { throw new Error(err.message) }
-  }
+      const { error } = await withTimeout(supabase.from("subject_allocations").delete().eq("id", id), 15000, {
+        error: { message: "Allocation deletion timed out", name: "TimeoutError", details: "", hint: "", code: "" },
+      } as unknown as PostgrestSingleResponse<never>);
+      if (error) throw error;
+      setAllocations((prev) => prev.filter((a) => a.id !== id));
+    } catch (err: any) {
+      throw new Error(err.message);
+    }
+  };
 
   useEffect(() => {
     async function fetchAllocations() {
-      if (!schoolId) { setLoading(false); return }
-      const querySchoolId = getQuerySchoolId(schoolId, isDemo)
+      if (!schoolId) {
+        setLoading(false);
+        return;
+      }
       try {
-        setLoading(true)
-        let query = supabase.from('subject_allocations')
-          .select('id, school_id, teacher_id, subject_id, class_id, academic_year, term, is_class_teacher, created_at, users!teacher_id(id, full_name), subjects(id, name), classes(id, name)')
-          .eq('school_id', querySchoolId)
-        if (academicYear) query = query.eq('academic_year', academicYear)
-        const { data, error } = await query
-        if (error) throw error
-        setAllocations(data || [])
-      } catch (err) { logger.error('Error fetching allocations:', err) }
-      finally { setLoading(false) }
+        setLoading(true);
+        let query = supabase
+          .from("subject_allocations")
+          .select(
+            "id, teacher_id, subject_id, class_id, academic_year, term, is_class_teacher, created_at, users!teacher_id(id, full_name), subjects(id, name), classes(id, name)",
+          );
+        if (academicYear) query = query.eq("academic_year", academicYear);
+        const { data, error } = await query;
+        if (error) throw error;
+        setAllocations(data || []);
+      } catch (err) {
+        logger.error("Error fetching allocations:", err);
+      } finally {
+        setLoading(false);
+      }
     }
-    fetchAllocations()
-  }, [schoolId, academicYear, isDemo])
+    fetchAllocations();
+  }, [schoolId, academicYear, isDemo]);
 
-  return { allocations, loading, createAllocation, deleteAllocation }
+  return { allocations, loading, createAllocation, deleteAllocation };
 }

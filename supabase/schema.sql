@@ -1706,7 +1706,10 @@ AS $$
     SELECT 1 FROM users
     WHERE auth_id = auth.uid()
       AND school_id = p_school_id
-      AND role IN ('school_admin', 'headmaster', 'admin', 'super_admin', 'teacher', 'class_teacher', 'deputy_head')
+      AND role IN (
+        'school_admin', 'headmaster', 'admin', 'super_admin', 'board',
+        'dean_of_studies', 'bursar', 'teacher', 'secretary', 'dorm_master'
+      )
   )
 $$;
 

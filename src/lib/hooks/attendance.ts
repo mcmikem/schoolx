@@ -569,6 +569,7 @@ export function useDormAttendance(dormId?: string, date?: string, checkType?: st
       return [...prev, payload];
     });
     const payload = {
+      school_id: school?.id,
       dorm_id: dormId,
       student_id: studentId,
       date,
