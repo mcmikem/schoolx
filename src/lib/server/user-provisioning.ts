@@ -81,7 +81,7 @@ export async function createManagedUserAccount({
     throw new Error("This phone number already exists");
   }
 
-  const authEmail = buildProvisioningEmail(sanitizedPhone);
+  const authEmail = email || buildProvisioningEmail(sanitizedPhone);
   const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
     email: authEmail,
     password,
