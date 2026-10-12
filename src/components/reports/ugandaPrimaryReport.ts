@@ -79,6 +79,22 @@ function signatureCell(imageUrl: string | null | undefined, caption: string): st
 }
 
 export function generateUgandaPrimaryHTML(input: UgandaPrintInput): string {
+  return ugandaDocumentShell(`Progress Report - ${input.pupil.name}`, generateUgandaPrimaryBody(input));
+}
+
+/** Full print document around one or more report bodies. */
+export function ugandaDocumentShell(title: string, bodyHtml: string): string {
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title>
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;color:#000;max-width:760px;margin:0 auto;padding:24px;}
+    table{width:100%;border-collapse:collapse;margin:6px 0 10px;}
+    h2.section{font-size:14px;text-decoration:underline;margin:16px 0 4px;}
+    @media print{ body{padding:0;} .page-break{page-break-before:always;} }
+  </style></head><body>${bodyHtml}</body></html>`;
+}
+
+/** Inner report content (no document shell) — print-all joins several. */
+export function generateUgandaPrimaryBody(input: UgandaPrintInput): string {
   const { school, pupil, subjects, totals, comments, feeBalance, nextTermBegins } = input;
   const contact = [school.address, school.phone].filter(Boolean).join(" · ");
 
@@ -111,13 +127,7 @@ export function generateUgandaPrimaryHTML(input: UgandaPrintInput): string {
     ${text ? `<p style="font-size:13px;margin:0 0 2px;">${escapeHtml(text)}</p>` : ""}
     <div style="border-bottom:1px solid #000;height:26px;"></div>`;
 
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Progress Report - ${escapeHtml(pupil.name)}</title>
-  <style>
-    body{font-family:Arial,Helvetica,sans-serif;color:#000;max-width:760px;margin:0 auto;padding:24px;}
-    table{width:100%;border-collapse:collapse;margin:6px 0 10px;}
-    h2.section{font-size:14px;text-decoration:underline;margin:16px 0 4px;}
-    @media print{ body{padding:0;} }
-  </style></head><body>
+  return `<div class="uganda-report">
     <div style="text-align:center;">
       <div style="font-size:12px;font-weight:bold;letter-spacing:1px;">THE REPUBLIC OF UGANDA</div>
       <div style="font-size:24px;font-weight:bold;margin:2px 0;">${escapeHtml(school.name || "SCHOOL NAME")}</div>
@@ -197,5 +207,5 @@ export function generateUgandaPrimaryHTML(input: UgandaPrintInput): string {
       <div style="border:1.5px dashed #888;color:#888;font-size:10px;padding:18px 26px;text-align:center;">SCHOOL<br>STAMP</div>
       ${signatureCell(school.sigHeadUrl, "Head Teacher")}
     </div>
-  </body></html>`;
+  </div>`;
 }

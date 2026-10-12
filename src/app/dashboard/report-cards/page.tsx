@@ -31,7 +31,7 @@ import {
   orderUgandaSubjects,
   type UgandaSubjectResult,
 } from "@/lib/uganda-report";
-import { generateUgandaPrimaryHTML } from "@/components/reports/ugandaPrimaryReport";
+import { generateUgandaPrimaryBody, ugandaDocumentShell } from "@/components/reports/ugandaPrimaryReport";
 
 interface StudentReport {
   studentId: string;
@@ -796,12 +796,15 @@ export default function ReportCardsPage() {
 
   // Term attendance + next-term start for the Uganda print layout. Best
   // effort: any failure yields blanks ("—"), never zeros or thrown errors.
-  const fetchUgandaContext = async (
-    studentId: string,
+  // Batched per class so print-all pays one attendance query, not hundreds.
+  const fetchUgandaBatch = async (
     classId: string,
-  ): Promise<{ present: number | null; total: number | null; nextTermBegins: string | null }> => {
-    const blank = { present: null, total: null, nextTermBegins: null };
-    if (isDemo || !school?.id) return blank;
+  ): Promise<{ byStudent: Map<string, { present: number; total: number }>; nextTermBegins: string | null }> => {
+    const empty = {
+      byStudent: new Map<string, { present: number; total: number }>(),
+      nextTermBegins: null as string | null,
+    };
+    if (isDemo || !school?.id || !classId) return empty;
     try {
       const { supabase: sb } = await import("@/lib/supabase");
       const termsRes = await withTimeout(
@@ -817,50 +820,52 @@ export default function ReportCardsPage() {
         8000,
         null,
       );
-      if (!termsRes) return blank;
+      if (!termsRes) return empty;
       const current = (termsRes as { term_number: number; start_date: string; end_date: string }[]).find(
         (t) => Number(t.term_number) === Number(currentTerm),
       );
       const following = (termsRes as { term_number: number; start_date: string }[]).find(
         (t) => Number(t.term_number) === Number(currentTerm) + 1,
       );
-      let present: number | null = null;
-      let total: number | null = null;
-      if (current?.start_date && current?.end_date) {
-        const attRes = await withTimeout(
-          sb
-            .from("attendance")
-            .select("student_id,date,status")
-            .eq("class_id", classId)
-            .gte("date", current.start_date)
-            .lte("date", current.end_date)
-            .limit(10000)
-            .then((r) => {
-              if (r.error) throw r.error;
-              return (r.data ?? []) as { student_id: string; date: string; status: string }[];
-            }),
-          12000,
-          null,
-        );
-        if (attRes) {
-          total = new Set(attRes.map((r) => r.date)).size;
-          present = attRes.filter((r) => r.student_id === studentId && r.status === "present").length;
-        }
+      const nextTermBegins = following?.start_date
+        ? new Date(`${following.start_date}T00:00:00`).toLocaleDateString("en-GB")
+        : null;
+      if (!current?.start_date || !current?.end_date) return { byStudent: empty.byStudent, nextTermBegins };
+      const attRes = await withTimeout(
+        sb
+          .from("attendance")
+          .select("student_id,date,status")
+          .eq("class_id", classId)
+          .gte("date", current.start_date)
+          .lte("date", current.end_date)
+          .limit(10000)
+          .then((r) => {
+            if (r.error) throw r.error;
+            return (r.data ?? []) as { student_id: string; date: string; status: string }[];
+          }),
+        12000,
+        null,
+      );
+      if (!attRes) return { byStudent: empty.byStudent, nextTermBegins };
+      const days = new Set(attRes.map((r) => r.date)).size;
+      const byStudent = new Map<string, { present: number; total: number }>();
+      for (const row of attRes) {
+        if (row.status !== "present") continue;
+        const entry = byStudent.get(row.student_id) ?? { present: 0, total: days };
+        entry.present += 1;
+        byStudent.set(row.student_id, entry);
       }
-      return {
-        present,
-        total,
-        nextTermBegins: following?.start_date
-          ? new Date(`${following.start_date}T00:00:00`).toLocaleDateString("en-GB")
-          : null,
-      };
+      return { byStudent, nextTermBegins };
     } catch (err) {
       logger.warn("Uganda report context unavailable, printing with blanks:", err);
-      return { present: null, total: null, nextTermBegins: null };
+      return { byStudent: new Map(), nextTermBegins: null };
     }
   };
 
-  const handlePrintUganda = async (report: StudentReport) => {
+  const buildUgandaBody = async (
+    report: StudentReport,
+    ctx: { byStudent: Map<string, { present: number; total: number }>; nextTermBegins: string | null },
+  ): Promise<string> => {
     const studentComment = comments[report.studentId] || { classTeacher: "", hm: "" };
     const ordered = orderUgandaSubjects(
       report.subjects.map((s) => ({
@@ -874,8 +879,8 @@ export default function ReportCardsPage() {
       })),
     );
     const totals = sumUgandaTotals(ordered);
-    const ctx = await fetchUgandaContext(report.studentId, selectedClass);
-    const html = generateUgandaPrimaryHTML({
+    const att = ctx.byStudent.get(report.studentId);
+    return generateUgandaPrimaryBody({
       school: {
         name: school?.name || "SCHOOL NAME",
         address: (school as any)?.address || "",
@@ -891,8 +896,8 @@ export default function ReportCardsPage() {
         className: report.className,
         term: currentTerm,
         year: academicYear,
-        attendancePresent: ctx.present,
-        attendanceTotal: ctx.total,
+        attendancePresent: att?.present ?? null,
+        attendanceTotal: att && att.total > 0 ? att.total : null,
       },
       subjects: ordered,
       totals,
@@ -900,14 +905,22 @@ export default function ReportCardsPage() {
       feeBalance: report.feeBalance,
       nextTermBegins: ctx.nextTermBegins,
     });
+  };
+
+  const openUgandaPrintWindow = (title: string, bodyHtml: string) => {
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
     printWindow.document.open();
-    printWindow.document.title = `Progress Report - ${report.name}`;
-    printWindow.document.write(html);
+    printWindow.document.title = title;
+    printWindow.document.write(ugandaDocumentShell(title, bodyHtml));
     printWindow.document.close();
     printWindow.focus();
     setTimeout(() => printWindow.print(), 500);
+  };
+
+  const handlePrintUganda = async (report: StudentReport) => {
+    const ctx = await fetchUgandaBatch(selectedClass);
+    openUgandaPrintWindow(`Progress Report - ${report.name}`, await buildUgandaBody(report, ctx));
   };
 
   const handlePrintReport = (report: StudentReport) => {
@@ -1136,7 +1149,7 @@ export default function ReportCardsPage() {
     setTimeout(() => printWindow.print(), 500);
   };
 
-  const handlePrintAll = () => {
+  const handlePrintAll = async () => {
     if (displayedReports.length === 0) return;
 
     if (reportFormat === "cbc") {
@@ -1144,134 +1157,17 @@ export default function ReportCardsPage() {
       return;
     }
 
-    const schoolName = school?.name || "School Name";
-    const schoolColor = school?.primary_color || "#002045";
-    const logoUrl = school?.logo_url || "";
-    const reportHeader = (school as any)?.report_header_text || (school as any)?.report_header || "";
-    const reportFooter = (school as any)?.report_footer_text || (school as any)?.report_footer || "";
-    const escapeHtml = (s: string) =>
-      String(s)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-
-    let allHtml = "";
-
-    displayedReports.forEach((report, index) => {
-      const studentComment = comments[report.studentId] || {
-        classTeacher: "",
-        hm: "",
-      };
-
-      const subjectRows = report.subjects
-        .map(
-          (s) =>
-            `<tr>
-          <td style="padding:6px 10px;border:1px solid #ddd">${escapeHtml(s.name)}</td>
-          <td style="padding:6px 10px;border:1px solid #ddd;text-align:center">${s.score}</td>
-          <td style="padding:6px 10px;border:1px solid #ddd;text-align:center;font-weight:bold">${escapeHtml(s.grade)}</td>
-        </tr>`,
-        )
-        .join("");
-
-      const feeBlock =
-        report.feeBalance > 0
-          ? `<div style="background:#fff3f3;border:1px solid #fca5a5;border-radius:8px;padding:10px;margin-top:12px;text-align:center">
-             <strong style="color:#dc2626">Fees outstanding: UGX ${report.feeBalance.toLocaleString()}</strong>
-           </div>`
-          : "";
-      const photoBlock = report.photoUrl
-        ? `<div style="display:flex;justify-content:center;margin:12px 0 4px"><img src="${escapeHtml(report.photoUrl)}" alt="${escapeHtml(report.name)}" style="width:88px;height:108px;object-fit:cover;border-radius:12px;border:1px solid #ddd" /></div>`
-        : "";
-
-      allHtml += `
-        <div class="report-page ${index > 0 ? "page-break" : ""}">
-          <div class="header">
-            ${logoUrl ? `<img src="${escapeHtml(logoUrl)}" class="logo" alt="${escapeHtml(schoolName)}">` : ""}
-            <div class="school-name text-nowrap">${escapeHtml(schoolName)}</div>
-            <div class="school-info">Tel: ${escapeHtml(school?.phone || "")} | Email: ${escapeHtml(school?.email || "")}</div>
-            <div class="report-title">${escapeHtml(reportHeader || "STUDENT REPORT CARD")}</div>
-            <div class="school-info">Term ${currentTerm}, ${academicYear}</div>
-          </div>
-          ${photoBlock}
-          <div class="info-grid">
-            <div><span class="info-label">Student Name:</span> <span class="info-value text-nowrap">${escapeHtml(report.name)}</span></div>
-            <div><span class="info-label">Student No:</span> <span class="info-value">${escapeHtml(report.studentNumber)}</span></div>
-            <div><span class="info-label">Class:</span> <span class="info-value">${escapeHtml(report.className)}</span></div>
-            <div><span class="info-label">Gender:</span> <span class="info-value">${report.gender === "M" ? "Male" : "Female"}</span></div>
-          </div>
-          <table>
-            <thead>
-              <tr><th>Subject</th><th style="text-align:center">Score</th><th style="text-align:center">Grade</th></tr>
-            </thead>
-            <tbody>${subjectRows}</tbody>
-          </table>
-          <div class="summary">
-            <div class="summary-card"><div class="summary-value">${report.totalMarks}/${report.maxMarks}</div><div class="summary-label">Total</div></div>
-            <div class="summary-card"><div class="summary-value">${report.average}%</div><div class="summary-label">Average</div></div>
-            <div class="summary-card"><div class="summary-value">${report.position}</div><div class="summary-label">Position</div></div>
-            <div class="summary-card"><div class="summary-value text-nowrap">${escapeHtml(report.division)}</div><div class="summary-label">Division</div></div>
-          </div>
-          <div class="comment-box">
-            <div class="comment-label">Class Teacher's Comment</div>
-            <div class="text-xs">${escapeHtml(studentComment.classTeacher || report.classTeacherComment)}</div>
-          </div>
-          <div class="comment-box">
-            <div class="comment-label">Headteacher's Comment</div>
-            <div class="text-xs">${escapeHtml(studentComment.hm || report.hmComment)}</div>
-          </div>
-          ${feeBlock}
-          <div class="footer">
-            <div>${escapeHtml(reportFooter || `Result Slip Summary - Generated by ${APP_NAME}`)}</div>
-            <div style="font-size:8px; margin-top:5px;">Page ${index + 1} of ${displayedReports.length}</div>
-          </div>
-        </div>
-      `;
-    });
-
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) return;
-
-    const massPrintStyles = `
-      @media print { .page-break { page-break-before: always; } }
-      body{font-family:Arial,sans-serif;padding:0;margin:0;background:#f5f5f5}
-      .report-page{background:white;padding:40px;max-width:800px;margin:20px auto;box-shadow:0 0 10px rgba(0,0,0,0.1);min-height:297mm}
-      @media print { .report-page{margin:0;box-shadow:none;width:100%;max-width:none} body{background:white} }
-      .header{text-align:center;border-bottom:3px solid ${schoolColor};padding-bottom:15px;margin-bottom:15px}
-      .logo{max-width:80px;max-height:60px;margin-bottom:10px}
-      .school-name{font-size:24px;font-weight:bold;color:${schoolColor};text-transform:uppercase}
-      .school-info{font-size:11px;color:#666;margin:3px 0}
-      .report-title{font-size:18px;font-weight:bold;color:${schoolColor};margin:10px 0;letter-spacing:1px}
-      .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:15px 0;font-size:14px}
-      .info-label{color:#888;display:inline-block;width:120px}
-      .info-value{font-weight:bold;color:#333}
-      table{width:100%;border-collapse:collapse;margin:15px 0}
-      th{background:${schoolColor}15;padding:10px;border:1px solid #ddd;text-align:left;font-size:11px;text-transform:uppercase;color:${schoolColor}}
-      td{padding:8px 10px;border:1px solid #ddd;font-size:13px}
-      .summary{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:15px;margin:20px 0}
-      .summary-card{border:2px solid ${schoolColor}20;border-radius:12px;padding:12px;text-align:center;background:${schoolColor}05}
-      .summary-value{font-size:22px;font-weight:bold;color:${schoolColor}}
-      .summary-label{font-size:9px;color:#888;text-transform:uppercase;margin-top:4px;font-weight:bold}
-      .comment-box{border:1px solid #eee;border-radius:12px;padding:15px;margin:12px 0;background:#fafafa}
-      .comment-label{font-size:10px;font-weight:bold;text-transform:uppercase;color:#aaa;margin-bottom:6px}
-      .text-nowrap{white-space:nowrap}
-      .text-xs{font-size:12px;line-height:1.4}
-      .footer{text-align:center;margin-top:30px;font-size:10px;color:#bbb;border-top:1px dashed #ddd;padding-top:20px}
-    `;
-
-    printWindow.document.open();
-    printWindow.document.title = `Mass Report Printing - ${selectedClassName}`;
-    document.querySelectorAll('link[rel="stylesheet"], style').forEach((el) => {
-      printWindow.document.head.appendChild(el.cloneNode(true));
-    });
-    printWindow.document.head.insertAdjacentHTML("beforeend", `<style>${massPrintStyles}</style>`);
-    printWindow.document.body.innerHTML = allHtml;
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => printWindow.print(), 500);
+    // Uganda progress reports for the whole list, one attendance batch.
+    const ctx = await fetchUgandaBatch(selectedClass);
+    const pages: string[] = [];
+    for (const [index, report] of displayedReports.entries()) {
+      const body = await buildUgandaBody(report, ctx);
+      pages.push(`<div class="${index > 0 ? "page-break" : ""}">${body}</div>`);
+    }
+    openUgandaPrintWindow(`Progress Reports - ${selectedClassName} (${displayedReports.length})`, pages.join(""));
   };
+
+  /* Bulk print uses the Uganda layout in handlePrintAll above; the old builder was removed. */
 
   const handleSendSms = async (report: StudentReport) => {
     const student = classStudents.find((s) => s.id === report.studentId);
@@ -1689,14 +1585,14 @@ export default function ReportCardsPage() {
                                 title="Print Uganda progress report"
                                 className="p-2 rounded-lg hover:bg-[var(--surface-container)] text-[var(--t3)] min-h-[44px] min-w-[44px] flex items-center justify-center"
                               >
-                                <MaterialIcon className="text-xl">description</MaterialIcon>
+                                <MaterialIcon className="text-xl">print</MaterialIcon>
                               </button>
                               <button
                                 onClick={() => handlePrintReport(report)}
-                                title="Print Report Card"
-                                className="p-2 rounded-lg hover:bg-[var(--surface-container)] text-[var(--t3)]"
+                                title="Print standard card"
+                                className="p-2 rounded-lg hover:bg-[var(--surface-container)] text-[var(--t3)] min-h-[44px] min-w-[44px] flex items-center justify-center"
                               >
-                                <MaterialIcon className="text-xl">print</MaterialIcon>
+                                <MaterialIcon className="text-xl">description</MaterialIcon>
                               </button>
                               <button
                                 onClick={() => handleSendSms(report)}
