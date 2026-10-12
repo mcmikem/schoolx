@@ -106,6 +106,11 @@ export default function FinanceHubPage() {
 
   const { data: students, loading: studentsLoading, error: studentsError } = useOfflineStudents(school?.id);
 
+  // Keep loading=true while the auth context is still hydrating the school:
+  // flipping it to false here made every consumer render its "0 students" state
+  // for the window between mount and school?.id arriving.
+  const studentsInitialLoading = studentsLoading && !school?.id;
+
   const offset = (paymentsPage - 1) * itemsPerPage;
   const {
     data: payments,
@@ -500,16 +505,18 @@ export default function FinanceHubPage() {
   );
 
   const studentBalanceMap = useMemo(() => {
+    if (!school?.id) return new Map();
     const map = new Map<string, StudentBalance>();
     students.forEach((s) => {
       map.set(s.id, computeStudentBalance(s));
     });
     return map;
-  }, [students, computeStudentBalance]);
+  }, [students, computeStudentBalance, school?.id]);
 
   const studentBalances: StudentBalance[] = useMemo(() => {
+    if (!school?.id) return [];
     return students.map((s) => studentBalanceMap.get(s.id)!);
-  }, [students, studentBalanceMap]);
+  }, [students, studentBalanceMap, school?.id]);
 
   const [bandFilter, setBandFilter] = useState<string | null>(null);
   // The bursar's job is collecting: open on pupils who owe, with a visible
