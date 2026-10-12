@@ -83,7 +83,9 @@ export function buildUgandaCalendarEvents(schoolId: string, academicYear: string
       "Preloaded from the most recently published Uganda Ministry of Education academic term structure so schools can start with a familiar calendar.",
     event_type: "academic",
     start_date: formatDate(year, term.startMonth, term.startDay),
-    end_date: formatDate(year, term.endMonth, term.endDay),
+    // A term opening is a one-day milestone, not a season: spanning it to the
+    // term end painted it on every calendar date for three months.
+    end_date: formatDate(year, term.startMonth, term.startDay),
   }));
 
   const holidayEvents = HOLIDAY_TEMPLATE.map((holiday) => {
@@ -101,4 +103,52 @@ export function buildUgandaCalendarEvents(schoolId: string, academicYear: string
   });
 
   return [...termEvents, ...holidayEvents];
+}
+
+/** Rows already present, keyed by identity — re-seeds insert only the rest. */
+export function missingCalendarEvents(
+  existing: { title: string; start_date: string; end_date: string }[],
+  built: CalendarEventSeed[],
+): CalendarEventSeed[] {
+  const known = new Set(existing.map((e) => `${e.title}|${e.start_date}|${e.end_date}`));
+  return built.filter((b) => !known.has(`${b.title}|${b.start_date}|${b.end_date}`));
+}
+
+export interface CalendarEventSeed {
+  school_id: string;
+  title: string;
+  description: string;
+  event_type: string;
+  start_date: string;
+  end_date: string;
+}
+
+/** Idempotent seeder: the same blind `.insert()` ran from registration,
+ * onboarding, and the super-admin reseed action, triplicating every
+ * preloaded event (three "Term 3 Opens" on every date). This checks first. */
+/** Supabase client subset used by the idempotent calendar seeder. */
+interface SeedClient {
+  from(table: string): any;
+}
+
+export async function seedUgandaCalendarEvents(
+  client: SeedClient,
+  schoolId: string,
+  academicYear: string,
+): Promise<{ inserted: number }> {
+  const built = buildUgandaCalendarEvents(schoolId, academicYear);
+  const { data, error } = await client
+    .from("events")
+    .select("title,start_date,end_date")
+    .eq("school_id", schoolId)
+    .in("event_type", ["academic", "holiday"]);
+  if (error) throw error;
+  const missing = missingCalendarEvents(
+    (data ?? []) as { title: string; start_date: string; end_date: string }[],
+    built,
+  );
+  if (missing.length === 0) return { inserted: 0 };
+  const { error: insertError } = await client.from("events").insert(missing);
+  if (insertError) throw insertError;
+  return { inserted: missing.length };
 }
