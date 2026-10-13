@@ -529,8 +529,13 @@ export default function TimetablePage() {
   const [roomValue, setRoomValue] = useState("");
   const [pendingDeleteEntryId, setPendingDeleteEntryId] = useState<string | null>(null);
   const [showGenerateModal, setShowGenerateModal] = useState(false);
-  const canAutoGenerate =
-    !!user && ["super_admin", "school_admin", "admin", "headmaster", "dean_of_studies"].includes(user.role);
+  const TIMETABLE_EDIT_ROLES = ["super_admin", "school_admin", "admin", "headmaster", "dean_of_studies"];
+  const canAutoGenerate = !!user && TIMETABLE_EDIT_ROLES.includes(user.role);
+  // Adding/removing lessons is a school-wide structural change, not a teacher's
+  // own diary. RLS on teacher_timetable was `FOR ALL` to any authenticated user
+  // in the school, so without this gate a teacher could silently rewrite the
+  // whole timetable from the "+ Add lesson" cells.
+  const canEditTimetable = !!user && TIMETABLE_EDIT_ROLES.includes(user.role);
 
   // Fetch the timetable for the selected class
   const fetchTimetable = useCallback(async () => {
@@ -1054,16 +1059,18 @@ export default function TimetablePage() {
                                 {entry.room ? ` · ${entry.room}` : ""}
                               </p>
                             </div>
-                            <button
-                              onClick={() => setPendingDeleteEntryId(entry.id)}
-                              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-red-600 hover:bg-red-50"
-                              title="Remove entry"
-                              aria-label={`Remove ${entry.subjects?.name || "lesson"}`}
-                            >
-                              <MaterialIcon icon="delete" className="text-lg" />
-                            </button>
+                            {canEditTimetable && (
+                              <button
+                                onClick={() => setPendingDeleteEntryId(entry.id)}
+                                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-red-600 hover:bg-red-50"
+                                title="Remove entry"
+                                aria-label={`Remove ${entry.subjects?.name || "lesson"}`}
+                              >
+                                <MaterialIcon icon="delete" className="text-lg" />
+                              </button>
+                            )}
                           </div>
-                        ) : selectedClassId ? (
+                        ) : selectedClassId && canEditTimetable ? (
                           <button
                             onClick={() => openEntryModal(selectedDay, slot)}
                             className="flex min-h-16 min-w-0 flex-1 items-center gap-3 rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface)] px-3 text-left text-sm text-[var(--t3)] transition-colors hover:border-[var(--primary)]/40 hover:bg-[var(--primary)]/5"
@@ -1135,18 +1142,21 @@ export default function TimetablePage() {
                                             </div>
                                           )}
                                         </div>
-                                        <button
-                                          onClick={() => setPendingDeleteEntryId(entry.id)}
-                                          className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 rounded text-red-500 transition-all"
-                                          title="Remove entry"
-                                        >
-                                          <MaterialIcon icon="delete" className="text-sm" />
-                                        </button>
+                                        {canEditTimetable && (
+                                          <button
+                                            onClick={() => setPendingDeleteEntryId(entry.id)}
+                                            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 rounded text-red-500 transition-all"
+                                            title="Remove entry"
+                                          >
+                                            <MaterialIcon icon="delete" className="text-sm" />
+                                          </button>
+                                        )}
                                       </div>
                                     </div>
                                   ) : (
                                     !isBreak &&
-                                    selectedClassId && (
+                                    selectedClassId &&
+                                    canEditTimetable && (
                                       <button
                                         onClick={() => openEntryModal(day.value, slot)}
                                         className="w-full h-full min-h-[60px] flex items-center justify-center border-2 border-dashed border-[var(--border)] hover:border-[var(--primary)]/30 hover:bg-[var(--primary)]/5 rounded-xl transition-all"

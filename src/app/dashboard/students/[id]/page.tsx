@@ -989,6 +989,7 @@ export default function StudentProfilePage() {
                     <Phone className="h-4 w-4 text-emerald-600" />
                     Guardians & contact
                   </h3>
+                  {canEditStudent && (
                   <button
                     onClick={() => setShowGuardianModal(true)}
                     className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-700"
@@ -996,7 +997,8 @@ export default function StudentProfilePage() {
                     <User className="h-3.5 w-3.5" />
                     Add Guardian
                   </button>
-                </div>
+                )}
+              </div>
 
                 <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">
                   Primary contact
@@ -1033,7 +1035,7 @@ export default function StudentProfilePage() {
                     </div>
                   )}
                 </div>
-                {student.parent_phone && (
+                {canEditStudent && student.parent_phone && (
                   <div className="mt-4">
                     <button
                       onClick={handleCreatePortalAccess}
@@ -1099,7 +1101,7 @@ export default function StudentProfilePage() {
                               {g.relationship !== "parent" ? ` · ${g.relationship}` : ""}
                             </div>
                           </div>
-                          {!isPrimary && (
+                          {canEditStudent && !isPrimary && (
                             <button
                               onClick={() => handleSetPrimaryGuardian(g)}
                               className="text-xs text-blue-600 hover:underline"

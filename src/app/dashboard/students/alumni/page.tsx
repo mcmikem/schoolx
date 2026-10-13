@@ -3,6 +3,7 @@
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { canAccess, type UserRole } from "@/lib/roles";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
 import { Button } from "@/components/ui";
@@ -14,7 +15,11 @@ import { EmptyState } from "@/components/EmptyState";
 import { Modal } from "@/components/ui/Modal";
 
 export default function AlumniPage() {
-  const { school, isDemo } = useAuth();
+  const { school, isDemo, user } = useAuth();
+  // The CSV carries parent_name + parent_phone, so it needs the same `export`
+  // permission the main students registry enforces. Teachers have export:false
+  // and were previously able to pull the whole alumni roll's guardian contacts.
+  const canExportAlumni = user?.role ? canAccess(user.role as UserRole, "export") : false;
   const toast = useToast();
 
   const [alumni, setAlumni] = useState<any[]>([]);
@@ -73,6 +78,10 @@ export default function AlumniPage() {
   }, [alumni, searchTerm, yearFilter]);
 
   const exportCSV = () => {
+    if (!canExportAlumni) {
+      toast.error("Your role cannot export alumni records.");
+      return;
+    }
     if (!filtered.length) {
       toast.error("No alumni to export");
       return;
@@ -134,10 +143,12 @@ export default function AlumniPage() {
                   </option>
                 ))}
               </select>
-              <Button onClick={exportCSV} variant="secondary">
-                <MaterialIcon icon="file_download" style={{ fontSize: 18 }} />
-                Export CSV
-              </Button>
+              {canExportAlumni && (
+                <Button onClick={exportCSV} variant="secondary">
+                  <MaterialIcon icon="file_download" style={{ fontSize: 18 }} />
+                  Export CSV
+                </Button>
+              )}
             </div>
 
             {loading ? (

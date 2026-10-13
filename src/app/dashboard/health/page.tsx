@@ -37,7 +37,13 @@ const STATUS_BADGE: Record<string, string> = {
 };
 
 export default function HealthPage() {
-  const { school } = useAuth();
+  const { school, user } = useAuth();
+  // Teachers log a visit, they don't run the sick bay. Admit stays open to them
+  // because a child unwell in class has to be recorded on the spot, but
+  // discharge, referral, amendment and deletion are clinical record actions and
+  // were previously available to any teacher.
+  const HEALTH_CLINICAL_ROLES = ["super_admin", "school_admin", "admin", "headmaster", "bursar", "secretary"];
+  const canManageRecords = !!user && HEALTH_CLINICAL_ROLES.includes(user.role);
   const toast = useToast();
   // Offline-aware health records
   const {
@@ -346,7 +352,7 @@ export default function HealthPage() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex gap-2">
-                          {r.status === "admitted" && (
+                          {canManageRecords && r.status === "admitted" && (
                             <>
                               <button
                                 onClick={() => dischargeStudent(r.id, false)}
@@ -364,24 +370,28 @@ export default function HealthPage() {
                               </button>
                             </>
                           )}
-                          <button
-                            onClick={() => openEdit(r)}
-                            title="Edit record"
-                            className="p-1.5 hover:bg-blue-50 rounded-xl text-slate-300 hover:text-blue-500 transition-colors"
-                          >
-                            <MaterialIcon icon="edit" style={{ fontSize: 16 }} />
-                          </button>
-                          <button
-                            onClick={() => deleteRecord(r.id)}
-                            disabled={deletingHealthId === r.id}
-                            title="Delete record"
-                            className="p-1.5 hover:bg-red-50 rounded-xl text-slate-300 hover:text-red-500 disabled:opacity-50 transition-colors"
-                          >
-                            <MaterialIcon
-                              icon={deletingHealthId === r.id ? "hourglass_empty" : "delete"}
-                              style={{ fontSize: 16 }}
-                            />
-                          </button>
+                          {canManageRecords && (
+                            <>
+                              <button
+                                onClick={() => openEdit(r)}
+                                title="Edit record"
+                                className="p-1.5 hover:bg-blue-50 rounded-xl text-slate-300 hover:text-blue-500 transition-colors"
+                              >
+                                <MaterialIcon icon="edit" style={{ fontSize: 16 }} />
+                              </button>
+                              <button
+                                onClick={() => deleteRecord(r.id)}
+                                disabled={deletingHealthId === r.id}
+                                title="Delete record"
+                                className="p-1.5 hover:bg-red-50 rounded-xl text-slate-300 hover:text-red-500 disabled:opacity-50 transition-colors"
+                              >
+                                <MaterialIcon
+                                  icon={deletingHealthId === r.id ? "hourglass_empty" : "delete"}
+                                  style={{ fontSize: 16 }}
+                                />
+                              </button>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>

@@ -10,6 +10,11 @@ import { isWhatsAppConfigured, sendParentPortalCredentials } from "@/lib/whatsap
 const supabaseUrl: string = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 const supabaseServiceKey: string | undefined = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
+// Roles allowed to mint a parent-portal login (and therefore read the generated
+// plaintext password back in the response). Mirrors the guardian guard in
+// 202611120001_close_teacher_privilege_escalation.sql.
+const PARENT_PORTAL_ROLES = ["super_admin", "school_admin", "admin", "headmaster", "secretary"];
+
 function generateTemporaryPassword(): string {
   const randomPart = randomBytes(10).toString("base64url");
   return `Sm!${randomPart}A9`;
@@ -19,6 +24,13 @@ export async function POST(request: NextRequest) {
   // Require authenticated school user
   const auth = await requireUserWithSchool(request);
   if (!auth.ok) return auth.response;
+
+  // Minting a portal account hands back a plaintext password, so this is an
+  // administrative action. Teachers and dorm staff are school-authenticated and
+  // were previously able to reach it via the student profile Guardians tab.
+  if (!PARENT_PORTAL_ROLES.includes(auth.context.user.role)) {
+    return apiError("Forbidden", 403);
+  }
 
   if (!supabaseServiceKey) {
     return apiError(
