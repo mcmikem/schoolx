@@ -46,6 +46,11 @@ interface TopicCoverage {
 const DEFAULT_TOPICS = ["Topic 1", "Topic 2", "Topic 3", "Topic 4", "Topic 5"];
 
 const ASSESSMENT_TYPES = ["ca1", "ca2", "ca3", "ca4", "project", "exam", "competency", "u1", "u2", "eot"] as const;
+/** The continuous-assessment subset, i.e. everything a CA lock is meant to cover.
+ *  Lock and unlock must both derive from this: they previously hardcoded
+ *  different lists (lock covered ca1-ca3, unlock ca1-ca4) so CA4 was never
+ *  actually locked and stayed editable after "CA locked". */
+const CA_ASSESSMENT_TYPES = ASSESSMENT_TYPES.filter((t) => t.startsWith("ca")) as readonly string[];
 const COMPETENCY_ASSESSMENT_TYPES = ["competency"] as const;
 const ASSESSMENT_MAX: Record<string, number> = {
   ca1: 10,
@@ -194,7 +199,11 @@ type SaveStatus = "idle" | "dirty" | "saving" | "saved";
 
 export default function GradesPage() {
   const { school, user, isDemo } = useAuth();
-  const { academicYear, currentTerm } = useAcademic();
+  const { academicYear, currentTerm, isTermLocked } = useAcademic();
+  // The exams page already honours this; the grades page did not, so exam marks
+  // stayed editable on a locked term. Only exam is gated -- CA is governed by
+  // the separate CA lock, which is a different control.
+  const termLocked = isTermLocked ? isTermLocked(academicYear, currentTerm) : false;
   const toast = useToast();
   const isOnline = useOnlineStatus();
   const { classes, loading: classesLoading } = useClasses(school?.id);
@@ -225,6 +234,19 @@ export default function GradesPage() {
   }, [user?.id, isDemo]);
   const [selectedClass, setSelectedClass] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("");
+  // Scope the pickers to what this teacher actually teaches. Previously both
+  // listed every class and subject in the school, and the assignment check ran
+  // only inside the 500ms autosave -- so a teacher could fill a 40-cell grid
+  // and then get "You are not assigned to teach this subject in this class"
+  // per cell, with nothing persisted. Admins keep the full school list.
+  const teacherScoped = isClassScopedRole(user?.role);
+  const classOptions = teacherScoped
+    ? classes.filter((c) => teacherSubjects.some((ts) => ts.class_id === c.id))
+    : classes;
+  const subjectOptions =
+    teacherScoped && selectedClass
+      ? subjects.filter((s) => teacherSubjects.some((ts) => ts.class_id === selectedClass && ts.subject_id === s.id))
+      : subjects;
   const [coverage, setCoverage] = useState<TopicCoverage[]>([]);
   const [syllabusTopicNames, setSyllabusTopicNames] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
@@ -265,7 +287,7 @@ export default function GradesPage() {
   // Set-All popover: click-toggle (not hover-only) so it's touch/keyboard reachable.
   const [setAllOpen, setSetAllOpen] = useState(false);
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
-  const dirtyCellsRef = useRef<Set<string>>(new Set());
+  const dirtyCellsRef = useRef<Map<string, { subjectId: string; classId: string }>>(new Map());
   const warnedOutliersRef = useRef<Set<string>>(new Set());
   const assessmentLabels: Record<string, string> = {
     ca1: "CA1",
@@ -295,6 +317,16 @@ export default function GradesPage() {
     if (!selectedClass) return [];
     return classStudents.filter((s) => s.class_id === selectedClass);
   }, [classStudents, selectedClass]);
+
+  // classStudents is the whole school roster filtered by class_id, so a pupil
+  // whose class_id is NULL or stale disappears from the mark sheet with no
+  // trace -- and can silently drop an entire assessment column, since the
+  // column list is derived from who is present. These are the pupils the
+  // roster says exist but the selected class cannot show.
+  const unassignedStudents = useMemo(
+    () => classStudents.filter((s) => !s.class_id),
+    [classStudents],
+  );
 
   const studentStatusMap = useMemo(() => {
     const map: Record<string, GradeWorkflowStatus> = {};
@@ -430,10 +462,10 @@ export default function GradesPage() {
               })
               .eq("class_id", selectedClass)
               .eq("subject_id", selectedSubject)
-              .in("assessment_type", ["ca1", "ca2", "ca3", "ca4"])
+.in("assessment_type", [...CA_ASSESSMENT_TYPES])
               .eq("term", currentTerm)
               .eq("academic_year", academicYear),
-          { timeoutMs: 10000, timeoutMessage: "Unlock CA timed out" },
+            { timeoutMs: 10000, timeoutMessage: "Unlock CA timed out" },
         );
 
         if (school?.id && user?.id) {
@@ -469,13 +501,20 @@ export default function GradesPage() {
       toast.error("CA marks are locked. Contact DOS to unlock.");
       return;
     }
+    if (termLocked && type === "exam") {
+      toast.error("This term is locked. Exam marks can no longer be changed.");
+      return;
+    }
     if (value === "") {
       setMarks((prev) => ({ ...prev, [`${studentId}_${type}`]: null }));
     } else {
       const maxVal = type === "competency" ? 3 : ASSESSMENT_MAX[type] || 100;
       const num = Math.min(maxVal, Math.max(0, Number(value)));
       setMarks((prev) => ({ ...prev, [`${studentId}_${type}`]: num }));
-      dirtyCellsRef.current.add(`${studentId}_${type}`);
+      dirtyCellsRef.current.set(`${studentId}_${type}`, {
+        subjectId: selectedSubject,
+        classId: selectedClass,
+      });
 
       if (type !== "competency" && value !== "") {
         const otherTypes = ASSESSMENT_TYPES.filter((t) => t !== type);
@@ -526,8 +565,13 @@ export default function GradesPage() {
   );
 
   const debouncedAutoSave = useCallback(
-    (studentId: string, type: string) => {
+    (studentId: string, type: string, target?: { subjectId: string; classId: string }) => {
       const key = `${studentId}_${type}`;
+      // A flush can fire after the teacher has switched class/subject. Writing
+      // then would file the old sheet's mark under the new subject, so pin the
+      // destination at the moment the cell went dirty.
+      const subjectId = target?.subjectId ?? selectedSubject;
+      const classId = target?.classId ?? selectedClass;
       if (debounceTimers.current[key]) {
         clearTimeout(debounceTimers.current[key]);
       }
@@ -540,10 +584,15 @@ export default function GradesPage() {
           return;
         }
         const isAssigned = teacherSubjects.some(
-          (ts) => ts.subject_id === selectedSubject && ts.class_id === selectedClass,
+          (ts) => ts.subject_id === subjectId && ts.class_id === classId,
         );
         if (!isAssigned && user?.role === "teacher") {
           toast.error("You are not assigned to teach this subject in this class.");
+          setSaveStatuses((prev) => ({ ...prev, [key]: "idle" }));
+          return;
+        }
+        if (termLocked && type === "exam") {
+          toast.error("This term is locked. Exam marks can no longer be changed.");
           setSaveStatuses((prev) => ({ ...prev, [key]: "idle" }));
           return;
         }
@@ -552,8 +601,8 @@ export default function GradesPage() {
         try {
           await saveGrade({
             student_id: studentId,
-            subject_id: selectedSubject,
-            class_id: selectedClass,
+            subject_id: subjectId,
+            class_id: classId,
             assessment_type: type,
             score,
             term: currentTerm,
@@ -603,12 +652,12 @@ export default function GradesPage() {
   useEffect(() => {
     const interval = setInterval(() => {
       if (dirtyCellsRef.current.size === 0) return;
-      const toSave = Array.from(dirtyCellsRef.current);
+      const toSave = Array.from(dirtyCellsRef.current.entries());
       dirtyCellsRef.current.clear();
-      toSave.forEach((key) => {
+      toSave.forEach(([key, target]) => {
         const [studentId, type] = key.split("_");
         if (studentId && type) {
-          debouncedAutoSave(studentId, type);
+          debouncedAutoSave(studentId, type, target);
         }
       });
     }, 30000);
@@ -754,6 +803,24 @@ export default function GradesPage() {
 
   const handleSaveGrades = async (status: GradeWorkflowStatus = "draft") => {
     if (!selectedClass || !selectedSubject) return;
+    // The per-cell autosave checks these; the bulk path did not, so it would
+    // happily write an unassigned subject or a locked term's exam marks.
+    if (user?.role === "teacher") {
+      const isAssigned = teacherSubjects.some(
+        (ts) => ts.subject_id === selectedSubject && ts.class_id === selectedClass,
+      );
+      if (!isAssigned) {
+        toast.error("You are not assigned to teach this subject in this class.");
+        return;
+      }
+    }
+    if (termLocked) {
+      const hasExam = Object.keys(marks).some((k) => k.endsWith("_exam") && marks[k] != null);
+      if (hasExam) {
+        toast.error("This term is locked. Exam marks can no longer be changed.");
+        return;
+      }
+    }
     try {
       setSaving(true);
       for (const [key, score] of Object.entries(marks)) {
@@ -1141,10 +1208,10 @@ export default function GradesPage() {
             })
             .eq("class_id", selectedClass)
             .eq("subject_id", selectedSubject)
-            .in("assessment_type", ["ca1", "ca2", "ca3"])
+.in("assessment_type", [...CA_ASSESSMENT_TYPES])
             .eq("term", currentTerm)
             .eq("academic_year", academicYear),
-        { timeoutMs: 10000, timeoutMessage: "Lock CA timed out" },
+          { timeoutMs: 10000, timeoutMessage: "Lock CA timed out" },
       );
 
       if (school?.id && user?.id) {
@@ -1303,7 +1370,7 @@ export default function GradesPage() {
                 className="w-full bg-surface-container-lowest border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-primary text-sm font-medium"
               >
                 <option value="">Select Class</option>
-                {classes.map((c) => (
+                {classOptions.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
                     {c.stream ? ` ${c.stream}` : ""}
@@ -1326,7 +1393,7 @@ export default function GradesPage() {
                 className="w-full bg-surface-container-lowest border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-primary text-sm font-medium"
               >
                 <option value="">Select Subject</option>
-                {subjects.map((s) => (
+                {subjectOptions.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name}
                   </option>
@@ -1363,31 +1430,25 @@ export default function GradesPage() {
         {/* Everything below only appears once a class + subject are chosen */}
         {selectedClass && selectedSubject && (
           <>
-            <section aria-label="grades overview" className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3">
-              {[
-                {
-                  label: "Graded",
-                  value: gradedCount,
-                  tone: "text-slate-700 bg-slate-50",
-                },
-                { label: "Pending", value: pendingCount, tone: "text-amber-700 bg-amber-50" },
-                {
-                  label: "Weightage",
-                  value: "10+10+10+70",
-                  tone: "text-blue-700 bg-blue-50",
-                },
-              ].map((item) => (
-                <div key={item.label} className={`rounded-2xl border border-slate-100 p-3 ${item.tone}`}>
-                  <div className="text-[11px] font-black uppercase tracking-[0.18em] opacity-80">{item.label}</div>
-                  <div className="mt-1 text-sm font-bold truncate">
-                    {item.value === "10+10+10+70" ? (
-                      <span title="CA1+CA2+CA3 : Exam">10+10+10+70</span>
-                    ) : (
-                      (item.value as any)
-                    )}
-                  </div>
-                </div>
-              ))}
+            <section
+              aria-label="grades overview"
+              className="flex items-center gap-x-4 gap-y-1 flex-wrap text-xs px-1"
+            >
+              <span className="font-semibold text-[var(--t2)]">
+                <span className="text-[var(--green)] font-bold">{gradedCount}</span> graded
+              </span>
+              <span className="text-[var(--t4)]" aria-hidden="true">
+                ·
+              </span>
+              <span className="font-semibold text-[var(--t2)]">
+                <span className="text-[var(--amber)] font-bold">{pendingCount}</span> pending
+              </span>
+              <span className="text-[var(--t4)]" aria-hidden="true">
+                ·
+              </span>
+              <span className="font-semibold text-[var(--t2)]" title="CA1+CA2+CA3 : Exam">
+                Weightage 10+10+10+70
+              </span>
             </section>
 
             {/* Marks Entry Info */}
@@ -1446,62 +1507,40 @@ export default function GradesPage() {
           </>
         )}
 
-        {/* Completion Tracker */}
+        {/* Completion Tracker — kept to one compact row. It used to be a tall
+            card with a progress bar and a full wall of ungraded names, which
+            pushed the mark-entry grid far below the fold. */}
         {tab === "marks" && selectedClass && selectedSubject && filteredStudents.length > 0 && (
-          <div
-            className={`p-5 rounded-2xl border ${
-              completionStats.percentage === 100
-                ? "bg-[var(--green-soft)] border-[var(--green)]/20"
-                : completionStats.percentage >= 50
-                  ? "bg-[var(--amber-soft)] border-[var(--amber)]/20"
-                  : "bg-[var(--red-soft)] border-[var(--red)]/20"
-            }`}
-          >
-            <div className="flex items-center justify-between flex-wrap gap-4">
-              <div className="flex items-center gap-3">
-                <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-sm ${
-                    completionStats.percentage === 100
-                      ? "bg-[var(--green)] text-white"
-                      : completionStats.percentage >= 50
-                        ? "bg-[var(--amber)] text-white"
-                        : "bg-[var(--red)] text-white"
-                  }`}
-                >
-                  {completionStats.percentage}%
-                </div>
-                <div>
-                  <p className="font-bold text-sm">
-                    {completionStats.graded}/{completionStats.total} students graded
-                  </p>
-                  {isSubmitted && (
-                    <span className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-bold">
-                      <MaterialIcon icon="lock" className="text-xs" />
-                      Submitted
-                    </span>
-                  )}
-                </div>
-              </div>
-              {completionStats.notGraded > 0 && (
-                <p className="text-xs font-medium text-[var(--red)]">
-                  <MaterialIcon icon="warning" className="text-xs align-text-bottom mr-1" />
-                  {completionStats.notGraded} student
-                  {completionStats.notGraded > 1 ? "s" : ""} not graded: {completionStats.notGradedNames.join(", ")}
-                </p>
-              )}
-            </div>
-            <div className="w-full bg-[var(--surface)]/60 h-2 rounded-full mt-3">
-              <div
-                className={`h-full rounded-full transition-all ${
-                  completionStats.percentage === 100
-                    ? "bg-[var(--green)]"
-                    : completionStats.percentage >= 50
-                      ? "bg-[var(--amber)]"
-                      : "bg-[var(--red)]"
-                }`}
-                style={{ width: `${completionStats.percentage}%` }}
-              ></div>
-            </div>
+          <div className="flex items-center gap-3 flex-wrap px-1 text-xs">
+            <span
+              className={`inline-flex items-center justify-center w-8 h-8 rounded-full font-bold text-[11px] shrink-0 ${
+                completionStats.percentage === 100
+                  ? "bg-[var(--green)] text-white"
+                  : completionStats.percentage >= 50
+                    ? "bg-[var(--amber)] text-white"
+                    : "bg-[var(--red)] text-white"
+              }`}
+            >
+              {completionStats.percentage}%
+            </span>
+            <span className="font-semibold text-[var(--t2)]">
+              {completionStats.graded}/{completionStats.total} graded
+            </span>
+            {isSubmitted && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary font-bold">
+                <MaterialIcon icon="lock" className="text-xs" />
+                Submitted
+              </span>
+            )}
+            {completionStats.notGraded > 0 && (
+              <span className="font-medium text-[var(--red)]">
+                Still to grade:{" "}
+                {completionStats.notGradedNames.slice(0, 4).join(", ")}
+                {completionStats.notGradedNames.length > 4
+                  ? ` +${completionStats.notGradedNames.length - 4} more`
+                  : ""}
+              </span>
+            )}
           </div>
         )}
 
@@ -1777,6 +1816,24 @@ export default function GradesPage() {
                               />
                             </td>
                           </tr>
+                        ) : unassignedStudents.length > 0 ? (
+                          // A pupil with no class_id is invisible here, and their
+                          // absence can erase a whole assessment column. Say so
+                          // rather than let the sheet look complete.
+                          <tr>
+                            <td colSpan={7} className="px-8 py-10">
+                              <div className="rounded-xl border border-[var(--amber)]/30 bg-[var(--amber-soft)] px-4 py-3 text-sm text-[var(--t1)]">
+                                <p className="font-semibold">
+                                  {unassignedStudents.length} student
+                                  {unassignedStudents.length === 1 ? " is" : "s are"} not assigned to any class
+                                </p>
+                                <p className="mt-1 text-xs text-[var(--t3)]">
+                                  They will not appear on this mark sheet. Ask an administrator to assign them to a
+                                  class.
+                                </p>
+                              </div>
+                            </td>
+                          </tr>
                         ) : (
                           paginatedStudents.map((student) => {
                             const ca1 = getMark(student.id, "ca1");
@@ -1874,7 +1931,7 @@ export default function GradesPage() {
                                           }
                                           onChange={(e) => handleMarkChange(student.id, type, e.target.value)}
                                           onBlur={() => handleInlineBlur(student.id, type)}
-                                          disabled={isSubmitted || (caLocked && type.startsWith("ca"))}
+                                          disabled={isSubmitted || (caLocked && type.startsWith("ca")) || (termLocked && type === "exam")}
                                           onKeyDown={(e) => {
                                             if (e.key === "Enter") {
                                               e.currentTarget.blur();
@@ -2100,7 +2157,7 @@ export default function GradesPage() {
                                         }
                                         onChange={(e) => handleMarkChange(student.id, type, e.target.value)}
                                         onBlur={() => handleInlineBlur(student.id, type)}
-                                        disabled={isSubmitted || (caLocked && type.startsWith("ca"))}
+                                        disabled={isSubmitted || (caLocked && type.startsWith("ca")) || (termLocked && type === "exam")}
                                       />
                                       {getSaveStatusForInput(student.id, type) === "saved" && (
                                         <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white" />
@@ -2263,7 +2320,7 @@ export default function GradesPage() {
                               value={val !== null ? String(val) : ""}
                               onChange={(e) => handleMarkChange(studentId, type, e.target.value)}
                               onBlur={() => handleInlineBlur(studentId, type)}
-                              disabled={isSubmitted || (caLocked && type.startsWith("ca"))}
+                              disabled={isSubmitted || (caLocked && type.startsWith("ca")) || (termLocked && type === "exam")}
                             />
                           </div>
                         );
