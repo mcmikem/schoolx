@@ -1,6 +1,8 @@
 "use client";
 import Link from "next/link";
 import MaterialIcon from "@/components/MaterialIcon";
+import { useAuth } from "@/lib/auth-context";
+import { isModuleInFeatureStage, getRequiredModuleForPath, type FeatureStage } from "@/lib/modules/catalog";
 
 interface ReadinessItem {
   label: string;
@@ -64,6 +66,20 @@ export function SchoolReadinessGuide({ items, title = "School Readiness" }: Scho
 }
 
 export function TeacherQuickGuide() {
+  const { school } = useAuth();
+  // Same paywall trap as TeacherDashboard's tiles: these four were hardcoded,
+  // so on a `core` plan three of them routed to modules the school hasn't
+  // bought and bounced the teacher to the no-access screen.
+  const steps = [
+    { step: "1", label: "Take attendance", icon: "how_to_reg", href: "/dashboard/attendance" },
+    { step: "2", label: "Enter marks", icon: "grade", href: "/dashboard/grades" },
+    { step: "3", label: "Post homework", icon: "assignment", href: "/dashboard/homework" },
+    { step: "4", label: "Check timetable", icon: "calendar_month", href: "/dashboard/timetable" },
+  ].filter((action) => {
+    const mod = getRequiredModuleForPath(action.href);
+    return !mod || isModuleInFeatureStage(school?.feature_stage as FeatureStage | undefined, mod);
+  });
+
   return (
     <div className="rounded-[24px] border border-[var(--border)] bg-[var(--green-soft)] p-4 mb-6">
       <div className="flex items-center gap-2 mb-3">
@@ -71,12 +87,7 @@ export function TeacherQuickGuide() {
         <span className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--t1)]">My Day</span>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        {[
-          { step: "1", label: "Take attendance", icon: "how_to_reg", href: "/dashboard/attendance" },
-          { step: "2", label: "Enter marks", icon: "grade", href: "/dashboard/grades" },
-          { step: "3", label: "Post homework", icon: "assignment", href: "/dashboard/homework" },
-          { step: "4", label: "Check timetable", icon: "calendar_month", href: "/dashboard/timetable" },
-        ].map((action) => (
+        {steps.map((action) => (
           <Link
             key={action.step}
             href={action.href}

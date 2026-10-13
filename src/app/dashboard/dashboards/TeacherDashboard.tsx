@@ -10,6 +10,7 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import MaterialIcon from "@/components/MaterialIcon";
 import { useToast } from "@/components/Toast";
 import CollapsibleSection from "@/components/ui/CollapsibleSection";
+import { isModuleInFeatureStage, getRequiredModuleForPath, type FeatureStage } from "@/lib/modules/catalog";
 import { StuckLoadingOverlay, TopLoadingBar } from "@/components/ui/Skeleton";
 import { useAcademic } from "@/lib/academic-context";
 import { useAuth } from "@/lib/auth-context";
@@ -169,6 +170,15 @@ export function TeacherDashboardContent() {
       tone: "text-[var(--t1)]",
     },
   ];
+
+  // Filter by subscription stage. The sidebar already hides routes the school
+  // hasn't bought (filterGroupsByFeatureStage in SidebarShell), but these tiles
+  // were hardcoded, so on a `core` plan three of four pointed at paywalled
+  // routes and dead-ended on "Upgrade your package to access this module".
+  const visibleTodayActions = todayActions.filter((action) => {
+    const mod = getRequiredModuleForPath(action.href);
+    return !mod || isModuleInFeatureStage(school?.feature_stage as FeatureStage | undefined, mod);
+  });
 
   const tasks = useMemo(() => {
     const items = [];
@@ -382,7 +392,7 @@ export function TeacherDashboardContent() {
                 </span>
               </div>
               <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-                {todayActions.map((action) => (
+                {visibleTodayActions.map((action) => (
                   <Link
                     key={action.href}
                     href={action.href}

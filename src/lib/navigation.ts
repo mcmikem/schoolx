@@ -535,7 +535,9 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> = dee
     {
       label: "Support",
       icon: "support",
-      defaultOpen: false,
+      // Health is the sick bay — a child unwell in class is the urgent case,
+      // so it should not sit two clicks deep behind a collapsed disclosure.
+      defaultOpen: true,
       items: [
         { href: "/dashboard/health", label: "Health", icon: "local_hospital" },
         { href: "/dashboard/library", label: "Library", icon: "local_library" },
