@@ -1,12 +1,26 @@
 import type { Page } from '@playwright/test'
 
-type DemoRole = 'headmaster' | 'dean_of_studies' | 'bursar' | 'teacher'
+// Every role src/proxy.ts allows in a demo session (DEMO_ALLOWED_ROLES).
+// super_admin is deliberately absent: it is a cross-tenant console that sits
+// outside the single demo school, so it cannot be audited through a seeded
+// school session.
+export type DemoRole =
+  | 'headmaster'
+  | 'dean_of_studies'
+  | 'bursar'
+  | 'teacher'
+  | 'secretary'
+  | 'dorm_master'
+  | 'marketer'
 
 const demoNames: Record<DemoRole, string> = {
   headmaster: 'John Headmaster',
   dean_of_studies: 'Sarah Dean',
   bursar: 'James Bursar',
   teacher: 'Mary Teacher',
+  secretary: 'Samuel Secretary',
+  dorm_master: 'Deborah DormMaster',
+  marketer: 'Moses Marketer',
 }
 
 // Key must match DEMO_KEY in src/lib/auth-context.tsx
