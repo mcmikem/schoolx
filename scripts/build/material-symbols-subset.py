@@ -66,8 +66,16 @@ def _quoted_words(text: str) -> set:
     return set(re.findall(r"""["']([a-z0-9_]+)["']""", text))
 
 
-def collect_icon_names() -> set:
+def collect_icon_names() -> tuple:
     names = set()
+    # Names built at runtime and assigned to a local before being handed to
+    # <MaterialIcon icon={...}/>, e.g.
+    #     const trendIcon = cond ? "trending_up" : "trending_flat";
+    # Kept separate and filtered against the real ligature map in main(),
+    # because a ternary assignment also matches plenty of strings that are not
+    # icons ("0", "100k", "airtel") and admitting those blind would turn the
+    # build into warning spam.
+    dynamic = set()
     # Icon ligatures are referenced across the codebase in several shapes:
     #   <MaterialIcon icon="name" />             -> icon="..."
     #   <MaterialIcon icon={cond ? "a" : "b"}/>  -> ternary prop
@@ -93,6 +101,9 @@ def collect_icon_names() -> set:
         r"""<MaterialIcon[^>]*>\s*([a-z0-9_]+)\s*</MaterialIcon>""",
         re.DOTALL,
     )
+    # const <name> = <expr with a ternary>;  — the RHS is bounded so an
+    # unterminated statement cannot swallow the rest of the file.
+    ternary_assign = re.compile(r"""(?:const|let|var)\s+\w+\s*=\s*(.{0,400}?);""", re.DOTALL)
     # <MaterialIcon>{...ternary...</MaterialIcon> — capture quoted literals in
     # the expression body.
     expr_child = re.compile(
@@ -116,7 +127,7 @@ def collect_icon_names() -> set:
             yield text[start:i]
 
     def scan(text: str):
-        nonlocal names
+        nonlocal names, dynamic
         for m in simple_prop.finditer(text):
             names.add(m.group(1))
         for m in object_prop.finditer(text):
@@ -129,6 +140,9 @@ def collect_icon_names() -> set:
             names.add(m.group(1))
         for m in expr_child.finditer(text):
             names |= _quoted_words(m.group(1))
+        for m in ternary_assign.finditer(text):
+            if "?" in m.group(1):
+                dynamic |= _quoted_words(m.group(1))
 
     for dirpath, _dirnames, filenames in os.walk(SRC_DIR):
         for fn in filenames:
@@ -137,7 +151,7 @@ def collect_icon_names() -> set:
             path = os.path.join(dirpath, fn)
             with open(path, encoding="utf-8") as handle:
                 scan(handle.read())
-    return names
+    return names, dynamic
 
 
 def fetch_font(tmp: str) -> str:
@@ -198,11 +212,8 @@ def reindex_ligatures(font: TTFont):
 
 
 def main():
-    words = collect_icon_names()
-    # Ignore names that are clearly dynamic (React expressions) — e.g. names
-    # with ${ } or spaces. collect_icon_names() already only grabs quoted
-    # literals, so nothing more to filter here.
-    if not words:
+    static_words, dynamic_words = collect_icon_names()
+    if not static_words:
         sys.exit("No icon names found under src/")
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -213,6 +224,14 @@ def main():
         glyphs = set(font.getGlyphOrder())
         cmap = font.getBestCmap()
         gname2cp = {g: cp for cp, g in cmap.items()}
+
+        # A ternary assignment can hold any string, so admit only those that
+        # actually resolve to a ligature in the source font. This is what keeps
+        # a runtime-constructed icon (StatCard's trending_flat/trending_down)
+        # from silently dropping out of the subset and rendering its own source
+        # text in the UI.
+        admitted = {w for w in dynamic_words if w in records or w in SYNONYMS.values()}
+        words = static_words | admitted
 
         needed = {}
         for w in words:
