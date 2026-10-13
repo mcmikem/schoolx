@@ -284,6 +284,8 @@ export default function GradesPage() {
 
   const [inlineEntryMode, setInlineEntryMode] = useState(true);
 
+  const [gradingMode, setGradingMode] = useState<"full" | "test-exam">("test-exam");
+
   useEffect(() => {
     if (window.innerWidth >= 768) setInlineEntryMode(true);
     else setInlineEntryMode(false);
@@ -570,10 +572,14 @@ export default function GradesPage() {
   // no input boxes at all -- while the on-page guidance said "type the score in
   // the box under CA1". The guidance described a UI that did not exist on
   // first use, which is why teachers could not work out where to type.
-  const DEFAULT_ASSESSMENT_TYPES = ASSESSMENT_TYPES.filter((t) => !["competency", "u1", "u2", "eot"].includes(t));
+  const isTestExamMode = gradingMode === "test-exam";
+  const DEFAULT_ASSESSMENT_TYPES = isTestExamMode
+    ? ["exam"]
+    : ASSESSMENT_TYPES.filter((t) => !["competency", "u1", "u2", "eot"].includes(t));
 
   const activeAssessmentTypes = useMemo(() => {
     if (competencyMode) return [...COMPETENCY_ASSESSMENT_TYPES];
+    if (isTestExamMode) return ["exam"];
     // Always offer the standard columns, then append any extra assessment type
     // that already has marks somewhere in the class.
     const extras = ASSESSMENT_TYPES.filter(
@@ -581,7 +587,7 @@ export default function GradesPage() {
         !DEFAULT_ASSESSMENT_TYPES.includes(type) && filteredStudents.some((s) => marks[`${s.id}_${type}`] != null),
     );
     return [...DEFAULT_ASSESSMENT_TYPES, ...extras];
-  }, [marks, filteredStudents, competencyMode]);
+  }, [marks, filteredStudents, competencyMode, gradingMode]);
 
   const debouncedAutoSave = useCallback(
     (studentId: string, type: string, target?: { subjectId: string; classId: string }) => {
@@ -1656,6 +1662,22 @@ export default function GradesPage() {
                   <MaterialIcon icon="psychology" className="text-base" />
                   Competency
                 </button>
+                <button
+                  onClick={() => setGradingMode((m) => (m === "test-exam" ? "full" : "test-exam"))}
+                  title={
+                    gradingMode === "test-exam"
+                      ? "Switch to full grading mode (CA1-CA4 + Project)"
+                      : "Switch to test/exam-only mode"
+                  }
+                  className={`px-3 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5 ${
+                    gradingMode === "test-exam"
+                      ? "bg-green-100 text-green-800 border border-green-300"
+                      : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
+                  }`}
+                >
+                  <MaterialIcon icon="school" className="text-base" />
+                  {gradingMode === "test-exam" ? "Test/Exam Only" : "Full Grading"}
+                </button>
                 <div className="relative">
                   <button
                     className="px-3 py-2 rounded-xl text-sm font-medium bg-surface-container text-on-surface-variant hover:bg-surface-container-high transition-all flex items-center gap-1.5"
@@ -2496,7 +2518,7 @@ export default function GradesPage() {
         )}
 
         {/* Sticky Action Bar */}
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-[var(--surface)] dark:bg-[var(--surface-container-lowest)] px-6 py-4 rounded-full shadow-2xl z-40 border border-[var(--border)]/50">
+        <div className="fixed bottom-[calc(84px+env(safe-area-inset-bottom,0px))] left-1/2 -translate-x-1/2 flex items-center gap-4 bg-[var(--surface)] dark:bg-[var(--surface-container-lowest)] px-6 py-4 rounded-full shadow-2xl z-40 border border-[var(--border)]/50">
           <div className="flex items-center gap-2 text-secondary px-4 border-r border-[var(--border)]">
             <MaterialIcon className="text-xl">cloud_done</MaterialIcon>
             <span className="text-xs font-bold uppercase tracking-wider">Sync Active</span>

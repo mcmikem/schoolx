@@ -385,6 +385,12 @@ export default function HomeworkPage() {
                 </div>
 
                 <button
+                  onClick={() => alert("Duplicate homework: coming soon")}
+                  className="ml-2 bg-primary-50 text-primary-600 rounded border px-2 py-1 text-xs disabled:opacity-50"
+                >
+                  Duplicate
+                </button>
+                <button
                   onClick={() => handleDeleteHomework(hw.id)}
                   disabled={deletingId === hw.id}
                   className="mt-4 inline-flex items-center gap-2 rounded-lg border border-red-100 bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-600 disabled:opacity-50"

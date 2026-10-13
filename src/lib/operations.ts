@@ -289,6 +289,21 @@ export function getNextGradeWorkflowStatusActions(
   return [];
 }
 
+export function getPrevGradeWorkflowStatusActions(
+  status: GradeWorkflowStatus,
+  role?: string | null,
+): GradeWorkflowStatus[] {
+  const normalizedRole = role || "";
+
+  if (status === "published") return ["approved"];
+  if (status === "approved" && ["headmaster", "admin", "school_admin"].includes(normalizedRole)) {
+    return ["submitted"];
+  }
+  if (status === "submitted") return ["draft"];
+
+  return [];
+}
+
 function getIsoDayOfWeek(date: string): number {
   const jsDay = new Date(date).getDay();
   return jsDay === 0 ? 7 : jsDay;

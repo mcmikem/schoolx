@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/index";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { getErrorMessage } from "@/lib/validation";
 import { logger } from "@/lib/logger";
+import { getLocalDateString } from "@/lib/hooks/utils";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import GenerateTimetableModal from "@/components/timetable/GenerateTimetableModal";
 import type { Class, Subject, TimetableSlot } from "@/types";
@@ -524,7 +525,9 @@ export default function TimetablePage() {
   const [loading, setLoading] = useState(false);
   const [showEntryModal, setShowEntryModal] = useState(false);
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
-  const [selectedDay, setSelectedDay] = useState<number>(1);
+  const today = getLocalDateString();
+  const todayDay = new Date(today).getDay() || 1; // 0=Sunday → 1, 1-5=Mon-Fri, 6=Sunday→1
+  const [selectedDay, setSelectedDay] = useState<number>(todayDay);
   const [conflicts, setConflicts] = useState<string[]>([]);
   const [roomValue, setRoomValue] = useState("");
   const [pendingDeleteEntryId, setPendingDeleteEntryId] = useState<string | null>(null);

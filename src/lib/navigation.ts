@@ -543,8 +543,31 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> = dee
         { href: "/dashboard/library", label: "Library", icon: "local_library" },
       ],
     },
+    {
+      label: "Homework Submissions",
+      icon: "assignment_turned_in",
+      defaultOpen: true,
+      items: [{ href: "/dashboard/homework-submissions", label: "Submissions", icon: "assignment_turned_in" }],
+    },
+    {
+      label: "Substitutions",
+      icon: "swap_vert",
+      defaultOpen: true,
+      items: [{ href: "/dashboard/substitutions", label: "Substitutions", icon: "swap_vert" }],
+    },
+    {
+      label: "Feedback",
+      icon: "feedback",
+      defaultOpen: true,
+      items: [{ href: "/dashboard/feedback", label: "Feedback", icon: "feedback" }],
+    },
+    {
+      label: "Report Cards",
+      icon: "description",
+      defaultOpen: true,
+      items: [{ href: "/dashboard/report-cards", label: "Report Cards", icon: "description" }],
+    },
   ],
-
   admin: [
     {
       label: "Main",
