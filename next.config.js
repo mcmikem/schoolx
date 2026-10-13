@@ -49,7 +49,6 @@ const nextConfig = {
   },
   experimental: {
     optimizePackageImports: ["lucide-react", "date-fns", "recharts", "qrcode.react", "react-to-print"],
-    viewTransition: true,
   },
   images: {
     remotePatterns: [
@@ -83,6 +82,17 @@ const nextConfig = {
         headers: [
           { key: "Cache-Control", value: "public, max-age=86400" },
           { key: "Content-Type", value: "application/manifest+json" },
+        ],
+      },
+      {
+        // Self-hosted fonts: let the browser keep them for a week and refresh in
+        // the background, so repeat visits on a slow link don't re-download them.
+        source: "/fonts/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=604800, stale-while-revalidate=86400",
+          },
         ],
       },
       {

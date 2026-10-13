@@ -22,17 +22,6 @@ import MaterialIcon from "@/components/MaterialIcon";
 import FeeStats from "@/components/fees/FeeStats";
 import { StudentBalance } from "@/components/fees/FeeTable";
 import FeeTable from "@/components/fees/FeeTable";
-import PaymentModal from "@/components/fees/PaymentModal";
-import FeeFormModal from "@/components/fees/FeeFormModal";
-import ReceiptModal from "@/components/fees/ReceiptModal";
-import InvoiceModal from "@/components/fees/InvoiceModal";
-import AdjustmentModal from "@/components/fees/AdjustmentModal";
-import FeePaymentHistory from "@/components/fees/FeePaymentHistory";
-import FeeAdjustmentsList from "@/components/fees/FeeAdjustmentsList";
-import FeeStructureManager from "@/components/fees/FeeStructureManager";
-import FeePaymentPlans from "@/components/fees/FeePaymentPlans";
-import FeeInvoiceList from "@/components/fees/FeeInvoiceList";
-import FeeCashbook from "@/components/fees/FeeCashbook";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Tabs } from "@/components/ui/Tabs";
 import { Button } from "@/components/ui/index";
@@ -42,12 +31,27 @@ import { useUndo, UndoNotification } from "@/lib/useUndo";
 import { PageGuidance } from "@/components/PageGuidance";
 import { EmptyState } from "@/components/EmptyState";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import PaymentClaimsPanel from "@/components/fees/PaymentClaimsPanel";
 import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
 import { getErrorMessage } from "@/lib/validation";
 import { APP_NAME } from "@/lib/app-name";
 import { logger } from "@/lib/logger";
 import { formatCurrency } from "@/lib/currency";
+import { lazyWithIdlePrefetch } from "@/lib/lazy-prefetch";
+
+// Split out of the first-load bundle (old phones parse less up front) and warmed in
+// idle time so the forms and tabs still open offline once the page has been visited.
+const PaymentModal = lazyWithIdlePrefetch(() => import("@/components/fees/PaymentModal"));
+const FeeFormModal = lazyWithIdlePrefetch(() => import("@/components/fees/FeeFormModal"));
+const ReceiptModal = lazyWithIdlePrefetch(() => import("@/components/fees/ReceiptModal"));
+const InvoiceModal = lazyWithIdlePrefetch(() => import("@/components/fees/InvoiceModal"));
+const AdjustmentModal = lazyWithIdlePrefetch(() => import("@/components/fees/AdjustmentModal"));
+const FeePaymentHistory = lazyWithIdlePrefetch(() => import("@/components/fees/FeePaymentHistory"));
+const FeeAdjustmentsList = lazyWithIdlePrefetch(() => import("@/components/fees/FeeAdjustmentsList"));
+const FeeStructureManager = lazyWithIdlePrefetch(() => import("@/components/fees/FeeStructureManager"));
+const FeePaymentPlans = lazyWithIdlePrefetch(() => import("@/components/fees/FeePaymentPlans"));
+const FeeInvoiceList = lazyWithIdlePrefetch(() => import("@/components/fees/FeeInvoiceList"));
+const FeeCashbook = lazyWithIdlePrefetch(() => import("@/components/fees/FeeCashbook"));
+const PaymentClaimsPanel = lazyWithIdlePrefetch(() => import("@/components/fees/PaymentClaimsPanel"));
 
 interface PaymentPlan {
   id: string;

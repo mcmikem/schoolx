@@ -1,6 +1,6 @@
 "use client";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef, type ComponentProps } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
 import { useClasses, useSubjects, useStaff } from "@/lib/hooks";
@@ -29,10 +29,17 @@ import PersonInitials from "@/components/ui/PersonInitials";
 import { logAuditEventWithOfflineSupport } from "@/lib/audit";
 import { useOnlineStatus, offlineDB } from "@/lib/offline";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { GradeImportModal } from "@/components/grades/GradeImportModal";
+import { lazyWithIdlePrefetch } from "@/lib/lazy-prefetch";
 import { createRecord, updateRecord, upsertRecordReturning } from "@/lib/crud-service";
 import { deriveGradeWorkflowStatus, getNextGradeWorkflowStatusActions, GradeWorkflowStatus } from "@/lib/operations";
 import { isClassScopedRole } from "@/lib/roles";
+
+// Split out of the first-load bundle, then warmed in idle time so the import
+// dialog still opens offline after the page has been visited once.
+type GradeImportModalProps = ComponentProps<typeof import("@/components/grades/GradeImportModal").GradeImportModal>;
+const GradeImportModal = lazyWithIdlePrefetch<GradeImportModalProps>(() =>
+  import("@/components/grades/GradeImportModal").then((m) => ({ default: m.GradeImportModal })),
+);
 
 interface TopicCoverage {
   id: string;
@@ -276,6 +283,11 @@ export default function GradesPage() {
   const { data: existingGrades, loading: gradesLoading, error: gradesError } = useOfflineGrades(school?.id);
 
   const [inlineEntryMode, setInlineEntryMode] = useState(true);
+
+  useEffect(() => {
+    if (window.innerWidth >= 768) setInlineEntryMode(true);
+    else setInlineEntryMode(false);
+  }, []);
   const [saveStatuses, setSaveStatuses] = useState<Record<string, SaveStatus>>({});
   const [mobileStudentIndex, setMobileStudentIndex] = useState(0);
   const [quickFillModal, setQuickFillModal] = useState<{
@@ -323,10 +335,7 @@ export default function GradesPage() {
   // trace -- and can silently drop an entire assessment column, since the
   // column list is derived from who is present. These are the pupils the
   // roster says exist but the selected class cannot show.
-  const unassignedStudents = useMemo(
-    () => classStudents.filter((s) => !s.class_id),
-    [classStudents],
-  );
+  const unassignedStudents = useMemo(() => classStudents.filter((s) => !s.class_id), [classStudents]);
 
   const studentStatusMap = useMemo(() => {
     const map: Record<string, GradeWorkflowStatus> = {};
@@ -462,10 +471,10 @@ export default function GradesPage() {
               })
               .eq("class_id", selectedClass)
               .eq("subject_id", selectedSubject)
-.in("assessment_type", [...CA_ASSESSMENT_TYPES])
+              .in("assessment_type", [...CA_ASSESSMENT_TYPES])
               .eq("term", currentTerm)
               .eq("academic_year", academicYear),
-            { timeoutMs: 10000, timeoutMessage: "Unlock CA timed out" },
+          { timeoutMs: 10000, timeoutMessage: "Unlock CA timed out" },
         );
 
         if (school?.id && user?.id) {
@@ -556,13 +565,23 @@ export default function GradesPage() {
     return parts.reduce((sum, p) => (sum ?? 0) + (p ?? 0), 0) ?? null;
   };
 
-  const activeAssessmentTypes = useMemo(
-    () =>
-      ASSESSMENT_TYPES.filter((type) =>
-        filteredStudents.some((s) => marks[`${s.id}_${type}`] !== null && marks[`${s.id}_${type}`] !== undefined),
-      ),
-    [marks, filteredStudents],
-  );
+  // Columns shown on a fresh sheet. The list used to be derived from existing
+  // marks, so a class/subject with nothing entered yet rendered a sheet with
+  // no input boxes at all -- while the on-page guidance said "type the score in
+  // the box under CA1". The guidance described a UI that did not exist on
+  // first use, which is why teachers could not work out where to type.
+  const DEFAULT_ASSESSMENT_TYPES = ASSESSMENT_TYPES.filter((t) => !["competency", "u1", "u2", "eot"].includes(t));
+
+  const activeAssessmentTypes = useMemo(() => {
+    if (competencyMode) return [...COMPETENCY_ASSESSMENT_TYPES];
+    // Always offer the standard columns, then append any extra assessment type
+    // that already has marks somewhere in the class.
+    const extras = ASSESSMENT_TYPES.filter(
+      (type) =>
+        !DEFAULT_ASSESSMENT_TYPES.includes(type) && filteredStudents.some((s) => marks[`${s.id}_${type}`] != null),
+    );
+    return [...DEFAULT_ASSESSMENT_TYPES, ...extras];
+  }, [marks, filteredStudents, competencyMode]);
 
   const debouncedAutoSave = useCallback(
     (studentId: string, type: string, target?: { subjectId: string; classId: string }) => {
@@ -583,9 +602,7 @@ export default function GradesPage() {
           setSaveStatuses((prev) => ({ ...prev, [key]: "idle" }));
           return;
         }
-        const isAssigned = teacherSubjects.some(
-          (ts) => ts.subject_id === subjectId && ts.class_id === classId,
-        );
+        const isAssigned = teacherSubjects.some((ts) => ts.subject_id === subjectId && ts.class_id === classId);
         if (!isAssigned && user?.role === "teacher") {
           toast.error("You are not assigned to teach this subject in this class.");
           setSaveStatuses((prev) => ({ ...prev, [key]: "idle" }));
@@ -1208,10 +1225,10 @@ export default function GradesPage() {
             })
             .eq("class_id", selectedClass)
             .eq("subject_id", selectedSubject)
-.in("assessment_type", [...CA_ASSESSMENT_TYPES])
+            .in("assessment_type", [...CA_ASSESSMENT_TYPES])
             .eq("term", currentTerm)
             .eq("academic_year", academicYear),
-          { timeoutMs: 10000, timeoutMessage: "Lock CA timed out" },
+        { timeoutMs: 10000, timeoutMessage: "Lock CA timed out" },
       );
 
       if (school?.id && user?.id) {
@@ -1415,13 +1432,16 @@ export default function GradesPage() {
                 <p className="font-bold text-sm text-[var(--t1)]">How to enter marks</p>
                 <ol className="mt-2 space-y-1.5 text-[13px] text-[var(--t2)] list-decimal list-inside">
                   <li>Type the score in the box under CA1. CA1 is classwork — mark it out of 10.</li>
-                  <li>Tap the next pupil and keep going down the list.</li>
-                  <li>Then do the same for CA2, CA3 and Exam.</li>
-                  <li>When you finish, tap Save Grades at the top of the page.</li>
+                  <li>Each pupil has their own row. Fill in as many as you have marks for.</li>
+                  <li>Then do the same for CA2, CA3 and Exam when you have them.</li>
+                  <li>
+                    Leave a box empty if you have not assessed that pupil yet — you can come back and fill it later.
+                  </li>
+                  <li>
+                    When you finish, tap <strong>Save Grades</strong>. It is the button fixed to the bottom of the
+                    screen.
+                  </li>
                 </ol>
-                <p className="mt-2 text-xs text-[var(--t3)]">
-                  Leave a box empty if you have not assessed that pupil yet. You can come back and fill it later.
-                </p>
               </div>
             </div>
           </div>
@@ -1430,10 +1450,7 @@ export default function GradesPage() {
         {/* Everything below only appears once a class + subject are chosen */}
         {selectedClass && selectedSubject && (
           <>
-            <section
-              aria-label="grades overview"
-              className="flex items-center gap-x-4 gap-y-1 flex-wrap text-xs px-1"
-            >
+            <section aria-label="grades overview" className="flex items-center gap-x-4 gap-y-1 flex-wrap text-xs px-1">
               <span className="font-semibold text-[var(--t2)]">
                 <span className="text-[var(--green)] font-bold">{gradedCount}</span> graded
               </span>
@@ -1534,11 +1551,8 @@ export default function GradesPage() {
             )}
             {completionStats.notGraded > 0 && (
               <span className="font-medium text-[var(--red)]">
-                Still to grade:{" "}
-                {completionStats.notGradedNames.slice(0, 4).join(", ")}
-                {completionStats.notGradedNames.length > 4
-                  ? ` +${completionStats.notGradedNames.length - 4} more`
-                  : ""}
+                Still to grade: {completionStats.notGradedNames.slice(0, 4).join(", ")}
+                {completionStats.notGradedNames.length > 4 ? ` +${completionStats.notGradedNames.length - 4} more` : ""}
               </span>
             )}
           </div>
@@ -1931,7 +1945,11 @@ export default function GradesPage() {
                                           }
                                           onChange={(e) => handleMarkChange(student.id, type, e.target.value)}
                                           onBlur={() => handleInlineBlur(student.id, type)}
-                                          disabled={isSubmitted || (caLocked && type.startsWith("ca")) || (termLocked && type === "exam")}
+                                          disabled={
+                                            isSubmitted ||
+                                            (caLocked && type.startsWith("ca")) ||
+                                            (termLocked && type === "exam")
+                                          }
                                           onKeyDown={(e) => {
                                             if (e.key === "Enter") {
                                               e.currentTarget.blur();
@@ -2157,7 +2175,11 @@ export default function GradesPage() {
                                         }
                                         onChange={(e) => handleMarkChange(student.id, type, e.target.value)}
                                         onBlur={() => handleInlineBlur(student.id, type)}
-                                        disabled={isSubmitted || (caLocked && type.startsWith("ca")) || (termLocked && type === "exam")}
+                                        disabled={
+                                          isSubmitted ||
+                                          (caLocked && type.startsWith("ca")) ||
+                                          (termLocked && type === "exam")
+                                        }
                                       />
                                       {getSaveStatusForInput(student.id, type) === "saved" && (
                                         <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full border-2 border-white" />
@@ -2320,7 +2342,9 @@ export default function GradesPage() {
                               value={val !== null ? String(val) : ""}
                               onChange={(e) => handleMarkChange(studentId, type, e.target.value)}
                               onBlur={() => handleInlineBlur(studentId, type)}
-                              disabled={isSubmitted || (caLocked && type.startsWith("ca")) || (termLocked && type === "exam")}
+                              disabled={
+                                isSubmitted || (caLocked && type.startsWith("ca")) || (termLocked && type === "exam")
+                              }
                             />
                           </div>
                         );
@@ -2472,7 +2496,7 @@ export default function GradesPage() {
         )}
 
         {/* Sticky Action Bar */}
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-[var(--surface)] dark:bg-[var(--surface-container-lowest)] px-6 py-4 rounded-full shadow-2xl z-40 border border-[var(--border)]/50 hidden md:flex">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-4 bg-[var(--surface)] dark:bg-[var(--surface-container-lowest)] px-6 py-4 rounded-full shadow-2xl z-40 border border-[var(--border)]/50">
           <div className="flex items-center gap-2 text-secondary px-4 border-r border-[var(--border)]">
             <MaterialIcon className="text-xl">cloud_done</MaterialIcon>
             <span className="text-xs font-bold uppercase tracking-wider">Sync Active</span>

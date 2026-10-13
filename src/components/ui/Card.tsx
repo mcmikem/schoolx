@@ -1,60 +1,29 @@
 "use client";
 
-interface CardProps {
+interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
-  className?: string;
-  style?: React.CSSProperties;
-  onClick?: (e: React.MouseEvent<HTMLDivElement>) => void;
 }
 
-export function Card({ children, className = "", style, onClick }: CardProps) {
+export function Card({ children, className = "", onClick, ...rest }: CardProps) {
   return (
-    <div
-      className={`card ${onClick ? "cursor-pointer" : ""} ${className}`}
-      style={style}
-      onClick={onClick}
-    >
+    <div {...rest} className={`card ${onClick ? "cursor-pointer" : ""} ${className}`} onClick={onClick}>
       {children}
     </div>
   );
 }
 
-export function CardHeader({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
+export function CardHeader({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return <div className={`card-header ${className}`}>{children}</div>;
 }
 
-export function CardBody({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
+export function CardBody({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return <div className={`card-body ${className}`}>{children}</div>;
 }
 
-export function CardTitle({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
+export function CardTitle({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return <div className={`card-title ${className}`}>{children}</div>;
 }
 
-export function CardSubtitle({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
+export function CardSubtitle({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return <div className={`card-sub ${className}`}>{children}</div>;
 }

@@ -41,3 +41,41 @@ describe("service worker navigation", () => {
     expect(sw).toContain("PAGE_CACHE");
   });
 });
+
+describe("service worker slow-link and offline behaviour", () => {
+  const sw = read("public/sw.js");
+
+  it("uses a shorter navigation deadline when a cached copy exists", () => {
+    expect(sw).toContain("NAVIGATION_TIMEOUT_CACHED_MS");
+    expect(sw).toMatch(/hasCachedCopy\s*\?\s*NAVIGATION_TIMEOUT_CACHED_MS\s*:\s*NAVIGATION_TIMEOUT_MS/);
+  });
+
+  it("falls back to the dashboard shell, never the public marketing page, for offline dashboard URLs", () => {
+    expect(sw).toContain("caches.match('/dashboard/')");
+    expect(sw).not.toMatch(/dashboardCached\s*=\s*await caches\.match\('\/'\)/);
+  });
+
+  it("serves self-hosted fonts cache-first", () => {
+    expect(sw).toMatch(/pathname\.startsWith\('\/fonts\/'\)/);
+  });
+
+  it("skips background image revalidation when Save-Data is on", () => {
+    expect(sw).toContain("saveData");
+  });
+});
+
+describe("heavy dashboard widgets stay out of the first-load bundle", () => {
+  it("fees page lazy-loads its modals and tab panels with idle prefetch", () => {
+    const fees = read("src/app/dashboard/fees/page.tsx");
+    expect(fees).toContain("lazyWithIdlePrefetch");
+    for (const c of ["PaymentModal", "ReceiptModal", "FeeCashbook", "PaymentClaimsPanel"]) {
+      expect(fees).not.toMatch(new RegExp(`^import ${c} from`, "m"));
+    }
+  });
+
+  it("grades page lazy-loads the import modal", () => {
+    const grades = read("src/app/dashboard/grades/page.tsx");
+    expect(grades).not.toMatch(/^import \{ GradeImportModal \} from/m);
+    expect(grades).toContain("lazyWithIdlePrefetch");
+  });
+});

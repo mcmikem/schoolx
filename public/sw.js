@@ -120,32 +120,44 @@ self.addEventListener('fetch', (event) => {
     // "Updating…". Race the network against a deadline and fall through to the
     // same cache fallbacks below. The update flow precaches the app shell at
     // install, so the fallback usually serves the NEW build, not the old one.
+    //
+    // When we already hold a copy of this page the deadline is much shorter:
+    // on a weak 2G/3G link a teacher would otherwise stare at a blank screen
+    // for 8s before the page they opened yesterday appears. The network fetch
+    // keeps running after the deadline and refreshes the cache for next time.
     const NAVIGATION_TIMEOUT_MS = 8000;
-    let navigationTimer;
-    const navigationTimeout = new Promise((_, reject) => {
-      navigationTimer = setTimeout(() => reject(new Error('navigation timeout')), NAVIGATION_TIMEOUT_MS);
-    });
+    const NAVIGATION_TIMEOUT_CACHED_MS = 3000;
 
     event.respondWith(
-      Promise.race([
-        fetch(request)
-          .then((response) => {
-            if (response.ok) {
-              const clone = response.clone();
-              caches.open(PAGE_CACHE).then((cache) => cache.put(request, clone));
-            }
-            return response;
-          }),
-        navigationTimeout,
-      ])
-        .finally(() => clearTimeout(navigationTimer))
-        .catch(async () => {
+      (async () => {
+        const hasCachedCopy = Boolean(await caches.match(request));
+        const timeoutMs = hasCachedCopy ? NAVIGATION_TIMEOUT_CACHED_MS : NAVIGATION_TIMEOUT_MS;
+        let navigationTimer;
+        const navigationTimeout = new Promise((_, reject) => {
+          navigationTimer = setTimeout(() => reject(new Error('navigation timeout')), timeoutMs);
+        });
+
+        try {
+          return await Promise.race([
+            fetch(request).then((response) => {
+              if (response.ok) {
+                const clone = response.clone();
+                caches.open(PAGE_CACHE).then((cache) => cache.put(request, clone));
+              }
+              return response;
+            }),
+            navigationTimeout,
+          ]);
+        } catch (err) {
           const cachedPage = await caches.match(request);
           if (cachedPage) return cachedPage;
 
+          // An uncached dashboard URL falls back to the dashboard app shell, never
+          // to "/" — that is the public marketing page, which made an offline
+          // teacher land on the sales site instead of the app.
           if (isDashboardRoute) {
-            const dashboardCached = await caches.match('/');
-            if (dashboardCached) return dashboardCached;
+            const dashboardShell = await caches.match('/dashboard/');
+            if (dashboardShell) return dashboardShell;
           }
 
           const offlinePage = await caches.match(OFFLINE_FALLBACK);
@@ -155,7 +167,32 @@ self.addEventListener('fetch', (event) => {
             '<html><body><h1>You are offline</h1><p>Please check your internet connection.</p></body></html>',
             { headers: { 'Content-Type': 'text/html' } }
           );
-        })
+        } finally {
+          clearTimeout(navigationTimer);
+        }
+      })()
+    );
+    return;
+  }
+
+  // Self-hosted fonts (the 112 KB icon font especially) are cache-first. The
+  // static cache is versioned per deploy and purged on activate, so a changed
+  // font is still picked up, while repeat visits stop spending data and a
+  // round trip on the same file over a slow link.
+  if (url.hostname === location.hostname && url.pathname.startsWith('/fonts/')) {
+    event.respondWith(
+      caches.match(request).then((cached) => {
+        if (cached) return cached;
+        return fetch(request)
+          .then((response) => {
+            if (response.ok) {
+              const clone = response.clone();
+              caches.open(STATIC_CACHE).then((cache) => cache.put(request, clone));
+            }
+            return response;
+          })
+          .catch(() => new Response('', { status: 408 }));
+      })
     );
     return;
   }
@@ -165,11 +202,15 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       caches.match(request).then((cached) => {
         if (cached) {
-          fetch(request).then((response) => {
-            if (response.ok) {
-              caches.open(IMAGE_CACHE).then((cache) => cache.put(request, response));
-            }
-          }).catch(() => {});
+          // Revalidate in the background, except when the user turned on Save-Data.
+          const saveData = Boolean(self.navigator && self.navigator.connection && self.navigator.connection.saveData);
+          if (!saveData) {
+            fetch(request).then((response) => {
+              if (response.ok) {
+                caches.open(IMAGE_CACHE).then((cache) => cache.put(request, response));
+              }
+            }).catch(() => {});
+          }
           return cached;
         }
         return fetch(request).then((response) => {
