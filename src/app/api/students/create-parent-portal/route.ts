@@ -12,7 +12,7 @@ const supabaseServiceKey: string | undefined = process.env.SUPABASE_SERVICE_ROLE
 
 // Roles allowed to mint a parent-portal login (and therefore read the generated
 // plaintext password back in the response). Mirrors the guardian guard in
-// 202611120001_close_teacher_privilege_escalation.sql.
+// 202611120002_close_teacher_privilege_escalation.sql.
 const PARENT_PORTAL_ROLES = ["super_admin", "school_admin", "admin", "headmaster", "secretary"];
 
 function generateTemporaryPassword(): string {
