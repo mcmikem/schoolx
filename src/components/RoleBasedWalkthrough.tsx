@@ -20,8 +20,7 @@ const HEADMASTER_STEPS: WalkthroughStep[] = [
     id: "welcome",
     title: "Welcome to SkoolMate",
     description: "Your all-in-one school management dashboard",
-    detail:
-      "This is your command centre. From here you can manage students, staff, fees, attendance, grades, and parent communication — all in one place.",
+    detail: "From here you can manage attendance, grades, class tests, and your timetable — all in one place.",
     icon: "celebration",
     href: "/dashboard",
   },
@@ -103,9 +102,9 @@ const TEACHER_STEPS: WalkthroughStep[] = [
   {
     id: "welcome",
     title: "Welcome, Teacher!",
-    description: "Your classroom command centre",
+    description: "Your daily classroom tasks",
     detail:
-      "This is where you manage your daily classroom tasks — attendance, grades, class tests, and your timetable. Everything you need is a click away.",
+      "From here you can manage attendance, grades, class tests, and your timetable. Everything you need is a click away.",
     icon: "celebration",
     href: "/dashboard",
   },
@@ -197,6 +196,23 @@ function saveCompleted(userId: string, completed: string[]) {
   } catch {}
 }
 
+/** True once the user has explicitly closed the walkthrough without finishing. */
+function getDismissed(userId: string): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    return localStorage.getItem(`skm_walkthrough_dismissed_${userId}`) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function saveDismissed(userId: string) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(`skm_walkthrough_dismissed_${userId}`, "1");
+  } catch {}
+}
+
 export default function RoleBasedWalkthrough() {
   const { user, school, isDemo } = useAuth();
   const router = useRouter();
@@ -217,12 +233,19 @@ export default function RoleBasedWalkthrough() {
     setCompleted(saved);
   }, [userId]);
 
+  // The walkthrough is opt-in. It used to auto-open 800ms after every login,
+  // which stacked a second modal on top of the admin onboarding flow and
+  // interrupted anyone mid-task. It now only opens when the user asks for it
+  // from the UserMenu, or on a genuinely new account that has never been shown
+  // it (checked below and gated by `isFirstEver`).
   useEffect(() => {
     if (!user?.id || !school || isDemo || !role || !isRoleBased(role)) return;
     const saved = getCompleted(user.id);
     if (saved.length >= totalSteps) return;
-    const delay = setTimeout(() => setIsActive(true), 800);
-    return () => clearTimeout(delay);
+    // Never-seen-before is the only case that opens on its own.
+    if (saved.length === 0 && !getDismissed(user.id)) {
+      setIsActive(true);
+    }
   }, [user?.id, school, isDemo, role, totalSteps]);
 
   const handleNext = useCallback(() => {
@@ -255,6 +278,7 @@ export default function RoleBasedWalkthrough() {
     setIsActive(false);
     setDismissed(true);
     if (userId) {
+      saveDismissed(userId);
       saveCompleted(
         userId,
         Array.from({ length: totalSteps }, (_, i) => steps[i]?.id || `step_${i}`),
@@ -272,7 +296,8 @@ export default function RoleBasedWalkthrough() {
   const handleDismiss = useCallback(() => {
     setIsActive(false);
     setDismissed(true);
-  }, []);
+    if (userId) saveDismissed(userId);
+  }, [userId]);
 
   if (!isActive || dismissed) return null;
 

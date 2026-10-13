@@ -32,7 +32,6 @@ import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 const OwlAssistant = dynamic(() => import("@/components/OwlAssistant"), { ssr: false });
 // CommandPalette removed — GlobalSearch is now the single search system (see src/components/GlobalSearch.tsx)
 const RoleBasedWalkthrough = dynamic(() => import("@/components/RoleBasedWalkthrough"), { ssr: false });
-const OnboardingTour = dynamic(() => import("@/components/OnboardingTour"), { ssr: false });
 import { supabase } from "@/lib/supabase";
 
 function hasCompletedSetupProgress(value: unknown): boolean {
@@ -468,8 +467,6 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
 
       <MobileBottomNav />
       <RoleBasedWalkthrough />
-      {/* Onboarding tour — overlay is now click-through, no longer blocks the dashboard */}
-      {onboardingCompleted && !isDemo && <OnboardingTour />}
       <OwlAssistant />
       <PWAInstallPrompt />
     </ErrorBoundary>
