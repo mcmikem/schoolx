@@ -40,7 +40,7 @@ jest.mock("@/lib/academic-context", () => ({
 
 jest.mock("@/lib/auth-context", () => ({
   useAuth: () => ({
-    school: { id: "school-1", name: "King's Academy" },
+    school: { id: "school-1", name: "King's Academy", feature_stage: "full" },
     user: { id: "user-1", full_name: "Jane Teacher", role: "teacher" },
     isDemo: false,
   }),
