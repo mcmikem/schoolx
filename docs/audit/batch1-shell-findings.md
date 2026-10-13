@@ -27,13 +27,17 @@ Screenshots were inspected visually, not only measured.
 
 ## Verified findings
 
-### B1-01 · `TRENDING_FLAT` renders as literal text — P0
+### B1-01 · `TRENDING_FLAT` renders as literal text — P0 — **FIXED**
 
 **Route:** any screen using `StatCard` with a flat or downward trend. Confirmed
 visible on `/dashboard` for **bursar** (Collected card) at 320/390/768/1280.
 **Roles:** all that reach a StatCard with `trend.direction` `down`/`flat`.
 **Severity:** P0 — it is the most-used dashboard in the app and it renders raw
 ligature source into the UI.
+
+**Status:** fixed in `afd9f156`'s follow-up (see "Fix" below). Verified by
+re-capturing the bursar dashboard at 390px: the card now reads
+`→ 0% vs last month` with a real glyph and the literal text is gone.
 
 **Evidence**
 
@@ -70,15 +74,19 @@ reference shapes; `const trendIcon = cond ? "a" : "b"` is none of them. The
 ligature was never collected, never subset into the font, so the browser cannot
 resolve it and renders the ligature source.
 
-**Proposed change (smallest useful):** teach the collector one more shape —
-a local assignment whose right-hand side is quoted icon literals — so the font
-subset is corrected at build time rather than special-casing the component.
-Secondarily, add a unit test asserting every icon name reachable at runtime
-resolves to a ligature present in the shipped subset.
+**Fix applied:** the collector now also gathers quoted literals from ternary
+assignments, admitting only those that resolve to a real ligature in the source
+font (blind collection matched 214 candidates, 187 of them ordinary strings).
+Subset regenerated: 308 → 323 ligatures. Guard in
+`src/__tests__/icon-font-subset.test.ts`.
 
-**Verification:** regenerate the subset and assert `trending_flat` and
-`trending_down` resolve via `collect_ligature_map`; re-run the bursar dashboard
-screenshot and confirm no literal ligature text appears.
+**Note on detection:** a DOM-based detector cannot find this. Material Symbols
+substitutes at the font level, so `textContent` is the ligature name whether or
+not it renders — every `<MaterialIcon>` matches. The defect is only visible in
+a screenshot or by inspecting the font's GSUB ligature records.
+
+**Verification:** `icon-font-subset.test.ts` asserts the runtime-constructed
+icons resolve in the shipped font; plus the bursar dashboard screenshot.
 
 ---
 
@@ -205,36 +213,45 @@ Source: `SidebarShell.tsx` pin button. 18px wide is below any reasonable target.
 
 ---
 
-### B1-07 · Bursar dashboard number formatting defect — P2
+### B1-07 · ~~Bursar dashboard number formatting defect~~ — **RETRACTED**
 
-**Route:** `/dashboard` bursar, "Exceptions First"
-**Severity:** P2
+Originally reported as: the "Collection gap" tile renders `UGX 38.2M,00` —
+an abbreviated magnitude with a comma decimal, mixing two formats in one value.
 
-**Evidence** `bursar-w390.png`: the "Collection gap" tile reads
-`UGX 38.2M,00` — an abbreviated magnitude with a comma decimal, mixing two
-formats in one value.
+**This was my misreading of a low-resolution screenshot.** Reading the DOM text
+directly returns `UGX 38,295,000`, correctly formatted. There is no defect here
+and no change was made.
 
-**Proposed change:** route this through the shared `formatCurrency` used
-elsewhere on the fees surfaces.
-
-**Verification:** unit test on the formatter for magnitudes ≥ 1M.
+Kept in the log rather than deleted, because it is the finding most likely to be
+re-raised from the screenshot by someone else, and because it records that
+reading numbers off a compressed image is not verification.
 
 ---
 
-### B1-08 · Bursar dashboard renders two empty sections — P2
+### B1-08 · Bursar dashboard collapsed sections give no affordance — P2
 
 **Route:** `/dashboard` bursar
-**Severity:** P2
+**Severity:** P2 — polish, not breakage.
 
-**Evidence** `bursar-w390.png`: "Top defaulters (34)" with a `UGX 38.3M` chip
-renders as a collapsed header with no body, and "Recent payments +UGX 0"
-likewise. Both look like broken/loading states in a settled page.
+**Evidence** DOM inspection of the two cards:
 
-**Proposed change:** render an explicit empty state (and a real error state),
-rather than a header with nothing under it.
+```
+Top defaulters: cardText=["Top defaulters (34)","expand_more","UGX 38.3M"]  childCount=2
+Recent payments: cardText=["Recent payments","expand_more","+UGX 0"]        childCount=2
+```
 
-**Verification:** e2e assertion that a section header is never rendered without
-either content or an empty-state message.
+Both are **collapsed accordions** (`expand_more` present, no body rendered).
+Nothing is broken and nothing is stuck loading. The earlier screenshot
+rendering them as blank cards is accurate, though — the collapsed state shows
+a count or a `+UGX 0` chip with no visible hint that content exists below, so
+at a glance they read as empty.
+
+**Proposed change:** add a collapsed-state affordance (placeholder rows, or a
+visible "expand" affordance) so a collapsed section is distinguishable from an
+empty one.
+
+**Verification:** e2e assertion that a collapsed section renders either content
+or an explicit placeholder.
 
 ---
 
