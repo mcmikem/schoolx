@@ -20,7 +20,6 @@ import { Button } from "@/components/ui/index";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { Modal } from "@/components/ui/Modal";
-import { PageGuidance } from "@/components/PageGuidance";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { normalizeAttendanceInput, validateAttendanceInput } from "@/lib/validation";
 import type { Student } from "@/types";
@@ -1169,45 +1168,31 @@ export default function AttendancePage() {
           </div>
         ) : (
           <>
-            <details className="rounded-xl border border-outline-variant bg-surface-container-lowest px-4 py-3">
-              <summary className="cursor-pointer text-[13px] font-bold text-on-surface-variant select-none">
-                How marking works
-              </summary>
-              <div className="pt-2">
-                <PageGuidance
-                  title="How to Use Attendance"
-                  tips={[
-                    {
-                      icon: "school",
-                      text: "Select a class from the dropdown above",
-                    },
-                    { icon: "event", text: "Choose the date (defaults to today)" },
-                    {
-                      icon: "touch_app",
-                      text: "Swipe right for Present, left for Absent — or tap once to mark Absent, again to cycle Late and Excused",
-                    },
-                    {
-                      icon: "radio_button_unchecked",
-                      text: "Rows start Unmarked — first tap marks Absent. Unmarked pupils are recorded as Present on save",
-                    },
-                    {
-                      icon: "save",
-                      text: "Click Save when done - unmarked students are recorded as Present",
-                    },
-                  ]}
-                />
-              </div>
-            </details>
-
-            <div className="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 shadow-sm">
-              <MaterialIcon icon="mic" className="text-xl text-primary shrink-0" />
-              <div className="min-w-0">
-                <div className="font-semibold text-on-surface text-sm">Tap once to mark Absent</div>
-                <div className="text-xs text-on-surface-variant">
-                  Swipe right for Present, left for Absent — or tap to cycle. Marked pupils tuck away automatically.
+            {/* How marking works. The previous version shipped this twice: a
+                collapsed "How marking works" disclosure and then a second
+                always-visible card, both of which led with "Tap once to mark
+                Absent". That is the wrong instruction to lead with — almost
+                every pupil is present, so a teacher following it literally
+                marks the whole register absent. Unmarked pupils are recorded
+                as present when you save, so the real model is "mark the
+                exceptions". Shown until the first mark so it does not
+                permanently cost vertical space on the register. */}
+            {students.length > 0 && markedCount === 0 && (
+              <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] p-4">
+                <div className="flex items-start gap-3">
+                  <MaterialIcon icon="touch_app" className="text-xl text-primary mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-bold text-sm text-[var(--t1)]">How marking works</p>
+                    <ol className="mt-2 space-y-1.5 text-[13px] text-[var(--t2)] list-decimal list-inside">
+                      <li>Everyone counts as Present. You only mark the ones who are not there.</li>
+                      <li>Tap a pupil who is absent. Tap again to change it to Late or Excused.</li>
+                      <li>Swipe a row right for Present, left for Absent.</li>
+                      <li>When you finish, tap Save.</li>
+                    </ol>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
 
             {students.length > 0 && (
               <div className="sticky top-0 z-10 -mx-1 px-1 py-2 bg-[var(--bg)]/95 backdrop-blur-sm">
