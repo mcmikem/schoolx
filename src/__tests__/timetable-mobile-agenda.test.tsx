@@ -2,10 +2,16 @@ import React from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import TimetablePage from "@/app/dashboard/timetable/page";
 
+// Mutable so each test can pick the role it needs. Editing a timetable is
+// gated to admin/dean/headmaster: `teacher_timetable` had `FOR ALL` RLS for any
+// authenticated user in the school, so a teacher could otherwise rewrite the
+// whole timetable from the "+ Add lesson" cells.
+let mockRole = "headmaster";
+
 jest.mock("@/lib/auth-context", () => ({
   useAuth: () => ({
     school: { id: "school-1" },
-    user: { id: "teacher-1", role: "teacher" },
+    user: { id: "user-1", role: mockRole },
     isDemo: true,
   }),
 }));
@@ -77,6 +83,10 @@ jest.mock("@/components/ConfirmDialog", () => ({ ConfirmDialog: () => null }));
 jest.mock("@/components/timetable/GenerateTimetableModal", () => () => null);
 
 describe("Timetable mobile agenda", () => {
+  beforeEach(() => {
+    mockRole = "headmaster";
+  });
+
   it("shows the selected class overview and opens the assignment form from an open period", () => {
     render(<TimetablePage />);
 
@@ -87,5 +97,31 @@ describe("Timetable mobile agenda", () => {
 
     expect(screen.getByRole("heading", { name: /assign lesson/i })).toBeInTheDocument();
     expect(screen.getByText(/Monday · Period 1/)).toBeInTheDocument();
+  });
+
+  // Pins the privilege-escalation fix in 63100745. Without this the gate can
+  // silently drop back to showing teachers a school-wide structural control.
+  it.each([
+    "teacher",
+    "secretary",
+    "bursar",
+    "dorm_master",
+  ])("does not offer the add-lesson control to a non-timetable-admin role: %s", (role) => {
+    mockRole = role;
+    render(<TimetablePage />);
+
+    expect(screen.queryByRole("button", { name: /add lesson/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /remove /i })).not.toBeInTheDocument();
+  });
+
+  it.each([
+    "headmaster",
+    "school_admin",
+    "dean_of_studies",
+  ])("keeps the add-lesson control for timetable admin roles: %s", (role) => {
+    mockRole = role;
+    render(<TimetablePage />);
+
+    expect(screen.getByRole("button", { name: /add lesson/i })).toBeInTheDocument();
   });
 });
