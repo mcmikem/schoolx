@@ -859,6 +859,17 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> = dee
   ],
 });
 
+/**
+ * True when the role is one the app knows how to render a nav for. A role that
+ * fails this is not a teacher — it is a broken account (role revoked, typo in
+ * the DB, staff row out of sync with auth.users).
+ */
+export function isKnownNavigationRole(role: string | null | undefined): boolean {
+  if (!role) return false;
+  if (HEADMASTER_EQUIVALENT_NAV_ROLES.some((allowedRole) => allowedRole === role)) return true;
+  return role in navigationByRole;
+}
+
 export function getNavigationForRole(role: string): readonly NavGroup[] {
   if (HEADMASTER_EQUIVALENT_NAV_ROLES.some((allowedRole) => allowedRole === role)) {
     return navigationByRole.headmaster;
@@ -866,7 +877,10 @@ export function getNavigationForRole(role: string): readonly NavGroup[] {
   if (role in navigationByRole) {
     return navigationByRole[role as NavigationRole];
   }
-  return navigationByRole.teacher;
+  // Deliberately empty rather than the teacher nav. A revoked or malformed
+  // role must not silently inherit teacher permissions and data — the account
+  // looks broken and DashboardRouter surfaces a recovery screen instead.
+  return [];
 }
 
 // Stable priority sort: groups marked priority > 0 (e.g. "Other Tools") are

@@ -307,7 +307,64 @@ export default function DashboardRouter() {
     case "marketer":
       return <MarketerDashboard />;
     default:
-      logger.warn("[DashboardRouter] Unknown role:", role, "- defaulting to TeacherDashboard");
-      return <TeacherDashboard />;
+      return <UnknownRoleScreen role={role} onSignOut={signOut} />;
   }
+}
+
+/**
+ * Reached only when user.role is not one the app can render a dashboard for —
+ * typically a role revoked in the staff table, or a profile row that never
+ * synced from auth.users.
+ *
+ * This is deliberately NOT the teacher dashboard. Defaulting here made a broken
+ * account indistinguishable from a real teacher: same nav, same class-scoped
+ * data, no signal that anything was wrong. It now says what happened and offers
+ * the two real ways out.
+ */
+function UnknownRoleScreen({ role, onSignOut }: { role: string; onSignOut: () => Promise<void> | void }) {
+  const router = useRouter();
+
+  useEffect(() => {
+    logger.error("[DashboardRouter] Unrecognised role %s - showing recovery screen instead of a role dashboard", role);
+  }, [role]);
+
+  return (
+    <div className="min-h-screen bg-[var(--bg)] flex items-center justify-center px-4">
+      <div className="max-w-md w-full text-center">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--surface)]">
+          <span className="material-symbols-outlined text-2xl text-[var(--amber)]">person_alert</span>
+        </div>
+        <h1 className="text-xl font-bold text-[var(--t1)]">Your access needs attention</h1>
+        <p className="mt-2 text-sm text-[var(--t2)]">
+          Your account has a role this app doesn&apos;t recognise
+          {role ? (
+            <>
+              {" "}
+              (<code className="rounded bg-[var(--surface-container)] px-1 py-0.5 text-xs">{role}</code>)
+            </>
+          ) : null}
+          . Your access is paused until an administrator sets it.
+        </p>
+        <p className="mt-2 text-sm text-[var(--t2)]">
+          Ask your headmaster or administrator to check your staff record, then sign back in.
+        </p>
+        <div className="mt-6 flex flex-col gap-3">
+          <button
+            type="button"
+            onClick={() => router.refresh()}
+            className="rounded-xl bg-[var(--primary)] text-white px-4 py-2.5 text-sm font-semibold hover:opacity-90 transition-opacity"
+          >
+            Check again
+          </button>
+          <button
+            type="button"
+            onClick={() => void onSignOut()}
+            className="rounded-xl border border-[var(--border)] px-4 py-2.5 text-sm font-semibold text-[var(--t1)] hover:bg-[var(--surface)] transition-colors"
+          >
+            Sign out
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }

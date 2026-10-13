@@ -1,4 +1,4 @@
-import { getNavigationForRole, sortNavGroupsByPriority } from "../lib/navigation";
+import { getNavigationForRole, isKnownNavigationRole, sortNavGroupsByPriority } from "../lib/navigation";
 
 describe("Navigation", () => {
   describe("getNavigationForRole", () => {
@@ -28,10 +28,31 @@ describe("Navigation", () => {
       expect(nav.some((g) => g.items.some((i) => i.href === "/dashboard/attendance"))).toBe(true);
     });
 
-    test("returns teacher as default for unknown role", () => {
-      const nav = getNavigationForRole("unknown_role");
-      expect(nav).toBeDefined();
-      expect(nav).toEqual(getNavigationForRole("teacher"));
+    // An unrecognised role is a broken account, not a teacher. Defaulting to
+    // the teacher nav made a revoked/typo'd role silently inherit teacher
+    // permissions and class-scoped data, indistinguishable from a real teacher.
+    test("returns an empty nav for an unknown role", () => {
+      expect(getNavigationForRole("unknown_role")).toEqual([]);
+    });
+
+    test("returns an empty nav for a revoked class_teacher role", () => {
+      // class_teacher is a real UserRole but has no nav of its own; if it is
+      // ever passed through here it must not borrow the teacher nav.
+      expect(getNavigationForRole("class_teacher")).toEqual([]);
+    });
+
+    test("isKnownNavigationRole separates known from broken roles", () => {
+      expect(isKnownNavigationRole("teacher")).toBe(true);
+      expect(isKnownNavigationRole("bursar")).toBe(true);
+      // headmaster-equivalents are known even though they are not nav keys.
+      expect(isKnownNavigationRole("admin")).toBe(true);
+      expect(isKnownNavigationRole("school_admin")).toBe(true);
+      expect(isKnownNavigationRole("board")).toBe(true);
+      expect(isKnownNavigationRole("class_teacher")).toBe(false);
+      expect(isKnownNavigationRole("unknown_role")).toBe(false);
+      expect(isKnownNavigationRole(null)).toBe(false);
+      expect(isKnownNavigationRole(undefined)).toBe(false);
+      expect(isKnownNavigationRole("")).toBe(false);
     });
 
     test("headmaster has access to all admin functions", () => {
