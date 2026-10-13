@@ -1336,6 +1336,30 @@ export default function GradesPage() {
           </div>
         </div>
 
+        {/* First-run guidance. Shown only until the teacher has entered their
+            first mark, then it gets out of the way — most of our users are
+            not tech-native, so guidance has to be plain and unmissable while
+            it matters, and gone once it doesn't. */}
+        {selectedClass && selectedSubject && Object.keys(marks).length === 0 && (
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] p-4">
+            <div className="flex items-start gap-3">
+              <MaterialIcon icon="touch_app" className="text-xl text-primary mt-0.5 shrink-0" />
+              <div>
+                <p className="font-bold text-sm text-[var(--t1)]">How to enter marks</p>
+                <ol className="mt-2 space-y-1.5 text-[13px] text-[var(--t2)] list-decimal list-inside">
+                  <li>Type the score in the box under CA1. CA1 is classwork — mark it out of 10.</li>
+                  <li>Tap the next pupil and keep going down the list.</li>
+                  <li>Then do the same for CA2, CA3 and Exam.</li>
+                  <li>When you finish, tap Save Grades at the top of the page.</li>
+                </ol>
+                <p className="mt-2 text-xs text-[var(--t3)]">
+                  Leave a box empty if you have not assessed that pupil yet. You can come back and fill it later.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Everything below only appears once a class + subject are chosen */}
         {selectedClass && selectedSubject && (
           <>
