@@ -90,11 +90,17 @@ icons resolve in the shipped font; plus the bursar dashboard screenshot.
 
 ---
 
-### B1-02 · Role-aware quick action is identical for 6 of 7 roles — P1
+### B1-02 · Role-aware quick action is identical for 6 of 7 roles — P1 — **FIXED**
 
 **Route:** `/dashboard`, mobile bottom nav
 **Severity:** P1 — the feature exists and is named as role-aware, but does not
 actually vary.
+
+**Status:** fixed. `ROLE_QUICK_ACTION` in `MobileBottomNav.tsx` declares the
+action per role; the capability priority chain is gone. Verified in Chromium at
+390px — see the table under B1-03. Guard:
+`src/__tests__/mobile-bottom-nav-quick-action.test.tsx` (verified to fail 9 of
+11 against the old behaviour).
 
 **Evidence**
 
@@ -129,10 +135,29 @@ e2e table; assert it is not "Add Student" for teacher/bursar/dorm_master/secreta
 
 ---
 
-### B1-03 · Quick-action label promises an action but navigates to a list — P1
+### B1-03 · Quick-action label promises an action but navigates to a list — P1 — **FIXED**
 
 **Route:** `/dashboard`, mobile bottom nav
 **Severity:** P1
+
+**Status:** fixed with B1-02. Every label now names its destination, and the
+contextual swaps — which changed the button's meaning depending on route —
+were removed so the action is constant per role.
+
+Rendered centre action at 390px, from `b1-02-verify` (Chromium):
+
+| role | centre label | href | other bar items |
+|---|---|---|---|
+| headmaster | Students | /dashboard/students/ | Home, Attend, Fees, More |
+| dean_of_studies | Academic Reports | /dashboard/reports/ | Home, Attend, More |
+| bursar | Invoices | /dashboard/invoicing/ | Home, Fees, More |
+| teacher | Enter Marks | /dashboard/grades/ | Home, Attend, More |
+| secretary | Messages | /dashboard/messages/ | Home, More |
+| dorm_master | Dorm Attendance | /dashboard/dorm-attendance/ | Home, Attend, More |
+| marketer | Open Dashboard | /dashboard/ | Home, More |
+
+No centre action duplicates Home, Attend or Fees, and no role is offered
+"Add Student".
 
 **Evidence**
 

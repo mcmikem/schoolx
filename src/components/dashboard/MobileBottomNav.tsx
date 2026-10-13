@@ -17,49 +17,57 @@ type QuickStep = {
   icon: string;
 };
 
+const DASHBOARD_FALLBACK: QuickStep = {
+  label: "Open Dashboard",
+  navLabel: "Home",
+  href: "/dashboard",
+  icon: "dashboard",
+};
+
+/**
+ * The centre action in the mobile bar, declared per role.
+ *
+ * It used to be resolved by a capability priority — students, then attendance,
+ * then fees. Every staff role except marketer can read `students`, so the
+ * chain resolved the same step for six of seven roles: a bursar and a teacher
+ * both got "Add Student" as their primary phone action, which is the daily task
+ * of neither. Labels also promised an action while the href landed on a list
+ * ("Add Student" → /dashboard/students), and the contextual swaps changed the
+ * meaning of the same button depending on the current route.
+ *
+ * Two rules now hold: the label names the destination, and no entry duplicates
+ * a destination the bar already carries (Home / Attend / Fees / More).
+ */
+const ROLE_QUICK_ACTION: Record<string, QuickStep> = {
+  // Attend already sits in the bar, so the next task is entering marks.
+  teacher: { label: "Enter Marks", navLabel: "Marks", href: "/dashboard/grades", icon: "grade" },
+  dean_of_studies: { label: "Academic Reports", navLabel: "Reports", href: "/dashboard/reports", icon: "description" },
+  // Fees already sits in the bar; invoicing is the bursar's other daily task.
+  bursar: { label: "Invoices", navLabel: "Invoices", href: "/dashboard/invoicing", icon: "description" },
+  headmaster: { label: "Students", navLabel: "Students", href: "/dashboard/students", icon: "group" },
+  secretary: { label: "Messages", navLabel: "Messages", href: "/dashboard/messages", icon: "chat" },
+  dorm_master: { label: "Dorm Attendance", navLabel: "Dorm", href: "/dashboard/dorm-attendance", icon: "bed" },
+};
+
 export default function MobileBottomNav() {
   const pathname = usePathname();
   const { open: openSidebar } = useSidebar();
   const { user } = useAuth();
   const role = user?.role as UserRole | undefined;
 
-  const canUseStudents = role ? canAccess(role, "students") : false;
   const canUseAttendance = role ? canAccess(role, "attendance") : false;
   const canUseFees = role ? canAccess(role, "fees") : false;
-  const canUseMessages = role ? canAccess(role, "messages") : false;
 
   const isActive = (path: string) => pathname === path || pathname?.startsWith(path + "/");
 
+  // Constant per role. The previous version swapped the action as the user
+  // moved between destinations, which meant the same button changed meaning
+  // depending on the route — unpredictable, and the swapped labels did not
+  // describe where they went either.
   const quickStep = useMemo<QuickStep>(() => {
-    if (!role) return { label: "Open Dashboard", navLabel: "Home", href: "/dashboard", icon: "dashboard" };
-
-    if (!pathname)
-      return canUseStudents
-        ? { label: "Add Student", navLabel: "Students", href: "/dashboard/students", icon: "person_add" }
-        : canUseAttendance
-          ? { label: "Take Attendance", navLabel: "Register", href: "/dashboard/attendance", icon: "how_to_reg" }
-          : canUseFees
-            ? { label: "Record Fees", navLabel: "Fees", href: "/dashboard/fees", icon: "payments" }
-            : { label: "Open Dashboard", navLabel: "Home", href: "/dashboard", icon: "dashboard" };
-
-    if (pathname.startsWith("/dashboard/students") && canUseAttendance)
-      return { label: "Take Attendance", navLabel: "Register", href: "/dashboard/attendance", icon: "how_to_reg" };
-    if (pathname.startsWith("/dashboard/attendance") && canUseFees)
-      return { label: "Record Fees", navLabel: "Fees", href: "/dashboard/fees", icon: "payments" };
-    if (pathname.startsWith("/dashboard/fees") && canUseMessages)
-      return { label: "Send Reminder", navLabel: "Messages", href: "/dashboard/messages", icon: "sms" };
-
-    if (canUseStudents) {
-      return { label: "Add Student", navLabel: "Students", href: "/dashboard/students", icon: "person_add" };
-    }
-    if (canUseAttendance) {
-      return { label: "Take Attendance", navLabel: "Register", href: "/dashboard/attendance", icon: "how_to_reg" };
-    }
-    if (canUseFees) {
-      return { label: "Record Fees", navLabel: "Fees", href: "/dashboard/fees", icon: "payments" };
-    }
-    return { label: "Open Dashboard", navLabel: "Home", href: "/dashboard", icon: "dashboard" };
-  }, [pathname, role, canUseStudents, canUseAttendance, canUseFees, canUseMessages]);
+    if (!role) return DASHBOARD_FALLBACK;
+    return ROLE_QUICK_ACTION[role] ?? DASHBOARD_FALLBACK;
+  }, [role]);
 
   const quickActive = isActive(quickStep.href);
 
