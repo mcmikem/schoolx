@@ -1588,7 +1588,7 @@ export default function AttendancePage() {
               </div>
             )}
 
-            <div className="mobile-sticky-action fixed bottom-[calc(84px+env(safe-area-inset-bottom,0px))] left-0 right-0 p-4 md:relative md:bottom-auto md:p-0 bg-surface/95 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none border-t border-outline-variant md:border-0 z-10">
+            <div className="mobile-sticky-action fixed bottom-[calc(84px+env(safe-area-inset-bottom,0px))] left-0 right-0 p-4 md:relative md:bottom-auto md:p-0 bg-surface/95 md:bg-transparent border-t border-outline-variant md:border-0 z-10">
               <Button
                 onClick={() => saveAttendance()}
                 disabled={saving}

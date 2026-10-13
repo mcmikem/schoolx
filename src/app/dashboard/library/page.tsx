@@ -318,8 +318,9 @@ export default function LibraryPage() {
 
         {/* Add / Edit Book Modal */}
         {showAdd && (
-          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
-            <div className="bg-white rounded-[2.5rem] w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl p-8 transform animate-in slide-in-from-bottom-8 duration-300">
+          <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
+            <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-md" aria-hidden="true" />
+            <div className="relative bg-white rounded-[2.5rem] w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl p-8 transform animate-in slide-in-from-bottom-8 duration-300">
               <div className="flex justify-between mb-8 items-center">
                 <h2 className="text-2xl font-black text-slate-800 tracking-tight">
                   {editingBook ? "Edit Volume" : "Add Volume"}

@@ -1963,8 +1963,12 @@ function EditSchoolModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" aria-hidden="true" />
+      <div
+        className="relative bg-white rounded-2xl shadow-xl p-6 w-full max-w-md mx-4"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-['Sora'] text-[15px] font-bold text-[var(--t1)]">Edit School Contact</h3>
           <button onClick={onClose} className="text-[var(--t4)] hover:text-[var(--t1)] p-1">

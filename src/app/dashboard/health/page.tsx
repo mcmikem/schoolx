@@ -63,16 +63,19 @@ export default function HealthPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
   const [editingRecord, setEditingRecord] = useState<HealthRecord | null>(null);
-  const [editForm, setEditForm] = useState({ condition: "", severity: "mild" as "mild" | "moderate" | "severe", treatment: "", status: "admitted" as "admitted" | "discharged" | "referred" });
+  const [editForm, setEditForm] = useState({
+    condition: "",
+    severity: "mild" as "mild" | "moderate" | "severe",
+    treatment: "",
+    status: "admitted" as "admitted" | "discharged" | "referred",
+  });
   const [editSaving, setEditSaving] = useState(false);
   const admitValidationError = !form.condition.trim()
     ? "Add the medical condition to continue."
     : !form.student_id && !form.student_name.trim() && !studentSearch.trim()
       ? "Select or enter a student name before admitting."
       : "";
-  const editValidationError = !editForm.condition.trim()
-    ? "Condition is required to save changes."
-    : "";
+  const editValidationError = !editForm.condition.trim() ? "Condition is required to save changes." : "";
 
   // Offline hook handles data loading; no need for fetchRecords or useEffect
 
@@ -110,7 +113,7 @@ export default function HealthPage() {
         if (!studentRecord) throw new Error("Selected student was not found in this school");
       }
 
-      const { withTimeout, timeoutFallback } = await import('@/lib/hooks/utils');
+      const { withTimeout, timeoutFallback } = await import("@/lib/hooks/utils");
       const healthResult = await withTimeout(
         supabase.from("health_records").insert({
           school_id: school.id,
@@ -123,7 +126,7 @@ export default function HealthPage() {
           admitted_at: new Date().toISOString(),
         }),
         15000,
-        timeoutFallback()
+        timeoutFallback(),
       );
       const error = healthResult?.error;
       if (error) throw error;
@@ -142,7 +145,7 @@ export default function HealthPage() {
 
   const dischargeStudent = async (id: string, referred = false) => {
     setDischarging(id);
-    const { withTimeout, timeoutFallback } = await import('@/lib/hooks/utils');
+    const { withTimeout, timeoutFallback } = await import("@/lib/hooks/utils");
     const dischargeResult = await withTimeout(
       supabase
         .from("health_records")
@@ -152,7 +155,7 @@ export default function HealthPage() {
         })
         .eq("id", id),
       15000,
-      timeoutFallback()
+      timeoutFallback(),
     );
     const error = dischargeResult?.error;
     if (error) {
@@ -188,15 +191,21 @@ export default function HealthPage() {
 
   const handleEditSave = async () => {
     if (!editingRecord) return;
-    if (editValidationError) { toast.error(editValidationError); return; }
+    if (editValidationError) {
+      toast.error(editValidationError);
+      return;
+    }
     setEditSaving(true);
     try {
-      const { error } = await supabase.from("health_records").update({
-        condition: editForm.condition.trim(),
-        severity: editForm.severity,
-        treatment: editForm.treatment.trim(),
-        status: editForm.status,
-      }).eq("id", editingRecord.id);
+      const { error } = await supabase
+        .from("health_records")
+        .update({
+          condition: editForm.condition.trim(),
+          severity: editForm.severity,
+          treatment: editForm.treatment.trim(),
+          status: editForm.status,
+        })
+        .eq("id", editingRecord.id);
       if (error) throw error;
       toast.success("Record updated");
       refetchRecords();
@@ -217,255 +226,202 @@ export default function HealthPage() {
 
   return (
     <PageErrorBoundary>
-    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
-      <PageHeader
-        title="Health & Sick Bay"
-        subtitle="Student welfare and medical management"
-        actions={
-          <button
-            onClick={() => setShowAdd(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-500 text-white rounded-2xl font-bold shadow-lg shadow-red-500/20 hover:scale-105 transition-all"
-          >
-            <MaterialIcon icon="add" />
-            Admit Student
-          </button>
-        }
-      />
+      <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
+        <PageHeader
+          title="Health & Sick Bay"
+          subtitle="Student welfare and medical management"
+          actions={
+            <button
+              onClick={() => setShowAdd(true)}
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-500 text-white rounded-2xl font-bold shadow-lg shadow-red-500/20 hover:scale-105 transition-all"
+            >
+              <MaterialIcon icon="add" />
+              Admit Student
+            </button>
+          }
+        />
 
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {[
-          { label: "Currently Admitted", value: admitted.length, color: "bg-blue-600", icon: "bed" },
-          { label: "Discharged Today", value: dischargedToday, color: "bg-emerald-500", icon: "check_circle" },
-          { label: "Referred to Hospital", value: referred.length, color: "bg-red-500", icon: "local_hospital" },
-        ].map((s) => (
-          <div key={s.label} className="p-5 bg-white rounded-3xl border border-slate-100 flex items-center gap-4">
-            <div className={`w-12 h-12 rounded-2xl ${s.color} text-white flex items-center justify-center shrink-0`}>
-              <MaterialIcon icon={s.icon} />
+        {/* Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {[
+            { label: "Currently Admitted", value: admitted.length, color: "bg-blue-600", icon: "bed" },
+            { label: "Discharged Today", value: dischargedToday, color: "bg-emerald-500", icon: "check_circle" },
+            { label: "Referred to Hospital", value: referred.length, color: "bg-red-500", icon: "local_hospital" },
+          ].map((s) => (
+            <div key={s.label} className="p-5 bg-white rounded-3xl border border-slate-100 flex items-center gap-4">
+              <div className={`w-12 h-12 rounded-2xl ${s.color} text-white flex items-center justify-center shrink-0`}>
+                <MaterialIcon icon={s.icon} />
+              </div>
+              <div>
+                <p className="text-2xl font-black text-slate-800">{s.value}</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{s.label}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-2xl font-black text-slate-800">{s.value}</p>
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{s.label}</p>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Records Table */}
-
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {[
-          { label: "Admitted", value: admitted.length, tone: "text-blue-700 bg-blue-50" },
-          { label: "Discharged today", value: dischargedToday, tone: "text-emerald-700 bg-emerald-50" },
-          { label: "Referred", value: referred.length, tone: "text-red-700 bg-red-50" },
-          { label: "Records", value: records.length, tone: "text-slate-700 bg-slate-50" },
-        ].map((item) => (
-          <div key={item.label} className={`rounded-2xl border border-slate-100 p-3 ${item.tone}`}>
-            <div className="text-[11px] font-black uppercase tracking-[0.18em] opacity-80">{item.label}</div>
-            <div className="mt-1 text-lg font-bold">{item.value}</div>
-          </div>
-        ))}
-      </div>
-      <div className={cardClassName + " overflow-hidden"}>
-        <div className="p-5 border-b border-slate-50 bg-slate-50/50">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Sick Bay Records</p>
+          ))}
         </div>
-        {loading ? (
-          <div className="p-8 text-center text-slate-400 font-medium">Loading records…</div>
-        ) : records.length === 0 ? (
-          <div className="p-12 text-center">
-            <MaterialIcon icon="medical_services" className="text-5xl text-slate-200 mb-3" />
-            <p className="font-bold text-slate-400">No health records yet</p>
-            <p className="text-sm text-slate-300 mt-1">Admitted students will appear here</p>
+
+        {/* Records Table */}
+
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {[
+            { label: "Admitted", value: admitted.length, tone: "text-blue-700 bg-blue-50" },
+            { label: "Discharged today", value: dischargedToday, tone: "text-emerald-700 bg-emerald-50" },
+            { label: "Referred", value: referred.length, tone: "text-red-700 bg-red-50" },
+            { label: "Records", value: records.length, tone: "text-slate-700 bg-slate-50" },
+          ].map((item) => (
+            <div key={item.label} className={`rounded-2xl border border-slate-100 p-3 ${item.tone}`}>
+              <div className="text-[11px] font-black uppercase tracking-[0.18em] opacity-80">{item.label}</div>
+              <div className="mt-1 text-lg font-bold">{item.value}</div>
+            </div>
+          ))}
+        </div>
+        <div className={cardClassName + " overflow-hidden"}>
+          <div className="p-5 border-b border-slate-50 bg-slate-50/50">
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Sick Bay Records</p>
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead>
-                <tr className="border-b border-slate-50">
-                  <th className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Student</th>
-                  <th className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Condition</th>
-                  <th className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Severity</th>
-                  <th className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Treatment</th>
-                  <th className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Status</th>
-                  <th className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Admitted</th>
-                  <th className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {records.map((r) => (
-                  <tr key={r.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-6 py-4 font-bold text-slate-800 text-sm">{r.student_name}</td>
-                    <td className="px-6 py-4 text-sm text-slate-600">{r.condition}</td>
-                    <td className="px-6 py-4">
-                      <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${SEVERITY_STYLES[r.severity].bg} ${SEVERITY_STYLES[r.severity].text}`}>
-                        <div className={`w-1.5 h-1.5 rounded-full ${SEVERITY_STYLES[r.severity].dot}`} />
-                        {r.severity}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-xs text-slate-500 max-w-[200px] truncate">{r.treatment}</td>
-                    <td className="px-6 py-4">
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${STATUS_BADGE[r.status]}`}>
-                        {r.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-xs text-slate-400 font-mono">
-                      {new Date(r.admitted_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex gap-2">
-                        {r.status === "admitted" && (
-                          <>
-                            <button
-                              onClick={() => dischargeStudent(r.id, false)}
-                              disabled={discharging === r.id}
-                              className="px-3 py-1.5 text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 rounded-xl hover:bg-emerald-100 transition-colors disabled:opacity-50"
-                            >
-                              Discharge
-                            </button>
-                            <button
-                              onClick={() => dischargeStudent(r.id, true)}
-                              disabled={discharging === r.id}
-                              className="px-3 py-1.5 text-[10px] font-black uppercase tracking-wider bg-red-50 text-red-700 rounded-xl hover:bg-red-100 transition-colors disabled:opacity-50"
-                            >
-                              Refer
-                            </button>
-                          </>
-                        )}
-                        <button
-                          onClick={() => openEdit(r)}
-                          title="Edit record"
-                          className="p-1.5 hover:bg-blue-50 rounded-xl text-slate-300 hover:text-blue-500 transition-colors"
-                        >
-                          <MaterialIcon icon="edit" style={{ fontSize: 16 }} />
-                        </button>
-                        <button
-                          onClick={() => deleteRecord(r.id)}
-                          disabled={deletingHealthId === r.id}
-                          title="Delete record"
-                          className="p-1.5 hover:bg-red-50 rounded-xl text-slate-300 hover:text-red-500 disabled:opacity-50 transition-colors"
-                        >
-                          <MaterialIcon icon={deletingHealthId === r.id ? "hourglass_empty" : "delete"} style={{ fontSize: 16 }} />
-                        </button>
-                      </div>
-                    </td>
+          {loading ? (
+            <div className="p-8 text-center text-slate-400 font-medium">Loading records…</div>
+          ) : records.length === 0 ? (
+            <div className="p-12 text-center">
+              <MaterialIcon icon="medical_services" className="text-5xl text-slate-200 mb-3" />
+              <p className="font-bold text-slate-400">No health records yet</p>
+              <p className="text-sm text-slate-300 mt-1">Admitted students will appear here</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="border-b border-slate-50">
+                    <th className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      Student
+                    </th>
+                    <th className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      Condition
+                    </th>
+                    <th className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      Severity
+                    </th>
+                    <th className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      Treatment
+                    </th>
+                    <th className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      Admitted
+                    </th>
+                    <th className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      Actions
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* Edit Record Modal */}
-      {editingRecord && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
-          <div className="bg-white rounded-[40px] w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl p-8">
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-black text-slate-800">Edit Record</h2>
-              <button onClick={() => setEditingRecord(null)} className="p-2 hover:bg-slate-100 rounded-xl">
-                <MaterialIcon icon="close" className="text-slate-400" />
-              </button>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {records.map((r) => (
+                    <tr key={r.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="px-6 py-4 font-bold text-slate-800 text-sm">{r.student_name}</td>
+                      <td className="px-6 py-4 text-sm text-slate-600">{r.condition}</td>
+                      <td className="px-6 py-4">
+                        <div
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${SEVERITY_STYLES[r.severity].bg} ${SEVERITY_STYLES[r.severity].text}`}
+                        >
+                          <div className={`w-1.5 h-1.5 rounded-full ${SEVERITY_STYLES[r.severity].dot}`} />
+                          {r.severity}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 text-xs text-slate-500 max-w-[200px] truncate">{r.treatment}</td>
+                      <td className="px-6 py-4">
+                        <span
+                          className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${STATUS_BADGE[r.status]}`}
+                        >
+                          {r.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-xs text-slate-400 font-mono">
+                        {new Date(r.admitted_at).toLocaleDateString("en-GB", {
+                          day: "2-digit",
+                          month: "short",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </td>
+                      <td className="px-6 py-4">
+                        <div className="flex gap-2">
+                          {r.status === "admitted" && (
+                            <>
+                              <button
+                                onClick={() => dischargeStudent(r.id, false)}
+                                disabled={discharging === r.id}
+                                className="px-3 py-1.5 text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 rounded-xl hover:bg-emerald-100 transition-colors disabled:opacity-50"
+                              >
+                                Discharge
+                              </button>
+                              <button
+                                onClick={() => dischargeStudent(r.id, true)}
+                                disabled={discharging === r.id}
+                                className="px-3 py-1.5 text-[10px] font-black uppercase tracking-wider bg-red-50 text-red-700 rounded-xl hover:bg-red-100 transition-colors disabled:opacity-50"
+                              >
+                                Refer
+                              </button>
+                            </>
+                          )}
+                          <button
+                            onClick={() => openEdit(r)}
+                            title="Edit record"
+                            className="p-1.5 hover:bg-blue-50 rounded-xl text-slate-300 hover:text-blue-500 transition-colors"
+                          >
+                            <MaterialIcon icon="edit" style={{ fontSize: 16 }} />
+                          </button>
+                          <button
+                            onClick={() => deleteRecord(r.id)}
+                            disabled={deletingHealthId === r.id}
+                            title="Delete record"
+                            className="p-1.5 hover:bg-red-50 rounded-xl text-slate-300 hover:text-red-500 disabled:opacity-50 transition-colors"
+                          >
+                            <MaterialIcon
+                              icon={deletingHealthId === r.id ? "hourglass_empty" : "delete"}
+                              style={{ fontSize: 16 }}
+                            />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-            <div className="space-y-5">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Condition</label>
-                  <input value={editForm.condition} onChange={e => setEditForm({ ...editForm, condition: e.target.value })} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none" />
-                </div>
-                <div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Severity</label>
-                  <select value={editForm.severity} onChange={e => setEditForm({ ...editForm, severity: e.target.value as any })} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none">
-                    <option value="mild">Mild</option>
-                    <option value="moderate">Moderate</option>
-                    <option value="severe">Severe</option>
-                  </select>
-                </div>
-              </div>
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Status</label>
-                <select value={editForm.status} onChange={e => setEditForm({ ...editForm, status: e.target.value as any })} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none">
-                  <option value="admitted">Admitted</option>
-                  <option value="discharged">Discharged</option>
-                  <option value="referred">Referred</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Treatment</label>
-                <textarea value={editForm.treatment} onChange={e => setEditForm({ ...editForm, treatment: e.target.value })} rows={2} className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none resize-none" />
-              </div>
-              <div className="flex gap-3">
-                <button onClick={() => setEditingRecord(null)} className="flex-1 py-3 border border-slate-200 rounded-2xl font-black text-slate-600 hover:bg-slate-50">Cancel</button>
-                <button onClick={handleEditSave} disabled={editSaving || Boolean(editValidationError)} className="flex-1 py-3 bg-blue-500 text-white rounded-2xl font-black disabled:opacity-50 flex items-center justify-center gap-2">
-                  {editSaving ? <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <><MaterialIcon icon="save" /> Save Changes</>}
-                </button>
-              </div>
-              {editValidationError && (
-                <p className="text-sm text-slate-500">{editValidationError}</p>
-              )}
-            </div>
-          </div>
+          )}
         </div>
-      )}
 
-      {/* Admit Modal */}
-      {showAdd && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
-          <div className="bg-white rounded-[40px] w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl overflow-hidden">
-            <div className="p-8">
-              <div className="flex justify-between items-center mb-8">
-                <div>
-                  <h2 className="text-2xl font-black text-slate-800">Admit Student</h2>
-                  <p className="text-sm text-slate-400 font-medium">Log a new sick bay admission</p>
-                </div>
-                <button onClick={() => setShowAdd(false)} className="p-2 hover:bg-slate-100 rounded-xl">
+        {/* Edit Record Modal */}
+        {editingRecord && (
+          <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" aria-hidden="true" />
+            <div className="relative bg-white rounded-[40px] w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl p-8">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-black text-slate-800">Edit Record</h2>
+                <button onClick={() => setEditingRecord(null)} className="p-2 hover:bg-slate-100 rounded-xl">
                   <MaterialIcon icon="close" className="text-slate-400" />
                 </button>
               </div>
-
               <div className="space-y-5">
-                <div className="relative">
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Student</label>
-                  <input
-                    value={studentSearch}
-                    onChange={(e) => searchStudents(e.target.value)}
-                    placeholder="Search student name..."
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none"
-                  />
-                  {students.length > 0 && (
-                    <div className="absolute top-full mt-1 left-0 right-0 bg-white rounded-2xl border border-slate-100 shadow-xl z-10 overflow-hidden">
-                      {students.map((s) => (
-                        <button
-                          key={s.id}
-                          onClick={() => {
-                            setForm({ ...form, student_id: s.id, student_name: `${s.first_name} ${s.last_name}` });
-                            setStudentSearch(`${s.first_name} ${s.last_name}`);
-                            setStudents([]);
-                          }}
-                          className="w-full text-left px-4 py-3 hover:bg-slate-50 text-sm font-bold text-slate-800"
-                        >
-                          {s.first_name} {s.last_name}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Condition</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
+                      Condition
+                    </label>
                     <input
-                      value={form.condition}
-                      onChange={(e) => setForm({ ...form, condition: e.target.value })}
-                      placeholder="e.g. Malaria"
+                      value={editForm.condition}
+                      onChange={(e) => setEditForm({ ...editForm, condition: e.target.value })}
                       className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none"
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Severity</label>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
+                      Severity
+                    </label>
                     <select
-                      value={form.severity}
-                      onChange={(e) => setForm({ ...form, severity: e.target.value as any })}
+                      value={editForm.severity}
+                      onChange={(e) => setEditForm({ ...editForm, severity: e.target.value as any })}
                       className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none"
                     >
                       <option value="mild">Mild</option>
@@ -474,40 +430,165 @@ export default function HealthPage() {
                     </select>
                   </div>
                 </div>
-
                 <div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">Treatment Given</label>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
+                    Status
+                  </label>
+                  <select
+                    value={editForm.status}
+                    onChange={(e) => setEditForm({ ...editForm, status: e.target.value as any })}
+                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none"
+                  >
+                    <option value="admitted">Admitted</option>
+                    <option value="discharged">Discharged</option>
+                    <option value="referred">Referred</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
+                    Treatment
+                  </label>
                   <textarea
-                    value={form.treatment}
-                    onChange={(e) => setForm({ ...form, treatment: e.target.value })}
+                    value={editForm.treatment}
+                    onChange={(e) => setEditForm({ ...editForm, treatment: e.target.value })}
                     rows={2}
-                    placeholder="e.g. Paracetamol, rest..."
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none resize-none"
                   />
                 </div>
-
-                <button
-                  onClick={admitStudent}
-                  disabled={saving || Boolean(admitValidationError)}
-                  className="w-full py-4 bg-red-500 text-white rounded-[28px] font-black uppercase tracking-widest hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  {saving ? (
-                    <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  ) : (
-                    <>
-                      <MaterialIcon icon="emergency" />
-                      Admit to Sick Bay
-                    </>
-                  )}
-                </button>
-                {admitValidationError && (
-                  <p className="text-sm text-slate-500">{admitValidationError}</p>
-                )}
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setEditingRecord(null)}
+                    className="flex-1 py-3 border border-slate-200 rounded-2xl font-black text-slate-600 hover:bg-slate-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleEditSave}
+                    disabled={editSaving || Boolean(editValidationError)}
+                    className="flex-1 py-3 bg-blue-500 text-white rounded-2xl font-black disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {editSaving ? (
+                      <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <MaterialIcon icon="save" /> Save Changes
+                      </>
+                    )}
+                  </button>
+                </div>
+                {editValidationError && <p className="text-sm text-slate-500">{editValidationError}</p>}
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+
+        {/* Admit Modal */}
+        {showAdd && (
+          <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
+            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" aria-hidden="true" />
+            <div className="relative bg-white rounded-[40px] w-full max-w-lg max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl overflow-hidden">
+              <div className="p-8">
+                <div className="flex justify-between items-center mb-8">
+                  <div>
+                    <h2 className="text-2xl font-black text-slate-800">Admit Student</h2>
+                    <p className="text-sm text-slate-400 font-medium">Log a new sick bay admission</p>
+                  </div>
+                  <button onClick={() => setShowAdd(false)} className="p-2 hover:bg-slate-100 rounded-xl">
+                    <MaterialIcon icon="close" className="text-slate-400" />
+                  </button>
+                </div>
+
+                <div className="space-y-5">
+                  <div className="relative">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
+                      Student
+                    </label>
+                    <input
+                      value={studentSearch}
+                      onChange={(e) => searchStudents(e.target.value)}
+                      placeholder="Search student name..."
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none"
+                    />
+                    {students.length > 0 && (
+                      <div className="absolute top-full mt-1 left-0 right-0 bg-white rounded-2xl border border-slate-100 shadow-xl z-10 overflow-hidden">
+                        {students.map((s) => (
+                          <button
+                            key={s.id}
+                            onClick={() => {
+                              setForm({ ...form, student_id: s.id, student_name: `${s.first_name} ${s.last_name}` });
+                              setStudentSearch(`${s.first_name} ${s.last_name}`);
+                              setStudents([]);
+                            }}
+                            className="w-full text-left px-4 py-3 hover:bg-slate-50 text-sm font-bold text-slate-800"
+                          >
+                            {s.first_name} {s.last_name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
+                        Condition
+                      </label>
+                      <input
+                        value={form.condition}
+                        onChange={(e) => setForm({ ...form, condition: e.target.value })}
+                        placeholder="e.g. Malaria"
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
+                        Severity
+                      </label>
+                      <select
+                        value={form.severity}
+                        onChange={(e) => setForm({ ...form, severity: e.target.value as any })}
+                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none"
+                      >
+                        <option value="mild">Mild</option>
+                        <option value="moderate">Moderate</option>
+                        <option value="severe">Severe</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
+                      Treatment Given
+                    </label>
+                    <textarea
+                      value={form.treatment}
+                      onChange={(e) => setForm({ ...form, treatment: e.target.value })}
+                      rows={2}
+                      placeholder="e.g. Paracetamol, rest..."
+                      className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none resize-none"
+                    />
+                  </div>
+
+                  <button
+                    onClick={admitStudent}
+                    disabled={saving || Boolean(admitValidationError)}
+                    className="w-full py-4 bg-red-500 text-white rounded-[28px] font-black uppercase tracking-widest hover:scale-[1.02] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {saving ? (
+                      <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <MaterialIcon icon="emergency" />
+                        Admit to Sick Bay
+                      </>
+                    )}
+                  </button>
+                  {admitValidationError && <p className="text-sm text-slate-500">{admitValidationError}</p>}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       <ConfirmDialog

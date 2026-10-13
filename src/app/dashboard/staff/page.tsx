@@ -2317,9 +2317,10 @@ function ReviewsTab({
       )}
 
       {showReviewModal && (
-        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4 bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
           <div
-            className="bg-white rounded-2xl w-full max-w-2xl animate-in fade-in zoom-in duration-200 overflow-y-auto max-h-[calc(100vh-1.5rem)] sm:max-h-[90vh] my-auto"
+            className="relative bg-white rounded-2xl w-full max-w-2xl animate-in fade-in zoom-in duration-200 overflow-y-auto max-h-[calc(100vh-2rem)] my-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6 border-b border-[var(--border)]">

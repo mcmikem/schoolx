@@ -241,13 +241,13 @@ export default function HomePage() {
                   onKeyDown={(e) => {
                     if (e.key === "Escape") setMobileMenuOpen(false);
                   }}
-                  className="md:hidden fixed inset-0 z-40 bg-black/30 backdrop-blur-[1px]"
+                  className="md:hidden fixed inset-0 z-40 bg-black/30"
                 />
                 <div
                   role="dialog"
                   aria-modal="true"
                   aria-label="Site menu"
-                  className="md:hidden fixed left-4 right-4 top-[72px] z-50 rounded-[24px] border border-white/70 bg-white shadow-[0_16px_48px_rgba(15,23,42,0.12)] backdrop-blur p-4"
+                  className="md:hidden fixed left-4 right-4 top-[72px] z-50 rounded-[24px] border border-white/70 bg-white shadow-[0_16px_48px_rgba(15,23,42,0.12)] p-4"
                 >
                   <div className="flex flex-col gap-1">
                     <Link
@@ -1118,7 +1118,7 @@ export default function HomePage() {
         </footer>
 
         {/* ===== STICKY MOBILE CTA ===== */}
-        <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur border-t border-slate-200 px-4 py-3 shadow-[0_-4px_24px_rgba(15,23,42,0.10)]">
+        <div className="sm:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 border-t border-slate-200 px-4 py-3 shadow-[0_-4px_24px_rgba(15,23,42,0.10)]">
           <div className="flex gap-3 max-w-sm mx-auto">
             <Link href="/register" className="btn btn-primary flex-1 justify-center py-3 text-sm">
               Start free trial

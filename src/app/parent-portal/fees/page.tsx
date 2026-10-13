@@ -587,8 +587,9 @@ export default function ParentFeesPage() {
         </div>
 
         {showTopup && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
-            <div className="bg-[var(--surface)] rounded-3xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl p-8 space-y-5">
+          <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" aria-hidden="true" />
+            <div className="relative bg-[var(--surface)] rounded-3xl w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto shadow-2xl p-8 space-y-5">
               <div className="flex justify-between items-center">
                 <div>
                   <h2 className="text-xl font-black text-[var(--on-surface)]">Add Pocket Money</h2>

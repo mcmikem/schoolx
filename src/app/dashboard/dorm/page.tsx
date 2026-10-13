@@ -461,8 +461,9 @@ export default function DormitoryPage() {
         </div>
 
         {showDormModal && (
-          <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4 bg-black/60 backdrop-blur-sm">
-            <Card className="w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
+          <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
+            <Card className="relative w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
               <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">
                 <h2 className="text-lg font-semibold text-[var(--on-surface)]">Add Dorm</h2>
                 <button
@@ -502,8 +503,9 @@ export default function DormitoryPage() {
         )}
 
         {showRoomModal && (
-          <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4 bg-black/60 backdrop-blur-sm">
-            <Card className="w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
+          <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
+            <Card className="relative w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
               <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">
                 <h2 className="text-lg font-semibold text-[var(--on-surface)]">Add Room</h2>
                 <button
@@ -543,8 +545,9 @@ export default function DormitoryPage() {
         )}
 
         {showIncidentModal && (
-          <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4 bg-black/60 backdrop-blur-sm">
-            <Card className="w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
+          <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
+            <Card className="relative w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
               <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">
                 <h2 className="text-lg font-semibold text-[var(--on-surface)]">Report Dorm Incident</h2>
                 <button

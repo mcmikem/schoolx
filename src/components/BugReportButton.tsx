@@ -47,8 +47,14 @@ export function BugReportModal({ open, onClose }: { open: boolean; onClose: () =
   if (!open || !user || !school?.is_tester) return null;
 
   return (
-    <div className="fixed inset-0 z-[9995] flex items-start sm:items-center justify-center overflow-y-auto bg-black/40 backdrop-blur-sm p-3 sm:p-4">
-      <div className="relative bg-[var(--surface)] rounded-2xl shadow-2xl border border-[var(--border)] w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto p-5">
+    <div className="fixed inset-0 z-[9995] flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
+      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" aria-hidden="true" />
+      <div
+        className="relative bg-[var(--surface)] rounded-2xl shadow-2xl border border-[var(--border)] w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto p-5"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Report a Bug"
+      >
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">

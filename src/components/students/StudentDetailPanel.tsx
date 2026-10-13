@@ -571,8 +571,9 @@ export default function StudentDetailPanel({
     isEdit ? setEditForm((p) => ({ ...p, opening_balance: v })) : handleNewStudentChange({ opening_balance: v });
 
   return createPortal(
-    <div className="fixed inset-0 z-[140] bg-black/60 backdrop-blur-sm overflow-y-auto" onClick={onClose}>
-      <div className="min-h-full flex items-start sm:items-center justify-center p-4">
+    <div className="fixed inset-0 z-[140] overflow-y-auto" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
+      <div className="relative min-h-full flex items-start sm:items-center justify-center p-4">
         <div
           ref={addStudentModalRef}
           role="dialog"

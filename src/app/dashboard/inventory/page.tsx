@@ -227,8 +227,9 @@ export default function InventoryPage() {
         </TabPanel>
 
         {showTransactionModal && selectedAsset && (
-          <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4 bg-black/60 backdrop-blur-sm">
-            <Card className="w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto animate-in fade-in zoom-in duration-200">
+          <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
+            <Card className="relative w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto animate-in fade-in zoom-in duration-200">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
