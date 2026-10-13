@@ -74,7 +74,7 @@ export default function MobileBottomNav() {
   return (
     <nav className="mobile-bottom-nav" aria-label="Mobile navigation">
       {/* Home */}
-      <NavItem href="/dashboard" icon="home" label="Home" active={pathname === "/dashboard"} />
+      <NavItem href="/dashboard" icon="home" label="Home" active={isActive("/dashboard")} />
       {/* Attend */}
       {canUseAttendance && (
         <NavItem
