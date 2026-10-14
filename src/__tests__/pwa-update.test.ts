@@ -79,3 +79,60 @@ describe("heavy dashboard widgets stay out of the first-load bundle", () => {
     expect(grades).toContain("lazyWithIdlePrefetch");
   });
 });
+
+/**
+ * Stale module graph on install.
+ *
+ * Reported from the field: a teacher opened skoolmate.omuto.org and got the
+ * error screen immediately, on every attempt, and the "Go to Dashboard" button
+ * did nothing. Another teacher on the same phone model was fine — so the
+ * difference was her install history, not the device.
+ *
+ * sw.js said it would "never cache Next.js/Turbopack runtime chunks to avoid
+ * stale module graphs" and then cache-firsted every request under `/_next/`.
+ * Next.js runtime entry points are not all content-hashed, so a deploy can
+ * serve new HTML that references a runtime whose path is unchanged. Cache-first
+ * then hands back the *previous* deploy's runtime, the module graph no longer
+ * lines up, and the app throws during boot — before any route renders, which
+ * is why "Go to Dashboard" could not recover.
+ */
+describe("service worker never serves a stale module graph", () => {
+  const sw = read("public/sw.js");
+
+  const nextHandler = () => {
+    const start = sw.indexOf("url.pathname.startsWith('/_next/')");
+    expect(start).toBeGreaterThan(-1);
+    // Up to the next top-level `if (request.destination` / `if (` branch.
+    const rest = sw.slice(start);
+    const end = rest.indexOf("\n  if (", 10);
+    return end === -1 ? rest : rest.slice(0, end);
+  };
+
+  it("must not serve /_next/ requests cache-first", () => {
+    const handler = nextHandler();
+    // A cache hit must not be returned unconditionally.
+    expect(handler).not.toMatch(/caches\.match\(request\)\.then\(\(cached\)\s*=>\s*\{\s*if \(cached\) return cached;/);
+  });
+
+  it("falls back to the cache only when the network fails, not before it", () => {
+    const handler = nextHandler();
+    expect(handler).toMatch(/fetch\(request/);
+    expect(handler).toMatch(/\.catch\(/);
+    expect(handler).toMatch(/caches\.match\(request\)/);
+    // The network is tried before the cache is ever consulted, so a cached
+    // runtime can never win over the one the current HTML expects.
+    expect(handler.indexOf("fetch(request")).toBeLessThan(handler.indexOf("caches.match(request)"));
+  });
+
+  it("does not answer a failed chunk fetch with an empty body", () => {
+    // `new Response('', …)` for a script is a syntax error, so an offline or
+    // flaky link produced a parse crash instead of a legible network failure.
+    const handler = nextHandler();
+    expect(handler).not.toMatch(/new Response\(''/);
+  });
+
+  it("keeps the intent documented next to the code that has to honour it", () => {
+    // If someone restores cache-firsting, the stale comment goes with it.
+    expect(sw).toMatch(/runtime chunks/i);
+  });
+});

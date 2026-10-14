@@ -1,4 +1,7 @@
-const CACHE_VERSION = 'skoolmate-v13';
+// Bumped by hand only as an emergency: prebuild stamps this with the build id
+// on every real deploy. Raised here so installs already holding a stale runtime
+// chunk purge their caches the moment this worker activates.
+const CACHE_VERSION = 'skoolmate-v14';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const IMAGE_CACHE = `${CACHE_VERSION}-images`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
@@ -93,20 +96,36 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Never cache Next.js/Turbopack runtime chunks from SW to avoid stale module graphs.
-  // Cache /_next/ chunks cache-first (content-hashed filenames are immutable)
+  // Next.js/Turbopack runtime chunks are NOT all content-hashed: an entry point
+  // can keep its path across deploys while its bytes change. Serving /_next/
+  // cache-first therefore handed back the previous deploy's runtime under a path
+  // the new HTML also references, the module graph stopped lining up, and the
+  // app threw during boot — an error screen on load with no working recovery
+  // button. It only reached installs that had been opened across a deploy, which
+  // is why it showed up on one teacher's phone and not another's.
+  //
+  // Network-first keeps a fresh deploy authoritative and still serves offline
+  // from the cache, which the version purge on activate keeps current.
   if (url.hostname === location.hostname && url.pathname.startsWith('/_next/')) {
     event.respondWith(
-      caches.match(request).then((cached) => {
-        if (cached) return cached;
-        return fetch(request, { cache: 'no-store' }).then((response) => {
+      fetch(request)
+        .then((response) => {
           if (response.ok) {
             const clone = response.clone();
             caches.open(STATIC_CACHE).then((cache) => cache.put(request, clone));
           }
           return response;
-        }).catch(() => new Response('', { status: 408 }));
-      })
+        })
+        .catch(async () => {
+          const cached = await caches.match(request);
+          if (cached) return cached;
+          // An empty body would be a script syntax error, turning a plain
+          // network failure into a confusing parse crash.
+          return new Response('/* offline: asset unavailable */', {
+            status: 504,
+            headers: { 'Content-Type': 'application/javascript' },
+          });
+        })
     );
     return;
   }
