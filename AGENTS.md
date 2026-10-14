@@ -72,6 +72,10 @@ The proxy handles: security headers (CSP, HSTS), Supabase auth session check, de
 - Key tables: `schools`, `users`, `students`, `classes`, `fee_structure`, `events`, `academic_terms`
 - Local DB: `postgresql://postgres:postgres@127.0.0.1:54322/postgres`
 - Supabase CLI: `supabase status`, `supabase db push`
+- **Apple Silicon + Rosetta trap**: if `uname -m` says `x86_64` but Docker's daemon is `aarch64`, the `supabase` CLI pulls amd64 images and every container dies with `exec /usr/bin/tini: exec format error`. Check `sysctl -n sysctl.proc_translated` (1 = under Rosetta) and `docker info --format '{{.Architecture}}'`. Fix with a native arm64 CLI build — `arch -arm64` on an x86_64 binary fails with "Bad CPU type".
+- **Migration ordering**: a helper function must be defined in the FIRST migration that uses it. `update_updated_at()`, zero-arg `is_school_admin()`, `is_staff_role()` and `my_student_ids()` are each defined in their earliest consumer as well as later — removing those early copies breaks a fresh `supabase db reset`.
+- **Seed data vs CHECK constraints**: `supabase/seed.sql` values must satisfy the FINAL constraints, not the ones in `000_schema.sql`. `schools.subscription_plan` allows `free_trial|starter|growth|enterprise|lifetime|basic|premium|max` (NOT `free`); `events.event_type` allows `exam|meeting|holiday|event|academic|substitution` (NOT `term`). Migrations that seed rows resolved via `SELECT id FROM <table> LIMIT 1` must no-op on an empty DB or the `NOT NULL` columns abort the reset.
+- **Multiple roles per person**: rural staff routinely hold more than one role (headmaster who also teaches, bursar who is also a teacher, staff who are also parents). `users.role` stays the primary role; `user_roles` holds the full set and gates access via `canAccessAny` / `hasAnyRole`. Never "fix" a missing permission by widening a role — that grants it to everyone with that job.
 - RLS on all tables. Helper functions `my_school_id()` and `is_school_admin()` use `SECURITY DEFINER`. Never put `SELECT ... FROM users WHERE auth_id = auth.uid()` inside a `users` table policy — use `my_school_id()` instead.
 
 ## CRUD / Data operations

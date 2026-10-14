@@ -15,6 +15,44 @@
 -- ============================================================
 
 -- ------------------------------------------------------------
+-- Helpers used by the RLS policies at the bottom of this file.
+-- Also defined in 202611010007_parent_portal_rls_hardening.sql, but that runs
+-- months later: on a fresh database every policy below failed with
+-- "function is_staff_role() does not exist". parent_students is created back in
+-- 000_schema.sql, so both bodies resolve at this point.
+-- ------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.my_student_ids()
+RETURNS SETOF UUID
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+AS $$
+  SELECT ps.student_id
+  FROM parent_students ps
+  JOIN users u ON u.id = ps.parent_id
+  WHERE u.auth_id = auth.uid()
+  UNION
+  SELECT s.id
+  FROM students s
+  JOIN users u ON u.id = s.user_id
+  WHERE u.auth_id = auth.uid()
+$$;
+
+CREATE OR REPLACE FUNCTION public.is_staff_role()
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM users
+    WHERE auth_id = auth.uid()
+      AND role IS DISTINCT FROM 'parent'
+      AND role IS DISTINCT FROM 'student'
+  )
+$$;
+
+-- ------------------------------------------------------------
 -- STUDENT FEES (core financial rollup; indexed by 202606130000)
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS student_fees (

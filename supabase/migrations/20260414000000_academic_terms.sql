@@ -22,7 +22,18 @@ CREATE INDEX IF NOT EXISTS idx_academic_terms_school ON academic_terms(school_id
 CREATE INDEX IF NOT EXISTS idx_academic_terms_year ON academic_terms(academic_year);
 CREATE INDEX IF NOT EXISTS idx_academic_terms_current ON academic_terms(school_id, is_current) WHERE is_current = true;
 
--- Trigger for updated_at
+-- Trigger for updated_at. The helper is defined here as well as in later
+-- migrations: this file runs first, so on a fresh database the trigger below
+-- referenced a function that did not exist yet and the whole migration failed
+-- with "function update_updated_at() does not exist".
+CREATE OR REPLACE FUNCTION update_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 DROP TRIGGER IF EXISTS set_academic_terms_updated ON academic_terms;
 CREATE TRIGGER set_academic_terms_updated
     BEFORE UPDATE ON academic_terms

@@ -2,7 +2,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DashboardSkeleton } from "@/components/Skeletons";
 import { useAuth } from "@/lib/auth-context";
 import { logger } from "@/lib/logger";
@@ -286,29 +286,40 @@ export default function DashboardRouter() {
     );
   }
 
-  const role = user.role as string;
+  const roles = user.roles?.length ? user.roles : [user.role as string];
 
-  switch (role) {
-    case "headmaster":
-    case "school_admin":
-    case "admin":
-    case "board":
-      return <HeadmasterDashboard />;
-    case "dean_of_studies":
-      return <DeanDashboard />;
-    case "bursar":
-      return <BursarDashboard />;
-    case "teacher":
-      return <TeacherDashboard />;
-    case "secretary":
-      return <SecretaryDashboard />;
-    case "dorm_master":
-      return <DormMasterDashboard />;
-    case "marketer":
-      return <MarketerDashboard />;
-    default:
-      return <UnknownRoleScreen role={role} onSignOut={signOut} />;
+  // Which dashboard this person actually qualifies for. A headmaster who also
+  // teaches is both, and should be able to pick — but only between dashboards
+  // they really hold, never one they merely inherited via role equivalence.
+  const eligibleDashboards = useMemo(() => {
+    const available: Record<string, () => JSX.Element> = {
+      headmaster: () => <HeadmasterDashboard />,
+      dean_of_studies: () => <DeanDashboard />,
+      bursar: () => <BursarDashboard />,
+      teacher: () => <TeacherDashboard />,
+      secretary: () => <SecretaryDashboard />,
+      dorm_master: () => <DormMasterDashboard />,
+      marketer: () => <MarketerDashboard />,
+    };
+    const ordered = roles.map((candidate) => String(candidate));
+    if (ordered.includes("headmaster") || ordered.includes("admin") || ordered.includes("school_admin")) {
+      if (!ordered.includes("headmaster")) ordered.unshift("headmaster");
+    }
+    return ordered.filter((candidate) => candidate in available).map((candidate) => available[candidate]);
+  }, [roles]);
+
+  // Their remembered choice, when it is one they are still eligible for.
+  const preferred = user.preferred_dashboard ?? null;
+  const canUsePreferred = preferred != null && eligibleDashboards.length > 0 && roles.map(String).includes(preferred);
+
+  if (eligibleDashboards.length === 0) {
+    return <UnknownRoleScreen role={user.role as string} onSignOut={signOut} />;
   }
+  if (canUsePreferred) {
+    const index = roles.map(String).indexOf(preferred);
+    if (index >= 0 && index < eligibleDashboards.length) return eligibleDashboards[index]();
+  }
+  return eligibleDashboards[0]();
 }
 
 /**

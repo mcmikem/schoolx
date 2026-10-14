@@ -374,6 +374,74 @@ export function canAccess(role: UserRole, feature: keyof RolePermissions): boole
   return ROLE_PERMISSIONS[role]?.[feature] ?? false;
 }
 
+/**
+ * Permission check across every role a person holds.
+ *
+ * In most rural schools one person wears several hats: the headmaster often
+ * also teaches and the bursar is frequently also a teacher. `canAccess` reads
+ * a single role, so a bursar who also teaches was refused marks entry and had
+ * no route to the grades page at all. Granting `grades` to the `bursar` role
+ * instead would hand marks to every bursar everywhere, including fee clerks who
+ * must never see it — so permissions are unioned per person, not per role.
+ *
+ * Roles are taken as plain strings because two `UserRole` unions exist in this
+ * codebase (types/index.ts also carries "student", which has no permissions
+ * table entry). Unknown values resolve to `false` via `canAccess`, so a role
+ * the permission table does not know can never grant access.
+ */
+export function canAccessAny(
+  roles: readonly (string | null | undefined)[] | string | null | undefined,
+  feature: keyof RolePermissions,
+): boolean {
+  if (!roles) return false;
+  const list = Array.isArray(roles) ? roles : [roles];
+  return list.some((role) => role != null && canAccess(role as UserRole, feature));
+}
+
+/**
+ * True when the person holds ANY of the given roles. Used for role-intent
+ * questions such as "should this dashboard be on offer to them at all".
+ */
+export function hasAnyRole(
+  roles: readonly (string | null | undefined)[] | string | null | undefined,
+  candidates: readonly (UserRole | string)[],
+): boolean {
+  if (!roles) return false;
+  const list = Array.isArray(roles) ? roles : [roles];
+  return list.some((role) => role != null && candidates.includes(role));
+}
+
+/**
+ * The role used for labelling and for places that genuinely need one hat
+ * (dashboard title, receipts). Prefers the primary role when the caller
+ * supplies it via `primary`, otherwise the first known role.
+ */
+export function primaryRole(
+  roles: readonly (string | null | undefined)[] | string | null | undefined,
+  primary?: string | null,
+): string | null {
+  const list = !roles ? [] : Array.isArray(roles) ? roles : [roles];
+  const known = list.filter((role): role is string => typeof role === "string" && role.length > 0);
+  // The primary role only wins if they actually hold it — a stale
+  // `users.role` must not relabel someone into a hat they do not have.
+  if (primary && known.includes(primary)) return primary;
+  if (known.length > 0) return known[0];
+  return primary && primary.length > 0 ? primary : null;
+}
+
+/**
+ * True when the person holds a class-scoped role. Callers that previously
+ * passed a single role still work; multi-role staff keep the class scoping
+ * that their teaching hat implies.
+ */
+export function isClassScopedAnyRole(
+  roles: readonly (string | null | undefined)[] | string | null | undefined,
+): boolean {
+  if (!roles) return false;
+  const list = Array.isArray(roles) ? roles : [roles];
+  return list.some((role) => role != null && isClassScopedRole(role));
+}
+
 export function getRoleLabel(role: UserRole): string {
   return ROLE_LABELS[role] ?? role;
 }

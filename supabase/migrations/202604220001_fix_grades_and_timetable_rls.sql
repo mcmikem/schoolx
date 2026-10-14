@@ -62,6 +62,11 @@ BEGIN
   ) THEN
     EXECUTE 'DROP POLICY IF EXISTS "Admins can manage timetable slots" ON timetable_slots';
     EXECUTE 'DROP POLICY IF EXISTS "School users can view timetable slots" ON timetable_slots';
+    -- Also drop our own policy before recreating it: it is already created by
+    -- 20260422000000_create_missing_tables.sql, so on a fresh database the
+    -- CREATE below failed with "policy already exists". This block is meant to
+    -- be idempotent, so it must drop what it is about to create.
+    EXECUTE 'DROP POLICY IF EXISTS timetable_slots_school ON timetable_slots';
     EXECUTE 'ALTER TABLE timetable_slots ENABLE ROW LEVEL SECURITY';
     EXECUTE 'CREATE POLICY timetable_slots_school ON timetable_slots
       FOR ALL

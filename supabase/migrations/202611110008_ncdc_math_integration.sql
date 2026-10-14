@@ -20,6 +20,21 @@
 -- Senior 1 Mathematics, Term 1 topics (NCDC curriculum)
 -- ============================================================
 
+-- GUARD: every insert below resolves school_id / subject_id / class_id with
+-- "(SELECT id FROM <table> ORDER BY id LIMIT 1)". On a fresh database those
+-- tables are empty, the sub-select returns NULL, and lesson_plans.class_id is
+-- NOT NULL -- so the whole migration aborted with SQLSTATE 23502. Returning
+-- early when any lookup is missing keeps the seed data for real installs while
+-- letting an empty database migrate cleanly.
+DO $$
+BEGIN
+  IF (SELECT id FROM schools ORDER BY id LIMIT 1) IS NULL
+     OR (SELECT id FROM subjects ORDER BY id LIMIT 1) IS NULL
+     OR (SELECT id FROM classes ORDER BY id LIMIT 1) IS NULL THEN
+    RAISE NOTICE 'NCDC math seed skipped: no school/subject/class present yet';
+    RETURN;
+  END IF;
+
 -- Topic 1: Number Bases
 INSERT INTO lesson_plans (
   school_id, subject_id, class_id, topic, lesson_title, objectives,
@@ -355,3 +370,4 @@ INSERT INTO lesson_plans (
   'Find slope; write equation in slope-intercept form',
   'active', 'guided practice', 'line equation worksheet'
 );
+END $$;

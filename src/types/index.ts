@@ -66,6 +66,15 @@ export interface User {
   phone: string;
   email?: string;
   role: UserRole;
+  /**
+   * Every role this person holds. `role` above stays the primary one so all
+   * existing single-role checks keep working; this list is what gates
+   * navigation and permissions for staff who wear several hats — the rural
+   * norm where the headmaster also teaches and the bursar is also a teacher.
+   */
+  roles?: UserRole[];
+  /** Which dashboard this person prefers when they qualify for more than one. */
+  preferred_dashboard?: string | null;
   avatar_url?: string;
   is_active: boolean;
   created_at: string;

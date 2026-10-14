@@ -55,6 +55,21 @@ AS $$
   SELECT school_id FROM users WHERE auth_id = auth.uid() LIMIT 1
 $$;
 
+-- Helper: zero-argument overload used by policies that call is_school_admin()
+-- without an explicit school_id. Defined here (this file is its first real
+-- consumer) as well as in 202606130000_critical_schema_fixes.sql, because on a
+-- fresh database those later policies failed with
+-- "function is_school_admin() does not exist" — this migration ran long before
+-- that overload was introduced.
+CREATE OR REPLACE FUNCTION is_school_admin()
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+AS $$
+  SELECT is_school_admin(my_school_id())
+$$;
+
 -- =====================
 -- STUDENTS
 -- =====================

@@ -908,6 +908,55 @@ export function getNavigationForRole(role: string): readonly NavGroup[] {
   return [];
 }
 
+/**
+ * Navigation for a person who holds several roles.
+ *
+ * Rural staff routinely combine jobs: the headmaster also teaches, the bursar
+ * is often also a teacher. Reading a single role left those people unable to
+ * reach whole areas of the app — a bursar/teacher had no `/dashboard/grades`
+ * link anywhere, so teaching was impossible through the UI.
+ *
+ * Groups are unioned by label and items de-duplicated by href, so a
+ * destination offered by two of someone's roles appears once. Order follows
+ * the order the roles were passed in, with the primary role first, which keeps
+ * the everyday items at the top rather than buried under an admin group.
+ */
+export function getNavigationForRoles(
+  roles: readonly (string | null | undefined)[] | string | null | undefined,
+): readonly NavGroup[] {
+  const list = (Array.isArray(roles) ? roles : [roles])
+    .filter((role): role is string => typeof role === "string" && role.length > 0)
+    .filter((role, i, all) => all.indexOf(role) === i);
+
+  if (list.length === 0) return [];
+  if (list.length === 1) return getNavigationForRole(list[0]);
+
+  const seenHrefs = new Set<string>();
+  const merged: NavGroup[] = [];
+
+  for (const role of list) {
+    for (const group of getNavigationForRole(role)) {
+      const items = group.items.filter((item) => {
+        const href = (item as { href?: string }).href;
+        if (typeof href !== "string") return true;
+        if (seenHrefs.has(href)) return false;
+        seenHrefs.add(href);
+        return true;
+      });
+      if (items.length === 0) continue;
+
+      const existing = merged.find((candidate) => candidate.label === group.label);
+      if (existing) {
+        merged[merged.indexOf(existing)] = { ...existing, items: [...existing.items, ...items] };
+      } else {
+        merged.push({ ...group, items });
+      }
+    }
+  }
+
+  return sortNavGroupsByPriority(merged);
+}
+
 // Stable priority sort: groups marked priority > 0 (e.g. "Other Tools") are
 // pushed below everyday groups regardless of their position in the config.
 // Groups already defined first stay first — priority only ever demotes.

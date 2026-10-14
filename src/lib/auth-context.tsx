@@ -44,6 +44,32 @@ import { FeatureStage, DEFAULT_FEATURE_STAGE } from "./featureStages";
 import type { PlanType } from "./payments/subscription-client";
 
 // ---------------------------------------------------------------------------
+// Role normalisation
+// ---------------------------------------------------------------------------
+// Staff in rural schools routinely hold more than one hat, so the API returns
+// the full set. These keep the client honest whether the multi-role migration
+// has been applied or not: the primary role is always present, duplicates are
+// dropped, and unknown values never reach the permission layer.
+function normaliseRoles(roles: unknown, primary: unknown): User["roles"] {
+  const out: NonNullable<User["roles"]> = [];
+  const push = (value: unknown) => {
+    if (typeof value !== "string") return;
+    const trimmed = value.trim();
+    if (trimmed && !out.includes(trimmed as User["role"])) out.push(trimmed as User["role"]);
+  };
+  if (Array.isArray(roles)) roles.forEach(push);
+  push(primary);
+  return out;
+}
+
+function sameRoles(a: readonly string[] | undefined, b: readonly string[] | undefined): boolean {
+  const left = a ?? [];
+  const right = b ?? [];
+  if (left.length !== right.length) return false;
+  return left.every((role, i) => role === right[i]);
+}
+
+// ---------------------------------------------------------------------------
 // Network error detection — critical for poor internet (e.g. Uganda 3G)
 // We must NOT log users out just because a network request timed out.
 // ---------------------------------------------------------------------------
@@ -248,9 +274,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const newUser = {
           ...userData,
           role: userData.role as User["role"],
+          // Normalise to a de-duplicated list that always contains the primary
+          // role, so `canAccessAny` behaves identically whether or not the
+          // multi-role migration has been applied.
+          roles: normaliseRoles(userData.roles, userData.role),
         };
         setUser((prev) => {
-          if (prev && prev.id === newUser.id && prev.role === newUser.role) {
+          if (prev && prev.id === newUser.id && prev.role === newUser.role && sameRoles(prev.roles, newUser.roles)) {
             return prev;
           }
           return newUser;

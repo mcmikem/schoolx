@@ -14,7 +14,7 @@ VALUES (
   'primary',
   'private',
   '0700000000',
-  'free',
+  'free_trial',
   'trial',
   NOW() + INTERVAL '30 days'
 ) ON CONFLICT DO NOTHING;
@@ -90,7 +90,7 @@ INSERT INTO events (school_id, title, event_type, start_date, description) VALUE
 ('00000000-0000-0000-0000-000000000001', 'End of Term 1 Exams', 'exam', '2026-03-15', 'Final examinations for Term 1'),
 ('00000000-0000-0000-0000-000000000001', 'Parent-Teacher Meeting', 'meeting', '2026-03-22', 'Discuss student progress with parents'),
 ('00000000-0000-0000-0000-000000000001', 'Report Card Distribution', 'academic', '2026-03-28', 'Parents collect report cards'),
-('00000000-0000-0000-0000-000000000001', 'Term 2 Opens', 'term', '2026-04-05', 'School reopens for Term 2'),
+('00000000-0000-0000-0000-000000000001', 'Term 2 Opens', 'academic', '2026-04-05', 'School reopens for Term 2'),
 ('00000000-0000-0000-0000-000000000001', 'Sports Day', 'event', '2026-04-10', 'Annual inter-house sports competition'),
 ('00000000-0000-0000-0000-000000000001', 'Labour Day', 'holiday', '2026-05-01', 'Public holiday - school closed')
 ON CONFLICT DO NOTHING;

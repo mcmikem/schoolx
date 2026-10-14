@@ -5,7 +5,7 @@ import { useMemo } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 import { useSidebar } from "@/contexts/SidebarContext";
 import { useAuth } from "@/lib/auth-context";
-import { canAccess, type UserRole } from "@/lib/roles";
+import { canAccessAny, type UserRole } from "@/lib/roles";
 
 type QuickStep = {
   label: string;
@@ -51,14 +51,27 @@ const ROLE_QUICK_ACTION: Record<string, QuickStep> = {
   super_admin: { label: "Schools", navLabel: "Schools", href: "/dashboard/schools", icon: "school" },
 };
 
+// Staff who also teach get marks entry in the centre slot, because that is the
+// job they do every morning. A bursar/teacher or headmaster/teacher previously
+// saw only their admin action, leaving the task they came to do a menu tap away.
+const TEACHING_QUICK_ACTION: QuickStep = {
+  label: "Enter Marks",
+  navLabel: "Marks",
+  href: "/dashboard/grades",
+  icon: "grade",
+};
+
 export default function MobileBottomNav() {
   const pathname = usePathname();
   const { open: openSidebar } = useSidebar();
   const { user } = useAuth();
   const role = user?.role as UserRole | undefined;
+  // Everyone this person is, not just the one recorded as primary. Rural staff
+  // routinely combine jobs — headmaster who teaches, bursar who teaches.
+  const roles = user?.roles?.length ? user.roles : role ? [role] : [];
 
-  const canUseAttendance = role ? canAccess(role, "attendance") : false;
-  const canUseFees = role ? canAccess(role, "fees") : false;
+  const canUseAttendance = canAccessAny(roles, "attendance");
+  const canUseFees = canAccessAny(roles, "fees");
 
   const isActive = (path: string) => pathname === path || pathname?.startsWith(path + "/");
 
@@ -66,14 +79,20 @@ export default function MobileBottomNav() {
   // must never repeat one, even if a future ROLE_QUICK_ACTION entry does.
   const RESERVED_HREFS = ["/dashboard", "/dashboard/attendance", "/dashboard/fees"];
 
-  // Constant per role, and absent rather than invented when the role has no
+  // Constant per role set, and absent rather than invented when no role has an
   // entry — an invented fallback collided with Home.
   const quickStep = useMemo<QuickStep | null>(() => {
-    if (!role) return null;
-    const step = ROLE_QUICK_ACTION[role] ?? null;
-    if (step && RESERVED_HREFS.includes(step.href)) return null;
-    return step;
-  }, [role]);
+    if (roles.length === 0) return null;
+    if (roles.includes("teacher")) {
+      const step = TEACHING_QUICK_ACTION;
+      if (!RESERVED_HREFS.includes(step.href)) return step;
+    }
+    for (const candidate of roles) {
+      const step = ROLE_QUICK_ACTION[candidate] ?? null;
+      if (step && !RESERVED_HREFS.includes(step.href)) return step;
+    }
+    return null;
+  }, [roles]);
 
   const quickActive = quickStep ? isActive(quickStep.href) : false;
 
