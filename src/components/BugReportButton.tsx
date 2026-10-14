@@ -65,7 +65,7 @@ export function BugReportModal({ open, onClose }: { open: boolean; onClose: () =
           <button
             type="button"
             onClick={onClose}
-            className="p-1 rounded-lg hover:bg-[var(--bg)] text-[var(--t3)] transition-colors"
+            className="p-1 tap-44 rounded-lg hover:bg-[var(--bg)] text-[var(--t3)] transition-colors"
           >
             <MaterialIcon icon="close" style={{ fontSize: 18 }} />
           </button>

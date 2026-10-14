@@ -8,22 +8,24 @@ import { useAcademic } from "@/lib/academic-context";
 import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
 import { cardClassName } from "@/lib/utils";
-import {
-  Radar,
-  RadarChart,
-  PolarGrid,
-  PolarAngleAxis,
-  PolarRadiusAxis,
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-} from "recharts";
+import dynamic from "next/dynamic";
+
+// recharts is ~390KB parsed. Keep it out of this route's initial chunk and
+// load it on demand — it matters on low-memory Android devices.
+const Radar = dynamic(() => import("recharts").then((m) => m.Radar), { ssr: false });
+const RadarChart = dynamic(() => import("recharts").then((m) => m.RadarChart), { ssr: false });
+const PolarGrid = dynamic(() => import("recharts").then((m) => m.PolarGrid), { ssr: false });
+const PolarAngleAxis = dynamic(() => import("recharts").then((m) => m.PolarAngleAxis), { ssr: false });
+const PolarRadiusAxis = dynamic(() => import("recharts").then((m) => m.PolarRadiusAxis), { ssr: false });
+const ResponsiveContainer = dynamic(() => import("recharts").then((m) => m.ResponsiveContainer), { ssr: false });
+const LineChart = dynamic(() => import("recharts").then((m) => m.LineChart), { ssr: false });
+const Line = dynamic(() => import("recharts").then((m) => m.Line), { ssr: false });
+const BarChart = dynamic(() => import("recharts").then((m) => m.BarChart), { ssr: false });
+const Bar = dynamic(() => import("recharts").then((m) => m.Bar), { ssr: false });
+const XAxis = dynamic(() => import("recharts").then((m) => m.XAxis), { ssr: false });
+const YAxis = dynamic(() => import("recharts").then((m) => m.YAxis), { ssr: false });
+const CartesianGrid = dynamic(() => import("recharts").then((m) => m.CartesianGrid), { ssr: false });
+const Tooltip = dynamic(() => import("recharts").then((m) => m.Tooltip), { ssr: false });
 
 const CONDUCT_PENALTY_PER_POINT = 5;
 

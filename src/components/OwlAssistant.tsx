@@ -331,7 +331,7 @@ export default function OwlAssistant() {
               <button
                 type="button"
                 onClick={() => setBugOpen(true)}
-                className="flex items-center justify-center w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors shrink-0"
+                className="tap-44 flex items-center justify-center w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors shrink-0"
                 title="Report a bug"
                 aria-label="Report a bug"
               >

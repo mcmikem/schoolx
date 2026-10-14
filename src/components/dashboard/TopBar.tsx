@@ -319,7 +319,7 @@ export default function TopBar({ pageTitle, onSignOut }: { pageTitle: string; on
           if (isOpen) closeSidebar();
           else openSidebar();
         }}
-        className="bg-transparent border-none cursor-pointer p-1.5 w-9 h-9 flex items-center justify-center rounded-lg hover:bg-[var(--bg)] transition-colors shrink-0 lg:hidden"
+        className="bg-transparent border-none cursor-pointer p-1.5 h-11 w-11 flex items-center justify-center rounded-lg hover:bg-[var(--bg)] transition-colors shrink-0 lg:hidden"
         aria-label="Toggle sidebar"
         aria-expanded={isOpen}
         aria-controls="dashboard-sidebar"
@@ -363,7 +363,7 @@ export default function TopBar({ pageTitle, onSignOut }: { pageTitle: string; on
       </div>
       <button
         onClick={() => window.dispatchEvent(new Event("open-global-search"))}
-        className="lg:hidden bg-transparent border-none cursor-pointer p-1.5 w-9 h-9 flex items-center justify-center rounded-lg text-[var(--t2)] hover:bg-[var(--surface-container-low)] transition-colors shrink-0"
+        className="lg:hidden bg-transparent border-none cursor-pointer p-1.5 h-11 w-11 flex items-center justify-center rounded-lg text-[var(--t2)] hover:bg-[var(--surface-container-low)] transition-colors shrink-0"
         aria-label="Search"
       >
         <MaterialIcon icon="search" style={{ fontSize: 20 }} />

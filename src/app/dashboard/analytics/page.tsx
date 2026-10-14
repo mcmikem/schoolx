@@ -10,18 +10,20 @@ import { Button } from "@/components/ui/index";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/EmptyState";
 import { Tabs, TabPanel } from "@/components/ui/Tabs";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-} from "recharts";
+import dynamic from "next/dynamic";
+
+// recharts is ~390KB parsed. Keep it out of this route's initial chunk and
+// load it on demand — it matters on low-memory Android devices.
+const PieChart = dynamic(() => import("recharts").then((m) => m.PieChart), { ssr: false });
+const Pie = dynamic(() => import("recharts").then((m) => m.Pie), { ssr: false });
+const Cell = dynamic(() => import("recharts").then((m) => m.Cell), { ssr: false });
+const ResponsiveContainer = dynamic(() => import("recharts").then((m) => m.ResponsiveContainer), { ssr: false });
+const BarChart = dynamic(() => import("recharts").then((m) => m.BarChart), { ssr: false });
+const Bar = dynamic(() => import("recharts").then((m) => m.Bar), { ssr: false });
+const XAxis = dynamic(() => import("recharts").then((m) => m.XAxis), { ssr: false });
+const YAxis = dynamic(() => import("recharts").then((m) => m.YAxis), { ssr: false });
+const Tooltip = dynamic(() => import("recharts").then((m) => m.Tooltip), { ssr: false });
+const CartesianGrid = dynamic(() => import("recharts").then((m) => m.CartesianGrid), { ssr: false });
 
 export default function AnalyticsPage() {
   const { school, isDemo } = useAuth();

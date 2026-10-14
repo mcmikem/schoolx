@@ -108,7 +108,7 @@ export function PageGuidance({
             <button
               type="button"
               onClick={() => setIsOpen(false)}
-              className="p-1.5 rounded-lg text-[var(--t4)] hover:text-[var(--t2)] hover:bg-[var(--bg)]"
+              className="p-1.5 tap-44 rounded-lg text-[var(--t4)] hover:text-[var(--t2)] hover:bg-[var(--bg)]"
               aria-label={`Hide ${title}`}
             >
               <MaterialIcon style={{ fontSize: 18 }}>expand_less</MaterialIcon>

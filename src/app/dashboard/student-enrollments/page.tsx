@@ -248,8 +248,8 @@ export default function StudentEnrollmentsPage() {
             <p className="text-gray-500 mt-1">Add student enrollments to track course registrations</p>
           </div>
         ) : (
-          <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-            <table className="w-full">
+          <div className="bg-white rounded-2xl border border-gray-200 overflow-x-auto">
+            <table className="w-full min-w-[640px]">
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Student</th>

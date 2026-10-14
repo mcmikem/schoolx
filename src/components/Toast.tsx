@@ -99,7 +99,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               <p className="text-sm font-medium flex-1">{toast.message}</p>
               <button
                 onClick={() => removeToast(toast.id)}
-                className="flex-shrink-0 p-1 hover:bg-black/5 rounded-lg transition-colors"
+                className="flex-shrink-0 p-1 tap-44 hover:bg-black/5 rounded-lg transition-colors"
               >
                 <MaterialIcon icon="close" className="opacity-50" size={16} />
               </button>

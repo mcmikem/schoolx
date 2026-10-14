@@ -325,7 +325,7 @@ export default function RoleBasedWalkthrough() {
           </span>
           <button
             onClick={handleDismiss}
-            className="p-1.5 rounded-lg hover:bg-[var(--surface-container-low)] text-[var(--t4)] hover:text-[var(--t1)] transition-colors"
+            className="p-1.5 tap-44 rounded-lg hover:bg-[var(--surface-container-low)] text-[var(--t4)] hover:text-[var(--t1)] transition-colors"
             aria-label="Close walkthrough"
           >
             <MaterialIcon icon="close" className="text-lg" />

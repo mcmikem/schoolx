@@ -52,7 +52,7 @@ export function FilterBar({
             {searchValue && (
               <button
                 onClick={() => onSearchChange("")}
-                className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-[var(--surface-container)] hover:bg-[var(--border)] flex items-center justify-center text-[var(--t3)]"
+                className="tap-44 absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-[var(--surface-container)] hover:bg-[var(--border)] flex items-center justify-center text-[var(--t3)]"
                 aria-label="Clear search"
               >
                 <MaterialIcon icon="close" className="text-[16px]" />

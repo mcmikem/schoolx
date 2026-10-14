@@ -80,7 +80,7 @@ export const PWAInstallPrompt = memo(function PWAInstallPrompt() {
           </div>
           <button
             onClick={handleDismiss}
-            className="flex-shrink-0 p-1 text-slate-400 hover:text-slate-600 transition-colors"
+            className="flex-shrink-0 p-1 tap-44 text-slate-400 hover:text-slate-600 transition-colors"
             aria-label="Dismiss install prompt"
           >
             <span className="material-symbols-outlined text-[18px]">close</span>

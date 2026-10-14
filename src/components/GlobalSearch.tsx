@@ -433,7 +433,7 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="rounded-lg p-1.5 text-[var(--t3)] transition-colors hover:bg-[var(--surface-container)] hover:text-[var(--t1)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/25"
+                className="tap-44 rounded-lg p-1.5 text-[var(--t3)] transition-colors hover:bg-[var(--surface-container)] hover:text-[var(--t1)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--primary)]/25"
                 aria-label="Close"
               >
                 <MaterialIcon icon="close" />

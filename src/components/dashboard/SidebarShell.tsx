@@ -155,7 +155,7 @@ export default function SidebarShell({ onNavigate }: { onNavigate?: () => void }
           {!isDesktop && (
             <button
               onClick={() => close()}
-              className="w-8 h-8 rounded-lg border-none bg-white/10 hover:bg-white/20 cursor-pointer items-center justify-center transition-colors flex"
+              className="h-11 w-11 tap-44 rounded-lg border-none bg-white/10 hover:bg-white/20 cursor-pointer items-center justify-center transition-colors flex"
               aria-label="Close sidebar"
             >
               <MaterialIcon icon="close" style={{ fontSize: 18, color: "rgba(255,255,255,0.8)" }} />
@@ -164,7 +164,7 @@ export default function SidebarShell({ onNavigate }: { onNavigate?: () => void }
           {isDesktop && (
             <button
               onClick={() => setIsPinnedOpen((prev) => !prev)}
-              className="w-8 h-8 rounded-lg border-none bg-white/10 hover:bg-white/20 cursor-pointer items-center justify-center transition-colors flex"
+              className="h-11 w-11 rounded-lg border-none bg-white/10 hover:bg-white/20 cursor-pointer items-center justify-center transition-colors flex"
               aria-label={isPinnedOpen ? "Collapse sidebar" : "Pin sidebar open"}
               title={isPinnedOpen ? "Collapse" : "Pin open"}
             >
