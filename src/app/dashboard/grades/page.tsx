@@ -15,6 +15,7 @@ import {
   CompetencyValue,
   getCompetencyLabel,
 } from "@/lib/grading";
+import { GRADING_TRACKS, SETTING_KEYS, resolveTrackForClass, resolveLayout } from "@/lib/grading-tracks";
 import MaterialIcon from "@/components/MaterialIcon";
 import { logger } from "@/lib/logger";
 
@@ -244,7 +245,60 @@ export default function GradesPage() {
     };
     fetchTeacherSubjects();
   }, [user?.id, isDemo]);
+
   const [selectedClass, setSelectedClass] = useState("");
+
+  const [schoolSettings, setSchoolSettings] = useState<Record<string, string>>({});
+  const [track, setTrack] = useState<keyof GRADING_TRACKS | null>(null);
+  const [columnLabels, setColumnLabels] = useState<Record<string, { label: string; explain: string }>>({});
+
+  useEffect(() => {
+    if (!school?.id) return;
+    async function load() {
+      try {
+        const all = await withTimeout(
+          supabase.from("school_settings").select("key, value").eq("school_id", school.id),
+          10000,
+          timeoutFallback(),
+        );
+        const map: Record<string, string> = {};
+        (all as { data?: any[] })?.data?.forEach((row: any) => {
+          map[row.key] = row.value ?? "";
+        });
+        setSchoolSettings(map);
+
+        const secondaryKey = SETTING_KEYS.secondaryTrack;
+        const secondaryValue = map[secondaryKey] || "";
+        const trackChoice = secondaryValue === "old" ? "secondary_old" : "secondary_new";
+        setTrack(trackChoice);
+
+        const trackInfo = GRADING_TRACKS[trackChoice];
+        if (trackInfo) {
+          const labels: Record<string, { label: string; explain: string }> = {};
+          trackInfo.columns.forEach((col) => {
+            col.keys.forEach((key) => {
+              labels[key] = { label: col.label, explain: col.explain };
+            });
+          });
+          // Also add the MID/END labels that are always present
+          labels["mid"] = {
+            label: "MID",
+            explain: "Classwork average — every test, beginning-of-term, midterm and Saturday mark counts equally.",
+          };
+          labels["end"] = { label: "END", explain: "End-of-term exam mark. Counts 75% of the subject average." };
+          setColumnLabels(labels);
+        } else {
+          setColumnLabels({});
+        }
+      } catch (err) {
+        logger.warn("Failed to load grading settings:", err);
+        setSchoolSettings({});
+        setTrack(null);
+        setColumnLabels({});
+      }
+    }
+    load();
+  }, [school?.id]);
   const [selectedSubject, setSelectedSubject] = useState("");
   // Scope the pickers to what this teacher actually teaches. Previously both
   // listed every class and subject in the school, and the assignment check ran
@@ -1842,25 +1896,36 @@ export default function GradesPage() {
                             </th>
                           ) : (
                             <>
-                              {activeAssessmentTypes.map((type) => (
-                                <th
-                                  key={type}
-                                  className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center"
-                                >
-                                  {type === "ca1"
-                                    ? "CA1"
-                                    : type === "ca2"
-                                      ? "CA2"
-                                      : type === "ca3"
-                                        ? "CA3"
-                                        : type === "ca4"
-                                          ? "CA4"
-                                          : type === "project"
-                                            ? "Project"
-                                            : "Exam"}{" "}
-                                  ({ASSESSMENT_MAX[type]})
-                                </th>
-                              ))}
+                              {activeAssessmentTypes.map((type) => {
+                                const labelInfo = columnLabels[type] || {
+                                  label:
+                                    type === "ca1"
+                                      ? "CA1"
+                                      : type === "ca2"
+                                        ? "CA2"
+                                        : type === "ca3"
+                                          ? "CA3"
+                                          : type === "ca4"
+                                            ? "CA4"
+                                            : type === "project"
+                                              ? "Project"
+                                              : "Exam",
+                                  explain: "",
+                                };
+                                return (
+                                  <th
+                                    key={type}
+                                    className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center"
+                                  >
+                                    {labelInfo.label}{" "}
+                                    {labelInfo.explain && (
+                                      <div className="text-xs text-gray-500 mt-1 line-clamp-1">{labelInfo.explain}</div>
+                                    )}
+                                    {")"}
+                                    {ASSESSMENT_MAX[type]}
+                                  </th>
+                                );
+                              })}
                             </>
                           )}
                           <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
