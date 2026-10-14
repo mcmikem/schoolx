@@ -546,24 +546,63 @@ export function useFeeStructure(schoolId?: string) {
     if (!querySchoolId) {
       throw new Error("Could not tell which school this fee belongs to. Please reload and try again.");
     }
-    let result: PostgrestSingleResponse<FeeStructure> | null = null;
+    // Deleting a fee is a soft delete (deleted_at), and the unique constraint
+    // (school_id, class_id, name, term, academic_year) knows nothing about
+    // deleted_at. Re-adding a fee you had just deleted therefore collided with
+    // the ghost row and failed with 23505 — the list showed nothing while the
+    // database insisted it was still there. Revive the deleted row instead of
+    // colliding with it, and leave a genuinely live duplicate to the insert so
+    // it still reports the conflict it should.
+    //
+    // class_id is nullable and Postgres treats NULLs as distinct in a unique
+    // index, so the match has to switch predicate rather than lean on equality
+    // (which is also why an ON CONFLICT upsert could not have found the
+    // all-classes row).
+    let revived: PostgrestSingleResponse<FeeStructure> | null = null;
     try {
-      result = await withTimeout(
-        supabase
-          .from("fee_structure")
-          .insert({
-            school_id: querySchoolId,
-            ...normalizedFee,
-            class_id: normalizedFee.class_id || null,
-            due_date: normalizedFee.due_date || null,
-          })
-          .select()
-          .single(),
-        15000,
-        timeoutFallback<FeeStructure>(),
-      );
-    } catch (err) {
-      throw new Error(getErrorMessage(err, "Failed to create fee"));
+      const reviveQuery = supabase
+        .from("fee_structure")
+        .update({
+          deleted_at: null,
+          amount: normalizedFee.amount,
+          due_date: normalizedFee.due_date || null,
+        })
+        .eq("school_id", querySchoolId)
+        .eq("name", normalizedFee.name)
+        .eq("term", normalizedFee.term)
+        .eq("academic_year", normalizedFee.academic_year)
+        .not("deleted_at", "is", null);
+      if (normalizedFee.class_id) reviveQuery.eq("class_id", normalizedFee.class_id);
+      else reviveQuery.is("class_id", null);
+      revived = await withTimeout(reviveQuery.select().single(), 15000, timeoutFallback<FeeStructure>());
+    } catch {
+      // A revive failure is not fatal — fall through to the insert, which
+      // surfaces the real error if the row is genuinely still live.
+      revived = null;
+    }
+
+    let result: PostgrestSingleResponse<FeeStructure> | null = null;
+    if (revived && !isTimeoutResult(revived) && revived.data && !revived.error) {
+      result = revived;
+    } else {
+      try {
+        result = await withTimeout(
+          supabase
+            .from("fee_structure")
+            .insert({
+              school_id: querySchoolId,
+              ...normalizedFee,
+              class_id: normalizedFee.class_id || null,
+              due_date: normalizedFee.due_date || null,
+            })
+            .select()
+            .single(),
+          15000,
+          timeoutFallback<FeeStructure>(),
+        );
+      } catch (err) {
+        throw new Error(getErrorMessage(err, "Failed to create fee"));
+      }
     }
 
     // withTimeout swallows its own rejection and hands back the 408 fallback,

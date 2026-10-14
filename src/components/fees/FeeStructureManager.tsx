@@ -11,6 +11,7 @@ interface FeeStructureData {
   amount: number | string;
   term: number;
   academic_year?: string;
+  due_date?: string | null;
 }
 
 interface FeeStructureManagerProps {
