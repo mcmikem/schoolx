@@ -39,4 +39,35 @@ describe("modal positioning", () => {
     const modal = fs.readFileSync(path.join(SRC, "components/ui/Modal.tsx"), "utf8");
     expect(modal).toContain("absolute inset-0 bg-black/50");
   });
+
+  it("paints every hand-rolled dialog panel above its backdrop layer", () => {
+    // CSS painting order: within one stacking context a positioned element
+    // (the absolute backdrop) paints ABOVE a non-positioned (static) sibling.
+    // A dialog panel without `relative` therefore renders UNDER its own
+    // backdrop — the dialog looks dimmed and every click lands on the
+    // backdrop, so all buttons are dead. Seen on the fees "Restore Draft?"
+    // dialog and the settings payment modal.
+    const offenders: string[] = [];
+    for (const file of walk(SRC)) {
+      const rel = path.relative(ROOT, file);
+      const lines = fs.readFileSync(file, "utf8").split("\n");
+      lines.forEach((line, i) => {
+        if (!line.includes("absolute inset-0")) return;
+        if (!/bg-(black|slate)/.test(line)) return;
+        // The immediate sibling element carrying a className is the panel.
+        for (let j = i + 1; j < Math.min(i + 4, lines.length); j++) {
+          const m = lines[j].match(/className="([^"]+)"/);
+          if (!m) continue;
+          const cls = m[1];
+          const looksLikePanel = /rounded-|max-w-|shadow/.test(cls);
+          const positioned = /relative|absolute|fixed|sticky/.test(cls);
+          if (looksLikePanel && !positioned) {
+            offenders.push(`${rel}:${j + 1}`);
+          }
+          break;
+        }
+      });
+    }
+    expect(offenders).toEqual([]);
+  });
 });
