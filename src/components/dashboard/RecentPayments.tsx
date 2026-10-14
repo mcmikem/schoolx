@@ -21,7 +21,7 @@ export default function RecentPayments({
     <div className="rounded-[24px] bg-white border border-[var(--border)] p-5 mb-6">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between mb-2 focus:outline-none focus:ring-2 focus:ring-[var(--t1)] rounded"
+        className="w-full min-h-11 flex flex-wrap gap-2 items-center justify-between mb-2 focus:outline-none focus:ring-2 focus:ring-[var(--t1)] rounded"
         aria-expanded={isOpen}
         aria-controls="recent-payments-list"
       >
@@ -35,6 +35,7 @@ export default function RecentPayments({
           +UGX {formatCompactCurrency(thisMonthTotal)}
         </span>
       </button>
+      {!isOpen && <p className="text-xs text-[var(--t3)]">Expand to see the latest receipts and payment methods.</p>}
 
       {isOpen && (
         <div id="recent-payments-list" className="space-y-2 mt-4" role="list" aria-labelledby="recent-payments-heading">
@@ -52,7 +53,7 @@ export default function RecentPayments({
               <div
                 key={p.id}
                 role="listitem"
-                className="flex items-center gap-3 rounded-[18px] bg-[var(--surface-container-low)] px-3 py-2.5"
+                className="flex flex-wrap items-center gap-3 rounded-[18px] bg-[var(--surface-container-low)] px-3 py-2.5"
               >
                 <div
                   className="h-8 w-8 rounded-lg bg-white border border-[var(--border)] flex items-center justify-center text-xs font-bold text-[var(--t1)] shrink-0"

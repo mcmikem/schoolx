@@ -34,7 +34,7 @@ export default function TopDefaulters({
     <div className="rounded-[24px] bg-white border border-[var(--border)] p-5 mb-6">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between mb-2 focus:outline-none focus:ring-2 focus:ring-[var(--t1)] rounded"
+        className="w-full min-h-11 flex flex-wrap gap-2 items-center justify-between mb-2 focus:outline-none focus:ring-2 focus:ring-[var(--t1)] rounded"
         aria-expanded={isOpen}
         aria-controls="defaulters-list"
       >
@@ -48,6 +48,7 @@ export default function TopDefaulters({
           UGX {formatCompactCurrency(totalBalance)}
         </span>
       </button>
+      {!isOpen && <p className="text-xs text-[var(--t3)]">Expand to review the five largest outstanding balances.</p>}
 
       {isOpen && (
         <div id="defaulters-list" className="space-y-2 mt-4" role="list" aria-labelledby="defaulters-heading">
@@ -55,7 +56,7 @@ export default function TopDefaulters({
             <div
               key={student.student_id}
               role="listitem"
-              className="flex items-center gap-3 rounded-[18px] bg-[var(--surface-container-low)] border border-[var(--border)] px-3 py-2.5"
+              className="flex flex-wrap items-center gap-3 rounded-[18px] bg-[var(--surface-container-low)] border border-[var(--border)] px-3 py-2.5"
             >
               <div
                 className="h-9 w-9 rounded-full bg-[var(--red-soft)] flex items-center justify-center text-sm font-bold text-[var(--red)] shrink-0"
@@ -78,7 +79,7 @@ export default function TopDefaulters({
                   <a
                     href={`tel:${student.parent_phone}`}
                     aria-label={`Call parent of ${student.first_name}`}
-                    className="rounded-lg bg-[var(--primary-50)] px-2 py-1.5 text-[var(--t2)] hover:bg-[var(--border)] focus:outline-none focus:ring-2 focus:ring-[var(--t1)]"
+                    className="flex h-11 w-11 items-center justify-center rounded-lg bg-[var(--primary-50)] text-[var(--t2)] hover:bg-[var(--border)] focus:outline-none focus:ring-2 focus:ring-[var(--t1)]"
                   >
                     <span className="material-symbols-outlined text-[14px]" aria-hidden="true">
                       call
@@ -87,7 +88,7 @@ export default function TopDefaulters({
                   <a
                     href={`/dashboard/messages?to=${student.parent_phone}`}
                     aria-label={`Send SMS to parent of ${student.first_name}`}
-                    className="rounded-lg bg-[var(--t1)] px-2 py-1.5 text-white hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--t1)]"
+                    className="flex h-11 w-11 items-center justify-center rounded-lg bg-[var(--t1)] text-white hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[var(--t1)]"
                   >
                     <span className="material-symbols-outlined text-[14px]" aria-hidden="true">
                       sms

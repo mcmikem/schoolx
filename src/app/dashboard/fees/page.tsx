@@ -26,7 +26,7 @@ import FeeTable from "@/components/fees/FeeTable";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Tabs } from "@/components/ui/Tabs";
 import { Button } from "@/components/ui/index";
-import { calculateStudentFeePosition } from "@/lib/operations";
+import { calculateStudentFeePosition, feeAppliesToStudent } from "@/lib/operations";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useUndo, UndoNotification } from "@/lib/useUndo";
 import { PageGuidance } from "@/components/PageGuidance";
@@ -38,6 +38,8 @@ import { APP_NAME } from "@/lib/app-name";
 import { logger } from "@/lib/logger";
 import { formatCurrency } from "@/lib/currency";
 import { lazyWithIdlePrefetch } from "@/lib/lazy-prefetch";
+import type { FeeFormData } from "@/components/fees/FeeFormModal";
+import type { FeeStructure } from "@/types";
 
 // Split out of the first-load bundle (old phones parse less up front) and warmed in
 // idle time so the forms and tabs still open offline once the page has been visited.
@@ -141,6 +143,7 @@ export default function FinanceHubPage() {
   const {
     feeStructure,
     createFeeStructure,
+    updateFeeStructure,
     deleteFeeStructure,
     refetch: refetchFeeStructure,
   } = useFeeStructure(school?.id);
@@ -227,6 +230,8 @@ export default function FinanceHubPage() {
   };
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [recordedPaymentDate, setRecordedPaymentDate] = useState("");
+  const [recordedPaymentAmount, setRecordedPaymentAmount] = useState<number | undefined>();
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [showFeeModal, setShowFeeModal] = useState(false);
   const [showAdjustmentModal, setShowAdjustmentModal] = useState(false);
@@ -278,12 +283,16 @@ export default function FinanceHubPage() {
   ]);
 
   const feeDraft = useFormDraft("fee_add_form");
-  const [newFee, setNewFee] = useState({
+  const [newFee, setNewFee] = useState<FeeFormData>({
     name: "",
     class_id: "",
     amount: "",
     term: currentTerm || 1,
     due_date: "",
+    category: "tuition",
+    boarding_status: "both",
+    frequency: "per_term",
+    transport_zone: "",
   });
 
   // The fee being edited, or null when the form is creating a new one. Fees
@@ -294,7 +303,8 @@ export default function FinanceHubPage() {
   const [newPayment, setNewPayment] = useState<{
     student_id: string;
     amount_paid: string;
-    payment_method: "cash" | "mobile_money" | "bank" | "installment";
+    payment_date: string;
+    payment_method: "cash" | "mobile_money" | "bank" | "installment" | "in_kind";
     payment_reference: string;
     momo_provider: "mtn" | "airtel";
     momo_transaction_id: string;
@@ -304,6 +314,7 @@ export default function FinanceHubPage() {
   }>({
     student_id: "",
     amount_paid: "",
+    payment_date: getLocalDateString(),
     payment_method: PAYMENT_METHODS.CASH,
     payment_reference: "",
     momo_provider: "mtn" as const,
@@ -479,7 +490,7 @@ export default function FinanceHubPage() {
   const feesByClass = useMemo(() => {
     const map = new Map<string | null | undefined, typeof feeStructure>();
     feeStructure.forEach((f) => {
-      const key = f.class_id;
+      const key = f.class_id || null;
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(f);
     });
@@ -490,7 +501,10 @@ export default function FinanceHubPage() {
     (student: (typeof students)[number]) => {
       const studentClassId = student.class_id;
       const studentPayments = paymentsByStudent.get(student.id) || [];
-      const applicableFees = [...(feesByClass.get(null) || []), ...(feesByClass.get(studentClassId ?? null) || [])];
+      const applicableFees = [
+        ...(feesByClass.get(null) || []),
+        ...(studentClassId ? feesByClass.get(studentClassId) || [] : []),
+      ].filter((fee) => feeAppliesToStudent(fee, student));
       const studentAdjustments = adjustmentsByStudent.get(student.id) || [];
       const feePosition = calculateStudentFeePosition({
         feeTotal: applicableFees.reduce((sum, f) => sum + Number(f.amount || 0), 0),
@@ -625,7 +639,7 @@ export default function FinanceHubPage() {
     // NOTE: `payments` here is the paginated cashbook slice — invoice totals are
     // only exact when the full ledger is loaded. Balances tab is authoritative.
     return students.map((student) => {
-      const studentFeeItems = feeStructure.filter((f) => !f.class_id || f.class_id === student.class_id);
+      const studentFeeItems = feeStructure.filter((fee) => feeAppliesToStudent(fee, student));
       const feeItems = studentFeeItems.map((f) => ({
         name: f.name,
         amount: Number(f.amount),
@@ -740,6 +754,7 @@ export default function FinanceHubPage() {
       const paymentResult = await createPayment({
         student_id: newPayment.student_id,
         amount_paid: parsedAmount,
+        payment_date: newPayment.payment_date,
         payment_method: newPayment.payment_method,
         payment_reference: reference || undefined,
         paid_by: newPayment.paid_by || undefined,
@@ -813,6 +828,8 @@ export default function FinanceHubPage() {
 
       const student = studentBalances.find((s) => s.id === newPayment.student_id);
       if (student) {
+        setRecordedPaymentDate(paymentResult.payment_date);
+        setRecordedPaymentAmount(Number(paymentResult.amount_paid));
         setSelectedStudent({
           ...student,
           paid: student.paid + parsedAmount,
@@ -821,10 +838,12 @@ export default function FinanceHubPage() {
         setShowReceiptModal(true);
       }
       toast.success("Payment recorded successfully");
+      if (!isDemo) void refetchPayments();
       setShowPaymentModal(false);
       setNewPayment({
         student_id: "",
         amount_paid: "",
+        payment_date: getLocalDateString(),
         payment_method: "cash",
         payment_reference: "",
         momo_provider: "mtn",
@@ -897,30 +916,31 @@ export default function FinanceHubPage() {
       if (editingFeeId) {
         // Adjusting an existing fee item — same validation, but the row keeps
         // its identity so existing payments still point at it.
-        await updateRecord(
-          () =>
-            supabase
-              .from("fee_structure")
-              .update({
-                name: newFee.name,
-                class_id: newFee.class_id || null,
-                amount: Number(newFee.amount),
-                term: Number(newFee.term),
-                academic_year: academicYear,
-                due_date: newFee.due_date || null,
-              })
-              .eq("id", editingFeeId),
-          { timeoutMs: 15000, timeoutMessage: "Fee update timed out" },
-        );
+        await updateFeeStructure(editingFeeId, {
+          name: newFee.name,
+          class_id: newFee.class_id || undefined,
+          amount: Number(newFee.amount),
+          term: newFee.frequency === "per_term" ? Number(newFee.term) : null,
+          academic_year: feeStructure.find((fee) => fee.id === editingFeeId)?.academic_year || academicYear,
+          due_date: newFee.due_date || undefined,
+          category: newFee.category,
+          boarding_status: newFee.boarding_status === "both" ? null : newFee.boarding_status,
+          frequency: newFee.frequency,
+          transport_zone: newFee.transport_zone || undefined,
+        });
         toast.success("Fee updated");
       } else {
         await createFeeStructure({
           name: newFee.name,
           class_id: newFee.class_id || undefined,
           amount: Number(newFee.amount),
-          term: Number(newFee.term),
+          term: newFee.frequency === "per_term" ? Number(newFee.term) : null,
           academic_year: academicYear,
           due_date: newFee.due_date || undefined,
+          category: newFee.category,
+          boarding_status: newFee.boarding_status,
+          frequency: newFee.frequency,
+          transport_zone: newFee.transport_zone || undefined,
         });
         toast.success("Fee structure created");
       }
@@ -933,6 +953,10 @@ export default function FinanceHubPage() {
         amount: "",
         term: currentTerm || 1,
         due_date: "",
+        category: "tuition",
+        boarding_status: "both",
+        frequency: "per_term",
+        transport_zone: "",
       });
     } catch (err: unknown) {
       toast.error(
@@ -950,14 +974,22 @@ export default function FinanceHubPage() {
   };
 
   // Prefill the form from an existing fee so the bursar can adjust it in place.
-  const handleEditFee = (fee: { id: string; name: string; class_id?: string | null; amount: number | string }) => {
+  const handleEditFee = (fee: FeeStructure) => {
     setEditingFeeId(fee.id);
     setNewFee({
       name: fee.name,
       class_id: fee.class_id || "",
       amount: String(fee.amount),
-      term: currentTerm || 1,
-      due_date: "",
+      // Both of these must come from the row. Prefilling term from
+      // `currentTerm` and due_date from "" silently moved a fee into whatever
+      // term was open and wiped its due date, so an edited fee appeared in the
+      // structure table but had vanished from the term being collected for.
+      term: (fee.term || currentTerm || 1) as 1 | 2 | 3,
+      due_date: fee.due_date || "",
+      category: (fee.category || "tuition") as FeeFormData["category"],
+      boarding_status: fee.boarding_status || "both",
+      frequency: fee.frequency || "per_term",
+      transport_zone: fee.transport_zone || "",
     });
     setShowFeeModal(true);
   };
@@ -1980,6 +2012,8 @@ export default function FinanceHubPage() {
             id: s.id,
             name: s.name,
             balance: s.balance,
+            student_number: s.student_number,
+            class_name: s.class_name,
           }))}
           onSubmit={handleRecordPayment}
           newPayment={newPayment}
@@ -1993,6 +2027,9 @@ export default function FinanceHubPage() {
           schoolName={school?.name || "School"}
           onClose={() => setShowReceiptModal(false)}
           onPrint={handlePrintReceipt}
+          paymentDate={recordedPaymentDate}
+          paymentAmount={recordedPaymentAmount}
+          contentRef={receiptRef}
         />
 
         <FeeFormModal

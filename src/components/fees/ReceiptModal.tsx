@@ -1,4 +1,5 @@
 "use client";
+import type { RefObject } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 import { Modal } from "@/components/ui/Modal";
 import { formatCurrency } from "@/lib/currency";
@@ -9,6 +10,9 @@ interface ReceiptModalProps {
   schoolName: string;
   onClose: () => void;
   onPrint: () => void;
+  paymentDate?: string;
+  paymentAmount?: number;
+  contentRef?: RefObject<HTMLDivElement>;
 }
 
 /**
@@ -17,12 +21,35 @@ interface ReceiptModalProps {
  * resolves against the document once the page is scrolled — the receipt
  * appeared off-screen and had to be scrolled to.
  */
-export default function ReceiptModal({ isOpen, student, schoolName, onClose, onPrint }: ReceiptModalProps) {
+export default function ReceiptModal({
+  isOpen,
+  student,
+  schoolName,
+  onClose,
+  onPrint,
+  paymentDate,
+  paymentAmount,
+  contentRef,
+}: ReceiptModalProps) {
   if (!isOpen || !student) return null;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Fee Payment Receipt" size="md">
-      <div className="space-y-3">
+      <div ref={contentRef} className="space-y-3">
+        {paymentAmount !== undefined && (
+          <div className="flex justify-between py-2 border-b border-dashed">
+            <span className="text-on-surface-variant">This payment:</span>
+            <span className="font-bold text-secondary">{formatCurrency(paymentAmount)}</span>
+          </div>
+        )}
+        {paymentDate && (
+          <div className="flex justify-between py-2 border-b border-dashed">
+            <span className="text-on-surface-variant">Payment date:</span>
+            <span className="font-bold">
+              {new Date(`${paymentDate.slice(0, 10)}T12:00:00`).toLocaleDateString("en-GB")}
+            </span>
+          </div>
+        )}
         <div className="flex justify-between py-2 border-b border-dashed">
           <span className="text-on-surface-variant">School:</span>
           <span className="font-bold text-primary">{schoolName}</span>

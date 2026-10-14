@@ -241,6 +241,8 @@ const MODULE_ROUTE_MAP: Record<ModuleKey, string[]> = {
   exams: ["/dashboard/exams", "/dashboard/exam-timetable", "/dashboard/uneb", "/dashboard/uneb-registration"],
   finance: [
     "/dashboard/fees",
+    "/dashboard/fee-structure",
+    "/dashboard/fee-ledger",
     "/dashboard/fee-terms",
     "/dashboard/payment-plans",
     "/dashboard/invoicing",
@@ -294,6 +296,7 @@ const MODULE_ROUTE_MAP: Record<ModuleKey, string[]> = {
   ],
   settings: [
     "/dashboard/settings",
+    "/dashboard/grading-settings",
     "/dashboard/permissions",
     "/dashboard/audit",
     "/dashboard/data-quality",

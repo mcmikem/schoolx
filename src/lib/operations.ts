@@ -1,4 +1,4 @@
-import type { Student, Class, User, Attendance, SMSTrigger } from "@/types";
+import type { Student, Class, User, Attendance, SMSTrigger, FeeStructure } from "@/types";
 import { getLocalDateString } from "@/lib/hooks/utils";
 
 export type FinancialAdjustmentType =
@@ -228,6 +228,16 @@ export function recommendBulkPromotion(candidates: PromotionCandidate[]): Promot
         : `Average ${candidate.averageScore}% is below promotion threshold ${candidate.passingThreshold}%.`,
     };
   });
+}
+
+export function feeAppliesToStudent(
+  fee: Pick<FeeStructure, "class_id" | "boarding_status">,
+  student: Pick<Student, "class_id" | "boarding_status">,
+): boolean {
+  return (
+    (!fee.class_id || fee.class_id === student.class_id) &&
+    (!fee.boarding_status || fee.boarding_status === (student.boarding_status || "day"))
+  );
 }
 
 export function calculateStudentFeePosition(input: StudentFeePositionInput): StudentFeePosition {

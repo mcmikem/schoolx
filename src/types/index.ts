@@ -250,9 +250,13 @@ export interface FeeStructure {
   class_id?: string;
   name: string;
   amount: number;
-  term: 1 | 2 | 3;
+  term: 1 | 2 | 3 | null;
   academic_year: string;
   due_date?: string;
+  category?: string;
+  boarding_status?: "day" | "boarding" | null;
+  frequency?: "per_term" | "one_off" | "per_year";
+  transport_zone?: string | null;
   deleted_at?: string;
   deleted_by?: string;
   created_at: string;
@@ -282,6 +286,7 @@ export interface CreatePaymentInput {
   student_id: string;
   fee_id?: string;
   amount_paid: number;
+  payment_date?: string;
   payment_method: "cash" | "mobile_money" | "bank" | "installment" | "in_kind";
   payment_reference?: string;
   paid_by?: string;

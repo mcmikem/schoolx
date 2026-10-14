@@ -27,6 +27,7 @@ import { useClasses, useFeePayments, useFeeStructure, useStudents, useSubjects }
 import { isTimeoutResult, timeoutFallback, withTimeout } from "@/lib/hooks/utils";
 import { logger } from "@/lib/logger";
 import { loadSchoolSetting } from "@/lib/school-settings";
+import { type ReportLayoutId, SETTING_KEYS } from "@/lib/grading-tracks";
 import {
   bucketUgandaSubject,
   orderUgandaSubjects,
@@ -185,20 +186,37 @@ export default function ReportCardsPage() {
     return reports.filter((r) => getStudentFeeBalance(r.studentId) === 0);
   }, [reports, hideWithFees, getStudentFeeBalance]);
 
-  const [reportFormat, setReportFormat] = useState<"numerical" | "competency" | "both" | "cbc">("numerical");
-  const reportLayout = useMemo(() => {
-    if (!school?.id) return "uganda_classic";
-    const layout = loadSchoolSetting(school.id, "report_layout", "uganda_classic");
-    return layout as "uganda_classic" | "ncdc_cbc";
-  }, [school?.id]);
-
+  const [reportLayout, setReportLayout] = useState<ReportLayoutId>("uganda_classic");
   useEffect(() => {
-    if (reportLayout === "uganda_classic") {
-      setReportFormat("numerical");
-    } else if (reportLayout === "ncdc_cbc") {
-      setReportFormat("cbc");
+    let cancelled = false;
+    setReportLayout("uganda_classic");
+    setReportFormat("numerical");
+    if (!school?.id) return;
+    if (isDemo) {
+      try {
+        const settings = JSON.parse(sessionStorage.getItem("demo-grading-settings") || "{}");
+        const layout = settings[SETTING_KEYS.reportLayout] === "ncdc_cbc" ? "ncdc_cbc" : "uganda_classic";
+        setReportLayout(layout);
+        setReportFormat(layout === "ncdc_cbc" ? "cbc" : "numerical");
+      } catch {
+        setReportFormat("numerical");
+      }
+      return;
     }
-  }, [reportLayout]);
+    void withTimeout(
+      loadSchoolSetting<string>(school.id, SETTING_KEYS.reportLayout, "uganda_classic"),
+      10000,
+      "uganda_classic",
+    ).then((layout) => {
+      if (cancelled) return;
+      const resolved = layout === "ncdc_cbc" ? "ncdc_cbc" : "uganda_classic";
+      setReportLayout(resolved);
+      setReportFormat(resolved === "ncdc_cbc" ? "cbc" : "numerical");
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [school?.id, isDemo]);
 
   const stats = useMemo(() => {
     if (reports.length === 0) return { avgTotal: 0, div1: 0, withFees: 0 };

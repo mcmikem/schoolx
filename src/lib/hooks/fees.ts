@@ -35,13 +35,13 @@ async function fetchFeePaymentsWithFallback(options: { schoolId: string; page: n
   const selectWithClass = `
     id, student_id, fee_id, amount_paid, payment_method, payment_reference,
     paid_by, notes, payment_date, created_at,
-    students!inner (id, first_name, last_name, school_id, classes (name))
+    students!inner (id, first_name, last_name, student_number, class_id, school_id, classes (name))
   `;
 
   const selectWithoutClass = `
     id, student_id, fee_id, amount_paid, payment_method, payment_reference,
     paid_by, notes, payment_date, created_at,
-    students!inner (id, first_name, last_name, school_id)
+    students!inner (id, first_name, last_name, student_number, class_id, school_id)
   `;
 
   const joins = [selectWithClass, selectWithoutClass];
@@ -94,8 +94,14 @@ export async function findRecentDuplicatePayment(params: {
   amount: number;
   method: string;
   online: boolean;
+  paymentDate?: string;
+  reference?: string;
 }): Promise<Record<string, unknown> | null> {
   const { schoolId, studentId, amount, method, online } = params;
+  const sameRecordedPayment = (row: Record<string, unknown>) =>
+    Number(row.amount_paid) === amount &&
+    (!params.paymentDate || String(row.payment_date || "").slice(0, 10) === params.paymentDate) &&
+    (!params.reference || row.payment_reference === params.reference);
   try {
     const since = new Date(Date.now() - DUPLICATE_WINDOW_MS).toISOString();
     if (!online) {
@@ -103,7 +109,7 @@ export async function findRecentDuplicatePayment(params: {
       return (
         (local.find(
           (r) =>
-            Number((r as Record<string, unknown>).amount_paid) === amount &&
+            sameRecordedPayment(r as Record<string, unknown>) &&
             String((r as Record<string, unknown>).payment_method) === method &&
             String((r as Record<string, unknown>).created_at || "") >= since,
         ) as Record<string, unknown> | undefined) ?? null
@@ -112,7 +118,7 @@ export async function findRecentDuplicatePayment(params: {
     const { data } = await withTimeout(
       supabase
         .from("fee_payments")
-        .select("id, student_id, amount_paid, payment_method, payment_date, created_at")
+        .select("id, student_id, amount_paid, payment_method, payment_reference, payment_date, created_at")
         .eq("school_id", schoolId)
         .eq("student_id", studentId)
         .eq("payment_method", method)
@@ -123,7 +129,7 @@ export async function findRecentDuplicatePayment(params: {
       timeoutFallback(),
     );
     const rows = (data ?? []) as unknown as Array<Record<string, unknown>>;
-    return rows.find((r) => Number(r.amount_paid) === amount) ?? null;
+    return rows.find(sameRecordedPayment) ?? null;
   } catch {
     return null;
   }
@@ -151,6 +157,7 @@ export function useFeePayments(schoolId?: string, page: number = 1, limit: numbe
   const cacheKey = `fee_payments:${schoolId}:${page}:${limit}`;
 
   const fetchPayments = useCallback(async () => {
+    setError(null);
     // Demo mode - check for demo school UUID
     if (isDemo || isDemoSchool(schoolId)) {
       setPayments(DEMO_FEE_PAYMENTS as unknown as FeePayment[]);
@@ -166,6 +173,7 @@ export function useFeePayments(schoolId?: string, page: number = 1, limit: numbe
     const cached = getCachedData<FeePayment[]>(cacheKey);
     if (cached) {
       setPayments(cached);
+      setTotalCount(getCachedData<number>(`${cacheKey}:count`) || cached.length);
       setLoading(false);
       return;
     }
@@ -192,13 +200,15 @@ export function useFeePayments(schoolId?: string, page: number = 1, limit: numbe
           limit,
         }),
         8000,
-        { data: [], count: 0 } as unknown as Awaited<ReturnType<typeof fetchFeePaymentsWithFallback>>,
+        null,
       );
+      if (data === null) throw new Error("Loading payments timed out. Please try again.");
       const result = (data.data as unknown as FeePayment[]) || [];
       setPayments(result);
       setTotalCount(data.count || 0);
       setCachedData(cacheKey, result);
-      await offlineDB.cacheFromServer("fee_payments", (data as unknown as Record<string, unknown>[]) || []);
+      setCachedData(`${cacheKey}:count`, data.count || 0);
+      await offlineDB.cacheFromServer("fee_payments", (data.data as unknown as Record<string, unknown>[]) || []);
     } catch (err: unknown) {
       const message =
         err instanceof Error
@@ -218,7 +228,7 @@ export function useFeePayments(schoolId?: string, page: number = 1, limit: numbe
       // Local, not UTC. A payment entered at 01:00 in Uganda is dated
       // YESTERDAY by toISOString(), which drops it out of "Fees today" on the
       // dashboard and files it under the wrong day of the cashbook.
-      payment_date: getLocalDateString(),
+      payment_date: payment.payment_date || getLocalDateString(),
     });
     const validationErrors = validatePaymentInput(normalizedPayment);
     if (validationErrors.length > 0) {
@@ -267,6 +277,8 @@ export function useFeePayments(schoolId?: string, page: number = 1, limit: numbe
       amount: Number(normalizedPayment.amount_paid),
       method: String(normalizedPayment.payment_method),
       online: isOnline,
+      paymentDate: String(normalizedPayment.payment_date),
+      reference: String(normalizedPayment.payment_reference || ""),
     });
     if (duplicate) {
       logger.warn("[Fees] Duplicate payment suppressed, returning existing row");
@@ -314,7 +326,7 @@ export function useFeePayments(schoolId?: string, page: number = 1, limit: numbe
       return offlinePayment as unknown as FeePayment;
     }
     try {
-      const { data, error: insertError } = await withTimeout(
+      const result = await withTimeout(
         supabase
           .from("fee_payments")
           .insert(payload)
@@ -329,7 +341,11 @@ export function useFeePayments(schoolId?: string, page: number = 1, limit: numbe
         15000,
         timeoutFallback(),
       );
+      if (isTimeoutResult(result))
+        throw new Error("Saving the payment timed out. Check your connection before retrying.");
+      const { data, error: insertError } = result;
       if (insertError) throw insertError;
+      if (!data) throw new Error("The payment could not be saved.");
       setPayments((prev) => [data as unknown as FeePayment, ...prev]);
       await offlineDB.cacheFromServer("fee_payments", [data as unknown as Record<string, unknown>]);
       invalidateCache(cacheKey);
@@ -413,13 +429,18 @@ export function useFeePayments(schoolId?: string, page: number = 1, limit: numbe
     totalCount,
     createPayment,
     deletePayment,
-    refetch: fetchPayments,
+    refetch: () => {
+      invalidateCache(cacheKey);
+      invalidateCache(`${cacheKey}:count`);
+      return fetchPayments();
+    },
   };
 }
 
 export function useFeeStructure(schoolId?: string) {
   const [feeStructure, setFeeStructure] = useState<FeeStructure[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { isDemo } = useAuth();
   const isOnline = useOnlineStatus();
   const hasInitialized = useRef(false);
@@ -436,6 +457,7 @@ export function useFeeStructure(schoolId?: string) {
   const cacheKey = `fee_structure:${schoolId}`;
 
   const fetchFeeStructure = useCallback(async () => {
+    setError(null);
     // Demo mode - check for demo school UUID
     if (isDemo || isDemoSchool(schoolId)) {
       setFeeStructure(DEMO_FEE_STRUCTURE as unknown as FeeStructure[]);
@@ -458,6 +480,7 @@ export function useFeeStructure(schoolId?: string) {
     const querySchoolId = getQuerySchoolId(schoolId, isDemo);
     try {
       setLoading(true);
+      setError(null);
       if (!isOnline) {
         const cached = await offlineDB.getAllFromCache("fee_structure", {
           school_id: querySchoolId,
@@ -470,7 +493,7 @@ export function useFeeStructure(schoolId?: string) {
         supabase
           .from("fee_structure")
           .select(
-            `id, school_id, class_id, name, amount, term, academic_year, due_date, created_at, deleted_at, classes (name)`,
+            `id, school_id, class_id, name, amount, term, academic_year, due_date, category, boarding_status, frequency, transport_zone, created_at, deleted_at, classes (name)`,
           )
           .eq("school_id", querySchoolId)
           .is("deleted_at", null)
@@ -480,26 +503,16 @@ export function useFeeStructure(schoolId?: string) {
             return r.data;
           }),
         5000,
-        [] as unknown as {
-          id: string;
-          school_id: string;
-          class_id: string | null;
-          name: string;
-          amount: number;
-          term: number;
-          academic_year: string;
-          due_date: string | null;
-          created_at: string;
-          deleted_at: string | null;
-          classes: { name: string }[];
-        }[],
+        null,
       );
+      if (data === null) throw new Error("Loading fees took too long. Please try again.");
       const result = (data as unknown as FeeStructure[]) || [];
       setFeeStructure(result);
       setCachedData(cacheKey, result);
       await offlineDB.cacheFromServer("fee_structure", (data as unknown as Record<string, unknown>[]) || []);
     } catch (err) {
       logger.error("Error fetching fee structure:", err);
+      setError(getErrorMessage(err, "Could not load fee structure"));
     } finally {
       setLoading(false);
     }
@@ -509,9 +522,13 @@ export function useFeeStructure(schoolId?: string) {
     name: string;
     class_id?: string;
     amount: number;
-    term: number;
+    term: number | null;
     academic_year: string;
     due_date?: string;
+    category?: string;
+    boarding_status?: "day" | "boarding" | "both" | null;
+    frequency?: "per_term" | "one_off" | "per_year";
+    transport_zone?: string;
   }) => {
     const normalizedFee = normalizeFeeStructureInput(fee);
     const validationErrors = validateFeeStructureInput(normalizedFee);
@@ -523,7 +540,7 @@ export function useFeeStructure(schoolId?: string) {
       (existing) =>
         existing.name.trim().toLowerCase() === String(normalizedFee.name).trim().toLowerCase() &&
         (existing.class_id || null) === (normalizedFee.class_id || null) &&
-        Number(existing.term) === normalizedFee.term &&
+        (existing.term ?? null) === normalizedFee.term &&
         existing.academic_year === normalizedFee.academic_year,
     );
     if (existingDuplicate) {
@@ -566,12 +583,17 @@ export function useFeeStructure(schoolId?: string) {
           deleted_at: null,
           amount: normalizedFee.amount,
           due_date: normalizedFee.due_date || null,
+          category: normalizedFee.category,
+          boarding_status: normalizedFee.boarding_status,
+          frequency: normalizedFee.frequency,
+          transport_zone: normalizedFee.transport_zone,
         })
         .eq("school_id", querySchoolId)
         .eq("name", normalizedFee.name)
-        .eq("term", normalizedFee.term)
         .eq("academic_year", normalizedFee.academic_year)
         .not("deleted_at", "is", null);
+      if (normalizedFee.term === null) reviveQuery.is("term", null);
+      else reviveQuery.eq("term", normalizedFee.term);
       if (normalizedFee.class_id) reviveQuery.eq("class_id", normalizedFee.class_id);
       else reviveQuery.is("class_id", null);
       revived = await withTimeout(reviveQuery.select().single(), 15000, timeoutFallback<FeeStructure>());
@@ -638,16 +660,45 @@ export function useFeeStructure(schoolId?: string) {
       return;
     }
     try {
-      const { error: deleteError } = await supabase
-        .from("fee_structure")
-        .update({ deleted_at: new Date().toISOString() })
-        .eq("id", id);
+      const result = await withTimeout(
+        supabase
+          .from("fee_structure")
+          .update({ deleted_at: new Date().toISOString() })
+          .eq("id", id)
+          .eq("school_id", schoolId),
+        15000,
+        timeoutFallback(),
+      );
+      if (isTimeoutResult(result)) throw new Error("Deleting the fee timed out. Please try again.");
+      const { error: deleteError } = result;
       if (deleteError) throw deleteError;
       setFeeStructure((prev) => prev.filter((f) => f.id !== id));
       invalidateCache(cacheKey);
     } catch (err: any) {
       throw new Error(err.message);
     }
+  };
+
+  const updateFeeStructure = async (id: string, fee: Parameters<typeof createFeeStructure>[0]) => {
+    const normalized = normalizeFeeStructureInput(fee);
+    const errors = validateFeeStructureInput(normalized);
+    if (errors.length) throw new Error(errors[0]);
+    const payload = { ...normalized, class_id: normalized.class_id || null, due_date: normalized.due_date || null };
+    if (isDemo || isDemoSchool(schoolId)) {
+      setFeeStructure((previous) => previous.map((item) => (item.id === id ? { ...item, ...payload } : item)));
+      return;
+    }
+    if (!schoolId) throw new Error("Please reload your school session.");
+    const result = await withTimeout(
+      supabase.from("fee_structure").update(payload).eq("id", id).eq("school_id", schoolId).select().single(),
+      15000,
+      timeoutFallback(),
+    );
+    if (isTimeoutResult(result)) throw new Error("Saving the fee timed out. Please try again.");
+    if (result.error) throw result.error;
+    if (!result.data) throw new Error("The fee could not be saved.");
+    setFeeStructure((previous) => previous.map((item) => (item.id === id ? (result.data as FeeStructure) : item)));
+    invalidateCache(cacheKey);
   };
 
   useEffect(() => {
@@ -657,9 +708,14 @@ export function useFeeStructure(schoolId?: string) {
   return {
     feeStructure,
     loading,
+    error,
     createFeeStructure,
+    updateFeeStructure,
     deleteFeeStructure,
-    refetch: fetchFeeStructure,
+    refetch: () => {
+      invalidateCache(cacheKey);
+      return fetchFeeStructure();
+    },
   };
 }
 

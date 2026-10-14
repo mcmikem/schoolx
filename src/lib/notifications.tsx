@@ -4,7 +4,10 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import { supabase } from "./supabase";
 import { useAuth } from "./auth-context";
 import { logger } from "./logger";
-import { withTimeout, timeoutFallback } from "./hooks/utils";
+import { withTimeout, timeoutFallback, isTimeoutResult, getLocalDateString } from "./hooks/utils";
+import { normalizeFeeSummary } from "./hooks/fees";
+import { useAcademic } from "./academic-context";
+import { canAccess } from "./roles";
 
 interface Notification {
   id: string;
@@ -36,7 +39,8 @@ export function NotificationsProvider({
   children: ReactNode;
   schoolId?: string;
 }) {
-  const { school, user } = useAuth();
+  const { school, user, isDemo } = useAuth();
+  const { academicYear, currentTerm } = useAcademic();
   const schoolId = propSchoolId || school?.id;
   const userRole = user?.role;
 
@@ -77,9 +81,24 @@ export function NotificationsProvider({
     try {
       const readIds = loadReadIds();
       const generated: Notification[] = [];
-      const today = new Date().toISOString().slice(0, 10);
+      const today = getLocalDateString();
 
-      const canSeeFees = userRole !== "teacher" && userRole !== "parent";
+      const canSeeFees = Boolean(userRole && userRole !== "student" && canAccess(userRole, "fees"));
+      if (isDemo) {
+        setNotifications([
+          {
+            id: "welcome",
+            type: "info",
+            title: "Welcome to SkoolMate OS!",
+            message: "Explore the school workflows with demo data.",
+            link: "/dashboard/",
+            read: readIds.includes("welcome"),
+            created_at: new Date().toISOString(),
+          },
+        ]);
+        setLoading(false);
+        return;
+      }
 
       // Parents get their own lightweight feed — never pull the entire school's
       // students/attendance tables onto a phone on 3G.
@@ -124,78 +143,63 @@ export function NotificationsProvider({
         return;
       }
 
-      const { data: schoolStudents, error: schoolStudentsError } = await supabase
-        .from("students")
-        .select("id, status")
-        .eq("school_id", schoolId);
-
-      if (schoolStudentsError) throw schoolStudentsError;
-
-      const schoolStudentIds = (schoolStudents || []).map((student) => student.id);
-      const activeStudentIds = (schoolStudents || [])
-        .filter((student) => student.status === "active")
-        .map((student) => student.id);
-
       try {
-        let absentStudents: Array<{ student_id: string }> = [];
-        if (schoolStudentIds.length > 0) {
-          const { data, error } = await supabase
+        const result = await withTimeout(
+          supabase
             .from("attendance")
-            .select("student_id")
-            .in("student_id", schoolStudentIds)
+            .select("student_id, students!inner(school_id)", { count: "exact", head: true })
+            .eq("students.school_id", schoolId)
             .eq("date", today)
-            .eq("status", "absent");
-          if (error) throw error;
-          absentStudents = data || [];
-        }
-
-        if (absentStudents?.length) {
+            .eq("status", "absent"),
+          10000,
+          timeoutFallback(),
+        );
+        if (isTimeoutResult(result)) throw new Error("Attendance notifications timed out");
+        if (result.error) throw result.error;
+        if (result.count) {
           generated.push({
             id: "absent-today",
             type: "attendance",
-            title: `${absentStudents.length} students absent today`,
+            title: `${result.count} students absent today`,
             message: "Tap to review attendance details",
-            link: "/dashboard/attendance",
+            link: "/dashboard/attendance/",
             read: readIds.includes("absent-today"),
             created_at: new Date().toISOString(),
           });
         }
-      } catch (err) {
-        logger.error("Attendance notification check failed:", err);
+      } catch (failure) {
+        logger.warn("Attendance notifications temporarily unavailable:", failure);
       }
 
       if (canSeeFees) {
         try {
-          const [{ data: feeStructure, error: feeError }, { data: payments, error: paymentsError }] = await Promise.all(
-            [
-              supabase.from("fee_structure").select("amount").eq("school_id", schoolId),
-              activeStudentIds.length > 0
-                ? supabase.from("fee_payments").select("amount_paid").in("student_id", activeStudentIds)
-                : Promise.resolve({ data: [], error: null }),
-            ],
+          const result = await withTimeout(
+            supabase
+              .rpc("fee_summary", {
+                p_school_id: schoolId,
+                p_term: currentTerm,
+                p_academic_year: academicYear,
+              })
+              .maybeSingle(),
+            10000,
+            timeoutFallback(),
           );
-
-          if (feeError) throw feeError;
-          if (paymentsError) throw paymentsError;
-
-          const totalExpected =
-            (feeStructure || []).reduce((sum, fee) => sum + Number(fee.amount || 0), 0) * activeStudentIds.length;
-          const totalCollected = (payments || []).reduce((sum, payment) => sum + Number(payment.amount_paid || 0), 0);
-          const balance = totalExpected - totalCollected;
-
-          if (balance > 0) {
+          if (isTimeoutResult(result)) throw new Error("Fee notifications timed out");
+          if (result.error) throw result.error;
+          const summary = normalizeFeeSummary(result.data);
+          if (summary && summary.overdueBalance > 0) {
             generated.push({
               id: "outstanding-fees",
               type: "warning",
-              title: `UGX ${balance.toLocaleString()} outstanding fees`,
+              title: `UGX ${summary.overdueBalance.toLocaleString("en-UG")} outstanding fees`,
               message: "Tap to review fee collection",
-              link: "/dashboard/fees",
+              link: "/dashboard/fees/",
               read: readIds.includes("outstanding-fees"),
               created_at: new Date().toISOString(),
             });
           }
-        } catch (err) {
-          logger.error("Fee notification check failed:", err);
+        } catch (failure) {
+          logger.warn("Fee notifications temporarily unavailable:", failure);
         }
       }
 
@@ -213,12 +217,12 @@ export function NotificationsProvider({
 
       setNotifications(generated);
     } catch (error) {
-      logger.error("Error fetching notifications:", error);
+      logger.warn("Notifications temporarily unavailable:", error);
       setNotifications([]);
     } finally {
       setLoading(false);
     }
-  }, [schoolId, userRole, loadReadIds]);
+  }, [schoolId, userRole, user?.id, isDemo, academicYear, currentTerm, loadReadIds]);
 
   useEffect(() => {
     fetchNotifications();

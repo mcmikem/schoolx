@@ -1,12 +1,16 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 import { Modal } from "@/components/ui/Modal";
 import { formatCurrency } from "@/lib/currency";
+import PaymentStudentSearch, { type PaymentStudentOption } from "@/components/fees/PaymentStudentSearch";
+import { getLocalDateString } from "@/lib/hooks/utils";
+import { isValidDate } from "@/lib/validation";
 
 interface PaymentData {
   student_id: string;
   amount_paid: string;
+  payment_date: string;
   payment_method: string;
   payment_reference: string;
   momo_provider: "mtn" | "airtel";
@@ -19,7 +23,7 @@ interface PaymentData {
 interface PaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
-  students: Array<{ id: string; name: string; balance: number }>;
+  students: PaymentStudentOption[];
   onSubmit: (e: React.FormEvent) => void;
   newPayment: PaymentData;
   onPaymentChange: (updates: Record<string, unknown>) => void;
@@ -37,6 +41,12 @@ export default function PaymentModal({
 }: PaymentModalProps) {
   const [step, setStep] = useState(1);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  useEffect(() => {
+    if (isOpen) {
+      setStep(1);
+      setTouched({});
+    }
+  }, [isOpen]);
 
   const selectedStudent = useMemo(
     () => students.find((s) => s.id === newPayment.student_id),
@@ -46,7 +56,11 @@ export default function PaymentModal({
   const errors = useMemo(() => {
     const errs: Record<string, string> = {};
     if (!newPayment.student_id) errs.student_id = "Please select a student";
-    if (!newPayment.amount_paid || Number(newPayment.amount_paid) <= 0) {
+    if (
+      !newPayment.amount_paid ||
+      !Number.isFinite(Number(newPayment.amount_paid)) ||
+      Number(newPayment.amount_paid) <= 0
+    ) {
       errs.amount_paid = "Amount must be greater than 0";
     }
     if (selectedStudent && Number(newPayment.amount_paid) > selectedStudent.balance && !newPayment.allow_overpayment) {
@@ -55,6 +69,10 @@ export default function PaymentModal({
     if (newPayment.payment_method === "mobile_money" && !newPayment.momo_transaction_id) {
       errs.momo_transaction_id = "Transaction ID is required for mobile money";
     }
+    if (!newPayment.payment_date || !isValidDate(newPayment.payment_date))
+      errs.payment_date = "Choose the date the payment was received.";
+    else if (newPayment.payment_date > getLocalDateString())
+      errs.payment_date = "Payment date cannot be in the future.";
     return errs;
   }, [newPayment, selectedStudent]);
   const overpaymentAmount =
@@ -62,14 +80,11 @@ export default function PaymentModal({
       ? Number(newPayment.amount_paid) - selectedStudent.balance
       : 0;
 
-  // Quick pay full balance button - shows when there's a balance and no amount entered yet
-  const canPayFull = selectedStudent && !newPayment.amount_paid && !newPayment.student_id;
-
   const step1Valid = !errors.student_id && !errors.amount_paid;
   const submitDisabledReason = !step1Valid
     ? "Complete the student and amount fields first."
-    : errors.momo_transaction_id || errors.amount_paid || errors.student_id
-      ? errors.momo_transaction_id || errors.amount_paid || errors.student_id || ""
+    : errors.payment_date || errors.momo_transaction_id || errors.amount_paid || errors.student_id
+      ? errors.payment_date || errors.momo_transaction_id || errors.amount_paid || errors.student_id || ""
       : "";
   const nextDisabledReason =
     students.length === 0
@@ -107,6 +122,7 @@ export default function PaymentModal({
     : [];
 
   const handleClose = () => {
+    if (saving) return;
     setStep(1);
     setTouched({});
     onClose();
@@ -143,7 +159,9 @@ export default function PaymentModal({
                 {balanceAfter !== null && amountNum > 0 ? ` → ${formatCurrency(balanceAfter)} left` : ""}
               </div>
             </div>
-            <span className="badge badge-red flex-shrink-0">Unpaid</span>
+            <span className={`badge flex-shrink-0 ${selectedStudent.balance > 0 ? "badge-red" : "badge-green"}`}>
+              {selectedStudent.balance > 0 ? "Balance due" : "Cleared"}
+            </span>
           </div>
         )}
         <div className="flex items-center gap-3 mt-4">
@@ -173,46 +191,34 @@ export default function PaymentModal({
           <span className="text-[11px] font-semibold text-[var(--t3)]">Payment Details</span>
         </div>
       </div>
-      <form onSubmit={onSubmit} className="space-y-5" noValidate>
+      <form
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (step === 1) {
+            handleNext();
+            return;
+          }
+          setTouched({ student_id: true, amount_paid: true, payment_date: true, momo_transaction_id: true });
+          if (!submitDisabledReason && !saving) onSubmit(event);
+        }}
+        className="space-y-5"
+        noValidate
+      >
         {step === 1 && (
           <>
-            <div>
-              <label
-                htmlFor="payment-student"
-                className="block text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--t3)] mb-2"
-              >
-                Student
-              </label>
-              {students.length === 0 ? (
-                <div className="rounded-xl p-3 text-sm font-medium border border-[var(--amber)] bg-[var(--amber-soft)] text-[var(--t1)]">
-                  No students found - add students first
-                </div>
-              ) : (
-                <>
-                  <select
-                    id="payment-student"
-                    value={newPayment.student_id}
-                    onChange={(e) => onPaymentChange({ student_id: e.target.value })}
-                    onBlur={() => handleBlur("student_id")}
-                    className={`w-full rounded-xl py-3.5 px-4 text-sm text-[var(--t1)] transition-colors ${errorBorder("student_id")}`}
-                    required
-                  >
-                    <option value="">Select student</option>
-                    {students.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name} - {formatCurrency(s.balance)}
-                      </option>
-                    ))}
-                  </select>
-                  {fieldError("student_id") && (
-                    <p className="text-xs text-[var(--red)] mt-1 flex items-center gap-1">
-                      <MaterialIcon className="text-sm">error</MaterialIcon>
-                      {fieldError("student_id")}
-                    </p>
-                  )}
-                </>
-              )}
-            </div>
+            {students.length === 0 ? (
+              <div className="rounded-xl border border-[var(--amber)] bg-[var(--amber-soft)] p-3 text-sm text-[var(--t1)]">
+                No students found. Add students before recording payments.
+              </div>
+            ) : (
+              <PaymentStudentSearch
+                students={students}
+                value={newPayment.student_id}
+                onChange={(studentId) => onPaymentChange({ student_id: studentId, allow_overpayment: false })}
+                error={fieldError("student_id")}
+                disabled={saving}
+              />
+            )}
             <div>
               <label
                 htmlFor="payment-amount"
@@ -239,7 +245,7 @@ export default function PaymentModal({
                       key={p.label}
                       type="button"
                       onClick={() => onPaymentChange({ amount_paid: String(p.value) })}
-                      className={`min-h-[36px] px-3.5 rounded-full text-xs font-bold border transition-colors active:scale-[0.97] ${
+                      className={`min-h-[44px] px-3.5 rounded-full text-xs font-bold border transition-colors active:scale-[0.97] ${
                         amountNum === p.value
                           ? "bg-[var(--primary)] text-[var(--on-primary)] border-transparent"
                           : "bg-[var(--surface)] text-[var(--t2)] border-[var(--border)] hover:border-[var(--border2)] hover:bg-[var(--surface-container-low)]"
@@ -283,7 +289,7 @@ export default function PaymentModal({
                   </p>
                 )}
             </div>
-            <div className="flex gap-3 pt-2">
+            <div className="sticky bottom-0 z-10 flex gap-3 border-t border-[var(--border)] bg-[var(--surface)] py-3">
               <button
                 type="button"
                 onClick={handleClose}
@@ -309,10 +315,39 @@ export default function PaymentModal({
         {step === 2 && (
           <>
             <div>
-              <label className="block text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--t3)] mb-2">
+              <label htmlFor="payment-date" className="block text-sm font-semibold text-[var(--t1)] mb-2">
+                Payment date
+              </label>
+              <input
+                id="payment-date"
+                type="date"
+                required
+                max={getLocalDateString()}
+                value={newPayment.payment_date}
+                onChange={(event) => onPaymentChange({ payment_date: event.target.value })}
+                onBlur={() => handleBlur("payment_date")}
+                aria-invalid={Boolean(errors.payment_date)}
+                aria-describedby="payment-date-help"
+                className={`w-full rounded-xl px-4 py-3.5 text-base text-[var(--t1)] ${errorBorder("payment_date")}`}
+              />
+              <p id="payment-date-help" className="mt-1.5 text-xs text-[var(--t3)]">
+                When the money was received. Choose an earlier date for a payment entered later.
+              </p>
+              {fieldError("payment_date") && (
+                <p role="alert" className="mt-1 text-xs text-[var(--red)]">
+                  {fieldError("payment_date")}
+                </p>
+              )}
+            </div>
+            <div>
+              <label
+                htmlFor="payment-method"
+                className="block text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--t3)] mb-2"
+              >
                 Method
               </label>
               <select
+                id="payment-method"
                 value={newPayment.payment_method}
                 onChange={(e) => onPaymentChange({ payment_method: e.target.value })}
                 className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-xl py-3.5 px-4 text-sm text-[var(--t1)]"
@@ -325,10 +360,14 @@ export default function PaymentModal({
               </select>
             </div>
             <div>
-              <label className="block text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--t3)] mb-2">
+              <label
+                htmlFor="payment-reference"
+                className="block text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--t3)] mb-2"
+              >
                 Payment Reference
               </label>
               <input
+                id="payment-reference"
                 type="text"
                 value={newPayment.payment_reference}
                 onChange={(e) => onPaymentChange({ payment_reference: e.target.value })}
@@ -355,10 +394,14 @@ export default function PaymentModal({
             {newPayment.payment_method === "mobile_money" && (
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--t3)] mb-2">
+                  <label
+                    htmlFor="payment-provider"
+                    className="block text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--t3)] mb-2"
+                  >
                     MoMo Provider
                   </label>
                   <select
+                    id="payment-provider"
                     value={newPayment.momo_provider}
                     onChange={(e) =>
                       onPaymentChange({
@@ -372,10 +415,14 @@ export default function PaymentModal({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--t3)] mb-2">
+                  <label
+                    htmlFor="payment-transaction"
+                    className="block text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--t3)] mb-2"
+                  >
                     Transaction ID
                   </label>
                   <input
+                    id="payment-transaction"
                     type="text"
                     value={newPayment.momo_transaction_id}
                     onChange={(e) => onPaymentChange({ momo_transaction_id: e.target.value })}
@@ -394,10 +441,14 @@ export default function PaymentModal({
             )}
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--t3)] mb-2">
+                <label
+                  htmlFor="payment-payer"
+                  className="block text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--t3)] mb-2"
+                >
                   Paid By
                 </label>
                 <input
+                  id="payment-payer"
                   type="text"
                   value={newPayment.paid_by}
                   onChange={(e) => onPaymentChange({ paid_by: e.target.value })}
@@ -406,10 +457,14 @@ export default function PaymentModal({
                 />
               </div>
               <div>
-                <label className="block text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--t3)] mb-2">
+                <label
+                  htmlFor="payment-notes"
+                  className="block text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--t3)] mb-2"
+                >
                   Notes
                 </label>
                 <input
+                  id="payment-notes"
                   type="text"
                   value={newPayment.notes}
                   onChange={(e) => onPaymentChange({ notes: e.target.value })}
@@ -418,7 +473,7 @@ export default function PaymentModal({
                 />
               </div>
             </div>
-            <div className="flex gap-3 pt-2">
+            <div className="sticky bottom-0 z-10 flex gap-3 border-t border-[var(--border)] bg-[var(--surface)] py-3">
               <button
                 type="button"
                 onClick={handleBack}
@@ -431,7 +486,7 @@ export default function PaymentModal({
                 disabled={saving || Boolean(submitDisabledReason)}
                 className="flex-[2] min-h-[48px] py-3 bg-[var(--primary)] text-[var(--on-primary)] font-semibold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-transform tabular-nums"
               >
-                {saving ? "Saving..." : amountNum > 0 ? `Pay ${formatCurrency(amountNum)}` : "Record Payment"}
+                {saving ? "Saving..." : amountNum > 0 ? `Record ${formatCurrency(amountNum)}` : "Record Payment"}
               </button>
             </div>
             {submitDisabledReason && <p className="text-xs text-[var(--t3)] text-right">{submitDisabledReason}</p>}

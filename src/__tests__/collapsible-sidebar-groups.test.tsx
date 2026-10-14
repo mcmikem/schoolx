@@ -69,6 +69,25 @@ function isExpanded(label: string) {
 describe("CollapsibleSidebar group expansion", () => {
   beforeEach(() => {
     mockPathname = "/dashboard";
+    localStorage.clear();
+  });
+
+  it("reveals search matches inside a collapsed group", () => {
+    render(<Host bump={0} />);
+    expect(screen.queryByText("Staff")).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Search navigation pages"), { target: { value: "Staff" } });
+    expect(screen.getByRole("link", { name: /Staff/ })).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Search navigation pages"), { target: { value: "" } });
+    expect(isExpanded("Daily Work")).toBe(false);
+  });
+
+  it("hides recent destinations absent from the current role navigation", () => {
+    localStorage.setItem(
+      "skoolmate_recent_pages",
+      JSON.stringify([{ href: "/dashboard/payroll", label: "Payroll", icon: "payments" }]),
+    );
+    render(<Host bump={0} />);
+    expect(screen.queryByRole("link", { name: /Payroll/ })).not.toBeInTheDocument();
   });
 
   it("keeps a group open when the parent re-renders with a new array identity", () => {

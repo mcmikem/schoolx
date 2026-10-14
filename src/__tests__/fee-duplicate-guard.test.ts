@@ -63,6 +63,23 @@ describe("findRecentDuplicatePayment", () => {
     expect(res).toBeNull();
   });
 
+  test("does not suppress a backdated payment with a different receipt date", async () => {
+    mockMaybeSingle.mockResolvedValueOnce({
+      data: [{ id: "p1", amount_paid: 50000, payment_date: "2026-10-10", payment_reference: "RCP-1" }],
+      error: null,
+    });
+    const result = await findRecentDuplicatePayment({
+      schoolId: "s1",
+      studentId: "st1",
+      amount: 50000,
+      method: "cash",
+      online: true,
+      paymentDate: "2026-10-11",
+      reference: "RCP-1",
+    });
+    expect(result).toBeNull();
+  });
+
   test("checks local cache when offline", async () => {
     mockGetAll.mockResolvedValueOnce([
       {

@@ -2501,3 +2501,8 @@ html.lite [role="button"] {
 [class*="rounded-[40px]"],
 [class*="rounded-[2.5rem]"],
 [class*="rounded-[4mm]"] { border-radius: 8px; }
+
+body:has([aria-modal="true"]) [data-owl-assistant] {
+  visibility: hidden;
+  pointer-events: none;
+}

@@ -2,17 +2,9 @@
 import MaterialIcon from "@/components/MaterialIcon";
 import { Button } from "@/components/ui/index";
 import { PageSection } from "@/components/ui/PageHeader";
+import type { FeeStructure } from "@/types";
 
-interface FeeStructureData {
-  id: string;
-  name: string;
-  class_id?: string | null;
-  classes?: { name: string } | null;
-  amount: number | string;
-  term: number;
-  academic_year?: string;
-  due_date?: string | null;
-}
+type FeeStructureData = FeeStructure;
 
 interface FeeStructureManagerProps {
   feeStructure: FeeStructureData[];
@@ -96,7 +88,9 @@ export default function FeeStructureManager({
                     <td className="px-6 py-4 font-medium">{fee.name}</td>
                     <td className="px-6 py-4">{fee.classes?.name || "All Classes"}</td>
                     <td className="px-6 py-4 font-bold text-primary">{formatCurrency(Number(fee.amount))}</td>
-                    <td className="px-6 py-4 text-sm text-on-surface-variant">Term {fee.term}</td>
+                    <td className="px-6 py-4 text-sm text-on-surface-variant">
+                      {fee.term ? `Term ${fee.term}` : fee.frequency === "per_year" ? "Annual" : "One-off"}
+                    </td>
                     <td className="px-6 py-4 text-sm text-on-surface-variant">{fee.academic_year || "—"}</td>
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">

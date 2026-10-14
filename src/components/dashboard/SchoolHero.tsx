@@ -15,7 +15,7 @@ interface SchoolHeroProps {
   rightSection?: ReactNode;
   bottomCenter?: ReactNode;
   bottomRight?: ReactNode;
-  headingLevel: "h1" | "h2";
+  headingLevel?: "h1" | "h2";
 }
 
 export default function SchoolHero({
@@ -56,14 +56,14 @@ export default function SchoolHero({
         <div className="flex-1 min-w-0">
           {headingLevel === "h2" ? (
             <h2
-              className="text-[20px] font-bold text-[var(--t1)] tracking-tight truncate"
+              className="text-[20px] font-bold text-[var(--t1)] tracking-tight break-words leading-snug"
               style={{ fontFamily: "'Sora', sans-serif" }}
             >
               {resolvedGreeting}, {userName}
             </h2>
           ) : (
             <h1
-              className="text-[20px] font-bold text-[var(--t1)] tracking-tight truncate"
+              className="text-[20px] font-bold text-[var(--t1)] tracking-tight break-words leading-snug"
               style={{ fontFamily: "'Sora', sans-serif" }}
             >
               {resolvedGreeting}, {userName}

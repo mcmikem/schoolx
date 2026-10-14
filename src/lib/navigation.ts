@@ -157,6 +157,7 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> = dee
           label: "Academic Terms",
           icon: "calendar_today",
         },
+        { href: "/dashboard/grading-settings", label: "Grading Configuration", icon: "settings" },
         {
           href: "/dashboard/subjects",
           label: "Subjects",
@@ -413,6 +414,8 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> = dee
         { href: "/dashboard/money", label: "Money In & Out", icon: "account_balance_wallet" },
         { href: "/dashboard/requirements", label: "Requirements", icon: "checklist" },
         { href: "/dashboard/fees", label: "Collect Fees", icon: "payments" },
+        { href: "/dashboard/fee-structure", label: "Fee Structure", icon: "payments" },
+        { href: "/dashboard/fee-ledger", label: "Payment Ledger", icon: "book" },
         {
           href: "/dashboard/fees?tab=invoices",
           label: "Invoicing",
@@ -646,6 +649,8 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> = dee
       defaultOpen: false,
       items: [
         { href: "/dashboard/fees", label: "Finance Hub", icon: "payments" },
+        { href: "/dashboard/fee-structure", label: "Fee Structure", icon: "payments" },
+        { href: "/dashboard/fee-ledger", label: "Payment Ledger", icon: "book" },
         {
           href: "/dashboard/budget",
           label: "Budgeting",

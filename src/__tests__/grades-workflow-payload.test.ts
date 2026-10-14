@@ -1,4 +1,4 @@
-import { buildWorkflowUpdatePayload } from "@/app/api/grades/workflow/route";
+import { buildWorkflowUpdatePayload } from "@/lib/grade-workflow";
 
 /**
  * Scenario #19 needed a retreat path, and a retreat has to do more than flip

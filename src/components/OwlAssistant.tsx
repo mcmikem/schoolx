@@ -258,6 +258,7 @@ export default function OwlAssistant() {
       {/* ── Floating Owly button ── */}
       <button
         onClick={() => setOpen((v) => !v)}
+        data-owl-assistant=""
         className="fixed z-[9990] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--green)] bottom-[88px] right-4 sm:bottom-6 sm:right-6"
         style={{ width: 56, height: 56, background: "none", border: "none", cursor: "pointer", padding: 0 }}
         aria-label="Open SkoolMate Assistant"
@@ -297,6 +298,7 @@ export default function OwlAssistant() {
       {/* ── Chat panel ── */}
       {open && (
         <div
+          data-owl-assistant=""
           className="fixed z-[9989] w-full max-w-[360px] rounded-2xl shadow-2xl flex flex-col overflow-hidden bottom-[160px] right-4 sm:bottom-[100px] sm:right-6"
           style={{
             background: "var(--surface, #fff)",

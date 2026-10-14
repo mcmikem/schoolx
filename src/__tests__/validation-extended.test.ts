@@ -513,11 +513,36 @@ describe("Validation - Fee Structure Input", () => {
         term: 1,
         academic_year: "2026",
         due_date: "2026-05-01",
+        category: "tuition",
+        boarding_status: null,
+        frequency: "per_term",
+        transport_zone: null,
       });
     });
   });
 
   describe("validateFeeStructureInput", () => {
+    test("preserves transport metadata and normalizes annual fees without a term", () => {
+      const fee = normalizeFeeStructureInput({
+        name: "Transport",
+        amount: 150000,
+        academic_year: "2026",
+        term: 3,
+        category: "transport",
+        boarding_status: "both",
+        frequency: "per_year",
+        transport_zone: " Zone 2 ",
+      });
+      expect(fee).toMatchObject({
+        term: null,
+        boarding_status: null,
+        frequency: "per_year",
+        category: "transport",
+        transport_zone: "Zone 2",
+      });
+      expect(validateFeeStructureInput(fee)).toEqual([]);
+    });
+
     test("accepts a valid fee structure payload", () => {
       expect(
         validateFeeStructureInput({

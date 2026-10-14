@@ -1,4 +1,4 @@
-import { calculateStudentFeePosition } from "../lib/operations";
+import { calculateStudentFeePosition, feeAppliesToStudent } from "../lib/operations";
 import { validateAdjustment, validatePayment, generateInvoice } from "../lib/server/fee-logic";
 import {
   normalizeFeeSummary,
@@ -6,6 +6,16 @@ import {
   HIGH_RISK_ARREARS_THRESHOLD,
   MAX_RETURNED_DEFAULTERS,
 } from "../lib/hooks/fees";
+
+describe("fee eligibility", () => {
+  it("keeps class-specific and boarding-only charges off a day student's bill", () => {
+    const student = { class_id: "p3", boarding_status: "day" as const };
+    expect(feeAppliesToStudent({ class_id: "p3", boarding_status: "boarding" }, student)).toBe(false);
+    expect(feeAppliesToStudent({ class_id: "p7" }, student)).toBe(false);
+    expect(feeAppliesToStudent({ class_id: "p3", boarding_status: "day" }, student)).toBe(true);
+    expect(feeAppliesToStudent({}, student)).toBe(true);
+  });
+});
 
 describe("calculateStudentFeePosition", () => {
   it("returns unpaid when there are no payments or adjustments", () => {

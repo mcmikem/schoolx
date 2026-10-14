@@ -199,9 +199,13 @@ export function normalizeFeeStructureInput(input: Record<string, any>): Record<s
     name: String(input.name || "").trim(),
     class_id: String(input.class_id || "").trim(),
     amount,
-    term: Number(input.term),
+    term: input.frequency && input.frequency !== "per_term" ? null : Number(input.term),
     academic_year: String(input.academic_year || "").trim(),
     due_date: String(input.due_date || "").trim(),
+    category: String(input.category || "tuition").trim(),
+    boarding_status: input.boarding_status === "both" ? null : input.boarding_status || null,
+    frequency: input.frequency || "per_term",
+    transport_zone: String(input.transport_zone || "").trim() || null,
   };
 }
 
@@ -302,7 +306,12 @@ export function validateFeeStructureInput(input: Record<string, any>): string[] 
   if (!input.name || String(input.name).trim() === "") errors.push("Fee name is required");
   const amount = Number(input.amount);
   if (isNaN(amount) || amount <= 0) errors.push("Amount must be greater than 0");
-  if (![1, 2, 3].includes(Number(input.term))) errors.push("Term must be 1, 2, or 3");
+  if ((!input.frequency || input.frequency === "per_term") && ![1, 2, 3].includes(Number(input.term)))
+    errors.push("Term must be 1, 2, or 3");
+  if (input.frequency && !["per_term", "one_off", "per_year"].includes(input.frequency))
+    errors.push("Fee frequency is invalid");
+  if (input.boarding_status && !["day", "boarding", "both"].includes(input.boarding_status))
+    errors.push("Boarding status is invalid");
   if (!input.academic_year || String(input.academic_year).trim() === "") errors.push("Academic year is required");
   if (input.due_date && !isValidDate(String(input.due_date))) errors.push("Due date must be a valid date");
   return errors;
@@ -317,6 +326,7 @@ export function validatePaymentInput(input: Record<string, any>, options: { toda
   const validMethods = ["cash", "mobile_money", "bank", "installment", "in_kind"];
   if (!validMethods.includes(String(input.payment_method).trim().toLowerCase()))
     errors.push("Payment method is invalid");
+  if (input.payment_date && !isValidDate(String(input.payment_date))) errors.push("Payment date must be valid");
   if (input.payment_date && isFutureDate(String(input.payment_date), today))
     errors.push("Payment date cannot be in the future");
   return errors;

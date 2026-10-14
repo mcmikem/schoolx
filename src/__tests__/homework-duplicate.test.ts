@@ -1,4 +1,4 @@
-import { duplicateHomeworkDraft } from "@/app/dashboard/homework/page";
+import { duplicateHomeworkDraft } from "@/lib/homework";
 
 /**
  * Scenario #28: re-setting the same test each week meant retyping it, or

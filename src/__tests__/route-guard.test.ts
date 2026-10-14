@@ -30,6 +30,18 @@ function permissionFor(path: string): keyof RolePermissions | undefined {
 }
 
 describe("route guard sensitive routes", () => {
+  it.each([
+    ["teacher", "/dashboard/fee-structure", false],
+    ["teacher", "/dashboard/fee-ledger", false],
+    ["bursar", "/dashboard/fee-structure", true],
+    ["bursar", "/dashboard/fee-ledger", true],
+    ["teacher", "/dashboard/grading-settings", false],
+    ["bursar", "/dashboard/grading-settings", false],
+    ["headmaster", "/dashboard/grading-settings", true],
+  ] as const)("protects the new destination for %s: %s", (role, route, allowed) => {
+    expect(isRouteAllowed(role, route)).toBe(allowed);
+  });
+
   it("maps every sensitive route to its permission", () => {
     for (const [path, permission] of Object.entries(SENSITIVE_ROUTES)) {
       expect({ path, permission: roleBasedRoutes[path] }).toEqual({

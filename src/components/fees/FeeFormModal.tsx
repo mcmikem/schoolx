@@ -1,6 +1,6 @@
 "use client";
+import { useId } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
-import { MaterialIcon } from "@/components/MaterialIcon";
 import { Modal } from "@/components/ui/Modal";
 import { AutoSaveIndicator } from "@/lib/useAutoSave";
 import { useFormValidation, ValidationRules } from "@/lib/useFormValidation";
@@ -10,9 +10,24 @@ interface ClassOption {
   name: string;
 }
 
-export type FeeCategory = "tuition" | "boarding" | "meals" | "transport" | "uniform" |
-  "registration" | "functional" | "pta" | "development" | "library" | "sports" |
-  "ict" | "medical" | "exam" | "uneb" | "bank_charges" | "other";
+export type FeeCategory =
+  | "tuition"
+  | "boarding"
+  | "meals"
+  | "transport"
+  | "uniform"
+  | "registration"
+  | "functional"
+  | "pta"
+  | "development"
+  | "library"
+  | "sports"
+  | "ict"
+  | "medical"
+  | "exam"
+  | "uneb"
+  | "bank_charges"
+  | "other";
 
 export type BoardingStatus = "day" | "boarding" | "both";
 
@@ -22,13 +37,12 @@ export interface FeeFormData {
   name: string;
   class_id: string;
   amount: string;
-  term: number | 1 | 2 | 3 | null;
+  term: number | null;
   due_date: string;
   category: FeeCategory;
   boarding_status: BoardingStatus;
   frequency: FeeFrequency;
   transport_zone: string;
-  description?: string;
 }
 
 interface FeeFormModalProps {
@@ -68,11 +82,15 @@ export default function FeeFormModal({
   draftLastSaved,
   draftIsDirty,
 }: FeeFormModalProps) {
-  const feeValidation = useFormValidation(feeRules);
+  const formId = useId();
+  const feeValidation = useFormValidation({
+    ...feeRules,
+    term: newFee.frequency === "per_term" ? ValidationRules.required : {},
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const fields = ["name", "amount", "class_id", "term"];
+    const fields = ["name", "amount", "category", "frequency", "term"];
     fields.forEach((f) => feeValidation.markTouched(f));
     if (!feeValidation.validate(newFee)) return;
     onSubmit(e);
@@ -111,10 +129,14 @@ export default function FeeFormModal({
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">
+          <label
+            htmlFor={`${formId}-name`}
+            className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2"
+          >
             Fee Name
           </label>
           <input
+            id={`${formId}-name`}
             type="text"
             value={newFee.name}
             onChange={(e) => onFeeChange({ name: e.target.value })}
@@ -131,7 +153,10 @@ export default function FeeFormModal({
           )}
         </div>
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">
+          <label
+            htmlFor={`${formId}-class`}
+            className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2"
+          >
             Class (Optional - leave empty for all)
           </label>
           {classesLoading ? (
@@ -146,6 +171,7 @@ export default function FeeFormModal({
             </div>
           ) : (
             <select
+              id={`${formId}-class`}
               value={newFee.class_id}
               onChange={(e) => onFeeChange({ class_id: e.target.value })}
               onBlur={() => feeValidation.markTouched("class_id")}
@@ -167,10 +193,14 @@ export default function FeeFormModal({
           )}
         </div>
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">
+          <label
+            htmlFor={`${formId}-category`}
+            className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2"
+          >
             Category
           </label>
           <select
+            id={`${formId}-category`}
             value={newFee.category}
             onChange={(e) => onFeeChange({ category: e.target.value })}
             onBlur={() => feeValidation.markTouched("category")}
@@ -196,10 +226,14 @@ export default function FeeFormModal({
           </select>
         </div>
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">
+          <label
+            htmlFor={`${formId}-boarding`}
+            className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2"
+          >
             Applies To
           </label>
           <select
+            id={`${formId}-boarding`}
             value={newFee.boarding_status}
             onChange={(e) => onFeeChange({ boarding_status: e.target.value })}
             onBlur={() => feeValidation.markTouched("boarding_status")}
@@ -211,10 +245,14 @@ export default function FeeFormModal({
           </select>
         </div>
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">
+          <label
+            htmlFor={`${formId}-frequency`}
+            className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2"
+          >
             Frequency
           </label>
           <select
+            id={`${formId}-frequency`}
             value={newFee.frequency}
             onChange={(e) => onFeeChange({ frequency: e.target.value })}
             onBlur={() => feeValidation.markTouched("frequency")}
@@ -225,24 +263,34 @@ export default function FeeFormModal({
             <option value="per_year">Per Year</option>
           </select>
         </div>
-        <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">
-            Transport Zone (if transport)
-          </label>
-          <input
-            type="text"
-            value={newFee.transport_zone}
-            onChange={(e) => onFeeChange({ transport_zone: e.target.value })}
-            className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm"
-            placeholder="Zone 1 / Zone 2 / Zone 3..."
-          />
-        </div>
+        {newFee.category === "transport" && (
+          <div>
+            <label
+              htmlFor={`${formId}-zone`}
+              className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2"
+            >
+              Transport Zone (if transport)
+            </label>
+            <input
+              id={`${formId}-zone`}
+              type="text"
+              value={newFee.transport_zone}
+              onChange={(e) => onFeeChange({ transport_zone: e.target.value })}
+              className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm"
+              placeholder="Zone 1 / Zone 2 / Zone 3..."
+            />
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">
+            <label
+              htmlFor={`${formId}-amount`}
+              className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2"
+            >
               Amount (UGX)
             </label>
             <input
+              id={`${formId}-amount`}
               type="number"
               inputMode="numeric"
               min="1"
@@ -261,10 +309,14 @@ export default function FeeFormModal({
             )}
           </div>
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">
+            <label
+              htmlFor={`${formId}-term`}
+              className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2"
+            >
               Term (if per term)
             </label>
             <select
+              id={`${formId}-term`}
               value={newFee.term || 1}
               onChange={(e) => onFeeChange({ term: Number(e.target.value) as 1 | 2 | 3 })}
               onBlur={() => feeValidation.markTouched("term")}
@@ -278,26 +330,18 @@ export default function FeeFormModal({
           </div>
         </div>
         <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">
+          <label
+            htmlFor={`${formId}-due`}
+            className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2"
+          >
             Due Date (Optional)
           </label>
           <input
+            id={`${formId}-due`}
             type="date"
             value={newFee.due_date}
             onChange={(e) => onFeeChange({ due_date: e.target.value })}
             className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">
-            Description (Optional)
-          </label>
-          <textarea
-            value={newFee.description || ""}
-            onChange={(e) => onFeeChange({ description: e.target.value })}
-            className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm"
-            rows={2}
-            placeholder="Additional details..."
           />
         </div>
         <div className="flex gap-3 pt-2">
@@ -309,7 +353,7 @@ export default function FeeFormModal({
             disabled={saving}
             className="btn btn-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {saving ? "Saving..." : "Add Fee"}
+            {saving ? "Saving..." : isEditing ? "Save Changes" : "Add Fee"}
           </button>
         </div>
       </form>

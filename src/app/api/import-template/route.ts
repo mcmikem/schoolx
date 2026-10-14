@@ -8,9 +8,6 @@ import { STUDENT_TEMPLATE_HEADERS } from "@/lib/import/students";
 // CSV and the import page's Excel template dropped theirs for the same reason.
 const EXAMPLE_ROWS: string[][] = [];
 
-/** Exposed so a test can pin this document to the shared column list. */
-export const TEMPLATE_HEADERS = STUDENT_TEMPLATE_HEADERS;
-
 async function handleGet(request: NextRequest) {
   const auth = await requireUserWithSchool(request);
   if (!auth.ok) return auth.response;

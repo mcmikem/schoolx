@@ -1,216 +1,196 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useAuth } from "@/lib/auth-context";
-import { useToast } from "@/components/Toast";
-import { supabase } from "@/lib/supabase";
-import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
-import { useStudents } from "@/lib/hooks";
-import { PageHeader } from "@/components/ui/PageHeader";
+import Link from "next/link";
+import { useState } from "react";
+import { NoData } from "@/components/EmptyState";
 import { Card, CardBody } from "@/components/ui/Card";
-import { TableSkeleton, FullPageLoader } from "@/components/ui/Skeleton";
-import { EmptyState, NoData } from "@/components/EmptyState";
-import { Button } from "@/components/ui/index";
-import { Input, Select } from "@/components/ui/index";
-import { logger } from "@/lib/logger";
-
-interface PaymentRecord {
-  id: string;
-  student_id: string;
-  amount_paid: number;
-  amount_total: number;
-  payment_date: string;
-  term: number;
-  academic_year: string;
-  status: "pending" | "partial" | "paid";
-  student_name?: string;
-  student_number?: string;
-  class_name?: string;
-}
+import { Button, Input, Select } from "@/components/ui/index";
+import { Modal } from "@/components/ui/Modal";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { TableSkeleton } from "@/components/ui/Skeleton";
+import { useAuth } from "@/lib/auth-context";
+import { formatCurrency } from "@/lib/currency";
+import { useClasses, useFeePayments, useStudents } from "@/lib/hooks";
+import type { FeePayment } from "@/types";
 
 export default function FeeLedgerPage() {
-  const { school, user, isDemo } = useAuth();
-  const toast = useToast();
-
-  const [payments, setPayments] = useState<PaymentRecord[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
-  [selectedClass, setSelectedClass] = useState("");
-
-  useEffect(() => {
-    if (!school?.id) return;
-    async function load() {
-      try {
-        const { data, error } = await withTimeout(
-          supabase
-            .from("fee_payments")
-            .select(
-              `
-            *,
-            students!inner(id, first_name, last_name, student_number),
-            classes!inner(name)
-          `,
-            )
-            .eq("school_id", school.id)
-            .order("payment_date", { ascending: false }),
-          15000,
-          timeoutFallback(),
-        );
-        if (error) throw error;
-        let results = (data || []) as PaymentRecord[];
-        results = results.map((p) => ({
-          ...p,
-          student_name: p.students?.first_name + " " + p.students?.last_name,
-          student_number: p.students?.student_number,
-          class_name: p.classes?.name,
-        }));
-        setPayments(results);
-      } catch (err) {
-        logger.warn("Failed to load fee payments:", err);
-        toast.error("Could not load payment ledger");
-      }
-    }
-    load();
-  }, [school?.id]);
-
-  const filteredPayments = payments.filter((p) => {
-    const matchesSearch =
-      !searchQuery ||
-      (p.student_name && p.student_name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (p.class_name && p.class_name.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesSearch;
+  const { school } = useAuth();
+  const [page, setPage] = useState(1);
+  const { payments, loading, error, totalCount, refetch } = useFeePayments(school?.id, page, 50);
+  const { students } = useStudents(school?.id);
+  const { classes } = useClasses(school?.id);
+  const [search, setSearch] = useState("");
+  const [classId, setClassId] = useState("");
+  const [selectedPayment, setSelectedPayment] = useState<FeePayment | null>(null);
+  const studentFor = (payment: FeePayment) =>
+    payment.students || students.find((student) => student.id === payment.student_id);
+  const filtered = payments.filter((payment) => {
+    const student = studentFor(payment);
+    const className = student?.classes?.name || classes.find((item) => item.id === student?.class_id)?.name || "";
+    const query = search.trim().toLowerCase();
+    return (
+      (!classId || student?.class_id === classId) &&
+      (!query ||
+        `${student?.first_name || ""} ${student?.last_name || ""} ${student?.student_number || ""} ${className} ${payment.payment_reference || ""}`
+          .toLowerCase()
+          .includes(query))
+    );
   });
+  const total = filtered.reduce((sum, payment) => sum + Number(payment.amount_paid || 0), 0);
+  const totalPages = Math.max(1, Math.ceil(totalCount / 50));
 
   return (
-    <PageHeader title="Payment Ledger" subtitle="Chronological payment record with search and filter">
-      <div className="space-y-6">
+    <div className="space-y-6 min-w-0 p-4 sm:p-6 pb-24 sm:pb-6">
+      <PageHeader
+        title="Payment Ledger"
+        subtitle="Review recorded receipts. Search and class filters apply to the current page."
+        actions={
+          <Link href="/dashboard/fees/" className="btn btn-primary">
+            Record payment
+          </Link>
+        }
+      />
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Card>
-          <CardBody className="p-6">
-            <div className="mb-4">
-              <Input
-                placeholder="Search by student name or class..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-xl border border-outline-variant px-4 py-3 text-sm"
-              />
-              {selectedClass && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSelectedClass("")}
-                  className="ml-2 text-sm text-gray-500"
-                >
-                  Clear class filter
-                </Button>
-              )}
-            </div>
-
-            {filteredPayments.length === 0 ? (
-              <NoData
-                title="No payments found"
-                description={
-                  searchQuery
-                    ? `No payments match "${searchQuery}". Try a different search.`
-                    : "Add payment records or adjust your search criteria."
-                }
-              />
-            ) : (
-              <TableSkeleton rows={5} />
-            )}
-
-            {filteredPayments.length > 0 && (
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr className="bg-surface-container-low/50 text-left">
-                      <th className="px-6 py-3 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                        Date
-                      </th>
-                      <th className="px-6 py-3 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                        Student
-                      </th>
-                      <th className="px-6 py-3 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                        Class
-                      </th>
-                      <th className="px-6 py-3 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                        Amount Paid
-                      </th>
-                      <th className="px-6 py-3 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                        Total
-                      </th>
-                      <th className="px-6 py-3 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                        Status
-                      </th>
-                      <th className="px-6 py-3 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredPayments.map((p) => (
-                      <tr key={p.id} className="border-y divide-y-divide-surface-container">
-                        <td className="px-6 py-4">{new Date(p.payment_date).toLocaleDateString("en-GB")}</td>
-                        <td className="px-6 py-4">{p.student_name || "Unknown"}</td>
-                        <td className="px-6 py-4">{p.class_name || "-"}</td>
-                        <td className="px-6 py-4">UGX {p.amount_paid.toLocaleString()}</td>
-                        <td className="px-6 py-4">UGX {p.amount_total.toLocaleString()}</td>
-                        <td className="px-6 py-4">
-                          <span
-                            className={`px-2 py-0.5 rounded-xs text-xs font-medium ${
-                              p.status === "paid"
-                                ? "bg-green-100 text-green-800"
-                                : p.status === "partial"
-                                  ? "bg-amber-100 text-amber-800"
-                                  : "bg-red-100 text-red-800"
-                            }`}
-                          >
-                            {p.status}
-                          </span>
-                        </td>
-                        <td className="px-6 py-4">
-                          <Button variant="ghost" size="sm" onClick={() => {}} className="text-sm">
-                            Details
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {payments.length === 0 && (
-              <Button
-                onClick={() => toast.info("No payment records to display")}
-                className="w-full mt-4 bg-surface-container text-sm text-gray-400 py-3"
-              >
-                No payment records
-              </Button>
-            )}
+          <CardBody className="p-4">
+            <p className="text-sm text-[var(--t3)]">Receipts shown</p>
+            <p className="mt-1 text-2xl font-bold">{loading ? "—" : filtered.length}</p>
           </CardBody>
         </Card>
-
         <Card>
-          <CardBody className="p-6">
-            <h4 className="font-semibold mb-4">Payment Summary</h4>
-            <div className="grid grid-cols-2 gap-2 text-sm">
-              <div>
-                <p className="font-medium">Total Payments</p>
-                <p className="mt-1">{payments.length}</p>
-              </div>
-              <div>
-                <p className="font-medium">Total Amount</p>
-                <p className="mt-1">
-                  UGX{" "}
-                  {payments
-                    .filter((p) => p.status === "paid")
-                    .reduce((sum, p) => sum + p.amount_paid, 0)
-                    .toLocaleString()}
-                </p>
-              </div>
-            </div>
+          <CardBody className="p-4">
+            <p className="text-sm text-[var(--t3)]">Amount shown</p>
+            <p className="mt-1 text-2xl font-bold break-words">{loading ? "—" : formatCurrency(total)}</p>
           </CardBody>
         </Card>
       </div>
-    </PageHeader>
+      <Card>
+        <CardBody className="space-y-5 p-4 sm:p-6">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Input
+              label="Search payments"
+              placeholder="Student, class or reference…"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+            <Select
+              label="Class"
+              value={classId}
+              onChange={(event) => setClassId(event.target.value)}
+              options={[
+                { value: "", label: "All classes" },
+                ...classes.map((item) => ({ value: item.id, label: item.name })),
+              ]}
+            />
+          </div>
+          {error ? (
+            <div role="alert" className="rounded-xl bg-[var(--error-container)] p-4">
+              <p>{error}</p>
+              <Button variant="ghost" onClick={() => void refetch()}>
+                Try again
+              </Button>
+            </div>
+          ) : loading ? (
+            <TableSkeleton rows={5} />
+          ) : filtered.length === 0 ? (
+            <NoData
+              title="No payments found"
+              description={
+                search || classId ? "Change the filters or check another page." : "Recorded payments will appear here."
+              }
+            />
+          ) : (
+            <div className="space-y-3">
+              {filtered.map((payment) => {
+                const student = studentFor(payment);
+                const name = student ? `${student.first_name} ${student.last_name}` : "Unknown student";
+                return (
+                  <div
+                    key={payment.id}
+                    className="flex flex-col gap-3 rounded-xl border border-[var(--border)] p-4 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div className="min-w-0">
+                      <h2 className="font-semibold break-words">{name}</h2>
+                      <p className="mt-1 text-sm text-[var(--t3)]">
+                        {new Date(payment.payment_date).toLocaleDateString("en-GB")} ·{" "}
+                        {payment.payment_method.replace(/_/g, " ")}
+                      </p>
+                      <p className="mt-1 text-sm text-[var(--t3)]">
+                        {student?.classes?.name ||
+                          classes.find((item) => item.id === student?.class_id)?.name ||
+                          "No class"}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <span className="mr-auto font-bold text-primary">
+                        {formatCurrency(Number(payment.amount_paid))}
+                      </span>
+                      <Button
+                        variant="ghost"
+                        onClick={() => setSelectedPayment(payment)}
+                        aria-label={`Payment details for ${name}`}
+                      >
+                        Details
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] pt-4">
+            <p className="text-sm text-[var(--t3)]">
+              Page {page} of {totalPages}
+            </p>
+            <div className="flex gap-2">
+              <Button
+                variant="ghost"
+                disabled={page === 1 || loading}
+                onClick={() => setPage((previous) => previous - 1)}
+              >
+                Previous
+              </Button>
+              <Button
+                variant="ghost"
+                disabled={page >= totalPages || loading}
+                onClick={() => setPage((previous) => previous + 1)}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        </CardBody>
+      </Card>
+      <Modal isOpen={Boolean(selectedPayment)} onClose={() => setSelectedPayment(null)} title="Payment Details">
+        {selectedPayment && (
+          <dl className="space-y-4">
+            <div>
+              <dt className="text-sm text-[var(--t3)]">Amount received</dt>
+              <dd className="text-xl font-bold">{formatCurrency(Number(selectedPayment.amount_paid))}</dd>
+            </div>
+            <div>
+              <dt className="text-sm text-[var(--t3)]">Method</dt>
+              <dd>{selectedPayment.payment_method.replace(/_/g, " ")}</dd>
+            </div>
+            <div>
+              <dt className="text-sm text-[var(--t3)]">Reference</dt>
+              <dd className="break-words">{selectedPayment.payment_reference || "No reference recorded"}</dd>
+            </div>
+            <div>
+              <dt className="text-sm text-[var(--t3)]">Paid by</dt>
+              <dd>{selectedPayment.paid_by || "Not recorded"}</dd>
+            </div>
+            <div>
+              <dt className="text-sm text-[var(--t3)]">Notes</dt>
+              <dd className="break-words">{selectedPayment.notes || "No notes"}</dd>
+            </div>
+            <div>
+              <dt className="text-sm text-[var(--t3)]">Receipt ID</dt>
+              <dd className="break-all text-sm">{selectedPayment.id}</dd>
+            </div>
+          </dl>
+        )}
+      </Modal>
+    </div>
   );
 }

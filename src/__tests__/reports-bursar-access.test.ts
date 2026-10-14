@@ -1,4 +1,4 @@
-import { REPORT_ALLOWED_ROLES } from "@/app/api/reports/route";
+import { REPORT_ALLOWED_ROLES } from "@/lib/server/report-access";
 import { canAccess } from "@/lib/roles";
 
 /**

@@ -68,6 +68,8 @@ export default function CollapsibleSidebar({ groups, onNavigate, compact = false
   }, []);
 
   const normalizedQuery = query.trim().toLowerCase();
+  const allowedHrefs = new Set(sortedGroups.flatMap((group) => group.items.map((item) => item.href)));
+  const visibleRecentPages = recentPages.filter((item) => allowedHrefs.has(item.href));
 
   const filteredGroups = normalizedQuery
     ? sortedGroups
@@ -153,19 +155,19 @@ export default function CollapsibleSidebar({ groups, onNavigate, compact = false
         </div>
       </div>
 
-      {recentPages.length > 0 && !normalizedQuery && (
+      {visibleRecentPages.length > 0 && !normalizedQuery && (
         <div className="px-2 pb-2">
           <div className="text-[10px] uppercase tracking-wider font-bold text-[var(--t4)] mb-1.5">
             Continue where you left off
           </div>
           <div className="space-y-1">
-            {recentPages.map((item) => (
+            {visibleRecentPages.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
                 title={item.label}
                 onClick={onNavigate}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg text-[12px] text-[var(--t2)] hover:bg-[var(--surface-container-low)] no-underline"
+                className="flex min-h-11 items-center gap-2 px-3 py-2 rounded-lg text-[12px] text-[var(--t2)] hover:bg-[var(--surface-container-low)] no-underline"
               >
                 <MaterialIcon icon={item.icon} className="text-[15px] text-[var(--t3)]" />
                 <span className="truncate">{item.label}</span>
@@ -177,7 +179,7 @@ export default function CollapsibleSidebar({ groups, onNavigate, compact = false
 
       <div className="space-y-1">
         {filteredGroups.map((group) => {
-          const isOpen = isGroupOpen(group);
+          const isOpen = Boolean(normalizedQuery) || isGroupOpen(group);
           const hasActive = group.items.some((item) => item.href === activeHref);
 
           return (
@@ -186,7 +188,7 @@ export default function CollapsibleSidebar({ groups, onNavigate, compact = false
                 onClick={() => toggleGroup(group)}
                 title={group.label}
                 className={cn(
-                  "flex items-center w-full px-3 py-2.5 text-[10px] font-extrabold uppercase tracking-widest transition-colors duration-150 outline-none rounded-lg",
+                  "flex min-h-11 items-center w-full px-3 py-2.5 text-[10px] font-extrabold uppercase tracking-widest transition-colors duration-150 rounded-lg focus-visible:ring-2 focus-visible:ring-[var(--primary)]",
                   hasActive || isOpen
                     ? "text-[var(--primary)]"
                     : "text-[var(--t4)] hover:text-[var(--t2)] hover:bg-[var(--surface-container-low)]",
@@ -222,7 +224,7 @@ export default function CollapsibleSidebar({ groups, onNavigate, compact = false
                           onNavigate?.();
                         }}
                         className={cn(
-                          "flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] transition-all min-h-[36px] group relative tap-effect",
+                          "flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] transition-all min-h-11 lg:min-h-[36px] group relative tap-effect",
                           isActive
                             ? "bg-[var(--primary)] text-white font-semibold shadow-[0_10px_20px_rgba(0,92,230,0.18)]"
                             : "text-[var(--t2)] hover:bg-[var(--surface-container-low)] hover:text-[var(--t1)]",
