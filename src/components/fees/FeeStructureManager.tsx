@@ -2,7 +2,6 @@
 import MaterialIcon from "@/components/MaterialIcon";
 import { Button } from "@/components/ui/index";
 import { PageSection } from "@/components/ui/PageHeader";
-import { NoData } from "@/components/EmptyState";
 
 interface FeeStructureData {
   id: string;
@@ -11,6 +10,7 @@ interface FeeStructureData {
   classes?: { name: string } | null;
   amount: number | string;
   term: number;
+  academic_year?: string;
 }
 
 interface FeeStructureManagerProps {
@@ -18,6 +18,7 @@ interface FeeStructureManagerProps {
   paginatedFeeStructure: FeeStructureData[];
   formatCurrency: (amount: number) => string;
   onDeleteFee: (id: string) => void;
+  onEditFee: (fee: FeeStructureData) => void;
   onAddFee: () => void;
   feePage: number;
   feeTotalPages: number;
@@ -29,6 +30,7 @@ export default function FeeStructureManager({
   paginatedFeeStructure,
   formatCurrency,
   onDeleteFee,
+  onEditFee,
   onAddFee,
   feePage,
   feeTotalPages,
@@ -38,27 +40,29 @@ export default function FeeStructureManager({
     <PageSection className="mt-8">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="font-semibold text-on-surface">
-            Fee Structure
-          </h3>
-          <p className="text-sm text-on-surface-variant">
-            Fee items and amounts
-          </p>
+          <h3 className="font-semibold text-on-surface">Fee Structure</h3>
+          <p className="text-sm text-on-surface-variant">Fee items and amounts</p>
         </div>
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={onAddFee}
-        >
+        <Button variant="primary" size="sm" onClick={onAddFee}>
           <MaterialIcon icon="add" />
           Add Fee
         </Button>
       </div>
       {feeStructure.length === 0 ? (
-        <NoData
-          title="No fee structure"
-          description="Create fee items to start collecting payments"
-        />
+        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-container-low)] p-6 text-center">
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[var(--primary)]/10">
+            <MaterialIcon icon="payments" className="text-2xl text-primary" />
+          </div>
+          <h4 className="font-bold text-on-surface">Set your fees first</h4>
+          <p className="mx-auto mt-1 max-w-md text-sm text-on-surface-variant">
+            Nothing can be collected until the fee items and amounts exist. Add what each class owes for this term — you
+            can change the amounts later whenever fees change.
+          </p>
+          <Button variant="primary" size="sm" onClick={onAddFee} className="mt-4">
+            <MaterialIcon icon="add" />
+            Set fees
+          </Button>
+        </div>
       ) : (
         <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
           <div className="overflow-x-auto table-responsive">
@@ -78,6 +82,9 @@ export default function FeeStructureManager({
                     Term
                   </th>
                   <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
+                    Year
+                  </th>
+                  <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
                     Actions
                   </th>
                 </tr>
@@ -85,25 +92,23 @@ export default function FeeStructureManager({
               <tbody className="divide-y divide-outline-variant/5">
                 {paginatedFeeStructure.map((fee) => (
                   <tr key={fee.id} className="hover:bg-surface-bright">
-                    <td className="px-6 py-4 font-medium">
-                      {fee.name}
-                    </td>
+                    <td className="px-6 py-4 font-medium">{fee.name}</td>
+                    <td className="px-6 py-4">{fee.classes?.name || "All Classes"}</td>
+                    <td className="px-6 py-4 font-bold text-primary">{formatCurrency(Number(fee.amount))}</td>
+                    <td className="px-6 py-4 text-sm text-on-surface-variant">Term {fee.term}</td>
+                    <td className="px-6 py-4 text-sm text-on-surface-variant">{fee.academic_year || "—"}</td>
                     <td className="px-6 py-4">
-                      {fee.classes?.name || "All Classes"}
-                    </td>
-                    <td className="px-6 py-4 font-bold text-primary">
-                      {formatCurrency(Number(fee.amount))}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-on-surface-variant">
-                      Term {fee.term}
-                    </td>
-                    <td className="px-6 py-4">
-                      <button
-                        onClick={() => onDeleteFee(fee.id)}
-                        className="text-error hover:underline text-sm"
-                      >
-                        Delete
-                      </button>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={() => onEditFee(fee)}
+                          className="text-primary hover:underline text-sm font-medium"
+                        >
+                          Edit
+                        </button>
+                        <button onClick={() => onDeleteFee(fee.id)} className="text-error hover:underline text-sm">
+                          Delete
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -126,9 +131,7 @@ export default function FeeStructureManager({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() =>
-                  setFeePage((p: number) => Math.min(feeTotalPages, p + 1))
-                }
+                onClick={() => setFeePage((p: number) => Math.min(feeTotalPages, p + 1))}
                 disabled={feePage >= feeTotalPages}
               >
                 <MaterialIcon icon="chevron_right" />

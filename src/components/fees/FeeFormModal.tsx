@@ -26,6 +26,8 @@ interface FeeFormModalProps {
   newFee: FeeFormData;
   onFeeChange: (updates: Record<string, unknown>) => void;
   saving: boolean;
+  /** True when adjusting an existing fee item rather than creating a new one. */
+  isEditing?: boolean;
   draftLastSaved?: Date | null;
   draftIsDirty?: boolean;
 }
@@ -46,6 +48,7 @@ export default function FeeFormModal({
   newFee,
   onFeeChange,
   saving,
+  isEditing = false,
   draftLastSaved,
   draftIsDirty,
 }: FeeFormModalProps) {
@@ -86,7 +89,7 @@ export default function FeeFormModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Add New Fee"
+      title={isEditing ? "Edit Fee" : "Add New Fee"}
       size="md"
       headerAction={<AutoSaveIndicator lastSaved={draftLastSaved ?? null} isDirty={draftIsDirty ?? false} />}
     >

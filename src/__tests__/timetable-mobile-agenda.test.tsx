@@ -90,6 +90,12 @@ describe("Timetable mobile agenda", () => {
   it("shows the selected class overview and opens the assignment form from an open period", () => {
     render(<TimetablePage />);
 
+    // The agenda now opens on today's weekday rather than always Monday, so
+    // pick the day explicitly instead of assuming the default. Otherwise this
+    // assertion passes on Mondays only. Tabs is mocked to plain buttons here,
+    // hence the button role rather than tab.
+    fireEvent.click(screen.getByRole("button", { name: "Monday" }));
+
     expect(screen.getByLabelText(/timetable overview/i)).toHaveTextContent("Primary 3");
     expect(screen.getByLabelText(/timetable overview/i)).toHaveTextContent("Monday");
 

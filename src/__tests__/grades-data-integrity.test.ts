@@ -19,8 +19,8 @@ describe("CA lock covers every CA type", () => {
   });
 
   it("includes ca4 in the derived list", () => {
-    const types = ["ca1", "ca2", "ca3", "ca4", "project", "exam", "competency", "u1", "u2", "eot"].filter(
-      (t) => t.startsWith("ca"),
+    const types = ["ca1", "ca2", "ca3", "ca4", "project", "exam", "competency", "u1", "u2", "eot"].filter((t) =>
+      t.startsWith("ca"),
     );
     expect(types).toEqual(["ca1", "ca2", "ca3", "ca4"]);
   });
@@ -71,7 +71,14 @@ describe("a locked term blocks exam marks", () => {
   });
 
   it("greys the exam cells", () => {
-    const disabled = src.match(/disabled=\{isSubmitted \|\| \(caLocked && type\.startsWith\("ca"\)\) \|\| \(termLocked && type === "exam"\)\}/g) ?? [];
+    // Whitespace-insensitive on purpose. This assertion used to match one long
+    // `disabled={...}` line, and biome's formatter later wrapped it across
+    // three lines — the guard was still correct, the test just went red.
+    const flat = src.replace(/\s+/g, " ");
+    const disabled =
+      flat.match(
+        /disabled=\{\s*isSubmitted \|\| \(caLocked && type\.startsWith\("ca"\)\) \|\| \(termLocked && type === "exam"\)\s*\}/g,
+      ) ?? [];
     expect(disabled.length).toBeGreaterThanOrEqual(3);
   });
 });

@@ -18,6 +18,7 @@ import { withTimeout, timeoutFallback, getLocalDateString } from "@/lib/hooks/ut
 import { TRIAGE_BANDS, bucketTriageBalances, partitionFeeRoster } from "@/lib/fee-triage";
 import { PAYMENT_METHODS } from "@/lib/constants";
 import { supabase } from "@/lib/supabase";
+import { updateRecord } from "@/lib/crud-service";
 import MaterialIcon from "@/components/MaterialIcon";
 import FeeStats from "@/components/fees/FeeStats";
 import { StudentBalance } from "@/components/fees/FeeTable";
@@ -243,7 +244,11 @@ export default function FinanceHubPage() {
   const [searchTerm, setSearchTerm] = useState(() => urlFilters.get("q") || "");
   const [saving, setSaving] = useState(false);
   const [sendingReminders, setSendingReminders] = useState(false);
-  const [balanceSubTab, setBalanceSubTab] = useState("balances");
+  // Seeded from ?tab=structure so other screens (the bursar dashboard's "set
+  // fees" prompt) can link straight to the fee list instead of Balances.
+  const [balanceSubTab, setBalanceSubTab] = useState(() =>
+    searchParams.get("tab") === "structure" ? "structure" : "balances",
+  );
 
   useKeyboardShortcuts([
     {
@@ -280,6 +285,11 @@ export default function FinanceHubPage() {
     term: currentTerm || 1,
     due_date: "",
   });
+
+  // The fee being edited, or null when the form is creating a new one. Fees
+  // change per term and per year in most schools, so a bursar has to be able to
+  // adjust an amount in place rather than delete and re-enter it.
+  const [editingFeeId, setEditingFeeId] = useState<string | null>(null);
 
   const [newPayment, setNewPayment] = useState<{
     student_id: string;
@@ -884,16 +894,38 @@ export default function FinanceHubPage() {
     }
     try {
       setSaving(true);
-      await createFeeStructure({
-        name: newFee.name,
-        class_id: newFee.class_id || undefined,
-        amount: Number(newFee.amount),
-        term: Number(newFee.term),
-        academic_year: academicYear,
-        due_date: newFee.due_date || undefined,
-      });
-      toast.success("Fee structure created");
+      if (editingFeeId) {
+        // Adjusting an existing fee item — same validation, but the row keeps
+        // its identity so existing payments still point at it.
+        await updateRecord(
+          () =>
+            supabase
+              .from("fee_structure")
+              .update({
+                name: newFee.name,
+                class_id: newFee.class_id || null,
+                amount: Number(newFee.amount),
+                term: Number(newFee.term),
+                academic_year: academicYear,
+                due_date: newFee.due_date || null,
+              })
+              .eq("id", editingFeeId),
+          { timeoutMs: 15000, timeoutMessage: "Fee update timed out" },
+        );
+        toast.success("Fee updated");
+      } else {
+        await createFeeStructure({
+          name: newFee.name,
+          class_id: newFee.class_id || undefined,
+          amount: Number(newFee.amount),
+          term: Number(newFee.term),
+          academic_year: academicYear,
+          due_date: newFee.due_date || undefined,
+        });
+        toast.success("Fee structure created");
+      }
       setShowFeeModal(false);
+      setEditingFeeId(null);
       feeDraft.clearSaved();
       setNewFee({
         name: "",
@@ -903,10 +935,31 @@ export default function FinanceHubPage() {
         due_date: "",
       });
     } catch (err: unknown) {
-      toast.error(err instanceof Error ? err.message : "Failed to create fee");
+      toast.error(
+        err instanceof Error
+          ? editingFeeId
+            ? `Failed to update fee: ${err.message}`
+            : err.message
+          : editingFeeId
+            ? "Failed to update fee"
+            : "Failed to create fee",
+      );
     } finally {
       setSaving(false);
     }
+  };
+
+  // Prefill the form from an existing fee so the bursar can adjust it in place.
+  const handleEditFee = (fee: { id: string; name: string; class_id?: string | null; amount: number | string }) => {
+    setEditingFeeId(fee.id);
+    setNewFee({
+      name: fee.name,
+      class_id: fee.class_id || "",
+      amount: String(fee.amount),
+      term: currentTerm || 1,
+      due_date: "",
+    });
+    setShowFeeModal(true);
   };
 
   const handleDeleteFee = async (feeId: string) => {
@@ -1695,10 +1748,9 @@ export default function FinanceHubPage() {
               ]}
               activeTab={balanceSubTab}
               onChange={(id) => {
+                // Just switch the tab. This used to also open the Add Fee
+                // modal, which buried the fee list the bursar came to inspect.
                 setBalanceSubTab(id);
-                if (id === "structure") {
-                  setShowFeeModal(true);
-                }
               }}
               className="mb-6"
             />
@@ -1855,6 +1907,7 @@ export default function FinanceHubPage() {
                 paginatedFeeStructure={paginatedFeeStructure}
                 formatCurrency={formatCurrency}
                 onDeleteFee={handleDeleteFee}
+                onEditFee={handleEditFee}
                 onAddFee={() => setShowFeeModal(true)}
                 feePage={feePage}
                 feeTotalPages={feeTotalPages}
@@ -1944,13 +1997,17 @@ export default function FinanceHubPage() {
 
         <FeeFormModal
           isOpen={showFeeModal}
-          onClose={() => setShowFeeModal(false)}
+          onClose={() => {
+            setShowFeeModal(false);
+            setEditingFeeId(null);
+          }}
           classes={classes}
           classesLoading={classesLoading}
           onSubmit={handleCreateFee}
           newFee={newFee}
           onFeeChange={handleNewFeeChange}
           saving={saving}
+          isEditing={Boolean(editingFeeId)}
           draftLastSaved={feeDraft.lastSaved}
           draftIsDirty={feeDraft.isDirty}
         />

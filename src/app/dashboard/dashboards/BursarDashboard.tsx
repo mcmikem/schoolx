@@ -154,32 +154,72 @@ function BursarDashboardContent() {
       }));
   }, [payments, students]);
 
-  const todayActions = [
-    {
-      href: "/dashboard/fees",
-      label: "Record payment",
-      icon: "point_of_sale",
-    },
-    {
-      href: "/dashboard/reports",
-      label: "Collections report",
-      icon: "analytics",
-    },
-    {
-      // Arrears, not the plain balances list — "Record payment" above already
-      // lands there. `status` is the filter the fees page reads from the URL;
-      // the `tab=defaulters` these links used to carry is not one of the five
-      // tabs that page accepts, so it silently fell back to Balances.
-      href: "/dashboard/fees?status=unpaid",
-      label: "Follow up arrears",
-      icon: "campaign",
-    },
-    {
-      href: "/dashboard/messages",
-      label: "Send reminders",
-      icon: "sms",
-    },
-  ];
+  // Fees are set per class, per term and per year. When the term the header
+  // names has no fee items yet there is nothing to collect against, so
+  // "Record payment" is a dead end and setting the fees is the task that
+  // unblocks every other number on this page. Suppressed while loading so the
+  // prompt does not flash on every visit.
+  const hasCurrentTermFees = feeStructure.some(
+    (f) => Number(f.term) === Number(currentTerm) && (!f.academic_year || f.academic_year === academicYear),
+  );
+  const feeSetupPending = !feeStructureLoading && feeStructure.length > 0 && !hasCurrentTermFees;
+  const noFeesAtAll = !feeStructureLoading && feeStructure.length === 0;
+
+  const recordPaymentAction = {
+    href: "/dashboard/fees",
+    label: "Record payment",
+    icon: "point_of_sale",
+  };
+  const setFeesAction = {
+    href: "/dashboard/fees?tab=structure",
+    label: noFeesAtAll ? "Set fees" : `Set Term ${currentTerm} fees`,
+    icon: "payments",
+  };
+
+  // Order follows the school's actual state: whatever is blocking comes first.
+  const todayActions =
+    hasCurrentTermFees || feeStructureLoading
+      ? [
+          recordPaymentAction,
+          {
+            href: "/dashboard/reports",
+            label: "Collections report",
+            icon: "analytics",
+          },
+          {
+            // Arrears, not the plain balances list — "Record payment" above already
+            // lands there. `status` is the filter the fees page reads from the URL;
+            // the `tab=defaulters` these links used to carry is not one of the five
+            // tabs that page accepts, so it silently fell back to Balances.
+            href: "/dashboard/fees?status=unpaid",
+            label: "Follow up arrears",
+            icon: "campaign",
+          },
+          {
+            href: "/dashboard/messages",
+            label: "Send reminders",
+            icon: "sms",
+          },
+        ]
+      : [
+          setFeesAction,
+          recordPaymentAction,
+          {
+            href: "/dashboard/reports",
+            label: "Collections report",
+            icon: "analytics",
+          },
+          {
+            href: "/dashboard/fees?status=unpaid",
+            label: "Follow up arrears",
+            icon: "campaign",
+          },
+          {
+            href: "/dashboard/messages",
+            label: "Send reminders",
+            icon: "sms",
+          },
+        ];
 
   const todayLabel = todayLabelFor(currentDate);
 
@@ -245,12 +285,42 @@ function BursarDashboardContent() {
         greeting={greeting}
         userName={user?.full_name?.split(" ")[0] || ""}
         dateLabel={todayLabel}
-        rightSection={
-          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--t3)]">
-            Term {currentTerm} · {academicYear}
+        bottomCenter={
+          <p className="text-xs font-semibold text-[var(--t2)]">
+            {school?.name} · Term {currentTerm} · {academicYear}
           </p>
         }
       />
+
+      {/* First task. Everything below — collection rate, arrears, debtors — is
+          derived from the fee items, so with none set for this term those
+          figures are meaningless zeros. Name the blocking step instead of
+          showing an empty dashboard. */}
+      {!hasCurrentTermFees && !feeStructureLoading && (
+        <div className="rounded-2xl border border-[var(--primary)]/30 bg-[var(--primary)]/5 p-5">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--primary)]/10">
+                <MaterialIcon icon="payments" className="text-xl text-primary" />
+              </div>
+              <div>
+                <h3 className="font-bold text-[var(--t1)]">
+                  {noFeesAtAll ? "Start by setting your fees" : `No fees set for Term ${currentTerm}, ${academicYear}`}
+                </h3>
+                <p className="mt-1 max-w-xl text-sm text-[var(--t2)]">
+                  {noFeesAtAll
+                    ? "Add what each class owes for this term. Payments, balances and arrears all fill in from there — and you can change the amounts any time fees change."
+                    : `You have fees for another term, but nothing for this one yet. Add Term ${currentTerm} amounts before recording payments, or the collection figures below will not reflect the current term.`}
+                </p>
+              </div>
+            </div>
+            <Link href="/dashboard/fees?tab=structure" className="btn-pill btn-primary shrink-0">
+              <MaterialIcon icon="add" style={{ fontSize: 16 }} />
+              {noFeesAtAll ? "Set fees" : `Set Term ${currentTerm} fees`}
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* ── Two-Column Layout ── */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
