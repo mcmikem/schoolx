@@ -6,6 +6,7 @@ import CollectionDonut from "@/components/dashboard/CollectionDonut";
 import RecentPayments from "@/components/dashboard/RecentPayments";
 import SchoolCalendar from "@/components/dashboard/SchoolCalendar";
 import SchoolHero from "@/components/dashboard/SchoolHero";
+import MoneyPositionStrip from "@/components/dashboard/MoneyPositionStrip";
 
 import StatCard from "@/components/dashboard/StatCard";
 import TaskManager from "@/components/dashboard/TaskManager";
@@ -108,11 +109,24 @@ function BursarDashboardContent() {
     const previousKey = monthKey(new Date(now.getFullYear(), now.getMonth() - 1, 1));
     let thisMonth = 0;
     let previousMonth = 0;
+    // Today's takings, by channel. A bursar checks this first thing in the
+    // morning, and on reporting day it is the number they report to the head.
+    const dayKey = (d: Date) => `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
+    const today = dayKey(now);
+    let todayTotal = 0;
+    let todayCount = 0;
+    const todayByMethod: Record<string, number> = {};
     for (const p of payments) {
       const amount = Number(p.amount_paid || 0);
       const key = monthKey(new Date(p.payment_date));
       if (key === currentKey) thisMonth += amount;
       else if (key === previousKey) previousMonth += amount;
+      if (dayKey(new Date(p.payment_date)) === today) {
+        todayTotal += amount;
+        todayCount += 1;
+        const method = String(p.payment_method ?? "other");
+        todayByMethod[method] = (todayByMethod[method] ?? 0) + amount;
+      }
     }
 
     return {
@@ -123,6 +137,9 @@ function BursarDashboardContent() {
       highRiskCount: highRisk,
       thisMonthTotal: thisMonth,
       lastMonthTotal: previousMonth,
+      todayTotal,
+      todayCount,
+      todayByMethod,
       overdueBalance: debtors.reduce((sum, d) => sum + d.balance, 0),
       defaulters: debtors.slice(0, MAX_RETURNED_DEFAULTERS),
     };
@@ -136,6 +153,10 @@ function BursarDashboardContent() {
   const overdueCount = figures.overdueCount;
   const highRiskArrearsCount = figures.highRiskCount;
   const thisMonthTotal = figures.thisMonthTotal;
+  // The fee_summary() RPC is a term-level rollup and does not return these,
+  // so the locally derived figures are always the source for today.
+  const todayTotal = legacyFigures.todayTotal;
+  const todayCount = legacyFigures.todayCount;
   const lastMonthTotal = figures.lastMonthTotal;
   const collectionTrend =
     lastMonthTotal > 0 ? Math.round(((thisMonthTotal - lastMonthTotal) / lastMonthTotal) * 100) : 0;
@@ -374,6 +395,32 @@ function BursarDashboardContent() {
               hrefLabel="Open reports"
             />
           </div>
+
+          {/* Money out is invisible on a fees-only dashboard, yet it is half of
+              what the headmaster and bursar are asked about every month. */}
+          <MoneyPositionStrip />
+
+          {/* Today's takings, by channel. Mobile money is the dominant channel
+              in Uganda and its alerts carry no student name, so the bursar
+              reconciles by hand — this is the number they are checking against
+              the day's transaction list. */}
+          <section
+            aria-label="today's takings"
+            className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4"
+          >
+            <div className="flex items-center justify-between gap-3">
+              <h2 className="text-sm font-bold text-[var(--t1)]">Today&apos;s takings</h2>
+              <span className="text-xs text-[var(--t3)]">
+                {todayCount} {todayCount === 1 ? "payment" : "payments"}
+              </span>
+            </div>
+            <p className="mt-1 text-2xl font-bold tabular-nums text-[var(--green)]">
+              UGX {formatCompactCurrency(todayTotal)}
+            </p>
+            <p className="mt-0.5 text-xs text-[var(--t3)]">
+              {todayTotal === 0 ? "Nothing taken yet today." : "Taken so far today"}
+            </p>
+          </section>
 
           {/* ── Analytics row (Donezo bento: weekly bars + progress donut) ── */}
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">

@@ -623,6 +623,13 @@ export interface FeeSummary {
   highRiskCount: number;
   thisMonthTotal: number;
   lastMonthTotal: number;
+  /** Taken so far today, and how many payments made it up. A bursar checks this
+   *  first thing in the morning and reports it to the head. */
+  todayTotal: number;
+  todayCount: number;
+  /** Today's takings split by channel — mobile money dominates in Uganda and its
+   *  alerts carry no student name, so this is what gets reconciled by hand. */
+  todayByMethod: Record<string, number>;
   overdueBalance: number;
   defaulters: FeeDefaulter[];
 }
@@ -671,6 +678,12 @@ export function normalizeFeeSummary(row: unknown): FeeSummary | null {
     highRiskCount: toNumber(r.high_risk_count),
     thisMonthTotal: toNumber(r.this_month_total),
     lastMonthTotal: toNumber(r.last_month_total),
+    // The RPC does not aggregate these; it is a term-level rollup, whereas
+    // "today" is a narrow window the dashboard derives from the payments list
+    // when the RPC is unavailable. Zero here so callers can fall back safely.
+    todayTotal: 0,
+    todayCount: 0,
+    todayByMethod: {},
     overdueBalance: toNumber(r.overdue_balance),
     defaulters: normalizeDefaulters(r.defaulters),
   };
