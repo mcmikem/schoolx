@@ -85,7 +85,11 @@ export default function ReportsPage() {
         });
 
         if (!response.ok) {
-          logger.error("Failed to fetch report from API");
+          const errBody = await response.json().catch(() => null);
+          const errMessage =
+            (errBody && typeof errBody.error === "string" && errBody.error) || "Failed to fetch report from API";
+          logger.error("Failed to fetch report from API:", errMessage);
+          toast.error(errMessage);
           return;
         }
 
@@ -327,7 +331,11 @@ export default function ReportsPage() {
         });
 
         if (!response.ok) {
-          logger.error("Failed to generate report");
+          const errBody = await response.json().catch(() => null);
+          const errMessage =
+            (errBody && typeof errBody.error === "string" && errBody.error) || "Failed to generate report";
+          logger.error("Failed to generate report:", errMessage);
+          toast.error(errMessage);
           return;
         }
 
