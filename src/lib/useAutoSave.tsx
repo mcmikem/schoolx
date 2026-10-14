@@ -1,86 +1,98 @@
-'use client'
-import { useState, useEffect, useCallback } from 'react'
-import { logger } from './logger'
+"use client";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { logger } from "./logger";
 
 interface UseAutoSaveOptions {
-  key: string
-  debounceMs?: number
-  onRestore?: (data: any) => void
+  key: string;
+  debounceMs?: number;
+  onRestore?: (data: any) => void;
 }
 
-export function useAutoSave<T extends Record<string, any>>(
-  initialData: T,
-  options: UseAutoSaveOptions
-) {
-  const { key, debounceMs = 2000, onRestore } = options
-  const [data, setData] = useState<T>(initialData)
-  const [lastSaved, setLastSaved] = useState<Date | null>(null)
-  const [isDirty, setIsDirty] = useState(false)
+export function useAutoSave<T extends Record<string, any>>(initialData: T, options: UseAutoSaveOptions) {
+  const { key, debounceMs = 2000, onRestore } = options;
+  const [data, setData] = useState<T>(initialData);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [isDirty, setIsDirty] = useState(false);
 
-  const storageKey = `autosave_${key}`
+  const storageKey = `autosave_${key}`;
+
+  // Latest-callback ref: callers (e.g. useFormDraft) pass inline closures,
+  // so depending on `onRestore` identity would re-run this effect every
+  // render — and each run setStates, which re-renders, which re-runs the
+  // effect ("Maximum update depth exceeded" whenever a draft exists).
+  const onRestoreRef = useRef(onRestore);
+  useEffect(() => {
+    onRestoreRef.current = onRestore;
+  });
 
   // Load saved data on mount
   useEffect(() => {
     try {
-      const saved = localStorage.getItem(storageKey)
+      const saved = localStorage.getItem(storageKey);
       if (saved) {
-        const parsed = JSON.parse(saved)
-        setData(parsed)
-        setLastSaved(new Date(parsed.savedAt))
-        if (onRestore) {
-          onRestore(parsed.data)
+        const parsed = JSON.parse(saved);
+        setData(parsed);
+        setLastSaved(new Date(parsed.savedAt));
+        if (onRestoreRef.current) {
+          onRestoreRef.current(parsed.data);
         }
       }
     } catch (e) {
-      logger.error('Failed to load auto-save:', e)
+      logger.error("Failed to load auto-save:", e);
     }
-  }, [storageKey, onRestore])
+    // storageKey only: onRestore is read via ref so inline closures from
+    // callers can't retrigger this effect.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [storageKey]);
 
   // Update data and mark as dirty
   const updateData = useCallback((updates: Partial<T> | ((prev: T) => Partial<T>)) => {
-    setIsDirty(true)
-    setData(prev => {
-      const newUpdates = typeof updates === 'function' ? updates(prev) : updates
-      return { ...prev, ...newUpdates }
-    })
-  }, [])
+    setIsDirty(true);
+    setData((prev) => {
+      const newUpdates = typeof updates === "function" ? updates(prev) : updates;
+      return { ...prev, ...newUpdates };
+    });
+  }, []);
 
   // Save to localStorage (debounced)
   useEffect(() => {
-    if (!isDirty) return
+    if (!isDirty) return;
 
     const timer = setTimeout(() => {
       try {
         const toSave = {
           data,
           savedAt: new Date().toISOString(),
-        }
-        localStorage.setItem(storageKey, JSON.stringify(toSave))
-        setLastSaved(new Date())
-        setIsDirty(false)
+        };
+        localStorage.setItem(storageKey, JSON.stringify(toSave));
+        setLastSaved(new Date());
+        setIsDirty(false);
       } catch (e) {
-        logger.error('Failed to auto-save:', e)
+        logger.error("Failed to auto-save:", e);
       }
-    }, debounceMs)
+    }, debounceMs);
 
-    return () => clearTimeout(timer)
-  }, [data, isDirty, debounceMs, storageKey])
+    return () => clearTimeout(timer);
+  }, [data, isDirty, debounceMs, storageKey]);
 
   // Clear saved data
   const clearSaved = useCallback(() => {
     try {
-      localStorage.removeItem(storageKey)
-      setLastSaved(null)
+      localStorage.removeItem(storageKey);
+      setLastSaved(null);
     } catch (e) {
-      logger.error('Failed to clear auto-save:', e)
+      logger.error("Failed to clear auto-save:", e);
     }
-  }, [storageKey])
+  }, [storageKey]);
 
   // Reset to initial
-  const reset = useCallback((newInitial?: T) => {
-    setData(newInitial || initialData)
-    clearSaved()
-  }, [initialData, clearSaved])
+  const reset = useCallback(
+    (newInitial?: T) => {
+      setData(newInitial || initialData);
+      clearSaved();
+    },
+    [initialData, clearSaved],
+  );
 
   return {
     data,
@@ -90,38 +102,43 @@ export function useAutoSave<T extends Record<string, any>>(
     isDirty,
     clearSaved,
     reset,
-  }
+  };
 }
 
 // Hook for forms that need draft management
 export function useFormDraft(formKey: string) {
-  const [showRestoreDialog, setShowRestoreDialog] = useState(false)
-  const [savedDraft, setSavedDraft] = useState<any>(null)
+  const [showRestoreDialog, setShowRestoreDialog] = useState(false);
+  const [savedDraft, setSavedDraft] = useState<any>(null);
+
+  // Stable identity: useAutoSave reads this through a ref, but keeping it
+  // stable also means the restore effect below can never observe a new
+  // closure and refire.
+  const handleRestore = useCallback((restoredData: any) => {
+    setSavedDraft(restoredData);
+    setShowRestoreDialog(true);
+  }, []);
 
   const { data, updateData, setData, lastSaved, isDirty, clearSaved, reset } = useAutoSave(
     {},
     {
       key: formKey,
       debounceMs: 3000,
-      onRestore: (restoredData) => {
-        setSavedDraft(restoredData)
-        setShowRestoreDialog(true)
-      },
-    }
-  )
+      onRestore: handleRestore,
+    },
+  );
 
   const restoreDraft = useCallback(() => {
     if (savedDraft) {
-      setData(savedDraft)
-      setShowRestoreDialog(false)
+      setData(savedDraft);
+      setShowRestoreDialog(false);
     }
-  }, [savedDraft, setData])
+  }, [savedDraft, setData]);
 
   const discardDraft = useCallback(() => {
-    clearSaved()
-    setSavedDraft(null)
-    setShowRestoreDialog(false)
-  }, [clearSaved])
+    clearSaved();
+    setSavedDraft(null);
+    setShowRestoreDialog(false);
+  }, [clearSaved]);
 
   return {
     data,
@@ -135,7 +152,7 @@ export function useFormDraft(formKey: string) {
     savedDraft,
     restoreDraft,
     discardDraft,
-  }
+  };
 }
 
 export function AutoSaveIndicator({ lastSaved, isDirty }: { lastSaved: Date | null; isDirty: boolean }) {
@@ -145,16 +162,16 @@ export function AutoSaveIndicator({ lastSaved, isDirty }: { lastSaved: Date | nu
         <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
         Unsaved changes
       </span>
-    )
+    );
   }
   if (lastSaved) {
-    const time = lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    const time = lastSaved.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     return (
       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-green-100 text-green-700">
         <span className="material-symbols-outlined text-[12px]">check_circle</span>
         Draft saved at {time}
       </span>
-    )
+    );
   }
-  return null
+  return null;
 }
