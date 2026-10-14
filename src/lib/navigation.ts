@@ -411,6 +411,7 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> = dee
       defaultOpen: true,
       items: [
         { href: "/dashboard/money", label: "Money In & Out", icon: "account_balance_wallet" },
+        { href: "/dashboard/requirements", label: "Requirements", icon: "checklist" },
         { href: "/dashboard/fees", label: "Collect Fees", icon: "payments" },
         {
           href: "/dashboard/fees?tab=invoices",

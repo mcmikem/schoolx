@@ -12,6 +12,7 @@ import {
 } from "@/lib/api-utils";
 import { requireActiveSubscription, requireModuleEntitlement } from "@/lib/subscription-guard";
 import { canAccessClass, isClassScopedRole } from "@/lib/server/class-scope";
+import { weighOldCurriculum } from "@/lib/grading-tracks";
 
 // Reports are available to school operations and academic leadership roles only;
 // parent/student-facing roles are intentionally excluded from aggregate report access.
@@ -281,14 +282,20 @@ export async function POST(request: NextRequest) {
       subjectGrades[subjectName][grade.assessment_type] = Number(grade.score);
     });
 
-    // Calculate averages and grades
+    // Canonical old-curriculum weighting (see grading-tracks): MID averages all
+    // classwork, END is the exam, AVG = 25% MID + 75% END. (This used to be
+    // inverted here as 80/20, disagreeing with every other screen.)
     const reportData = Object.values(subjectGrades).map((subject: any) => {
-      const totalCA = (subject.ca1 + subject.ca2 + subject.ca3 + subject.ca4 + subject.project) / 5;
-      const finalScore = totalCA * 0.8 + subject.exam * 0.2;
+      const { mid, end, avg } = weighOldCurriculum(
+        [subject.ca1, subject.ca2, subject.ca3, subject.ca4, subject.project],
+        subject.exam,
+      );
+      const finalScore = avg ?? 0;
       const grade = getUNEBGrade(finalScore);
       return {
         ...subject,
-        totalCA: Math.round(totalCA * 10) / 10,
+        totalCA: mid ?? 0,
+        end: end ?? 0,
         finalScore: Math.round(finalScore * 10) / 10,
         grade,
       };
