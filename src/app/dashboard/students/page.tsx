@@ -500,16 +500,24 @@ export default function StudentHubPage() {
       toast.error("No students to export");
       return;
     }
-    const headers = ["Name", "Student Number", "Gender", "Parent Name", "Parent Phone", "Class", "Opening Balance"];
-    const rows = students.map((s) => [
-      `${s.first_name} ${s.last_name}`,
-      s.student_number || "",
-      s.gender === "M" ? "Male" : "Female",
-      s.parent_name || "",
-      s.parent_phone || "",
-      s.classes?.name || "",
-      s.opening_balance || "0",
-    ]);
+    // Opening balance is a family's financial position. Teachers reach this
+    // page via students:true but do not hold fees, so the column is only
+    // exported for the roles that handle money.
+    const canSeeBalances = user?.role ? canAccess(user.role as UserRole, "fees") : false;
+    const headers = ["Name", "Student Number", "Gender", "Parent Name", "Parent Phone", "Class"];
+    if (canSeeBalances) headers.push("Opening Balance");
+    const rows = students.map((s) => {
+      const row: (string | number)[] = [
+        `${s.first_name} ${s.last_name}`,
+        s.student_number || "",
+        s.gender === "M" ? "Male" : "Female",
+        s.parent_name || "",
+        s.parent_phone || "",
+        s.classes?.name || "",
+      ];
+      if (canSeeBalances) row.push(s.opening_balance || "0");
+      return row;
+    });
     const csv = [headers, ...rows].map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);

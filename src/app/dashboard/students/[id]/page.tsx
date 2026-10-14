@@ -464,6 +464,12 @@ export default function StudentProfilePage() {
   // student and messaging parents are admin concerns, so gate both.
   const canEditStudent = user?.role ? canAccess(user.role as UserRole, "settings") : false;
   const canSmsParent = user?.role ? canAccess(user.role as UserRole, "messages") : false;
+  // A pupil's fee position is financial data about a family. Teachers hold
+  // students:true so they reach this page, but they do not hold fees — so the
+  // balance tile and the outstanding-balance prompt are theirs only for the
+  // roles that handle money (headmaster, admin, school_admin, super_admin,
+  // bursar). A teacher should not learn what a family owes.
+  const canSeeFeePosition = user?.role ? canAccess(user.role as UserRole, "fees") : false;
   const [isConstrainedNetwork, setIsConstrainedNetwork] = useState(false);
 
   useEffect(() => {
@@ -835,15 +841,19 @@ export default function StudentProfilePage() {
                   tone: "text-emerald-600 dark:text-emerald-400",
                   Icon: ClipboardCheck,
                 },
-                {
-                  label: "Balance",
-                  value: outstandingBalance > 0 ? `UGX ${outstandingBalance.toLocaleString()}` : "Cleared",
-                  tone:
-                    outstandingBalance > 0
-                      ? "text-red-600 dark:text-red-400"
-                      : "text-emerald-600 dark:text-emerald-400",
-                  Icon: CreditCard,
-                },
+                ...(canSeeFeePosition
+                  ? [
+                      {
+                        label: "Balance",
+                        value: outstandingBalance > 0 ? `UGX ${outstandingBalance.toLocaleString()}` : "Cleared",
+                        tone:
+                          outstandingBalance > 0
+                            ? "text-red-600 dark:text-red-400"
+                            : "text-emerald-600 dark:text-emerald-400",
+                        Icon: CreditCard,
+                      },
+                    ]
+                  : []),
                 {
                   label: "Average",
                   value: latestGrade !== null ? `${latestGrade}%` : "No grades",
@@ -901,24 +911,26 @@ export default function StudentProfilePage() {
                   )}
                 </div>
 
-                <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-                  <h3 className="mb-4 flex items-center gap-2 font-semibold text-gray-900 dark:text-gray-100">
-                    <CreditCard className="h-4 w-4 text-yellow-600" />
-                    Fees
-                  </h3>
-                  {detailsLoading ? (
-                    <Skeleton className="h-48 w-full rounded-2xl" />
-                  ) : (
-                    <>
-                      <FeeProgressBar paid={feePosition.paid} total={feePosition.total} />
-                      <div className="mt-4 rounded-xl bg-gray-50 p-3 text-sm text-gray-700 dark:bg-gray-700/50 dark:text-gray-200">
-                        {outstandingBalance > 0
-                          ? `Outstanding balance: UGX ${outstandingBalance.toLocaleString()}`
-                          : "All fees are cleared."}
-                      </div>
-                    </>
-                  )}
-                </div>
+                {canSeeFeePosition && (
+                  <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                    <h3 className="mb-4 flex items-center gap-2 font-semibold text-gray-900 dark:text-gray-100">
+                      <CreditCard className="h-4 w-4 text-yellow-600" />
+                      Fees
+                    </h3>
+                    {detailsLoading ? (
+                      <Skeleton className="h-48 w-full rounded-2xl" />
+                    ) : (
+                      <>
+                        <FeeProgressBar paid={feePosition.paid} total={feePosition.total} />
+                        <div className="mt-4 rounded-xl bg-gray-50 p-3 text-sm text-gray-700 dark:bg-gray-700/50 dark:text-gray-200">
+                          {outstandingBalance > 0
+                            ? `Outstanding balance: UGX ${outstandingBalance.toLocaleString()}`
+                            : "All fees are cleared."}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
 
                 <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
                   <h3 className="mb-4 flex items-center gap-2 font-semibold text-gray-900 dark:text-gray-100">
@@ -990,15 +1002,15 @@ export default function StudentProfilePage() {
                     Guardians & contact
                   </h3>
                   {canEditStudent && (
-                  <button
-                    onClick={() => setShowGuardianModal(true)}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-700"
-                  >
-                    <User className="h-3.5 w-3.5" />
-                    Add Guardian
-                  </button>
-                )}
-              </div>
+                    <button
+                      onClick={() => setShowGuardianModal(true)}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-700"
+                    >
+                      <User className="h-3.5 w-3.5" />
+                      Add Guardian
+                    </button>
+                  )}
+                </div>
 
                 <p className="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">
                   Primary contact

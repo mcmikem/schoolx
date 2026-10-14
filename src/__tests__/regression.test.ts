@@ -1631,4 +1631,29 @@ describe("Exam timetable and setup wizard are role-gated", () => {
     expect(src).toContain("{canEditStudent && (");
     expect(src).toContain("{canSmsParent && (");
   });
+
+  it("keeps a pupil's fee position away from teachers", () => {
+    // A pupil's balance is financial data about a family. Teachers hold
+    // students:true, so they reach the pupil profile — but they do not hold
+    // fees, so the balance tile and the Fees card are gated off.
+    expect(canAccess("teacher", "students")).toBe(true);
+    expect(canAccess("teacher", "fees")).toBe(false);
+    for (const role of ["bursar", "headmaster", "school_admin", "admin", "super_admin"] as const) {
+      expect({ role, allowed: canAccess(role, "fees") }).toEqual({ role, allowed: true });
+    }
+
+    const src = require("fs").readFileSync(
+      require("path").join(process.cwd(), "src/app/dashboard/students/[id]/page.tsx"),
+      "utf8",
+    );
+    expect(src).toContain("const canSeeFeePosition =");
+    expect(src).toContain("{canSeeFeePosition && (");
+
+    // The CSV export carries "Opening Balance" per pupil, gated the same way.
+    const list = require("fs").readFileSync(
+      require("path").join(process.cwd(), "src/app/dashboard/students/page.tsx"),
+      "utf8",
+    );
+    expect(list).toContain('headers.push("Opening Balance")');
+  });
 });
