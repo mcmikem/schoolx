@@ -17,13 +17,6 @@ type QuickStep = {
   icon: string;
 };
 
-const DASHBOARD_FALLBACK: QuickStep = {
-  label: "Open Dashboard",
-  navLabel: "Home",
-  href: "/dashboard",
-  icon: "dashboard",
-};
-
 /**
  * The centre action in the mobile bar, declared per role.
  *
@@ -37,6 +30,12 @@ const DASHBOARD_FALLBACK: QuickStep = {
  *
  * Two rules now hold: the label names the destination, and no entry duplicates
  * a destination the bar already carries (Home / Attend / Fees / More).
+ *
+ * The second rule used to be broken by the fallback: roles with no declared
+ * entry all collapsed onto `DASHBOARD_FALLBACK` — { navLabel: "Home", href:
+ * "/dashboard" } — so admin and school_admin saw the bar read "home, attend,
+ * home, fees, more", with the second home lit whenever the first was. There is
+ * no fallback any more; a role with no entry simply gets no centre slot.
  */
 const ROLE_QUICK_ACTION: Record<string, QuickStep> = {
   // Attend already sits in the bar, so the next task is entering marks.
@@ -47,6 +46,9 @@ const ROLE_QUICK_ACTION: Record<string, QuickStep> = {
   headmaster: { label: "Students", navLabel: "Students", href: "/dashboard/students", icon: "group" },
   secretary: { label: "Messages", navLabel: "Messages", href: "/dashboard/messages", icon: "chat" },
   dorm_master: { label: "Dorm Attendance", navLabel: "Dorm", href: "/dashboard/dorm-attendance", icon: "bed" },
+  admin: { label: "Staff", navLabel: "Staff", href: "/dashboard/staff", icon: "person" },
+  school_admin: { label: "Staff", navLabel: "Staff", href: "/dashboard/staff", icon: "person" },
+  super_admin: { label: "Schools", navLabel: "Schools", href: "/dashboard/schools", icon: "school" },
 };
 
 export default function MobileBottomNav() {
@@ -60,21 +62,32 @@ export default function MobileBottomNav() {
 
   const isActive = (path: string) => pathname === path || pathname?.startsWith(path + "/");
 
-  // Constant per role. The previous version swapped the action as the user
-  // moved between destinations, which meant the same button changed meaning
-  // depending on the route — unpredictable, and the swapped labels did not
-  // describe where they went either.
-  const quickStep = useMemo<QuickStep>(() => {
-    if (!role) return DASHBOARD_FALLBACK;
-    return ROLE_QUICK_ACTION[role] ?? DASHBOARD_FALLBACK;
+  // Home / Attend / Fees already have their own slots — the centre action
+  // must never repeat one, even if a future ROLE_QUICK_ACTION entry does.
+  const RESERVED_HREFS = ["/dashboard", "/dashboard/attendance", "/dashboard/fees"];
+
+  // Constant per role, and absent rather than invented when the role has no
+  // entry — an invented fallback collided with Home.
+  const quickStep = useMemo<QuickStep | null>(() => {
+    if (!role) return null;
+    const step = ROLE_QUICK_ACTION[role] ?? null;
+    if (step && RESERVED_HREFS.includes(step.href)) return null;
+    return step;
   }, [role]);
 
-  const quickActive = isActive(quickStep.href);
+  const quickActive = quickStep ? isActive(quickStep.href) : false;
+
+  // Exact match on the dashboard root only. isActive("/dashboard") also
+  // matches "/dashboard/*", which lit Home alongside Fees/Students on every
+  // subpage — reading as a second active Home. Trailing slash normalised
+  // because next.config uses trailingSlash: true.
+  const normalizedPath = (pathname ?? "").replace(/\/+$/, "") || "/";
+  const isHome = normalizedPath === "/dashboard";
 
   return (
     <nav className="mobile-bottom-nav" aria-label="Mobile navigation">
-      {/* Home */}
-      <NavItem href="/dashboard" icon="home" label="Home" active={isActive("/dashboard")} />
+      {/* Home. */}
+      <NavItem href="/dashboard" icon="home" label="Home" active={isHome} />
       {/* Attend */}
       {canUseAttendance && (
         <NavItem
@@ -85,23 +98,26 @@ export default function MobileBottomNav() {
         />
       )}
 
-      {/* Role-aware quick action stays in the same rhythm as the other destinations. */}
-      <Link
-        href={quickStep.href}
-        className={`mobile-nav-item mobile-nav-action${quickActive ? " active" : ""}`}
-        aria-label={quickStep.label}
-        aria-current={quickActive ? "page" : undefined}
-        title={quickStep.label}
-        onClick={() => {
-          try {
-            navigator.vibrate?.(10);
-          } catch {}
-        }}
-      >
-        <MaterialIcon icon={quickStep.icon} style={{ fontSize: 22 }} />
-        <span className="mobile-nav-label">{quickStep.navLabel}</span>
-        {quickActive && <span className="mobile-nav-dot" aria-hidden />}
-      </Link>
+      {/* Role-aware quick action stays in the same rhythm as the other
+          destinations, and is omitted for roles that declare none. */}
+      {quickStep && (
+        <Link
+          href={quickStep.href}
+          className={`mobile-nav-item mobile-nav-action${quickActive ? " active" : ""}`}
+          aria-label={quickStep.label}
+          aria-current={quickActive ? "page" : undefined}
+          title={quickStep.label}
+          onClick={() => {
+            try {
+              navigator.vibrate?.(10);
+            } catch {}
+          }}
+        >
+          <MaterialIcon icon={quickStep.icon} style={{ fontSize: 22 }} />
+          <span className="mobile-nav-label">{quickStep.navLabel}</span>
+          {quickActive && <span className="mobile-nav-dot" aria-hidden />}
+        </Link>
+      )}
 
       {/* Fees */}
       {canUseFees && (
@@ -121,7 +137,7 @@ export default function MobileBottomNav() {
         title="More pages"
       >
         <MaterialIcon icon="apps" style={{ fontSize: 22 }} />
-        <span>More</span>
+        <span className="mobile-nav-label">More</span>
       </button>
     </nav>
   );

@@ -80,24 +80,132 @@ describe("MobileBottomNav centre action", () => {
     }
   });
 
-  it("falls back to the dashboard for a role with no declared action", () => {
-    mockRole = "marketer";
-    render(<MobileBottomNav />);
+  it("never points the centre action at Home, for any role", () => {
+    // The reported bug: admin/school_admin/bar saw the bar read
+    // "home, attend, home, fees, more" with the second home always lit. The
+    // fallback step was { navLabel: "Home", href: "/dashboard" } — the same
+    // destination and label as the leading Home item.
+    for (const role of [
+      "teacher",
+      "dean_of_studies",
+      "bursar",
+      "headmaster",
+      "secretary",
+      "dorm_master",
+      "admin",
+      "school_admin",
+      "super_admin",
+      "marketer",
+      "board",
+    ]) {
+      mockRole = role;
+      const { unmount } = render(<MobileBottomNav />);
+      expect(centre()?.getAttribute("href") ?? null).not.toBe("/dashboard");
+      unmount();
+    }
+  });
 
-    expect(centre()?.getAttribute("href")).toBe("/dashboard");
+  it("omits the centre slot entirely when a role has no declared action", () => {
+    for (const role of ["marketer", "board"]) {
+      mockRole = role;
+      const { unmount } = render(<MobileBottomNav />);
+      expect(centre()).toBeNull();
+      unmount();
+    }
+  });
+
+  it("gives admin and school_admin a real centre action", () => {
+    for (const role of ["admin", "school_admin"]) {
+      mockRole = role;
+      const { unmount } = render(<MobileBottomNav />);
+      expect(centre()?.getAttribute("href")).toBe("/dashboard/staff");
+      unmount();
+    }
   });
 
   it("does not duplicate a destination the bar already carries", () => {
     // Home / Attend / Fees are separate items; the centre must not repeat one.
-    for (const role of ["teacher", "dean_of_studies", "bursar", "headmaster", "dorm_master"]) {
+    // This must include roles that previously fell back to the duplicate,
+    // otherwise the guard can never fail.
+    for (const role of [
+      "teacher",
+      "dean_of_studies",
+      "bursar",
+      "headmaster",
+      "dorm_master",
+      "admin",
+      "school_admin",
+      "super_admin",
+      "marketer",
+    ]) {
       mockRole = role;
       const { unmount } = render(<MobileBottomNav />);
       const hrefs = barHrefs();
       const centreHref = centre()?.getAttribute("href");
-      expect(hrefs.filter((h) => h === centreHref).length).toBe(1);
+      expect(hrefs.filter((h) => h === centreHref).length).toBeLessThanOrEqual(1);
       expect(["/dashboard", "/dashboard/attendance", "/dashboard/fees"]).not.toContain(centreHref);
       unmount();
     }
+  });
+
+  it("never shows two items with the same label, for any role", () => {
+    // The reported HM bug: the bar read "home, attend, home, fees, more".
+    // Hrefs are pinned above; labels are what the user actually reads, so
+    // pin those too — including the trailing-slash dashboard URL.
+    for (const role of [
+      "teacher",
+      "dean_of_studies",
+      "bursar",
+      "headmaster",
+      "secretary",
+      "dorm_master",
+      "admin",
+      "school_admin",
+      "super_admin",
+      "marketer",
+      "board",
+    ]) {
+      mockRole = role;
+      mockPathname = "/dashboard";
+      const { unmount } = render(<MobileBottomNav />);
+      const labels = Array.from(
+        screen.getByRole("navigation", { name: /mobile navigation/i }).querySelectorAll(".mobile-nav-label"),
+      ).map((el) => (el.textContent || "").trim().toLowerCase());
+      expect(labels.length).toBeGreaterThan(0);
+      expect(new Set(labels).size).toBe(labels.length);
+      expect(labels.filter((l) => l === "home").length).toBe(1);
+      unmount();
+    }
+  });
+
+  it("styles the More label like every other label", () => {
+    mockRole = "headmaster";
+    const { unmount } = render(<MobileBottomNav />);
+    const more = screen.getByRole("button", { name: /open more pages/i });
+    expect(more.querySelector(".mobile-nav-label")?.textContent).toMatch(/more/i);
+    unmount();
+  });
+
+  it("lights Home only on the dashboard root, not on every dashboard subpage", () => {
+    // `isActive("/dashboard")` matches "/dashboard/*", which lit Home
+    // alongside Fees on /dashboard/fees — two active items at once.
+    const homeAt = (pathname: string) => {
+      mockPathname = pathname;
+      const { unmount } = render(<MobileBottomNav />);
+      const el = Array.from(document.querySelectorAll<HTMLAnchorElement>('a[href="/dashboard"]')).find(
+        (a) => !a.className.includes("mobile-nav-action"),
+      );
+      const active = el?.className.includes("active") ?? false;
+      unmount();
+      return active;
+    };
+
+    expect(homeAt("/dashboard")).toBe(true);
+    expect(homeAt("/dashboard/")).toBe(true);
+    expect(homeAt("/dashboard/fees")).toBe(false);
+    expect(homeAt("/dashboard/fees/")).toBe(false);
+    expect(homeAt("/dashboard/attendance")).toBe(false);
+    expect(homeAt("/dashboard/students")).toBe(false);
   });
 
   it("keeps the same action regardless of the current route", () => {

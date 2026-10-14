@@ -37,6 +37,6 @@ describe("modal positioning", () => {
 
   it("keeps the reference pattern intact in ui/Modal", () => {
     const modal = fs.readFileSync(path.join(SRC, "components/ui/Modal.tsx"), "utf8");
-    expect(modal).toContain("absolute inset-0 bg-black/50 backdrop-blur-sm");
+    expect(modal).toContain("absolute inset-0 bg-black/50");
   });
 });

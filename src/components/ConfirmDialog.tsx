@@ -81,7 +81,7 @@ export function ConfirmDialog({
       aria-labelledby="confirm-title"
       aria-describedby="confirm-description"
     >
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} aria-hidden="true" />
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} aria-hidden="true" />
       <div
         ref={dialogRef}
         className="relative w-full max-w-sm max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] bg-[var(--surface)] rounded-2xl shadow-2xl border border-[var(--border)] overflow-y-auto my-auto"
@@ -135,7 +135,7 @@ export function LoadingOverlay({ open, message = "Loading..." }: LoadingOverlayP
   // in this same file already portals for exactly that reason.
   const overlay = (
     <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" aria-hidden="true" />
+      <div className="absolute inset-0 bg-black/30" aria-hidden="true" />
       <div
         className="relative bg-[var(--surface)] rounded-2xl p-6 shadow-xl border border-[var(--border)] flex flex-col items-center gap-4 min-w-[200px] max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto"
         role="status"
