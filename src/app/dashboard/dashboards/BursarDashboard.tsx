@@ -306,6 +306,7 @@ function BursarDashboardContent() {
         greeting={greeting}
         userName={user?.full_name?.split(" ")[0] || ""}
         dateLabel={todayLabel}
+        headingLevel="h2"
         bottomCenter={
           <p className="text-xs font-semibold text-[var(--t2)]">
             {school?.name} · Term {currentTerm} · {academicYear}

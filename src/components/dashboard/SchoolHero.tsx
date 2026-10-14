@@ -15,6 +15,7 @@ interface SchoolHeroProps {
   rightSection?: ReactNode;
   bottomCenter?: ReactNode;
   bottomRight?: ReactNode;
+  headingLevel: "h1" | "h2";
 }
 
 export default function SchoolHero({
@@ -26,6 +27,7 @@ export default function SchoolHero({
   rightSection,
   bottomCenter,
   bottomRight,
+  headingLevel = "h1",
 }: SchoolHeroProps) {
   const resolvedGreeting = greeting ?? greetingFor();
   const resolvedDateLabel = dateLabel ?? todayLabelFor();
@@ -52,12 +54,21 @@ export default function SchoolHero({
           </div>
         )}
         <div className="flex-1 min-w-0">
-          <p
-            className="text-[20px] font-bold text-[var(--t1)] tracking-tight truncate"
-            style={{ fontFamily: "'Sora', sans-serif" }}
-          >
-            {resolvedGreeting}, {userName}
-          </p>
+          {headingLevel === "h2" ? (
+            <h2
+              className="text-[20px] font-bold text-[var(--t1)] tracking-tight truncate"
+              style={{ fontFamily: "'Sora', sans-serif" }}
+            >
+              {resolvedGreeting}, {userName}
+            </h2>
+          ) : (
+            <h1
+              className="text-[20px] font-bold text-[var(--t1)] tracking-tight truncate"
+              style={{ fontFamily: "'Sora', sans-serif" }}
+            >
+              {resolvedGreeting}, {userName}
+            </h1>
+          )}
           <p className="text-[13px] text-[var(--t3)] mt-0.5 truncate">
             {subtitle || school?.name}
             {resolvedDateLabel ? ` · ${resolvedDateLabel}` : ""}
