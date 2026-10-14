@@ -265,8 +265,15 @@ button {
   }
 }
 
+/* No `forwards`/`both` fill here or on pageEnter below: a retained fill
+   keeps the final keyframe's transform/filter on the element forever, and any
+   non-none transform/filter makes it a containing block for position:fixed
+   descendants — every inline dialog then renders against the document instead
+   of the viewport and users must scroll to find it. The end state
+   (opacity 1, no transform) is the natural state anyway, so releasing the
+   fill is visually identical. */
 .animate-fade-in {
-  animation: fadeIn 0.4s ease-out forwards;
+  animation: fadeIn 0.4s ease-out;
 }
 
 /* One-time swipe teaching nudge: the first register row slides right and
@@ -943,10 +950,14 @@ button {
   animation: pupil-look 5s ease-in-out infinite reverse;
 }
 
-/* Page Atmospheric Transitions — view-transition aware */
+/* Page Atmospheric Transitions — view-transition aware.
+   No `forwards` fill: see the note on .animate-fade-in above. Retaining
+   pageEnter's translateY(0)/blur(0) on <main> turned the whole main column
+   into a containing block for fixed descendants, throwing every inline
+   dialog (fee restore prompt, settings payment modal, …) mid-page. */
 main#main-content {
   view-transition-name: main-content;
-  animation: pageEnter 0.5s var(--ease) forwards;
+  animation: pageEnter 0.5s var(--ease);
 }
 @supports (view-transition-name: root) {
   ::view-transition-old(main-content) { animation: 180ms cubic-bezier(0.4,0,0.2,1) both fade-out; }

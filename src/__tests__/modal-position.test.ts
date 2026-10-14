@@ -40,6 +40,38 @@ describe("modal positioning", () => {
     expect(modal).toContain("absolute inset-0 bg-black/50");
   });
 
+  it("never retains a transform/filter animation fill that would trap fixed dialogs", () => {
+    // A `forwards`/`both` fill keeps the final keyframe's transform/filter on
+    // the element forever, and any non-none transform/filter makes it a
+    // containing block for position:fixed descendants. `pageEnter` retained
+    // translateY(0)/blur(0) on <main>, so every inline dialog rendered against
+    // the document (mid-page) instead of the viewport. View-transition
+    // pseudo-element snapshots are exempt: they are transient overlays, never
+    // ancestors of dialogs.
+    const cssFiles = walk(path.join(SRC, "app")).filter((f) => f.endsWith(".css"));
+    const offenders: string[] = [];
+    for (const file of cssFiles) {
+      const rel = path.relative(ROOT, file);
+      const src = fs.readFileSync(file, "utf8");
+      const keyframes = new Map<string, string>();
+      for (const m of src.matchAll(/@keyframes\s+([\w-]+)\s*\{([\s\S]*?)\n\}/g)) {
+        keyframes.set(m[1], m[2]);
+      }
+      for (const m of src.matchAll(/animation\s*:[^;]*?([\w-]+)[^;]*?\b(forwards|both)\b[^;]*;/g)) {
+        const name = m[1];
+        if (name === "none" || name === "inherit" || name === "initial" || name === "unset") continue;
+        const frames = keyframes.get(name);
+        if (!frames) continue;
+        if (/::view-transition/.test(src.slice(Math.max(0, (m.index ?? 0) - 120), m.index ?? 0))) continue;
+        if (/transform|filter/.test(frames)) {
+          const line = src.slice(0, m.index).split("\n").length;
+          offenders.push(`${rel}:${line} (animation retains ${name} with transform/filter)`);
+        }
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
   it("paints every hand-rolled dialog panel above its backdrop layer", () => {
     // CSS painting order: within one stacking context a positioned element
     // (the absolute backdrop) paints ABOVE a non-positioned (static) sibling.
