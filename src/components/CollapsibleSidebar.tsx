@@ -15,25 +15,46 @@ interface CollapsibleSidebarProps {
 export default function CollapsibleSidebar({ groups, onNavigate, compact = false }: CollapsibleSidebarProps) {
   const pathname = usePathname();
   const path = pathname ?? "";
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const [query, setQuery] = useState("");
   const [recentPages, setRecentPages] = useState<Array<{ href: string; label: string; icon: string }>>([]);
 
   const sortedGroups = useMemo(() => sortNavGroupsByPriority(groups), [groups]);
 
-  useEffect(() => {
-    const initial: Record<string, boolean> = {};
-    sortedGroups.forEach((group) => {
-      const hasActive = group.items.some((item) =>
-        item.href === "/dashboard" ? path === "/dashboard" : path === item.href || path.startsWith(item.href + "/"),
-      );
-      initial[group.label] = hasActive || group.defaultOpen || false;
-    });
-    setOpenGroups(initial);
-  }, [sortedGroups, path]);
+  // Only the user's own taps are held in state. Whether a group defaults to
+  // open is derived during render instead.
+  //
+  // This state used to hold every group's resolved value, recomputed in an
+  // effect keyed on `groups` and `path`. SidebarShell builds `groups` with
+  // `.map().filter()`, so the prop was a fresh array on every render: any
+  // re-render re-ran the effect and reset every group. Tapping a title expanded
+  // it and then snapped it straight back — depending on whether a re-render
+  // happened to land after the tap, which is why it only happened sometimes.
+  const [openOverrides, setOpenOverrides] = useState<Record<string, boolean>>({});
 
-  const toggleGroup = (label: string) => {
-    setOpenGroups((prev) => ({ ...prev, [label]: !prev[label] }));
+  const groupLabels = sortedGroups.map((group) => group.label).join("|");
+
+  // Forget overrides for groups that no longer exist (role change, feature
+  // gating). Returns `prev` untouched when there is nothing to prune, so this
+  // cannot loop.
+  useEffect(() => {
+    setOpenOverrides((prev) => {
+      const present = new Set(sortedGroups.map((group) => group.label));
+      const kept = Object.entries(prev).filter(([label]) => present.has(label));
+      return kept.length === Object.keys(prev).length ? prev : Object.fromEntries(kept);
+    });
+    // groupLabels is a primitive, so this keys on the group *set* rather than
+    // on the array identity the parent hands down each render.
+  }, [groupLabels]);
+
+  const isGroupOpen = (group: NavGroup) => {
+    const hasActive = group.items.some((item) =>
+      item.href === "/dashboard" ? path === "/dashboard" : path === item.href || path.startsWith(item.href + "/"),
+    );
+    return openOverrides[group.label] ?? (hasActive || group.defaultOpen || false);
+  };
+
+  const toggleGroup = (group: NavGroup) => {
+    setOpenOverrides((prev) => ({ ...prev, [group.label]: !isGroupOpen(group) }));
   };
 
   useEffect(() => {
@@ -156,13 +177,13 @@ export default function CollapsibleSidebar({ groups, onNavigate, compact = false
 
       <div className="space-y-1">
         {filteredGroups.map((group) => {
-          const isOpen = openGroups[group.label];
+          const isOpen = isGroupOpen(group);
           const hasActive = group.items.some((item) => item.href === activeHref);
 
           return (
             <div key={group.label} className="sidebar-group">
               <button
-                onClick={() => toggleGroup(group.label)}
+                onClick={() => toggleGroup(group)}
                 title={group.label}
                 className={cn(
                   "flex items-center w-full px-3 py-2.5 text-[10px] font-extrabold uppercase tracking-widest transition-colors duration-150 outline-none rounded-lg",
