@@ -410,6 +410,7 @@ export const navigationByRole: Record<NavigationRole, readonly NavGroup[]> = dee
       label: "Finance",
       defaultOpen: true,
       items: [
+        { href: "/dashboard/money", label: "Money In & Out", icon: "account_balance_wallet" },
         { href: "/dashboard/fees", label: "Collect Fees", icon: "payments" },
         {
           href: "/dashboard/fees?tab=invoices",
