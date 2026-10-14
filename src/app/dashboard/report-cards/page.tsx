@@ -1,37 +1,38 @@
 "use client";
-import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState, useMemo, useCallback, useEffect } from "react";
-import { useAuth } from "@/lib/auth-context";
-import { useAcademic } from "@/lib/academic-context";
 import Image from "next/image";
-import { useClasses, useStudents, useSubjects, useFeePayments, useFeeStructure } from "@/lib/hooks";
-import { useToast } from "@/components/Toast";
-import { DEMO_GRADES, DEMO_SUBJECTS } from "@/lib/demo-data";
-import { logger } from "@/lib/logger";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { EmptyState } from "@/components/EmptyState";
 import MaterialIcon from "@/components/MaterialIcon";
-import PersonInitials from "@/components/ui/PersonInitials";
-import { PageHeader } from "@/components/ui/PageHeader";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
+import { generateUgandaPrimaryBody, ugandaDocumentShell } from "@/components/reports/ugandaPrimaryReport";
+import { useToast } from "@/components/Toast";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
+import { PageHeader } from "@/components/ui/PageHeader";
+import PersonInitials from "@/components/ui/PersonInitials";
 import { TableSkeleton } from "@/components/ui/Skeleton";
-import { EmptyState } from "@/components/EmptyState";
+import { useAcademic } from "@/lib/academic-context";
 import { APP_NAME } from "@/lib/app-name";
-import { withTimeout, timeoutFallback, isTimeoutResult } from "@/lib/hooks/utils";
-import { calculateSubjectTotal } from "@/lib/grading";
+import { useAuth } from "@/lib/auth-context";
 import {
   calculateFormativeScore,
   calculateSummativeScore,
-  getCBCGrade,
   escapeHtml,
   generateCBCReportHTML,
+  getCBCGrade,
 } from "@/lib/cbc-report";
+import { DEMO_GRADES, DEMO_SUBJECTS } from "@/lib/demo-data";
+import { calculateSubjectTotal } from "@/lib/grading";
+import { useClasses, useFeePayments, useFeeStructure, useStudents, useSubjects } from "@/lib/hooks";
+import { isTimeoutResult, timeoutFallback, withTimeout } from "@/lib/hooks/utils";
+import { logger } from "@/lib/logger";
+import { loadSchoolSetting } from "@/lib/school-settings";
 import {
   bucketUgandaSubject,
-  sumUgandaTotals,
   orderUgandaSubjects,
+  sumUgandaTotals,
   type UgandaSubjectResult,
 } from "@/lib/uganda-report";
-import { generateUgandaPrimaryBody, ugandaDocumentShell } from "@/components/reports/ugandaPrimaryReport";
 
 interface StudentReport {
   studentId: string;
@@ -183,6 +184,21 @@ export default function ReportCardsPage() {
     if (!hideWithFees) return reports;
     return reports.filter((r) => getStudentFeeBalance(r.studentId) === 0);
   }, [reports, hideWithFees, getStudentFeeBalance]);
+
+  const [reportFormat, setReportFormat] = useState<"numerical" | "competency" | "both" | "cbc">("numerical");
+  const reportLayout = useMemo(() => {
+    if (!school?.id) return "uganda_classic";
+    const layout = loadSchoolSetting(school.id, "report_layout", "uganda_classic");
+    return layout as "uganda_classic" | "ncdc_cbc";
+  }, [school?.id]);
+
+  useEffect(() => {
+    if (reportLayout === "uganda_classic") {
+      setReportFormat("numerical");
+    } else if (reportLayout === "ncdc_cbc") {
+      setReportFormat("cbc");
+    }
+  }, [reportLayout]);
 
   const stats = useMemo(() => {
     if (reports.length === 0) return { avgTotal: 0, div1: 0, withFees: 0 };

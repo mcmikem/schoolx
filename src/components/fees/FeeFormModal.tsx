@@ -1,5 +1,6 @@
 "use client";
 import MaterialIcon from "@/components/MaterialIcon";
+import { MaterialIcon } from "@/components/MaterialIcon";
 import { Modal } from "@/components/ui/Modal";
 import { AutoSaveIndicator } from "@/lib/useAutoSave";
 import { useFormValidation, ValidationRules } from "@/lib/useFormValidation";
@@ -9,12 +10,25 @@ interface ClassOption {
   name: string;
 }
 
-interface FeeFormData {
+export type FeeCategory = "tuition" | "boarding" | "meals" | "transport" | "uniform" |
+  "registration" | "functional" | "pta" | "development" | "library" | "sports" |
+  "ict" | "medical" | "exam" | "uneb" | "bank_charges" | "other";
+
+export type BoardingStatus = "day" | "boarding" | "both";
+
+export type FeeFrequency = "per_term" | "one_off" | "per_year";
+
+export interface FeeFormData {
   name: string;
   class_id: string;
   amount: string;
-  term: number | 1 | 2 | 3;
+  term: number | 1 | 2 | 3 | null;
   due_date: string;
+  category: FeeCategory;
+  boarding_status: BoardingStatus;
+  frequency: FeeFrequency;
+  transport_zone: string;
+  description?: string;
 }
 
 interface FeeFormModalProps {
@@ -35,7 +49,9 @@ interface FeeFormModalProps {
 const feeRules = {
   name: { ...ValidationRules.required, message: "Fee name is required" },
   amount: { ...ValidationRules.required, ...ValidationRules.positiveNumber, message: "Amount must be greater than 0" },
-  class_id: ValidationRules.required,
+  category: ValidationRules.required,
+  frequency: ValidationRules.required,
+  // term required only for per_term frequency
   term: ValidationRules.required,
 };
 
@@ -150,6 +166,77 @@ export default function FeeFormModal({
             </p>
           )}
         </div>
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">
+            Category
+          </label>
+          <select
+            value={newFee.category}
+            onChange={(e) => onFeeChange({ category: e.target.value })}
+            onBlur={() => feeValidation.markTouched("category")}
+            className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm"
+          >
+            <option value="tuition">Tuition</option>
+            <option value="boarding">Boarding</option>
+            <option value="meals">Meals</option>
+            <option value="transport">Transport</option>
+            <option value="uniform">Uniform</option>
+            <option value="registration">Registration</option>
+            <option value="functional">Functional</option>
+            <option value="pta">PTA</option>
+            <option value="development">Development</option>
+            <option value="library">Library</option>
+            <option value="sports">Sports</option>
+            <option value="ict">ICT</option>
+            <option value="medical">Medical</option>
+            <option value="exam">Exam</option>
+            <option value="uneb">UNEB</option>
+            <option value="bank_charges">Bank Charges</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">
+            Applies To
+          </label>
+          <select
+            value={newFee.boarding_status}
+            onChange={(e) => onFeeChange({ boarding_status: e.target.value })}
+            onBlur={() => feeValidation.markTouched("boarding_status")}
+            className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm"
+          >
+            <option value="day">Day Students</option>
+            <option value="boarding">Boarding Students</option>
+            <option value="both">Both</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">
+            Frequency
+          </label>
+          <select
+            value={newFee.frequency}
+            onChange={(e) => onFeeChange({ frequency: e.target.value })}
+            onBlur={() => feeValidation.markTouched("frequency")}
+            className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm"
+          >
+            <option value="per_term">Per Term</option>
+            <option value="one_off">One-off</option>
+            <option value="per_year">Per Year</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">
+            Transport Zone (if transport)
+          </label>
+          <input
+            type="text"
+            value={newFee.transport_zone}
+            onChange={(e) => onFeeChange({ transport_zone: e.target.value })}
+            className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm"
+            placeholder="Zone 1 / Zone 2 / Zone 3..."
+          />
+        </div>
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">
@@ -175,24 +262,19 @@ export default function FeeFormModal({
           </div>
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">
-              Term
+              Term (if per term)
             </label>
             <select
-              value={newFee.term}
+              value={newFee.term || 1}
               onChange={(e) => onFeeChange({ term: Number(e.target.value) as 1 | 2 | 3 })}
               onBlur={() => feeValidation.markTouched("term")}
               className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm"
+              disabled={newFee.frequency !== "per_term"}
             >
               <option value={1}>Term 1</option>
               <option value={2}>Term 2</option>
               <option value={3}>Term 3</option>
             </select>
-            {showError("term") && (
-              <p className="text-xs text-[var(--red)] mt-1 flex items-center gap-1">
-                <MaterialIcon className="text-sm">error</MaterialIcon>
-                {feeValidation.getFieldError("term")}
-              </p>
-            )}
           </div>
         </div>
         <div>
@@ -204,6 +286,18 @@ export default function FeeFormModal({
             value={newFee.due_date}
             onChange={(e) => onFeeChange({ due_date: e.target.value })}
             className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">
+            Description (Optional)
+          </label>
+          <textarea
+            value={newFee.description || ""}
+            onChange={(e) => onFeeChange({ description: e.target.value })}
+            className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm"
+            rows={2}
+            placeholder="Additional details..."
           />
         </div>
         <div className="flex gap-3 pt-2">

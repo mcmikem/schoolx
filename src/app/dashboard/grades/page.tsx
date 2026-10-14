@@ -1,44 +1,43 @@
 "use client";
-import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState, useEffect, useMemo, useCallback, useRef, type ComponentProps } from "react";
-import { useAuth } from "@/lib/auth-context";
-import { useAcademic } from "@/lib/academic-context";
-import { useClasses, useSubjects, useStaff } from "@/lib/hooks";
-import { useOfflineStudents, useOfflineGrades } from "@/lib/offline-hooks";
-import { useToast } from "@/components/Toast";
-import { supabase } from "@/lib/supabase";
-import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
-import {
-  calculateSubjectTotal,
-  isCompetencyScale,
-  COMPETENCY_SCHEME,
-  CompetencyValue,
-  getCompetencyLabel,
-} from "@/lib/grading";
-import { GRADING_TRACKS, SETTING_KEYS, resolveTrackForClass, resolveLayout } from "@/lib/grading-tracks";
-import MaterialIcon from "@/components/MaterialIcon";
-import { logger } from "@/lib/logger";
-
-import { PageHeader, PageSection } from "@/components/ui/PageHeader";
-import { Tabs, TabPanel } from "@/components/ui/Tabs";
-import { Modal, ModalFooter } from "@/components/ui/Modal";
-import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
-import { Button, Input, Select, Badge } from "@/components/ui/index";
-import { TableSkeleton, FullPageLoader } from "@/components/ui/Skeleton";
-import { EmptyState, NoData } from "@/components/EmptyState";
-import PersonInitials from "@/components/ui/PersonInitials";
-import { logAuditEventWithOfflineSupport } from "@/lib/audit";
-import { useOnlineStatus, offlineDB } from "@/lib/offline";
+import { type ComponentProps, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { lazyWithIdlePrefetch } from "@/lib/lazy-prefetch";
+import { EmptyState, NoData } from "@/components/EmptyState";
+import MaterialIcon from "@/components/MaterialIcon";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
+import { useToast } from "@/components/Toast";
+import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
+import { Badge, Button, Input, Select } from "@/components/ui/index";
+import { Modal, ModalFooter } from "@/components/ui/Modal";
+import { PageHeader, PageSection } from "@/components/ui/PageHeader";
+import PersonInitials from "@/components/ui/PersonInitials";
+import { FullPageLoader, TableSkeleton } from "@/components/ui/Skeleton";
+import { TabPanel, Tabs } from "@/components/ui/Tabs";
+import { useAcademic } from "@/lib/academic-context";
+import { logAuditEventWithOfflineSupport } from "@/lib/audit";
+import { useAuth } from "@/lib/auth-context";
 import { createRecord, updateRecord, upsertRecordReturning } from "@/lib/crud-service";
 import {
+  COMPETENCY_SCHEME,
+  CompetencyValue,
+  calculateSubjectTotal,
+  getCompetencyLabel,
+  isCompetencyScale,
+} from "@/lib/grading";
+import { GRADING_TRACKS, resolveLayout, resolveTrackForClass, SETTING_KEYS } from "@/lib/grading-tracks";
+import { useClasses, useStaff, useSubjects } from "@/lib/hooks";
+import { timeoutFallback, withTimeout } from "@/lib/hooks/utils";
+import { lazyWithIdlePrefetch } from "@/lib/lazy-prefetch";
+import { logger } from "@/lib/logger";
+import { offlineDB, useOnlineStatus } from "@/lib/offline";
+import { useOfflineGrades, useOfflineStudents } from "@/lib/offline-hooks";
+import {
   deriveGradeWorkflowStatus,
+  GradeWorkflowStatus,
   getNextGradeWorkflowStatusActions,
   getPrevGradeWorkflowStatusActions,
-  GradeWorkflowStatus,
 } from "@/lib/operations";
 import { isClassScopedRole } from "@/lib/roles";
+import { supabase } from "@/lib/supabase";
 
 // Split out of the first-load bundle, then warmed in idle time so the import
 // dialog still opens offline after the page has been visited once.
