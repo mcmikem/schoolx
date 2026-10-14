@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useCallback, useRef } from "react";
+import type { PostgrestSingleResponse } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import type { FeePayment, FeeStructure, FeeAdjustment, CreatePaymentInput } from "@/types";
@@ -542,8 +543,12 @@ export function useFeeStructure(schoolId?: string) {
       return newFeeData;
     }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo);
+    if (!querySchoolId) {
+      throw new Error("Could not tell which school this fee belongs to. Please reload and try again.");
+    }
+    let result: PostgrestSingleResponse<FeeStructure> | null = null;
     try {
-      const { data, error } = await withTimeout(
+      result = await withTimeout(
         supabase
           .from("fee_structure")
           .insert({
@@ -555,15 +560,36 @@ export function useFeeStructure(schoolId?: string) {
           .select()
           .single(),
         15000,
-        timeoutFallback(),
+        timeoutFallback<FeeStructure>(),
       );
-      if (error) throw error;
-      setFeeStructure((prev) => [...prev, data]);
-      invalidateCache(cacheKey);
-      return data;
-    } catch (err: any) {
-      throw new Error(err.message);
+    } catch (err) {
+      throw new Error(getErrorMessage(err, "Failed to create fee"));
     }
+
+    // withTimeout swallows its own rejection and hands back the 408 fallback,
+    // which has error: null. Without this branch the null row was pushed into
+    // state and the page reported "Fee structure created" for a write that
+    // never happened.
+    if (isTimeoutResult(result)) {
+      throw new Error("Saving the fee took too long. Check your connection and try again.");
+    }
+
+    const { data, error } = result;
+    if (error) {
+      if (error.code === "42501") {
+        throw new Error("You do not have permission to set fees. Ask your headmaster or bursar to do it.");
+      }
+      if (error.code === "23505") {
+        throw new Error("A fee with this name, class and term already exists.");
+      }
+      throw error;
+    }
+    if (!data) {
+      throw new Error("The fee could not be saved. Please try again.");
+    }
+    setFeeStructure((prev) => [...prev, data]);
+    invalidateCache(cacheKey);
+    return data;
   };
 
   const deleteFeeStructure = async (id: string) => {

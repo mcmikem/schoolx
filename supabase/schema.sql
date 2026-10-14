@@ -1913,13 +1913,16 @@ FOR SELECT
 TO authenticated
 USING (school_id = my_school_id());
 
+-- Writes are gated on can_manage_fees(), not school membership: a teacher or
+-- parent in the school still cannot edit the fee structure. See migration
+-- 20261115000000_fee_structure_write_roles.sql for the helper definition.
 DROP POLICY IF EXISTS "School users fee_structure write" ON "fee_structure";
 CREATE POLICY "School users fee_structure write"
 ON "fee_structure"
 FOR ALL
 TO authenticated
-USING (school_id = my_school_id())
-WITH CHECK (school_id = my_school_id());
+USING (public.can_manage_fees(school_id))
+WITH CHECK (public.can_manage_fees(school_id));
 
 -- =========================
 -- FEE PAYMENTS
