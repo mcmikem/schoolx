@@ -30,18 +30,43 @@ export function timeoutForRequest(input: RequestInfo | URL, defaultTimeout = SUP
   return Math.max(defaultTimeout, SUPABASE_STORAGE_TIMEOUT_MS);
 }
 
+/** An abort that names itself. Chrome renders a reason-less `abort()` as
+ *  "signal is aborted without reason", so a timed-out query reached the console
+ *  with no explanation at all. The `name` stays "AbortError" because
+ *  `super-admin/_shared.ts`, `register/page.tsx` and `isSupabaseLockAbortError`
+ *  all branch on it — only the message is added. */
+function abortReason(message: string): Error {
+  const error = new Error(message);
+  error.name = "AbortError";
+  return error;
+}
+
 export function createFetchWithTimeout(defaultTimeout = SUPABASE_DEFAULT_TIMEOUT_MS) {
   return (input: RequestInfo | URL, init?: RequestInit) => {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeoutForRequest(input, defaultTimeout));
-    const signal = init?.signal;
-    if (signal) {
-      signal.addEventListener("abort", () => {
-        clearTimeout(timeoutId);
-        controller.abort();
-      });
+    const callerSignal = init?.signal;
+    const budget = timeoutForRequest(input, defaultTimeout);
+
+    const onCallerAbort = () => controller.abort(callerSignal?.reason ?? abortReason("Request aborted by caller."));
+
+    // A signal that is *already* aborted never fires a freshly-added "abort"
+    // listener, so the abort has to be propagated here. Otherwise the request
+    // ignored the caller and ran on to the full 30s timeout.
+    if (callerSignal?.aborted) {
+      controller.abort(callerSignal.reason);
+    } else {
+      callerSignal?.addEventListener("abort", onCallerAbort, { once: true });
     }
-    return fetch(input, { ...init, signal: controller.signal }).finally(() => clearTimeout(timeoutId));
+
+    const timeoutId = setTimeout(() => {
+      controller.abort(abortReason(`Supabase request timed out after ${budget}ms.`));
+    }, budget);
+
+    return fetch(input, { ...init, signal: controller.signal }).finally(() => {
+      clearTimeout(timeoutId);
+      // Otherwise a long-lived caller signal accumulates one listener per call.
+      callerSignal?.removeEventListener("abort", onCallerAbort);
+    });
   };
 }
 

@@ -127,6 +127,19 @@ export function getLocalDateString(date?: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+/** Weekday index for day-of-week selectors: 1 = Monday … 5 = Friday.
+ *
+ *  The date is split and rebuilt from local parts on purpose. `new Date(iso)`
+ *  parses "YYYY-MM-DD" as UTC midnight, so `.getDay()` reads the *previous*
+ *  day for anyone west of UTC — a New York user opening the timetable on a
+ *  Wednesday landed on Tuesday. Weekends collapse to Monday: there is no
+ *  Saturday or Sunday column to select, and leaving 6 there matched no tab. */
+export function getLocalWeekdayIndex(isoDate?: string): number {
+  const [y, m, d] = (isoDate ?? getLocalDateString()).split("-").map(Number);
+  const day = new Date(y, m - 1, d).getDay();
+  return day === 0 || day === 6 ? 1 : day;
+}
+
 /**
  * True when a write failed only because the named column does not exist.
  *

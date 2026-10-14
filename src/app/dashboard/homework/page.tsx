@@ -8,7 +8,7 @@ import { useClasses, useSubjects } from "@/lib/hooks";
 import { useToast } from "@/components/Toast";
 import { useFormDraft } from "@/lib/useAutoSave";
 import { supabase } from "@/lib/supabase";
-import { isTimeoutResult, withTimeout, timeoutFallback } from "@/lib/hooks/utils";
+import { getLocalDateString, isTimeoutResult, withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import MaterialIcon from "@/components/MaterialIcon";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
@@ -18,7 +18,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { getErrorMessage } from "@/lib/validation";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 
-interface Homework {
+export interface Homework {
   id: string;
   title: string;
   description: string;
@@ -33,9 +33,44 @@ interface Homework {
   classes?: { name: string };
 }
 
+/** The shape the create form holds, shared with the duplicate helper. */
+export interface HomeworkDraft {
+  title: string;
+  description: string;
+  subject_id: string;
+  class_id: string;
+  due_date: string;
+  marks: number;
+}
+
 function parseHomeworkDueDate(value: string): Date {
   const [year, month, day] = value.slice(0, 10).split("-").map(Number);
   return new Date(year, month - 1, day);
+}
+
+/** Opens the create form pre-filled from an existing test (scenario #28).
+ *
+ *  The due date is rolled forward by the source's own gap to today rather than
+ *  copied verbatim: a duplicate of last term's test, keeping the old due date,
+ *  lands as instantly overdue and looks like a bug to the teacher. */
+export function duplicateHomeworkDraft(source: Homework, today: Date): HomeworkDraft {
+  const originalDue = parseHomeworkDueDate(source.due_date);
+  const todayStart = new Date(today);
+  todayStart.setHours(0, 0, 0, 0);
+  const gapDays = Math.max(0, Math.round((originalDue.getTime() - todayStart.getTime()) / 86_400_000));
+  const nextDue = new Date(todayStart);
+  nextDue.setDate(nextDue.getDate() + gapDays);
+
+  return {
+    title: `${source.title} (copy)`,
+    description: source.description,
+    subject_id: source.subject_id,
+    class_id: source.class_id,
+    // Local formatter, not toISOString(): this box is ahead of UTC, so
+    // converting local midnight to UTC shifts the date back a day.
+    due_date: getLocalDateString(nextDue),
+    marks: source.marks,
+  };
 }
 
 export default function HomeworkPage() {
@@ -53,6 +88,9 @@ export default function HomeworkPage() {
   const [selectedClass, setSelectedClass] = useState("");
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+  // Set while the form holds a copy of an existing test. Drives the modal's
+  // heading and the "N days later" due date nudge.
+  const [duplicateSource, setDuplicateSource] = useState<Homework | null>(null);
 
   const homeworkOverview = useMemo(() => {
     const today = new Date();
@@ -69,7 +107,7 @@ export default function HomeworkPage() {
 
   // Auto-save for homework form
   const homeworkDraft = useFormDraft("homework_add_form");
-  const [newHomework, setNewHomework] = useState({
+  const [newHomework, setNewHomework] = useState<HomeworkDraft>({
     title: "",
     description: "",
     subject_id: "",
@@ -90,6 +128,36 @@ export default function HomeworkPage() {
             : "";
 
   // Update draft when form changes
+  /** Opens the create form pre-filled from an existing test. The copy is a new
+   *  draft, not an edit: saving it inserts a second row and leaves the original
+   *  untouched. */
+  const startDuplicate = (source: Homework) => {
+    setDuplicateSource(source);
+    const draft = duplicateHomeworkDraft(source, new Date());
+    setNewHomework(draft);
+    homeworkDraft.updateData(draft);
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    if (duplicateSource) {
+      // Abandoning a duplicate must not leave its contents behind: the next
+      // "Add Class Test" would open already titled "…(copy)". An ordinary
+      // in-progress form is left alone — that is what the draft autosave is for.
+      setDuplicateSource(null);
+      setNewHomework({
+        title: "",
+        description: "",
+        subject_id: "",
+        class_id: "",
+        due_date: "",
+        marks: 10,
+      });
+      homeworkDraft.clearSaved();
+    }
+  };
+
   const handleNewHomeworkChange = (updates: Partial<typeof newHomework>) => {
     setNewHomework((prev) => {
       const newState = { ...prev, ...updates };
@@ -166,7 +234,7 @@ export default function HomeworkPage() {
 
       if (error) throw error;
       toast.success("Class test added");
-      setShowModal(false);
+      closeModal();
       homeworkDraft.clearSaved(); // Clear auto-save after success
       setNewHomework({
         title: "",
@@ -385,9 +453,11 @@ export default function HomeworkPage() {
                 </div>
 
                 <button
-                  onClick={() => alert("Duplicate homework: coming soon")}
-                  className="ml-2 bg-primary-50 text-primary-600 rounded border px-2 py-1 text-xs disabled:opacity-50"
+                  onClick={() => startDuplicate(hw)}
+                  className="mt-4 mr-2 inline-flex items-center gap-2 rounded-lg border border-sky-100 bg-sky-50 px-2.5 py-1.5 text-xs font-semibold text-sky-700 hover:bg-sky-100"
+                  title="Duplicate this class test"
                 >
+                  <MaterialIcon className="text-sm">content_copy</MaterialIcon>
                   Duplicate
                 </button>
                 <button
@@ -408,13 +478,20 @@ export default function HomeworkPage() {
         {showModal && (
           <div
             className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto"
-            onClick={() => setShowModal(false)}
+            onClick={() => closeModal()}
           >
             <div
               className="bg-white rounded-2xl max-w-lg w-full max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto p-6 my-auto"
               onClick={(e) => e.stopPropagation()}
             >
-              <h3 className="font-bold text-xl text-gray-900 mb-4">Add Class Test</h3>
+              <h3 className="font-bold text-xl text-gray-900 mb-4">
+                {duplicateSource ? "Duplicate Class Test" : "Add Class Test"}
+              </h3>
+              {duplicateSource && (
+                <p className="text-xs text-gray-500 mb-3">
+                  Copied from &ldquo;{duplicateSource.title}&rdquo;. Save to add it as a separate test.
+                </p>
+              )}
               <form onSubmit={handleCreateHomework} className="space-y-4">
                 <div>
                   <label htmlFor="homework-title" className="text-sm font-medium text-gray-700 mb-2 block">
@@ -530,7 +607,7 @@ export default function HomeworkPage() {
                 <div className="flex gap-3 pt-2">
                   <button
                     type="button"
-                    onClick={() => setShowModal(false)}
+                    onClick={() => closeModal()}
                     className="flex-1 py-2.5 border border-gray-200 rounded-xl font-semibold text-gray-600 hover:bg-gray-50"
                   >
                     Cancel

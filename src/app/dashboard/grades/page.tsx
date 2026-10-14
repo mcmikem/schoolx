@@ -31,7 +31,12 @@ import { useOnlineStatus, offlineDB } from "@/lib/offline";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { lazyWithIdlePrefetch } from "@/lib/lazy-prefetch";
 import { createRecord, updateRecord, upsertRecordReturning } from "@/lib/crud-service";
-import { deriveGradeWorkflowStatus, getNextGradeWorkflowStatusActions, GradeWorkflowStatus } from "@/lib/operations";
+import {
+  deriveGradeWorkflowStatus,
+  getNextGradeWorkflowStatusActions,
+  getPrevGradeWorkflowStatusActions,
+  GradeWorkflowStatus,
+} from "@/lib/operations";
 import { isClassScopedRole } from "@/lib/roles";
 
 // Split out of the first-load bundle, then warmed in idle time so the import
@@ -991,7 +996,15 @@ export default function GradesPage() {
     }
 
     const actorLabel =
-      nextStatus === "approved" ? "approve" : nextStatus === "published" ? "make ready for parents" : "send to boss";
+      nextStatus === "approved"
+        ? "approve"
+        : nextStatus === "published"
+          ? "make ready for parents"
+          : nextStatus === "draft"
+            ? "pull back to draft for editing"
+            : nextStatus === "submitted"
+              ? "withdraw from review"
+              : "send to boss";
 
     setGradeConfirm({
       open: true,
@@ -1204,6 +1217,9 @@ export default function GradesPage() {
   const isSubmitted = submissionStatus !== "draft";
   const isPublished = submissionStatus === "published";
   const nextWorkflowActions = getNextGradeWorkflowStatusActions(submissionStatus, user?.role);
+  // Scenario #19: there was no way back. A mis-keyed sheet that had been sent
+  // to the DOS could only be corrected by an admin doing it by hand.
+  const prevWorkflowActions = getPrevGradeWorkflowStatusActions(submissionStatus, user?.role);
   const statusTone =
     submissionStatus === "published"
       ? "bg-[var(--green-soft)] text-[var(--green)]"
@@ -1525,6 +1541,28 @@ export default function GradesPage() {
                       {status === "approved" ? "Approve Grades" : "Publish Grades"}
                     </Button>
                   ))}
+              </div>
+            )}
+
+            {/* Retreat actions, kept visually separate from the forward ones so
+                an un-publish never reads as an approval. */}
+            {prevWorkflowActions.length > 0 && (
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-xs font-medium text-[var(--t3)]">Step back:</span>
+                {prevWorkflowActions.map((status) => (
+                  <Button
+                    key={status}
+                    variant="secondary"
+                    onClick={() => handleAdvanceWorkflow(status)}
+                    disabled={saving}
+                  >
+                    {status === "draft"
+                      ? "Pull Back to Draft"
+                      : status === "submitted"
+                        ? "Withdraw from Review"
+                        : "Un-publish"}
+                  </Button>
+                ))}
               </div>
             )}
           </>

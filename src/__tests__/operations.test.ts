@@ -7,6 +7,8 @@ import {
   buildAuditDiff,
   deriveGradeWorkflowStatus,
   filterAbsenceAlertsForCooldown,
+  getNextGradeWorkflowStatusActions,
+  getPrevGradeWorkflowStatusActions,
 } from "../lib/operations";
 
 describe("Academic rollover logic", () => {
@@ -243,6 +245,77 @@ describe("Grade workflow status", () => {
     expect(deriveGradeWorkflowStatus([{ status: "draft" }, { status: "approved" }, { status: "submitted" }])).toBe(
       "approved",
     );
+  });
+});
+
+/**
+ * Scenario #19: a teacher could send marks to the DOS but never take them back,
+ * so a mis-keyed score stayed stuck in "sent" with no route out.
+ *
+ * The retreat path has to be the mirror image of the forward path. Publishing
+ * is headmaster/admin/school_admin only, so *un*-publishing must be gated the
+ * same way — otherwise the fix for "no way back" becomes "a teacher can
+ * un-publish anyone's grades".
+ */
+describe("Grade workflow transitions", () => {
+  describe("forward", () => {
+    test("a teacher may submit a draft", () => {
+      expect(getNextGradeWorkflowStatusActions("draft", "teacher")).toEqual(["submitted"]);
+    });
+
+    test("only the reviewing roles may approve", () => {
+      for (const role of ["dean_of_studies", "headmaster", "admin", "school_admin"]) {
+        expect(getNextGradeWorkflowStatusActions("submitted", role)).toEqual(["approved"]);
+      }
+      expect(getNextGradeWorkflowStatusActions("submitted", "teacher")).toEqual([]);
+    });
+
+    test("only the publishing roles may publish", () => {
+      for (const role of ["headmaster", "admin", "school_admin"]) {
+        expect(getNextGradeWorkflowStatusActions("approved", role)).toEqual(["published"]);
+      }
+      expect(getNextGradeWorkflowStatusActions("approved", "dean_of_studies")).toEqual([]);
+    });
+  });
+
+  describe("backward", () => {
+    test("a teacher may pull their own submission back to draft", () => {
+      expect(getPrevGradeWorkflowStatusActions("submitted", "teacher")).toEqual(["draft"]);
+    });
+
+    test("a draft has nowhere to retreat to", () => {
+      for (const role of ["teacher", "headmaster", "admin"]) {
+        expect(getPrevGradeWorkflowStatusActions("draft", role)).toEqual([]);
+      }
+    });
+
+    test("a teacher may NOT un-publish — that is the headmaster's call", () => {
+      expect(getPrevGradeWorkflowStatusActions("published", "teacher")).toEqual([]);
+      expect(getPrevGradeWorkflowStatusActions("published", "dean_of_studies")).toEqual([]);
+    });
+
+    test("the publishing roles may un-publish", () => {
+      for (const role of ["headmaster", "admin", "school_admin"]) {
+        expect(getPrevGradeWorkflowStatusActions("published", role)).toEqual(["approved"]);
+      }
+    });
+
+    test("the reviewing roles may pull approval back to submitted", () => {
+      for (const role of ["dean_of_studies", "headmaster", "admin", "school_admin"]) {
+        expect(getPrevGradeWorkflowStatusActions("approved", role)).toEqual(["submitted"]);
+      }
+      expect(getPrevGradeWorkflowStatusActions("approved", "teacher")).toEqual([]);
+    });
+
+    test("an unknown role cannot move grades backwards", () => {
+      expect(getPrevGradeWorkflowStatusActions("published", "wizard")).toEqual([]);
+      expect(getPrevGradeWorkflowStatusActions("approved", "wizard")).toEqual([]);
+    });
+
+    test("a missing role cannot move grades backwards", () => {
+      expect(getPrevGradeWorkflowStatusActions("published", undefined)).toEqual([]);
+      expect(getPrevGradeWorkflowStatusActions("published", null)).toEqual([]);
+    });
   });
 });
 

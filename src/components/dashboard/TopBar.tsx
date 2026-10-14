@@ -24,6 +24,10 @@ type DashboardNotification = {
   read: boolean;
 };
 
+/** Exported for tests only — the nudge is pure, and the last attempt at
+ *  changing it went unnoticed precisely because nothing pinned its behaviour. */
+export const getNextStepForRoleForTest = getNextStepForRole;
+
 function getNextStepForRole(
   path: string,
   role: UserRole | undefined,
@@ -36,30 +40,52 @@ function getNextStepForRole(
     return { label: "Back to dashboard", href: "/dashboard", icon: "dashboard" };
   }
 
-  // State-based: determine nudge by what the user can manage (role),
-  // not just the current URL path.
-  if (canAccess(role, "students")) {
-    return { label: "Add students", href: "/dashboard/students", icon: "person_add" };
+  const candidates = [
+    {
+      allowed: canAccess(role, "students"),
+      when: path === "/dashboard",
+      step: { label: "Add students", href: "/dashboard/students", icon: "person_add" },
+    },
+    {
+      allowed: canAccess(role, "attendance"),
+      when: path.startsWith("/dashboard/students"),
+      step: { label: "Take attendance", href: "/dashboard/attendance", icon: "how_to_reg" },
+    },
+    {
+      allowed: canAccess(role, "fees"),
+      when: path.startsWith("/dashboard/attendance"),
+      step: { label: "Record fees", href: "/dashboard/fees", icon: "payments" },
+    },
+    {
+      allowed: canAccess(role, "messages"),
+      when: path.startsWith("/dashboard/fees"),
+      step: { label: "Send reminders", href: "/dashboard/messages", icon: "sms" },
+    },
+    {
+      allowed: canAccess(role, "messages"),
+      when: path.startsWith("/dashboard/messages"),
+      step: { label: "View notices", href: "/dashboard/notices", icon: "campaign" },
+    },
+  ] as const;
+
+  for (const candidate of candidates) {
+    if (candidate.when && candidate.allowed) {
+      return candidate.step;
+    }
   }
+
   if (canAccess(role, "attendance")) {
     return { label: "Take attendance", href: "/dashboard/attendance", icon: "how_to_reg" };
   }
+
   if (canAccess(role, "fees")) {
     return { label: "Record fees", href: "/dashboard/fees", icon: "payments" };
   }
-  if (canAccess(role, "messages")) {
-    // Show the more general notice view when on the messages page;
-    // otherwise offer to send reminders from the dashboard.
-    if (path === "/dashboard/messages") {
-      return { label: "View notices", href: "/dashboard/notices", icon: "campaign" };
-    }
-    return { label: "Send reminders", href: "/dashboard/messages", icon: "sms" };
-  }
+
   if (canAccess(role, "reports")) {
     return { label: "Open reports", href: "/dashboard/reports", icon: "bar_chart" };
   }
 
-  // Path-based fallback for dashboard root
   if (path === "/dashboard") {
     return { label: "Back to dashboard", href: "/dashboard", icon: "dashboard" };
   }

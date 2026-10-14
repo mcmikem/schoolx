@@ -289,16 +289,34 @@ export function getNextGradeWorkflowStatusActions(
   return [];
 }
 
+/**
+ * Retreating a grade sheet back down the workflow. Scenario #19: a teacher
+ * could send marks to the DOS but never recall them, so a mis-keyed score
+ * stayed stuck in "sent".
+ *
+ * Each step is gated by the *same* roles that can perform it forwards —
+ * publishing is headmaster/admin/school_admin, so un-publishing is too. An
+ * earlier version left the `published` branch ungated, which would have
+ * answered "no way back" by handing every teacher the ability to un-publish
+ * anyone's grades.
+ */
+const GRADE_PUBLISH_ROLES = ["headmaster", "admin", "school_admin"] as const;
+const GRADE_APPROVE_ROLES = ["dean_of_studies", ...GRADE_PUBLISH_ROLES] as const;
+
 export function getPrevGradeWorkflowStatusActions(
   status: GradeWorkflowStatus,
   role?: string | null,
 ): GradeWorkflowStatus[] {
   const normalizedRole = role || "";
 
-  if (status === "published") return ["approved"];
-  if (status === "approved" && ["headmaster", "admin", "school_admin"].includes(normalizedRole)) {
+  if (status === "published" && (GRADE_PUBLISH_ROLES as readonly string[]).includes(normalizedRole)) {
+    return ["approved"];
+  }
+  if (status === "approved" && (GRADE_APPROVE_ROLES as readonly string[]).includes(normalizedRole)) {
     return ["submitted"];
   }
+  // A submission belongs to the teacher who sent it, so they can recall it
+  // without needing any elevated role.
   if (status === "submitted") return ["draft"];
 
   return [];
