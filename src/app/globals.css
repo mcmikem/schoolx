@@ -90,7 +90,13 @@ html {
 
 html,
 body {
+  /* `100vh` is the height with Android's URL bar *hidden*. On a budget handset
+     that makes the document taller than what the teacher can see, so the bottom
+     of the page sits behind the browser chrome. `100dvh` tracks the bar as it
+     collapses; the `vh` line stays first so WebViews without `dvh` still get a
+     usable height. */
   height: 100vh;
+  height: 100dvh;
   min-height: 100%;
 }
 
@@ -313,6 +319,11 @@ button {
 
   div[class*="fixed inset-0"][class*="z-50"][class*="items-center"][class*="justify-center"] > div:not([class*="absolute inset-0"]) {
     max-height: calc(100vh - 1.5rem) !important;
+    /* Same Android problem as html/body: with `100vh` alone a modal can be
+       taller than the screen, putting its Save/Cancel buttons under the browser
+       bar where they cannot be tapped. This one declaration covers all 58
+       call sites that size themselves with calc(100vh …). */
+    max-height: calc(100dvh - 1.5rem) !important;
     margin-top: auto;
     margin-bottom: auto;
   }
@@ -1557,6 +1568,25 @@ table tr {
     min-width: 0;
     min-height: 52px;
     border-radius: 18px;
+  }
+
+  /* Minimum comfortable touch target.
+     Icon controls are often deliberately small — a 20px close button inside a
+     toast, a clear-field "x" — but a fingertip needs roughly 44px. This grows
+     the hit area to 44px without changing the element's visual size or the
+     layout around it, so it can be dropped onto any small control.
+     Uses ::before, which nothing interactive in this app uses. */
+  .tap-44 {
+    position: relative;
+  }
+  .tap-44::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: max(100%, 44px);
+    height: max(100%, 44px);
   }
   .mobile-nav-item:active {
     transform: scale(0.9);

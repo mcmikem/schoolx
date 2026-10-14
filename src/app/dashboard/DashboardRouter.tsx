@@ -286,7 +286,13 @@ export default function DashboardRouter() {
     );
   }
 
-  const roles = user.roles?.length ? user.roles : [user.role as string];
+  // Memoised so the dependency stays stable across renders. Building the
+  // fallback inline made a fresh array every render, which defeated the memo
+  // below and re-derived the dashboard list on every single render.
+  const roles = useMemo<readonly string[]>(
+    () => (user.roles?.length ? user.roles : user.role ? [user.role as string] : []),
+    [user.roles, user.role],
+  );
 
   // Which dashboard this person actually qualifies for. A headmaster who also
   // teaches is both, and should be able to pick — but only between dashboards
