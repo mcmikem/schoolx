@@ -119,6 +119,28 @@ export function clearDashboardStatsDirty(schoolId: string): void {
   }
 }
 
+/**
+ * AbortSignal that fires after `ms` — without requiring AbortSignal.timeout
+ * (Chrome 88+). Old Android WebViews (frozen pre-88 Chrome) throw
+ * "AbortSignal.timeout is not a function", which used to break auth init
+ * before any request was even made. Call `cancel()` once the fetch settles
+ * so the fallback timer doesn't linger (firing late is a harmless no-op).
+ */
+export function timeoutSignal(ms: number): { signal: AbortSignal; cancel: () => void } {
+  if (typeof AbortSignal !== "undefined" && typeof AbortSignal.timeout === "function") {
+    return { signal: AbortSignal.timeout(ms), cancel: () => {} };
+  }
+  const controller = new AbortController();
+  const timer = setTimeout(() => {
+    try {
+      controller.abort(new Error(`fetch timed out after ${ms}ms`));
+    } catch {
+      // ignore — abort on an old implementation must never throw
+    }
+  }, ms);
+  return { signal: controller.signal, cancel: () => clearTimeout(timer) };
+}
+
 /** Local calendar date (YYYY-MM-DD). The attendance UI marks attendance by the
  *  device's local date, so the dashboard must aggregate using the same date —
  *  `toISOString()` converts to UTC and can shift a day on ±UTC networks. */

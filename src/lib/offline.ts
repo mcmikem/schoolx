@@ -17,6 +17,22 @@ const DB_VERSION = 10;
  * store without `autoIncrement`, so every queue write threw a synchronous
  * `DataError` and the offline write pipeline had never held a single row.
  */
+/**
+ * Collision-resistant local id without requiring crypto.randomUUID
+ * (Chrome 92+). Old Android WebViews throw on crypto.randomUUID, which used
+ * to crash every offline cache write on those phones.
+ */
+export function newOfflineId(): string {
+  try {
+    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+      return crypto.randomUUID();
+    }
+  } catch {
+    // fall through to the Math.random fallback below
+  }
+  return `id-${Date.now().toString(36)}-${Math.floor(Math.random() * 1e9).toString(36)}`;
+}
+
 export function storeOptions(storeName: string): { keyPath: string; autoIncrement?: boolean } {
   if (storeName === "sync_metadata") return { keyPath: "table" };
   if (storeName === "sync_queue") return { keyPath: "id", autoIncrement: true };
@@ -192,7 +208,7 @@ class OfflineDB {
 
       const record = {
         ...data,
-        id: data.id || crypto.randomUUID(),
+        id: data.id || newOfflineId(),
         updated_at: new Date().toISOString(),
       };
 

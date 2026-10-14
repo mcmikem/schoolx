@@ -29,6 +29,7 @@ import { getErrorMessage } from "./validation";
 import { buildAuthEmailFromPhone, buildAuthLoginAttempts } from "./auth-login";
 import { classifyAuthFailure } from "./auth-failure";
 import { isSupabaseLockAbortError, withSupabaseLockRetry } from "./supabase-lock";
+import { timeoutSignal } from "./hooks/utils";
 import {
   AuthContextType,
   sanitizeDemoRole,
@@ -228,13 +229,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return null;
         }
 
+        // timeoutSignal, not AbortSignal.timeout: the latter is Chrome 88+ and
+        // throws on old Android WebViews before any request is made.
+        const { signal: meSignal, cancel: cancelMeSignal } = timeoutSignal(getConnectionTimeout(15000));
         const res = await fetch("/api/auth/me/", {
           headers: { authorization: `Bearer ${token}` },
           // Generous timeout for /api/auth/me/: on a cold-started Supabase the
           // first profile request can take >6s, and aborting early zeroes the
           // school (bouncing admins to the setup wizard with empty dashboards).
-          signal: AbortSignal.timeout(getConnectionTimeout(15000)),
+          signal: meSignal,
         });
+        cancelMeSignal();
         if (!res.ok) {
           // Retry once on transient server errors (502, 503, 504)
           if (retryCount < 1 && (res.status === 502 || res.status === 503 || res.status === 504)) {
@@ -252,10 +257,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             clearAuthState();
             return null;
           } else if (res.status === 401) {
-            // Token might be stale; retry once with a refreshed session.
+            // Token might be stale; retry once with a refreshed session. The
+            // refresh itself races a timeout: on a dead/flaky connection an
+            // unguarded refreshSession() never settles and the login screen
+            // sits on "Checking your session…" forever.
             if (retryCount < 1) {
               logger.warn("[Auth] Profile fetch 401 — refreshing session and retrying");
-              await supabase.auth.refreshSession();
+              await Promise.race([
+                supabase.auth.refreshSession(),
+                new Promise<never>((_, reject) =>
+                  setTimeout(() => reject(new Error("refreshSession timed out")), getConnectionTimeout(6000)),
+                ),
+              ]).catch(() => null);
               await new Promise((r) => setTimeout(r, 500));
               return fetchUserData(authId, retryCount + 1);
             }
