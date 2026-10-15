@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
             student_id UUID REFERENCES students(id) ON DELETE CASCADE,
             subject_id UUID REFERENCES subjects(id) ON DELETE CASCADE,
             class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
-            assessment_type TEXT CHECK (assessment_type IN ('ca1', 'ca2', 'ca3', 'ca4', 'project', 'exam')) NOT NULL,
+            assessment_type TEXT CHECK (assessment_type IN ('ca1', 'ca2', 'ca3', 'ca4', 'project', 'exam', 'bot', 'mid_term', 'eot')) NOT NULL,
             score NUMERIC(5,2) NOT NULL,
             max_score NUMERIC(5,2) DEFAULT 100,
             term INTEGER CHECK (term IN (1, 2, 3)) NOT NULL,

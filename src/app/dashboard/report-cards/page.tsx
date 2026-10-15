@@ -290,7 +290,19 @@ export default function ReportCardsPage() {
         };
       });
     } else {
-      const main = await fetchReportGrades(classId, ["ca1", "ca2", "ca3", "ca4", "project", "exam", "u1", "u2", "eot"]);
+      const main = await fetchReportGrades(classId, [
+        "bot",
+        "mid_term",
+        "ca1",
+        "ca2",
+        "ca3",
+        "ca4",
+        "project",
+        "exam",
+        "u1",
+        "u2",
+        "eot",
+      ]);
       gradesData = main.rows;
       usedOffline = main.offline;
 
@@ -888,15 +900,18 @@ export default function ReportCardsPage() {
     const ordered = orderUgandaSubjects(
       report.subjects.map((s) => ({
         name: s.name,
-        mid: s.uganda?.mid ?? null,
-        end: s.uganda?.end ?? null,
+        bot: s.uganda?.mid ?? null,
+        mot: s.uganda?.mot ?? null,
+        eot: s.uganda?.end ?? null,
         avg: s.uganda?.avg ?? null,
         agg: s.uganda?.agg ?? null,
         grade: s.uganda?.grade ?? "—",
         remarks: s.competencyNotes || "",
       })),
     );
-    const totals = sumUgandaTotals(ordered);
+    const totals = sumUgandaTotals(
+      ordered.map((subject) => ({ mid: subject.bot, end: subject.eot, avg: subject.avg, agg: subject.agg })),
+    );
     const att = ctx.byStudent.get(report.studentId);
     return generateUgandaPrimaryBody({
       school: {

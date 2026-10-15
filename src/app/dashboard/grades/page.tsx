@@ -59,7 +59,20 @@ interface TopicCoverage {
 
 const DEFAULT_TOPICS = ["Topic 1", "Topic 2", "Topic 3", "Topic 4", "Topic 5"];
 
-const ASSESSMENT_TYPES = ["ca1", "ca2", "ca3", "ca4", "project", "exam", "competency", "u1", "u2", "eot"] as const;
+const ASSESSMENT_TYPES = [
+  "bot",
+  "mid_term",
+  "eot",
+  "ca1",
+  "ca2",
+  "ca3",
+  "ca4",
+  "project",
+  "exam",
+  "competency",
+  "u1",
+  "u2",
+] as const;
 /** The continuous-assessment subset, i.e. everything a CA lock is meant to cover.
  *  Lock and unlock must both derive from this: they previously hardcoded
  *  different lists (lock covered ca1-ca3, unlock ca1-ca4) so CA4 was never
@@ -67,12 +80,15 @@ const ASSESSMENT_TYPES = ["ca1", "ca2", "ca3", "ca4", "project", "exam", "compet
 const CA_ASSESSMENT_TYPES = ASSESSMENT_TYPES.filter((t) => t.startsWith("ca")) as readonly string[];
 const COMPETENCY_ASSESSMENT_TYPES = ["competency"] as const;
 const ASSESSMENT_MAX: Record<string, number> = {
-  ca1: 10,
-  ca2: 10,
-  ca3: 10,
-  ca4: 10,
-  project: 20,
-  exam: 50,
+  bot: 100,
+  mid_term: 100,
+  eot: 100,
+  ca1: 100,
+  ca2: 100,
+  ca3: 100,
+  ca4: 100,
+  project: 100,
+  exam: 100,
 };
 
 async function saveGrade(grade: {
@@ -121,15 +137,16 @@ async function saveGrade(grade: {
     { timeoutMs: 15000, timeoutMessage: "Grade save timed out" },
   );
 
-  // Sync student_grades for this student+subject+term
-  await syncStudentGrades({
-    student_id: grade.student_id,
-    subject_id: grade.subject_id,
-    class_id: grade.class_id,
-    term: grade.term,
-    academic_year: grade.academic_year,
-    schoolId: grade.schoolId,
-  });
+  if (!["bot", "mid_term", "eot"].includes(grade.assessment_type)) {
+    await syncStudentGrades({
+      student_id: grade.student_id,
+      subject_id: grade.subject_id,
+      class_id: grade.class_id,
+      term: grade.term,
+      academic_year: grade.academic_year,
+      schoolId: grade.schoolId,
+    });
+  }
 
   return data;
 }
@@ -272,7 +289,11 @@ export default function GradesPage() {
 
   const track = resolveTrackForClass(classes.find((item) => item.id === selectedClass)?.name, schoolSettings);
   const columnLabels = useMemo(() => {
-    const labels: Record<string, { label: string; explain: string }> = {};
+    const labels: Record<string, { label: string; explain: string }> = {
+      bot: { label: "BOT", explain: "Beginning of Term · /100" },
+      mid_term: { label: "MOT", explain: "Mid Term · /100" },
+      eot: { label: "EOT", explain: "End of Term · /100" },
+    };
     for (const column of GRADING_TRACKS[track].columns) {
       for (const key of column.keys)
         labels[key] = {
@@ -326,8 +347,6 @@ export default function GradesPage() {
 
   const [inlineEntryMode, setInlineEntryMode] = useState(true);
 
-  const [gradingMode, setGradingMode] = useState<"full" | "test-exam">("test-exam");
-
   useEffect(() => {
     if (window.innerWidth >= 768) setInlineEntryMode(true);
     else setInlineEntryMode(false);
@@ -346,6 +365,9 @@ export default function GradesPage() {
   const dirtyCellsRef = useRef<Map<string, { subjectId: string; classId: string }>>(new Map());
   const warnedOutliersRef = useRef<Set<string>>(new Set());
   const assessmentLabels: Record<string, string> = {
+    bot: "Beginning of Term (BOT)",
+    mid_term: "Mid Term (MOT)",
+    eot: "End of Term (EOT)",
     ca1: "CA1",
 
     ca2: "CA2",
@@ -554,8 +576,8 @@ export default function GradesPage() {
       toast.error("CA marks are locked. Contact DOS to unlock.");
       return;
     }
-    if (termLocked && type === "exam") {
-      toast.error("This term is locked. Exam marks can no longer be changed.");
+    if (termLocked && ["exam", "bot", "mid_term", "eot"].includes(type)) {
+      toast.error("This term is locked. Assessment marks can no longer be changed.");
       return;
     }
     if (value === "") {
@@ -614,14 +636,10 @@ export default function GradesPage() {
   // no input boxes at all -- while the on-page guidance said "type the score in
   // the box under CA1". The guidance described a UI that did not exist on
   // first use, which is why teachers could not work out where to type.
-  const isTestExamMode = gradingMode === "test-exam";
-  const DEFAULT_ASSESSMENT_TYPES = isTestExamMode
-    ? ["exam"]
-    : ASSESSMENT_TYPES.filter((t) => !["competency", "u1", "u2", "eot"].includes(t));
+  const DEFAULT_ASSESSMENT_TYPES = ["bot", "mid_term", "eot"];
 
   const activeAssessmentTypes = useMemo(() => {
     if (competencyMode) return [...COMPETENCY_ASSESSMENT_TYPES];
-    if (isTestExamMode) return ["exam"];
     // Always offer the standard columns, then append any extra assessment type
     // that already has marks somewhere in the class.
     const extras = ASSESSMENT_TYPES.filter(
@@ -629,7 +647,7 @@ export default function GradesPage() {
         !DEFAULT_ASSESSMENT_TYPES.includes(type) && filteredStudents.some((s) => marks[`${s.id}_${type}`] != null),
     );
     return [...DEFAULT_ASSESSMENT_TYPES, ...extras];
-  }, [marks, filteredStudents, competencyMode, gradingMode]);
+  }, [marks, filteredStudents, competencyMode]);
 
   const debouncedAutoSave = useCallback(
     (studentId: string, type: string, target?: { subjectId: string; classId: string }) => {
@@ -656,8 +674,8 @@ export default function GradesPage() {
           setSaveStatuses((prev) => ({ ...prev, [key]: "idle" }));
           return;
         }
-        if (termLocked && type === "exam") {
-          toast.error("This term is locked. Exam marks can no longer be changed.");
+        if (termLocked && ["exam", "bot", "mid_term", "eot"].includes(type)) {
+          toast.error("This term is locked. Assessment marks can no longer be changed.");
           setSaveStatuses((prev) => ({ ...prev, [key]: "idle" }));
           return;
         }
@@ -1715,6 +1733,12 @@ export default function GradesPage() {
         {/* Inline Entry Controls */}
         {tab === "marks" && selectedClass && selectedSubject && filteredStudents.length > 0 && (
           <div className="space-y-4">
+            {!competencyMode && (
+              <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-950">
+                Enter each assessment out of 100. BOT, MOT and EOT are kept as separate marks; the report uses a simple
+                average, not weights.
+              </div>
+            )}
             {/* View Mode Toggle & Quick Actions */}
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2">
@@ -1759,22 +1783,6 @@ export default function GradesPage() {
                 >
                   <MaterialIcon icon="psychology" className="text-base" />
                   Competency
-                </button>
-                <button
-                  onClick={() => setGradingMode((m) => (m === "test-exam" ? "full" : "test-exam"))}
-                  title={
-                    gradingMode === "test-exam"
-                      ? "Switch to full grading mode (CA1-CA4 + Project)"
-                      : "Switch to test/exam-only mode"
-                  }
-                  className={`px-3 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-1.5 ${
-                    gradingMode === "test-exam"
-                      ? "bg-green-100 text-green-800 border border-green-300"
-                      : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
-                  }`}
-                >
-                  <MaterialIcon icon="school" className="text-base" />
-                  {gradingMode === "test-exam" ? "Test/Exam Only" : "Full Grading"}
                 </button>
                 <div className="relative">
                   <button
@@ -1832,17 +1840,23 @@ export default function GradesPage() {
                         {activeAssessmentTypes.map((type) => (
                           <div key={type} className="flex items-center gap-2 mb-2">
                             <span className="text-xs font-semibold text-on-surface-variant w-10">
-                              {type === "ca1"
-                                ? "CA1"
-                                : type === "ca2"
-                                  ? "CA2"
-                                  : type === "ca3"
-                                    ? "CA3"
-                                    : type === "ca4"
-                                      ? "CA4"
-                                      : type === "project"
-                                        ? "Proj"
-                                        : type.toUpperCase()}
+                              {type === "bot"
+                                ? "BOT"
+                                : type === "mid_term"
+                                  ? "MOT"
+                                  : type === "eot"
+                                    ? "EOT"
+                                    : type === "ca1"
+                                      ? "CA1"
+                                      : type === "ca2"
+                                        ? "CA2"
+                                        : type === "ca3"
+                                          ? "CA3"
+                                          : type === "ca4"
+                                            ? "CA4"
+                                            : type === "project"
+                                              ? "Proj"
+                                              : type.toUpperCase()}
                             </span>
                             <input
                               type="number"
@@ -1905,17 +1919,23 @@ export default function GradesPage() {
                               {activeAssessmentTypes.map((type) => {
                                 const labelInfo = columnLabels[type] || {
                                   label:
-                                    type === "ca1"
-                                      ? "CA1"
-                                      : type === "ca2"
-                                        ? "CA2"
-                                        : type === "ca3"
-                                          ? "CA3"
-                                          : type === "ca4"
-                                            ? "CA4"
-                                            : type === "project"
-                                              ? "Project"
-                                              : "Exam",
+                                    type === "bot"
+                                      ? "Beginning of Term"
+                                      : type === "mid_term"
+                                        ? "Mid Term"
+                                        : type === "eot"
+                                          ? "End of Term"
+                                          : type === "ca1"
+                                            ? "CA1"
+                                            : type === "ca2"
+                                              ? "CA2"
+                                              : type === "ca3"
+                                                ? "CA3"
+                                                : type === "ca4"
+                                                  ? "CA4"
+                                                  : type === "project"
+                                                    ? "Project"
+                                                    : "Exam",
                                   explain: "",
                                 };
                                 return (
@@ -2079,7 +2099,7 @@ export default function GradesPage() {
                                           disabled={
                                             isSubmitted ||
                                             (caLocked && type.startsWith("ca")) ||
-                                            (termLocked && type === "exam")
+                                            (termLocked && ["exam", "bot", "mid_term", "eot"].includes(type))
                                           }
                                           onKeyDown={(e) => {
                                             if (e.key === "Enter") {
@@ -2309,7 +2329,7 @@ export default function GradesPage() {
                                         disabled={
                                           isSubmitted ||
                                           (caLocked && type.startsWith("ca")) ||
-                                          (termLocked && type === "exam")
+                                          (termLocked && ["exam", "bot", "mid_term", "eot"].includes(type))
                                         }
                                       />
                                       {getSaveStatusForInput(student.id, type) === "saved" && (
@@ -2461,7 +2481,7 @@ export default function GradesPage() {
                         return (
                           <div key={type} className="space-y-2">
                             <label className="block text-xs font-semibold text-on-surface-variant uppercase tracking-wider">
-                              {type.toUpperCase()} ({ASSESSMENT_MAX[type]})
+                              {assessmentLabels[type] ?? type.toUpperCase()} ({ASSESSMENT_MAX[type] ?? 100})
                             </label>
                             <input
                               className={`w-full text-center text-2xl font-bold py-4 rounded-xl border-none focus:outline-none transition-all ${getInputBorderClass(studentId, type)}`}
@@ -2474,7 +2494,9 @@ export default function GradesPage() {
                               onChange={(e) => handleMarkChange(studentId, type, e.target.value)}
                               onBlur={() => handleInlineBlur(studentId, type)}
                               disabled={
-                                isSubmitted || (caLocked && type.startsWith("ca")) || (termLocked && type === "exam")
+                                isSubmitted ||
+                                (caLocked && type.startsWith("ca")) ||
+                                (termLocked && ["exam", "bot", "mid_term", "eot"].includes(type))
                               }
                             />
                           </div>

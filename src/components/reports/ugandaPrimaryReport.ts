@@ -12,8 +12,9 @@ import { escapeHtml } from "@/lib/cbc-report";
 
 export interface UgandaPrintSubject {
   name: string;
-  mid: number | null;
-  end: number | null;
+  bot: number | null;
+  mot: number | null;
+  eot: number | null;
   avg: number | null;
   agg: number | null;
   grade: string;
@@ -32,6 +33,7 @@ export interface UgandaPrintInput {
   pupil: {
     name: string;
     studentNumber: string;
+    pupilId?: string;
     gender: string;
     className: string;
     term: number | string;
@@ -48,6 +50,7 @@ export interface UgandaPrintInput {
     division: string;
   };
   comments: { classTeacher: string; hm: string };
+  position?: number | null;
   feeBalance: number;
   nextTermBegins: string | null;
 }
@@ -102,12 +105,14 @@ export function generateUgandaPrimaryBody(input: UgandaPrintInput): string {
     .map(
       (s) => `<tr>
         <td style="padding:6px 10px;border:1px solid #000;text-align:left;">${escapeHtml(s.name)}</td>
-        <td style="padding:6px 10px;border:1px solid #000;text-align:center;">${cell(s.mid)}</td>
-        <td style="padding:6px 10px;border:1px solid #000;text-align:center;">${cell(s.end)}</td>
+        <td style="padding:6px 10px;border:1px solid #000;text-align:center;">${cell(s.bot)}</td>
+        <td style="padding:6px 10px;border:1px solid #000;text-align:center;">${cell(s.mot)}</td>
+        <td style="padding:6px 10px;border:1px solid #000;text-align:center;">${cell(s.eot)}</td>
         <td style="padding:6px 10px;border:1px solid #000;text-align:center;">${cell(s.avg)}</td>
         <td style="padding:6px 10px;border:1px solid #000;text-align:center;font-weight:bold;">${cell(s.agg)}</td>
         <td style="padding:6px 10px;border:1px solid #000;text-align:center;font-weight:bold;">${escapeHtml(s.grade)}</td>
         <td style="padding:6px 10px;border:1px solid #000;">${escapeHtml(s.remarks)}</td>
+        <td style="padding:6px 10px;border:1px solid #000;text-align:center;"></td>
       </tr>`,
     )
     .join("");
@@ -130,16 +135,19 @@ export function generateUgandaPrimaryBody(input: UgandaPrintInput): string {
   return `<div class="uganda-report">
     <div style="text-align:center;">
       <div style="font-size:12px;font-weight:bold;letter-spacing:1px;">THE REPUBLIC OF UGANDA</div>
+      ${school.logoUrl ? `<img src="${escapeHtml(school.logoUrl)}" alt="School logo" style="max-height:70px;max-width:90px;object-fit:contain;">` : ""}
       <div style="font-size:24px;font-weight:bold;margin:2px 0;">${escapeHtml(school.name || "SCHOOL NAME")}</div>
       <div style="font-size:13px;font-weight:bold;">MINISTRY OF EDUCATION AND SPORTS</div>
       ${contact ? `<div style="font-size:11px;">[${escapeHtml(contact)}]</div>` : ""}
-      <div style="display:inline-block;border:1.5px solid #000;padding:4px 18px;font-size:12px;font-weight:bold;margin-top:8px;">PRIMARY PUPIL'S PROGRESS REPORT</div>
+      <div style="font-size:11px;font-weight:bold;margin-top:8px;">PRIMARY PUPIL'S PROGRESS REPORT</div>
+      <div style="display:inline-block;border:1.5px solid #000;padding:4px 18px;font-size:12px;font-weight:bold;margin-top:4px;">TERM ACADEMIC REPORT</div>
     </div>
     <div style="border-bottom:2px solid #000;margin:10px 0;"></div>
     <table style="font-size:12px;"><tbody>
       <tr>
         <td style="padding:3px 0;">Name: <u>&nbsp;${escapeHtml(pupil.name)}&nbsp;</u></td>
         <td style="padding:3px 0;">LIN: <u>&nbsp;${escapeHtml(pupil.studentNumber)}&nbsp;</u></td>
+        <td style="padding:3px 0;">Pupil ID: <u>&nbsp;${escapeHtml(pupil.pupilId || "—")}&nbsp;</u></td>
         <td style="padding:3px 0;">Gender: <u>&nbsp;${escapeHtml(pupil.gender)}&nbsp;</u></td>
       </tr>
       <tr>
@@ -147,6 +155,7 @@ export function generateUgandaPrimaryBody(input: UgandaPrintInput): string {
         <td style="padding:3px 0;">Term: <u>&nbsp;${escapeHtml(String(pupil.term))}&nbsp;</u></td>
         <td style="padding:3px 0;">Year: <u>&nbsp;${escapeHtml(pupil.year)}&nbsp;</u></td>
         <td style="padding:3px 0;">Attendance: <u>&nbsp;${pupil.attendancePresent ?? "—"}&nbsp;/&nbsp;${pupil.attendanceTotal ?? "—"}&nbsp;</u></td>
+        <td style="padding:3px 0;">Position: <u>&nbsp;${input.position || "—"}&nbsp;</u></td>
       </tr>
     </tbody></table>
 
@@ -154,24 +163,25 @@ export function generateUgandaPrimaryBody(input: UgandaPrintInput): string {
     <table style="font-size:12px;">
       <thead><tr style="background:#eee;">
         <th rowspan="2" style="border:1px solid #000;padding:6px;">SUBJECT</th>
-        <th colspan="2" style="border:1px solid #000;padding:4px;">MARKS</th>
+        <th colspan="3" style="border:1px solid #000;padding:4px;">MARKS (EACH OUT OF 100)</th>
         <th rowspan="2" style="border:1px solid #000;padding:6px;">AVG %</th>
         <th rowspan="2" style="border:1px solid #000;padding:6px;">AGG</th>
         <th rowspan="2" style="border:1px solid #000;padding:6px;">GRADE</th>
-        <th rowspan="2" style="border:1px solid #000;padding:6px;">REMARKS / COMPETENCY</th>
+        <th rowspan="2" style="border:1px solid #000;padding:6px;">REMARKS</th>
+        <th rowspan="2" style="border:1px solid #000;padding:6px;">INITIALS</th>
       </tr><tr style="background:#eee;">
-        <th style="border:1px solid #000;padding:4px;">MID</th>
-        <th style="border:1px solid #000;padding:4px;">END</th>
+        <th style="border:1px solid #000;padding:4px;">BOT</th>
+        <th style="border:1px solid #000;padding:4px;">MOT</th>
+        <th style="border:1px solid #000;padding:4px;">EOT</th>
       </tr></thead>
       <tbody>
         ${subjectRows}
         <tr>
-          <td style="padding:6px 10px;border:1px solid #000;font-weight:bold;text-align:center;">TOTALS</td>
-          <td style="padding:6px 10px;border:1px solid #000;text-align:center;font-weight:bold;">${cell(totals.midTotal)}</td>
-          <td style="padding:6px 10px;border:1px solid #000;text-align:center;font-weight:bold;">${cell(totals.endTotal)}</td>
-          <td style="padding:6px 10px;border:1px solid #000;text-align:center;">${cell(totals.avgMean)}</td>
-          <td style="padding:6px 10px;border:1px solid #000;font-weight:bold;">DIV: ${escapeHtml(totals.division)}</td>
+        <td colspan="4" style="padding:6px 10px;border:1px solid #000;font-weight:bold;text-align:center;">CLASS AVERAGE — simple mean of available BOT, MOT and EOT marks</td>
+          <td style="padding:6px 10px;border:1px solid #000;text-align:center;font-weight:bold;">${cell(totals.avgMean)}%</td>
           <td style="padding:6px 10px;border:1px solid #000;font-weight:bold;">AGG: ${cell(totals.aggSum)}</td>
+          <td style="padding:6px 10px;border:1px solid #000;font-weight:bold;">${escapeHtml(totals.division)}</td>
+          <td style="padding:6px 10px;border:1px solid #000;"></td>
           <td style="padding:6px 10px;border:1px solid #000;"></td>
         </tr>
       </tbody>

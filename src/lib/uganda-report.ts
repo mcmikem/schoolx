@@ -13,12 +13,12 @@
  * unmarked subject can never drag an aggregate down.
  */
 
-/** Assessment types feeding the printed MID column (term unit exams). */
-export const UG_MID_TYPES = ["u1", "u2"];
-/** Assessment types feeding the printed END column (final exams). */
+/** Traditional primary beginning-of-term marks. */
+export const UG_MID_TYPES = ["bot"];
+/** Final-term exam types used by legacy records. */
 export const UG_END_TYPES = ["exam", "eot"];
-/** Fallback maxima for CA-style rows whose max_score was never recorded. */
-const UG_CA_MAX: Record<string, number> = { ca1: 10, ca2: 10, ca3: 10, ca4: 10, project: 20 };
+/** Legacy rows without a recorded maximum are treated as marks out of 100. */
+const UG_CA_MAX: Record<string, number> = { ca1: 100, ca2: 100, ca3: 100, ca4: 100, project: 100 };
 
 /** Canonical Ugandan primary subject order; unknown names sort last, stably. */
 const UG_SUBJECT_ORDER = [
@@ -47,11 +47,13 @@ export interface UgandaGradeRow {
 }
 
 export interface UgandaSubjectResult {
-  /** MID bucket mean as a percentage, or null when nothing recorded. */
+  /** BOT mark as a percentage, or null when nothing recorded. */
   mid: number | null;
-  /** END bucket mean as a percentage, or null when nothing recorded. */
+  /** MOT mark as a percentage, or null when nothing recorded. */
+  mot: number | null;
+  /** EOT mark as a percentage, or null when nothing recorded. */
   end: number | null;
-  /** Mean of the available buckets (or percent-of-possible fallback). */
+  /** Simple mean of available BOT, MOT and EOT marks. */
   avg: number | null;
   /** PLE aggregate points for avg, or null when avg is null. */
   agg: number | null;
@@ -131,15 +133,17 @@ export function bucketUgandaSubject(rows: UgandaGradeRow[]): UgandaSubjectResult
       (row.max_score != null && (!Number.isFinite(Number(row.max_score)) || Number(row.max_score) <= 0))
     );
   });
-  if (invalid) return { mid: null, end: null, avg: null, agg: null, grade: "—" };
+  if (invalid) return { mid: null, mot: null, end: null, avg: null, agg: null, grade: "—" };
   const midRows = rows.filter((r) => UG_MID_TYPES.includes(r.assessment_type));
+  const motRows = rows.filter((r) => r.assessment_type === "mid_term");
   const examRows = rows.filter((r) => r.assessment_type === "exam");
   const endRows = examRows.length > 0 ? examRows : rows.filter((r) => r.assessment_type === "eot");
 
   const mid = meanOrNull(midRows.map((r) => pct(Number(r.score), maxFor(r.assessment_type, r.max_score))));
+  const mot = meanOrNull(motRows.map((r) => pct(Number(r.score), maxFor(r.assessment_type, r.max_score))));
   const end = meanOrNull(endRows.map((r) => pct(Number(r.score), maxFor(r.assessment_type, r.max_score))));
 
-  let avg: number | null = meanOrNull([mid, end]);
+  let avg: number | null = meanOrNull([mid, mot, end]);
   if (avg === null && rows.length > 0) {
     // No MID/END exams on record (CA-only school): percent-of-possible over
     // everything recorded, so the column still answers honestly.
@@ -148,9 +152,9 @@ export function bucketUgandaSubject(rows: UgandaGradeRow[]): UgandaSubjectResult
     avg = maxSum > 0 ? Math.round((total / maxSum) * 100) : null;
   }
 
-  if (avg === null) return { mid, end, avg: null, agg: null, grade: "—" };
+  if (avg === null) return { mid, mot, end, avg: null, agg: null, grade: "—" };
   const grade = ugandaGrade(avg);
-  return { mid, end, avg, agg: UG_POINTS[grade] ?? null, grade };
+  return { mid, mot, end, avg, agg: UG_POINTS[grade] ?? null, grade };
 }
 
 export function sumUgandaTotals(

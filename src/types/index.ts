@@ -217,7 +217,20 @@ export interface Grade {
   student_id: string;
   subject_id: string;
   class_id: string;
-  assessment_type: "ca1" | "ca2" | "ca3" | "ca4" | "project" | "aoi" | "exam" | "competency";
+  assessment_type:
+    | "ca1"
+    | "ca2"
+    | "ca3"
+    | "ca4"
+    | "project"
+    | "aoi"
+    | "exam"
+    | "competency"
+    | "bot"
+    | "mid_term"
+    | "eot"
+    | "u1"
+    | "u2";
   score: number;
   max_score: number;
   term: 1 | 2 | 3;

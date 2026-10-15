@@ -8,18 +8,19 @@ import {
 import { generateUgandaPrimaryHTML } from "@/components/reports/ugandaPrimaryReport";
 
 describe("bucketUgandaSubject", () => {
-  it("means unit exams for MID and prefers exam over eot for END", () => {
+  it("reports BOT, MOT and EOT separately and averages available marks without weights", () => {
     const result = bucketUgandaSubject([
-      { assessment_type: "u1", score: 70, max_score: 100 },
-      { assessment_type: "u2", score: 80, max_score: 100 },
+      { assessment_type: "bot", score: 70, max_score: 100 },
+      { assessment_type: "mid_term", score: 80, max_score: 100 },
       { assessment_type: "exam", score: 60, max_score: 100 },
       { assessment_type: "eot", score: 10, max_score: 100 },
     ]);
-    expect(result.mid).toBe(75);
+    expect(result.mid).toBe(70);
+    expect(result.mot).toBe(80);
     expect(result.end).toBe(60);
-    expect(result.avg).toBe(68);
-    expect(result.grade).toBe("C4");
-    expect(result.agg).toBe(4);
+    expect(result.avg).toBe(70);
+    expect(result.grade).toBe("C3");
+    expect(result.agg).toBe(3);
   });
 
   it("falls back to eot when no exam row exists", () => {
@@ -52,7 +53,7 @@ describe("bucketUgandaSubject", () => {
   });
 
   it("returns nulls — never zeros — for a subject with no rows", () => {
-    expect(bucketUgandaSubject([])).toEqual({ mid: null, end: null, avg: null, agg: null, grade: "—" });
+    expect(bucketUgandaSubject([])).toEqual({ mid: null, mot: null, end: null, avg: null, agg: null, grade: "—" });
   });
 });
 
@@ -135,8 +136,8 @@ describe("generateUgandaPrimaryHTML", () => {
       attendanceTotal: 62,
     },
     subjects: [
-      { name: "English", mid: 70, end: 80, avg: 75, agg: 2, grade: "D2", remarks: "" },
-      { name: "Mathematics", mid: null, end: null, avg: null, agg: null, grade: "—", remarks: "" },
+      { name: "English", bot: 70, mot: 75, eot: 80, avg: 75, agg: 2, grade: "D2", remarks: "" },
+      { name: "Mathematics", bot: null, mot: null, eot: null, avg: null, agg: null, grade: "—", remarks: "" },
     ],
     totals: { midTotal: 70, endTotal: 80, avgMean: 75, aggSum: 2, division: "DIV I" },
     comments: { classTeacher: "Good progress", hm: "" },
@@ -148,7 +149,12 @@ describe("generateUgandaPrimaryHTML", () => {
     const html = generateUgandaPrimaryHTML(baseInput);
     for (const needle of [
       "PRIMARY PUPIL'S PROGRESS REPORT",
+      "TERM ACADEMIC REPORT",
       "ACADEMIC PERFORMANCE",
+      "BOT",
+      "MOT",
+      "EOT",
+      "MARKS (EACH OUT OF 100)",
       "GRADING SYSTEM",
       "0-44: F9 (Fail) | X: Absent",
       "BEHAVIOUR",
@@ -174,7 +180,7 @@ describe("generateUgandaPrimaryHTML", () => {
   it("renders dashes — never zeros — for missing marks", () => {
     const html = generateUgandaPrimaryHTML({
       ...baseInput,
-      subjects: [{ name: "English", mid: null, end: null, avg: null, agg: null, grade: "—", remarks: "" }],
+      subjects: [{ name: "English", bot: null, mot: null, eot: null, avg: null, agg: null, grade: "—", remarks: "" }],
       totals: { midTotal: null, endTotal: null, avgMean: null, aggSum: null, division: "—" },
     });
     expect(html).toContain(">—<");
