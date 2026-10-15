@@ -36,6 +36,7 @@
 -- ─── Reads: school staff, or a linked parent/guardian ────────────────────────
 
 DROP POLICY IF EXISTS "School users fee_payments select" ON public.fee_payments;
+DROP POLICY IF EXISTS "School staff and linked parents read fee_payments" ON public.fee_payments;
 
 CREATE POLICY "School staff and linked parents read fee_payments"
 ON public.fee_payments
@@ -53,6 +54,7 @@ USING (
 
 DROP POLICY IF EXISTS "School users fee_payments insert" ON public.fee_payments;
 DROP POLICY IF EXISTS "fee_payments_insert" ON public.fee_payments;
+DROP POLICY IF EXISTS "Fee managers insert fee_payments" ON public.fee_payments;
 
 CREATE POLICY "Fee managers insert fee_payments"
 ON public.fee_payments
