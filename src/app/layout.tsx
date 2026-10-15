@@ -57,6 +57,12 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   userScalable: true,
+  // Without this every env(safe-area-inset-*) in the app resolves to 0px, so
+  // the mobile bottom nav sits under the home indicator and fixed action bars
+  // sit under the browser chrome. See the paired .topbar rule in globals.css,
+  // which had to become min-height so a real inset grows the bar instead of
+  // crushing its content box.
+  viewportFit: "cover",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

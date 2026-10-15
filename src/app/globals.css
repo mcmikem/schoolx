@@ -1897,7 +1897,10 @@ table tr {
 
 .topbar {
   background: rgba(255, 255, 255, 0.92);
-  height: var(--topbar-height);
+  /* min-height, not height: mobile-responsive.css pads the top of this bar by
+     env(safe-area-inset-top) now that the viewport opts into viewportFit
+     "cover". A fixed height plus box-sizing:border-box would leave a 56px bar
+     with ~47px of padding and a 9px content box on a notched phone. */
   min-height: var(--topbar-height);
   position: relative;
   backdrop-filter: blur(16px);

@@ -11,7 +11,7 @@ import { useAcademic } from "@/lib/academic-context";
 import { APP_NAME } from "@/lib/app-name";
 import { useAuth } from "@/lib/auth-context";
 import { canUseModule, DEFAULT_FEATURE_STAGE, type FeatureStage, type ModuleKey } from "@/lib/featureStages";
-import { getNavigationForRole } from "@/lib/navigation";
+import { getNavigationForRoles } from "@/lib/navigation";
 import { type RoleRouteOverrides, resolveRouteAccess, useRoleRouteOverrides } from "@/lib/role-access-overrides";
 import { canAccess, type UserRole } from "@/lib/roles";
 import { useSyncStatus } from "@/lib/useSyncStatus";
@@ -89,7 +89,14 @@ export default function SidebarShell({ onNavigate }: { onNavigate?: () => void }
   const isVisible = isDesktop || isOpen;
   const staffRole = user?.role as UserRole | undefined;
   const canInviteStaff = staffRole ? canAccess(staffRole, "staff") : false;
-  const rawGroups = user?.role ? getNavigationForRole(user.role) : [];
+  // Everyone this person is, not just the one recorded as primary. Rural staff
+  // routinely combine jobs — headmaster who also teaches, bursar who is also a
+  // teacher — and a single-role sidebar left those people with no way to reach
+  // half the app. MobileBottomNav already worked this way; this is what makes
+  // the drawer agree with it. getNavigationForRoles de-duplicates by href and
+  // keeps the primary role first so everyday items stay at the top.
+  const roles = user?.roles?.length ? user.roles : staffRole ? [staffRole] : [];
+  const rawGroups = roles.length ? getNavigationForRoles(roles) : [];
   const navigationGroups = filterGroupsByFeatureStage(
     rawGroups,
     school?.feature_stage as FeatureStage | undefined,
