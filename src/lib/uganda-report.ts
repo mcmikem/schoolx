@@ -120,6 +120,18 @@ export function ugandaDivision(aggSum: number | null): string {
 }
 
 export function bucketUgandaSubject(rows: UgandaGradeRow[]): UgandaSubjectResult {
+  const invalid = rows.some((row) => {
+    const score = Number(row.score);
+    const maximum = maxFor(row.assessment_type, row.max_score);
+    return (
+      row.score == null ||
+      !Number.isFinite(score) ||
+      score < 0 ||
+      score > maximum ||
+      (row.max_score != null && (!Number.isFinite(Number(row.max_score)) || Number(row.max_score) <= 0))
+    );
+  });
+  if (invalid) return { mid: null, end: null, avg: null, agg: null, grade: "—" };
   const midRows = rows.filter((r) => UG_MID_TYPES.includes(r.assessment_type));
   const examRows = rows.filter((r) => r.assessment_type === "exam");
   const endRows = examRows.length > 0 ? examRows : rows.filter((r) => r.assessment_type === "eot");

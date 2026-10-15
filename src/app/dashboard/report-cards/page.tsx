@@ -16,18 +16,19 @@ import { useAcademic } from "@/lib/academic-context";
 import { APP_NAME } from "@/lib/app-name";
 import { useAuth } from "@/lib/auth-context";
 import {
-  calculateFormativeScore,
-  calculateSummativeScore,
+  calculateCBCSubject,
+  cbcIdentifierValue,
+  summarizeCBCSubjects,
+  type CBCSubjectEntry,
   escapeHtml,
   generateCBCReportHTML,
-  getCBCGrade,
 } from "@/lib/cbc-report";
 import { DEMO_GRADES, DEMO_SUBJECTS } from "@/lib/demo-data";
-import { calculateSubjectTotal } from "@/lib/grading";
 import { useClasses, useFeePayments, useFeeStructure, useStudents, useSubjects } from "@/lib/hooks";
 import { isTimeoutResult, timeoutFallback, withTimeout } from "@/lib/hooks/utils";
 import { logger } from "@/lib/logger";
 import { searchReportList } from "@/lib/report-list";
+import { classicReportSubject, rankCompleteReports, summarizeClassicReport } from "@/lib/report-summary";
 import { loadSchoolSetting } from "@/lib/school-settings";
 import { type ReportLayoutId, SETTING_KEYS } from "@/lib/grading-tracks";
 import {
@@ -63,18 +64,16 @@ interface StudentReport {
   classTeacherComment: string;
   hmComment: string;
   feeBalance: number;
+  isComplete?: boolean;
+  recordedSubjects?: number;
+  aggregate?: number | null;
 }
 
-function getGradeLabel(score: number): { grade: string; color: string } {
-  if (score >= 80) return { grade: "D1", color: "text-green-600" };
-  if (score >= 70) return { grade: "D2", color: "text-green-500" };
-  if (score >= 65) return { grade: "C3", color: "text-blue-600" };
-  if (score >= 60) return { grade: "C4", color: "text-blue-500" };
-  if (score >= 55) return { grade: "C5", color: "text-indigo-500" };
-  if (score >= 50) return { grade: "C6", color: "text-indigo-400" };
-  if (score >= 45) return { grade: "P7", color: "text-yellow-600" };
-  if (score >= 40) return { grade: "P8", color: "text-yellow-500" };
-  return { grade: "F9", color: "text-red-500" };
+function getGradeColor(grade: string): string {
+  if (grade.startsWith("D")) return "text-green-600";
+  if (grade.startsWith("C")) return "text-blue-600";
+  if (grade.startsWith("P")) return "text-yellow-600";
+  return grade === "F9" ? "text-red-500" : "text-amber-600";
 }
 
 function getCompetencyLabel(level: string | undefined): { label: string; emoji: string; color: string } {
@@ -92,16 +91,8 @@ function getCompetencyLabel(level: string | undefined): { label: string; emoji: 
   }
 }
 
-function getDivision(total: number, maxTotal: number): string {
-  const pct = maxTotal > 0 ? (total / maxTotal) * 100 : 0;
-  if (pct >= 80) return "Division 1";
-  if (pct >= 60) return "Division 2";
-  if (pct >= 40) return "Division 3";
-  if (pct >= 20) return "Division 4";
-  return "Division U";
-}
-
 function getAutoComment(position: number): string {
+  if (position <= 0) return "Assessment incomplete. Complete the missing marks before ranking.";
   if (position >= 1 && position <= 5) return "Excellent performance. Keep it up!";
   if (position >= 6 && position <= 15) return "Good work. Strive for better.";
   return "Needs more effort. Work harder.";
@@ -126,6 +117,7 @@ export default function ReportCardsPage() {
   const [sendingSms, setSendingSms] = useState(false);
   const [hasMissingMarks, setHasMissingMarks] = useState(false);
   const [generatingAll, setGeneratingAll] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [generationProgress, setGenerationProgress] = useState<{
     current: number;
     total: number;
@@ -219,12 +211,13 @@ export default function ReportCardsPage() {
   const stats = useMemo(() => {
     if (reports.length === 0) return { avgTotal: 0, div1: 0, withFees: 0 };
 
-    const avg = reports.reduce((sum, r) => sum + r.average, 0) / reports.length;
-    const div1 = reports.filter((r) => r.division === "Division 1").length;
+    const completed = reports.filter((report) => report.isComplete !== false && report.maxMarks > 0);
+    const avg = completed.length ? completed.reduce((sum, report) => sum + report.average, 0) / completed.length : null;
+    const div1 = completed.filter((report) => ["Division 1", "Division I"].includes(report.division)).length;
     const withFees = reports.filter((r) => getStudentFeeBalance(r.studentId) > 0).length;
 
     return {
-      avgTotal: Math.round(avg * 10) / 10,
+      avgTotal: avg === null ? null : Math.round(avg * 10) / 10,
       div1,
       withFees,
     };
@@ -287,10 +280,15 @@ export default function ReportCardsPage() {
     let usedOffline = false;
 
     if (isDemo) {
-      gradesData = DEMO_GRADES.filter((grade) => grade.class_id === classId).map((grade) => ({
-        ...grade,
-        subjects: DEMO_SUBJECTS.find((subject) => subject.id === grade.subject_id) || null,
-      }));
+      gradesData = DEMO_GRADES.filter((grade) => grade.class_id === classId).map((grade) => {
+        const fixtureSubject = DEMO_SUBJECTS.find((subject) => subject.id === grade.subject_id);
+        const currentSubject = subjects.find((subject) => subject.name === fixtureSubject?.name);
+        return {
+          ...grade,
+          subject_id: currentSubject?.id || grade.subject_id,
+          subjects: currentSubject || fixtureSubject || null,
+        };
+      });
     } else {
       const main = await fetchReportGrades(classId, ["ca1", "ca2", "ca3", "ca4", "project", "exam", "u1", "u2", "eot"]);
       gradesData = main.rows;
@@ -305,10 +303,7 @@ export default function ReportCardsPage() {
 
     const studentSubjectScores: Record<
       string,
-      Record<
-        string,
-        { total: number; name: string; rows: { assessment_type: string; score: number; max_score?: number | null }[] }
-      >
+      Record<string, { name: string; rows: { assessment_type: string; score: number; max_score?: number | null }[] }>
     > = {};
     const studentCompetencies: Record<string, Record<string, { level: string; notes: string; name: string }>> = {};
 
@@ -319,15 +314,13 @@ export default function ReportCardsPage() {
       const subjName = g.subjects?.name || "Unknown";
       if (!studentSubjectScores[g.student_id][g.subject_id]) {
         studentSubjectScores[g.student_id][g.subject_id] = {
-          total: 0,
           name: subjName,
           rows: [],
         };
       }
-      studentSubjectScores[g.student_id][g.subject_id].total += Number(g.score || 0);
       studentSubjectScores[g.student_id][g.subject_id].rows.push({
         assessment_type: g.assessment_type,
-        score: Number(g.score || 0),
+        score: g.score == null ? Number.NaN : Number(g.score),
         max_score: g.max_score ?? null,
       });
     }
@@ -344,12 +337,6 @@ export default function ReportCardsPage() {
       };
     }
 
-    const subjectList =
-      Object.values(studentSubjectScores).length > 0
-        ? Object.values(Object.values(studentSubjectScores)[0]).map((s) => s.name)
-        : subjects.map((s: any) => s.name);
-    const numSubjects = subjectList.length || 1;
-
     if (students.length === 0) {
       return { reports: [], missingMarks: false, offline: usedOffline };
     }
@@ -358,22 +345,23 @@ export default function ReportCardsPage() {
       const subjScores = studentSubjectScores[student.id] || {};
       const studentComp = studentCompetencies[student.id] || {};
       const subjectDetails = Object.entries(subjScores).map(([subjId, data]) => {
-        const gradeInfo = getGradeLabel(data.total);
+        const result = classicReportSubject(data.rows);
         const comp = studentComp[subjId];
         return {
+          subjectId: subjId,
           name: data.name,
-          score: data.total,
-          grade: gradeInfo.grade,
-          gradeColor: gradeInfo.color,
+          score: result.score,
+          grade: result.grade,
+          gradeColor: getGradeColor(result.grade),
           competencyLevel: comp?.level,
           competencyNotes: comp?.notes,
-          isMissing: false,
-          uganda: bucketUgandaSubject(data.rows),
+          isMissing: result.isMissing,
+          uganda: result.uganda,
         };
       });
 
       const allSubjectDetails = subjects.map((sub: any) => {
-        const existing = subjectDetails.find((sd) => sd.name === sub.name);
+        const existing = subjectDetails.find((sd) => sd.subjectId === sub.id);
         return (
           existing || {
             name: sub.name,
@@ -387,9 +375,7 @@ export default function ReportCardsPage() {
         );
       });
 
-      const totalMarks = allSubjectDetails.reduce((sum, s) => sum + s.score, 0);
-      const maxMarks = numSubjects * 100;
-      const average = numSubjects > 0 ? Math.round((totalMarks / numSubjects) * 10) / 10 : 0;
+      const summary = summarizeClassicReport(allSubjectDetails, className);
 
       return {
         studentId: student.id,
@@ -399,32 +385,24 @@ export default function ReportCardsPage() {
         photoUrl: student.photo_url,
         className,
         subjects: allSubjectDetails,
-        totalMarks,
-        maxMarks,
-        average,
+        ...summary,
         position: 0,
-        division: "",
+        division: summary.division,
         classTeacherComment: "",
         hmComment: "",
         feeBalance: getStudentFeeBalance(student.id),
       };
     });
 
-    reportList.sort((a, b) => b.totalMarks - a.totalMarks);
-    reportList.forEach((r, i) => {
-      if (i > 0 && r.totalMarks === reportList[i - 1].totalMarks) {
-        r.position = reportList[i - 1].position;
-      } else {
-        r.position = i + 1;
-      }
-      r.division = getDivision(r.totalMarks, r.maxMarks);
+    const rankedReports = rankCompleteReports(reportList);
+    rankedReports.forEach((r) => {
       r.classTeacherComment = getAutoComment(r.position);
       r.hmComment = getAutoComment(r.position);
     });
 
     const missing = reportList.some((r) => r.subjects.some((s: any) => s.isMissing));
 
-    return { reports: reportList, missingMarks: missing, offline: usedOffline };
+    return { reports: rankedReports, missingMarks: missing, offline: usedOffline };
   }
 
   async function generateCBCReports(
@@ -435,54 +413,42 @@ export default function ReportCardsPage() {
     if (students.length === 0) return { reports: [], missingMarks: false, offline: false };
 
     // One cached-or-live fetch, split client-side (was 3 round-trips).
-    const fetched = await fetchReportGrades(classId, ["u1", "u2", "eot"]);
-    const u1Grades = fetched.rows.filter((g: any) => g.assessment_type === "u1");
-    const u2Grades = fetched.rows.filter((g: any) => g.assessment_type === "u2");
-    const eotGrades = fetched.rows.filter((g: any) => g.assessment_type === "eot");
-
-    const subjectOrder = subjects.map((s: any) => s.name);
+    const fetched = isDemo
+      ? { rows: [], offline: false }
+      : await fetchReportGrades(classId, ["u1", "u2", "eot", "exam", "competency", "identifier_score", "aoi"]);
 
     const reportList: StudentReport[] = students.map((student) => {
-      const studentU1 = u1Grades.filter((g: any) => g.student_id === student.id);
-      const studentU2 = u2Grades.filter((g: any) => g.student_id === student.id);
-      const studentEot = eotGrades.filter((g: any) => g.student_id === student.id);
-
-      const subjectsCBC = subjectOrder.map((subjName) => {
-        const u1ForSubj = studentU1.filter((g: any) => g.subjects?.name === subjName);
-        const u2ForSubj = studentU2.filter((g: any) => g.subjects?.name === subjName);
-        const eotForSubj = studentEot.filter((g: any) => g.subjects?.name === subjName);
-
-        const u1Avg =
-          u1ForSubj.length > 0
-            ? u1ForSubj.reduce((s: number, g: any) => s + Number(g.identifier_score || g.score || 0), 0) /
-              u1ForSubj.length
-            : 0;
-        const u2Avg =
-          u2ForSubj.length > 0
-            ? u2ForSubj.reduce((s: number, g: any) => s + Number(g.identifier_score || g.score || 0), 0) /
-              u2ForSubj.length
-            : 0;
-        const avgIdentifier = (u1Avg + u2Avg) / 2;
-        const formativeScore = calculateFormativeScore(avgIdentifier);
-        const eotScore = eotForSubj.length > 0 ? Number(eotForSubj[0].score || 0) : 0;
-        const summativeScore = calculateSummativeScore(eotScore);
-        const totalMark = Math.round(formativeScore + summativeScore);
-        const grade = getCBCGrade(totalMark);
-
-        const learningOutcomes: { description: string; u1Score: number; u2Score: number }[] = [];
+      const studentRows = fetched.rows.filter((row: any) => row.student_id === student.id);
+      const subjectsCBC = subjects.map((subject) => {
+        const rows = studentRows.filter((row: any) => row.subject_id === subject.id);
+        const u1ForSubj = rows.filter((row: any) => row.assessment_type === "u1");
+        const u2ForSubj = rows.filter((row: any) => row.assessment_type === "u2");
+        const calculation = calculateCBCSubject(rows);
+        const grade = calculation.grade;
+        const learningOutcomes: CBCSubjectEntry["learningOutcomes"] = [];
         const maxLen = Math.max(u1ForSubj.length, u2ForSubj.length);
         for (let i = 0; i < maxLen; i++) {
           learningOutcomes.push({
             description: u1ForSubj[i]?.topic_name || u2ForSubj[i]?.topic_name || `Learning outcome ${i + 1}`,
-            u1Score: u1ForSubj[i] ? Number(u1ForSubj[i].identifier_score || u1ForSubj[i].score || 0) : 0,
-            u2Score: u2ForSubj[i] ? Number(u2ForSubj[i].identifier_score || u2ForSubj[i].score || 0) : 0,
+            u1Score: u1ForSubj[i] ? cbcIdentifierValue(u1ForSubj[i]) : null,
+            u2Score: u2ForSubj[i] ? cbcIdentifierValue(u2ForSubj[i]) : null,
+          });
+        }
+        for (const row of rows.filter((item: any) =>
+          ["competency", "identifier_score", "aoi"].includes(item.assessment_type),
+        )) {
+          learningOutcomes.push({
+            description: row.topic_name || "Learning outcome",
+            u1Score: null,
+            u2Score: null,
+            identifierScore: cbcIdentifierValue(row),
           });
         }
 
         return {
-          name: subjName,
-          score: totalMark,
-          grade,
+          ...calculation,
+          name: subject.name,
+          score: calculation.totalMark ?? 0,
           gradeColor:
             grade === "A+" || grade === "A"
               ? "text-green-600"
@@ -491,23 +457,15 @@ export default function ReportCardsPage() {
                 : grade === "D" || grade === "E"
                   ? "text-amber-600"
                   : "text-red-500",
-          isMissing: u1ForSubj.length === 0 && u2ForSubj.length === 0 && eotForSubj.length === 0,
+          isMissing: calculation.totalMark === null,
           teacherName: u1ForSubj[0]?.teacher_remark ? "Subject Teacher" : "Subject Teacher",
           teacherRemark: u1ForSubj[0]?.teacher_remark || "",
           teacherInitials: "",
           learningOutcomes,
-          u1Average: Math.round(u1Avg * 10) / 10,
-          u2Average: Math.round(u2Avg * 10) / 10,
-          averageIdentifier: Math.round(avgIdentifier * 10) / 10,
-          formativeScore,
-          eotScore,
-          summativeScore,
         };
       });
 
-      const totalMarks = subjectsCBC.reduce((sum, s) => sum + s.score, 0);
-      const numSubjects = subjectsCBC.length || 1;
-      const average = Math.round((totalMarks / numSubjects) * 10) / 10;
+      const summary = summarizeCBCSubjects(subjectsCBC);
 
       return {
         studentId: student.id,
@@ -517,30 +475,27 @@ export default function ReportCardsPage() {
         photoUrl: student.photo_url,
         className,
         subjects: subjectsCBC as any,
-        totalMarks,
-        maxMarks: numSubjects * 100,
-        average,
+        totalMarks: summary.totalMarkSum ?? 0,
+        maxMarks: summary.recordedSubjects * 100,
+        average: summary.overallAverage ?? 0,
+        isComplete: summary.isComplete,
+        recordedSubjects: summary.recordedSubjects,
         position: 0,
-        division: getCBCGrade(average),
+        division: summary.averageGrade,
         classTeacherComment: "",
         hmComment: "",
         feeBalance: getStudentFeeBalance(student.id),
       } as StudentReport;
     });
 
-    reportList.sort((a, b) => b.totalMarks - a.totalMarks);
-    reportList.forEach((r, i) => {
-      if (i > 0 && r.totalMarks === reportList[i - 1].totalMarks) {
-        r.position = reportList[i - 1].position;
-      } else {
-        r.position = i + 1;
-      }
+    const rankedReports = rankCompleteReports(reportList);
+    rankedReports.forEach((r) => {
       r.classTeacherComment = getAutoComment(r.position);
       r.hmComment = getAutoComment(r.position);
     });
 
     const missing = reportList.some((r) => r.subjects.some((s: any) => s.isMissing));
-    return { reports: reportList, missingMarks: missing, offline: fetched.offline };
+    return { reports: rankedReports, missingMarks: missing, offline: fetched.offline };
   }
 
   const persistReportCards = async (
@@ -548,25 +503,47 @@ export default function ReportCardsPage() {
     classId: string,
     gradesFromCache = false,
   ): Promise<{ savedCount: number; failedNames: string[]; queued: boolean }> => {
-    const cardPayloads = reportList.map((rpt) => {
+    if (isDemo) return { savedCount: 0, failedNames: [], queued: false };
+    const persistableReports = reportList.filter((report) => report.isComplete !== false);
+    const incompleteNames = reportList.filter((report) => report.isComplete === false).map((report) => report.name);
+    const cardPayloads = persistableReports.map((rpt) => {
       const subjectsJson = rpt.subjects.map((s) => ({
         name: s.name,
-        score: s.score,
+        score: s.isMissing ? null : s.score,
         grade: s.grade,
         gradeColor: s.gradeColor,
         competencyLevel: s.competencyLevel,
         competencyNotes: s.competencyNotes,
         isMissing: s.isMissing,
+        ...(reportFormat === "cbc"
+          ? {
+              u1Average: (s as any).u1Average ?? null,
+              u2Average: (s as any).u2Average ?? null,
+              averageIdentifier: (s as any).averageIdentifier ?? null,
+              formativeScore: (s as any).formativeScore ?? null,
+              eotScore: (s as any).eotScore ?? null,
+              summativeScore: (s as any).summativeScore ?? null,
+              learningOutcomes: (s as any).learningOutcomes ?? [],
+            }
+          : {}),
       }));
-      const rptBest4 = [...rpt.subjects.map((s) => s.score)].sort((a, b) => b - a).slice(0, 4);
+      const rptBest4 =
+        rpt.recordedSubjects !== undefined
+          ? rpt.subjects
+              .map((subject) => subject.uganda?.agg)
+              .filter((points): points is number => points != null)
+              .sort((left, right) => left - right)
+              .slice(0, 4)
+          : [...rpt.subjects.map((subject) => subject.score)].sort((left, right) => right - left).slice(0, 4);
       return {
         school_id: school?.id,
         student_id: rpt.studentId,
         class_id: classId,
         academic_year: academicYear,
         term: currentTerm,
+        report_format: reportFormat === "cbc" ? "cbc" : reportFormat === "competency" ? "competency" : "numerical",
         subjects: subjectsJson,
-        aggregate: rptBest4.reduce((a, b) => a + b, 0),
+        aggregate: rpt.recordedSubjects !== undefined ? (rpt.aggregate ?? null) : rptBest4.reduce((a, b) => a + b, 0),
         division: rpt.division,
         best4: rptBest4,
         generated_at: new Date().toISOString(),
@@ -581,7 +558,7 @@ export default function ReportCardsPage() {
     if (gradesFromCache || (typeof navigator !== "undefined" && !navigator.onLine)) {
       const { offlineDB } = await import("@/lib/offline");
       let queued = 0;
-      const failedNames: string[] = [];
+      const failedNames: string[] = [...incompleteNames];
       for (const payload of cardPayloads) {
         try {
           const { _name, ...row } = payload as Record<string, unknown> & { _name?: string };
@@ -598,10 +575,10 @@ export default function ReportCardsPage() {
     const { supabase: sb } = await import("@/lib/supabase");
 
     let savedCount = 0;
-    const failedNames: string[] = [];
+    const failedNames: string[] = [...incompleteNames];
 
     for (let i = 0; i < cardPayloads.length; i++) {
-      const rpt = reportList[i];
+      const rpt = persistableReports[i];
       const { _name, ...cardPayload } = cardPayloads[i] as Record<string, unknown> & { _name?: string };
       void _name;
       const existingResult = await withTimeout(
@@ -640,6 +617,7 @@ export default function ReportCardsPage() {
   };
 
   const handleGenerate = async () => {
+    if (generating || generatingAll) return;
     if (!selectedClass) {
       toast.error("Please select a class first");
       return;
@@ -649,6 +627,7 @@ export default function ReportCardsPage() {
       return;
     }
 
+    setGenerating(true);
     try {
       const {
         reports: reportList,
@@ -677,13 +656,15 @@ export default function ReportCardsPage() {
 
       const { savedCount, failedNames, queued } = await persistReportCards(reportList, selectedClass, offline);
 
-      if (queued) {
+      if (isDemo) {
+        toast.info(`Demo preview generated for ${reportList.length} students. No school records were saved.`);
+      } else if (queued) {
         toast.info(
           `Offline — ${savedCount} card${savedCount === 1 ? "" : "s"} queued on this device, will upload on reconnect. Print works now.`,
         );
       } else if (failedNames.length > 0) {
         toast.warning(
-          `Saved ${savedCount}/${reportList.length} report cards. Failed: ${failedNames.slice(0, 3).join(", ")}${
+          `Saved ${savedCount}/${reportList.length} report cards. Incomplete or unsaved: ${failedNames.slice(0, 3).join(", ")}${
             failedNames.length > 3 ? ` and ${failedNames.length - 3} more` : ""
           }`,
         );
@@ -693,10 +674,13 @@ export default function ReportCardsPage() {
     } catch (err) {
       logger.error("Error generating report cards:", err);
       toast.error("Failed to generate report cards");
+    } finally {
+      setGenerating(false);
     }
   };
 
   const handleGenerateAll = async () => {
+    if (generating || generatingAll) return;
     if (classes.length === 0) {
       toast.error("No classes available");
       return;
@@ -789,7 +773,9 @@ export default function ReportCardsPage() {
       setComments(initialComments);
       setGenerated(true);
 
-      if (totalQueued > 0) {
+      if (isDemo) {
+        toast.info(`Demo preview generated for ${allReports.length} students. No school records were saved.`);
+      } else if (totalQueued > 0) {
         toast.info(
           `Offline — ${totalQueued} cards queued on this device across ${classes.length} classes, will upload on reconnect. Print works now.`,
         );
@@ -932,7 +918,10 @@ export default function ReportCardsPage() {
         attendanceTotal: att && att.total > 0 ? att.total : null,
       },
       subjects: ordered,
-      totals,
+      totals:
+        report.recordedSubjects === undefined
+          ? totals
+          : { ...totals, aggSum: report.aggregate ?? null, division: report.division },
       comments: { classTeacher: studentComment.classTeacher, hm: studentComment.hm },
       feeBalance: report.feeBalance,
       nextTermBegins: ctx.nextTermBegins,
@@ -987,7 +976,7 @@ export default function ReportCardsPage() {
         <td style="padding:6px 10px;border:1px solid #ddd">${escapeHtml(s.name)}</td>
         ${
           reportFormat !== "competency"
-            ? `<td style="padding:6px 10px;border:1px solid #ddd;text-align:center">${s.score}</td>
+            ? `<td style="padding:6px 10px;border:1px solid #ddd;text-align:center">${s.isMissing ? "—" : s.score}</td>
         <td style="padding:6px 10px;border:1px solid #ddd;text-align:center;font-weight:bold">${escapeHtml(s.grade)}</td>`
             : ""
         }
@@ -1053,9 +1042,9 @@ export default function ReportCardsPage() {
         <tbody>${subjectRows}</tbody>
       </table>
       <div class="summary">
-        <div class="summary-card"><div class="summary-value">${report.totalMarks}/${report.maxMarks}</div><div class="summary-label">Total</div></div>
-        <div class="summary-card"><div class="summary-value">${report.average}%</div><div class="summary-label">Average</div></div>
-        <div class="summary-card"><div class="summary-value">${report.position}</div><div class="summary-label">Position</div></div>
+        <div class="summary-card"><div class="summary-value">${report.maxMarks ? `${report.totalMarks}/${report.maxMarks}` : "—"}</div><div class="summary-label">Total</div></div>
+        <div class="summary-card"><div class="summary-value">${report.maxMarks ? `${report.average}%` : "—"}</div><div class="summary-label">Average (recorded subjects)</div></div>
+        <div class="summary-card"><div class="summary-value">${report.position || "—"}</div><div class="summary-label">Position</div></div>
         <div class="summary-card"><div class="summary-value">${escapeHtml(report.division)}</div><div class="summary-label">Division</div></div>
       </div>
       <div class="comment-box">
@@ -1089,6 +1078,24 @@ export default function ReportCardsPage() {
     if (!student) return;
     const classTeacherName = (selectedClassObj as any)?.class_teacher_name || "Class Teacher";
     const studentComment = comments[report.studentId] || { classTeacher: "", hm: "" };
+    const cbcSubjects: CBCSubjectEntry[] = report.subjects.map((subject) => {
+      const details = subject as typeof subject & Partial<CBCSubjectEntry>;
+      return {
+        name: subject.name,
+        teacherName: details.teacherName || "Subject Teacher",
+        teacherRemark: details.teacherRemark || "",
+        teacherInitials: details.teacherInitials || "",
+        learningOutcomes: details.learningOutcomes || [],
+        u1Average: details.u1Average ?? null,
+        u2Average: details.u2Average ?? null,
+        averageIdentifier: details.averageIdentifier ?? null,
+        formativeScore: details.formativeScore ?? null,
+        eotScore: details.eotScore ?? null,
+        summativeScore: details.summativeScore ?? null,
+        totalMark: subject.isMissing ? null : subject.score,
+        grade: subject.grade,
+      };
+    });
 
     const cbcData = {
       school: {
@@ -1115,31 +1122,8 @@ export default function ReportCardsPage() {
       term: currentTerm,
       academicYear,
       examTitle: `End of Term ${currentTerm} Exams - ${academicYear}`,
-      subjects: report.subjects.map((s, idx) => ({
-        name: s.name,
-        teacherName: (s as any).teacherName || "Subject Teacher",
-        teacherRemark: (s as any).teacherRemark || "",
-        teacherInitials: (s as any).teacherInitials || "",
-        learningOutcomes: (s as any).learningOutcomes || [
-          { description: "General competency", u1Score: (s as any).u1Average || 0, u2Score: (s as any).u2Average || 0 },
-        ],
-        u1Average: (s as any).u1Average || 0,
-        u2Average: (s as any).u2Average || 0,
-        averageIdentifier: (s as any).averageIdentifier || 0,
-        formativeScore: (s as any).formativeScore || 0,
-        eotScore: (s as any).eotScore || 0,
-        summativeScore: (s as any).summativeScore || 0,
-        totalMark: s.score,
-        grade: s.grade,
-      })),
-      summary: {
-        totalIdentifier: 0,
-        totalFormative: 0,
-        totalEot: 0,
-        totalMarkSum: report.totalMarks,
-        overallAverage: report.average,
-        averageGrade: report.division,
-      },
+      subjects: cbcSubjects,
+      summary: summarizeCBCSubjects(cbcSubjects),
       gradingScheme: "See below",
       identifierRanges: [
         {
@@ -1166,7 +1150,7 @@ export default function ReportCardsPage() {
       ],
       classTeacher: { name: classTeacherName, comment: studentComment.classTeacher },
       headTeacher: { name: (school as any)?.principal_name || "Headteacher", comment: studentComment.hm },
-      nextTermOpens: "February 3, 2025",
+      nextTermOpens: "—",
       dateOfIssue: new Date().toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }),
     };
 
@@ -1202,6 +1186,10 @@ export default function ReportCardsPage() {
   /* Bulk print uses the Uganda layout in handlePrintAll above; the old builder was removed. */
 
   const handleSendSms = async (report: StudentReport) => {
+    if (report.isComplete === false) {
+      toast.warning("Complete missing or invalid marks before sending results.");
+      return;
+    }
     const student = classStudents.find((s) => s.id === report.studentId);
     if (!student || !student.parent_phone) {
       toast.error(`Phone number missing for ${report.name}`);
@@ -1279,14 +1267,19 @@ export default function ReportCardsPage() {
         <Button
           variant="ghost"
           onClick={handleGenerateAll}
-          disabled={generatingAll}
+          disabled={generatingAll || generating}
           className="border-emerald-200 text-emerald-700 bg-emerald-50 hover:bg-emerald-100"
         >
           <MaterialIcon icon="select_all" style={{ fontSize: "18px" }} />
           Generate All Classes
         </Button>
       )}
-      <Button onClick={handleGenerate} disabled={generatingAll} className="bg-indigo-600 shadow-indigo-600/20">
+      <Button
+        onClick={handleGenerate}
+        disabled={generatingAll || generating}
+        loading={generating}
+        className="bg-indigo-600 shadow-indigo-600/20"
+      >
         <MaterialIcon icon="bolt" style={{ fontSize: "18px" }} />
         Generate Now
       </Button>
@@ -1371,6 +1364,7 @@ export default function ReportCardsPage() {
                 ) : (
                   <select
                     id="report-cards-class"
+                    disabled={generating || generatingAll}
                     value={selectedClass}
                     onChange={(e) => {
                       setSelectedClass(e.target.value);
@@ -1408,8 +1402,15 @@ export default function ReportCardsPage() {
                 </label>
                 <select
                   id="report-card-format"
+                  disabled={generating || generatingAll}
                   value={reportFormat}
-                  onChange={(e) => setReportFormat(e.target.value as "numerical" | "competency" | "both" | "cbc")}
+                  onChange={(event) => {
+                    setReportFormat(event.target.value as "numerical" | "competency" | "both" | "cbc");
+                    setGenerated(false);
+                    setReports([]);
+                    setComments({});
+                    setSearchQuery("");
+                  }}
                   className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
                 >
                   <option value="numerical">Numerical (Marks)</option>
@@ -1428,8 +1429,8 @@ export default function ReportCardsPage() {
             <div>
               <div className="font-semibold text-amber-800">Incomplete Data Detected</div>
               <div className="text-sm text-amber-700">
-                Some students have missing marks for certain subjects. These are marked as "M.M". Printing these report
-                cards may be misleading.
+                Averages use recorded subjects only. Missing or invalid marks show as —. Incomplete reports are
+                provisional: they are not ranked, sent by SMS, or saved as official results.
               </div>
             </div>
           </div>
@@ -1440,7 +1441,10 @@ export default function ReportCardsPage() {
             <Card>
               <CardBody className="text-center">
                 <div className="text-xs font-semibold text-[var(--t3)] mb-1">Class Average</div>
-                <div className="text-2xl font-bold text-[var(--primary)]">{stats.avgTotal}%</div>
+                <div className="text-2xl font-bold text-[var(--primary)]">
+                  {stats.avgTotal === null ? "—" : `${stats.avgTotal}%`}
+                </div>
+                <p className="mt-1 text-xs text-[var(--t3)]">Completed reports only</p>
               </CardBody>
             </Card>
             <Card>
@@ -1564,23 +1568,32 @@ export default function ReportCardsPage() {
                             </td>
                             <td className="md:px-4 md:py-4 md:text-center">
                               <span className="block text-xs text-[var(--t3)] md:hidden">Total marks</span>
-                              <span className="font-bold text-lg text-[var(--primary)]">{report.totalMarks}</span>
-                              <span className="text-xs text-[var(--t3)]">/{report.maxMarks}</span>
+                              <span className="font-bold text-lg text-[var(--primary)]">
+                                {report.maxMarks ? report.totalMarks : "—"}
+                              </span>
+                              {report.maxMarks > 0 && (
+                                <span className="text-xs text-[var(--t3)]">/{report.maxMarks}</span>
+                              )}
                             </td>
                             <td className="md:px-4 md:py-4 md:text-center font-semibold">
                               <span className="block text-xs font-normal text-[var(--t3)] md:hidden">Average</span>
-                              {report.average}%
+                              <span data-report-average="">{report.maxMarks ? `${report.average}%` : "—"}</span>
+                              {report.isComplete === false && (
+                                <span className="block text-xs font-normal text-amber-700">
+                                  Provisional · {report.recordedSubjects}/{report.subjects.length} subjects
+                                </span>
+                              )}
                             </td>
                             <td className="md:px-4 md:py-4 md:text-center">
                               <span className="mb-1 block text-xs text-[var(--t3)] md:hidden">Position</span>
                               <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[var(--primary)] text-white font-bold text-sm">
-                                {report.position}
+                                {report.position || "—"}
                               </span>
                             </td>
                             <td className="md:px-4 md:py-4 md:text-center">
                               <span className="mb-1 block text-xs text-[var(--t3)] md:hidden">Division</span>
                               <span
-                                className={`whitespace-nowrap px-3 py-1 rounded-full text-xs font-semibold ${report.division === "Division 1" ? "bg-green-100 text-green-700" : report.division === "Division 2" ? "bg-blue-100 text-blue-700" : report.division === "Division 3" ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-700"}`}
+                                className={`whitespace-nowrap px-3 py-1 rounded-full text-xs font-semibold ${report.isComplete === false ? "bg-amber-100 text-amber-800" : ["Division 1", "Division I"].includes(report.division) ? "bg-green-100 text-green-700" : ["Division 2", "Division II"].includes(report.division) ? "bg-blue-100 text-blue-700" : "bg-[var(--surface-container)] text-[var(--t2)]"}`}
                               >
                                 {report.division}
                               </span>
@@ -1644,25 +1657,27 @@ export default function ReportCardsPage() {
                             </td>
                             <td className="col-span-2 md:px-6 md:py-4">
                               <div className="flex flex-wrap gap-1.5 md:justify-end">
-                                <button
-                                  onClick={() => handlePrintUganda(report)}
-                                  title="Print Uganda progress report"
-                                  aria-label={`Print Uganda progress report for ${report.name}`}
-                                  className="p-2 rounded-lg hover:bg-[var(--surface-container)] text-[var(--t3)] min-h-[44px] min-w-[44px] flex items-center justify-center"
-                                >
-                                  <MaterialIcon className="text-xl">print</MaterialIcon>
-                                </button>
+                                {reportFormat !== "cbc" && (
+                                  <button
+                                    onClick={() => handlePrintUganda(report)}
+                                    title="Print Uganda progress report"
+                                    aria-label={`Print Uganda progress report for ${report.name}`}
+                                    className="p-2 rounded-lg hover:bg-[var(--surface-container)] text-[var(--t3)] min-h-[44px] min-w-[44px] flex items-center justify-center"
+                                  >
+                                    <MaterialIcon className="text-xl">print</MaterialIcon>
+                                  </button>
+                                )}
                                 <button
                                   onClick={() => handlePrintReport(report)}
-                                  title="Print standard card"
-                                  aria-label={`Print standard card for ${report.name}`}
+                                  title={reportFormat === "cbc" ? "Print CBC report" : "Print standard card"}
+                                  aria-label={`${reportFormat === "cbc" ? "Print CBC report" : "Print standard card"} for ${report.name}`}
                                   className="p-2 rounded-lg hover:bg-[var(--surface-container)] text-[var(--t3)] min-h-[44px] min-w-[44px] flex items-center justify-center"
                                 >
                                   <MaterialIcon className="text-xl">description</MaterialIcon>
                                 </button>
                                 <button
                                   onClick={() => handleSendSms(report)}
-                                  disabled={sendingSms}
+                                  disabled={sendingSms || report.isComplete === false}
                                   title="Send SMS"
                                   aria-label={`Send results by SMS for ${report.name}`}
                                   className="min-h-11 min-w-11 p-2 rounded-lg hover:bg-[var(--surface-container)] text-[var(--t3)] disabled:opacity-40"

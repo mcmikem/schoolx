@@ -1,7 +1,8 @@
 export interface CBCLearningOutcome {
   description: string;
-  u1Score: number;
-  u2Score: number;
+  u1Score: number | null;
+  u2Score: number | null;
+  identifierScore?: number | null;
 }
 
 export interface CBCSubjectEntry {
@@ -10,13 +11,13 @@ export interface CBCSubjectEntry {
   teacherRemark: string;
   teacherInitials: string;
   learningOutcomes: CBCLearningOutcome[];
-  u1Average: number;
-  u2Average: number;
-  averageIdentifier: number;
-  formativeScore: number;
-  eotScore: number;
-  summativeScore: number;
-  totalMark: number;
+  u1Average: number | null;
+  u2Average: number | null;
+  averageIdentifier: number | null;
+  formativeScore: number | null;
+  eotScore: number | null;
+  summativeScore: number | null;
+  totalMark: number | null;
   grade: string;
 }
 
@@ -47,11 +48,11 @@ export interface CBCReportData {
   examTitle: string;
   subjects: CBCSubjectEntry[];
   summary: {
-    totalIdentifier: number;
-    totalFormative: number;
-    totalEot: number;
-    totalMarkSum: number;
-    overallAverage: number;
+    totalIdentifier: number | null;
+    totalFormative: number | null;
+    totalEot: number | null;
+    totalMarkSum: number | null;
+    overallAverage: number | null;
     averageGrade: string;
   };
   gradingScheme: string;
@@ -63,9 +64,27 @@ export interface CBCReportData {
 }
 
 const IDENTIFIER_RANGES = [
-  { level: 3, label: "Outstanding", descriptor: "Most or all LO's achieved for overall achievement", min: 2.50, max: 3.00 },
-  { level: 2, label: "Moderate", descriptor: "Many LO's achieved, enough for overall achievement", min: 1.50, max: 2.49 },
-  { level: 1, label: "Basic", descriptor: "Few LO's achieved, but not sufficient for overall achievement", min: 0.90, max: 1.49 },
+  {
+    level: 3,
+    label: "Outstanding",
+    descriptor: "Most or all LO's achieved for overall achievement",
+    min: 2.5,
+    max: 3.0,
+  },
+  {
+    level: 2,
+    label: "Moderate",
+    descriptor: "Many LO's achieved, enough for overall achievement",
+    min: 1.5,
+    max: 2.49,
+  },
+  {
+    level: 1,
+    label: "Basic",
+    descriptor: "Few LO's achieved, but not sufficient for overall achievement",
+    min: 0.9,
+    max: 1.49,
+  },
 ];
 
 const GRADING_SCALE = [
@@ -80,14 +99,15 @@ const GRADING_SCALE = [
 ];
 
 export function getCBCGrade(totalMark: number): string {
-  const found = GRADING_SCALE.find((s) => totalMark >= s.min && totalMark <= s.max);
-  return found?.grade || "G";
+  if (!Number.isFinite(totalMark) || totalMark < 0 || totalMark > 100) return "—";
+  const found = GRADING_SCALE.find((scale) => totalMark >= scale.min);
+  return found?.grade || "—";
 }
 
 export function getIdentifierLevel(avg: number): number {
-  if (avg >= 2.50) return 3;
-  if (avg >= 1.50) return 2;
-  if (avg >= 0.90) return 1;
+  if (avg >= 2.5) return 3;
+  if (avg >= 1.5) return 2;
+  if (avg >= 0.9) return 1;
   return 1;
 }
 
@@ -97,6 +117,104 @@ export function calculateFormativeScore(avgIdentifier: number): number {
 
 export function calculateSummativeScore(eotPercent: number): number {
   return Math.round(eotPercent * 0.8);
+}
+
+export interface CBCAssessmentRow {
+  assessment_type: string;
+  score?: number | null;
+  identifier_score?: number | null;
+  max_score?: number | null;
+}
+
+export function cbcIdentifierValue(row: CBCAssessmentRow): number | null {
+  const value = row.identifier_score ?? row.score;
+  return value != null && Number.isFinite(Number(value)) && Number(value) >= 0 && Number(value) <= 3
+    ? Number(value)
+    : null;
+}
+
+export function calculateCBCSubject(rows: CBCAssessmentRow[]) {
+  const average = (items: CBCAssessmentRow[]) => {
+    if (!items.length) return null;
+    const values = items.map(cbcIdentifierValue);
+    if (values.some((value) => value === null)) return null;
+    return (values as number[]).reduce((total, value) => total + value, 0) / values.length;
+  };
+  const u1Average = average(rows.filter((row) => row.assessment_type === "u1"));
+  const u2Average = average(rows.filter((row) => row.assessment_type === "u2"));
+  const identifiers = rows.filter((row) => ["competency", "identifier_score", "aoi"].includes(row.assessment_type));
+  const averageIdentifier = identifiers.length
+    ? average(identifiers)
+    : u1Average === null || u2Average === null
+      ? null
+      : (u1Average + u2Average) / 2;
+  const exams = rows.filter((row) => row.assessment_type === "eot");
+  const candidates = exams.length ? exams : rows.filter((row) => row.assessment_type === "exam");
+  const exam = candidates.length === 1 ? candidates[0] : null;
+  const maximum = exam?.max_score ?? 100;
+  const eotScore =
+    exam?.score != null &&
+    Number.isFinite(Number(exam.score)) &&
+    Number.isFinite(Number(maximum)) &&
+    Number(maximum) > 0 &&
+    Number(exam.score) >= 0 &&
+    Number(exam.score) <= Number(maximum)
+      ? (Number(exam.score) / Number(maximum)) * 100
+      : null;
+  const formativeScore = averageIdentifier === null ? null : calculateFormativeScore(averageIdentifier);
+  const summativeScore = eotScore === null ? null : calculateSummativeScore(eotScore);
+  const totalMark =
+    formativeScore === null || summativeScore === null ? null : Math.round(formativeScore + summativeScore);
+  return {
+    u1Average,
+    u2Average,
+    averageIdentifier,
+    formativeScore,
+    eotScore,
+    summativeScore,
+    totalMark,
+    grade: totalMark === null ? "—" : getCBCGrade(totalMark),
+  };
+}
+
+export function summarizeCBCSubjects(
+  subjects: Pick<
+    CBCSubjectEntry,
+    "averageIdentifier" | "formativeScore" | "eotScore" | "summativeScore" | "totalMark"
+  >[],
+) {
+  const recorded = subjects.filter((subject) => subject.totalMark !== null && Number.isFinite(subject.totalMark));
+  const sum = (key: "averageIdentifier" | "formativeScore" | "eotScore" | "summativeScore" | "totalMark") => {
+    const values = recorded
+      .map((subject) => subject[key])
+      .filter((value): value is number => value !== null && Number.isFinite(value));
+    return values.length ? Math.round(values.reduce((total, value) => total + value, 0) * 10) / 10 : null;
+  };
+  const totalMarkSum = sum("totalMark");
+  const overallAverage = recorded.length ? Math.round((totalMarkSum! / recorded.length) * 10) / 10 : null;
+  const identifiers = recorded
+    .map((subject) => subject.averageIdentifier)
+    .filter((value): value is number => value !== null);
+  const overallIdentifier = identifiers.length
+    ? identifiers.reduce((total, value) => total + value, 0) / identifiers.length
+    : null;
+  const isComplete = subjects.length > 0 && recorded.length === subjects.length;
+  return {
+    totalIdentifier: sum("averageIdentifier"),
+    totalFormative: sum("formativeScore"),
+    totalEot: sum("eotScore"),
+    totalSummative: sum("summativeScore"),
+    totalMarkSum,
+    overallAverage,
+    overallIdentifier,
+    recordedSubjects: recorded.length,
+    isComplete,
+    averageGrade: !isComplete ? "Incomplete" : getCBCGrade(overallAverage!),
+  };
+}
+
+function cbcMark(value: number | null, decimals = 1): string {
+  return value === null || !Number.isFinite(value) ? "—" : value.toFixed(decimals);
 }
 
 export function escapeHtml(s: string): string {
@@ -126,9 +244,11 @@ export function generateCBCReportHTML(data: CBCReportData): string {
         </div>
       </div>
       <div class="cbc-header-right">
-        ${data.student.photoUrl
-          ? `<img src="${escapeHtml(data.student.photoUrl)}" class="cbc-photo" alt="${escapeHtml(data.student.fullName)}" />`
-          : `<div class="cbc-photo-placeholder"></div>`}
+        ${
+          data.student.photoUrl
+            ? `<img src="${escapeHtml(data.student.photoUrl)}" class="cbc-photo" alt="${escapeHtml(data.student.fullName)}" />`
+            : `<div class="cbc-photo-placeholder"></div>`
+        }
       </div>
     </div>
   `;
@@ -147,15 +267,20 @@ export function generateCBCReportHTML(data: CBCReportData): string {
     </div>
   `;
 
-  const subjectsHtml = data.subjects.map((subj) => {
-    const outcomesHtml = subj.learningOutcomes.map((lo) => `
+  const subjectsHtml = data.subjects
+    .map((subj) => {
+      const outcomesHtml = subj.learningOutcomes
+        .map(
+          (lo) => `
       <div class="cbc-outcome">
         <span class="cbc-outcome-num">${escapeHtml(lo.description)}</span>
-        <span class="cbc-outcome-score">${lo.u1Score.toFixed(1)}</span>
+        <span class="cbc-outcome-score">${lo.identifierScore !== undefined ? `Identifier: ${cbcMark(lo.identifierScore)}` : `U1: ${cbcMark(lo.u1Score)} · U2: ${cbcMark(lo.u2Score)}`}</span>
       </div>
-    `).join("");
+    `,
+        )
+        .join("");
 
-    return `
+      return `
       <div class="cbc-subject-block">
         <div class="cbc-subject-header">
           <span class="cbc-subject-name">${escapeHtml(subj.name)}</span>
@@ -163,46 +288,35 @@ export function generateCBCReportHTML(data: CBCReportData): string {
         </div>
         <div class="cbc-teacher-remark">${escapeHtml(subj.teacherRemark)}</div>
         ${outcomesHtml}
-        <div class="cbc-mark-outof"><strong>Mark Out of 20:</strong> ${subj.formativeScore.toFixed(1)}</div>
+        <div class="cbc-mark-outof"><strong>Mark Out of 20:</strong> ${cbcMark(subj.formativeScore)}</div>
       </div>
     `;
-  }).join("");
+    })
+    .join("");
 
   let summaryRows = "";
-  let totalIdentifier = 0;
-  let totalFormative = 0;
-  let totalEot = 0;
-  let totalMarkSum = 0;
-  let subjectCount = data.subjects.length;
+  const summary = summarizeCBCSubjects(data.subjects);
 
   for (const subj of data.subjects) {
-    totalIdentifier += subj.averageIdentifier;
-    totalFormative += subj.formativeScore;
-    totalEot += subj.eotScore;
-    totalMarkSum += subj.totalMark;
-
     summaryRows += `
       <tr>
         <td class="cbc-left">${escapeHtml(subj.name)}</td>
-        <td>${subj.u1Average.toFixed(1)}</td>
-        <td>${subj.u2Average.toFixed(1)}</td>
-        <td>${subj.averageIdentifier.toFixed(1)}</td>
-        <td>${subj.formativeScore.toFixed(1)}</td>
-        <td>${Math.round(subj.eotScore)}</td>
-        <td>${subj.summativeScore}</td>
-        <td>${Math.round(subj.totalMark)}</td>
+        <td>${cbcMark(subj.u1Average)}</td>
+        <td>${cbcMark(subj.u2Average)}</td>
+        <td>${cbcMark(subj.averageIdentifier)}</td>
+        <td>${cbcMark(subj.formativeScore)}</td>
+        <td>${cbcMark(subj.eotScore, 0)}</td>
+        <td>${cbcMark(subj.summativeScore, 0)}</td>
+        <td>${cbcMark(subj.totalMark, 0)}</td>
         <td>${escapeHtml(subj.grade)}</td>
         <td>${escapeHtml(subj.teacherInitials)}</td>
       </tr>
     `;
   }
 
-  const overallAvgIdentifier = subjectCount > 0 ? (totalIdentifier / subjectCount) : 0;
-  const overallAvg = subjectCount > 0 ? Math.round((totalMarkSum / subjectCount) * 10) / 10 : 0;
-  const avgGrade = getCBCGrade(overallAvg);
-
   const summaryHtml = `
     <div class="cbc-section-title">SUMMARY REPORT</div>
+    ${summary.isComplete ? "" : '<div class="cbc-provisional">Provisional — missing or invalid assessments show as —. This is not a complete official result.</div>'}
     <div class="cbc-summary-section">
       <div class="cbc-summary-header-row">
         <span>FORMATIVE ASSESSMENT</span>
@@ -218,7 +332,6 @@ export function generateCBCReportHTML(data: CBCReportData): string {
             <th>U1</th>
             <th>U2</th>
             <th>AVE</th>
-            <th>Total<br/>Pts</th>
             <th>Total<br/>out of 20</th>
             <th>EOT<br/>100%</th>
             <th>Total<br/>out of 80</th>
@@ -235,21 +348,21 @@ export function generateCBCReportHTML(data: CBCReportData): string {
             <td class="cbc-left"><strong>TOTAL</strong></td>
             <td></td>
             <td></td>
-            <td><strong>${overallAvgIdentifier.toFixed(1)}</strong></td>
-            <td></td>
-            <td><strong>${totalFormative.toFixed(1)}</strong></td>
-            <td></td>
-            <td><strong>${totalEot.toFixed(1)}</strong></td>
-            <td><strong>${Math.round(totalMarkSum)}</strong></td>
-            <td><strong>${escapeHtml(avgGrade)}</strong></td>
+            <td><strong>${cbcMark(summary.overallIdentifier)}</strong></td>
+            <td><strong>${cbcMark(summary.totalFormative)}</strong></td>
+            <td><strong>${cbcMark(summary.totalEot)}</strong></td>
+            <td><strong>${cbcMark(summary.totalSummative)}</strong></td>
+            <td><strong>${cbcMark(summary.totalMarkSum, 0)}</strong></td>
+            <td><strong>${escapeHtml(summary.averageGrade)}</strong></td>
             <td></td>
           </tr>
         </tfoot>
       </table>
     </div>
     <div class="cbc-average-row">
-      AVERAGE: ${overallAvgIdentifier.toFixed(1)} &nbsp; ${totalFormative.toFixed(1)} &nbsp; ${totalEot.toFixed(1)} &nbsp; ${Math.round(totalMarkSum)}
-      &nbsp;&nbsp; Average Grade: ${escapeHtml(avgGrade)}
+      AVERAGE: <span class="cbc-overall-average">${summary.overallAverage === null ? "—" : `${cbcMark(summary.overallAverage)}%`}</span>
+      &nbsp; ${summary.recordedSubjects}/${data.subjects.length} completed subjects; totals exclude incomplete subjects
+      &nbsp;&nbsp; Average Grade: ${escapeHtml(summary.averageGrade)}
     </div>
   `;
 
@@ -257,9 +370,7 @@ export function generateCBCReportHTML(data: CBCReportData): string {
     <div class="cbc-grading-section">
       <div>
         <strong>Grading scheme:</strong><br/>
-        ${GRADING_SCALE.map((s) => `${s.min} ${s.grade}${s.max < 100 ? ` - ${s.max}` : "+ +"}${s.max < 85 ? "" : ""}`).join(" &nbsp;")}
-        <br/>
-        <span style="font-size:7pt">${GRADING_SCALE.map((s) => `${s.min}${s.max < 100 ? `-${s.max}` : "+"} ${s.grade}`).join(" ")}</span>
+        ${GRADING_SCALE.map((scale, index) => `${scale.min}${index === 0 ? "–100" : `–&lt;${GRADING_SCALE[index - 1].min}`} ${escapeHtml(scale.grade)}`).join(" &nbsp;|&nbsp; ")}
       </div>
       <div style="margin-top:3px">
         <strong>Identifier Ranges:</strong><br/>
@@ -271,13 +382,15 @@ export function generateCBCReportHTML(data: CBCReportData): string {
             <tr><th>Identifier</th><th>Score Range</th><th>Descriptor</th></tr>
           </thead>
           <tbody>
-            ${IDENTIFIER_RANGES.map((r) => `
+            ${IDENTIFIER_RANGES.map(
+              (r) => `
               <tr>
                 <td><strong>Level ${r.level}</strong></td>
                 <td>${r.min.toFixed(2)} - ${r.max.toFixed(2)}</td>
                 <td>${escapeHtml(r.descriptor)}</td>
               </tr>
-            `).join("")}
+            `,
+            ).join("")}
           </tbody>
         </table>
       </div>
@@ -371,6 +484,7 @@ export function generateCBCReportHTML(data: CBCReportData): string {
     .cbc-total-row td { font-weight: bold; background: ${pc}15; }
 
     .cbc-average-row { text-align: center; font-size: 7pt; font-weight: bold; color: ${pc}; margin: 2px 0; }
+    .cbc-provisional { border: 1px solid #b45309; padding: 6px; margin: 6px 0; font-size: 9pt; }
 
     .cbc-grading-section { font-size: 6.5pt; margin: 3px 0; border-top: 1px solid #ddd; padding-top: 2px; }
     .cbc-identifier-table { width: 100%; border-collapse: collapse; font-size: 6pt; margin-top: 1px; }

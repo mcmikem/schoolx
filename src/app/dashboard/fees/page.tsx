@@ -745,11 +745,16 @@ export default function FinanceHubPage() {
       toast.error("Payment amount seems too large. Please check and try again.");
       return;
     }
+    const transactionId = newPayment.momo_transaction_id.trim();
+    if (newPayment.payment_method === PAYMENT_METHODS.MOBILE_MONEY && !transactionId) {
+      toast.error("Transaction ID is required for mobile money");
+      return;
+    }
     try {
       setSaving(true);
-      let reference = newPayment.payment_reference;
-      if (newPayment.payment_method === PAYMENT_METHODS.MOBILE_MONEY && newPayment.momo_transaction_id) {
-        reference = `${newPayment.momo_provider.toUpperCase()}-${newPayment.momo_transaction_id}`;
+      let reference = newPayment.payment_reference.trim();
+      if (newPayment.payment_method === PAYMENT_METHODS.MOBILE_MONEY) {
+        reference = `${newPayment.momo_provider.toUpperCase()}-${transactionId}`;
       }
       const paymentResult = await createPayment({
         student_id: newPayment.student_id,

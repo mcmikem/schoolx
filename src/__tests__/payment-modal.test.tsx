@@ -84,4 +84,30 @@ describe("record payment form", () => {
     expect(screen.getByRole("button", { name: "Record UGX 50,000" })).toBeDisabled();
     expect(mockSave).not.toHaveBeenCalled();
   });
+
+  it("rejects whitespace-only mobile-money transaction references", () => {
+    render(<Form />);
+    const search = screen.getByRole("combobox", { name: "Student" });
+    fireEvent.change(search, { target: { value: "STU-001" } });
+    fireEvent.keyDown(search, { key: "Enter" });
+    fireEvent.change(screen.getByLabelText("Amount (UGX)"), { target: { value: "1000" } });
+    fireEvent.click(screen.getByRole("button", { name: /Next/ }));
+    fireEvent.change(screen.getByLabelText("Method"), { target: { value: "mobile_money" } });
+    fireEvent.change(screen.getByLabelText("Transaction ID"), { target: { value: "   " } });
+    expect(screen.getByRole("button", { name: "Record UGX 1,000" })).toBeDisabled();
+    expect(mockSave).not.toHaveBeenCalled();
+  });
+
+  it("shows the overpayment error before blur and enables explicit credit acknowledgement", () => {
+    render(<Form />);
+    const search = screen.getByRole("combobox", { name: "Student" });
+    fireEvent.change(search, { target: { value: "STU-001" } });
+    fireEvent.keyDown(search, { key: "Enter" });
+    fireEvent.change(screen.getByLabelText("Amount (UGX)"), { target: { value: "400000" } });
+    expect(screen.getByRole("alert")).toHaveTextContent(/Amount exceeds student balance/);
+    expect(screen.getByRole("button", { name: /Next/ })).toBeDisabled();
+    fireEvent.click(screen.getByRole("checkbox", { name: /Record excess as credit/ }));
+    expect(screen.getByRole("checkbox", { name: /Record excess as credit/ })).toBeChecked();
+    expect(screen.getByRole("button", { name: /Next/ })).toBeEnabled();
+  });
 });

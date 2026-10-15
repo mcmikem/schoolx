@@ -66,7 +66,7 @@ export default function PaymentModal({
     if (selectedStudent && Number(newPayment.amount_paid) > selectedStudent.balance && !newPayment.allow_overpayment) {
       errs.amount_paid = `Amount exceeds student balance of ${formatCurrency(selectedStudent.balance)}`;
     }
-    if (newPayment.payment_method === "mobile_money" && !newPayment.momo_transaction_id) {
+    if (newPayment.payment_method === "mobile_money" && !newPayment.momo_transaction_id.trim()) {
       errs.momo_transaction_id = "Transaction ID is required for mobile money";
     }
     if (!newPayment.payment_date || !isValidDate(newPayment.payment_date))
@@ -101,7 +101,8 @@ export default function PaymentModal({
     setTouched((prev) => ({ ...prev, [field]: true }));
   };
 
-  const fieldError = (field: string) => (touched[field] && errors[field] ? errors[field] : null);
+  const fieldError = (field: string) =>
+    (touched[field] || (field === "amount_paid" && overpaymentAmount > 0)) && errors[field] ? errors[field] : null;
 
   const errorBorder = (field: string) =>
     fieldError(field)
@@ -234,6 +235,8 @@ export default function PaymentModal({
                 value={newPayment.amount_paid}
                 onChange={(e) => onPaymentChange({ amount_paid: e.target.value })}
                 onBlur={() => handleBlur("amount_paid")}
+                aria-invalid={Boolean(fieldError("amount_paid"))}
+                aria-describedby={fieldError("amount_paid") ? "payment-amount-error" : undefined}
                 className={`w-full rounded-xl py-3.5 px-4 text-[15px] font-semibold tabular-nums transition-colors ${errorBorder("amount_paid")}`}
                 required
                 placeholder="0"
@@ -257,7 +260,11 @@ export default function PaymentModal({
                 </div>
               )}
               {fieldError("amount_paid") && (
-                <p className="text-xs text-[var(--red)] mt-1 flex items-center gap-1">
+                <p
+                  id="payment-amount-error"
+                  role="alert"
+                  className="text-xs text-[var(--red)] mt-1 flex items-center gap-1"
+                >
                   <MaterialIcon className="text-sm">error</MaterialIcon>
                   {fieldError("amount_paid")}
                 </p>
