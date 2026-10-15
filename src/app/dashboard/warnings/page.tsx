@@ -42,6 +42,7 @@ export default function EarlyWarningsPage() {
   const [warnings, setWarnings] = useState<Warning[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [sendingSms, setSendingSms] = useState(false);
   const [filterSeverity, setFilterSeverity] = useState("all");
   const [thresholds, setThresholds] = useState<WarningThresholds>({
     attendance: 80,
@@ -193,8 +194,13 @@ export default function EarlyWarningsPage() {
 
   const sendBulkSMS = async () => {
     if (filteredWarnings.length === 0) return;
+    // Blocked re-entry: a double-tap here bills every parent twice, and the old
+    // green success toast fired before the first request, so it expired while
+    // the send was still running with nothing on screen to show that.
+    if (sendingSms) return;
 
-    toast.success(`Sending SMS to ${filteredWarnings.length} guardians...`);
+    setSendingSms(true);
+    toast.info(`Sending SMS to ${filteredWarnings.length} guardians...`);
 
     const message = `Dear Parent, Your child ${filteredWarnings[0].student_name} has been flagged for academic concerns. Please contact the school to discuss how we can support your child's progress. - ${APP_NAME}`;
 
@@ -233,6 +239,8 @@ export default function EarlyWarningsPage() {
       }
     } catch (err) {
       toast.error("SMS error");
+    } finally {
+      setSendingSms(false);
     }
   };
 
@@ -315,7 +323,12 @@ export default function EarlyWarningsPage() {
             Refresh
           </Button>
           {filteredWarnings.length > 0 && (
-            <Button onClick={() => sendBulkSMS()} icon={<MaterialIcon icon="sms" className="text-lg" />}>
+            <Button
+              onClick={() => sendBulkSMS()}
+              disabled={sendingSms}
+              loading={sendingSms}
+              icon={<MaterialIcon icon="sms" className="text-lg" />}
+            >
               SMS Guardians ({filteredWarnings.length})
             </Button>
           )}

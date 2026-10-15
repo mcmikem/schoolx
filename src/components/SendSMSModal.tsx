@@ -61,7 +61,7 @@ export function SendSMSModal({ student, isOpen, onClose, onSent }: SendSMSModalP
   const [selectedTemplate, setSelectedTemplate] = useState<number | null>(null);
   const [templateVars, setTemplateVars] = useState<Record<string, string>>({});
   const [showPreview, setShowPreview] = useState(false);
-  const [deliveryStatus, setDeliveryStatus] = useState<"idle" | "sent" | "delivered" | "failed">("idle");
+  const [deliveryStatus, setDeliveryStatus] = useState<"idle" | "sending" | "sent" | "delivered" | "failed">("idle");
   const [lastMessageId, setLastMessageId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -104,7 +104,11 @@ export function SendSMSModal({ student, isOpen, onClose, onSent }: SendSMSModalP
     if (!message.trim() || !student.parent_phone || !school?.id || !user?.id) return;
 
     setSending(true);
-    setDeliveryStatus("sent");
+    // Was setDeliveryStatus("sent") here, before the request was even made. On a
+    // 5-15s 2G round-trip the modal confidently displayed a blue "Sent" the whole
+    // time and then flipped to "Delivery failed", which destroys trust in the
+    // indicator and leads the secretary to send again -- billing parents twice.
+    setDeliveryStatus("sending");
     try {
       if (isDemo) {
         toast.success("Demo mode: SMS simulated");
@@ -151,6 +155,7 @@ export function SendSMSModal({ student, isOpen, onClose, onSent }: SendSMSModalP
         if (data?.id) setLastMessageId(data.id);
 
         if (smsSent) {
+          setDeliveryStatus("sent");
           toast.success("SMS sent successfully");
         } else if (usedFallback) {
           setDeliveryStatus("failed");
@@ -161,6 +166,17 @@ export function SendSMSModal({ student, isOpen, onClose, onSent }: SendSMSModalP
             apiData.portalNotificationQueued
               ? "SMS failed. Opened WhatsApp fallback and queued parent-portal message."
               : "SMS failed. Opened WhatsApp fallback for manual send.",
+          );
+        } else {
+          // Any other gateway status -- queued, pending, accepted -- used to fall
+          // through with no toast at all, while the message was cleared below and
+          // onSent fired, so the SMS vanished from the secretary's view with zero
+          // feedback. Report it instead of pretending it went through.
+          setDeliveryStatus("failed");
+          toast.error(
+            apiData.status
+              ? `Gateway did not confirm delivery (status: ${apiData.status}).`
+              : "Gateway did not confirm delivery.",
           );
         }
 
@@ -218,20 +234,25 @@ export function SendSMSModal({ student, isOpen, onClose, onSent }: SendSMSModalP
               {deliveryStatus !== "idle" && (
                 <div
                   className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium ${
-                    deliveryStatus === "sent"
-                      ? "bg-blue-50 text-blue-700"
-                      : deliveryStatus === "delivered"
-                        ? "bg-green-50 text-green-700"
-                        : "bg-red-50 text-red-700"
+                    deliveryStatus === "sending"
+                      ? "bg-gray-100 text-gray-700"
+                      : deliveryStatus === "sent"
+                        ? "bg-blue-50 text-blue-700"
+                        : deliveryStatus === "delivered"
+                          ? "bg-green-50 text-green-700"
+                          : "bg-red-50 text-red-700"
                   }`}
                 >
-                  <MaterialIcon className="text-lg">
-                    {deliveryStatus === "sent"
-                      ? "cloud_upload"
-                      : deliveryStatus === "delivered"
-                        ? "check_circle"
-                        : "error"}
+                  <MaterialIcon className={deliveryStatus === "sending" ? "text-lg animate-spin" : "text-lg"}>
+                    {deliveryStatus === "sending"
+                      ? "sync"
+                      : deliveryStatus === "sent"
+                        ? "cloud_upload"
+                        : deliveryStatus === "delivered"
+                          ? "check_circle"
+                          : "error"}
                   </MaterialIcon>
+                  {deliveryStatus === "sending" && "Sending…"}
                   {deliveryStatus === "sent" && "Sent"}
                   {deliveryStatus === "delivered" && "Delivered"}
                   {deliveryStatus === "failed" && "Delivery failed"}

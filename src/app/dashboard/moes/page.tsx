@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
 import { useStudents, useClasses } from "@/lib/hooks";
 import { useToast } from "@/components/Toast";
+import { ErrorState } from "@/components/EmptyState";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
@@ -31,9 +32,20 @@ export default function MoESExportPage() {
   const { school } = useAuth();
   const { academicYear, currentTerm } = useAcademic();
   const toast = useToast();
-  const { students } = useStudents(school?.id, { limit: 1000 });
-  const { classes } = useClasses(school?.id);
+  const { students, loading: studentsLoading, error: studentsError } = useStudents(school?.id, { limit: 1000 });
+  const { classes, loading: classesLoading } = useClasses(school?.id);
   const [exporting, setExporting] = useState(false);
+  // This page writes a statutory return to the Ministry of Education. Both
+  // hooks used to drop their loading and error flags, so the counts rendered
+  // as real zeroes while still in flight and the Export button was live --
+  // producing a valid-looking .xlsx containing only headers and TOTAL 0 0 0,
+  // announced with a green success toast. Never export an unfinished load.
+  const dataLoading = studentsLoading || classesLoading;
+  const exportDisabledReason = studentsError
+    ? "Student records could not be loaded."
+    : dataLoading
+      ? "Still loading student records."
+      : "No classes to report on.";
 
   const moesData: MoESRow[] = useMemo(() => {
     return classes.map((cls) => {
@@ -86,6 +98,22 @@ export default function MoESExportPage() {
   );
 
   const exportToExcel = async () => {
+    // Guard here as well as on the button: this is the one path in the app that
+    // produces a document for an external regulator, so a fast double-tap, or a
+    // caller reaching this handler while a reload is in flight, must not be
+    // able to write zeroes to a statutory return.
+    if (dataLoading) {
+      toast.error("Still loading student records. Try again in a moment.");
+      return;
+    }
+    if (studentsError) {
+      toast.error("Could not load student records, so nothing was exported.");
+      return;
+    }
+    if (moesData.length === 0) {
+      toast.error("No classes to report on, so nothing was exported.");
+      return;
+    }
     setExporting(true);
     try {
       const ExcelJS = (await import("exceljs")).default;
@@ -177,19 +205,19 @@ export default function MoESExportPage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
           <Card className="text-center">
             <CardBody>
-              <div className="text-2xl font-bold text-[var(--t1)]">{totals.total}</div>
+              <div className="text-2xl font-bold text-[var(--t1)]">{dataLoading || studentsError ? "—" : totals.total}</div>
               <div className="text-sm text-[var(--t3)]">Total Students</div>
             </CardBody>
           </Card>
           <Card className="text-center">
             <CardBody>
-              <div className="text-2xl font-bold text-blue-600">{totals.boys}</div>
+              <div className="text-2xl font-bold text-blue-600">{dataLoading || studentsError ? "—" : totals.boys}</div>
               <div className="text-sm text-[var(--t3)]">Boys</div>
             </CardBody>
           </Card>
           <Card className="text-center">
             <CardBody>
-              <div className="text-2xl font-bold text-pink-600">{totals.girls}</div>
+              <div className="text-2xl font-bold text-pink-600">{dataLoading || studentsError ? "—" : totals.girls}</div>
               <div className="text-sm text-[var(--t3)]">Girls</div>
             </CardBody>
           </Card>
@@ -211,7 +239,28 @@ export default function MoESExportPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {moesData.map((row) => (
+                  {studentsError ? (
+                    <tr>
+                      <td colSpan={7} className="p-0">
+                        <ErrorState
+                          message="Student records could not be loaded, so this headcount is not accurate. Do not export it."
+                        />
+                      </td>
+                    </tr>
+                  ) : dataLoading ? (
+                    <tr>
+                      <td colSpan={7} className="px-4 py-8 text-center text-sm text-[var(--t3)]">
+                        Loading student records…
+                      </td>
+                    </tr>
+                  ) : moesData.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="px-4 py-8 text-center text-sm text-[var(--t3)]">
+                        No classes found. Add classes and students before exporting a headcount return.
+                      </td>
+                    </tr>
+                  ) : (
+                    moesData.map((row) => (
                     <tr key={row.className}>
                       <td className="font-medium text-[var(--t1)]">{row.className}</td>
                       <td className="text-blue-600">{row.boys}</td>
@@ -221,14 +270,17 @@ export default function MoESExportPage() {
                       <td>{row.age6 + row.age7 + row.age8 + row.age9 + row.age10 + row.age11 + row.age12}</td>
                       <td>{row.ageOver12}</td>
                     </tr>
-                  ))}
-                  <tr className="bg-gray-50 font-bold">
-                    <td>TOTAL</td>
-                    <td className="text-blue-600">{totals.boys}</td>
-                    <td className="text-pink-600">{totals.girls}</td>
-                    <td>{totals.total}</td>
-                    <td colSpan={3}></td>
-                  </tr>
+                    ))
+                  )}
+                  {!dataLoading && !studentsError && moesData.length > 0 && (
+                    <tr className="bg-gray-50 font-bold">
+                      <td>TOTAL</td>
+                      <td className="text-blue-600">{totals.boys}</td>
+                      <td className="text-pink-600">{totals.girls}</td>
+                      <td>{totals.total}</td>
+                      <td colSpan={3}></td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -237,7 +289,8 @@ export default function MoESExportPage() {
 
         <Button
           onClick={exportToExcel}
-          disabled={exporting}
+          disabled={exporting || dataLoading || !!studentsError || moesData.length === 0}
+          title={dataLoading || studentsError || moesData.length === 0 ? exportDisabledReason : undefined}
           icon={exporting ? undefined : <MaterialIcon icon="download" />}
         >
           {exporting ? "Exporting..." : "Download MoES Headcount (Excel)"}
