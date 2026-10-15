@@ -51,10 +51,18 @@ body {
 
 /* Phone (<640px) */
 @media (max-width: 640px) {
-  .grid.grid-cols-3,
-  .grid.grid-cols-4,
-  .grid.grid-cols-5,
-  .grid.grid-cols-6 {
+  /* Collapse wide grids to a single column -- but only where the component did
+     not ask for a specific phone layout. This file is unlayered and
+     .grid.grid-cols-N is (0,2,0), so a bare rule here outranks Tailwind's
+     .grid-cols-N (0,1,0) *and* its sm:/md:/lg: variants, which silently
+     flattened every "grid-cols-4 sm:grid-cols-7" in the app to one column on
+     a phone -- including the printed report card. Tailwind keeps the variant
+     prefix in the class attribute, so :not([class*="sm:grid-cols-"]) is
+     enough to let a component opt out. */
+  .grid.grid-cols-3:not([class*="sm:grid-cols-"]):not([class*="md:grid-cols-"]):not([class*="lg:grid-cols-"]),
+  .grid.grid-cols-4:not([class*="sm:grid-cols-"]):not([class*="md:grid-cols-"]):not([class*="lg:grid-cols-"]),
+  .grid.grid-cols-5:not([class*="sm:grid-cols-"]):not([class*="md:grid-cols-"]):not([class*="lg:grid-cols-"]),
+  .grid.grid-cols-6:not([class*="sm:grid-cols-"]):not([class*="md:grid-cols-"]):not([class*="lg:grid-cols-"]) {
     grid-template-columns: 1fr;
   }
 
