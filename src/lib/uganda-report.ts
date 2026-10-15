@@ -136,8 +136,9 @@ export function bucketUgandaSubject(rows: UgandaGradeRow[]): UgandaSubjectResult
   if (invalid) return { mid: null, mot: null, end: null, avg: null, agg: null, grade: "—" };
   const midRows = rows.filter((r) => UG_MID_TYPES.includes(r.assessment_type));
   const motRows = rows.filter((r) => r.assessment_type === "mid_term");
+  const eotRows = rows.filter((r) => r.assessment_type === "eot");
   const examRows = rows.filter((r) => r.assessment_type === "exam");
-  const endRows = examRows.length > 0 ? examRows : rows.filter((r) => r.assessment_type === "eot");
+  const endRows = eotRows.length > 0 ? eotRows : examRows;
 
   const mid = meanOrNull(midRows.map((r) => pct(Number(r.score), maxFor(r.assessment_type, r.max_score))));
   const mot = meanOrNull(motRows.map((r) => pct(Number(r.score), maxFor(r.assessment_type, r.max_score))));

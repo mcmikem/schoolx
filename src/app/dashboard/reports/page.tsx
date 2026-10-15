@@ -116,9 +116,13 @@ export default function ReportsPage() {
             ca4: s.ca4 || 0,
             project: s.project || 0,
             exam: s.exam || 0,
-            totalCA: s.totalCA || 0,
-            finalScore: s.finalScore || 0,
-            grade: s.grade || "F9",
+            totalCA: s.totalCA ?? null,
+            finalScore: s.finalScore ?? null,
+            bot: s.bot ?? null,
+            mot: s.mot ?? null,
+            eot: s.eot ?? null,
+            average: s.average ?? null,
+            grade: s.grade || (data.assessmentModel === "uganda_primary" ? "—" : "F9"),
           })) || [];
 
         setReportData({
@@ -149,6 +153,7 @@ export default function ReportsPage() {
           },
           term: data.term || currentTerm,
           academicYear: data.academicYear || academicYear,
+          assessmentModel: data.assessmentModel || "weighted",
           subjects,
           attendance: data.attendance || {
             total: 0,
@@ -254,11 +259,15 @@ export default function ReportsPage() {
           <table>
             <thead>
               <tr>
-                <th>Subject</th>
-                <th>CA Avg</th>
-                <th>Exam</th>
-                <th>Total</th>
-                <th>Grade</th>
+                {report.assessmentModel === "uganda_primary" ? (
+                  <>
+                    <th>Subject</th><th>BOT /100</th><th>MOT /100</th><th>EOT /100</th><th>Average</th><th>Grade</th>
+                  </>
+                ) : (
+                  <>
+                    <th>Subject</th><th>CA Avg</th><th>Exam</th><th>Total</th><th>Grade</th>
+                  </>
+                )}
               </tr>
             </thead>
             <tbody>
@@ -267,9 +276,11 @@ export default function ReportsPage() {
                   (s: any) => `
                 <tr>
                   <td>${s.name}</td>
-                  <td>${Math.round(s.totalCA || 0)}</td>
-                  <td>${s.exam || 0}</td>
-                  <td>${Math.round(s.finalScore || 0)}</td>
+                  ${
+                    report.assessmentModel === "uganda_primary"
+                      ? `<td>${s.bot ?? "—"}</td><td>${s.mot ?? "—"}</td><td>${s.eot ?? "—"}</td><td>${s.average ?? "—"}</td>`
+                      : `<td>${Math.round(s.totalCA || 0)}</td><td>${s.exam || 0}</td><td>${Math.round(s.finalScore || 0)}</td>`
+                  }
                   <td>${s.grade || "F9"}</td>
                 </tr>
               `,
@@ -280,7 +291,7 @@ export default function ReportsPage() {
           <div class="summary">
             <div class="summary-grid">
               <div class="summary-item">
-                <div class="summary-value">${report.overall?.average || 0}%</div>
+                <div class="summary-value">${report.overall?.average == null ? "—" : `${report.overall.average}%`}</div>
                 <div>Average</div>
               </div>
               <div class="summary-item">
@@ -362,9 +373,13 @@ export default function ReportsPage() {
             ca4: s.ca4 || 0,
             project: s.project || 0,
             exam: s.exam || 0,
-            totalCA: s.totalCA || 0,
-            finalScore: s.finalScore || 0,
-            grade: s.grade || "F9",
+            totalCA: s.totalCA ?? null,
+            finalScore: s.finalScore ?? null,
+            bot: s.bot ?? null,
+            mot: s.mot ?? null,
+            eot: s.eot ?? null,
+            average: s.average ?? null,
+            grade: s.grade || (data.assessmentModel === "uganda_primary" ? "—" : "F9"),
           })) || [];
 
         const reportDataForPDF = {
@@ -386,6 +401,7 @@ export default function ReportsPage() {
           },
           term: data.term || currentTerm,
           academicYear: data.academicYear || academicYear,
+          assessmentModel: data.assessmentModel || "weighted",
           subjects,
           attendance: data.attendance || {
             total: 0,
@@ -394,9 +410,9 @@ export default function ReportsPage() {
             late: 0,
           },
           overall: data.overall || {
-            average: 0,
-            grade: "F9",
-            division: "Ungraded",
+            average: data.assessmentModel === "uganda_primary" ? null : 0,
+            grade: data.assessmentModel === "uganda_primary" ? "—" : "F9",
+            division: data.assessmentModel === "uganda_primary" ? "—" : "Ungraded",
           },
         };
 
@@ -454,16 +470,18 @@ export default function ReportsPage() {
         doc.text(`Student No: ${reportDataForPDF.student.student_number}`, 14, studentY + 7);
 
         const tableData = reportDataForPDF.subjects.map((s: any) => [
-          s.name,
-          Math.round(s.totalCA),
-          s.exam,
-          Math.round(s.finalScore),
-          s.grade,
+          ...(reportDataForPDF.assessmentModel === "uganda_primary"
+            ? [s.name, s.bot ?? "—", s.mot ?? "—", s.eot ?? "—", s.average ?? "—", s.grade]
+            : [s.name, Math.round(s.totalCA || 0), s.exam, Math.round(s.finalScore || 0), s.grade]),
         ]);
 
         autoTable(doc, {
           startY: 65,
-          head: [["Subject", "CA Avg", "Exam", "Total", "Grade"]],
+          head: [
+            reportDataForPDF.assessmentModel === "uganda_primary"
+              ? ["Subject", "BOT /100", "MOT /100", "EOT /100", "Average", "Grade"]
+              : ["Subject", "CA Avg", "Exam", "Total", "Grade"],
+          ],
           body: tableData,
           styles: { fontSize: 8, cellPadding: 2 },
           headStyles: { fillColor: [pc.r, pc.g, pc.b], textColor: 255 },
@@ -472,7 +490,11 @@ export default function ReportsPage() {
         const summaryY = (doc as any).lastAutoTable.finalY + 10;
         doc.setFontSize(11);
         doc.setFont("helvetica", "bold");
-        doc.text(`Overall Average: ${reportDataForPDF.overall.average}%`, 14, summaryY);
+        doc.text(
+          `Overall Average: ${reportDataForPDF.overall.average == null ? "—" : `${reportDataForPDF.overall.average}%`}`,
+          14,
+          summaryY,
+        );
         doc.text(`Grade: ${reportDataForPDF.overall.grade}`, 80, summaryY);
         doc.text(`Division: ${reportDataForPDF.overall.division}`, 140, summaryY);
 

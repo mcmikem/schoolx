@@ -6,6 +6,7 @@ import OwlMascot from "@/components/brand/OwlMascot";
 
 interface ReportCardProps {
   report: {
+    assessmentModel?: "uganda_primary" | "weighted";
     student: {
       first_name: string;
       last_name: string;
@@ -47,8 +48,12 @@ interface ReportCardProps {
       ca4: number;
       project: number;
       exam: number;
-      totalCA: number;
-      finalScore: number;
+      totalCA: number | null;
+      finalScore: number | null;
+      bot?: number | null;
+      mot?: number | null;
+      eot?: number | null;
+      average?: number | null;
       grade: string;
     }>;
     attendance: {
@@ -67,7 +72,7 @@ interface ReportCardProps {
       cooperation: number;
     };
     overall: {
-      average: number;
+      average: number | null;
       grade: string;
       division: string;
       position?: number | null;
@@ -121,15 +126,14 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
   const showAttendance = school.show_attendance_in_report !== false;
   const showRemarks = school.show_remarks_in_report !== false;
   const template = school.report_template || "default";
+  const isUgandaPrimary = report.assessmentModel === "uganda_primary";
 
   const handlePrint = () => {
     if (reportRef.current) {
       const printContent = reportRef.current.innerHTML;
       const printWindow = window.open("", "_blank");
       if (printWindow) {
-        const studentName = sanitizeHTML(
-          `${report.student.first_name} ${report.student.last_name}`,
-        );
+        const studentName = sanitizeHTML(`${report.student.first_name} ${report.student.last_name}`);
         const reportPrintStyles = `
           * { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 0; box-sizing: border-box; }
           body { padding: 15px; }
@@ -178,10 +182,10 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
 
         printWindow.document.open();
         printWindow.document.title = `Report Card - ${studentName}`;
-        document.querySelectorAll('link[rel="stylesheet"], style').forEach(el => {
+        document.querySelectorAll('link[rel="stylesheet"], style').forEach((el) => {
           printWindow.document.head.appendChild(el.cloneNode(true));
         });
-        printWindow.document.head.insertAdjacentHTML('beforeend', `<style>${reportPrintStyles}</style>`);
+        printWindow.document.head.insertAdjacentHTML("beforeend", `<style>${reportPrintStyles}</style>`);
         printWindow.document.body.innerHTML = printContent;
         printWindow.document.close();
         printWindow.focus();
@@ -234,60 +238,42 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
     );
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
-    doc.text(
-      reportHeader || `TERM ${report.term} REPORT CARD — ${report.academicYear}`,
-      105,
-      37,
-      { align: "center" },
-    );
+    doc.text(reportHeader || `TERM ${report.term} REPORT CARD — ${report.academicYear}`, 105, 37, { align: "center" });
     doc.setFont("helvetica", "normal");
 
     // Student Info
     doc.setTextColor(0, 0, 0);
     doc.setFontSize(10);
     const studentY = 50;
-    doc.text(
-      `Name: ${report.student.first_name} ${report.student.last_name}`,
-      14,
-      studentY,
-    );
+    doc.text(`Name: ${report.student.first_name} ${report.student.last_name}`, 14, studentY);
     doc.text(`Class: ${report.student.classes?.name || "N/A"}`, 120, studentY);
     doc.text(`Student No: ${report.student.student_number}`, 14, studentY + 7);
-    doc.text(
-      `Gender: ${report.student.gender === "M" ? "Male" : "Female"}`,
-      120,
-      studentY + 7,
-    );
+    doc.text(`Gender: ${report.student.gender === "M" ? "Male" : "Female"}`, 120, studentY + 7);
 
     // Grades Table
-    const tableData = report.subjects.map((s) => [
-      s.name,
-      s.ca1,
-      s.ca2,
-      s.ca3,
-      s.ca4,
-      s.project,
-      Math.round(s.totalCA),
-      s.exam,
-      Math.round(s.finalScore),
-      s.grade,
-    ]);
+    const tableData = report.subjects.map((s) =>
+      isUgandaPrimary
+        ? [s.name, s.bot ?? "—", s.mot ?? "—", s.eot ?? "—", s.average ?? "—", s.grade]
+        : [
+            s.name,
+            s.ca1,
+            s.ca2,
+            s.ca3,
+            s.ca4,
+            s.project,
+            Math.round(s.totalCA || 0),
+            s.exam,
+            Math.round(s.finalScore || 0),
+            s.grade,
+          ],
+    );
 
     autoTable(doc, {
       startY: 65,
       head: [
-        [
-          "Subject",
-          "CA1",
-          "CA2",
-          "CA3",
-          "CA4",
-          "Proj",
-          "CA Avg",
-          "Exam",
-          "Total",
-          "Grade",
-        ],
+        isUgandaPrimary
+          ? ["Subject", "BOT /100", "MOT /100", "EOT /100", "Average", "Grade"]
+          : ["Subject", "CA1", "CA2", "CA3", "CA4", "Proj", "CA Avg", "Exam", "Total", "Grade"],
       ],
       body: tableData,
       styles: { fontSize: 8, cellPadding: 2 },
@@ -295,7 +281,7 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
       alternateRowStyles: { fillColor: [250, 251, 252] },
       columnStyles: {
         0: { cellWidth: 45, halign: "left" },
-        9: { fontStyle: "bold" },
+        [isUgandaPrimary ? 5 : 9]: { fontStyle: "bold" },
       },
     });
 
@@ -331,7 +317,7 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
     doc.setFontSize(11);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(0, 0, 0);
-    doc.text(`Overall Average: ${report.overall.average}%`, 14, summaryY);
+    doc.text(`Overall Average: ${report.overall.average == null ? "—" : `${report.overall.average}%`}`, 14, summaryY);
     doc.text(`Grade: ${report.overall.grade}`, 80, summaryY);
     doc.text(`Division: ${report.overall.division}`, 140, summaryY);
 
@@ -361,18 +347,10 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
       doc.setFontSize(9);
       doc.setTextColor(0, 0, 0);
       if (report.class_teacher_remark) {
-        doc.text(
-          `Class Teacher: ${report.class_teacher_remark}`,
-          14,
-          remarksY + 8,
-        );
+        doc.text(`Class Teacher: ${report.class_teacher_remark}`, 14, remarksY + 8);
       }
       if (report.head_teacher_remark) {
-        doc.text(
-          `Head Teacher: ${report.head_teacher_remark}`,
-          14,
-          remarksY + 16,
-        );
+        doc.text(`Head Teacher: ${report.head_teacher_remark}`, 14, remarksY + 16);
       }
     }
 
@@ -404,9 +382,7 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
       doc.text(reportFooter, 105, 287, { align: "center" });
     }
 
-    doc.save(
-      `Report_${report.student.first_name}_${report.student.last_name}_T${report.term}.pdf`,
-    );
+    doc.save(`Report_${report.student.first_name}_${report.student.last_name}_T${report.term}.pdf`);
   };
 
   function hexToRgb(hex: string) {
@@ -473,10 +449,7 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
         style={{ border: `2px solid ${primaryColor}` }}
       >
         {/* Header */}
-        <div
-          className="text-white p-5 text-center"
-          style={{ backgroundColor: primaryColor }}
-        >
+        <div className="text-white p-5 text-center" style={{ backgroundColor: primaryColor }}>
           {school.logo_url && (
             <Image
               src={school.logo_url}
@@ -486,29 +459,15 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
               className="mx-auto mb-2 rounded-lg object-cover bg-white/20"
             />
           )}
-          <div className="text-xl font-bold tracking-wide">
-            {report.school?.name || "School Name"}
-          </div>
-          {schoolMotto && (
-            <div className="text-xs italic mt-1 opacity-90">
-              "{schoolMotto}"
-            </div>
-          )}
-          {reportHeader && (
-            <div className="text-[11px] font-semibold mt-1.5 opacity-95">
-              {reportHeader}
-            </div>
-          )}
+          <div className="text-xl font-bold tracking-wide">{report.school?.name || "School Name"}</div>
+          {schoolMotto && <div className="text-xs italic mt-1 opacity-90">"{schoolMotto}"</div>}
+          {reportHeader && <div className="text-[11px] font-semibold mt-1.5 opacity-95">{reportHeader}</div>}
           <div className="text-sm opacity-90 mt-1.5">
             {report.school?.district || ""} District
-            {report.school?.uneab_center_number &&
-              ` | Center: ${report.school.uneab_center_number}`}
+            {report.school?.uneab_center_number && ` | Center: ${report.school.uneab_center_number}`}
           </div>
           {!reportHeader && (
-            <div
-              className="text-sm font-semibold mt-2 pt-2"
-              style={{ borderTop: "1px solid rgba(255,255,255,0.3)" }}
-            >
+            <div className="text-sm font-semibold mt-2 pt-2" style={{ borderTop: "1px solid rgba(255,255,255,0.3)" }}>
               TERM {report.term} REPORT CARD — {report.academicYear}
             </div>
           )}
@@ -536,33 +495,21 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
             </div>
           </div>
           <div>
-            <div className="text-xs text-gray-500 uppercase tracking-wide">
-              Student Name
-            </div>
+            <div className="text-xs text-gray-500 uppercase tracking-wide">Student Name</div>
             <div className="font-semibold text-sm text-gray-900">
               {report.student.first_name} {report.student.last_name}
             </div>
           </div>
           <div>
-            <div className="text-xs text-gray-500 uppercase tracking-wide">
-              Class
-            </div>
-            <div className="font-semibold text-sm text-gray-900">
-              {report.student.classes?.name || "N/A"}
-            </div>
+            <div className="text-xs text-gray-500 uppercase tracking-wide">Class</div>
+            <div className="font-semibold text-sm text-gray-900">{report.student.classes?.name || "N/A"}</div>
           </div>
           <div>
-            <div className="text-xs text-gray-500 uppercase tracking-wide">
-              Student No.
-            </div>
-            <div className="font-semibold text-sm text-gray-900">
-              {report.student.student_number}
-            </div>
+            <div className="text-xs text-gray-500 uppercase tracking-wide">Student No.</div>
+            <div className="font-semibold text-sm text-gray-900">{report.student.student_number}</div>
           </div>
           <div>
-            <div className="text-xs text-gray-500 uppercase tracking-wide">
-              Gender
-            </div>
+            <div className="text-xs text-gray-500 uppercase tracking-wide">Gender</div>
             <div className="font-semibold text-sm text-gray-900">
               {report.student.gender === "M" ? "Male" : "Female"}
             </div>
@@ -574,99 +521,117 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
           <table className="w-full text-sm">
             <thead>
               <tr style={{ backgroundColor: primaryColor }}>
-                <th
-                  className="text-left px-3 py-2 text-white font-semibold"
-                  style={{ borderColor: primaryColor }}
-                >
-                  Subject
-                </th>
-                <th
-                  className="text-center px-2 py-2 text-white font-semibold"
-                  style={{ borderColor: primaryColor }}
-                >
-                  CA1
-                </th>
-                <th
-                  className="text-center px-2 py-2 text-white font-semibold"
-                  style={{ borderColor: primaryColor }}
-                >
-                  CA2
-                </th>
-                <th
-                  className="text-center px-2 py-2 text-white font-semibold"
-                  style={{ borderColor: primaryColor }}
-                >
-                  CA3
-                </th>
-                <th
-                  className="text-center px-2 py-2 text-white font-semibold"
-                  style={{ borderColor: primaryColor }}
-                >
-                  CA4
-                </th>
-                <th
-                  className="text-center px-2 py-2 text-white font-semibold"
-                  style={{ borderColor: primaryColor }}
-                >
-                  Proj
-                </th>
-                <th
-                  className="text-center px-2 py-2 text-white font-semibold"
-                  style={{ borderColor: primaryColor }}
-                >
-                  CA Avg
-                </th>
-                <th
-                  className="text-center px-2 py-2 text-white font-semibold"
-                  style={{ borderColor: primaryColor }}
-                >
-                  Exam
-                </th>
-                <th
-                  className="text-center px-2 py-2 text-white font-semibold"
-                  style={{ borderColor: primaryColor }}
-                >
-                  Total
-                </th>
-                <th
-                  className="text-center px-2 py-2 text-white font-semibold"
-                  style={{ borderColor: primaryColor }}
-                >
-                  Grade
-                </th>
+                {isUgandaPrimary ? (
+                  <>
+                    <th className="text-left px-3 py-2 text-white font-semibold">Subject</th>
+                    {[
+                      ["BOT /100", "bot"],
+                      ["MOT /100", "mot"],
+                      ["EOT /100", "eot"],
+                      ["Average", "average"],
+                      ["Grade", "grade"],
+                    ].map(([label, key]) => (
+                      <th
+                        key={key}
+                        className="text-center px-2 py-2 text-white font-semibold"
+                        style={{ borderColor: primaryColor }}
+                      >
+                        {label}
+                      </th>
+                    ))}
+                  </>
+                ) : (
+                  <>
+                    <th className="text-left px-3 py-2 text-white font-semibold" style={{ borderColor: primaryColor }}>
+                      Subject
+                    </th>
+                    <th
+                      className="text-center px-2 py-2 text-white font-semibold"
+                      style={{ borderColor: primaryColor }}
+                    >
+                      CA1
+                    </th>
+                    <th
+                      className="text-center px-2 py-2 text-white font-semibold"
+                      style={{ borderColor: primaryColor }}
+                    >
+                      CA2
+                    </th>
+                    <th
+                      className="text-center px-2 py-2 text-white font-semibold"
+                      style={{ borderColor: primaryColor }}
+                    >
+                      CA3
+                    </th>
+                    <th
+                      className="text-center px-2 py-2 text-white font-semibold"
+                      style={{ borderColor: primaryColor }}
+                    >
+                      CA4
+                    </th>
+                    <th
+                      className="text-center px-2 py-2 text-white font-semibold"
+                      style={{ borderColor: primaryColor }}
+                    >
+                      Proj
+                    </th>
+                    <th
+                      className="text-center px-2 py-2 text-white font-semibold"
+                      style={{ borderColor: primaryColor }}
+                    >
+                      CA Avg
+                    </th>
+                    <th
+                      className="text-center px-2 py-2 text-white font-semibold"
+                      style={{ borderColor: primaryColor }}
+                    >
+                      Exam
+                    </th>
+                    <th
+                      className="text-center px-2 py-2 text-white font-semibold"
+                      style={{ borderColor: primaryColor }}
+                    >
+                      Total
+                    </th>
+                    <th
+                      className="text-center px-2 py-2 text-white font-semibold"
+                      style={{ borderColor: primaryColor }}
+                    >
+                      Grade
+                    </th>
+                  </>
+                )}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {report.subjects.map((subject, i) => (
-                <tr
-                  key={i}
-                  className="hover:bg-gray-50"
-                  style={i % 2 === 1 ? { backgroundColor: "#fafbfc" } : {}}
-                >
-                  <td className="px-3 py-2 text-gray-900 font-medium">
-                    {subject.name}
-                  </td>
-                  <td className="text-center px-2 py-2">{subject.ca1}</td>
-                  <td className="text-center px-2 py-2">{subject.ca2}</td>
-                  <td className="text-center px-2 py-2">{subject.ca3}</td>
-                  <td className="text-center px-2 py-2">{subject.ca4}</td>
-                  <td className="text-center px-2 py-2">{subject.project}</td>
-                  <td
-                    className="text-center px-2 py-2 font-medium"
-                    style={{ backgroundColor: `${accentColor}10` }}
-                  >
-                    {Math.round(subject.totalCA)}
-                  </td>
-                  <td className="text-center px-2 py-2">{subject.exam}</td>
-                  <td
-                    className="text-center px-2 py-2 font-bold"
-                    style={{ backgroundColor: `${accentColor}10` }}
-                  >
-                    {Math.round(subject.finalScore)}
-                  </td>
-                  <td className="text-center px-2 py-2 font-bold">
-                    {subject.grade}
-                  </td>
+                <tr key={i} className="hover:bg-gray-50" style={i % 2 === 1 ? { backgroundColor: "#fafbfc" } : {}}>
+                  <td className="px-3 py-2 text-gray-900 font-medium">{subject.name}</td>
+                  {isUgandaPrimary ? (
+                    <>
+                      <td className="text-center px-2 py-2">{subject.bot ?? "—"}</td>
+                      <td className="text-center px-2 py-2">{subject.mot ?? "—"}</td>
+                      <td className="text-center px-2 py-2">{subject.eot ?? "—"}</td>
+                      <td className="text-center px-2 py-2 font-semibold">{subject.average ?? "—"}</td>
+                      <td className="text-center px-2 py-2 font-bold">{subject.grade || "—"}</td>
+                    </>
+                  ) : (
+                    <>
+                      <td className="text-center px-2 py-2">{subject.ca1}</td>
+                      <td className="text-center px-2 py-2">{subject.ca2}</td>
+                      <td className="text-center px-2 py-2">{subject.ca3}</td>
+                      <td className="text-center px-2 py-2">{subject.ca4}</td>
+                      <td className="text-center px-2 py-2">{subject.project}</td>
+                      <td className="text-center px-2 py-2 font-medium" style={{ backgroundColor: `${accentColor}10` }}>
+                        {Math.round(subject.totalCA || 0)}
+                      </td>
+                      <td className="text-center px-2 py-2">{subject.exam}</td>
+                      <td className="text-center px-2 py-2 font-bold" style={{ backgroundColor: `${accentColor}10` }}>
+                        {Math.round(subject.finalScore || 0)}
+                      </td>
+                      <td className="text-center px-2 py-2 font-bold">{subject.grade}</td>
+                    </>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -675,32 +640,18 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
 
         {/* Conduct Section */}
         {showConduct && report.conduct && (
-          <div
-            className="p-4 border-t"
-            style={{ borderColor: `${primaryColor}20` }}
-          >
-            <div
-              className="text-sm font-bold uppercase tracking-wide mb-3"
-              style={{ color: primaryColor }}
-            >
+          <div className="p-4 border-t" style={{ borderColor: `${primaryColor}20` }}>
+            <div className="text-sm font-bold uppercase tracking-wide mb-3" style={{ color: primaryColor }}>
               Conduct & Behavior
             </div>
             <div className="grid grid-cols-4 sm:grid-cols-7 gap-2">
               {CONDUCT_LABELS.map((c) => (
-                <div
-                  key={c.key}
-                  className="text-center p-2 rounded-lg border border-gray-100 bg-gray-50"
-                >
+                <div key={c.key} className="text-center p-2 rounded-lg border border-gray-100 bg-gray-50">
                   <div className="text-xs text-gray-500">{c.label}</div>
-                  <div
-                    className="text-lg font-bold"
-                    style={{ color: primaryColor }}
-                  >
+                  <div className="text-lg font-bold" style={{ color: primaryColor }}>
                     {(report.conduct as any)[c.key]}
                   </div>
-                  <div className="text-xs text-gray-400">
-                    {CONDUCT_RATINGS[(report.conduct as any)[c.key]] || ""}
-                  </div>
+                  <div className="text-xs text-gray-400">{CONDUCT_RATINGS[(report.conduct as any)[c.key]] || ""}</div>
                 </div>
               ))}
             </div>
@@ -709,34 +660,23 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
 
         {/* Summary */}
         <div className="p-4 border-t-2" style={{ borderColor: primaryColor }}>
-          <div
-            className={`grid gap-3 mb-4 ${showPosition ? "grid-cols-4" : "grid-cols-3"}`}
-          >
+          <div className={`grid gap-3 mb-4 ${showPosition ? "grid-cols-4" : "grid-cols-3"}`}>
             <div
               className="text-center p-3 rounded-lg"
               style={{ backgroundColor: "#fafbfc", border: "1px solid #eee" }}
             >
-              <div className="text-xs text-gray-500 uppercase tracking-wide">
-                Overall Average
-              </div>
-              <div
-                className="text-2xl font-black"
-                style={{ color: primaryColor }}
-              >
-                {report.overall.average}%
+              <div className="text-xs text-gray-500 uppercase tracking-wide">Overall Average</div>
+              <div className="text-2xl font-black" style={{ color: primaryColor }}>
+                {report.overall.average ?? "—"}
+                {report.overall.average == null ? "" : "%"}
               </div>
             </div>
             <div
               className="text-center p-3 rounded-lg"
               style={{ backgroundColor: "#fafbfc", border: "1px solid #eee" }}
             >
-              <div className="text-xs text-gray-500 uppercase tracking-wide">
-                Grade
-              </div>
-              <div
-                className="text-2xl font-black"
-                style={{ color: primaryColor }}
-              >
+              <div className="text-xs text-gray-500 uppercase tracking-wide">Grade</div>
+              <div className="text-2xl font-black" style={{ color: primaryColor }}>
                 {report.overall.grade}
               </div>
             </div>
@@ -744,9 +684,7 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
               className="text-center p-3 rounded-lg"
               style={{ backgroundColor: "#fafbfc", border: "1px solid #eee" }}
             >
-              <div className="text-xs text-gray-500 uppercase tracking-wide">
-                Division
-              </div>
+              <div className="text-xs text-gray-500 uppercase tracking-wide">Division</div>
               <div
                 className={`text-xl font-black ${
                   report.overall.division === "Division I"
@@ -766,13 +704,8 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
                 className="text-center p-3 rounded-lg"
                 style={{ backgroundColor: "#fafbfc", border: "1px solid #eee" }}
               >
-                <div className="text-xs text-gray-500 uppercase tracking-wide">
-                  Position
-                </div>
-                <div
-                  className="text-2xl font-black"
-                  style={{ color: primaryColor }}
-                >
+                <div className="text-xs text-gray-500 uppercase tracking-wide">Position</div>
+                <div className="text-2xl font-black" style={{ color: primaryColor }}>
                   {report.overall.position}
                 </div>
               </div>
@@ -784,12 +717,9 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
               className="text-center p-3 rounded-lg mb-4"
               style={{ backgroundColor: "#fafbfc", border: "1px solid #eee" }}
             >
-              <div className="text-xs text-gray-500 uppercase tracking-wide">
-                Attendance
-              </div>
+              <div className="text-xs text-gray-500 uppercase tracking-wide">Attendance</div>
               <div className="text-lg font-bold text-gray-900">
-                {report.attendance.present}/{report.attendance.total} days
-                present
+                {report.attendance.present}/{report.attendance.total} days present
               </div>
               <div className="text-xs text-gray-500">
                 {report.attendance.absent} absent, {report.attendance.late} late
@@ -798,43 +728,31 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
           )}
 
           {/* Remarks */}
-          {showRemarks &&
-            (report.class_teacher_remark || report.head_teacher_remark) && (
-              <div
-                className="mb-4 p-4 rounded-lg"
-                style={{
-                  backgroundColor: "#fafbfc",
-                  border: `1px solid ${primaryColor}20`,
-                }}
-              >
-                <div
-                  className="text-sm font-bold uppercase tracking-wide mb-2"
-                  style={{ color: primaryColor }}
-                >
-                  Remarks
-                </div>
-                {report.class_teacher_remark && (
-                  <div className="mb-2">
-                    <div className="text-xs text-gray-500 font-semibold uppercase">
-                      Class Teacher
-                    </div>
-                    <div className="text-sm text-gray-700 italic mt-0.5">
-                      "{report.class_teacher_remark}"
-                    </div>
-                  </div>
-                )}
-                {report.head_teacher_remark && (
-                  <div>
-                    <div className="text-xs text-gray-500 font-semibold uppercase">
-                      Head Teacher
-                    </div>
-                    <div className="text-sm text-gray-700 italic mt-0.5">
-                      "{report.head_teacher_remark}"
-                    </div>
-                  </div>
-                )}
+          {showRemarks && (report.class_teacher_remark || report.head_teacher_remark) && (
+            <div
+              className="mb-4 p-4 rounded-lg"
+              style={{
+                backgroundColor: "#fafbfc",
+                border: `1px solid ${primaryColor}20`,
+              }}
+            >
+              <div className="text-sm font-bold uppercase tracking-wide mb-2" style={{ color: primaryColor }}>
+                Remarks
               </div>
-            )}
+              {report.class_teacher_remark && (
+                <div className="mb-2">
+                  <div className="text-xs text-gray-500 font-semibold uppercase">Class Teacher</div>
+                  <div className="text-sm text-gray-700 italic mt-0.5">"{report.class_teacher_remark}"</div>
+                </div>
+              )}
+              {report.head_teacher_remark && (
+                <div>
+                  <div className="text-xs text-gray-500 font-semibold uppercase">Head Teacher</div>
+                  <div className="text-sm text-gray-700 italic mt-0.5">"{report.head_teacher_remark}"</div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Next Term */}
           {report.next_term_opens && (
@@ -842,17 +760,12 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
               className="text-center py-2 border-t"
               style={{ borderColor: `${primaryColor}20`, color: primaryColor }}
             >
-              <span className="text-sm font-semibold">
-                Next Term Opens: {report.next_term_opens}
-              </span>
+              <span className="text-sm font-semibold">Next Term Opens: {report.next_term_opens}</span>
             </div>
           )}
 
           {/* Signatures — teachers only, parent acknowledgment */}
-          <div
-            className="grid grid-cols-3 gap-6 pt-4 border-t-2"
-            style={{ borderColor: primaryColor }}
-          >
+          <div className="grid grid-cols-3 gap-6 pt-4 border-t-2" style={{ borderColor: primaryColor }}>
             <div className="text-center">
               {school.signature_class_teacher_url ? (
                 <Image
@@ -894,15 +807,10 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
                   backgroundColor: `${primaryColor}05`,
                 }}
               >
-                <div
-                  className="text-xs font-medium"
-                  style={{ color: primaryColor }}
-                >
+                <div className="text-xs font-medium" style={{ color: primaryColor }}>
                   Parent Acknowledgment
                 </div>
-                <div className="text-xs text-gray-400 mt-0.5">
-                  Report viewed via parent portal
-                </div>
+                <div className="text-xs text-gray-400 mt-0.5">Report viewed via parent portal</div>
               </div>
             </div>
           </div>
@@ -910,9 +818,7 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
 
         {/* Footer */}
         {(reportFooter || "") && (
-          <div className="px-4 py-2 text-center text-xs text-gray-400 border-t bg-gray-50">
-            {reportFooter}
-          </div>
+          <div className="px-4 py-2 text-center text-xs text-gray-400 border-t bg-gray-50">{reportFooter}</div>
         )}
       </div>
     </div>

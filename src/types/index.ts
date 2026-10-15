@@ -251,8 +251,12 @@ export interface SubjectGrades {
   project: number;
   aoi?: number; // Activities of Integration (optional for backward compat)
   exam: number;
-  totalCA: number;
-  finalScore: number;
+  totalCA: number | null;
+  finalScore: number | null;
+  bot?: number | null;
+  mot?: number | null;
+  eot?: number | null;
+  average?: number | null;
   grade: string;
 }
 
@@ -455,6 +459,7 @@ export interface ReportCard {
   };
   term: number;
   academicYear: string;
+  assessmentModel?: "uganda_primary" | "weighted";
   subjects: SubjectGrades[];
   attendance: {
     total: number;
@@ -463,7 +468,7 @@ export interface ReportCard {
     late: number;
   };
   overall: {
-    average: number;
+    average: number | null;
     grade: string;
     division: string;
     position?: number | null;

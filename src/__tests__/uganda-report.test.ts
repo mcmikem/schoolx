@@ -8,7 +8,7 @@ import {
 import { generateUgandaPrimaryHTML } from "@/components/reports/ugandaPrimaryReport";
 
 describe("bucketUgandaSubject", () => {
-  it("reports BOT, MOT and EOT separately and averages available marks without weights", () => {
+  it("reports BOT, MOT and EOT separately and prefers explicit EOT over legacy exam", () => {
     const result = bucketUgandaSubject([
       { assessment_type: "bot", score: 70, max_score: 100 },
       { assessment_type: "mid_term", score: 80, max_score: 100 },
@@ -17,10 +17,17 @@ describe("bucketUgandaSubject", () => {
     ]);
     expect(result.mid).toBe(70);
     expect(result.mot).toBe(80);
-    expect(result.end).toBe(60);
-    expect(result.avg).toBe(70);
-    expect(result.grade).toBe("C3");
-    expect(result.agg).toBe(3);
+    expect(result.end).toBe(10);
+    expect(result.avg).toBe(53);
+    expect(result.grade).toBe("P7");
+    expect(result.agg).toBe(7);
+  });
+
+  it("uses a legacy exam as EOT only when an explicit EOT mark is absent", () => {
+    expect(bucketUgandaSubject([{ assessment_type: "exam", score: 76, max_score: 100 }])).toMatchObject({
+      end: 76,
+      avg: 76,
+    });
   });
 
   it("falls back to eot when no exam row exists", () => {

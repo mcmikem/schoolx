@@ -73,6 +73,7 @@ const ASSESSMENT_TYPES = [
   "u1",
   "u2",
 ] as const;
+const TRADITIONAL_ASSESSMENT_TYPES = ["bot", "mid_term", "eot"] as const;
 /** The continuous-assessment subset, i.e. everything a CA lock is meant to cover.
  *  Lock and unlock must both derive from this: they previously hardcoded
  *  different lists (lock covered ca1-ca3, unlock ca1-ca4) so CA4 was never
@@ -363,7 +364,6 @@ export default function GradesPage() {
   const [setAllOpen, setSetAllOpen] = useState(false);
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const dirtyCellsRef = useRef<Map<string, { subjectId: string; classId: string }>>(new Map());
-  const warnedOutliersRef = useRef<Set<string>>(new Set());
   const assessmentLabels: Record<string, string> = {
     bot: "Beginning of Term (BOT)",
     mid_term: "Mid Term (MOT)",
@@ -374,7 +374,7 @@ export default function GradesPage() {
     ca3: "CA3",
     ca4: "CA4",
     project: "Project",
-    exam: "Final Exam",
+    exam: "End of Term (legacy mark)",
   };
   const touchStartX = useRef(0);
   const mobileCardRef = useRef<HTMLDivElement>(null);
@@ -433,7 +433,7 @@ export default function GradesPage() {
   const gradeTotalPages = Math.max(1, Math.ceil(displayStudents.length / gradesPerPage));
   const isStudentGraded = useCallback(
     (studentId: string): boolean => {
-      const types = competencyMode ? COMPETENCY_ASSESSMENT_TYPES : ASSESSMENT_TYPES;
+      const types = competencyMode ? COMPETENCY_ASSESSMENT_TYPES : TRADITIONAL_ASSESSMENT_TYPES;
       return types.every((t) => marks[`${studentId}_${t}`] !== null && marks[`${studentId}_${t}`] !== undefined);
     },
     [marks, competencyMode],
@@ -468,7 +468,16 @@ export default function GradesPage() {
       let isCaLocked = false;
       let lockedBy = "";
 
+      const legacyExamMarks: Record<string, number | null> = {};
       (existingGrades || []).forEach((g: any) => {
+        if (g.assessment_type === "exam") {
+          legacyExamMarks[g.student_id] = g.score ?? null;
+          if (g.recorded_by) {
+            const staffMember = staff.find((s) => s.id === g.recorded_by);
+            newMarksBy[g.recorded_by] = { name: staffMember?.full_name || "Unknown", type: "eot" };
+          }
+          return;
+        }
         marksMap[`${g.student_id}_${g.assessment_type}`] = g.score ?? null;
         if (g.recorded_by) {
           const staffMember = staff.find((s) => s.id === g.recorded_by);
@@ -483,15 +492,9 @@ export default function GradesPage() {
         }
       });
 
-      const scores = Object.values(marksMap).filter((v) => v !== null) as number[];
-      if (scores.length >= 5) {
-        const first = scores[0];
-        const allIdentical = scores.every((v) => v === first);
-        if (allIdentical) {
-          toast.warning(
-            "Alert: All entered grades in this class are identical (Zero variance). This might indicate a lack of actual assessment.",
-          );
-        }
+      for (const [studentId, score] of Object.entries(legacyExamMarks)) {
+        const eotKey = `${studentId}_eot`;
+        if (marksMap[eotKey] == null && score != null) marksMap[eotKey] = score;
       }
 
       setMarks(marksMap);
@@ -590,29 +593,6 @@ export default function GradesPage() {
         subjectId: selectedSubject,
         classId: selectedClass,
       });
-
-      if (type !== "competency" && value !== "") {
-        const otherTypes = ASSESSMENT_TYPES.filter((t) => t !== type);
-        let otherSum = 0;
-        let otherCount = 0;
-        for (const t of otherTypes) {
-          const v = marks[`${studentId}_${t}`];
-          if (v !== null && v !== undefined) {
-            otherSum += v;
-            otherCount++;
-          }
-        }
-        if (otherCount >= 2) {
-          const otherAvg = otherSum / otherCount;
-          const outlierKey = `${studentId}_${type}_${Math.round(num / 5) * 5}`;
-          if (Math.abs(num - otherAvg) > 20 && !warnedOutliersRef.current.has(outlierKey)) {
-            warnedOutliersRef.current.add(outlierKey);
-            toast.warning(
-              `${type.toUpperCase()} (${num}) differs significantly from student's other scores (~${Math.round(otherAvg)}). Please verify.`,
-            );
-          }
-        }
-      }
     }
   };
 
@@ -626,9 +606,11 @@ export default function GradesPage() {
       if (score === null || score === undefined) return null;
       return score;
     }
-    const parts = ASSESSMENT_TYPES.map((t) => marks[`${studentId}_${t}`]);
-    if (parts.some((p) => p === null || p === undefined)) return null;
-    return parts.reduce((sum, p) => (sum ?? 0) + (p ?? 0), 0) ?? null;
+    const recorded = TRADITIONAL_ASSESSMENT_TYPES.map((type) => marks[`${studentId}_${type}`]).filter(
+      (value): value is number => value !== null && value !== undefined,
+    );
+    if (recorded.length === 0) return null;
+    return Math.round(recorded.reduce((sum, value) => sum + value, 0) / recorded.length);
   };
 
   // Columns shown on a fresh sheet. The list used to be derived from existing
@@ -640,14 +622,8 @@ export default function GradesPage() {
 
   const activeAssessmentTypes = useMemo(() => {
     if (competencyMode) return [...COMPETENCY_ASSESSMENT_TYPES];
-    // Always offer the standard columns, then append any extra assessment type
-    // that already has marks somewhere in the class.
-    const extras = ASSESSMENT_TYPES.filter(
-      (type) =>
-        !DEFAULT_ASSESSMENT_TYPES.includes(type) && filteredStudents.some((s) => marks[`${s.id}_${type}`] != null),
-    );
-    return [...DEFAULT_ASSESSMENT_TYPES, ...extras];
-  }, [marks, filteredStudents, competencyMode]);
+    return [...DEFAULT_ASSESSMENT_TYPES];
+  }, [competencyMode]);
 
   const debouncedAutoSave = useCallback(
     (studentId: string, type: string, target?: { subjectId: string; classId: string }) => {
@@ -898,9 +874,11 @@ export default function GradesPage() {
       }
     }
     if (termLocked) {
-      const hasExam = Object.keys(marks).some((k) => k.endsWith("_exam") && marks[k] != null);
-      if (hasExam) {
-        toast.error("This term is locked. Exam marks can no longer be changed.");
+      const hasTermMarks = Object.keys(marks).some(
+        (key) => TRADITIONAL_ASSESSMENT_TYPES.some((type) => key.endsWith(`_${type}`)) && marks[key] != null,
+      );
+      if (hasTermMarks) {
+        toast.error("This term is locked. BOT, MOT, and EOT marks can no longer be changed.");
         return;
       }
     }
@@ -930,7 +908,10 @@ export default function GradesPage() {
         await saveGrade(gradePayload);
       }
       // Bulk-sync student_grades for all students in this subject
-      if (!competencyMode) {
+      const hasLegacyMarks = Object.keys(marks).some(
+        (key) => !TRADITIONAL_ASSESSMENT_TYPES.some((type) => key.endsWith(`_${type}`)),
+      );
+      if (!competencyMode && hasLegacyMarks) {
         const studentIds = [...new Set(Object.keys(marks).map((k) => k.split("_").slice(0, -1).join("_")))];
         await Promise.allSettled(
           studentIds.map((sid) =>
@@ -1514,9 +1495,9 @@ export default function GradesPage() {
               <div>
                 <p className="font-bold text-sm text-[var(--t1)]">How to enter marks</p>
                 <ol className="mt-2 space-y-1.5 text-[13px] text-[var(--t2)] list-decimal list-inside">
-                  <li>Type the score in the box under CA1. CA1 is classwork — mark it out of 10.</li>
-                  <li>Each pupil has their own row. Fill in as many as you have marks for.</li>
-                  <li>Then do the same for CA2, CA3 and Exam when you have them.</li>
+                  <li>Enter each pupil’s mark in the BOT, MOT or EOT box. Every mark is out of 100.</li>
+                  <li>Each pupil has one row. Leave a box empty if that assessment has not happened yet.</li>
+                  <li>Marks save as you move to another box. Use Save Grades when you are ready to finish.</li>
                   <li>
                     Leave a box empty if you have not assessed that pupil yet — you can come back and fill it later.
                   </li>
@@ -1546,8 +1527,8 @@ export default function GradesPage() {
               <span className="text-[var(--t4)]" aria-hidden="true">
                 ·
               </span>
-              <span className="font-semibold text-[var(--t2)]" title="CA1+CA2+CA3 : Exam">
-                Weightage 10+10+10+70
+              <span className="font-semibold text-[var(--t2)]" title="BOT, MOT and EOT averaged equally">
+                BOT + MOT + EOT · simple average
               </span>
             </section>
 
@@ -1568,12 +1549,12 @@ export default function GradesPage() {
                     </span>
                   </div>
                 )}
-                {Object.values(marksBy).some((m) => m.type === "exam") && (
+                {Object.values(marksBy).some((m) => m.type === "eot") && (
                   <div className="flex items-center gap-2 px-3 py-1.5 bg-surface-container rounded-full text-xs font-medium">
                     <MaterialIcon icon="supervisor_account" className="text-sm" />
                     <span>
-                      Exam entered by (Supervisor):{" "}
-                      {marksBy[Object.keys(marksBy).find((k) => marksBy[k].type === "exam") || ""]?.name || "Unknown"}
+                      EOT mark entered by:{" "}
+                      {marksBy[Object.keys(marksBy).find((k) => marksBy[k].type === "eot") || ""]?.name || "Unknown"}
                     </span>
                   </div>
                 )}
@@ -1955,7 +1936,7 @@ export default function GradesPage() {
                             </>
                           )}
                           <th className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
-                            {competencyMode ? "Status" : "Total (100)"}
+                            {competencyMode ? "Status" : "Average /100"}
                           </th>
                           <th className="px-8 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-right">
                             Grade
@@ -2342,7 +2323,7 @@ export default function GradesPage() {
                             )}
                             <div className="flex items-center justify-between pt-3 border-t border-[var(--border)]">
                               <span className="text-xs font-bold uppercase tracking-wider text-[var(--t3)]">
-                                Total{" "}
+                                Average /100{" "}
                                 <span className="text-base font-black text-[var(--on-surface)]">
                                   {total !== null ? total : "—"}
                                 </span>

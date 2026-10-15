@@ -12,7 +12,8 @@ import {
 } from "@/lib/api-utils";
 import { requireActiveSubscription, requireModuleEntitlement } from "@/lib/subscription-guard";
 import { canAccessClass, isClassScopedRole } from "@/lib/server/class-scope";
-import { weighOldCurriculum } from "@/lib/grading-tracks";
+import { detectLevelFromClass, isLowerPrimary, pleAggregate, weighOldCurriculum } from "@/lib/grading-tracks";
+import { bucketUgandaSubject, ugandaGrade } from "@/lib/uganda-report";
 
 import { REPORT_ALLOWED_ROLES } from "@/lib/server/report-access";
 
@@ -263,15 +264,34 @@ export async function POST(request: NextRequest) {
           ca4: 0,
           project: 0,
           exam: 0,
+          rows: [],
         };
       }
       subjectGrades[subjectName][grade.assessment_type] = Number(grade.score);
+      subjectGrades[subjectName].rows.push({
+        assessment_type: grade.assessment_type,
+        score: Number(grade.score),
+        max_score: grade.max_score,
+      });
     });
 
-    // Canonical old-curriculum weighting (see grading-tracks): MID averages all
-    // classwork, END is the exam, AVG = 25% MID + 75% END. (This used to be
-    // inverted here as 80/20, disagreeing with every other screen.)
+    const isUgandaPrimary = detectLevelFromClass(student.classes?.name || student.classes?.level) === "primary";
     const reportData = Object.values(subjectGrades).map((subject: any) => {
+      if (isUgandaPrimary) {
+        const result = bucketUgandaSubject(subject.rows);
+        return {
+          ...subject,
+          bot: result.mid,
+          mot: result.mot,
+          eot: result.end,
+          average: result.avg,
+          totalCA: null,
+          finalScore: result.avg,
+          grade: result.grade,
+          aggregatePoints: result.agg,
+        };
+      }
+
       const { mid, end, avg } = weighOldCurriculum(
         [subject.ca1, subject.ca2, subject.ca3, subject.ca4, subject.project],
         subject.exam,
@@ -288,10 +308,18 @@ export async function POST(request: NextRequest) {
     });
 
     // Calculate overall average
-    const overallAvg =
-      reportData.length > 0 ? reportData.reduce((sum, s) => sum + s.finalScore, 0) / reportData.length : 0;
-
-    const division = getUNEBDivision(overallAvg);
+    const recordedSubjects = reportData.filter((subject) => subject.finalScore !== null);
+    const overallAvg = recordedSubjects.length
+      ? recordedSubjects.reduce((sum, subject) => sum + subject.finalScore, 0) / recordedSubjects.length
+      : null;
+    const primaryAggregate = isUgandaPrimary
+      ? pleAggregate(
+          reportData
+            .map((subject) => subject.aggregatePoints)
+            .filter((points): points is number => typeof points === "number"),
+        )
+      : null;
+    const division = primaryAggregate?.division || (overallAvg === null ? "Ungraded" : getUNEBDivision(overallAvg));
 
     // Compute class position by ranking all students in the same class
     let position: number | null = null;
@@ -334,11 +362,19 @@ export async function POST(request: NextRequest) {
       school,
       term: term || 1,
       academicYear: resolvedAcademicYear,
+      assessmentModel: isUgandaPrimary ? "uganda_primary" : "weighted",
       subjects: reportData,
       attendance: attendanceSummary,
       overall: {
-        average: Math.round(overallAvg * 10) / 10,
-        grade: getUNEBGrade(overallAvg),
+        average: overallAvg === null ? null : Math.round(overallAvg * 10) / 10,
+        grade:
+          overallAvg === null
+            ? "—"
+            : isUgandaPrimary
+              ? isLowerPrimary(student.classes?.name || student.classes?.level)
+                ? "—"
+                : ugandaGrade(overallAvg)
+              : getUNEBGrade(overallAvg),
         division,
         position,
       },
