@@ -289,7 +289,6 @@ export async function POST(request: NextRequest) {
           totalCA: null,
           finalScore: result.avg,
           grade: result.grade,
-          aggregatePoints: result.agg,
         };
       }
 
