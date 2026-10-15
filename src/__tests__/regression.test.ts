@@ -1196,6 +1196,23 @@ describe("Staff directory rows use one overflow menu", () => {
     expect(mig).toContain("School staff parent_students write");
   });
 
+  it("fee payment writes are gated on fee managers, not the legacy fee-terms policy", () => {
+    const mig = read("supabase/migrations/20261117000000_fee_payments_write_policies.sql");
+    // The deployed legacy insert/update policies required student_fee_term_id
+    // to match a student_fee_terms row, but the modern payment form writes
+    // student_id + fee_id instead, so every insert and void failed RLS.
+    expect(mig).toContain('DROP POLICY IF EXISTS "School users fee_payments insert"');
+    expect(mig).toContain('DROP POLICY IF EXISTS "School users fee_payments update"');
+    expect(mig).toContain('DROP POLICY IF EXISTS "School users fee_payments delete"');
+    // Writes are school-scoped and limited to the fee-manager roles the API
+    // already recognises (can_manage_fees mirrors FEE_MGMT_ROLES).
+    expect(mig).toContain("can_manage_fees");
+    expect(mig).toContain("Fee managers insert fee_payments");
+    expect(mig).toContain("Fee managers update fee_payments");
+    // Hard deletes stay admin-only; the client voids through UPDATE.
+    expect(mig).toContain("School admins delete fee_payments");
+  });
+
   it("the dorm feature repair creates the missing tables and staff-gates dorm writes", () => {
     const mig = read("supabase/migrations/202611110003_dorm_feature_repair.sql");
     // The dorm UI reads/writes dorm_rooms and dorm_incidents — tables that
