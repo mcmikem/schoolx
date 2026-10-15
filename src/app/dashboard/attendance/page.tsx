@@ -744,13 +744,13 @@ export default function AttendancePage() {
 
   return (
     <PageErrorBoundary>
-      <>
+      <div className="space-y-5 p-4 pb-24 sm:p-6 sm:pb-24 lg:pb-6">
         <PageHeader
           title="Attendance Center"
           subtitle={`Marking records for ${selectedClassName?.name || "Academic Classes"}`}
           actions={
             <div className="flex flex-col items-start sm:items-end gap-1">
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {canNotifyParents && absentCount > 0 && (
                   <Button
                     variant="secondary"
@@ -1722,7 +1722,7 @@ export default function AttendancePage() {
           confirmLabel="Send Alerts"
           variant="warning"
         />
-      </>
+      </div>
     </PageErrorBoundary>
   );
 }

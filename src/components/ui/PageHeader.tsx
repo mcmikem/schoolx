@@ -41,21 +41,27 @@ export function PageHeader({ title, subtitle, actions, children, variant = "stan
               <p className="text-sm sm:text-[15px] font-medium text-[var(--t3)] mt-2 max-w-3xl">{subtitle}</p>
             )}
           </div>
-          {actions && <div className="flex flex-wrap items-center gap-2.5">{actions}</div>}
+          {actions && (
+            <div className="flex max-w-full flex-wrap items-center gap-2.5 [&_button]:min-h-11 [&_a]:min-h-11">
+              {actions}
+            </div>
+          )}
         </div>
-        {children && <div className="relative mt-5">{children}</div>}
+        {children && <div className="relative mt-5 [&_a]:min-h-11 [&_button]:min-h-11">{children}</div>}
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-      <div>
+    <div className="flex flex-col gap-4 border-b border-[var(--border)] pb-5 mb-6 lg:flex-row lg:flex-wrap lg:items-center lg:justify-between">
+      <div className="min-w-0 flex-1">
         <h1 className="text-2xl sm:text-3xl font-heading text-[var(--t1)] tracking-tight leading-tight">{title}</h1>
-        {subtitle && <p className="text-sm text-[var(--t3)] mt-1">{subtitle}</p>}
+        {subtitle && <p className="text-sm text-[var(--t3)] mt-2 max-w-3xl leading-relaxed break-words">{subtitle}</p>}
       </div>
-      {actions && <div className="flex items-center gap-2 sm:gap-3 flex-wrap">{actions}</div>}
-      {children}
+      {actions && (
+        <div className="flex max-w-full flex-wrap items-center gap-2 [&_button]:min-h-11 [&_a]:min-h-11">{actions}</div>
+      )}
+      {children && <div className="w-full min-w-0">{children}</div>}
     </div>
   );
 }

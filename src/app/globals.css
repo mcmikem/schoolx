@@ -2506,3 +2506,9 @@ body:has([aria-modal="true"]) [data-owl-assistant] {
   visibility: hidden;
   pointer-events: none;
 }
+
+@media (max-width: 639px) {
+  body:has([data-page-action-bar]) button[data-owl-assistant] {
+    bottom: calc(176px + env(safe-area-inset-bottom, 0px));
+  }
+}

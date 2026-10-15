@@ -9,6 +9,7 @@ import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { Badge, Button, Input, Select } from "@/components/ui/index";
 import { Modal, ModalFooter } from "@/components/ui/Modal";
 import { PageHeader, PageSection } from "@/components/ui/PageHeader";
+import { FilterBar } from "@/components/ui/FilterBar";
 import PersonInitials from "@/components/ui/PersonInitials";
 import { FullPageLoader, TableSkeleton } from "@/components/ui/Skeleton";
 import { TabPanel, Tabs } from "@/components/ui/Tabs";
@@ -400,8 +401,8 @@ export default function GradesPage() {
       });
     }
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      list = list.filter((s) => `${s.first_name} ${s.last_name}`.toLowerCase().includes(q));
+      const q = searchQuery.trim().toLowerCase();
+      list = list.filter((s) => `${s.first_name} ${s.last_name} ${s.student_number || ""}`.toLowerCase().includes(q));
     }
     return list;
   }, [filteredStudents, statusFilter, studentStatusMap, searchQuery]);
@@ -1317,7 +1318,7 @@ export default function GradesPage() {
 
   return (
     <PageErrorBoundary>
-      <div className="space-y-6">
+      <div className="space-y-6 p-4 pb-52 sm:p-6 sm:pb-48">
         {/* Grade workflow confirm modal */}
         <Modal
           isOpen={gradeConfirm.open}
@@ -1349,7 +1350,7 @@ export default function GradesPage() {
               : "Select a class and subject to begin"
           }
           actions={
-            <div className="flex gap-3">
+            <div className="flex flex-wrap gap-2">
               {selectedClass &&
                 selectedSubject &&
                 (caLocked ? (
@@ -1416,7 +1417,9 @@ export default function GradesPage() {
         {/* Class & Subject pickers — the only controls before anything else */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-semibold mb-2 text-primary">Target Class</label>
+            <label htmlFor="grade-target-class" className="block text-sm font-semibold mb-2 text-primary">
+              Target Class
+            </label>
             {classesLoading ? (
               <div className="bg-[var(--navy-soft)] border border-[rgba(0,31,63,0.12)] rounded-xl p-4">
                 <p className="text-[var(--t1)] text-sm font-medium">Loading classes...</p>
@@ -1440,6 +1443,7 @@ export default function GradesPage() {
               </div>
             ) : (
               <select
+                id="grade-target-class"
                 value={selectedClass}
                 onChange={(e) => setSelectedClass(e.target.value)}
                 className="w-full bg-surface-container-lowest border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-primary text-sm font-medium"
@@ -1455,7 +1459,9 @@ export default function GradesPage() {
             )}
           </div>
           <div>
-            <label className="block text-sm font-semibold mb-2 text-primary">Subject Area</label>
+            <label htmlFor="grade-subject-area" className="block text-sm font-semibold mb-2 text-primary">
+              Subject Area
+            </label>
             {subjects.length === 0 ? (
               <div className="bg-[var(--amber-soft)] border border-[var(--amber)]/20 rounded-xl p-4">
                 <p className="text-[var(--t1)] text-sm font-medium">No subjects found</p>
@@ -1463,6 +1469,7 @@ export default function GradesPage() {
               </div>
             ) : (
               <select
+                id="grade-subject-area"
                 value={selectedSubject}
                 onChange={(e) => setSelectedSubject(e.target.value)}
                 className="w-full bg-surface-container-lowest border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-primary text-sm font-medium"
@@ -1640,41 +1647,58 @@ export default function GradesPage() {
 
         {/* Workflow Status Filter */}
         {selectedClass && selectedSubject && (
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-bold uppercase tracking-widest text-on-surface-variant mr-1">Filter:</span>
-            {(["all", "draft", "submitted", "approved"] as const).map((f) => (
-              <button
-                key={f}
-                onClick={() => {
-                  setStatusFilter(f);
-                  setGradePage(1);
-                }}
-                className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all ${
-                  statusFilter === f
-                    ? f === "all"
-                      ? "bg-primary text-on-primary"
-                      : f === "draft"
-                        ? "bg-[var(--amber-soft)] text-[var(--amber)] border border-[var(--amber)]/30"
-                        : f === "submitted"
-                          ? "bg-blue-50 text-blue-700 border border-blue-200"
-                          : "bg-[var(--green-soft)] text-[var(--green)] border border-[var(--green)]/30"
-                    : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
-                }`}
-              >
-                {f === "all" ? "All" : f === "draft" ? "Draft" : f === "submitted" ? "Submitted" : "Approved"}
-              </button>
-            ))}
-            <input
-              type="text"
-              placeholder="Search student..."
-              className="w-full md:w-48 rounded-xl border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-            <span className="text-xs text-on-surface-variant ml-auto">
-              {displayStudents.length} of {filteredStudents.length} students
-            </span>
-          </div>
+          <FilterBar
+            searchLabel="Search students"
+            searchPlaceholder="Student name or number…"
+            searchValue={searchQuery}
+            onSearchChange={(value) => {
+              setSearchQuery(value);
+              setGradePage(1);
+            }}
+            chips={
+              statusFilter === "all"
+                ? []
+                : [{ key: "status", label: "Status", value: statusFilter, display: statusFilter }]
+            }
+            onRemoveChip={() => {
+              setStatusFilter("all");
+              setGradePage(1);
+            }}
+            onClearAll={() => {
+              setSearchQuery("");
+              setStatusFilter("all");
+              setGradePage(1);
+            }}
+            resultCount={displayStudents.length}
+            totalCount={filteredStudents.length}
+          >
+            <div role="group" aria-label="Grade status" className="flex flex-wrap gap-2">
+              {(["all", "draft", "submitted", "approved"] as const).map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  aria-pressed={statusFilter === f}
+                  onClick={() => {
+                    setStatusFilter(f);
+                    setGradePage(1);
+                  }}
+                  className={`min-h-11 px-3 py-2 rounded-full text-xs font-bold transition-colors ${
+                    statusFilter === f
+                      ? f === "all"
+                        ? "bg-primary text-on-primary"
+                        : f === "draft"
+                          ? "bg-[var(--amber-soft)] text-[var(--amber)] border border-[var(--amber)]/30"
+                          : f === "submitted"
+                            ? "bg-blue-50 text-blue-700 border border-blue-200"
+                            : "bg-[var(--green-soft)] text-[var(--green)] border border-[var(--green)]/30"
+                      : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
+                  }`}
+                >
+                  {f === "all" ? "All" : f === "draft" ? "Draft" : f === "submitted" ? "Submitted" : "Approved"}
+                </button>
+              ))}
+            </div>
+          </FilterBar>
         )}
 
         {selectedClass && selectedSubject && (
@@ -2603,15 +2627,18 @@ export default function GradesPage() {
         )}
 
         {/* Sticky Action Bar */}
-        <div className="fixed bottom-[calc(84px+env(safe-area-inset-bottom,0px))] left-1/2 -translate-x-1/2 flex items-center gap-4 bg-[var(--surface)] dark:bg-[var(--surface-container-lowest)] px-6 py-4 rounded-full shadow-2xl z-40 border border-[var(--border)]/50">
-          <div className="flex items-center gap-2 text-secondary px-4 border-r border-[var(--border)]">
+        <div
+          data-page-action-bar=""
+          className="fixed bottom-[calc(84px+env(safe-area-inset-bottom,0px))] left-1/2 -translate-x-1/2 flex w-[calc(100%-24px)] max-w-2xl items-center justify-between gap-2 bg-[var(--surface)] dark:bg-[var(--surface-container-lowest)] px-3 py-3 rounded-2xl shadow-2xl z-40 border border-[var(--border)]/50 sm:w-auto sm:gap-4 sm:px-6 sm:py-4 sm:rounded-full"
+        >
+          <div className="hidden sm:flex items-center gap-2 text-secondary px-4 border-r border-[var(--border)]">
             <MaterialIcon className="text-xl">cloud_done</MaterialIcon>
             <span className="text-xs font-bold uppercase tracking-wider">Sync Active</span>
           </div>
           <button
             onClick={handleSaveDraft}
             disabled={isSubmitted || saving || !selectedClass || !selectedSubject}
-            className="flex items-center gap-2 px-4 py-2 hover:bg-[var(--surface-container)] rounded-full transition-colors font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed"
+            className="min-h-11 flex flex-1 sm:flex-none items-center justify-center gap-2 px-3 py-2 hover:bg-[var(--surface-container)] rounded-full transition-colors font-semibold text-sm disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <MaterialIcon>save</MaterialIcon>
             Save Grades
@@ -2619,7 +2646,7 @@ export default function GradesPage() {
           <button
             onClick={handleSubmitToDean}
             disabled={isSubmitted || saving || !selectedClass || !selectedSubject}
-            className="bg-primary text-white px-8 py-2.5 rounded-full font-bold text-sm hover:shadow-lg hover:shadow-primary/30 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+            className="min-h-11 flex-1 sm:flex-none bg-primary text-white px-3 sm:px-8 py-2.5 rounded-full font-bold text-sm hover:shadow-lg hover:shadow-primary/30 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {isSubmitted
               ? "Submitted ✓"

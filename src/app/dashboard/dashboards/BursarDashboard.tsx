@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import OwlMascot from "@/components/brand/OwlMascot";
+import ActionPanel from "@/components/dashboard/ActionPanel";
 import CollectionDonut from "@/components/dashboard/CollectionDonut";
 import RecentPayments from "@/components/dashboard/RecentPayments";
 import SchoolCalendar from "@/components/dashboard/SchoolCalendar";
@@ -285,10 +286,10 @@ function BursarDashboardContent() {
   }
 
   return (
-    <div className="content overflow-x-hidden">
+    <div className="content !gap-4 overflow-x-hidden">
       <PageHeader
         title="Fees overview"
-        subtitle={`${todayLabel} · Term ${currentTerm}, ${academicYear}`}
+        subtitle="Record receipts, follow up balances, and keep school finances on track."
         actions={
           <>
             <Link href="/dashboard/fees" className="btn-pill btn-primary">
@@ -313,6 +314,15 @@ function BursarDashboardContent() {
           </p>
         }
       />
+
+      <div className="mb-5">
+        <ActionPanel
+          title="Today Actions"
+          label="Bursar quick actions"
+          description="Start with your next finance task."
+          actions={todayActions}
+        />
+      </div>
 
       {/* First task. Everything below — collection rate, arrears, debtors — is
           derived from the fee items, so with none set for this term those
@@ -349,7 +359,7 @@ function BursarDashboardContent() {
         {/* ── Left Column ── */}
         <div className="xl:col-span-2 space-y-5">
           {/* Fee metrics — shared StatCard with Donezo featured + ↗ affordance */}
-          <div className="stat-grid !mb-0">
+          <div className="stat-grid !grid-cols-2 !items-stretch !mb-0">
             <StatCard
               label="Expected"
               value={`UGX ${formatCompactCurrency(totalFeesExpected)}`}
@@ -441,28 +451,6 @@ function BursarDashboardContent() {
           >
             <TaskManager tasks={tasks} emptyMessage="All caught up! No pending tasks." />
           </CollapsibleSection>
-
-          {/* Today Actions */}
-          <div className="rounded-2xl border border-[var(--surface-container-low)] bg-white p-4">
-            <div className="mb-3 flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--t1)]/10">
-                <MaterialIcon icon="today" className="text-sm text-[var(--t1)]" />
-              </div>
-              <h2 className="text-sm font-bold text-[var(--t1)] font-['Sora']">Today Actions</h2>
-            </div>
-            <div className="grid grid-cols-2 xl:grid-cols-4 gap-2">
-              {todayActions.map((action) => (
-                <Link
-                  key={action.label}
-                  href={action.href}
-                  className="flex items-center gap-2.5 rounded-xl border border-[var(--surface-container-low)] bg-[var(--surface-bright)] p-3 transition-all hover:border-[var(--border)] hover:bg-[var(--primary-50)] hover:shadow-sm active:scale-95"
-                >
-                  <span className="material-symbols-outlined text-lg text-[var(--t1)]">{action.icon}</span>
-                  <span className="text-[11px] font-bold text-[var(--t1)]">{action.label}</span>
-                </Link>
-              ))}
-            </div>
-          </div>
 
           {/* Exceptions First */}
           <div className="rounded-2xl border border-[var(--surface-container-low)] bg-white p-4">

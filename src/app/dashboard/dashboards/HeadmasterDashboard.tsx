@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useMemo } from "react";
 import OwlMascot from "@/components/brand/OwlMascot";
+import ActionPanel from "@/components/dashboard/ActionPanel";
 import SchoolCalendar from "@/components/dashboard/SchoolCalendar";
 import StatCard from "@/components/dashboard/StatCard";
 import TaskManager from "@/components/dashboard/TaskManager";
@@ -234,7 +235,7 @@ function HeadmasterDashboardContent() {
   const isFirstRun = school?.id && !isDataLoading && rosterReady && students.length === 0;
 
   return (
-    <div className="content overflow-x-hidden">
+    <div className="content !gap-4 overflow-x-hidden">
       {isDataLoading && <TopLoadingBar />}
       {timedOut ? (
         <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 mb-4 flex items-start gap-2">
@@ -312,12 +313,12 @@ function HeadmasterDashboardContent() {
               )}
               <div className="flex-1 min-w-0">
                 <h1
-                  className="text-[23px] sm:text-[28px] font-bold text-[var(--t1)] tracking-tight leading-tight truncate"
+                  className="text-[23px] sm:text-[28px] font-bold text-[var(--t1)] tracking-tight leading-tight break-words"
                   style={{ fontFamily: "'Sora', sans-serif" }}
                 >
                   {greeting}, {user?.full_name?.split(" ")[0] || "there"}
                 </h1>
-                <p className="text-[13px] text-[var(--t3)] mt-1 truncate">
+                <p className="text-[13px] text-[var(--t3)] mt-2 leading-relaxed break-words">
                   {school?.name} · {todayLabel} · Term {currentTerm}, {academicYear}
                 </p>
               </div>
@@ -331,30 +332,13 @@ function HeadmasterDashboardContent() {
           </div>
           <SetupChecklist autoHide />
 
-          <div className="card mb-5">
-            <div className="panel-head !mb-3">
-              <h2 className="panel-title">Common actions</h2>
-            </div>
-            <nav
-              aria-label="Headmaster common actions"
-              className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-6"
-            >
-              {quickActions.map((action) => (
-                <Link
-                  key={action.href}
-                  href={action.href}
-                  className="group flex min-h-16 flex-col items-center justify-center gap-1 rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] px-2 py-3 text-center transition-colors hover:border-[var(--primary)]/30 hover:bg-[var(--primary-50)]"
-                >
-                  <MaterialIcon
-                    icon={action.icon}
-                    className="text-lg text-[var(--t3)] group-hover:text-[var(--primary)]"
-                  />
-                  <span className="text-xs font-semibold text-[var(--t2)] group-hover:text-[var(--primary)]">
-                    {action.label}
-                  </span>
-                </Link>
-              ))}
-            </nav>
+          <div className="mb-5">
+            <ActionPanel
+              title="Common actions"
+              label="Headmaster common actions"
+              description="Manage your school’s people, learning, and finances."
+              actions={quickActions}
+            />
           </div>
 
           {/* ── Two-Column Layout ── */}

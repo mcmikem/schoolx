@@ -2,10 +2,20 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { type ChangeEvent, type MutableRefObject, useCallback, useEffect, useMemo, useState } from "react";
+import {
+  type ChangeEvent,
+  type MutableRefObject,
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 import OnboardingTips from "@/components/OnboardingTips";
 import PersonInitials from "@/components/ui/PersonInitials";
+import SearchField from "@/components/ui/SearchField";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/lib/auth-context";
 import { buildStudentTemplateCsv } from "@/lib/import/students";
@@ -201,6 +211,16 @@ export default function StudentRegistryPanel({
   // the toolbar is search + class + sort + Filters (touch-friendly, no
   // horizontal scroll on a phone).
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const filtersButtonRef = useRef<HTMLButtonElement>(null);
+  const filtersPanelRef = useRef<HTMLDivElement>(null);
+  const filtersPanelId = useId();
+  useEffect(() => {
+    if (filtersOpen) filtersPanelRef.current?.querySelector("select")?.focus();
+  }, [filtersOpen]);
+  const closeFilters = () => {
+    setFiltersOpen(false);
+    filtersButtonRef.current?.focus();
+  };
   // Page-scoped selection for bulk actions. Reset whenever what is on screen
   // changes, so a checked row can never silently mean a different pupil.
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -621,37 +641,20 @@ export default function StudentRegistryPanel({
             borderTopRightRadius: 22,
           }}
         >
-          <div className="relative" style={{ flex: 1, minWidth: 220 }}>
-            <MaterialIcon
-              className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--t4)]"
-              size={16}
-            >
-              search
-            </MaterialIcon>
-            <input
-              type="text"
-              ref={searchInputRef}
-              placeholder="Search by name, parent, or student number..."
+          <div className="w-full min-w-0 sm:w-auto sm:flex-1">
+            <SearchField
+              label="Search students"
               value={searchTerm}
-              onChange={(e) => onSearchTermChange(e.target.value)}
-              className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-container-lowest)] py-2.5 pl-9 pr-9 text-sm text-[var(--t1)] placeholder:text-[var(--t4)] focus:border-[var(--primary)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20"
+              onChange={onSearchTermChange}
+              placeholder="Name, parent, or student number…"
+              inputRef={searchInputRef}
             />
-            {searchTerm && (
-              <button
-                type="button"
-                onClick={() => onSearchTermChange("")}
-                aria-label="Clear search"
-                className="absolute right-2 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full bg-[var(--surface-container)] text-[var(--t3)] hover:bg-[var(--border)]"
-              >
-                <MaterialIcon size={15}>close</MaterialIcon>
-              </button>
-            )}
           </div>
           <select
             value={selectedClass}
             onChange={(e) => onSelectedClassChange(e.target.value)}
             aria-label="Filter by class"
-            className="cursor-pointer rounded-xl border border-[var(--border)] bg-[var(--surface-container-lowest)] px-3 py-2.5 text-xs font-semibold text-[var(--t1)]"
+            className="min-h-11 max-w-full cursor-pointer rounded-xl border border-[var(--border)] bg-[var(--surface-container-lowest)] px-3 py-2.5 text-xs font-semibold text-[var(--t1)]"
           >
             <option value="all">All Classes</option>
             {classes.map((classItem) => (
@@ -661,13 +664,15 @@ export default function StudentRegistryPanel({
               </option>
             ))}
           </select>
-          <div className="relative">
+          <div className="static sm:relative">
             <button
               type="button"
+              ref={filtersButtonRef}
               onClick={() => setFiltersOpen((v) => !v)}
               aria-expanded={filtersOpen}
               aria-haspopup="dialog"
-              className="flex cursor-pointer items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface-container-lowest)] px-3 py-2.5 text-xs font-semibold text-[var(--t1)] hover:bg-[var(--surface-container)]"
+              aria-controls={filtersOpen ? filtersPanelId : undefined}
+              className="flex min-h-11 cursor-pointer items-center gap-1.5 rounded-xl border border-[var(--border)] bg-[var(--surface-container-lowest)] px-3 py-2.5 text-xs font-semibold text-[var(--t1)] hover:bg-[var(--surface-container)]"
             >
               <MaterialIcon size={16}>filter_list</MaterialIcon>
               Filters
@@ -683,15 +688,18 @@ export default function StudentRegistryPanel({
                   type="button"
                   className="fixed inset-0 z-20 cursor-default"
                   aria-label="Close filters"
-                  onClick={() => setFiltersOpen(false)}
+                  onClick={closeFilters}
                 />
                 <div
+                  id={filtersPanelId}
+                  ref={filtersPanelRef}
                   role="dialog"
+                  tabIndex={-1}
                   aria-label="More filters"
                   onKeyDown={(e) => {
-                    if (e.key === "Escape") setFiltersOpen(false);
+                    if (e.key === "Escape") closeFilters();
                   }}
-                  className="absolute left-0 top-full z-30 mt-1 w-64 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-xl"
+                  className="absolute inset-x-0 top-full z-30 mt-1 max-h-[60vh] overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-xl sm:right-auto sm:w-64"
                 >
                   <div className="space-y-3">
                     <label className="block">
@@ -1294,7 +1302,7 @@ export default function StudentRegistryPanel({
 
         {!loading && pageSize !== -1 && filteredCount > pageSize && (
           <div
-            className="flex items-center justify-between px-4 py-3 border-t border-[var(--border)]"
+            className="flex flex-col gap-3 sm:flex-row items-center justify-between px-4 py-3 border-t border-[var(--border)]"
             style={{ fontSize: 13 }}
           >
             <span className="text-[var(--t3)]">
@@ -1305,7 +1313,7 @@ export default function StudentRegistryPanel({
               <button
                 onClick={onPreviousPage}
                 disabled={currentPage === 1}
-                className="px-3 py-1.5 rounded-lg border border-[var(--border)] text-[var(--t2)] text-xs disabled:opacity-40 hover:bg-[var(--bg)] transition-colors"
+                className="min-h-11 px-3 py-1.5 rounded-lg border border-[var(--border)] text-[var(--t2)] text-xs disabled:opacity-40 hover:bg-[var(--bg)] transition-colors"
               >
                 Previous
               </button>
@@ -1315,7 +1323,7 @@ export default function StudentRegistryPanel({
               <button
                 onClick={onNextPage}
                 disabled={currentPage === totalPages}
-                className="px-3 py-1.5 rounded-lg border border-[var(--border)] text-[var(--t2)] text-xs disabled:opacity-40 hover:bg-[var(--bg)] transition-colors"
+                className="min-h-11 px-3 py-1.5 rounded-lg border border-[var(--border)] text-[var(--t2)] text-xs disabled:opacity-40 hover:bg-[var(--bg)] transition-colors"
               >
                 Next
               </button>

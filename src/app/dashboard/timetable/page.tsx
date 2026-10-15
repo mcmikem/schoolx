@@ -991,18 +991,21 @@ export default function TimetablePage() {
                   No classes available
                 </div>
               ) : (
-                <select
-                  value={selectedClassId}
-                  onChange={(e) => setSelectedClassId(e.target.value)}
-                  className="px-4 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-[var(--on-surface)] outline-none focus:ring-2 focus:ring-[var(--primary)]/50"
-                >
-                  <option value="">Select a Class...</option>
-                  {classes.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
+                <label className="block w-full sm:w-auto">
+                  <span className="mb-1.5 block text-xs font-semibold text-[var(--t2)]">Timetable class</span>
+                  <select
+                    value={selectedClassId}
+                    onChange={(e) => setSelectedClassId(e.target.value)}
+                    className="min-h-11 w-full px-4 py-2 bg-[var(--surface)] border border-[var(--border)] rounded-xl text-[var(--on-surface)] outline-none focus:ring-2 focus:ring-[var(--primary)]/50"
+                  >
+                    <option value="">Select a Class...</option>
+                    {classes.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
               )}
               {canAutoGenerate && (
                 <Button size="sm" variant="secondary" onClick={() => setShowGenerateModal(true)}>

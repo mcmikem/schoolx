@@ -33,20 +33,20 @@ export default function SchoolHero({
   const resolvedDateLabel = dateLabel ?? todayLabelFor();
 
   return (
-    <div className="relative mb-6 overflow-hidden rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--sh1)]">
-      <div className="relative z-10 flex items-center gap-4">
+    <div className="relative mb-5 overflow-hidden rounded-[20px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5 shadow-[var(--sh1)]">
+      <div className="relative z-10 flex items-center gap-3 sm:gap-4">
         {school?.logo_url ? (
           <Image
             src={school.logo_url}
             alt={school?.name || "School"}
             width={64}
             height={64}
-            className="h-16 w-16 rounded-2xl object-cover ring-1 ring-[var(--border)] flex-shrink-0"
+            className="h-12 w-12 sm:h-16 sm:w-16 rounded-2xl object-cover ring-1 ring-[var(--border)] flex-shrink-0"
             unoptimized
           />
         ) : (
           <div
-            className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-2xl bg-[var(--primary)] text-[22px] font-bold text-[var(--on-primary)]"
+            className="flex h-12 w-12 sm:h-16 sm:w-16 flex-shrink-0 items-center justify-center rounded-2xl bg-[var(--primary)] text-[22px] font-bold text-[var(--on-primary)]"
             style={{ fontFamily: "'Sora', sans-serif" }}
             aria-hidden="true"
           >
@@ -69,9 +69,9 @@ export default function SchoolHero({
               {resolvedGreeting}, {userName}
             </h1>
           )}
-          <p className="text-[13px] text-[var(--t3)] mt-0.5 truncate">
+          <p className="text-[13px] text-[var(--t3)] mt-1 break-words leading-relaxed">
             {subtitle || school?.name}
-            {resolvedDateLabel ? ` · ${resolvedDateLabel}` : ""}
+            {!bottomCenter && !bottomRight && resolvedDateLabel ? ` · ${resolvedDateLabel}` : ""}
           </p>
         </div>
         {rightSection && <div className="hidden sm:block flex-shrink-0">{rightSection}</div>}

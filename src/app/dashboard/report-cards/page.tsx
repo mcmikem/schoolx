@@ -10,6 +10,7 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 import { PageHeader } from "@/components/ui/PageHeader";
 import PersonInitials from "@/components/ui/PersonInitials";
+import SearchField from "@/components/ui/SearchField";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { useAcademic } from "@/lib/academic-context";
 import { APP_NAME } from "@/lib/app-name";
@@ -26,6 +27,7 @@ import { calculateSubjectTotal } from "@/lib/grading";
 import { useClasses, useFeePayments, useFeeStructure, useStudents, useSubjects } from "@/lib/hooks";
 import { isTimeoutResult, timeoutFallback, withTimeout } from "@/lib/hooks/utils";
 import { logger } from "@/lib/logger";
+import { searchReportList } from "@/lib/report-list";
 import { loadSchoolSetting } from "@/lib/school-settings";
 import { type ReportLayoutId, SETTING_KEYS } from "@/lib/grading-tracks";
 import {
@@ -156,12 +158,8 @@ export default function ReportCardsPage() {
       const idSet = new Set(urlStudentIds);
       list = list.filter((s) => idSet.has(s.id));
     }
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      list = list.filter((s) => `${s.first_name} ${s.last_name}`.toLowerCase().includes(q));
-    }
     return list;
-  }, [classStudents, selectedClass, searchQuery, urlStudentIds]);
+  }, [classStudents, selectedClass, urlStudentIds]);
 
   const selectedClassObj = classes.find((c) => c.id === selectedClass);
   const selectedClassName = selectedClassObj
@@ -182,9 +180,9 @@ export default function ReportCardsPage() {
   );
 
   const displayedReports = useMemo(() => {
-    if (!hideWithFees) return reports;
-    return reports.filter((r) => getStudentFeeBalance(r.studentId) === 0);
-  }, [reports, hideWithFees, getStudentFeeBalance]);
+    const eligible = hideWithFees ? reports.filter((r) => getStudentFeeBalance(r.studentId) === 0) : reports;
+    return searchReportList(eligible, searchQuery);
+  }, [reports, hideWithFees, getStudentFeeBalance, searchQuery]);
 
   const [reportLayout, setReportLayout] = useState<ReportLayoutId>("uganda_classic");
   useEffect(() => {
@@ -1266,7 +1264,7 @@ export default function ReportCardsPage() {
   };
 
   const actions = (
-    <div className="flex gap-2">
+    <div className="flex flex-wrap gap-2">
       {generated && reports.length > 0 && (
         <Button
           variant="ghost"
@@ -1274,7 +1272,7 @@ export default function ReportCardsPage() {
           className="border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100"
         >
           <MaterialIcon icon="print_connect" style={{ fontSize: "18px" }} />
-          Print All Class ({displayedReports.length})
+          Print visible ({displayedReports.length})
         </Button>
       )}
       {classes.length > 0 && (
@@ -1297,7 +1295,7 @@ export default function ReportCardsPage() {
 
   return (
     <PageErrorBoundary>
-      <div className="p-4 sm:p-6 lg:p-8">
+      <div className="p-4 pb-24 sm:p-6 sm:pb-24 lg:p-8">
         <PageHeader title="Report Cards" subtitle="Generate and manage student report cards" actions={actions} />
 
         {offlinePreview && generated && (
@@ -1378,6 +1376,7 @@ export default function ReportCardsPage() {
                       setSelectedClass(e.target.value);
                       setGenerated(false);
                       setReports([]);
+                      setSearchQuery("");
                     }}
                     className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
                   >
@@ -1404,8 +1403,11 @@ export default function ReportCardsPage() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-2 text-[var(--on-surface)]">Report Format</label>
+                <label htmlFor="report-card-format" className="block text-sm font-medium mb-2 text-[var(--on-surface)]">
+                  Report Format
+                </label>
                 <select
+                  id="report-card-format"
                   value={reportFormat}
                   onChange={(e) => setReportFormat(e.target.value as "numerical" | "competency" | "both" | "cbc")}
                   className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
@@ -1478,172 +1480,227 @@ export default function ReportCardsPage() {
           </div>
         )}
 
-        {generated && displayedReports.length > 0 && (
+        {generated && (
           <Card>
             <CardBody>
-              <input
-                type="text"
-                placeholder="Search by student name..."
-                className="w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-3 py-2 text-sm mb-4"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse">
-                  <thead>
-                    <tr className="bg-[var(--surface-container)] text-left">
-                      <th className="px-6 py-4 text-xs uppercase tracking-widest font-semibold text-[var(--t1)]">
-                        Student
-                      </th>
-                      <th className="px-4 py-4 text-xs uppercase tracking-widest font-semibold text-[var(--t1)] text-center">
-                        Total
-                      </th>
-                      <th className="px-4 py-4 text-xs uppercase tracking-widest font-semibold text-[var(--t1)] text-center">
-                        Average
-                      </th>
-                      <th className="px-4 py-4 text-xs uppercase tracking-widest font-semibold text-[var(--t1)] text-center">
-                        Position
-                      </th>
-                      <th className="px-4 py-4 text-xs uppercase tracking-widest font-semibold text-[var(--t1)] text-center">
-                        Division
-                      </th>
-                      <th className="px-4 py-4 text-xs uppercase tracking-widest font-semibold text-[var(--t1)]">
-                        Fees
-                      </th>
-                      <th className="px-4 py-4 text-xs uppercase tracking-widest font-semibold text-[var(--t1)]">
-                        Comments
-                      </th>
-                      <th className="px-6 py-4 text-xs uppercase tracking-widest font-semibold text-[var(--t1)] text-right">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[var(--border)]">
-                    {displayedReports.map((report) => {
-                      const studentComment = comments[report.studentId] || {
-                        classTeacher: "",
-                        hm: "",
-                      };
-                      return (
-                        <tr key={report.studentId} className="hover:bg-[var(--surface-container)] transition-colors">
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full">
-                                {report.photoUrl ? (
-                                  <Image
-                                    src={report.photoUrl}
-                                    alt={report.name}
-                                    width={36}
-                                    height={36}
-                                    unoptimized
-                                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                                  />
-                                ) : (
-                                  <PersonInitials name={report.name} size={36} />
-                                )}
-                              </div>
-                              <div>
-                                <div className="font-semibold text-sm text-[var(--primary)]">{report.name}</div>
-                                <div className="text-xs text-[var(--t3)] font-mono">{report.studentNumber}</div>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-4 py-4 text-center">
-                            <span className="font-bold text-lg text-[var(--primary)]">{report.totalMarks}</span>
-                            <span className="text-xs text-[var(--t3)]">/{report.maxMarks}</span>
-                          </td>
-                          <td className="px-4 py-4 text-center font-semibold">{report.average}%</td>
-                          <td className="px-4 py-4 text-center">
-                            <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[var(--primary)] text-white font-bold text-sm">
-                              {report.position}
-                            </span>
-                          </td>
-                          <td className="px-4 py-4 text-center">
-                            <span
-                              className={`px-3 py-1 rounded-full text-xs font-semibold ${report.division === "Division 1" ? "bg-green-100 text-green-700" : report.division === "Division 2" ? "bg-blue-100 text-blue-700" : report.division === "Division 3" ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-700"}`}
-                            >
-                              {report.division}
-                            </span>
-                          </td>
-                          <td className="px-4 py-4">
-                            {report.feeBalance > 0 ? (
-                              <span className="text-xs font-semibold text-red-600 bg-red-50 px-2 py-1 rounded-full">
-                                {report.feeBalance.toLocaleString()} UGX
-                              </span>
-                            ) : (
-                              <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-full">
-                                Clear
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-4 py-4">
-                            <div className="space-y-1.5 max-w-[260px]">
-                              <div>
-                                <label className="text-[10px] font-semibold uppercase text-[var(--t3)]">
-                                  Class Teacher
-                                </label>
-                                <input
-                                  type="text"
-                                  value={studentComment.classTeacher}
-                                  onChange={(e) =>
-                                    handleCommentChange(report.studentId, "classTeacher", e.target.value)
-                                  }
-                                  className="w-full rounded-[14px] border border-[#dce4ee] bg-white px-3 py-2 text-sm shadow-sm outline-none transition focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/12"
-                                  placeholder="Class teacher comment..."
-                                />
-                              </div>
-                              <div>
-                                <label className="text-[10px] font-semibold uppercase text-[var(--t3)]">
-                                  Headteacher
-                                </label>
-                                <input
-                                  type="text"
-                                  value={studentComment.hm}
-                                  onChange={(e) => handleCommentChange(report.studentId, "hm", e.target.value)}
-                                  className="w-full rounded-[14px] border border-[#dce4ee] bg-white px-3 py-2 text-sm shadow-sm outline-none transition focus:border-[var(--primary)] focus:ring-2 focus:ring-[var(--primary)]/12"
-                                  placeholder="HM comment..."
-                                />
-                              </div>
-                              <button
-                                onClick={() => handleSuggestComment(report.studentId, report.position)}
-                                className="text-[10px] font-semibold text-[var(--primary)] hover:underline"
-                              >
-                                Auto-suggest
-                              </button>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="flex gap-1.5 justify-end">
-                              <button
-                                onClick={() => handlePrintUganda(report)}
-                                title="Print Uganda progress report"
-                                className="p-2 rounded-lg hover:bg-[var(--surface-container)] text-[var(--t3)] min-h-[44px] min-w-[44px] flex items-center justify-center"
-                              >
-                                <MaterialIcon className="text-xl">print</MaterialIcon>
-                              </button>
-                              <button
-                                onClick={() => handlePrintReport(report)}
-                                title="Print standard card"
-                                className="p-2 rounded-lg hover:bg-[var(--surface-container)] text-[var(--t3)] min-h-[44px] min-w-[44px] flex items-center justify-center"
-                              >
-                                <MaterialIcon className="text-xl">description</MaterialIcon>
-                              </button>
-                              <button
-                                onClick={() => handleSendSms(report)}
-                                disabled={sendingSms}
-                                title="Send SMS"
-                                className="p-2 rounded-lg hover:bg-[var(--surface-container)] text-[var(--t3)] disabled:opacity-40"
-                              >
-                                <MaterialIcon className="text-xl">sms</MaterialIcon>
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+              <div className="mb-4 space-y-2">
+                <SearchField
+                  label="Search report cards"
+                  placeholder="Student name or number…"
+                  value={searchQuery}
+                  onChange={setSearchQuery}
+                />
+                <p role="status" className="text-xs text-[var(--t3)]">
+                  Showing {displayedReports.length} of {reports.length} report cards
+                </p>
               </div>
+              {displayedReports.length > 0 ? (
+                <div className="overflow-x-auto" role="region" aria-label="Report card results" tabIndex={0}>
+                  <table className="block w-full border-collapse md:table md:min-w-[1180px]">
+                    <thead className="hidden md:table-header-group">
+                      <tr className="bg-[var(--surface-container)] text-left">
+                        <th className="px-6 py-4 text-xs uppercase tracking-widest font-semibold text-[var(--t1)]">
+                          Student
+                        </th>
+                        <th className="px-4 py-4 text-xs uppercase tracking-widest font-semibold text-[var(--t1)] text-center">
+                          Total
+                        </th>
+                        <th className="px-4 py-4 text-xs uppercase tracking-widest font-semibold text-[var(--t1)] text-center">
+                          Average
+                        </th>
+                        <th className="px-4 py-4 text-xs uppercase tracking-widest font-semibold text-[var(--t1)] text-center">
+                          Position
+                        </th>
+                        <th className="px-4 py-4 text-xs uppercase tracking-widest font-semibold text-[var(--t1)] text-center">
+                          Division
+                        </th>
+                        <th className="px-4 py-4 text-xs uppercase tracking-widest font-semibold text-[var(--t1)]">
+                          Fees
+                        </th>
+                        <th className="px-4 py-4 text-xs uppercase tracking-widest font-semibold text-[var(--t1)]">
+                          Comments
+                        </th>
+                        <th className="px-6 py-4 text-xs uppercase tracking-widest font-semibold text-[var(--t1)] text-right">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="grid gap-4 md:table-row-group md:divide-y md:divide-[var(--border)]">
+                      {displayedReports.map((report) => {
+                        const studentComment = comments[report.studentId] || {
+                          classTeacher: "",
+                          hm: "",
+                        };
+                        return (
+                          <tr
+                            key={report.studentId}
+                            className="grid grid-cols-2 gap-3 rounded-2xl border border-[var(--border)] p-4 md:table-row md:border-0 md:p-0 md:hover:bg-[var(--surface-container)] transition-colors"
+                          >
+                            <td className="col-span-2 min-w-0 md:px-6 md:py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full">
+                                  {report.photoUrl ? (
+                                    <Image
+                                      src={report.photoUrl}
+                                      alt={report.name}
+                                      width={36}
+                                      height={36}
+                                      unoptimized
+                                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                                    />
+                                  ) : (
+                                    <PersonInitials name={report.name} size={36} />
+                                  )}
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="break-words font-semibold text-sm text-[var(--primary)]">
+                                    {report.name}
+                                  </div>
+                                  <div className="break-all text-xs text-[var(--t3)] font-mono">
+                                    {report.studentNumber}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="md:px-4 md:py-4 md:text-center">
+                              <span className="block text-xs text-[var(--t3)] md:hidden">Total marks</span>
+                              <span className="font-bold text-lg text-[var(--primary)]">{report.totalMarks}</span>
+                              <span className="text-xs text-[var(--t3)]">/{report.maxMarks}</span>
+                            </td>
+                            <td className="md:px-4 md:py-4 md:text-center font-semibold">
+                              <span className="block text-xs font-normal text-[var(--t3)] md:hidden">Average</span>
+                              {report.average}%
+                            </td>
+                            <td className="md:px-4 md:py-4 md:text-center">
+                              <span className="mb-1 block text-xs text-[var(--t3)] md:hidden">Position</span>
+                              <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-[var(--primary)] text-white font-bold text-sm">
+                                {report.position}
+                              </span>
+                            </td>
+                            <td className="md:px-4 md:py-4 md:text-center">
+                              <span className="mb-1 block text-xs text-[var(--t3)] md:hidden">Division</span>
+                              <span
+                                className={`whitespace-nowrap px-3 py-1 rounded-full text-xs font-semibold ${report.division === "Division 1" ? "bg-green-100 text-green-700" : report.division === "Division 2" ? "bg-blue-100 text-blue-700" : report.division === "Division 3" ? "bg-yellow-100 text-yellow-700" : "bg-red-100 text-red-700"}`}
+                              >
+                                {report.division}
+                              </span>
+                            </td>
+                            <td className="col-span-2 md:px-4 md:py-4">
+                              <span className="mb-1 block text-xs text-[var(--t3)] md:hidden">Fee balance</span>
+                              {report.feeBalance > 0 ? (
+                                <span className="text-xs font-semibold text-red-600 bg-red-50 px-2 py-1 rounded-full">
+                                  {report.feeBalance.toLocaleString()} UGX
+                                </span>
+                              ) : (
+                                <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-full">
+                                  Clear
+                                </span>
+                              )}
+                            </td>
+                            <td className="col-span-2 min-w-0 md:px-4 md:py-4">
+                              <div className="space-y-2 md:max-w-[260px]">
+                                <div>
+                                  <label
+                                    htmlFor={`teacher-comment-${report.studentId}`}
+                                    className="text-xs font-semibold text-[var(--t3)]"
+                                  >
+                                    Class Teacher
+                                  </label>
+                                  <input
+                                    id={`teacher-comment-${report.studentId}`}
+                                    type="text"
+                                    value={studentComment.classTeacher}
+                                    onChange={(e) =>
+                                      handleCommentChange(report.studentId, "classTeacher", e.target.value)
+                                    }
+                                    className="min-h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm"
+                                    placeholder="Class teacher comment..."
+                                  />
+                                </div>
+                                <div>
+                                  <label
+                                    htmlFor={`hm-comment-${report.studentId}`}
+                                    className="text-xs font-semibold text-[var(--t3)]"
+                                  >
+                                    Headteacher
+                                  </label>
+                                  <input
+                                    id={`hm-comment-${report.studentId}`}
+                                    type="text"
+                                    value={studentComment.hm}
+                                    onChange={(e) => handleCommentChange(report.studentId, "hm", e.target.value)}
+                                    className="min-h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm"
+                                    placeholder="HM comment..."
+                                  />
+                                </div>
+                                <button
+                                  onClick={() => handleSuggestComment(report.studentId, report.position)}
+                                  type="button"
+                                  className="min-h-11 text-xs font-semibold text-[var(--primary)] hover:underline"
+                                >
+                                  Auto-suggest
+                                </button>
+                              </div>
+                            </td>
+                            <td className="col-span-2 md:px-6 md:py-4">
+                              <div className="flex flex-wrap gap-1.5 md:justify-end">
+                                <button
+                                  onClick={() => handlePrintUganda(report)}
+                                  title="Print Uganda progress report"
+                                  aria-label={`Print Uganda progress report for ${report.name}`}
+                                  className="p-2 rounded-lg hover:bg-[var(--surface-container)] text-[var(--t3)] min-h-[44px] min-w-[44px] flex items-center justify-center"
+                                >
+                                  <MaterialIcon className="text-xl">print</MaterialIcon>
+                                </button>
+                                <button
+                                  onClick={() => handlePrintReport(report)}
+                                  title="Print standard card"
+                                  aria-label={`Print standard card for ${report.name}`}
+                                  className="p-2 rounded-lg hover:bg-[var(--surface-container)] text-[var(--t3)] min-h-[44px] min-w-[44px] flex items-center justify-center"
+                                >
+                                  <MaterialIcon className="text-xl">description</MaterialIcon>
+                                </button>
+                                <button
+                                  onClick={() => handleSendSms(report)}
+                                  disabled={sendingSms}
+                                  title="Send SMS"
+                                  aria-label={`Send results by SMS for ${report.name}`}
+                                  className="min-h-11 min-w-11 p-2 rounded-lg hover:bg-[var(--surface-container)] text-[var(--t3)] disabled:opacity-40"
+                                >
+                                  <MaterialIcon className="text-xl">sms</MaterialIcon>
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-dashed border-[var(--border)] p-5 text-center">
+                  <EmptyState
+                    icon="filter_alt_off"
+                    title={reports.length ? "No matching report cards" : "No report cards generated"}
+                    description={
+                      reports.length
+                        ? "Try another name or number, or clear the fee filter."
+                        : "Choose a class with students and generate its report cards."
+                    }
+                  />
+                  {reports.length > 0 && (
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        setSearchQuery("");
+                        setHideWithFees(false);
+                      }}
+                    >
+                      Clear report filters
+                    </Button>
+                  )}
+                </div>
+              )}
             </CardBody>
           </Card>
         )}
@@ -1655,18 +1712,6 @@ export default function ReportCardsPage() {
                 icon="summarize"
                 title="Generate Cards"
                 description="Select a class and click Generate to create report cards with positions, divisions, and comments."
-              />
-            </CardBody>
-          </Card>
-        )}
-
-        {generated && displayedReports.length === 0 && reports.length > 0 && (
-          <Card>
-            <CardBody>
-              <EmptyState
-                icon="filter_alt_off"
-                title="All Hidden"
-                description="All students have outstanding fees. Uncheck the filter to view."
               />
             </CardBody>
           </Card>

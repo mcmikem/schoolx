@@ -74,8 +74,9 @@ describe("the two call sites actually use the filtered list", () => {
   it("TeacherDashboard renders the filtered actions, not the hardcoded array", () => {
     const src = read("src/app/dashboard/dashboards/TeacherDashboard.tsx");
     expect(src).toContain("visibleTodayActions");
-    expect(src).toMatch(/\{\s*visibleTodayActions\.map\(/);
-    expect(src).not.toMatch(/\{\s*todayActions\.map\(/);
+    expect(src).toMatch(/<ActionPanel[\s\S]*?actions=\{visibleTodayActions\}/);
+    expect(src).not.toMatch(/actions=\{todayActions\}/);
+    expect(read("src/components/dashboard/ActionPanel.tsx")).toMatch(/\{actions\.map\(/);
   });
 
   it("TeacherQuickGuide filters its steps before rendering", () => {

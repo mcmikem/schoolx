@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import OwlMascot from "@/components/brand/OwlMascot";
+import ActionPanel from "@/components/dashboard/ActionPanel";
 import SchoolCalendar from "@/components/dashboard/SchoolCalendar";
 import SchoolHero from "@/components/dashboard/SchoolHero";
 import TaskManager from "@/components/dashboard/TaskManager";
@@ -49,6 +50,7 @@ export function TeacherDashboardContent() {
   // rows to this teacher's classes. null = still checking (or check failed).
   const [markedClassIds, setMarkedClassIds] = useState<Set<string> | null>(null);
   const [todaySlots, setTodaySlots] = useState<TodaySlot[] | null>(null);
+  const [classSearch, setClassSearch] = useState("");
   const dataLoading = !rosterReady || classesLoading || subjectsLoading || statsLoading;
 
   useEffect(() => {
@@ -267,7 +269,7 @@ export function TeacherDashboardContent() {
   }
 
   return (
-    <div className="content overflow-x-hidden">
+    <div className="content !gap-4 overflow-x-hidden">
       <SchoolHero
         school={school}
         greeting={greeting}
@@ -374,37 +376,12 @@ export function TeacherDashboardContent() {
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
         {/* ── Left Column ── */}
         <div className="xl:col-span-2 space-y-5">
-          {/* Quick actions */}
-          <div>
-            <div
-              aria-label="Teacher quick actions"
-              className="rounded-[24px] border border-[var(--surface-container-low)] bg-white p-4 shadow-[0_12px_30px_rgba(15,23,42,0.04)]"
-            >
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[var(--t1)]/10">
-                    <MaterialIcon icon="today" className="text-sm text-[var(--t1)]" />
-                  </div>
-                  <h2 className="text-sm font-bold text-[var(--t1)] font-['Sora']">Quick actions</h2>
-                </div>
-                <span className="rounded-full bg-[var(--primary-50)] px-2 py-1 text-[9px] font-bold uppercase tracking-[0.12em] text-[var(--t1)]">
-                  Today
-                </span>
-              </div>
-              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-                {visibleTodayActions.map((action) => (
-                  <Link
-                    key={action.href}
-                    href={action.href}
-                    className="flex min-h-[72px] flex-col justify-between gap-2 rounded-2xl border border-[var(--surface-container-low)] bg-[var(--surface-bright)] p-3 transition-all hover:border-[var(--border)] hover:bg-[var(--primary-50)] hover:shadow-sm active:scale-[0.98]"
-                  >
-                    <span className={`material-symbols-outlined text-xl ${action.tone}`}>{action.icon}</span>
-                    <span className="text-[11px] font-bold leading-tight text-[var(--t1)]">{action.label}</span>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          </div>
+          <ActionPanel
+            title="Quick actions"
+            label="Teacher quick actions"
+            description="Your everyday teaching tools, one tap away."
+            actions={visibleTodayActions}
+          />
 
           <CollapsibleSection
             title="Task Manager"
@@ -424,42 +401,65 @@ export function TeacherDashboardContent() {
                 </div>
                 <h2 className="text-sm font-bold text-[var(--t1)] font-['Sora']">My classes · {myClasses.length}</h2>
               </div>
-              <div className="-mx-1 overflow-x-auto pb-1">
-                <div className="flex min-w-max gap-3 px-1">
-                  {myClasses.map((cls: any) => {
-                    const count = students.filter((s) => s.class_id === cls.id).length;
-                    return (
-                      <div
-                        key={cls.id}
-                        className="group min-w-[220px] flex-1 rounded-[22px] bg-white border border-[var(--surface-container-low)] p-4 shadow-[0_8px_20px_rgba(15,23,42,0.04)] transition-all hover:shadow-md hover:-translate-y-0.5"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <p className="text-base font-bold text-[var(--t1)]">{cls.name}</p>
-                          <span className="rounded-full bg-[var(--primary-50)] px-2 py-1 text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--t1)]">
-                            {count} {count === 1 ? "student" : "students"}
-                          </span>
-                        </div>
-                        <p className="mt-2 text-xs text-[var(--t3)]">
-                          {count === 0 ? "No students assigned yet" : "Ready for teaching"}
-                        </p>
-                        <div className="mt-4 flex gap-2">
-                          <Link
-                            href={`/dashboard/attendance?class=${cls.id}`}
-                            className="flex-1 rounded-xl bg-[var(--t1)] py-2.5 min-h-[44px] flex items-center justify-center text-xs font-bold text-white hover:opacity-90 transition-opacity"
-                          >
-                            Attendance
-                          </Link>
-                          <Link
-                            href={`/dashboard/grades?class=${cls.id}`}
-                            className="flex-1 rounded-xl bg-[var(--primary-50)] py-2.5 min-h-[44px] flex items-center justify-center text-xs font-bold text-[var(--t1)] hover:bg-[var(--border)] transition-colors"
-                          >
-                            Grades
-                          </Link>
-                        </div>
-                      </div>
-                    );
-                  })}
+              {myClasses.length > 4 && (
+                <div className="mb-3">
+                  <label htmlFor="teacher-class-search" className="mb-1.5 block text-xs font-semibold text-[var(--t2)]">
+                    Find a class
+                  </label>
+                  <input
+                    id="teacher-class-search"
+                    type="search"
+                    value={classSearch}
+                    onChange={(event) => setClassSearch(event.target.value)}
+                    placeholder="Search your classes…"
+                    className="min-h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 text-sm text-[var(--t1)]"
+                  />
                 </div>
+              )}
+              <div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {myClasses
+                    .filter((cls) => cls.name.toLowerCase().includes(classSearch.trim().toLowerCase()))
+                    .map((cls: any) => {
+                      const count = students.filter((s) => s.class_id === cls.id).length;
+                      return (
+                        <div
+                          key={cls.id}
+                          className="min-w-0 rounded-2xl bg-[var(--surface)] border border-[var(--border)] p-4"
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <h3 className="min-w-0 break-words text-base font-bold text-[var(--t1)]">{cls.name}</h3>
+                            <span className="rounded-full bg-[var(--primary-50)] px-2 py-1 text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--t1)]">
+                              {count} {count === 1 ? "student" : "students"}
+                            </span>
+                          </div>
+                          <p className="mt-2 text-xs text-[var(--t3)]">
+                            {count === 0 ? "No students assigned yet" : "Ready for teaching"}
+                          </p>
+                          <div className="mt-4 flex gap-2">
+                            <Link
+                              href={`/dashboard/attendance?class=${cls.id}`}
+                              className="flex-1 rounded-xl bg-[var(--t1)] py-2.5 min-h-[44px] flex items-center justify-center text-xs font-bold text-white hover:opacity-90 transition-opacity"
+                            >
+                              Attendance
+                            </Link>
+                            <Link
+                              href={`/dashboard/grades?class=${cls.id}`}
+                              className="flex-1 rounded-xl bg-[var(--primary-50)] py-2.5 min-h-[44px] flex items-center justify-center text-xs font-bold text-[var(--t1)] hover:bg-[var(--border)] transition-colors"
+                            >
+                              Grades
+                            </Link>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+                {classSearch &&
+                  !myClasses.some((cls) => cls.name.toLowerCase().includes(classSearch.trim().toLowerCase())) && (
+                    <p role="status" className="rounded-xl border border-[var(--border)] p-4 text-sm text-[var(--t3)]">
+                      No classes match “{classSearch}”. Try another class name.
+                    </p>
+                  )}
               </div>
             </div>
           )}
@@ -472,13 +472,13 @@ export function TeacherDashboardContent() {
                   <MaterialIcon icon="calendar_month" className="text-sm text-[var(--amber)]" />
                 </div>
                 <div>
-                  <p className="text-sm font-bold text-[var(--t1)] font-['Sora']">Today's Schedule</p>
+                  <h2 className="text-sm font-bold text-[var(--t1)] font-['Sora']">Today's Schedule</h2>
                   <p className="text-[11px] text-[var(--t3)]">{todayLabel}</p>
                 </div>
               </div>
               <Link
                 href="/dashboard/timetable"
-                className="rounded-xl bg-[var(--t1)] px-4 py-2 text-[11px] font-bold text-white hover:opacity-90 transition-opacity"
+                className="min-h-11 flex items-center shrink-0 rounded-xl bg-[var(--t1)] px-3 py-2 text-xs font-bold text-white hover:opacity-90 transition-opacity"
               >
                 Open timetable
               </Link>

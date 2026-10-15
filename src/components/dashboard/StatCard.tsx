@@ -47,8 +47,8 @@ const StatCard = memo(function StatCard({
           : "card-gradient-amber"
     }`;
     return (
-      <div className={`${cardClass} rounded-[var(--r)] shadow-[var(--sh1)]`}>
-        <div className="stat-inner !p-6">
+      <div className={`${cardClass} !p-0 rounded-[var(--r)] shadow-[var(--sh1)]`}>
+        <div className="stat-inner !p-3 sm:!p-5">
           <div className="stat-meta">
             <div className="stat-label !text-white/80 !normal-case !tracking-normal !text-[13px] !font-medium">
               {label}
@@ -57,13 +57,15 @@ const StatCard = memo(function StatCard({
               <Link
                 href={href}
                 aria-label={hrefLabel || `Open ${label}`}
-                className="w-8 h-8 rounded-full bg-white flex items-center justify-center text-[var(--t1)] transition-transform hover:scale-105 flex-shrink-0 no-underline"
+                className="w-11 h-11 rounded-full bg-white flex items-center justify-center text-[var(--t1)] transition-transform hover:scale-105 flex-shrink-0 no-underline"
               >
                 <MaterialIcon icon="arrow_outward" style={{ fontSize: 16 }} />
               </Link>
             )}
           </div>
-          <div className="stat-val !text-white !text-[32px] !font-semibold">{loading ? "..." : value}</div>
+          <div className="stat-val !text-white !text-xl sm:!text-[30px] !whitespace-normal break-words !font-semibold">
+            {loading ? "..." : value}
+          </div>
           {trend && (
             <div className="flex items-center gap-1 mt-2 text-[11px] font-medium text-white/80">
               <MaterialIcon icon={trendIcon} style={{ fontSize: 13 }} />
@@ -80,11 +82,11 @@ const StatCard = memo(function StatCard({
 
   // ── Standard card (Donezo anatomy: label + arrow, hero number, footnote) ───
   return (
-    <div className="relative bg-[var(--surface)] border border-[var(--border)] rounded-[var(--r)] p-5 flex flex-col transition-all duration-200 cursor-default group hover:-translate-y-0.5 hover:border-[var(--border2)] shadow-[var(--sh1)] overflow-hidden">
+    <div className="relative min-w-0 bg-[var(--surface)] border border-[var(--border)] rounded-[var(--r)] p-3 sm:p-5 flex flex-col transition-colors cursor-default group hover:border-[var(--border2)] shadow-[var(--sh1)]">
       <div className="flex items-start justify-between gap-2">
         <p className="text-[13px] font-medium text-[var(--t2)] leading-snug">{label}</p>
         {href && !loading ? (
-          <Link href={href} aria-label={hrefLabel || `Open ${label}`} className="stat-link-arrow">
+          <Link href={href} aria-label={hrefLabel || `Open ${label}`} className="stat-link-arrow !w-11 !h-11 shrink-0">
             <MaterialIcon icon="arrow_outward" style={{ fontSize: 16 }} />
           </Link>
         ) : (
@@ -95,7 +97,7 @@ const StatCard = memo(function StatCard({
       </div>
 
       <div
-        className="mt-1 whitespace-nowrap text-[30px] font-semibold tracking-tight leading-none text-[var(--t1)]"
+        className="mt-2 break-words text-xl sm:text-[30px] font-semibold tracking-tight leading-tight text-[var(--t1)]"
         style={{ fontFamily: "'Sora', sans-serif" }}
       >
         {loading ? <span className="inline-block h-10 w-24 rounded-lg bg-[var(--border)] animate-pulse" /> : value}
@@ -116,7 +118,7 @@ const StatCard = memo(function StatCard({
             </span>
           </p>
         ) : subValue && !loading ? (
-          <p className="text-[11px] font-medium text-[var(--t3)] truncate">{subValue}</p>
+          <p className="text-xs font-medium text-[var(--t3)] leading-relaxed break-words">{subValue}</p>
         ) : null}
       </div>
     </div>
