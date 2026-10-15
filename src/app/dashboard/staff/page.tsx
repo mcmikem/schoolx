@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
 import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
+import { openPrintWindow, printWhenReady, writePrintDocument } from "@/lib/print-window";
 import {
   TeachingAssignmentsEditor,
   validateTeachingAssignments,
@@ -1273,14 +1274,12 @@ function DirectoryTab({
     const headStyles = fullHtml.match(/<style[^>]*>([\s\S]*?)<\/style>/gi) || [];
     const bodyContent = bodyMatch ? bodyMatch[1].trim() : fullHtml;
 
-    printWindow.document.open();
-    printWindow.document.title = "Staff ID Card";
-    document.querySelectorAll('link[rel="stylesheet"], style').forEach((el) => {
-      printWindow.document.head.appendChild(el.cloneNode(true));
+    // document.open() left document.body null, so the next line threw and the
+    // popup stayed blank -- an empty tab and no staff card.
+    writePrintDocument(printWindow, "Staff ID Card", bodyContent, {
+      styles: headStyles.join(""),
+      page: "A4",
     });
-    printWindow.document.head.insertAdjacentHTML("beforeend", headStyles.join(""));
-    printWindow.document.body.innerHTML = bodyContent;
-    printWindow.document.close();
 
     setTimeout(() => {
       printWindow.focus();

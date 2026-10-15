@@ -5,6 +5,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
 import { supabase } from "@/lib/supabase";
+import { writePrintDocument } from "@/lib/print-window";
 import AdmissionLetter from "@/components/students/AdmissionLetter";
 import MaterialIcon from "@/components/MaterialIcon";
 import { useReactToPrint } from "react-to-print";
@@ -46,13 +47,14 @@ export default function AdmissionPackagePage() {
       return;
     }
 
-    printWindow.document.open();
-    printWindow.document.title = 'Admission Letter';
-    document.querySelectorAll('link[rel="stylesheet"], style').forEach(el => {
-      printWindow.document.head.appendChild(el.cloneNode(true));
+    // The letter is lifted from live DOM, so it needs the app's stylesheets to
+    // look right -- pass their markup through headHtml rather than cloning
+    // nodes into a document that document.open() has left without a body.
+    writePrintDocument(printWindow, "Admission Letter", printRef.current.innerHTML, {
+      headHtml: Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+        .map((el) => el.outerHTML)
+        .join(""),
     });
-    printWindow.document.body.innerHTML = printRef.current.innerHTML;
-    printWindow.document.close();
     printWindow.focus();
     setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
   }, [reactPrint]);

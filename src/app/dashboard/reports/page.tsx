@@ -12,6 +12,7 @@ import Image from "next/image";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { logger } from "@/lib/logger";
 import { useToast } from "@/components/Toast";
+import { openPrintWindow, printWhenReady, writePrintDocument } from "@/lib/print-window";
 import MaterialIcon from "@/components/MaterialIcon";
 import { Button } from "@/components/ui/index";
 import { TableSkeleton } from "@/components/ui/Skeleton";
@@ -363,14 +364,11 @@ export default function ReportsPage() {
         })
         .join("");
 
-      printWindow.document.open();
-      printWindow.document.title = `Bulk Report Cards - ${school?.name || "School"}`;
-      document.querySelectorAll('link[rel="stylesheet"], style').forEach((el) => {
-        printWindow.document.head.appendChild(el.cloneNode(true));
+      // document.open() left document.body null, so the next line threw and
+      // the popup stayed blank -- an empty tab and no PDF.
+      writePrintDocument(printWindow, `Bulk Report Cards - ${school?.name || "School"}`, bulkPrintContent, {
+        styles: bulkPrintStyles,
       });
-      printWindow.document.head.insertAdjacentHTML("beforeend", `<style>${bulkPrintStyles}</style>`);
-      printWindow.document.body.innerHTML = bulkPrintContent;
-      printWindow.document.close();
       const printImages = Array.from(printWindow.document.images);
       await Promise.all(
         printImages.map((image) =>

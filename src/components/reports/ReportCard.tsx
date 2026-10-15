@@ -5,6 +5,7 @@ import { Printer, Download, Settings } from "lucide-react";
 import OwlMascot from "@/components/brand/OwlMascot";
 import { sumUgandaTotals } from "@/lib/uganda-report";
 import { generateUgandaPrimaryBody } from "@/components/reports/ugandaPrimaryReport";
+import { openPrintWindow, printWhenReady, writePrintDocument } from "@/lib/print-window";
 
 interface ReportCardProps {
   report: {
@@ -252,14 +253,11 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
           @media print { body { padding: 0; } .no-print { display: none !important; } }
         `;
 
-        printWindow.document.open();
-        printWindow.document.title = `Report Card - ${studentName}`;
-        document.querySelectorAll('link[rel="stylesheet"], style').forEach((el) => {
-          printWindow.document.head.appendChild(el.cloneNode(true));
+        // document.open() left document.body null, so the next line threw and
+        // the popup stayed blank -- an empty tab and no PDF.
+        writePrintDocument(printWindow, `Report Card - ${studentName}`, printContent, {
+          styles: reportPrintStyles,
         });
-        printWindow.document.head.insertAdjacentHTML("beforeend", `<style>${reportPrintStyles}</style>`);
-        printWindow.document.body.innerHTML = printContent;
-        printWindow.document.close();
         const images = Array.from(printWindow.document.images);
         Promise.all(
           images.map((image) =>

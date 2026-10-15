@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/EmptyState";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { generateUgandaPrimaryBody, ugandaDocumentShell } from "@/components/reports/ugandaPrimaryReport";
+import { openPrintWindow, printWhenReady, writePrintDocument } from "@/lib/print-window";
 import { useToast } from "@/components/Toast";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
@@ -1023,8 +1024,11 @@ export default function ReportCardsPage() {
       ? `<div style="display:flex;justify-content:center;margin:12px 0 4px"><img src="${escapeHtml(report.photoUrl)}" alt="${escapeHtml(report.name)}" style="width:88px;height:108px;object-fit:cover;border-radius:12px;border:1px solid #ddd" /></div>`
       : "";
 
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) return;
+    const printWindow = openPrintWindow();
+    if (!printWindow) {
+      toast.error("Your browser blocked the print window. Allow pop-ups for this site and try again.");
+      return;
+    }
 
     const printCardStyles = `
       body{font-family:Arial,sans-serif;padding:20px;max-width:700px;margin:0 auto}
@@ -1089,16 +1093,13 @@ export default function ReportCardsPage() {
       </div>
     `;
 
-    printWindow.document.open();
-    printWindow.document.title = `Report Card - ${escapeHtml(report.name)}`;
-    document.querySelectorAll('link[rel="stylesheet"], style').forEach((el) => {
-      printWindow.document.head.appendChild(el.cloneNode(true));
+    // Was document.open() + body.innerHTML, which threw because Chrome leaves
+    // document.body null after open() -- the popup stayed blank and print() was
+    // never reached, so this produced an empty tab and no PDF.
+    writePrintDocument(printWindow, `Report Card - ${report.name}`, printCardBody, {
+      styles: printCardStyles,
     });
-    printWindow.document.head.insertAdjacentHTML("beforeend", `<style>${printCardStyles}</style>`);
-    printWindow.document.body.innerHTML = printCardBody;
-    printWindow.document.close();
-    printWindow.focus();
-    setTimeout(() => printWindow.print(), 500);
+    void printWhenReady(printWindow);
   };
 
   const handlePrintCBCReport = (report: StudentReport) => {

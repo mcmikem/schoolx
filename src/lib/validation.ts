@@ -148,7 +148,16 @@ export function isValidScore(score: number, maxScore = 100): boolean {
 
 export function isFutureDate(dateStr: string, referenceDate = new Date()): boolean {
   const d = new Date(dateStr);
-  return d > referenceDate;
+  if (Number.isNaN(d.getTime())) return false;
+  // Compare calendar days, not instants. A bare "2026-10-16" is parsed as UTC
+  // midnight, which is earlier than any moment during that same local day -- so
+  // asking whether today is "after today" returned true for every school after
+  // 00:00 UTC. Recording a payment, taking attendance, or entering a date of
+  // birth for today was rejected as "in the future". Normalising both sides to
+  // local midnight makes today equal today and only genuinely later dates fail.
+  const reference = new Date(referenceDate.getFullYear(), referenceDate.getMonth(), referenceDate.getDate());
+  const target = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  return target.getTime() > reference.getTime();
 }
 
 export function normalizeAuthPhone(phone: string): string {

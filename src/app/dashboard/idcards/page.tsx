@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { useStudents, useClasses } from "@/lib/hooks";
 import MaterialIcon from "@/components/MaterialIcon";
+import { openPrintWindow, printWhenReady, writePrintDocument } from "@/lib/print-window";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
@@ -203,16 +204,13 @@ export default function IDCardsPage() {
       </div>
     `;
 
-    cardWindow.document.open();
-    cardWindow.document.title = "ID Card - " + escapeHtml(firstName) + " " + escapeHtml(lastName);
-    document.querySelectorAll('link[rel="stylesheet"], style').forEach((el) => {
-      cardWindow.document.head.appendChild(el.cloneNode(true));
+    // document.open() left document.body null, so the next line threw and the
+    // popup stayed blank -- an empty tab and no ID card.
+    writePrintDocument(cardWindow, `ID Card - ${firstName} ${lastName}`, idCardBody, {
+      styles: idCardStyles,
+      page: "A4",
     });
-    cardWindow.document.head.insertAdjacentHTML("beforeend", `<style>${idCardStyles}</style>`);
-    cardWindow.document.body.innerHTML = idCardBody;
-    cardWindow.document.close();
-    cardWindow.focus();
-    setTimeout(() => cardWindow.print(), 500);
+    void printWhenReady(cardWindow);
   };
 
   const printAllCards = () => {
