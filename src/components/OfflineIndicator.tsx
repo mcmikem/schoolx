@@ -121,10 +121,11 @@ export const OfflineIndicator = memo(function OfflineIndicator() {
       aria-live="polite"
       style={{
         position: "fixed",
-        bottom: 20,
+        bottom: "var(--mobile-nav-clearance, 84px)",
         left: "50%",
         transform: "translateX(-50%)",
-        zIndex: 45,
+        zIndex: "var(--z-toast, 3000)",
+        pointerEvents: "none",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
@@ -141,6 +142,7 @@ export const OfflineIndicator = memo(function OfflineIndicator() {
             display: "flex",
             alignItems: "center",
             gap: 8,
+            pointerEvents: "auto",
             boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
             background: isOnline ? "#22c55e" : "#ef4444",
             color: "#fff",

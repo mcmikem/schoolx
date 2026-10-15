@@ -179,6 +179,28 @@ button {
   --logo-size: 36px;
   --shell-max-width: 1400px;
   --topbar-height: 56px;
+
+  /* Stacking scale.
+     The app had 186 z-index declarations across 17 arbitrary values with no
+     ordering between them, and the notification layer had ended up stranded
+     underneath the dialog layer: the toast sat at z-60 while the Add/Edit
+     Student form portal is z-140, so every save error for the most-used form
+     in the app rendered behind its own backdrop. The offline pill at z-45 sat
+     below the z-50 bottom nav, so the one signal that matters most on a 2G
+     connection was never visible or tappable.
+     Notification is the top *transient* layer, so it belongs above dialogs and
+     assistants. Only a mandatory wall outranks it. New overlays should use
+     these variables rather than inventing another number. */
+  --z-nav: 50; /* bottom nav, sticky action bars */
+  --z-overlay: 1000; /* dialogs, drawers, sheets */
+  --z-assistant: 2000; /* Owl FAB/panel, bug report */
+  --z-toast: 3000; /* toasts, offline/queue indicator */
+  --z-wall: 9000; /* mandatory walls, e.g. forced password change */
+
+  /* Height of the mobile bottom nav plus its own inset, so bottom-anchored
+     transient UI can clear it instead of landing on top of it. */
+  --mobile-nav-clearance: calc(84px + env(safe-area-inset-bottom, 0px));
+
   --bg: #f5f8fe;
   --surface: #ffffff;
   --border: #d9e7fb;

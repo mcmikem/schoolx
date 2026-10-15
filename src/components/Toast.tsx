@@ -77,9 +77,18 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     <ToastContext.Provider value={contextValue}>
       {children}
 
-      {/* Toast Container */}
+      {/* Toast Container
+
+          Two things were wrong here. It sat at z-60, below the Add/Edit Student
+          form's z-140 portal, so save errors rendered behind the dialog. And its
+          mobile geometry -- bottom 10px, horizontally centred -- was identical to
+          the bottom nav's, at a higher z, so every toast painted over
+          Home/Attend/Fees for the four seconds it lived.
+
+          Now on the notification layer, lifted clear of the nav on small screens,
+          and pointer-transparent apart from the toasts themselves. */}
       <div
-        className="fixed bottom-[calc(10px+env(safe-area-inset-bottom))] left-1/2 z-[60] flex -translate-x-1/2 flex-col gap-3 px-4 sm:bottom-4 sm:left-auto sm:right-4 sm:translate-x-0 sm:px-0 max-w-[min(96vw,420px)] w-full"
+        className="fixed bottom-[var(--mobile-nav-clearance)] left-1/2 z-[var(--z-toast)] pointer-events-none flex -translate-x-1/2 flex-col gap-3 px-4 sm:bottom-4 sm:left-auto sm:right-4 sm:translate-x-0 sm:px-0 max-w-[min(96vw,420px)] w-full"
         role="status"
         aria-live="polite"
       >
@@ -91,6 +100,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               className={`
                 ${colors[toast.type]}
                 border rounded-2xl p-4 shadow-lg
+                pointer-events-auto
                 flex items-start gap-3
                 animate-slide-up
               `}
