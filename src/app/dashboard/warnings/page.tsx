@@ -13,8 +13,9 @@ import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
 import { Tabs } from "@/components/ui/Tabs";
 import { TableSkeleton } from "@/components/ui/Skeleton";
-import { EmptyState } from "@/components/EmptyState";
+import { EmptyState, ErrorState } from "@/components/EmptyState";
 import { APP_NAME } from "@/lib/app-name";
+import { logger } from "@/lib/logger";
 
 interface Warning {
   student_id: string;
@@ -40,6 +41,7 @@ export default function EarlyWarningsPage() {
   const { classes } = useClasses(school?.id);
   const [warnings, setWarnings] = useState<Warning[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [filterSeverity, setFilterSeverity] = useState("all");
   const [thresholds, setThresholds] = useState<WarningThresholds>({
     attendance: 80,
@@ -65,12 +67,20 @@ export default function EarlyWarningsPage() {
   const fetchWarnings = useCallback(async () => {
     if (!school?.id || students.length === 0) {
       setWarnings([]);
+      setLoadError(null);
       setLoading(false);
       return;
     }
 
     setLoading(true);
-    const studentIds = students.map((s) => s.id);
+    setLoadError(null);
+    // Everything below is awaited without a guard. One dropped request on 2G
+    // used to reject out of this function before setLoading(false), leaving the
+    // skeleton up permanently, and the Refresh button just re-entered the same
+    // failing path -- so a headmaster had to reload the page with no message
+    // telling them anything had gone wrong.
+    try {
+      const studentIds = students.map((s) => s.id);
     const allWarnings: Warning[] = [];
 
     // Batch fetch all grades for all students
@@ -164,6 +174,13 @@ export default function EarlyWarningsPage() {
     }
 
     setWarnings(allWarnings);
+    } catch (err) {
+      logger.error("Failed to load early warnings:", err);
+      setWarnings([]);
+      setLoadError("Could not load early warnings. Check your connection and try again.");
+    } finally {
+      setLoading(false);
+    }
   }, [school?.id, students, currentTerm, academicYear, thresholds]);
 
   useEffect(() => {
@@ -310,6 +327,8 @@ export default function EarlyWarningsPage() {
               <TableSkeleton rows={3} />
             </CardBody>
           </Card>
+        ) : loadError ? (
+          <ErrorState onRetry={fetchWarnings} message={loadError} />
         ) : filteredWarnings.length === 0 ? (
           <EmptyState icon="check_circle" title="No warnings" description="All students are performing well" />
         ) : (

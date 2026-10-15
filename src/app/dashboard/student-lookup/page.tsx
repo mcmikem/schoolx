@@ -107,28 +107,37 @@ export default function StudentLookupPage() {
     }
 
     setSending(true);
-    const res = await fetch("/api/sms/", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        schoolId: school?.id,
-        recipients: [
-          {
-            phone: selectedStudent.parent_phone,
-            name: selectedStudent.parent_name,
-          },
-        ],
-        message,
-      }),
-    });
-    const data = await res.json();
-    if (data.success) {
-      toast.success("SMS sent to parent");
-      setShowModal(false);
-    } else {
-      toast.error("Failed to send SMS: " + (data.error || "Unknown error"));
+    // fetch rejects outright when the connection drops, which is routine on 2G.
+    // Unguarded, setSending(false) below was never reached: the button stayed
+    // disabled with a permanent spinner, no toast, and the typed message was
+    // only recoverable by killing and reopening the dialog.
+    try {
+      const res = await fetch("/api/sms/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          schoolId: school?.id,
+          recipients: [
+            {
+              phone: selectedStudent.parent_phone,
+              name: selectedStudent.parent_name,
+            },
+          ],
+          message,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success("SMS sent to parent");
+        setShowModal(false);
+      } else {
+        toast.error("Failed to send SMS: " + (data.error || "Unknown error"));
+      }
+    } catch {
+      toast.error("Network problem. Please try again.");
+    } finally {
+      setSending(false);
     }
-    setSending(false);
   };
 
   return (

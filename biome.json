@@ -18,6 +18,9 @@
       "recommended": false,
       "suspicious": {
         "noDebugger": "warn"
+      },
+      "correctness": {
+        "useHookAtTopLevel": "error"
       }
     }
   },

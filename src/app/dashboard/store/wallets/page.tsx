@@ -6,6 +6,8 @@ import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
+import { ErrorState } from "@/components/EmptyState";
+import { logger } from "@/lib/logger";
 import { cardClassName } from "@/lib/utils";
 import { format } from "date-fns";
 
@@ -49,6 +51,7 @@ export default function StudentWalletsPage() {
   const { school } = useAuth();
   const toast = useToast();
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [wallets, setWallets] = useState<WalletRow[]>([]);
   const [transactions, setTransactions] = useState<WalletTransactionSummary[]>([]);
   const [search, setSearch] = useState("");
@@ -58,6 +61,7 @@ export default function StudentWalletsPage() {
   const fetchWallets = useCallback(async () => {
     if (!school?.id) return;
     setLoading(true);
+    setLoadError(null);
 
     try {
       const [walletRes, transactionRes] = await Promise.all([
@@ -83,6 +87,15 @@ export default function StudentWalletsPage() {
       } else {
         setTransactions([]);
       }
+    } catch (err) {
+      // Promise.all rejects on a network drop. With only try/finally the
+      // rejection escaped, no toast fired, and wallets stayed [] -- so the page
+      // reported "Total Circulating Balance UGX 0" and "Active across 0
+      // students" with an empty table and no explanation at all.
+      logger.error("Failed to load wallets:", err);
+      setWallets([]);
+      setTransactions([]);
+      setLoadError("Could not load student wallets. Check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -222,7 +235,23 @@ export default function StudentWalletsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
-                {filteredWallets.map((wallet) => {
+                {loadError ? (
+                  <tr>
+                    <td colSpan={5} className="p-0">
+                      <ErrorState onRetry={fetchWallets} message={loadError} />
+                    </td>
+                  </tr>
+                ) : filteredWallets.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-6 py-12 text-center">
+                      <p className="text-sm font-medium text-[var(--t1)]">No student wallets yet</p>
+                      <p className="mt-1 text-sm text-[var(--t3)]">
+                        Balances appear here once students have been topped up.
+                      </p>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredWallets.map((wallet) => {
                   const student = resolveStudent(wallet.students);
                   if (!student) return null;
 
@@ -269,7 +298,8 @@ export default function StudentWalletsPage() {
                       </td>
                     </tr>
                   );
-                })}
+                })
+                )}
               </tbody>
             </table>
           </div>
