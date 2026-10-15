@@ -142,6 +142,8 @@ export default function AttendancePage() {
   const [bulkDateTo, setBulkDateTo] = useState(() => {
     return getLocalDateString();
   });
+  const [pendingBulk, setPendingBulk] = useState<{ status: string; label: string } | null>(null);
+  const [bulkRangeError, setBulkRangeError] = useState<string | null>(null);
   const [bulkProgress, setBulkProgress] = useState<{
     running: boolean;
     total: number;
@@ -566,8 +568,25 @@ export default function AttendancePage() {
     }
   };
 
+  const bulkRangeInvalid = Boolean(bulkDateFrom && bulkDateTo && bulkDateFrom > bulkDateTo);
+
+  const requestBulkMark = (status: string) => {
+    if (!selectedClass || !school?.id) return;
+    if (bulkRangeInvalid) return;
+    // These buttons rewrite every day in the chosen range for the whole class.
+    // The default range is the last 7 days but the buttons were labelled only
+    // "Mark All Present", so a teacher who meant today could silently overwrite
+    // six days of real attendance -- recorded absences and sick days included --
+    // with no confirmation and no undo. Confirm the class and the dates first.
+    setPendingBulk({ status, label: STATUS_CONFIG[status as keyof typeof STATUS_CONFIG]?.label || status });
+  };
+
   const handleBulkMark = async (status: string) => {
     if (!selectedClass || !school?.id) return;
+    if (bulkRangeInvalid) {
+      toast.error("The From date must not be after the To date.");
+      return;
+    }
     setBulkProgress({ running: true, total: 0, current: 0 });
     setBulkSummary(null);
     try {
@@ -1019,36 +1038,63 @@ export default function AttendancePage() {
                 </button>
               </div>
               <div className="sm:w-48">
-                <label className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2 block">
+                <label
+                  htmlFor="bulk-date-from"
+                  className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2 block"
+                >
                   From Date
                 </label>
                 <input
+                  id="bulk-date-from"
                   type="date"
+                  aria-invalid={bulkRangeInvalid}
+                  aria-describedby={bulkRangeInvalid ? "bulk-range-error" : undefined}
                   value={bulkDateFrom}
-                  onChange={(e) => setBulkDateFrom(e.target.value)}
+                  onChange={(e) => {
+                    setBulkDateFrom(e.target.value);
+                    setBulkRangeError(null);
+                  }}
                   className="w-full bg-surface-container border-none rounded-xl py-3 px-4 min-h-[44px] text-base font-medium focus:ring-2 focus:ring-primary/20"
                 />
               </div>
               <div className="sm:w-48">
-                <label className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2 block">
+                <label
+                  htmlFor="bulk-date-to"
+                  className="text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2 block"
+                >
                   To Date
                 </label>
                 <input
+                  id="bulk-date-to"
                   type="date"
+                  aria-invalid={bulkRangeInvalid}
+                  aria-describedby={bulkRangeInvalid ? "bulk-range-error" : undefined}
                   value={bulkDateTo}
-                  onChange={(e) => setBulkDateTo(e.target.value)}
+                  onChange={(e) => {
+                    setBulkDateTo(e.target.value);
+                    setBulkRangeError(null);
+                  }}
                   className="w-full bg-surface-container border-none rounded-xl py-3 px-4 min-h-[44px] text-base font-medium focus:ring-2 focus:ring-primary/20"
                 />
               </div>
+              {bulkRangeInvalid && (
+                <p
+                  id="bulk-range-error"
+                  role="alert"
+                  className="w-full text-sm font-semibold text-error"
+                >
+                  The From date is after the To date. Adjust the range before marking.
+                </p>
+              )}
               <div className="flex-1 flex items-end gap-2 flex-wrap">
                 {(["present", "absent", "late", "excused"] as const).map((s) => {
                   const cfg = STATUS_CONFIG[s];
                   return (
                     <button
                       key={s}
-                      onClick={() => handleBulkMark(s)}
-                      title={`Mark all students as ${cfg.label.toLowerCase()}`}
-                      disabled={bulkProgress?.running || !selectedClass || !isOnline}
+                      onClick={() => requestBulkMark(s)}
+                      title={`Mark all students in ${bulkDateFrom} to ${bulkDateTo} as ${cfg.label.toLowerCase()}`}
+                      disabled={bulkProgress?.running || !selectedClass || !isOnline || bulkRangeInvalid}
                       className={`px-4 py-2.5 rounded-xl text-sm font-bold transition-all min-h-[44px] disabled:opacity-40 ${
                         s === "present"
                           ? "bg-secondary/10 text-secondary border-2 border-secondary/30 hover:bg-secondary/20"
@@ -1060,6 +1106,9 @@ export default function AttendancePage() {
                       }`}
                     >
                       Mark All {cfg.label}
+                      <span className="block text-[10px] font-medium opacity-80 normal-case tracking-normal">
+                        {bulkDateFrom} to {bulkDateTo}
+                      </span>
                     </button>
                   );
                 })}
@@ -1696,6 +1745,19 @@ export default function AttendancePage() {
             </Button>
           </div>
         </Modal>
+        <ConfirmDialog
+          isOpen={!!pendingBulk}
+          onClose={() => setPendingBulk(null)}
+          onConfirm={async () => {
+            const status = pendingBulk?.status;
+            setPendingBulk(null);
+            if (status) await handleBulkMark(status);
+          }}
+          title={`Mark All ${pendingBulk?.label || ""}`}
+          message={`Mark every student in this class as ${(pendingBulk?.label || "").toLowerCase()} for ${bulkDateFrom} to ${bulkDateTo}? Any attendance already recorded in that range will be overwritten, and there is no undo.`}
+          confirmLabel={`Yes, Mark All ${pendingBulk?.label || ""}`}
+          variant="danger"
+        />
         <ConfirmDialog
           isOpen={confirmMarkAll}
           onClose={() => setConfirmMarkAll(false)}

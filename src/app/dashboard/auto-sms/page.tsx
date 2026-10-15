@@ -98,7 +98,7 @@ export default function AutoSMSPage() {
     "automations",
   );
   const [logFilter, setLogFilter] = useState("all");
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [pendingToggle, setPendingToggle] = useState<string | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -116,17 +116,27 @@ export default function AutoSMSPage() {
   }, [school?.id, isDemo]);
 
   const handleToggle = async (key: string) => {
-    const result = await toggleAutomation({
-      schoolId: school?.id || "",
-      automationType: key,
-      isActive: !automationStatus[key],
-      isDemo,
-    });
-    if (result.success) {
-      toast.success(result.message);
-      setAutomationStatus((prev) => ({ ...prev, [key]: !prev[key] }));
-    } else {
-      toast.error(result.message);
+    // Unguarded, a double-tap on 2G fired two concurrent toggles that both read
+    // the same stale automationStatus[key], producing two contradictory toasts
+    // and leaving the switch in a position the server never agreed with.
+    if (pendingToggle) return;
+    const next = !automationStatus[key];
+    setPendingToggle(key);
+    try {
+      const result = await toggleAutomation({
+        schoolId: school?.id || "",
+        automationType: key,
+        isActive: next,
+        isDemo,
+      });
+      if (result.success) {
+        toast.success(result.message);
+        setAutomationStatus((prev) => ({ ...prev, [key]: next }));
+      } else {
+        toast.error(result.message);
+      }
+    } finally {
+      setPendingToggle(null);
     }
   };
 
@@ -185,11 +195,13 @@ export default function AutoSMSPage() {
       <PageHeader
         title="Smart SMS Triggers"
         subtitle="Automate parent notifications for fees, attendance, and reports"
-        actions={
-          <Button onClick={() => setShowCreateModal(true)}>
-            <MaterialIcon icon="add" /> New Automation Rule
-          </Button>
-        }
+        // These automations are built-in (AUTOMATIONS above) and are switched on
+        // and off individually; there is no user-defined rule to create. The page
+        // used to offer a "New Automation Rule" button whose form had no state,
+        // no onChange and no submit handler, so a headmaster could fill in a whole
+        // fee-reminder rule, tap Create, and watch the modal close with nothing
+        // created, no error, and no sign their work was gone. Removed rather than
+        // left silently discarding input.
       />
 
       {/* Tabs */}
@@ -233,8 +245,13 @@ export default function AutoSMSPage() {
                           </p>
                         </div>
                         <button
+                          type="button"
+                          role="switch"
+                          aria-checked={isEnabled}
+                          aria-label={`${isEnabled ? "Disable" : "Enable"} ${auto.title}`}
+                          disabled={pendingToggle === auto.key}
                           onClick={() => handleToggle(auto.key)}
-                          className={`relative w-12 h-7 rounded-full transition-colors shrink-0 ${isEnabled ? "bg-green-500" : "bg-gray-300"}`}
+                          className={`relative w-12 h-7 rounded-full transition-colors shrink-0 disabled:opacity-60 ${isEnabled ? "bg-green-500" : "bg-gray-300"}`}
                         >
                           <div
                             className={`absolute top-0.5 w-6 h-6 bg-white rounded-full shadow transition-transform ${isEnabled ? "left-5" : "left-0.5"}`}
@@ -349,65 +366,7 @@ export default function AutoSMSPage() {
       )}
 
       {/* Create Automation Rule Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
-            <h2 className="text-xl font-semibold mb-4">
-              Create Automation Rule
-            </h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Rule Name
-                </label>
-                <input
-                  type="text"
-                  className="w-full px-3 py-2 border rounded-lg"
-                  placeholder="Enter rule name"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Trigger Type
-                </label>
-                <select className="w-full px-3 py-2 border rounded-lg">
-                  <option value="">Select trigger</option>
-                  <option value="fee_overdue">Fee Overdue</option>
-                  <option value="absentee">Absentee</option>
-                  <option value="payment">Payment Received</option>
-                  <option value="report_card">Report Card Ready</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">
-                  Message Template
-                </label>
-                <textarea
-                  className="w-full px-3 py-2 border rounded-lg"
-                  rows={3}
-                  placeholder="Enter message template"
-                />
-              </div>
-            </div>
-            <div className="flex gap-3 mt-6">
-              <Button
-                variant="ghost"
-                className="flex-1"
-                onClick={() => setShowCreateModal(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                className="flex-1"
-                onClick={() => setShowCreateModal(false)}
-              >
-                Create Rule
-              </Button>
-            </div>
           </div>
-        </div>
-      )}
-    </div>
     </PageErrorBoundary>
   );
 }

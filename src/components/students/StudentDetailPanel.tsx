@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useRef, useCallback, useMemo, type ReactNode } from "react";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { loadSchoolHouses } from "@/lib/houses";
 import { createPortal } from "react-dom";
 import { supabase } from "@/lib/supabase";
@@ -256,6 +257,33 @@ export default function StudentDetailPanel({
     setNewStudent(INITIAL_NEW_STUDENT);
   }, []);
 
+  // This is the only long multi-section form in the app, and it had no
+  // protection at all: a tap anywhere on the backdrop, or Escape, called onClose
+  // and reset the form unconditionally. The panel is max-w-3xl on a viewport
+  // that is often 360px wide, so the backdrop is a tall strip down both edges --
+  // exactly where a thumb lands while scrolling. A secretary registering pupils
+  // during enrolment week would lose ten minutes of typing per stray tap, with no
+  // confirmation and no way back. Only let a pristine form close on a backdrop tap
+  // or Escape; anything else has to be confirmed.
+  const newStudentDirty = useMemo(
+    () => JSON.stringify(newStudent) !== JSON.stringify(INITIAL_NEW_STUDENT),
+    [newStudent],
+  );
+  const editFormDirty = useMemo(
+    () => JSON.stringify(editForm) !== JSON.stringify(initialEditForm),
+    [editForm],
+  );
+  const formDirty = mode === "add" ? newStudentDirty : editFormDirty;
+  const [discardPromptOpen, setDiscardPromptOpen] = useState(false);
+
+  const requestClose = useCallback(() => {
+    if (formDirty) {
+      setDiscardPromptOpen(true);
+      return;
+    }
+    onClose();
+  }, [formDirty, onClose]);
+
   useEffect(() => {
     if (!schoolId) return;
     // Shared loader with a short cache: this panel is mounted per student, so
@@ -336,12 +364,13 @@ export default function StudentDetailPanel({
     if (!isOpen) return;
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        onClose();
+        event.preventDefault();
+        requestClose();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, requestClose]);
 
   const handleNewStudentChange = (updates: Partial<NewStudent>) => {
     setNewStudent((prev) => ({ ...prev, ...updates }));
@@ -570,8 +599,22 @@ export default function StudentDetailPanel({
   const setOb = (v: string) =>
     isEdit ? setEditForm((p) => ({ ...p, opening_balance: v })) : handleNewStudentChange({ opening_balance: v });
 
-  return createPortal(
-    <div className="fixed inset-0 z-[140] overflow-y-auto" onClick={onClose}>
+  return (
+    <>
+      <ConfirmDialog
+        isOpen={discardPromptOpen}
+        onClose={() => setDiscardPromptOpen(false)}
+        onConfirm={() => {
+          setDiscardPromptOpen(false);
+          onClose();
+        }}
+        title="Discard these details?"
+        message={`You have unsaved ${isEdit ? "changes" : "details"} for this learner. Closing now will lose them.`}
+        confirmLabel="Discard"
+        variant="danger"
+      />
+      {createPortal(
+    <div className="fixed inset-0 z-[140] overflow-y-auto" onClick={requestClose}>
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
       <div className="relative min-h-full flex items-start sm:items-center justify-center p-4">
         <div
@@ -813,7 +856,7 @@ export default function StudentDetailPanel({
               </div>
               {!isEdit && !minimal && (
                 <div className="mb-4">
-                  <label
+                  <label htmlFor="student-number"
                     style={{
                       fontSize: 11,
                       fontWeight: 700,
@@ -857,7 +900,7 @@ export default function StudentDetailPanel({
                 newStudent.class_id &&
                 classes.find((c) => c.id === newStudent.class_id)?.name?.startsWith("P.7") && (
                   <div>
-                    <label
+                    <label htmlFor="student-ple-index"
                       style={{
                         fontSize: 11,
                         fontWeight: 700,
@@ -904,7 +947,7 @@ export default function StudentDetailPanel({
               description="Keep this short and accurate so SMS and fee reminders reach the right person."
             >
               <div style={{ marginBottom: 16 }}>
-                <label
+                <label htmlFor="parent-name"
                   style={{
                     fontSize: 11,
                     fontWeight: 700,
@@ -931,7 +974,7 @@ export default function StudentDetailPanel({
               </div>
               <ResponsiveFieldGrid>
                 <div>
-                  <label
+                  <label htmlFor="parent-phone"
                     style={{
                       fontSize: 11,
                       fontWeight: 700,
@@ -959,7 +1002,7 @@ export default function StudentDetailPanel({
                   />
                 </div>
                 <div>
-                  <label
+                  <label htmlFor="parent-phone2"
                     style={{
                       fontSize: 11,
                       fontWeight: 700,
@@ -991,7 +1034,7 @@ export default function StudentDetailPanel({
             <FormSection title="Health and fees" description="Only the fields commonly needed at admission stay here.">
               <ResponsiveFieldGrid className="mb-4">
                 <div>
-                  <label
+                  <label htmlFor="blood-type"
                     style={{
                       fontSize: 11,
                       fontWeight: 700,
@@ -1038,7 +1081,9 @@ export default function StudentDetailPanel({
                     NIN (National ID Number)
                   </label>
                   <input
+                    id="student-nin"
                     type="text"
+                    aria-label="NIN (National ID Number)"
                     value={formData.nin || ""}
                     onChange={(e) => handleFormChange({ nin: e.target.value })}
                     className="input"
@@ -1049,6 +1094,7 @@ export default function StudentDetailPanel({
               </ResponsiveFieldGrid>
               <div style={{ marginBottom: 20 }}>
                 <label
+                  htmlFor="opening-balance"
                   style={{
                     fontSize: 11,
                     fontWeight: 700,
@@ -1078,8 +1124,10 @@ export default function StudentDetailPanel({
                     UGX
                   </span>
                   <input
+                    id="opening-balance"
                     type="number"
                     inputMode="numeric"
+                    aria-label="Opening Balance (Previous Debt/Credit) in Ugandan shillings"
                     value={ob}
                     onChange={(e) => setOb(e.target.value)}
                     className="input"
@@ -1194,7 +1242,7 @@ export default function StudentDetailPanel({
                 {houses.length > 0 && (
                   <ResponsiveFieldGrid className="mb-3">
                     <div>
-                      <label
+                      <label htmlFor="house-id"
                         style={{
                           fontSize: 11,
                           fontWeight: 700,
@@ -1227,7 +1275,7 @@ export default function StudentDetailPanel({
                       </select>
                     </div>
                     <div>
-                      <label
+                      <label htmlFor="games-house"
                         style={{
                           fontSize: 11,
                           fontWeight: 700,
@@ -1523,7 +1571,7 @@ export default function StudentDetailPanel({
                 </p>
               )}
               <div style={{ display: "flex", gap: 10 }}>
-                <Button type="button" variant="ghost" onClick={onClose} style={{ flex: 1, minHeight: 48 }}>
+                <Button type="button" variant="ghost" onClick={requestClose} style={{ flex: 1, minHeight: 48 }}>
                   Cancel
                 </Button>
                 <Button
@@ -1542,5 +1590,7 @@ export default function StudentDetailPanel({
       </div>
     </div>,
     document.body,
+      )}
+    </>
   );
 }
