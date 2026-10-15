@@ -7,7 +7,7 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
-import { EmptyState } from "@/components/EmptyState";
+import { EmptyState, ErrorState } from "@/components/EmptyState";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { logger } from "@/lib/logger";
 
@@ -26,6 +26,7 @@ export default function AttendanceHistoryPage() {
   const [search, setSearch] = useState("");
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [summary, setSummary] = useState({
     present: 0,
     absent: 0,
@@ -38,6 +39,7 @@ export default function AttendanceHistoryPage() {
     if (!school?.id) return;
     try {
       setLoading(true);
+      setLoadError(null);
       const params = new URLSearchParams({
         school_id: school.id,
         date_from: startDate,
@@ -100,7 +102,14 @@ export default function AttendanceHistoryPage() {
         total: json.data.summary.total,
       });
     } catch (err) {
+      // Swallowed this used to leave records as [], so a failed fetch rendered
+      // "No attendance records found -- try adjusting your date range", sending
+      // the headmaster to debug filters when the real cause was a dead
+      // connection, with the stat cards above silently reading zero all term.
       logger.error("Error fetching attendance history:", err);
+      setRecords([]);
+      setSummary({ present: 0, absent: 0, late: 0, excused: 0, total: 0 });
+      setLoadError("Could not load attendance history. Check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -258,6 +267,8 @@ export default function AttendanceHistoryPage() {
 
         {loading ? (
           <TableSkeleton rows={8} />
+        ) : loadError ? (
+          <ErrorState onRetry={fetchHistory} message={loadError} />
         ) : records.length === 0 ? (
           <EmptyState
             icon="history"

@@ -3,7 +3,7 @@ import { Card, CardHeader, CardTitle, CardBody } from "@/components/ui/Card";
 import { Tabs } from "@/components/ui/Tabs";
 import { Button, Badge } from "@/components/ui/index";
 import { TableSkeleton } from "@/components/ui/Skeleton";
-import { EmptyState } from "@/components/EmptyState";
+import { EmptyState, ErrorState } from "@/components/EmptyState";
 
 interface MessageItem {
   id: string;
@@ -21,6 +21,8 @@ interface MessageHistoryProps {
   messages: MessageItem[];
   messageLimit: number;
   onLoadMore: () => void;
+  error?: string | null;
+  onRetry?: () => void;
 }
 
 const recentTabs = [
@@ -52,6 +54,8 @@ export default function MessageHistory({
   messages,
   messageLimit,
   onLoadMore,
+  error,
+  onRetry,
 }: MessageHistoryProps) {
   return (
     <Card>
@@ -62,6 +66,11 @@ export default function MessageHistory({
         <Tabs tabs={recentTabs} activeTab={recentTab} onChange={onRecentTabChange} className="mb-4" />
         {loading ? (
           <TableSkeleton rows={3} />
+        ) : error ? (
+          <ErrorState
+            onRetry={onRetry}
+            message={error}
+          />
         ) : filteredMessages.length === 0 ? (
           <EmptyState
             icon="sms"

@@ -10,6 +10,7 @@ import { useToast } from "@/components/Toast";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
+import { ErrorState } from "@/components/EmptyState";
 import { buildAcademicYear, buildLessonProcedure, splitLessonProcedure } from "@/lib/academics-utils";
 import { getErrorMessage } from "@/lib/validation";
 import { logger } from "@/lib/logger";
@@ -62,6 +63,7 @@ export default function LessonPlansPage() {
 
   const [plans, setPlans] = useState<LessonPlan[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<LessonPlan | null>(null);
@@ -94,6 +96,7 @@ export default function LessonPlansPage() {
   const fetchPlans = useCallback(async () => {
     if (!school?.id) return;
     setLoading(true);
+    setLoadError(null);
     try {
       const { withTimeout: wt2, timeoutFallback: tf2 } = await import("@/lib/hooks/utils");
       const { data, error } = await wt2(
@@ -135,7 +138,13 @@ export default function LessonPlansPage() {
 
       setPlans(mapped);
     } catch (err) {
+      // Used to swallow this, leaving `plans` as []. A 2G timeout then rendered
+      // "No lesson plans yet" with a "Create First Lesson Plan" button, so the
+      // teacher's whole scheme of work looked deleted and the app invited them
+      // to re-enter it -- producing duplicates and a corrupted term plan.
       logger.error("Failed to fetch lesson plans:", err);
+      setPlans([]);
+      setLoadError("Could not load your lesson plans. Check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -328,6 +337,8 @@ export default function LessonPlansPage() {
           <div className="text-center py-12">
             <div className="w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full animate-spin mx-auto"></div>
           </div>
+        ) : loadError ? (
+          <ErrorState onRetry={fetchPlans} message={loadError} />
         ) : plans.length === 0 ? (
           <Card className="p-6 text-center sm:p-12">
             <MaterialIcon className="text-5xl text-[var(--t3)] opacity-50 mx-auto">assignment</MaterialIcon>

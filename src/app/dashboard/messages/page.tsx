@@ -161,6 +161,7 @@ export default function CommunicationHubPage() {
   >([]);
   const [sending, setSending] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [messageLoadError, setMessageLoadError] = useState<string | null>(null);
   const [messageLimit, setMessageLimit] = useState(20);
   // "auto" prefers WhatsApp (cheaper) and falls back to SMS when WhatsApp is
   // not configured — matching the automation channel resolver.
@@ -406,7 +407,13 @@ export default function CommunicationHubPage() {
       if (classesRes.data) setClasses(classesRes.data);
       if (messagesRes.data) setMessages(messagesRes.data);
     } catch (err) {
+      // Swallowed this used to leave messages as [], and the panel then rendered
+      // "No messages sent yet -- send your first message to get started". A
+      // secretary whose fetch failed was told they had never sent a message and
+      // prompted to send one: a duplicate, billable SMS to every parent.
       logger.error("Error:", err);
+      setMessages([]);
+      setMessageLoadError("Could not load message history. Check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -1175,6 +1182,8 @@ export default function CommunicationHubPage() {
               messages={messages}
               messageLimit={messageLimit}
               onLoadMore={() => setMessageLimit((prev) => prev + 20)}
+              error={messageLoadError}
+              onRetry={fetchMessagesData}
             />
           </div>
         </TabPanel>
