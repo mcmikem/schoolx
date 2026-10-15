@@ -165,7 +165,7 @@ export default function AlumniPage() {
               />
             ) : (
               <div className="table-wrapper">
-                <table className="table">
+                <table className="tbl">
                   <thead>
                     <tr>
                       <th>Name</th>

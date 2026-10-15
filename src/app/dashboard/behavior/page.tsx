@@ -282,7 +282,7 @@ export default function BehaviorPage() {
                 />
               </div>
               <div className="overflow-x-auto">
-                <table className="table">
+                <table className="tbl">
                   <thead>
                     <tr>
                       <th>Student</th>

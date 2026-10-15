@@ -252,7 +252,7 @@ export default function StudentPromotionPanel({
                 <TableSkeleton rows={5} />
               ) : (
                 <div className="table-wrapper">
-                  <table className="table">
+                  <table className="tbl">
                     <thead>
                       <tr>
                         <th style={{ width: 40 }}>#</th>
@@ -344,7 +344,7 @@ export default function StudentPromotionPanel({
             />
           ) : (
             <div className="table-wrapper">
-              <table className="table">
+              <table className="tbl">
                 <thead>
                   <tr>
                     <th>Date</th>

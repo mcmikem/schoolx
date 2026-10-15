@@ -48,6 +48,33 @@ module.exports = {
         'on-primary': 'var(--on-primary)',
         'on-secondary': 'var(--on-secondary)',
         error: 'var(--error)',
+        // Material-3 roles, aliased onto the soft/ink token family in
+        // globals.css. See the "Material-3 role aliases" block there.
+        secondary: {
+          DEFAULT: 'var(--secondary)',
+          container: 'var(--secondary-container)',
+        },
+        'on-secondary-container': 'var(--on-secondary-container)',
+        tertiary: {
+          DEFAULT: 'var(--tertiary)',
+          container: 'var(--tertiary-container)',
+        },
+        'on-tertiary-container': 'var(--on-tertiary-container)',
+        'error-container': 'var(--error-container)',
+        'on-error-container': 'var(--on-error-container)',
+        green: {
+          DEFAULT: 'var(--green)',
+          soft: 'var(--green-soft)',
+        },
+        amber: {
+          DEFAULT: 'var(--amber)',
+          soft: 'var(--amber-soft)',
+        },
+        red: 'var(--red)',
+        blue: {
+          DEFAULT: 'var(--blue)',
+          soft: 'var(--blue-soft)',
+        },
       },
       backgroundColor: {
         surface: {
@@ -67,9 +94,28 @@ module.exports = {
         'outline-variant': 'var(--outline-variant)',
       },
       textColor: {
-        onSurface: 'var(--on-surface)',
+        // These must keep their object shape. A bare string here replaces the
+        // whole scale inherited from `colors`, which silently killed
+        // text-primary-600/700/800 and text-on-surface (65 call sites).
+        onSurface: {
+          DEFAULT: 'var(--on-surface)',
+          variant: 'var(--on-surface-variant)',
+        },
+        'on-surface': 'var(--on-surface)',
         'on-surface-variant': 'var(--on-surface-variant)',
-        primary: 'var(--primary)',
+        primary: {
+          DEFAULT: 'var(--primary)',
+          50: 'var(--primary-50)',
+          100: 'var(--primary-100)',
+          200: 'var(--primary-200)',
+          300: 'var(--primary-300)',
+          400: 'var(--primary-400)',
+          500: 'var(--primary-500)',
+          600: 'var(--primary-600)',
+          700: 'var(--primary-700)',
+          800: 'var(--primary-800)',
+          900: 'var(--primary-900)',
+        },
       },
       fontFamily: {
         headline: ['Sora', 'sans-serif'],

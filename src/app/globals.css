@@ -156,6 +156,23 @@ button {
   --green-ink: #059669;
   --slate-ink: #64748b;
 
+  /* Material-3 role aliases.
+     Call sites (the attendance register, PageGuidance, the fee modals and the
+     grade badges) were written against M3 role names that never had a variable
+     behind them, so those utilities emitted no CSS at all and the elements fell
+     back to inherited colour. These alias the M3 roles onto the soft/ink family
+     that already exists and already flips with the theme, so one definition
+     here covers both light and dark. */
+  --tertiary: var(--amber);
+  --tertiary-container: var(--amber-soft);
+  --on-tertiary-container: var(--amber-ink);
+  --error-container: var(--red-soft);
+  --on-error-container: var(--red-ink);
+  --secondary-container: var(--green-soft);
+  --on-secondary-container: var(--green-ink);
+  --blue: var(--navy);
+  --blue-soft: var(--navy-soft);
+
   /* Light Theme - Surface & Background */
   --sidebar-width: 264px;
   --sidebar-collapsed-width: 74px;
@@ -1633,8 +1650,85 @@ table tr {
   }
 
   /* -- FORM INPUTS -- */
+  .label {
+    @apply block text-sm font-medium text-[var(--on-surface)] mb-2;
+  }
+
   .input {
     @apply w-full px-4 py-3 rounded-[16px] border border-[var(--border)] bg-[var(--surface-container-lowest)] text-[var(--on-surface)] text-base shadow-none focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] transition-colors;
+  }
+
+  /* -- LEGACY MODAL SHELL --
+     These four classes are still used by ~12 dialogs across schools,
+     exam-timetable and exams. They lost their stylesheet in 7b7b7b9b while
+     the markup stayed, which left those dialogs rendering as unpositioned
+     inline divs. Kept in sync with <Modal>'s geometry (dvh, safe-area,
+     same z-index band) so both shells behave identically. Migrate call sites
+     to <Modal>; this block is the floor, not the target. */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 100;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 20px;
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
+  }
+  .modal {
+    background: var(--surface);
+    border-radius: var(--r2, 24px);
+    width: 100%;
+    max-width: 480px;
+    max-height: calc(100vh - 1.5rem);
+    max-height: calc(100dvh - 1.5rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    box-shadow: var(--sh3, 0 8px 32px rgb(0 0 0 / 0.18));
+  }
+  .modal-header {
+    @apply px-5 py-4 border-b border-[var(--border)];
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .modal-body {
+    @apply p-5;
+  }
+  .modal-footer {
+    @apply px-5 py-4 border-t border-[var(--border)];
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  @media (max-width: 640px) {
+    .modal-overlay {
+      padding: 8px;
+      padding-bottom: max(8px, env(safe-area-inset-bottom));
+    }
+    .modal {
+      max-width: 100%;
+      max-height: calc(100dvh - 1rem);
+    }
+    .modal-header,
+    .modal-body {
+      padding: 12px;
+    }
+    .modal-footer {
+      padding: 12px;
+      flex-direction: column-reverse;
+      gap: 8px;
+    }
+    .modal-footer .btn,
+    .modal-footer > button {
+      width: 100%;
+    }
   }
 
   .input::placeholder,

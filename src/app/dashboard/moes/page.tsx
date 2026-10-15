@@ -198,7 +198,7 @@ export default function MoESExportPage() {
         <Card className="mb-6">
           <CardBody className="p-0">
             <div className="table-wrapper">
-              <table className="table">
+              <table className="tbl">
                 <thead className="bg-[var(--surface-container-low)]">
                   <tr>
                     <th>Class</th>

@@ -592,7 +592,7 @@ function InspectionReportContent() {
               </CardHeader>
               <CardBody className="p-0">
                 <div className="table-wrapper">
-                  <table className="table">
+                  <table className="tbl">
                     <thead>
                       <tr>
                         <th>Class</th>

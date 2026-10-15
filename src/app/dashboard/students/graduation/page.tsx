@@ -209,7 +209,7 @@ export default function GraduationPage() {
                 </div>
 
                 <div className="table-wrapper">
-                  <table className="table">
+                  <table className="tbl">
                     <thead>
                       <tr>
                         <th style={{ width: 40 }}>#</th>

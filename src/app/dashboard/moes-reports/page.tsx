@@ -227,7 +227,7 @@ export default function MOESReportsPage() {
                 <Card className="overflow-hidden">
                   <CardBody className="p-0">
                     <div className="table-wrapper">
-                      <table className="table">
+                      <table className="tbl">
                         <thead>
                           <tr>
                             <th>Class</th>
