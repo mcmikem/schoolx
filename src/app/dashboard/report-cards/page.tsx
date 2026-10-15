@@ -918,6 +918,7 @@ export default function ReportCardsPage() {
         name: school?.name || "SCHOOL NAME",
         address: (school as any)?.address || "",
         phone: (school as any)?.phone || school?.email || "",
+        motto: (school as any)?.school_motto || (school as any)?.motto || "",
         logoUrl: school?.logo_url || "",
         sigClassUrl: (school as any)?.signature_class_teacher_url || "",
         sigHeadUrl: (school as any)?.signature_headteacher_url || "",
@@ -927,6 +928,7 @@ export default function ReportCardsPage() {
         studentNumber: report.studentNumber,
         gender: report.gender === "M" ? "Male" : report.gender === "F" ? "Female" : report.gender || "",
         className: report.className,
+        photoUrl: report.photoUrl || "",
         term: currentTerm,
         year: academicYear,
         attendancePresent: att?.present ?? null,
@@ -943,20 +945,31 @@ export default function ReportCardsPage() {
     });
   };
 
-  const openUgandaPrintWindow = (title: string, bodyHtml: string) => {
+  const openUgandaPrintWindow = async (title: string, bodyHtml: string) => {
     const printWindow = window.open("", "_blank");
     if (!printWindow) return;
     printWindow.document.open();
     printWindow.document.title = title;
     printWindow.document.write(ugandaDocumentShell(title, bodyHtml));
     printWindow.document.close();
+    await Promise.all(
+      Array.from(printWindow.document.images).map((image) =>
+        image.complete
+          ? Promise.resolve()
+          : new Promise<void>((resolve) => {
+              image.onload = () => resolve();
+              image.onerror = () => resolve();
+              setTimeout(resolve, 5000);
+            }),
+      ),
+    );
     printWindow.focus();
-    setTimeout(() => printWindow.print(), 500);
+    printWindow.print();
   };
 
   const handlePrintUganda = async (report: StudentReport) => {
     const ctx = await fetchUgandaBatch(selectedClass);
-    openUgandaPrintWindow(`Progress Report - ${report.name}`, await buildUgandaBody(report, ctx));
+    await openUgandaPrintWindow(`Progress Report - ${report.name}`, await buildUgandaBody(report, ctx));
   };
 
   const handlePrintReport = (report: StudentReport) => {

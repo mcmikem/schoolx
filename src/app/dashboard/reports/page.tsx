@@ -19,6 +19,8 @@ import { EmptyState } from "@/components/EmptyState";
 import { Card } from "@/components/ui/Card";
 import PersonInitials from "@/components/ui/PersonInitials";
 import { APP_NAME } from "@/lib/app-name";
+import { sumUgandaTotals } from "@/lib/uganda-report";
+import { generateUgandaPrimaryBody } from "@/components/reports/ugandaPrimaryReport";
 
 export default function ReportsPage() {
   const { school, refreshSchoolFromAPI } = useAuth();
@@ -122,6 +124,7 @@ export default function ReportsPage() {
             mot: s.mot ?? null,
             eot: s.eot ?? null,
             average: s.average ?? null,
+            aggregatePoints: s.aggregatePoints ?? null,
             grade: s.grade || (data.assessmentModel === "uganda_primary" ? "—" : "F9"),
           })) || [];
 
@@ -132,11 +135,14 @@ export default function ReportsPage() {
             student_number: data.student?.student_number || student.student_number || "N/A",
             gender: data.student?.gender || student.gender,
             photo_url: data.student?.photo_url || student.photo_url,
+            ple_index_number: data.student?.ple_index_number,
             classes: data.student?.classes || student.classes,
           },
           school: {
             name: data.school?.name || school?.name || APP_NAME,
             district: data.school?.district || school?.district || "Uganda",
+            address: data.school?.address,
+            phone: data.school?.phone,
             logo_url: data.school?.logo_url || school?.logo_url,
             uneab_center_number: data.school?.uneab_center_number || school?.uneb_center_number,
             primary_color: data.school?.primary_color || school?.primary_color,
@@ -216,6 +222,7 @@ export default function ReportsPage() {
         body { padding: 15px; }
         .report-card { max-width: 800px; margin: 0 auto 30px; border: 2px solid ${primaryColor}; page-break-after: always; }
         .report-card:last-child { page-break-after: auto; }
+        h2.section { font-size: 14px; text-decoration: underline; margin: 16px 0 4px; }
         .header { background: ${primaryColor}; color: white; padding: 20px; text-align: center; }
         .school-logo { max-width: 60px; max-height: 60px; object-fit: contain; margin: 0 auto 8px; display: block; }
         .school-name { font-size: 22px; font-weight: bold; }
@@ -234,8 +241,67 @@ export default function ReportsPage() {
       `;
 
       const bulkPrintContent = reports
-        .map(
-          (report) => `
+        .map((report: any) => {
+          if (report.assessmentModel === "uganda_primary") {
+            const subjects = (report.subjects || []).map((subject: any) => ({
+              name: subject.name,
+              bot: subject.bot ?? null,
+              mot: subject.mot ?? null,
+              eot: subject.eot ?? null,
+              avg: subject.average ?? null,
+              agg: subject.aggregatePoints ?? null,
+              grade: subject.grade || "—",
+              remarks: "",
+            }));
+            const totals = sumUgandaTotals(
+              subjects.map((subject: any) => ({
+                mid: subject.bot,
+                end: subject.eot,
+                avg: subject.avg,
+                agg: subject.agg,
+              })),
+            );
+            return `<div class="report-card">${generateUgandaPrimaryBody({
+              school: {
+                name: report.school?.name || school?.name || APP_NAME,
+                address: report.school?.address,
+                phone: report.school?.phone || report.school?.email,
+                motto: report.school?.school_motto || report.school?.motto,
+                logoUrl: report.school?.logo_url || logoUrl,
+                sigClassUrl: report.school?.signature_class_teacher_url,
+                sigHeadUrl: report.school?.signature_headteacher_url,
+              },
+              pupil: {
+                name: `${report.student?.first_name || ""} ${report.student?.last_name || ""}`.trim(),
+                studentNumber: report.student?.ple_index_number || report.student?.student_number || "—",
+                pupilId: report.student?.student_number || "—",
+                gender:
+                  report.student?.gender === "M"
+                    ? "Male"
+                    : report.student?.gender === "F"
+                      ? "Female"
+                      : report.student?.gender || "",
+                className: report.student?.classes?.name || "N/A",
+                photoUrl: report.student?.photo_url,
+                term: report.term,
+                year: report.academicYear,
+                attendancePresent: report.attendance?.present ?? null,
+                attendanceTotal: report.attendance?.total ?? null,
+              },
+              subjects,
+              totals: {
+                ...totals,
+                avgMean: report.overall?.average ?? totals.avgMean,
+                aggSum: report.overall?.aggregate ?? totals.aggSum,
+                division: report.overall?.division || totals.division,
+              },
+              comments: { classTeacher: "", hm: "" },
+              position: report.overall?.position,
+              feeBalance: null,
+              nextTermBegins: null,
+            })}</div>`;
+          }
+          return `
         <div class="report-card">
           <div class="header">
             ${logoUrl ? `<img src="${logoUrl}" alt="School logo" class="school-logo" />` : ""}
@@ -259,15 +325,7 @@ export default function ReportsPage() {
           <table>
             <thead>
               <tr>
-                {report.assessmentModel === "uganda_primary" ? (
-                  <>
-                    <th>Subject</th><th>BOT /100</th><th>MOT /100</th><th>EOT /100</th><th>Average</th><th>Grade</th>
-                  </>
-                ) : (
-                  <>
-                    <th>Subject</th><th>CA Avg</th><th>Exam</th><th>Total</th><th>Grade</th>
-                  </>
-                )}
+                <th>Subject</th><th>CA Avg</th><th>Exam</th><th>Total</th><th>Grade</th>
               </tr>
             </thead>
             <tbody>
@@ -276,11 +334,7 @@ export default function ReportsPage() {
                   (s: any) => `
                 <tr>
                   <td>${s.name}</td>
-                  ${
-                    report.assessmentModel === "uganda_primary"
-                      ? `<td>${s.bot ?? "—"}</td><td>${s.mot ?? "—"}</td><td>${s.eot ?? "—"}</td><td>${s.average ?? "—"}</td>`
-                      : `<td>${Math.round(s.totalCA || 0)}</td><td>${s.exam || 0}</td><td>${Math.round(s.finalScore || 0)}</td>`
-                  }
+                  <td>${Math.round(s.totalCA || 0)}</td><td>${s.exam || 0}</td><td>${Math.round(s.finalScore || 0)}</td>
                   <td>${s.grade || "F9"}</td>
                 </tr>
               `,
@@ -305,8 +359,8 @@ export default function ReportsPage() {
             </div>
           </div>
         </div>
-      `,
-        )
+      `;
+        })
         .join("");
 
       printWindow.document.open();
@@ -317,8 +371,20 @@ export default function ReportsPage() {
       printWindow.document.head.insertAdjacentHTML("beforeend", `<style>${bulkPrintStyles}</style>`);
       printWindow.document.body.innerHTML = bulkPrintContent;
       printWindow.document.close();
+      const printImages = Array.from(printWindow.document.images);
+      await Promise.all(
+        printImages.map((image) =>
+          image.complete
+            ? Promise.resolve()
+            : new Promise<void>((resolve) => {
+                image.onload = () => resolve();
+                image.onerror = () => resolve();
+                setTimeout(resolve, 5000);
+              }),
+        ),
+      );
       printWindow.focus();
-      setTimeout(() => printWindow.print(), 500);
+      printWindow.print();
     } catch (err) {
       logger.error("Error in bulk print:", err);
       toast.error(err instanceof Error ? err.message : "Failed to generate bulk print");
@@ -379,6 +445,7 @@ export default function ReportsPage() {
             mot: s.mot ?? null,
             eot: s.eot ?? null,
             average: s.average ?? null,
+            aggregatePoints: s.aggregatePoints ?? null,
             grade: s.grade || (data.assessmentModel === "uganda_primary" ? "—" : "F9"),
           })) || [];
 

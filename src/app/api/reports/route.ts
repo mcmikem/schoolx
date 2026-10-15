@@ -285,6 +285,7 @@ export async function POST(request: NextRequest) {
           mot: result.mot,
           eot: result.end,
           average: result.avg,
+          aggregatePoints: result.agg,
           totalCA: null,
           finalScore: result.avg,
           grade: result.grade,
@@ -367,6 +368,7 @@ export async function POST(request: NextRequest) {
       attendance: attendanceSummary,
       overall: {
         average: overallAvg === null ? null : Math.round(overallAvg * 10) / 10,
+        aggregate: primaryAggregate?.aggregate ?? null,
         grade:
           overallAvg === null
             ? "—"

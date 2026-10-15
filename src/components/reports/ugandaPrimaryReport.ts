@@ -26,6 +26,7 @@ export interface UgandaPrintInput {
     name: string;
     address?: string | null;
     phone?: string | null;
+    motto?: string | null;
     logoUrl?: string | null;
     sigClassUrl?: string | null;
     sigHeadUrl?: string | null;
@@ -36,6 +37,7 @@ export interface UgandaPrintInput {
     pupilId?: string;
     gender: string;
     className: string;
+    photoUrl?: string | null;
     term: number | string;
     year: string;
     attendancePresent: number | null;
@@ -51,7 +53,7 @@ export interface UgandaPrintInput {
   };
   comments: { classTeacher: string; hm: string };
   position?: number | null;
-  feeBalance: number;
+  feeBalance: number | null;
   nextTermBegins: string | null;
 }
 
@@ -100,6 +102,12 @@ export function ugandaDocumentShell(title: string, bodyHtml: string): string {
 export function generateUgandaPrimaryBody(input: UgandaPrintInput): string {
   const { school, pupil, subjects, totals, comments, feeBalance, nextTermBegins } = input;
   const contact = [school.address, school.phone].filter(Boolean).join(" · ");
+  const recordedAverages = subjects
+    .map((subject) => subject.avg)
+    .filter((average): average is number => average !== null);
+  const totalSubjectAverages = recordedAverages.length
+    ? recordedAverages.reduce((sum, average) => sum + average, 0)
+    : null;
 
   const subjectRows = subjects
     .map(
@@ -132,21 +140,23 @@ export function generateUgandaPrimaryBody(input: UgandaPrintInput): string {
     ${text ? `<p style="font-size:13px;margin:0 0 2px;">${escapeHtml(text)}</p>` : ""}
     <div style="border-bottom:1px solid #000;height:26px;"></div>`;
 
-  return `<div class="uganda-report">
+  return `<div class="uganda-report" style="font-family:Arial,Helvetica,sans-serif;color:#000;">
     <div style="text-align:center;">
       <div style="font-size:12px;font-weight:bold;letter-spacing:1px;">THE REPUBLIC OF UGANDA</div>
       ${school.logoUrl ? `<img src="${escapeHtml(school.logoUrl)}" alt="School logo" style="max-height:70px;max-width:90px;object-fit:contain;">` : ""}
       <div style="font-size:24px;font-weight:bold;margin:2px 0;">${escapeHtml(school.name || "SCHOOL NAME")}</div>
+      ${school.motto ? `<div style="font-size:12px;font-style:italic;">${escapeHtml(school.motto)}</div>` : ""}
       <div style="font-size:13px;font-weight:bold;">MINISTRY OF EDUCATION AND SPORTS</div>
-      ${contact ? `<div style="font-size:11px;">[${escapeHtml(contact)}]</div>` : ""}
+      ${contact ? `<div style="font-size:11px;">${escapeHtml(contact)}</div>` : ""}
       <div style="font-size:11px;font-weight:bold;margin-top:8px;">PRIMARY PUPIL'S PROGRESS REPORT</div>
-      <div style="display:inline-block;border:1.5px solid #000;padding:4px 18px;font-size:12px;font-weight:bold;margin-top:4px;">TERM ACADEMIC REPORT</div>
+      <div style="display:inline-block;border:1.5px solid #000;padding:4px 18px;font-size:12px;font-weight:bold;margin-top:4px;">TERM ${escapeHtml(String(pupil.term))} ACADEMIC REPORT — ${escapeHtml(pupil.year)}</div>
     </div>
     <div style="border-bottom:2px solid #000;margin:10px 0;"></div>
     <table style="font-size:12px;"><tbody>
       <tr>
+        <td rowspan="2" style="width:84px;padding:2px 8px 2px 0;">${pupil.photoUrl ? `<img src="${escapeHtml(pupil.photoUrl)}" alt="${escapeHtml(pupil.name)}" style="width:72px;height:88px;object-fit:cover;border:1px solid #888;">` : ""}</td>
         <td style="padding:3px 0;">Name: <u>&nbsp;${escapeHtml(pupil.name)}&nbsp;</u></td>
-        <td style="padding:3px 0;">LIN: <u>&nbsp;${escapeHtml(pupil.studentNumber)}&nbsp;</u></td>
+        <td style="padding:3px 0;">Student No./LIN: <u>&nbsp;${escapeHtml(pupil.studentNumber)}&nbsp;</u></td>
         <td style="padding:3px 0;">Pupil ID: <u>&nbsp;${escapeHtml(pupil.pupilId || "—")}&nbsp;</u></td>
         <td style="padding:3px 0;">Gender: <u>&nbsp;${escapeHtml(pupil.gender)}&nbsp;</u></td>
       </tr>
@@ -159,7 +169,7 @@ export function generateUgandaPrimaryBody(input: UgandaPrintInput): string {
       </tr>
     </tbody></table>
 
-    <h2 class="section">ACADEMIC PERFORMANCE</h2>
+    <h2 style="font-size:14px;text-decoration:underline;margin:16px 0 4px;">ACADEMIC PERFORMANCE</h2>
     <table style="font-size:12px;">
       <thead><tr style="background:#eee;">
         <th rowspan="2" style="border:1px solid #000;padding:6px;">SUBJECT</th>
@@ -177,7 +187,7 @@ export function generateUgandaPrimaryBody(input: UgandaPrintInput): string {
       <tbody>
         ${subjectRows}
         <tr>
-        <td colspan="4" style="padding:6px 10px;border:1px solid #000;font-weight:bold;text-align:center;">CLASS AVERAGE — simple mean of available BOT, MOT and EOT marks</td>
+        <td colspan="4" style="padding:6px 10px;border:1px solid #000;font-weight:bold;text-align:center;">TOTAL OF SUBJECT AVERAGES: ${cell(totalSubjectAverages)}<br>Simple mean of available BOT, MOT and EOT marks</td>
           <td style="padding:6px 10px;border:1px solid #000;text-align:center;font-weight:bold;">${cell(totals.avgMean)}%</td>
           <td style="padding:6px 10px;border:1px solid #000;font-weight:bold;">AGG: ${cell(totals.aggSum)}</td>
           <td style="padding:6px 10px;border:1px solid #000;font-weight:bold;">${escapeHtml(totals.division)}</td>
@@ -189,14 +199,14 @@ export function generateUgandaPrimaryBody(input: UgandaPrintInput): string {
 
     <table style="width:100%;border:0;"><tbody><tr>
       <td style="vertical-align:top;width:48%;border:0;padding:0 8px 0 0;">
-        <h2 class="section">GRADING SYSTEM</h2>
+        <h2 style="font-size:14px;text-decoration:underline;margin:16px 0 4px;">GRADING SYSTEM</h2>
         <table style="font-size:11px;"><tbody>
           ${legendHtml}
           <tr><td colspan="4" style="padding:4px 10px;border:1px solid #000;font-size:11px;text-align:center;font-weight:bold;">0-44: F9 (Fail) | X: Absent</td></tr>
         </tbody></table>
       </td>
       <td style="vertical-align:top;width:52%;border:0;padding:0 0 0 8px;">
-        <h2 class="section">BEHAVIOUR &amp; CO-CURRICULAR</h2>
+        <h2 style="font-size:14px;text-decoration:underline;margin:16px 0 4px;">BEHAVIOUR &amp; CO-CURRICULAR</h2>
         <table style="font-size:12px;"><tbody>
           <tr><td style="padding:6px 12px;border:1px solid #000;font-weight:bold;">Skill</td><td style="padding:6px 12px;border:1px solid #000;font-weight:bold;">1-5</td><td style="padding:6px 12px;border:1px solid #000;font-weight:bold;">Skill</td><td style="padding:6px 12px;border:1px solid #000;font-weight:bold;">1-5</td></tr>
           ${behaviourHtml}
@@ -209,7 +219,7 @@ export function generateUgandaPrimaryBody(input: UgandaPrintInput): string {
 
     <table style="font-size:12px;margin-top:14px;"><tbody><tr>
       <td style="border:0;"><strong>Next Term Begins:</strong> <u>&nbsp;${nextTermBegins ? escapeHtml(nextTermBegins) : "&nbsp;&nbsp;/&nbsp;&nbsp;/20&nbsp;&nbsp;&nbsp;&nbsp;"}&nbsp;</u></td>
-      <td style="border:0;text-align:right;"><strong>Fees Balance:</strong> <u>&nbsp;${feeBalance > 0 ? money(feeBalance) : "Cleared"}&nbsp;</u></td>
+      <td style="border:0;text-align:right;"><strong>Fees Balance:</strong> <u>&nbsp;${feeBalance === null ? "Not recorded" : feeBalance > 0 ? money(feeBalance) : "Cleared"}&nbsp;</u></td>
     </tr></tbody></table>
 
     <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:34px;">

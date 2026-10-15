@@ -3,6 +3,8 @@ import { useRef, useState } from "react";
 import Image from "next/image";
 import { Printer, Download, Settings } from "lucide-react";
 import OwlMascot from "@/components/brand/OwlMascot";
+import { sumUgandaTotals } from "@/lib/uganda-report";
+import { generateUgandaPrimaryBody } from "@/components/reports/ugandaPrimaryReport";
 
 interface ReportCardProps {
   report: {
@@ -19,6 +21,8 @@ interface ReportCardProps {
     school?: {
       name: string;
       district: string;
+      address?: string;
+      phone?: string;
       uneab_center_number?: string;
       logo_url?: string;
       primary_color?: string;
@@ -39,6 +43,7 @@ interface ReportCardProps {
     };
     term: number;
     academicYear: string;
+    feeBalance?: number | null;
     subjects: Array<{
       name: string;
       code: string;
@@ -54,6 +59,7 @@ interface ReportCardProps {
       mot?: number | null;
       eot?: number | null;
       average?: number | null;
+      aggregatePoints?: number | null;
       grade: string;
     }>;
     attendance: {
@@ -75,6 +81,7 @@ interface ReportCardProps {
       average: number | null;
       grade: string;
       division: string;
+      aggregate?: number | null;
       position?: number | null;
     };
     class_teacher_remark?: string;
@@ -127,6 +134,71 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
   const showRemarks = school.show_remarks_in_report !== false;
   const template = school.report_template || "default";
   const isUgandaPrimary = report.assessmentModel === "uganda_primary";
+  const ugandaPrimaryBody = isUgandaPrimary
+    ? generateUgandaPrimaryBody({
+        school: {
+          name: school.name || "SCHOOL NAME",
+          address: school.address,
+          phone: school.phone,
+          motto: school.school_motto || school.motto,
+          logoUrl: school.logo_url,
+          sigClassUrl: school.signature_class_teacher_url,
+          sigHeadUrl: school.signature_headteacher_url,
+        },
+        pupil: {
+          name: `${report.student.first_name} ${report.student.last_name}`,
+          studentNumber: report.student.ple_index_number || report.student.student_number,
+          pupilId: report.student.student_number,
+          gender:
+            report.student.gender === "M" ? "Male" : report.student.gender === "F" ? "Female" : report.student.gender,
+          className: report.student.classes?.name || "N/A",
+          photoUrl: report.student.photo_url,
+          term: report.term,
+          year: report.academicYear,
+          attendancePresent: report.attendance.present,
+          attendanceTotal: report.attendance.total,
+        },
+        subjects: report.subjects.map((subject) => ({
+          name: subject.name,
+          bot: subject.bot ?? null,
+          mot: subject.mot ?? null,
+          eot: subject.eot ?? null,
+          avg: subject.average ?? null,
+          agg: subject.aggregatePoints ?? null,
+          grade: subject.grade || "—",
+          remarks: "",
+        })),
+        totals: {
+          ...sumUgandaTotals(
+            report.subjects.map((subject) => ({
+              mid: subject.bot ?? null,
+              end: subject.eot ?? null,
+              avg: subject.average ?? null,
+              agg: subject.aggregatePoints ?? null,
+            })),
+          ),
+          avgMean: report.overall.average,
+          aggSum:
+            report.overall.aggregate ??
+            sumUgandaTotals(
+              report.subjects.map((subject) => ({
+                mid: subject.bot ?? null,
+                end: subject.eot ?? null,
+                avg: subject.average ?? null,
+                agg: subject.aggregatePoints ?? null,
+              })),
+            ).aggSum,
+          division: report.overall.division,
+        },
+        comments: {
+          classTeacher: report.class_teacher_remark || "",
+          hm: report.head_teacher_remark || "",
+        },
+        position: report.overall.position,
+        feeBalance: report.feeBalance ?? null,
+        nextTermBegins: report.next_term_opens || null,
+      })
+    : "";
 
   const handlePrint = () => {
     if (reportRef.current) {
@@ -188,13 +260,30 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
         printWindow.document.head.insertAdjacentHTML("beforeend", `<style>${reportPrintStyles}</style>`);
         printWindow.document.body.innerHTML = printContent;
         printWindow.document.close();
-        printWindow.focus();
-        setTimeout(() => printWindow.print(), 500);
+        const images = Array.from(printWindow.document.images);
+        Promise.all(
+          images.map((image) =>
+            image.complete
+              ? Promise.resolve()
+              : new Promise<void>((resolve) => {
+                  image.onload = () => resolve();
+                  image.onerror = () => resolve();
+                  setTimeout(resolve, 5000);
+                }),
+          ),
+        ).then(() => {
+          printWindow.focus();
+          printWindow.print();
+        });
       }
     }
   };
 
   const handleDownloadPDF = async () => {
+    if (isUgandaPrimary) {
+      handlePrint();
+      return;
+    }
     const { jsPDF } = await import("jspdf");
     const { default: autoTable } = await import("jspdf-autotable");
 
@@ -410,6 +499,50 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
     });
   }
 
+  if (isUgandaPrimary) {
+    return (
+      <div>
+        <div className="flex gap-3 mb-4">
+          <button
+            onClick={handlePrint}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            <Printer className="w-4 h-4" />
+            Print
+          </button>
+          <button
+            onClick={handleDownloadPDF}
+            className="flex items-center gap-2 px-4 py-2 text-white rounded-lg text-sm font-medium hover:opacity-90"
+            style={{ backgroundColor: primaryColor }}
+          >
+            <Download className="w-4 h-4" />
+            Print / Save PDF
+          </button>
+          {onCustomize && (
+            <button
+              onClick={onCustomize}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+            >
+              <Settings className="w-4 h-4" />
+              Customize
+            </button>
+          )}
+        </div>
+        <div
+          ref={reportRef}
+          className="report-card bg-white rounded-xl overflow-x-auto max-w-full"
+          style={{ border: `2px solid ${primaryColor}` }}
+        >
+          <div
+            className="p-4 mx-auto"
+            style={{ minWidth: 720, maxWidth: 920, fontFamily: "Arial, Helvetica, sans-serif", color: "#000" }}
+            dangerouslySetInnerHTML={{ __html: ugandaPrimaryBody }}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       {/* Action buttons */}
@@ -445,7 +578,7 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
       {/* Report Card Preview */}
       <div
         ref={reportRef}
-        className="bg-white rounded-xl overflow-hidden max-w-2xl"
+        className="report-card bg-white rounded-xl overflow-hidden max-w-2xl"
         style={{ border: `2px solid ${primaryColor}` }}
       >
         {/* Header */}

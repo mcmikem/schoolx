@@ -257,6 +257,7 @@ export interface SubjectGrades {
   mot?: number | null;
   eot?: number | null;
   average?: number | null;
+  aggregatePoints?: number | null;
   grade: string;
 }
 
@@ -444,6 +445,8 @@ export interface ReportCard {
     classes?: Pick<Class, "name" | "level">;
   };
   school?: Pick<School, "name" | "district"> & {
+    address?: string;
+    phone?: string;
     uneab_center_number?: string;
     logo_url?: string;
     primary_color?: string;
@@ -471,6 +474,7 @@ export interface ReportCard {
     average: number | null;
     grade: string;
     division: string;
+    aggregate?: number | null;
     position?: number | null;
   };
 }

@@ -128,6 +128,7 @@ describe("generateUgandaPrimaryHTML", () => {
       name: "Kikunyu Infant PS",
       address: "Kampala",
       phone: "0700",
+      motto: "Learn and grow",
       logoUrl: "",
       sigClassUrl: "",
       sigHeadUrl: "",
@@ -137,6 +138,7 @@ describe("generateUgandaPrimaryHTML", () => {
       studentNumber: "P3-001",
       gender: "Female",
       className: "P.3",
+      photoUrl: "https://school.example/pupil.png?name=amina&size=small",
       term: 2,
       year: "2026",
       attendancePresent: 58,
@@ -156,7 +158,8 @@ describe("generateUgandaPrimaryHTML", () => {
     const html = generateUgandaPrimaryHTML(baseInput);
     for (const needle of [
       "PRIMARY PUPIL'S PROGRESS REPORT",
-      "TERM ACADEMIC REPORT",
+      "TERM 2 ACADEMIC REPORT — 2026",
+      "TOTAL OF SUBJECT AVERAGES: 75",
       "ACADEMIC PERFORMANCE",
       "BOT",
       "MOT",
@@ -173,6 +176,8 @@ describe("generateUgandaPrimaryHTML", () => {
       "UGX 45,000",
       "58",
       "Good progress",
+      "Learn and grow",
+      "pupil.png?name=amina&amp;size=small",
     ]) {
       expect(html).toContain(needle);
     }
@@ -192,5 +197,12 @@ describe("generateUgandaPrimaryHTML", () => {
     });
     expect(html).toContain(">—<");
     expect(html).not.toContain(">0<");
+  });
+
+  it("does not claim fees are cleared when the balance is unknown", () => {
+    const html = generateUgandaPrimaryHTML({ ...baseInput, feeBalance: null });
+    expect(html).toContain("Fees Balance:");
+    expect(html).toContain("Not recorded");
+    expect(html).not.toContain("Cleared");
   });
 });
