@@ -6,8 +6,8 @@
 // To modify: Run full test suite (lint + typecheck + regression + e2e)
 // ============================================================================
 "use client";
-import { FeatureStage, DEFAULT_FEATURE_STAGE } from "./featureStages";
-import type { User, School } from "@/types";
+import type { School, User } from "@/types";
+import { DEFAULT_FEATURE_STAGE, FeatureStage } from "./featureStages";
 import { normalizePlanType, PlanType } from "./payments/subscription-client";
 
 export type UserRoleValue =
@@ -70,7 +70,25 @@ export interface AuthContextType {
   getSubscriptionPlan: () => PlanType | null;
 }
 
-export function isSubscriptionActiveCheck(school: School | null): boolean {
+/**
+ * Roles that belong to the platform, not to one school.
+ *
+ * A super admin operates across every school, and a marketer across every
+ * market. Neither consumes one school's plan, so neither can be locked out by
+ * one school's billing state. Their profiles may still carry a `school_id` --
+ * for a super admin it records where they last signed in, not a tenancy -- and
+ * reading that school's trial status as if it applied to them showed an
+ * expired-plan notice to someone who has no plan.
+ */
+export const PLATFORM_SCOPED_ROLES: readonly string[] = ["super_admin", "marketer"];
+
+/** True when this role sits outside individual schools. */
+export function isPlatformRole(role: string | null | undefined): boolean {
+  return !!role && PLATFORM_SCOPED_ROLES.includes(role);
+}
+
+export function isSubscriptionActiveCheck(school: School | null, role?: string | null): boolean {
+  if (isPlatformRole(role)) return true;
   if (school?.is_tester) return true;
   if (school?.subscription_status === "trial" && school?.trial_ends_at) {
     return new Date(school.trial_ends_at) > new Date();
@@ -82,7 +100,10 @@ export function getSubscriptionPlan(school: School | null): PlanType | null {
   return school?.subscription_plan ? (normalizePlanType(school.subscription_plan) as PlanType) : null;
 }
 
-export function computeTrialExpired(school: School | null): boolean {
+export function computeTrialExpired(school: School | null, role?: string | null): boolean {
+  // Not school-scoped, so not on that school's clock. Checked before the null
+  // school so the exemption holds even when no school is loaded at all.
+  if (isPlatformRole(role)) return false;
   if (!school) return false;
   if (school.is_tester) return false;
   if (school.subscription_status === "trial" && school.trial_ends_at) {

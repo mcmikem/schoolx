@@ -192,8 +192,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const isSubscriptionActive = useCallback(() => {
-    return isSubscriptionActiveCheck(school);
-  }, [school]);
+    return isSubscriptionActiveCheck(school, user?.role);
+  }, [school, user?.role]);
 
   const getSubscriptionPlan = useCallback((): PlanType | null => {
     return getPlan(school);
@@ -326,7 +326,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           } catch (error) {
             logger.warn("Failed to persist offline school data:", error);
           }
-          setIsTrialExpired(computeTrialExpired(schoolObj));
+          setIsTrialExpired(computeTrialExpired(schoolObj, userData.role));
         }
 
         setLoading(false);
@@ -1102,7 +1102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ...schoolData,
           feature_stage: (schoolData.feature_stage as FeatureStage) || DEFAULT_FEATURE_STAGE,
         });
-        setIsTrialExpired(computeTrialExpired(schoolData));
+        setIsTrialExpired(computeTrialExpired(schoolData, user?.role));
       }
     } catch (error) {
       logger.error("Error refreshing school:", error);
@@ -1127,7 +1127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ...data.school,
           feature_stage: (data.school.feature_stage as FeatureStage) || DEFAULT_FEATURE_STAGE,
         });
-        setIsTrialExpired(computeTrialExpired(data.school));
+        setIsTrialExpired(computeTrialExpired(data.school, user?.role));
       }
     } catch (error) {
       logger.error("Error refreshing school from API:", error);
