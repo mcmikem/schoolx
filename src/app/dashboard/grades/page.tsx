@@ -24,7 +24,7 @@ import {
   getCompetencyLabel,
   isCompetencyScale,
 } from "@/lib/grading";
-import { GRADING_TRACKS, resolveTrackForClass } from "@/lib/grading-tracks";
+import { GRADING_TRACKS, resolveTrackForClass, resolveUseBot } from "@/lib/grading-tracks";
 import { loadSchoolSettings } from "@/lib/school-settings";
 import { useClasses, useStaff, useSubjects } from "@/lib/hooks";
 import { timeoutFallback, withTimeout } from "@/lib/hooks/utils";
@@ -289,6 +289,10 @@ export default function GradesPage() {
   }, [school?.id, isDemo]);
 
   const track = resolveTrackForClass(classes.find((item) => item.id === selectedClass)?.name, schoolSettings);
+  // A school that does not run a beginning-of-term test gets no BOT column at
+  // all. Showing an empty one invites a stray mark, and BOT is weighed into
+  // MID, so one accidental entry shifts every average for that pupil.
+  const useBotEnabled = resolveUseBot(schoolSettings);
   const columnLabels = useMemo(() => {
     const labels: Record<string, { label: string; explain: string }> = {
       bot: { label: "BOT", explain: "Beginning of Term · /100" },
@@ -433,10 +437,14 @@ export default function GradesPage() {
   const gradeTotalPages = Math.max(1, Math.ceil(displayStudents.length / gradesPerPage));
   const isStudentGraded = useCallback(
     (studentId: string): boolean => {
-      const types = competencyMode ? COMPETENCY_ASSESSMENT_TYPES : TRADITIONAL_ASSESSMENT_TYPES;
+      const types = competencyMode
+        ? COMPETENCY_ASSESSMENT_TYPES
+        : useBotEnabled
+          ? TRADITIONAL_ASSESSMENT_TYPES
+          : (["mid_term", "eot"] as const);
       return types.every((t) => marks[`${studentId}_${t}`] !== null && marks[`${studentId}_${t}`] !== undefined);
     },
-    [marks, competencyMode],
+    [marks, competencyMode, useBotEnabled],
   );
   const gradedCount = useMemo(
     () => filteredStudents.filter((student) => isStudentGraded(student.id)).length,
@@ -588,6 +596,18 @@ export default function GradesPage() {
     } else {
       const maxVal = type === "competency" ? 3 : ASSESSMENT_MAX[type] || 100;
       const num = Math.min(maxVal, Math.max(0, Number(value)));
+      // The clamp itself is deliberate -- never store a mark the report cannot
+      // render. What was missing was any signal that it had happened: a teacher
+      // who transposed 18 as 80, or 50 as 15, watched the field snap to the
+      // boundary value with no message and a green "saved" tick beside it, and
+      // the discrepancy only surfaced months later at results time. Say what was
+      // written, naming the pupil and the assessment.
+      if (Number.isFinite(num) && Number(value) !== num) {
+        const pupil = filteredStudents.find((s) => s.id === studentId);
+        const who = pupil ? `${pupil.first_name} ${pupil.last_name}` : "this pupil";
+        const label = assessmentLabels[type] ?? type.toUpperCase();
+        toast.error(`${label} for ${who} is out of range (max ${maxVal}). Saved as ${num}.`);
+      }
       setMarks((prev) => ({ ...prev, [`${studentId}_${type}`]: num }));
       dirtyCellsRef.current.set(`${studentId}_${type}`, {
         subjectId: selectedSubject,
@@ -618,12 +638,13 @@ export default function GradesPage() {
   // no input boxes at all -- while the on-page guidance said "type the score in
   // the box under CA1". The guidance described a UI that did not exist on
   // first use, which is why teachers could not work out where to type.
-  const DEFAULT_ASSESSMENT_TYPES = ["bot", "mid_term", "eot"];
-
   const activeAssessmentTypes = useMemo(() => {
     if (competencyMode) return [...COMPETENCY_ASSESSMENT_TYPES];
-    return [...DEFAULT_ASSESSMENT_TYPES];
-  }, [competencyMode]);
+    // A school that does not run a beginning-of-term test must not be shown a
+    // column for it: it invites a mark nobody intended to record, and it is
+    // weighed into MID, so a stray entry silently shifts every average.
+    return useBotEnabled ? ["bot", "mid_term", "eot"] : ["mid_term", "eot"];
+  }, [competencyMode, useBotEnabled]);
 
   const debouncedAutoSave = useCallback(
     (studentId: string, type: string, target?: { subjectId: string; classId: string }) => {

@@ -7,6 +7,8 @@ import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { generateUgandaPrimaryBody, ugandaDocumentShell } from "@/components/reports/ugandaPrimaryReport";
 import { openPrintWindow, printWhenReady, writePrintDocument } from "@/lib/print-window";
 import { suggestClassTeacherRemark, suggestHeadTeacherRemark } from "@/lib/report-remarks";
+import { writeAnalysisRemark } from "@/lib/report-analysis";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useToast } from "@/components/Toast";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
@@ -111,6 +113,8 @@ export default function ReportCardsPage() {
   const [hideWithFees, setHideWithFees] = useState(false);
   const [reports, setReports] = useState<StudentReport[]>([]);
   const [comments, setComments] = useState<Record<string, { classTeacher: string; hm: string }>>({});
+  // Guards the bulk remark action against silently overwriting a hand-written line.
+  const [confirmOverwrite, setConfirmOverwrite] = useState<{ field: "classTeacher" | "hm"; count: number } | null>(null);
   const [sendingSms, setSendingSms] = useState(false);
   const [hasMissingMarks, setHasMissingMarks] = useState(false);
   const [generatingAll, setGeneratingAll] = useState(false);
@@ -844,6 +848,78 @@ export default function ReportCardsPage() {
   });
 
   /**
+   * Draft both remarks for every report on screen, in one action.
+   *
+   * A head teacher closing a term has one report per child per class and no
+   * time to write them individually, so the realistic workflow is: press this,
+   * read what it produced, edit the few that need a human sentence, print.
+   * Anything already typed is left alone unless the teacher confirms the
+   * overwrite, because silently replacing a sentence somebody wrote by hand is
+   * worse than leaving it blank.
+   */
+  const handleSuggestAllComments = (field: "classTeacher" | "hm", overwrite: boolean) => {
+    if (displayedReports.length === 0) return;
+    const written = displayedReports.filter((report) => comments[report.studentId]?.[field]?.trim());
+    if (written.length > 0 && !overwrite) {
+      setConfirmOverwrite({ field, count: written.length });
+      return;
+    }
+    setComments((prev) => {
+      const next = { ...prev };
+      for (const report of displayedReports) {
+        const facts = analysisFactsFor(report);
+        next[report.studentId] = {
+          ...next[report.studentId],
+          classTeacher:
+            field === "classTeacher" ? writeAnalysisRemark(facts) : (next[report.studentId]?.classTeacher ?? ""),
+          hm: field === "hm" ? writeAnalysisRemark(facts) : (next[report.studentId]?.hm ?? ""),
+        };
+      }
+      return next;
+    });
+    setConfirmOverwrite(null);
+    toast.success(
+      `Drafted ${field === "hm" ? "head teacher" : "class teacher"} remarks for ${displayedReports.length} pupils. Review before printing.`,
+    );
+  };
+
+  /** Facts for the analysis writer, including class averages where known. */
+  const analysisFactsFor = (report: StudentReport) => {
+    const classMarkTotals = new Map<string, number[]>();
+    for (const other of displayedReports) {
+      for (const subject of other.subjects ?? []) {
+        const avg = subject?.uganda?.avg;
+        if (typeof avg === "number") {
+          const list = classMarkTotals.get(subject.name) ?? [];
+          list.push(avg);
+          classMarkTotals.set(subject.name, list);
+        }
+      }
+    }
+    const classAverages = new Map<string, number>();
+    for (const [subject, marks] of classMarkTotals) {
+      classAverages.set(subject, marks.reduce((a, b) => a + b, 0) / marks.length);
+    }
+    return {
+      pupilName: report.name,
+      average: typeof report.average === "number" && report.average > 0 ? report.average : null,
+      division: report.division || null,
+      position: typeof report.position === "number" && report.position > 0 ? report.position : null,
+      classSize: displayedReports.length || null,
+      subjects: (report.subjects ?? [])
+        .filter((subject) => subject?.uganda)
+        .map((subject) => ({
+          name: subject.name,
+          bot: subject.uganda?.mid ?? null,
+          mot: subject.uganda?.mot ?? null,
+          eot: subject.uganda?.end ?? null,
+          avg: subject.uganda?.avg ?? null,
+          classAverage: classAverages.get(subject.name) ?? null,
+        })),
+    };
+  };
+
+  /**
    * Fill both remark boxes from what the report already says -- attendance,
    * average, class position, and which subjects carried the pupil.
    *
@@ -1339,6 +1415,16 @@ export default function ReportCardsPage() {
     <div className="flex flex-wrap gap-2">
       {generated && reports.length > 0 && (
         <Button
+          variant="secondary"
+          onClick={() => handleSuggestAllComments("hm", false)}
+          icon={<MaterialIcon icon="auto_awesome" />}
+          title="Draft a head-teacher remark for every pupil on screen from their actual results"
+        >
+          Draft all HM remarks
+        </Button>
+      )}
+      {generated && reports.length > 0 && (
+        <Button
           variant="ghost"
           onClick={handlePrintAll}
           className="border-amber-200 text-amber-700 bg-amber-50 hover:bg-amber-100"
@@ -1372,6 +1458,15 @@ export default function ReportCardsPage() {
 
   return (
     <PageErrorBoundary>
+      <ConfirmDialog
+        isOpen={!!confirmOverwrite}
+        onClose={() => setConfirmOverwrite(null)}
+        onConfirm={() => confirmOverwrite && handleSuggestAllComments(confirmOverwrite.field, true)}
+        title="Replace existing remarks?"
+        message={`${confirmOverwrite?.count ?? 0} pupil(s) already have a ${confirmOverwrite?.field === "hm" ? "head teacher" : "class teacher"} remark written. Replace them with drafted text?`}
+        confirmLabel="Replace"
+        variant="danger"
+      />
       <div className="p-4 pb-24 sm:p-6 sm:pb-24 lg:p-8">
         <PageHeader title="Report Cards" subtitle="Generate and manage student report cards" actions={actions} />
 
@@ -1703,14 +1798,14 @@ export default function ReportCardsPage() {
                                   >
                                     Class Teacher
                                   </label>
-                                  <input
+                                  <textarea
                                     id={`teacher-comment-${report.studentId}`}
-                                    type="text"
+                                    rows={3}
                                     value={studentComment.classTeacher}
                                     onChange={(e) =>
                                       handleCommentChange(report.studentId, "classTeacher", e.target.value)
                                     }
-                                    className="min-h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm"
+                                    className="min-h-11 w-full resize-y rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm leading-relaxed"
                                     placeholder="Class teacher comment..."
                                   />
                                 </div>
@@ -1721,19 +1816,19 @@ export default function ReportCardsPage() {
                                   >
                                     Headteacher
                                   </label>
-                                  <input
+                                  <textarea
                                     id={`hm-comment-${report.studentId}`}
-                                    type="text"
+                                    rows={3}
                                     value={studentComment.hm}
                                     onChange={(e) => handleCommentChange(report.studentId, "hm", e.target.value)}
-                                    className="min-h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm"
+                                    className="min-h-11 w-full resize-y rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm leading-relaxed"
                                     placeholder="HM comment..."
                                   />
                                 </div>
                                 <button
                                   onClick={() => handleSuggestComment(report)}
                                   type="button"
-                                  className="min-h-11 text-xs font-semibold text-[var(--primary)] hover:underline"
+                                  className="min-h-11 w-full text-xs font-semibold text-[var(--primary)] hover:underline"
                                 >
                                   Auto-suggest
                                 </button>

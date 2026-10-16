@@ -63,6 +63,12 @@ export interface UgandaPrintInput {
   };
   comments: { classTeacher: string; hm: string };
   /**
+   * When the report was produced. Printed on the stamp so a copy that turns up
+   * months later can be traced -- and so a parent cannot pass off last year's
+   * card as this year's.
+   */
+  generatedAt?: Date | string;
+  /**
    * Whether the school runs a Beginning-of-Term assessment. When false the
    * report prints no BOT column at all -- an empty column on a parent's copy
    * reads as "the teacher did not record it".
@@ -163,6 +169,15 @@ export function generateUgandaPrimaryBody(input: UgandaPrintInput): string {
 
   const brand = brandPalette(school.primaryColor);
 
+  // Local calendar day, never toISOString(): that shifts to UTC and can print
+  // yesterday's date, or tomorrow's, depending on the reader's offset.
+  const stampDate = (() => {
+    const raw = input.generatedAt ?? new Date();
+    const d = raw instanceof Date ? raw : new Date(raw);
+    if (Number.isNaN(d.getTime())) return "";
+    return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+  })();
+
   const divisionCell = /^div\b/i.test(totals.division.trim())
     ? escapeHtml(totals.division)
     : `DIV: ${escapeHtml(totals.division)}`;
@@ -223,8 +238,8 @@ const remarkBlock = (label: string, text: string): string => `
     `<div><span style="display:inline-block;width:56px;">${escapeHtml(label)}:</span> <span style="display:inline-block;border-bottom:1px solid #000;min-width:104px;padding:0 3px;">${escapeHtml(value)}</span></div>`;
 
   const watermark = school.logoUrl
-    ? `<img src="${escapeHtml(school.logoUrl)}" alt="" aria-hidden="true" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-32deg);width:300px;height:300px;object-fit:contain;opacity:.05;">`
-    : `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-32deg);font-size:46px;font-weight:bold;color:${brand.ink};opacity:.045;white-space:nowrap;letter-spacing:.04em;">${escapeHtml(school.name || "")}</div>`;
+    ? `<img src="${escapeHtml(school.logoUrl)}" alt="" aria-hidden="true" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:290px;height:290px;object-fit:contain;opacity:.05;">`
+    : `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:42px;font-weight:bold;color:${brand.ink};opacity:.045;white-space:nowrap;letter-spacing:.04em;">${escapeHtml(school.name || "")}</div>`;
 
   return `<div class="uganda-report" style="position:relative;">
     <div aria-hidden="true" style="position:absolute;inset:0;overflow:hidden;pointer-events:none;">${watermark}</div>
@@ -317,6 +332,7 @@ const remarkBlock = (label: string, text: string): string => `
               : ""
           }
           <div style="font-size:8px;font-weight:bold;letter-spacing:1px;">SCHOOL STAMP</div>
+          ${stampDate ? `<div style="font-size:7px;letter-spacing:.5px;margin-top:1px;">ISSUED ${escapeHtml(stampDate)}</div>` : ""}
         </div>
       </div>
       ${signatureCell(school.sigHeadUrl, "Head Teacher", brand.ink, "Head Teacher")}
