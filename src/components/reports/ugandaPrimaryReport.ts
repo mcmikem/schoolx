@@ -63,6 +63,12 @@ export interface UgandaPrintInput {
   };
   comments: { classTeacher: string; hm: string };
   /**
+   * Behaviour / co-curricular ratings recorded for this pupil this term.
+   * Printed as given; an empty list prints an honest note rather than four
+   * boxes that look like missing data on a document nobody can write on.
+   */
+  behaviour?: Array<{ skill: string; rating: number | null }>;
+  /**
    * When the report was produced. Printed on the stamp so a copy that turns up
    * months later can be traced -- and so a parent cannot pass off last year's
    * card as this year's.
@@ -93,10 +99,8 @@ const GRADING_LEGEND: string[] = [
   "45-49: P8",
 ];
 
-const BEHAVIOUR_ROWS: Array<[string, string]> = [
-  ["Discipline", "Cleanliness"],
-  ["Responsibility", "Sports"],
-];
+/** The four cells on the official form, in the order it prints them. */
+const DEFAULT_BEHAVIOUR_SKILLS = ["Discipline", "Cleanliness", "Responsibility", "Sports"];
 
 /**
  * A signature block.
@@ -206,10 +210,38 @@ export function generateUgandaPrimaryBody(input: UgandaPrintInput): string {
     `<tr>${GRADING_LEGEND.slice(4).map((band) => td(escapeHtml(band), "text-align:center;font-size:10px;")).join("")}</tr>` +
     `<tr>${td("0-44: F9 (Fail) | X: Absent", "text-align:center;font-size:10px;font-weight:bold;", 4)}</tr>`;
 
-  const behaviourHtml = BEHAVIOUR_ROWS.map(
-    ([left, right]) =>
-      `<tr>${td(escapeHtml(left), "text-align:left;font-size:10.5px;width:30%;")}${td("", "width:12%;")}${td(escapeHtml(right), "text-align:left;font-size:10.5px;width:30%;")}${td("", "width:12%;")}</tr>`,
-  ).join("");
+  // Show what was recorded, in the order the form uses. Nothing recorded is
+  // stated in words -- four empty boxes read as "this teacher did not fill
+  // this in" to a parent, which is exactly the impression to avoid.
+  const recorded = new Map(
+    (input.behaviour ?? []).map((entry) => [entry.skill.trim().toLowerCase(), entry.rating]),
+  );
+  const skills =
+    input.behaviour && input.behaviour.length > 0
+      ? input.behaviour.map((entry) => entry.skill)
+      : DEFAULT_BEHAVIOUR_SKILLS;
+  const anyRecorded = skills.some((skill) => recorded.has(skill.trim().toLowerCase()));
+
+  const behaviourBody = skills.length
+    ? Array.from({ length: Math.ceil(skills.length / 2) }, (_, row) => {
+        const pair = [skills[row * 2], skills[row * 2 + 1]].filter(Boolean);
+        return `<tr>${pair
+          .map(
+            (skill) =>
+              `${td(escapeHtml(skill), "text-align:left;font-size:10.5px;width:30%;")}${td(
+                recorded.get(skill.trim().toLowerCase()) != null
+                  ? String(recorded.get(skill.trim().toLowerCase()))
+                  : "",
+                "text-align:center;font-weight:bold;width:12%;",
+              )}`,
+          )
+          .join("")}</tr>`;
+      }).join("")
+    : "";
+
+  const behaviourFootnote = anyRecorded
+    ? ""
+    : `<p style="font-size:9px;color:#666;margin:3px 0 0;">Not recorded for this pupil this term.</p>`;
 
   // `label` is an internal constant, never user input, so it is interpolated
 // directly -- escaping it would entity-encode the apostrophe in "Teacher's"
@@ -309,8 +341,9 @@ const remarkBlock = (label: string, text: string): string => `
             ${td("Skill", "font-weight:bold;font-size:10px;text-align:left;")}
             ${td("1-5", "font-weight:bold;font-size:10px;text-align:center;")}
           </tr></thead>
-          <tbody>${behaviourHtml}</tbody>
+          <tbody>${behaviourBody}</tbody>
         </table>
+        ${behaviourFootnote}
       </div>
     </div>
 

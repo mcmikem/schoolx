@@ -113,6 +113,11 @@ export default function ReportCardsPage() {
   const [hideWithFees, setHideWithFees] = useState(false);
   const [reports, setReports] = useState<StudentReport[]>([]);
   const [comments, setComments] = useState<Record<string, { classTeacher: string; hm: string }>>({});
+  // Behaviour / co-curricular ratings, 1-5. The report printed four empty
+  // boxes for every pupil in every school because nothing could be written
+  // there; these are what fill them.
+  const [behaviour, setBehaviour] = useState<Record<string, Record<string, number | null>>>({});
+  const [savingRating, setSavingRating] = useState<string | null>(null);
   // Guards the bulk remark action against silently overwriting a hand-written line.
   const [confirmOverwrite, setConfirmOverwrite] = useState<{ field: "classTeacher" | "hm"; count: number } | null>(null);
   const [sendingSms, setSendingSms] = useState(false);
@@ -830,6 +835,106 @@ export default function ReportCardsPage() {
     }));
   };
 
+  const BEHAVIOUR_SKILLS = ["Discipline", "Cleanliness", "Responsibility", "Sports"];
+
+  useEffect(() => {
+    if (!selectedClass || !school?.id) {
+      setBehaviour({});
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const { supabase: sb } = await import("@/lib/supabase");
+        const { data } = await sb
+          .from("student_behaviour_ratings")
+          .select("student_id, skill, rating")
+          .eq("class_id", selectedClass)
+          .eq("academic_year", academicYear)
+          .eq("term", currentTerm);
+        if (cancelled) return;
+        const next: Record<string, Record<string, number | null>> = {};
+        for (const row of (data ?? []) as Array<{ student_id: string; skill: string; rating: number }>) {
+          next[row.student_id] = { ...(next[row.student_id] ?? {}), [row.skill]: row.rating };
+        }
+        setBehaviour(next);
+      } catch {
+        // A missing ratings table must not break the report -- the grid simply
+        // prints as unrecorded, which is what it did before this existed.
+        if (!cancelled) setBehaviour({});
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedClass, currentTerm, academicYear, school?.id]);
+
+  /** Rate one skill. Clearing it deletes the row rather than storing a null. */
+  const handleRate = async (studentId: string, skill: string, rating: number | null) => {
+    const key = `${studentId}:${skill}`;
+    setSavingRating(key);
+    setBehaviour((prev) => ({
+      ...prev,
+      [studentId]: { ...(prev[studentId] ?? {}), [skill]: rating },
+    }));
+    try {
+      const { supabase: sb } = await import("@/lib/supabase");
+      if (rating === null) {
+        await sb
+          .from("student_behaviour_ratings")
+          .delete()
+          .eq("student_id", studentId)
+          .eq("skill", skill)
+          .eq("academic_year", academicYear)
+          .eq("term", currentTerm);
+      } else {
+        const { error } = await sb.from("student_behaviour_ratings").upsert(
+          {
+            school_id: school?.id,
+            student_id: studentId,
+            class_id: selectedClass,
+            academic_year: academicYear,
+            term: currentTerm,
+            skill,
+            rating,
+            recorded_by: user?.id,
+          },
+          { onConflict: "student_id,academic_year,term,skill" },
+        );
+        if (error) throw error;
+      }
+    } catch {
+      toast.error("Could not save that rating. Check your connection and try again.");
+      // Put the optimistic value back the way it was, so the UI never claims a
+      // rating was saved when it was not.
+      setBehaviour((prev) => {
+        const next = { ...prev, [studentId]: { ...(prev[studentId] ?? {}) } };
+        void (async () => {
+          try {
+            const { supabase: sb } = await import("@/lib/supabase");
+            const { data } = await sb
+              .from("student_behaviour_ratings")
+              .select("skill, rating")
+              .eq("student_id", studentId)
+              .eq("academic_year", academicYear)
+              .eq("term", currentTerm);
+            const restored: Record<string, number | null> = {};
+            for (const row of (data ?? []) as Array<{ skill: string; rating: number }>) {
+              restored[row.skill] = row.rating;
+            }
+            next[studentId] = restored;
+            setBehaviour((prev2) => ({ ...prev2, [studentId]: restored }));
+          } catch {
+            /* leave the optimistic value; the refetch on next visit corrects it */
+          }
+        })();
+        return next;
+      });
+    } finally {
+      setSavingRating(null);
+    }
+  };
+
   /** Everything the remark writer needs, pulled from one report row. */
   const remarkFactsFor = (report: StudentReport) => ({
     pupilName: report.name,
@@ -1071,6 +1176,10 @@ export default function ReportCardsPage() {
           ? totals
           : { ...totals, aggSum: report.aggregate ?? null, division: report.division },
       comments: { classTeacher: studentComment.classTeacher, hm: studentComment.hm },
+      behaviour: BEHAVIOUR_SKILLS.map((skill) => ({
+        skill,
+        rating: behaviour[report.studentId]?.[skill] ?? null,
+      })),
       showBot,
       feeBalance: report.feeBalance,
       nextTermBegins: ctx.nextTermBegins,
@@ -1791,6 +1900,53 @@ export default function ReportCardsPage() {
                             </td>
                             <td className="col-span-2 min-w-0 md:px-4 md:py-4">
                               <div className="space-y-2 md:max-w-[260px]">
+                                <fieldset className="rounded-xl border border-[var(--border)] p-2">
+                                  <legend className="px-1 text-xs font-semibold text-[var(--t3)]">
+                                    Behaviour (1–5)
+                                  </legend>
+                                  <div className="space-y-1.5">
+                                    {BEHAVIOUR_SKILLS.map((skill) => {
+                                      const current = behaviour[report.studentId]?.[skill] ?? null;
+                                      return (
+                                        <div key={skill} className="flex items-center gap-1.5">
+                                          <span className="flex-1 truncate text-xs text-[var(--t2)]">
+                                            {skill}
+                                          </span>
+                                          <div
+                                            role="radiogroup"
+                                            aria-label={`${skill} rating for ${report.name}`}
+                                            className="flex gap-0.5"
+                                          >
+                                            {[1, 2, 3, 4, 5].map((value) => (
+                                              <button
+                                                key={value}
+                                                type="button"
+                                                role="radio"
+                                                aria-checked={current === value}
+                                                aria-label={`${skill} ${value} of 5`}
+                                                disabled={savingRating === `${report.studentId}:${skill}`}
+                                                onClick={() =>
+                                                  handleRate(
+                                                    report.studentId,
+                                                    skill,
+                                                    current === value ? null : value,
+                                                  )
+                                                }
+                                                className={`h-8 w-8 rounded-md text-xs font-bold transition-colors ${
+                                                  current === value
+                                                    ? "bg-[var(--primary)] text-white"
+                                                    : "bg-[var(--surface-container-low)] text-[var(--t3)] hover:bg-[var(--navy-soft)]"
+                                                }`}
+                                              >
+                                                {value}
+                                              </button>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                </fieldset>
                                 <div>
                                   <label
                                     htmlFor={`teacher-comment-${report.studentId}`}
