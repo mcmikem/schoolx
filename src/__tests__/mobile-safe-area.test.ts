@@ -21,17 +21,36 @@ const css = fs.readFileSync(path.join(ROOT, "src/app/globals.css"), "utf8");
 const topbar = fs.readFileSync(path.join(ROOT, "src/components/dashboard/TopBar.tsx"), "utf8");
 const owl = fs.readFileSync(path.join(ROOT, "src/components/OwlAssistant.tsx"), "utf8");
 
-const bottomNavBlock = css.slice(css.indexOf(".mobile-bottom-nav {"), css.indexOf(".mobile-nav-item {"));
+/** Strips comments, so prose explaining a fix is never read as the defect. */
+const cssCode = css.replace(/\/\*[\s\S]*?\*\//g, "");
+const bottomNavBlock = cssCode.slice(cssCode.indexOf(".mobile-bottom-nav {"), cssCode.indexOf(".mobile-nav-item {"));
+const itemBlock = cssCode.slice(cssCode.indexOf(".mobile-nav-item {"), cssCode.indexOf(".mobile-nav-item {") + 900);
 
 describe("bottom nav clears the home indicator exactly once", () => {
   it("sits at the bottom edge and pads its content by the inset", () => {
     expect(bottomNavBlock).toContain("bottom: 0;");
-    expect(bottomNavBlock).toMatch(/padding:\s*8px 8px calc\(8px \+ env\(safe-area-inset-bottom\)\)/);
+    // The inset alone. It was `calc(8px + env(...))`, and the extra 8px stacked
+    // on the inset and then on each item's own vertical padding.
+    expect(bottomNavBlock).toMatch(/padding:\s*6px 8px env\(safe-area-inset-bottom, 0px\)/);
+    // min-height forced a floor that the inset padding then had to fight, which
+    // is what left dead space under the labels.
+    expect(bottomNavBlock).toMatch(/min-height:\s*0;/);
   });
 
   it("does not both lift the bar and pad it", () => {
     // Lifting by the inset *and* padding by it is what produced the gap.
     expect(bottomNavBlock).not.toMatch(/bottom:\s*max\([^)]*safe-area-inset-bottom/);
+  });
+
+  it("does not stack item padding on top of the inset", () => {
+    // The item is stretched to the bar's height, so its own vertical padding
+    // lands between the labels and the home indicator. Measured on an iPhone
+    // frame this was 104px of bar with 60.5px below the labels; the inset alone
+    // accounts for 34px of that.
+    expect(itemBlock).toMatch(/py-1\.5/);
+    expect(itemBlock).not.toMatch(/py-2\.5/);
+    // The 52px touch-target floor stays -- that is accessibility, not decoration.
+    expect(itemBlock).toContain("min-height: 52px;");
   });
 
   it("squares off only the corners that touch the screen", () => {

@@ -1600,17 +1600,27 @@ table tr {
        as "raised, with a gap above them". */
     bottom: 0;
     width: min(96vw, 520px);
-    min-height: 64px;
+    /* Height is the content plus the inset, nothing more. Measured on an iPhone
+       frame: this was 104px tall with 60.5px of dead space below the labels,
+       against a 34px home indicator. The extra came from stacking an 8px pad on
+       top of the inset and then letting each item add its own vertical padding
+       inside a stretched row -- so the gap below the labels was padding on top
+       of padding. All of it is now the single inset, which is the only part that
+       is genuinely required. */
+    min-height: 0;
     /* Top corners only: the bar owns the bottom edge of the screen on a notched
        device, so a pill bottom would float over the home indicator. */
     border-radius: 20px 20px 0 0;
-    padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+    padding: 6px 8px env(safe-area-inset-bottom, 0px);
     overflow: visible;
     box-shadow: var(--sh1);
   }
 
   .mobile-nav-item {
-    @apply relative flex flex-col items-center justify-center gap-0.5 text-[var(--t4)] transition-all flex-1 max-w-[80px] py-2.5 px-1;
+    /* py-1.5 here, not py-2.5: the item is stretched to the bar's height, so its
+       own vertical padding sits between the labels and the home indicator rather
+       than beside them. min-height still guarantees a 52px touch target. */
+    @apply relative flex flex-col items-center justify-center gap-0.5 text-[var(--t4)] transition-all flex-1 max-w-[80px] py-1.5 px-1;
     text-decoration: none;
     border: none;
     background: transparent;
