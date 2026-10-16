@@ -59,6 +59,12 @@ export interface UgandaPrintInput {
     division: string;
   };
   comments: { classTeacher: string; hm: string };
+  /**
+   * Whether the school runs a Beginning-of-Term assessment. When false the
+   * report prints no BOT column at all -- an empty column on a parent's copy
+   * reads as "the teacher did not record it".
+   */
+  showBot?: boolean;
   position?: number | null;
   feeBalance: number | null;
   nextTermBegins: string | null;
@@ -128,6 +134,13 @@ export function generateUgandaPrimaryBody(input: UgandaPrintInput): string {
   const contact = [school.address, school.phone].filter(Boolean).join(" · ");
   // Callers pass "DIV 2" / "DIV I"; prefixing again produced "DIV: DIV 2" and
   // wrapped the cell. Only add the prefix when it is not already there.
+  // Column count drives every colspan below, so it is derived once here
+  // rather than hardcoded: 1 subject + (showBot ? 3 : 2) marks + avg/agg/grade/remarks.
+  const showBot = input.showBot !== false;
+  const markColumns = showBot ? 3 : 2;
+  const markColspan = markColumns;
+  const leadColspan = 1 + markColumns;
+
   const divisionCell = /^div\b/i.test(totals.division.trim())
     ? escapeHtml(totals.division)
     : `DIV: ${escapeHtml(totals.division)}`;
@@ -139,7 +152,7 @@ export function generateUgandaPrimaryBody(input: UgandaPrintInput): string {
     .map(
       (s) => `<tr>
         ${td(escapeHtml(s.name), "text-align:left;width:26%;")}
-        ${td(cell(s.bot), "text-align:center;")}
+        ${showBot ? td(cell(s.bot), "text-align:center;") : ""}
         ${td(cell(s.mot), "text-align:center;")}
         ${td(cell(s.eot), "text-align:center;")}
         ${td(cell(s.avg), "text-align:center;")}
@@ -207,14 +220,14 @@ const remarkBlock = (label: string, text: string): string => `
       <thead>
         <tr>
           <th rowspan="2" style="text-align:left;">SUBJECT</th>
-          <th colspan="3" style="text-align:center;">MARKS (EACH OUT OF 100)</th>
+          <th colspan="${markColspan}" style="text-align:center;">MARKS (EACH OUT OF 100)</th>
           <th rowspan="2" style="text-align:center;">AVG %</th>
           <th rowspan="2" style="text-align:center;">AGG</th>
           <th rowspan="2" style="text-align:center;">GRADE</th>
           <th rowspan="2" style="text-align:left;">REMARKS / COMPETENCY</th>
         </tr>
         <tr>
-          <th style="text-align:center;">BOT</th>
+          ${showBot ? '<th style="text-align:center;">BOT</th>' : ""}
           <th style="text-align:center;">MOT</th>
           <th style="text-align:center;">EOT</th>
         </tr>
@@ -222,7 +235,7 @@ const remarkBlock = (label: string, text: string): string => `
       <tbody>
         ${subjectRows}
         <tr>
-          ${td("TOTALS", "font-weight:bold;text-align:center;", 4)}
+          ${td("TOTALS", "font-weight:bold;text-align:center;", leadColspan)}
           ${td(cell(totals.avgMean), "text-align:center;font-weight:bold;")}
           ${td(`AGG: ${cell(totals.aggSum)}`, "text-align:center;font-weight:bold;")}
           ${td(divisionCell, "text-align:center;font-weight:bold;")}

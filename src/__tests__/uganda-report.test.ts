@@ -5,7 +5,7 @@ import {
   ugandaGrade,
   ugandaDivision,
 } from "@/lib/uganda-report";
-import { generateUgandaPrimaryHTML } from "@/components/reports/ugandaPrimaryReport";
+import { generateUgandaPrimaryBody, generateUgandaPrimaryHTML } from "@/components/reports/ugandaPrimaryReport";
 
 describe("bucketUgandaSubject", () => {
   it("reports BOT, MOT and EOT separately and prefers explicit EOT over legacy exam", () => {
@@ -210,5 +210,34 @@ describe("generateUgandaPrimaryHTML", () => {
     expect(html).toContain("Fees Balance:");
     expect(html).toContain("Not recorded");
     expect(html).not.toContain("Cleared");
+  });
+
+  describe("the BOT column follows the school's assessment setting", () => {
+    it("prints BOT by default, so existing reports are unchanged", () => {
+      const html = generateUgandaPrimaryHTML(baseInput);
+      expect(html).toContain(">BOT<");
+      // Header spans three mark columns: BOT, MOT, EOT.
+      expect(html).toContain('colspan="3"');
+    });
+
+    it("drops the column entirely when the school does not run BOT", () => {
+      // A blank column on a parent's copy reads as "the teacher did not record
+      // it", so it must be absent rather than empty.
+      const html = generateUgandaPrimaryHTML({ ...baseInput, showBot: false });
+      expect(html).not.toContain(">BOT<");
+      expect(html).toContain(">MOT<");
+      expect(html).toContain(">EOT<");
+      expect(html).toContain('colspan="2"');
+    });
+
+    it("keeps the TOTALS row spanning the full table either way", () => {
+      for (const showBot of [true, false]) {
+        const html = generateUgandaPrimaryBody({ ...baseInput, showBot });
+        // 1 subject + N marks + avg/agg/grade/remarks. Mis-spanning here was the
+        // original bug: a colspan=4 cell that shifted every column after it.
+        const lead = showBot ? 4 : 3;
+        expect(html).toContain(`colspan="${lead}"`);
+      }
+    });
   });
 });

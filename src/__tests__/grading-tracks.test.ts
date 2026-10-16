@@ -3,6 +3,7 @@ import {
   CBC_GRADE_BANDS,
   IDENTIFIER_LEVELS,
   SETTING_KEYS,
+  resolveUseBot,
   detectLevelFromClass,
   getCbcGrade,
   getCbcDescriptor,
@@ -121,5 +122,21 @@ describe("track resolution", () => {
         expect(col.explain.length).toBeGreaterThan(10);
       }
     }
+  });
+});
+
+describe("resolveUseBot", () => {
+  it("defaults to on, so a school that never set it keeps BOT", () => {
+    expect(resolveUseBot(null)).toBe(true);
+    expect(resolveUseBot(undefined)).toBe(true);
+    expect(resolveUseBot({})).toBe(true);
+    expect(resolveUseBot({ some_other_setting: "no" })).toBe(true);
+  });
+
+  it("is off only when the school explicitly said no", () => {
+    expect(resolveUseBot({ [SETTING_KEYS.useBot]: "no" })).toBe(false);
+    expect(resolveUseBot({ [SETTING_KEYS.useBot]: "yes" })).toBe(true);
+    // Anything unrecognised is treated as "not configured" -> keep BOT.
+    expect(resolveUseBot({ [SETTING_KEYS.useBot]: "" })).toBe(true);
   });
 });

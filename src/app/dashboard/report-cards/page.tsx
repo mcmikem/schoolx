@@ -30,8 +30,8 @@ import { isTimeoutResult, timeoutFallback, withTimeout } from "@/lib/hooks/utils
 import { logger } from "@/lib/logger";
 import { searchReportList } from "@/lib/report-list";
 import { classicReportSubject, rankCompleteReports, summarizeClassicReport } from "@/lib/report-summary";
-import { loadSchoolSetting } from "@/lib/school-settings";
-import { type ReportLayoutId, SETTING_KEYS } from "@/lib/grading-tracks";
+import { loadSchoolSettings } from "@/lib/school-settings";
+import { type ReportLayoutId, SETTING_KEYS, resolveUseBot } from "@/lib/grading-tracks";
 import {
   bucketUgandaSubject,
   orderUgandaSubjects,
@@ -178,6 +178,9 @@ export default function ReportCardsPage() {
   }, [reports, hideWithFees, getStudentFeeBalance, searchQuery]);
 
   const [reportLayout, setReportLayout] = useState<ReportLayoutId>("uganda_classic");
+  // Whether the school runs a beginning-of-term test. Drives whether the printed
+  // report has a BOT column at all.
+  const [showBot, setShowBot] = useState(true);
   useEffect(() => {
     let cancelled = false;
     setReportLayout("uganda_classic");
@@ -189,20 +192,22 @@ export default function ReportCardsPage() {
         const layout = settings[SETTING_KEYS.reportLayout] === "ncdc_cbc" ? "ncdc_cbc" : "uganda_classic";
         setReportLayout(layout);
         setReportFormat(layout === "ncdc_cbc" ? "cbc" : "numerical");
+        setShowBot(resolveUseBot(settings));
       } catch {
         setReportFormat("numerical");
       }
       return;
     }
     void withTimeout(
-      loadSchoolSetting<string>(school.id, SETTING_KEYS.reportLayout, "uganda_classic"),
+      loadSchoolSettings(school.id),
       10000,
-      "uganda_classic",
-    ).then((layout) => {
+      {},
+    ).then((settings) => {
       if (cancelled) return;
-      const resolved = layout === "ncdc_cbc" ? "ncdc_cbc" : "uganda_classic";
+      const resolved = settings[SETTING_KEYS.reportLayout] === "ncdc_cbc" ? "ncdc_cbc" : "uganda_classic";
       setReportLayout(resolved);
       setReportFormat(resolved === "ncdc_cbc" ? "cbc" : "numerical");
+      setShowBot(resolveUseBot(settings));
     });
     return () => {
       cancelled = true;
@@ -941,6 +946,7 @@ export default function ReportCardsPage() {
           ? totals
           : { ...totals, aggSum: report.aggregate ?? null, division: report.division },
       comments: { classTeacher: studentComment.classTeacher, hm: studentComment.hm },
+      showBot,
       feeBalance: report.feeBalance,
       nextTermBegins: ctx.nextTermBegins,
     });

@@ -36,9 +36,24 @@ export const SETTING_KEYS = {
   secondaryTrack: "grading_track_secondary",
   /** 'uganda_classic' | 'ncdc_cbc' — which printed subject table to use. */
   reportLayout: "report_layout",
+  /**
+   * 'yes' | 'no' — whether the school runs a Beginning-of-Term assessment.
+   *
+   * Not every school does: some set BOT only in P7, some abolished it, and
+   * some never had it. When 'no' the report drops the BOT column entirely
+   * rather than printing an empty one, because a blank column on a parent's
+   * copy reads as "the teacher did not record it".
+   */
+  useBot: "use_bot_assessment",
 } as const;
 
 export type SecondaryTrackChoice = "old" | "new";
+export type UseBotChoice = "yes" | "no";
+
+/** BOT is on unless the school has explicitly turned it off. */
+export function resolveUseBot(settings: Record<string, string> | null | undefined): boolean {
+  return settings?.[SETTING_KEYS.useBot] !== "no";
+}
 
 // ---------------------------------------------------------------------------
 // Entry columns: what a teacher actually types for one subject

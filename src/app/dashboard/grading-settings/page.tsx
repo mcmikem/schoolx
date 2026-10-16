@@ -9,7 +9,13 @@ import { Button, Select } from "@/components/ui/index";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/lib/auth-context";
-import { GRADING_TRACKS, SETTING_KEYS, type SecondaryTrackChoice, type ReportLayoutId } from "@/lib/grading-tracks";
+import {
+  GRADING_TRACKS,
+  SETTING_KEYS,
+  resolveUseBot,
+  type SecondaryTrackChoice,
+  type ReportLayoutId,
+} from "@/lib/grading-tracks";
 import { withTimeout, timeoutFallback, isTimeoutResult } from "@/lib/hooks/utils";
 import { clearSchoolSettingsCache } from "@/lib/school-settings";
 import { supabase } from "@/lib/supabase";
@@ -19,12 +25,16 @@ export default function GradingSettingsPage() {
   const toast = useToast();
   const [secondaryTrack, setSecondaryTrack] = useState<SecondaryTrackChoice>("new");
   const [reportLayout, setReportLayout] = useState<ReportLayoutId>("uganda_classic");
+  const [useBot, setUseBot] = useState(true);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [reload, setReload] = useState(0);
-  const [saved, setSaved] = useState({ secondaryTrack: "new", reportLayout: "uganda_classic" });
-  const dirty = saved.secondaryTrack !== secondaryTrack || saved.reportLayout !== reportLayout;
+  const [saved, setSaved] = useState({ secondaryTrack: "new", reportLayout: "uganda_classic", useBot: true });
+  const dirty =
+    saved.secondaryTrack !== secondaryTrack ||
+    saved.reportLayout !== reportLayout ||
+    saved.useBot !== useBot;
   const trackInfo = GRADING_TRACKS[secondaryTrack === "old" ? "secondary_old" : "secondary_new"];
 
   useEffect(() => {
@@ -47,7 +57,7 @@ export default function GradingSettingsPage() {
               .from("school_settings")
               .select("key, value")
               .eq("school_id", schoolId)
-              .in("key", [SETTING_KEYS.secondaryTrack, SETTING_KEYS.reportLayout]),
+              .in("key", [SETTING_KEYS.secondaryTrack, SETTING_KEYS.reportLayout, SETTING_KEYS.useBot]),
             10000,
             timeoutFallback(),
           );
@@ -60,9 +70,11 @@ export default function GradingSettingsPage() {
         if (cancelled) return;
         const secondary = settings[SETTING_KEYS.secondaryTrack] === "old" ? "old" : "new";
         const layout = settings[SETTING_KEYS.reportLayout] === "ncdc_cbc" ? "ncdc_cbc" : "uganda_classic";
+        const bot = resolveUseBot(settings);
         setSecondaryTrack(secondary);
         setReportLayout(layout);
-        setSaved({ secondaryTrack: secondary, reportLayout: layout });
+        setUseBot(bot);
+        setSaved({ secondaryTrack: secondary, reportLayout: layout, useBot: bot });
       } catch (failure) {
         if (!cancelled) setError(failure instanceof Error ? failure.message : "Could not load grading settings.");
       } finally {
@@ -79,7 +91,11 @@ export default function GradingSettingsPage() {
     if (!school?.id || saving || loading || error) return;
     setSaving(true);
     try {
-      const settings = { [SETTING_KEYS.secondaryTrack]: secondaryTrack, [SETTING_KEYS.reportLayout]: reportLayout };
+      const settings = {
+        [SETTING_KEYS.secondaryTrack]: secondaryTrack,
+        [SETTING_KEYS.reportLayout]: reportLayout,
+        [SETTING_KEYS.useBot]: useBot ? "yes" : "no",
+      };
       if (isDemo) {
         sessionStorage.setItem("demo-grading-settings", JSON.stringify(settings));
       } else {
@@ -95,7 +111,7 @@ export default function GradingSettingsPage() {
         if (result.error) throw result.error;
         clearSchoolSettingsCache(school.id);
       }
-      setSaved({ secondaryTrack, reportLayout });
+      setSaved({ secondaryTrack, reportLayout, useBot });
       toast.success(isDemo ? "Demo grading settings saved for this session" : "Grading settings saved");
     } catch (failure) {
       toast.error(failure instanceof Error ? failure.message : "Could not save grading settings.");
@@ -181,6 +197,37 @@ export default function GradingSettingsPage() {
                 <p className="text-sm text-[var(--t3)]">
                   Suggested for this track: {trackInfo.defaultLayout === "ncdc_cbc" ? "NCDC CBC" : "Uganda Classic"}
                 </p>
+                <div className="border-t border-[var(--border)] pt-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <label htmlFor="use-bot" className="block text-sm font-medium">
+                        Beginning-of-Term (BOT) assessment
+                      </label>
+                      <p className="mt-1 text-sm leading-relaxed text-[var(--t3)]">
+                        Turn this off if your school does not set a beginning-of-term test. The report then prints no
+                        BOT column at all, rather than an empty one that reads as a mark nobody entered.
+                      </p>
+                    </div>
+                    <button
+                      id="use-bot"
+                      type="button"
+                      role="switch"
+                      aria-checked={useBot}
+                      aria-label="Beginning-of-Term (BOT) assessment"
+                      disabled={saving}
+                      onClick={() => setUseBot((prev) => !prev)}
+                      className={`relative mt-0.5 h-7 w-12 shrink-0 rounded-full transition-colors disabled:opacity-60 ${
+                        useBot ? "bg-[var(--primary)]" : "bg-[var(--border2)]"
+                      }`}
+                    >
+                      <span
+                        className={`absolute top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${
+                          useBot ? "left-5" : "left-0.5"
+                        }`}
+                      />
+                    </button>
+                  </div>
+                </div>
               </CardBody>
             </Card>
           </div>
