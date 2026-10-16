@@ -57,11 +57,27 @@ const STATUS_CONFIG: Record<AttendanceStatus, { color: string; bg: string; label
   },
 };
 
-function cycleStatus(current: string | undefined): AttendanceStatus {
-  // First tap on an unmarked student marks Absent — the most common action.
-  if (!current) return "absent";
-  const idx = STATUS_CYCLE.indexOf(current as AttendanceStatus);
-  return STATUS_CYCLE[(idx + 1) % STATUS_CYCLE.length];
+/**
+ * What a tap on a row does.
+ *
+ * It used to cycle the status and, on an unmarked row, land on **Absent**. That
+ * is the worst possible default: a teacher scrolling a long register brushes a
+ * row with a thumb and a child is recorded absent, which can fire a parent SMS
+ * and start a truancy record. The most frequent action should be the harmless
+ * one, so tap marks Present.
+ *
+ * Tap again marks Absent, and again returns to Present -- a reversible pair.
+ * Late and Excused are deliberately not on the tap path at all: they are rarer,
+ * they are reached by swiping, and neither can be set by accident.
+ */
+function tapStatus(current: string | undefined): AttendanceStatus {
+  return current === "present" ? "absent" : "present";
+}
+
+/** Swipe left walks Late -> Excused -> Late. Excused is rare enough to share
+ *  the gesture with Late rather than giving it its own. */
+function leftSwipeStatus(current: string | undefined): AttendanceStatus {
+  return current === "late" ? "excused" : "late";
 }
 
 /** Tally a saved batch by status for the post-save summary. */
@@ -143,6 +159,11 @@ export default function AttendancePage() {
     return getLocalDateString();
   });
   const [pendingBulk, setPendingBulk] = useState<{ status: string; label: string } | null>(null);
+  // One pupil, full screen. Swiping a long register works until the list is
+  // longer than the thumb can reliably target, and then the teacher starts
+  // marking the wrong child. This removes the list entirely: one name, one
+  // photo, four large targets, and the next pupil one tap away.
+  const [focusStudentId, setFocusStudentId] = useState<string | null>(null);
   const [bulkRangeError, setBulkRangeError] = useState<string | null>(null);
   const [bulkProgress, setBulkProgress] = useState<{
     running: boolean;
@@ -358,9 +379,7 @@ export default function AttendancePage() {
   };
 
   const handleTapStatus = (studentId: string) => {
-    const current = attendance[studentId];
-    const next = cycleStatus(current);
-    markAttendance(studentId, next);
+    markAttendance(studentId, tapStatus(attendance[studentId]));
   };
 
   const markAll = (status: string) => {
@@ -667,6 +686,13 @@ export default function AttendancePage() {
 
   const selectedClassName = filteredClasses.find((c) => c.id === selectedClass);
 
+  const focusIndex = focusStudentId ? visibleStudents.findIndex((s) => s.id === focusStudentId) : -1;
+  const focusStudent = focusIndex >= 0 ? visibleStudents[focusIndex] : null;
+  const focusStatus = focusStudent ? (attendance[focusStudent.id] as AttendanceStatus | undefined) : undefined;
+  const focusInitials = focusStudent
+    ? `${focusStudent.first_name?.[0] ?? ""}${focusStudent.last_name?.[0] ?? ""}`.toUpperCase()
+    : "";
+
   const exportAttendance = () => {
     if (!selectedClass || students.length === 0) return;
 
@@ -762,6 +788,98 @@ export default function AttendancePage() {
   };
 
   return (
+    <>
+    {/* One pupil, full screen.
+
+        Nothing here needs reading to be used: the four targets are the four
+        statuses, the name is the largest thing on the page, and the counter
+        tells the teacher where they are in the register. Advancing moves to
+        the next unmarked child rather than simply the next row, because the
+        ones still to do are the reason they are here. */}
+    {focusStudent && (
+      <div className="fixed inset-0 z-[150] flex flex-col bg-[var(--bg)]" role="dialog" aria-modal="true" aria-label={`Mark ${focusStudent.first_name} ${focusStudent.last_name}`}>
+        <div className="flex items-center gap-3 px-4 py-3">
+          <button
+            type="button"
+            onClick={() => setFocusStudentId(null)}
+            className="flex min-h-11 items-center gap-1 text-sm font-semibold text-[var(--primary)]"
+          >
+            <MaterialIcon icon="arrow_back" /> All pupils
+          </button>
+          <span className="ml-auto text-sm font-semibold text-[var(--t3)]">
+            {focusIndex + 1} of {visibleStudents.length}
+          </span>
+        </div>
+
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-5 px-5 pb-4">
+          <div className="flex flex-col items-center text-center">
+            {focusStudent.photo_url ? (
+              <img
+                src={focusStudent.photo_url}
+                alt=""
+                className="h-32 w-32 rounded-2xl object-cover ring-4 ring-[var(--primary)]"
+              />
+            ) : (
+              <div
+                aria-hidden="true"
+                className="flex h-32 w-32 items-center justify-center rounded-2xl bg-[var(--primary)] text-4xl font-bold text-white"
+              >
+                {focusInitials}
+              </div>
+            )}
+            <h2 className="mt-3 text-2xl font-bold leading-tight text-[var(--t1)]">
+              {focusStudent.first_name} {focusStudent.last_name}
+            </h2>
+            <p className="text-sm text-[var(--t3)]">{focusStudent.student_number}</p>
+          </div>
+
+          <div className="grid w-full max-w-md grid-cols-2 gap-3">
+            {STATUS_CYCLE.map((option) => {
+              const cfg = STATUS_CONFIG[option];
+              const active = focusStatus === option;
+              return (
+                <button
+                  key={option}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => markAttendance(focusStudent.id, option)}
+                  className={`flex min-h-24 flex-col items-center justify-center gap-1 rounded-2xl border-2 text-base font-bold transition-colors ${
+                    active ? `${cfg.bg} border-[var(--primary)] text-[var(--t1)]` : "border-[var(--border)] bg-[var(--surface)] text-[var(--t2)]"
+                  }`}
+                >
+                  <MaterialIcon icon={cfg.icon} size={26} />
+                  {cfg.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex w-full max-w-md gap-3">
+            <button
+              type="button"
+              onClick={() => {
+                if (focusStatus) markAttendance(focusStudent.id, "");
+              }}
+              className="min-h-14 flex-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm font-semibold text-[var(--t2)]"
+            >
+              Clear
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const nextUnmarked = visibleStudents.findIndex((s, i) => i > focusIndex && !attendance[s.id]);
+                const next = nextUnmarked !== -1 ? nextUnmarked : focusIndex + 1;
+                setFocusStudentId(visibleStudents[next]?.id ?? null);
+              }}
+              className="min-h-14 flex-[2] rounded-xl bg-[var(--primary)] text-base font-bold text-white"
+            >
+              Next pupil
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
     <PageErrorBoundary>
       <div className="space-y-5 p-4 pb-24 sm:p-6 sm:pb-24 lg:pb-6">
         <PageHeader
@@ -903,12 +1021,6 @@ export default function AttendancePage() {
               <>
                 {" · "}
                 <span className="font-semibold text-[#7c3aed]">{excusedCount} excused</span>
-              </>
-            )}
-            {offlineCount > 0 && (
-              <>
-                {" · "}
-                <span className="font-semibold text-primary">{offlineCount} offline</span>
               </>
             )}
           </p>
@@ -1427,10 +1539,40 @@ export default function AttendancePage() {
               </div>
             )}
 
+            {/* The gestures, stated. This replaces a once-per-session animation
+                that slid the first row sideways to "demonstrate" the swipe --
+                which taught nothing to a teacher who was not looking, and left
+                everyone else guessing. Three words and two arrows say it once,
+                permanently, and cost no interaction. */}
+            <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] px-3 py-2 text-xs text-[var(--t2)]">
+              <span className="font-semibold text-[var(--t1)]">How to mark:</span>
+              <span className="flex items-center gap-1.5">
+                <span className="inline-flex h-6 w-10 items-center justify-center rounded-md border border-[var(--border)] bg-[var(--surface)] text-[11px] font-bold">
+                  Tap
+                </span>
+                Present
+              </span>
+              <span className="flex items-center gap-1.5">
+                <MaterialIcon icon="keyboard_double_arrow_right" size={16} className="text-[var(--t3)]" />
+                Absent
+              </span>
+              <span className="flex items-center gap-1.5">
+                <MaterialIcon icon="keyboard_double_arrow_left" size={16} className="text-[var(--t3)]" />
+                Late / Excused
+              </span>
+              <button
+                type="button"
+                onClick={() => setFocusStudentId(visibleStudents[0]?.id ?? null)}
+                className="ml-auto min-h-11 px-2 text-xs font-semibold text-[var(--primary)] hover:underline"
+              >
+                One pupil at a time
+              </button>
+            </div>
+
             <div className="space-y-2">
               {visibleStudents.map((student, index) => {
                 // WYSIWYG: an unmarked row shows "Unmarked" — never a fake
-                // Present. First tap still marks Absent (the common case).
+                // Present. Tap marks Present, which is the common and safe case.
                 const status = attendance[student.id] as AttendanceStatus | undefined;
                 const config = status ? STATUS_CONFIG[status] : null;
                 const borderColor = !status
@@ -1455,8 +1597,8 @@ export default function AttendancePage() {
                   <SwipeRow
                     key={student.id}
                     id={`att-row-${student.id}`}
-                    onSwipeRight={() => markAttendance(student.id, "present")}
-                    onSwipeLeft={() => markAttendance(student.id, "absent")}
+                    onSwipeRight={() => markAttendance(student.id, "absent")}
+                    onSwipeLeft={() => markAttendance(student.id, leftSwipeStatus(attendance[student.id]))}
                     onTap={() => handleTapStatus(student.id)}
                     className={`${bgColor} rounded-xl border ${borderColor} p-4 flex items-center justify-between active:scale-[0.98] transition-transform cursor-pointer select-none min-h-[56px] relative ${flashId === student.id ? "ring-2 ring-primary" : ""} ${!peekDone && index === 0 ? "animate-[swipe-peek_1.4s_ease-in-out_0.8s]" : ""}`}
                   >
@@ -1786,5 +1928,6 @@ export default function AttendancePage() {
         />
       </div>
     </PageErrorBoundary>
+    </>
   );
 }

@@ -19,36 +19,10 @@ export const OfflineIndicator = memo(function OfflineIndicator() {
     try {
       const pending = await offlineDB.getPendingSync();
       if (pending.length > 0) {
-        const result = await offlineDB.syncToServer("/api/sync");
-        if (result.success > 0) {
-          setPendingSync(0);
-          await offlineDB.refreshAll([
-            "students",
-            "classes",
-            "subjects",
-            "attendance",
-            "grades",
-            "fee_payments",
-            "fee_structure",
-            "fee_adjustments",
-            "messages",
-            "canteen_sales",
-          ]);
-        }
-      } else {
-        await offlineDB.refreshAll([
-          "students",
-          "classes",
-          "subjects",
-          "attendance",
-          "grades",
-          "fee_payments",
-          "fee_structure",
-          "fee_adjustments",
-          "messages",
-          "canteen_sales",
-        ]);
+        await offlineDB.syncToServer("/api/sync");
       }
+      const remaining = await offlineDB.getPendingSync();
+      setPendingSync(remaining.length);
     } catch {
       // Sync will retry on next online event
     }
@@ -77,9 +51,6 @@ export const OfflineIndicator = memo(function OfflineIndicator() {
         const pending = await offlineDB.getPendingSync();
         setPendingSync(pending.length);
         if (pending.length > 0) setShowIndicator(true);
-        if (online && pending.length > 0) {
-          await syncData();
-        }
       } catch {
         // Ignore errors
       }
@@ -91,8 +62,10 @@ export const OfflineIndicator = memo(function OfflineIndicator() {
       }
     };
 
-    checkPending();
-    const interval = setInterval(checkPending, 10000);
+    void checkPending().then(() => {
+      if (navigator.onLine) void syncData();
+    });
+    const interval = setInterval(checkPending, 30000);
 
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
@@ -120,70 +93,69 @@ export const OfflineIndicator = memo(function OfflineIndicator() {
       role="status"
       aria-live="polite"
       style={{
+        // Top-right, icon-only, and silent when there is nothing to say.
+        //
+        // This was a sentence in a coloured pill floating over the middle of
+        // the phone: "Offline - Changes saved locally (3 pending)". A teacher
+        // mid-register does not need to read that to know whether their work
+        // is safe -- they need one glance that costs nothing, and then to get
+        // on with marking. So: nothing at all when online and synced, a small
+        // count when changes are waiting, a small icon when offline. The
+        // words are one tap away on the sync centre for anyone who wants them.
         position: "fixed",
-        bottom: "var(--mobile-nav-clearance, 84px)",
-        left: "50%",
-        transform: "translateX(-50%)",
+        top: "calc(env(safe-area-inset-top, 0px) + 8px)",
+        right: "max(10px, env(safe-area-inset-right, 0px))",
         zIndex: "var(--z-toast, 3000)",
         pointerEvents: "none",
         display: "flex",
         flexDirection: "column",
-        alignItems: "center",
+        alignItems: "flex-end",
         gap: 8,
       }}
     >
       {showIndicator && (syncing || !isOnline || pendingSync > 0) && (
-        <div
+        <Link
+          href="/dashboard/sync-center"
+          aria-label={
+            syncing
+              ? `Syncing ${pendingSync} saved changes`
+              : isOnline
+                ? `${pendingSync} changes waiting to sync. Tap for details.`
+                : `Offline. ${pendingSync} changes saved on this device. Tap for details.`
+          }
+          title={isOnline ? `${pendingSync} changes syncing` : "Offline — your work is saved on this device"}
           style={{
-            padding: "10px 20px",
-            borderRadius: 25,
-            fontSize: 13,
-            fontWeight: 600,
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
             pointerEvents: "auto",
-            boxShadow: "0 4px 20px rgba(0,0,0,0.2)",
-            background: isOnline ? "#22c55e" : "#ef4444",
-            color: "#fff",
-            animation: "fadeInUp 0.3s ease",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            height: 34,
+            padding: "0 10px",
+            borderRadius: 999,
+            fontSize: 12,
+            fontWeight: 700,
+            textDecoration: "none",
+            boxShadow: "0 2px 10px rgba(0,0,0,0.14)",
+            background: isOnline ? "#fef3c7" : "#fee2e2",
+            color: isOnline ? "#92400e" : "#991b1b",
+            border: `1px solid ${isOnline ? "#fcd34d" : "#fecaca"}`,
           }}
         >
           {syncing ? (
-            <>
-              <MaterialIcon icon="sync" style={{ animation: "spin 1s linear infinite", fontSize: 16 }} />
-              Syncing {pendingSync} items...
-            </>
-          ) : !isOnline ? (
-            <>
-              <MaterialIcon icon="wifi_off" style={{ fontSize: 16 }} />
-              Offline - Changes saved locally
-              {pendingSync > 0 && <span style={{ opacity: 0.9, fontWeight: 400 }}>({pendingSync} pending)</span>}
-            </>
-          ) : pendingSync > 0 ? (
-            <>
-              <MaterialIcon icon="cloud_upload" style={{ fontSize: 16 }} />
-              {pendingSync} changes syncing
-            </>
-          ) : null}
-          {(pendingSync > 0 || !isOnline) && (
-            <Link
-              href="/dashboard/sync-center"
-              style={{
-                marginLeft: 6,
-                background: "#fff",
-                color: isOnline ? "#15803d" : "#b91c1c",
-                padding: "6px 10px",
-                borderRadius: 999,
-                fontSize: 12,
-                fontWeight: 700,
-                textDecoration: "none",
-              }}
-            >
-              View Queue
-            </Link>
+            <MaterialIcon icon="sync" style={{ animation: "spin 1s linear infinite", fontSize: 15 }} />
+          ) : isOnline ? (
+            <MaterialIcon icon="cloud_upload" style={{ fontSize: 15 }} />
+          ) : (
+            <MaterialIcon icon="cloud_off" style={{ fontSize: 15 }} />
           )}
-        </div>
+          {/* The number is the message. "3" beats "3 changes syncing" when the
+              teacher's thumb is already on the next pupil. */}
+          {pendingSync > 0 ? (
+            <span aria-hidden="true">{pendingSync}</span>
+          ) : (
+            <span aria-hidden="true">Saved</span>
+          )}
+        </Link>
       )}
 
       <style>{`
