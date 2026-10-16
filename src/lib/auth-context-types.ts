@@ -9,6 +9,7 @@
 import type { School, User } from "@/types";
 import { DEFAULT_FEATURE_STAGE, FeatureStage } from "./featureStages";
 import { normalizePlanType, PlanType } from "./payments/subscription-client";
+import { isSubscriptionLapsed, resolveSubscriptionStatus } from "./subscription-state";
 
 export type UserRoleValue =
   | "headmaster"
@@ -89,11 +90,9 @@ export function isPlatformRole(role: string | null | undefined): boolean {
 
 export function isSubscriptionActiveCheck(school: School | null, role?: string | null): boolean {
   if (isPlatformRole(role)) return true;
-  if (school?.is_tester) return true;
-  if (school?.subscription_status === "trial" && school?.trial_ends_at) {
-    return new Date(school.trial_ends_at) > new Date();
-  }
-  return school?.subscription_status === "active";
+  if (!school) return false;
+  if (school.is_tester) return true;
+  return resolveSubscriptionStatus(school) === "active";
 }
 
 export function getSubscriptionPlan(school: School | null): PlanType | null {
@@ -106,8 +105,8 @@ export function computeTrialExpired(school: School | null, role?: string | null)
   if (isPlatformRole(role)) return false;
   if (!school) return false;
   if (school.is_tester) return false;
-  if (school.subscription_status === "trial" && school.trial_ends_at) {
-    return new Date(school.trial_ends_at) < new Date();
-  }
-  return school.subscription_status === "expired";
+  // Delegated so gating and the super-admin dashboard cannot disagree about the
+  // same school. They did once: gating compared trial_ends_at while the
+  // dashboard counted the raw status column.
+  return isSubscriptionLapsed(school);
 }

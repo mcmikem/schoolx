@@ -1,35 +1,36 @@
 "use client";
-import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/lib/auth-context";
-import MaterialIcon from "@/components/MaterialIcon";
-import { useToast } from "@/components/Toast";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useState } from "react";
 import { OwlLoader } from "@/components/loaders";
-import { logger } from "@/lib/logger";
+import MaterialIcon from "@/components/MaterialIcon";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
+import { useToast } from "@/components/Toast";
 import { APP_NAME } from "@/lib/app-name";
+import { useAuth } from "@/lib/auth-context";
+import { logger } from "@/lib/logger";
+import { isSubscriptionLapsed, resolveSubscriptionStatus } from "@/lib/subscription-state";
+import { AppActivityTab } from "./_activity-tab";
+import { Badge, ConfirmDialog, PlanBadge, StatCard, Toggle } from "./_atoms";
+import { AuditLogTab } from "./_audit-log-tab";
+import { MarketersTab } from "./_marketers-tab";
+import { RegisterSchoolForm } from "./_register-school-form";
+import { SchoolDetailSheet } from "./_school-detail-sheet";
 import {
-  School,
-  UserRow,
-  PlatformStats,
-  SubscriptionStatus,
-  type Tab,
+  adminAction,
+  fmtDate,
   PLAN_COLORS,
   PLAN_LABELS,
-  ROLE_COLORS,
-  adminAction,
+  PlatformStats,
   parseApiResponse,
-  fmtDate,
+  ROLE_COLORS,
+  School,
+  SubscriptionStatus,
+  type Tab,
   timeSince,
+  UserRow,
 } from "./_shared";
-import { Toggle, Badge, PlanBadge, StatCard, ConfirmDialog } from "./_atoms";
-import { SchoolDetailSheet } from "./_school-detail-sheet";
-import { RegisterSchoolForm } from "./_register-school-form";
 import { UserActions } from "./_user-actions";
-import { MarketersTab } from "./_marketers-tab";
-import { AuditLogTab } from "./_audit-log-tab";
-import { AppActivityTab } from "./_activity-tab";
 
 export default function SuperAdminPage() {
   const { user, authInitialized, signOut } = useAuth();
@@ -122,11 +123,14 @@ export default function SuperAdminPage() {
 
       const now = new Date();
       const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      const active = schoolList.filter((s) => s.subscription_status === "active").length;
-      const trial = schoolList.filter((s) => s.subscription_status === "trial").length;
-      const expired = schoolList.filter((s) =>
-        ["expired", "canceled", "suspended", "past_due", "unpaid"].includes(s.subscription_status),
-      ).length;
+      // Derived, not read straight off the column. `subscription_status` is only
+      // updated when somebody updates it, so a trial that ran out months ago
+      // still read "trial" -- which meant this screen reported 10 trials and 0
+      // expired while 6 of those trials had lapsed. The whole point of this
+      // screen is knowing who to chase.
+      const active = schoolList.filter((s) => resolveSubscriptionStatus(s) === "active").length;
+      const trial = schoolList.filter((s) => resolveSubscriptionStatus(s) === "trial").length;
+      const expired = schoolList.filter((s) => isSubscriptionLapsed(s)).length;
       const newMonth = schoolList.filter((s) => new Date(s.created_at) >= monthStart).length;
       const totalStudents = schoolList.reduce((sum, s) => sum + (Number(s.student_count) || 0), 0);
 
@@ -361,7 +365,7 @@ export default function SuperAdminPage() {
               onClick={loadData}
               disabled={dataLoading}
               title="Refresh data"
-              className="p-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--bg)] text-[var(--t3)] transition-colors disabled:opacity-40"
+              className="tap-44 p-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--bg)] text-[var(--t3)] transition-colors disabled:opacity-40"
             >
               <MaterialIcon icon="refresh" style={{ fontSize: 18 }} className={dataLoading ? "animate-spin" : ""} />
             </button>
@@ -630,7 +634,7 @@ export default function SuperAdminPage() {
                       key={a.label}
                       type="button"
                       onClick={a.action}
-                      className="group bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-4 flex gap-3 items-start transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(15,23,42,0.10)] text-left"
+                      className="tap-44 group bg-[var(--surface)] border border-[var(--border)] rounded-2xl p-4 flex gap-3 items-start transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_24px_rgba(15,23,42,0.10)] text-left"
                     >
                       <div
                         className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
