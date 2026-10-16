@@ -128,11 +128,27 @@ function matchesPathPrefix(pathname: string, basePath: string) {
   return pathname === basePath || pathname.startsWith(`${basePath}/`);
 }
 
+/**
+ * Whether the request carries a Supabase session cookie.
+ *
+ * The name is NOT always `sb-<project>-auth-token`. @supabase/ssr splits a
+ * session across numbered chunks once it outgrows one cookie, producing
+ * `sb-<project>-auth-token.0`, `.1` and so on. Matching only `endsWith(
+ * "-auth-token")` therefore reported genuinely signed-in users as having no
+ * session, and the fail-open guard below then redirected a valid login straight
+ * back to /login?reason=session_expired.
+ *
+ * That is why it looked intermittent: a small session fits one cookie and
+ * matches, a larger one is chunked and does not. And it never showed up in
+ * development, because the dev bypass below short-circuits this check entirely.
+ */
 function hasAuthSessionCookie(request: NextRequest): boolean {
   const cookies = request.cookies.getAll();
   for (let i = 0; i < cookies.length; i++) {
     const name = cookies[i].name;
-    if (name.startsWith("sb-") && name.endsWith("-auth-token")) {
+    if (!name.startsWith("sb-")) continue;
+    // Single cookie, or any numbered chunk of a split one.
+    if (name.endsWith("-auth-token") || /^sb-[^:]+-auth-token\.\d+$/.test(name)) {
       return true;
     }
   }
