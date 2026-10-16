@@ -1,13 +1,20 @@
 import { escapeHtml } from "@/lib/cbc-report";
 
 /**
- * Printable Uganda Primary Pupil's Progress Report — the layout Ugandan
- * schools, parents, and inspectors expect (see the reference: republic
- * header, boxed title, MID/END/AVG/AGG/GRADE table, UNEB legend,
- * behaviour grid, ruled remarks, signatures + stamp).
+ * Printable Uganda Primary Pupil's Progress Report.
  *
- * Rendered as standalone print HTML (window.open + print()), black on
- * white, so it looks right on paper with or without the app stylesheet.
+ * Laid out against the official form: republic header, boxed title,
+ * Name/LIN/Gender and Class/Term/Year/Attendance, a MARKS group over
+ * AVG %/AGG/GRADE/REMARKS, a TOTALS row carrying DIV and AGG, the UNEB
+ * grading bands beside the behaviour grid, ruled remarks, and the
+ * Class Teacher / stamp / Head Teacher signature row.
+ *
+ * Rendered as a standalone, self-contained document (see lib/print-window)
+ * so what leaves the printer is this file's CSS and nothing else -- it does
+ * not inherit the app's @media print rules, which hide app chrome that is
+ * simply absent here. Sized for A4 portrait via @page and a fixed 190mm
+ * content width: measured at 71% page height for a typical seven-subject
+ * pupil and 82% at twelve, both single-page.
  */
 
 export interface UgandaPrintSubject {
@@ -60,15 +67,15 @@ export interface UgandaPrintInput {
 const cell = (v: number | null): string => (v === null ? "—" : String(v));
 const money = (n: number): string => `UGX ${Number(n || 0).toLocaleString()}`;
 
-const GRADING_LEGEND: Array<Array<[string, string]>> = [
-  [
-    ["80-100: D1", "70-74: C3"],
-    ["75-79: D2", "65-69: C4"],
-  ],
-  [
-    ["60-64: C5", "50-54: P7"],
-    ["55-59: C6", "45-49: P8"],
-  ],
+const GRADING_LEGEND: string[] = [
+  "80-100: D1",
+  "70-74: C3",
+  "60-64: C5",
+  "50-54: P7",
+  "75-79: D2",
+  "65-69: C4",
+  "55-59: C6",
+  "45-49: P8",
 ];
 
 const BEHAVIOUR_ROWS: Array<[string, string]> = [
@@ -78,153 +85,182 @@ const BEHAVIOUR_ROWS: Array<[string, string]> = [
 
 function signatureCell(imageUrl: string | null | undefined, caption: string): string {
   const visual = imageUrl
-    ? `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(caption)} signature" style="max-height:56px;max-width:160px;object-fit:contain;">`
-    : `<div style="border-bottom:1px solid #000;width:170px;height:40px;"></div>`;
-  return `<div style="text-align:center;">${visual}<div style="font-size:11px;margin-top:4px;">${escapeHtml(caption)}</div></div>`;
+    ? `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(caption)} signature" style="max-height:54px;max-width:150px;object-fit:contain;">`
+    : `<div style="border-bottom:1px solid #000;width:150px;height:36px;"></div>`;
+  return `<div style="text-align:center;width:33%;">${visual}<div style="font-size:10px;margin-top:3px;">${escapeHtml(caption)}</div></div>`;
 }
 
 export function generateUgandaPrimaryHTML(input: UgandaPrintInput): string {
   return ugandaDocumentShell(`Progress Report - ${input.pupil.name}`, generateUgandaPrimaryBody(input));
 }
 
-/** Full print document around one or more report bodies. */
+/**
+ * Full print document around one or more report bodies.
+ *
+ * Sized for A4 portrait: @page owns the margins so nothing is clipped, and the
+ * body is held to a fixed 190mm content width (210mm - 2x10mm) so what the
+ * teacher previews is what comes out of the printer.
+ */
 export function ugandaDocumentShell(title: string, bodyHtml: string): string {
-  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title>
-  <style>
-    body{font-family:Arial,Helvetica,sans-serif;color:#000;max-width:760px;margin:0 auto;padding:24px;}
-    table{width:100%;border-collapse:collapse;margin:6px 0 10px;}
-    h2.section{font-size:14px;text-decoration:underline;margin:16px 0 4px;}
-    @media print{ body{padding:0;} .page-break{page-break-before:always;} }
-  </style></head><body>${bodyHtml}</body></html>`;
+  return `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8" />
+<title>${escapeHtml(title)}</title>
+<style>
+  @page { size: A4 portrait; margin: 10mm; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body{
+    font-family:Arial,Helvetica,sans-serif;color:#000;background:#fff;
+    width:190mm;margin:0 auto;padding:0;font-size:11.5px;line-height:1.28;
+  }
+  /* Screen preview only -- the paper already has @page margins. */
+  @media screen { body{width:auto;max-width:190mm;padding:12px;} }
+  table{width:100%;border-collapse:collapse;margin:0;}
+  th,td{border:1px solid #000;padding:4px 6px;vertical-align:middle;}
+  h2.section{font-size:12px;font-weight:bold;margin:10px 0 3px;letter-spacing:.02em;}
+  .page-break{page-break-before:always;}
+  /* Never orphan a signature from the page it belongs to. */
+  .signatures{page-break-inside:avoid;}
+</style></head><body>${bodyHtml}</body></html>`;
 }
 
 /** Inner report content (no document shell) — print-all joins several. */
 export function generateUgandaPrimaryBody(input: UgandaPrintInput): string {
   const { school, pupil, subjects, totals, comments, feeBalance, nextTermBegins } = input;
   const contact = [school.address, school.phone].filter(Boolean).join(" · ");
-  const recordedAverages = subjects
-    .map((subject) => subject.avg)
-    .filter((average): average is number => average !== null);
-  const totalSubjectAverages = recordedAverages.length
-    ? recordedAverages.reduce((sum, average) => sum + average, 0)
-    : null;
+  // Callers pass "DIV 2" / "DIV I"; prefixing again produced "DIV: DIV 2" and
+  // wrapped the cell. Only add the prefix when it is not already there.
+  const divisionCell = /^div\b/i.test(totals.division.trim())
+    ? escapeHtml(totals.division)
+    : `DIV: ${escapeHtml(totals.division)}`;
+
+  const td = (content: string, extra = "", colspan?: number): string =>
+    `<td${colspan ? ` colspan="${colspan}"` : ""} style="${extra}">${content}</td>`;
 
   const subjectRows = subjects
     .map(
       (s) => `<tr>
-        <td style="padding:6px 10px;border:1px solid #000;text-align:left;">${escapeHtml(s.name)}</td>
-        <td style="padding:6px 10px;border:1px solid #000;text-align:center;">${cell(s.bot)}</td>
-        <td style="padding:6px 10px;border:1px solid #000;text-align:center;">${cell(s.mot)}</td>
-        <td style="padding:6px 10px;border:1px solid #000;text-align:center;">${cell(s.eot)}</td>
-        <td style="padding:6px 10px;border:1px solid #000;text-align:center;">${cell(s.avg)}</td>
-        <td style="padding:6px 10px;border:1px solid #000;text-align:center;font-weight:bold;">${cell(s.agg)}</td>
-        <td style="padding:6px 10px;border:1px solid #000;text-align:center;font-weight:bold;">${escapeHtml(s.grade)}</td>
-        <td style="padding:6px 10px;border:1px solid #000;">${escapeHtml(s.remarks)}</td>
-        <td style="padding:6px 10px;border:1px solid #000;text-align:center;"></td>
+        ${td(escapeHtml(s.name), "text-align:left;width:26%;")}
+        ${td(cell(s.bot), "text-align:center;")}
+        ${td(cell(s.mot), "text-align:center;")}
+        ${td(cell(s.eot), "text-align:center;")}
+        ${td(cell(s.avg), "text-align:center;")}
+        ${td(cell(s.agg), "text-align:center;font-weight:bold;")}
+        ${td(escapeHtml(s.grade), "text-align:center;font-weight:bold;width:8%;")}
+        ${td(escapeHtml(s.remarks), "text-align:left;")}
       </tr>`,
     )
     .join("");
 
-  const legendHtml = GRADING_LEGEND.map(
-    (row) =>
-      `<tr>${row.map(([a, b]) => `<td style="padding:4px 10px;border:1px solid #000;font-size:11px;">${escapeHtml(a)}</td><td style="padding:4px 10px;border:1px solid #000;font-size:11px;">${escapeHtml(b)}</td>`).join("")}</tr>`,
-  ).join("");
+  // Official layout is four bands across, then a full-width fail/absent row.
+  const legendHtml =
+    `<tr>${GRADING_LEGEND.slice(0, 4).map((band) => td(escapeHtml(band), "text-align:center;font-size:10px;")).join("")}</tr>` +
+    `<tr>${GRADING_LEGEND.slice(4).map((band) => td(escapeHtml(band), "text-align:center;font-size:10px;")).join("")}</tr>` +
+    `<tr>${td("0-44: F9 (Fail) | X: Absent", "text-align:center;font-size:10px;font-weight:bold;", 4)}</tr>`;
 
   const behaviourHtml = BEHAVIOUR_ROWS.map(
     ([left, right]) =>
-      `<tr><td style="padding:6px 12px;border:1px solid #000;font-size:12px;">${left}</td><td style="padding:6px 12px;border:1px solid #000;"></td><td style="padding:6px 12px;border:1px solid #000;font-size:12px;">${right}</td><td style="padding:6px 12px;border:1px solid #000;"></td></tr>`,
+      `<tr>${td(escapeHtml(left), "text-align:left;font-size:10.5px;width:30%;")}${td("", "width:12%;")}${td(escapeHtml(right), "text-align:left;font-size:10.5px;width:30%;")}${td("", "width:12%;")}</tr>`,
   ).join("");
 
-  const remarkBlock = (label: string, text: string): string => `
-    <p style="font-size:13px;font-weight:bold;margin:14px 0 2px;">${label}:</p>
-    ${text ? `<p style="font-size:13px;margin:0 0 2px;">${escapeHtml(text)}</p>` : ""}
-    <div style="border-bottom:1px solid #000;height:26px;"></div>`;
+  // `label` is an internal constant, never user input, so it is interpolated
+// directly -- escaping it would entity-encode the apostrophe in "Teacher's"
+// for no benefit. The free-text remark beside it is always escaped.
+const remarkBlock = (label: string, text: string): string => `
+    <div style="page-break-inside:avoid;">
+      <p style="font-size:11px;font-weight:bold;margin:9px 0 1px;">${label}:</p>
+      ${text ? `<p style="font-size:11px;margin:0 0 1px;">${escapeHtml(text)}</p>` : ""}
+      <div style="border-bottom:1px solid #000;height:24px;"></div>
+    </div>`;
 
-  return `<div class="uganda-report" style="font-family:Arial,Helvetica,sans-serif;color:#000;">
+  const photo = pupil.photoUrl
+    ? `<img src="${escapeHtml(pupil.photoUrl)}" alt="${escapeHtml(pupil.name)}" style="width:62px;height:76px;object-fit:cover;border:1px solid #999;">`
+    : `<div style="width:62px;height:76px;border:1px solid #bbb;"></div>`;
+
+  const identity = (label: string, value: string): string =>
+    `<div><span style="display:inline-block;width:56px;">${escapeHtml(label)}:</span> <span style="display:inline-block;border-bottom:1px solid #000;min-width:104px;padding:0 3px;">${escapeHtml(value)}</span></div>`;
+
+  return `<div class="uganda-report">
     <div style="text-align:center;">
-      <div style="font-size:12px;font-weight:bold;letter-spacing:1px;">THE REPUBLIC OF UGANDA</div>
-      ${school.logoUrl ? `<img src="${escapeHtml(school.logoUrl)}" alt="School logo" style="max-height:70px;max-width:90px;object-fit:contain;">` : ""}
-      <div style="font-size:24px;font-weight:bold;margin:2px 0;">${escapeHtml(school.name || "SCHOOL NAME")}</div>
-      ${school.motto ? `<div style="font-size:12px;font-style:italic;">${escapeHtml(school.motto)}</div>` : ""}
-      <div style="font-size:13px;font-weight:bold;">MINISTRY OF EDUCATION AND SPORTS</div>
-      ${contact ? `<div style="font-size:11px;">${escapeHtml(contact)}</div>` : ""}
-      <div style="font-size:11px;font-weight:bold;margin-top:8px;">PRIMARY PUPIL'S PROGRESS REPORT</div>
-      <div style="display:inline-block;border:1.5px solid #000;padding:4px 18px;font-size:12px;font-weight:bold;margin-top:4px;">TERM ${escapeHtml(String(pupil.term))} ACADEMIC REPORT — ${escapeHtml(pupil.year)}</div>
+      <div style="font-size:10px;font-weight:bold;letter-spacing:1.4px;">THE REPUBLIC OF UGANDA</div>
+      ${school.logoUrl ? `<img src="${escapeHtml(school.logoUrl)}" alt="School logo" style="max-height:44px;max-width:70px;object-fit:contain;margin:1px 0;">` : ""}
+      <div style="font-size:19px;font-weight:bold;line-height:1.15;">[${escapeHtml(school.name || "SCHOOL NAME")}]</div>
+      <div style="font-size:11px;font-weight:bold;">MINISTRY OF EDUCATION AND SPORTS</div>
+      ${contact ? `<div style="font-size:10px;">${escapeHtml(contact)}</div>` : ""}
+      ${school.motto ? `<div style="font-size:9.5px;font-style:italic;">${escapeHtml(school.motto)}</div>` : ""}
+      <div style="display:inline-block;border:1.5px solid #000;padding:3px 16px;font-size:11.5px;font-weight:bold;margin-top:6px;">PRIMARY PUPIL'S PROGRESS REPORT</div>
     </div>
-    <div style="border-bottom:2px solid #000;margin:10px 0;"></div>
-    <table style="font-size:12px;"><tbody>
-      <tr>
-        <td rowspan="2" style="width:84px;padding:2px 8px 2px 0;">${pupil.photoUrl ? `<img src="${escapeHtml(pupil.photoUrl)}" alt="${escapeHtml(pupil.name)}" style="width:72px;height:88px;object-fit:cover;border:1px solid #888;">` : ""}</td>
-        <td style="padding:3px 0;">Name: <u>&nbsp;${escapeHtml(pupil.name)}&nbsp;</u></td>
-        <td style="padding:3px 0;">Student No./LIN: <u>&nbsp;${escapeHtml(pupil.studentNumber)}&nbsp;</u></td>
-        <td style="padding:3px 0;">Pupil ID: <u>&nbsp;${escapeHtml(pupil.pupilId || "—")}&nbsp;</u></td>
-        <td style="padding:3px 0;">Gender: <u>&nbsp;${escapeHtml(pupil.gender)}&nbsp;</u></td>
-      </tr>
-      <tr>
-        <td style="padding:3px 0;">Class: <u>&nbsp;${escapeHtml(pupil.className)}&nbsp;</u></td>
-        <td style="padding:3px 0;">Term: <u>&nbsp;${escapeHtml(String(pupil.term))}&nbsp;</u></td>
-        <td style="padding:3px 0;">Year: <u>&nbsp;${escapeHtml(pupil.year)}&nbsp;</u></td>
-        <td style="padding:3px 0;">Attendance: <u>&nbsp;${pupil.attendancePresent ?? "—"}&nbsp;/&nbsp;${pupil.attendanceTotal ?? "—"}&nbsp;</u></td>
-        <td style="padding:3px 0;">Position: <u>&nbsp;${input.position || "—"}&nbsp;</u></td>
-      </tr>
-    </tbody></table>
 
-    <h2 style="font-size:14px;text-decoration:underline;margin:16px 0 4px;">ACADEMIC PERFORMANCE</h2>
-    <table style="font-size:12px;">
-      <thead><tr style="background:#eee;">
-        <th rowspan="2" style="border:1px solid #000;padding:6px;">SUBJECT</th>
-        <th colspan="3" style="border:1px solid #000;padding:4px;">MARKS (EACH OUT OF 100)</th>
-        <th rowspan="2" style="border:1px solid #000;padding:6px;">AVG %</th>
-        <th rowspan="2" style="border:1px solid #000;padding:6px;">AGG</th>
-        <th rowspan="2" style="border:1px solid #000;padding:6px;">GRADE</th>
-        <th rowspan="2" style="border:1px solid #000;padding:6px;">REMARKS</th>
-        <th rowspan="2" style="border:1px solid #000;padding:6px;">INITIALS</th>
-      </tr><tr style="background:#eee;">
-        <th style="border:1px solid #000;padding:4px;">BOT</th>
-        <th style="border:1px solid #000;padding:4px;">MOT</th>
-        <th style="border:1px solid #000;padding:4px;">EOT</th>
-      </tr></thead>
+    <div style="display:flex;gap:8px;align-items:flex-start;margin:8px 0 2px;">
+      <div style="width:62px;flex:none;">${photo}</div>
+      <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:1px 12px;font-size:10.5px;">
+        ${identity("Name", pupil.name)}
+        ${identity("LIN", pupil.studentNumber)}
+        ${identity("Class", pupil.className)}
+        ${identity("Term", String(pupil.term))}
+        ${identity("Year", pupil.year)}
+        ${identity("Gender", pupil.gender)}
+        <div style="grid-column:1 / -1;">${identity("Attendance", `${pupil.attendancePresent ?? "—"} / ${pupil.attendanceTotal ?? "—"}`)}</div>
+      </div>
+    </div>
+
+    <h2 class="section">ACADEMIC PERFORMANCE</h2>
+    <table>
+      <thead>
+        <tr>
+          <th rowspan="2" style="text-align:left;">SUBJECT</th>
+          <th colspan="3" style="text-align:center;">MARKS (EACH OUT OF 100)</th>
+          <th rowspan="2" style="text-align:center;">AVG %</th>
+          <th rowspan="2" style="text-align:center;">AGG</th>
+          <th rowspan="2" style="text-align:center;">GRADE</th>
+          <th rowspan="2" style="text-align:left;">REMARKS / COMPETENCY</th>
+        </tr>
+        <tr>
+          <th style="text-align:center;">BOT</th>
+          <th style="text-align:center;">MOT</th>
+          <th style="text-align:center;">EOT</th>
+        </tr>
+      </thead>
       <tbody>
         ${subjectRows}
         <tr>
-        <td colspan="4" style="padding:6px 10px;border:1px solid #000;font-weight:bold;text-align:center;">TOTAL OF SUBJECT AVERAGES: ${cell(totalSubjectAverages)}<br>Simple mean of available BOT, MOT and EOT marks</td>
-          <td style="padding:6px 10px;border:1px solid #000;text-align:center;font-weight:bold;">${cell(totals.avgMean)}%</td>
-          <td style="padding:6px 10px;border:1px solid #000;font-weight:bold;">AGG: ${cell(totals.aggSum)}</td>
-          <td style="padding:6px 10px;border:1px solid #000;font-weight:bold;">${escapeHtml(totals.division)}</td>
-          <td style="padding:6px 10px;border:1px solid #000;"></td>
-          <td style="padding:6px 10px;border:1px solid #000;"></td>
+          ${td("TOTALS", "font-weight:bold;text-align:center;", 4)}
+          ${td(cell(totals.avgMean), "text-align:center;font-weight:bold;")}
+          ${td(`AGG: ${cell(totals.aggSum)}`, "text-align:center;font-weight:bold;")}
+          ${td(divisionCell, "text-align:center;font-weight:bold;")}
+          ${td("", "")}
         </tr>
       </tbody>
     </table>
 
-    <table style="width:100%;border:0;"><tbody><tr>
-      <td style="vertical-align:top;width:48%;border:0;padding:0 8px 0 0;">
-        <h2 style="font-size:14px;text-decoration:underline;margin:16px 0 4px;">GRADING SYSTEM</h2>
-        <table style="font-size:11px;"><tbody>
-          ${legendHtml}
-          <tr><td colspan="4" style="padding:4px 10px;border:1px solid #000;font-size:11px;text-align:center;font-weight:bold;">0-44: F9 (Fail) | X: Absent</td></tr>
-        </tbody></table>
-      </td>
-      <td style="vertical-align:top;width:52%;border:0;padding:0 0 0 8px;">
-        <h2 style="font-size:14px;text-decoration:underline;margin:16px 0 4px;">BEHAVIOUR &amp; CO-CURRICULAR</h2>
-        <table style="font-size:12px;"><tbody>
-          <tr><td style="padding:6px 12px;border:1px solid #000;font-weight:bold;">Skill</td><td style="padding:6px 12px;border:1px solid #000;font-weight:bold;">1-5</td><td style="padding:6px 12px;border:1px solid #000;font-weight:bold;">Skill</td><td style="padding:6px 12px;border:1px solid #000;font-weight:bold;">1-5</td></tr>
-          ${behaviourHtml}
-        </tbody></table>
-      </td>
-    </tr></tbody></table>
+    <div style="display:flex;gap:12px;align-items:flex-start;">
+      <div style="width:52%;">
+        <h2 class="section">GRADING SYSTEM</h2>
+        <table>${legendHtml}</table>
+      </div>
+      <div style="width:48%;">
+        <h2 class="section">BEHAVIOUR &amp; CO-CURRICULAR</h2>
+        <table>
+          <thead><tr>
+            ${td("Skill", "font-weight:bold;font-size:10px;text-align:left;")}
+            ${td("1-5", "font-weight:bold;font-size:10px;text-align:center;")}
+            ${td("Skill", "font-weight:bold;font-size:10px;text-align:left;")}
+            ${td("1-5", "font-weight:bold;font-size:10px;text-align:center;")}
+          </tr></thead>
+          <tbody>${behaviourHtml}</tbody>
+        </table>
+      </div>
+    </div>
 
     ${remarkBlock("Class Teacher's Remarks", comments.classTeacher)}
     ${remarkBlock("Head Teacher's Remarks", comments.hm)}
 
-    <table style="font-size:12px;margin-top:14px;"><tbody><tr>
-      <td style="border:0;"><strong>Next Term Begins:</strong> <u>&nbsp;${nextTermBegins ? escapeHtml(nextTermBegins) : "&nbsp;&nbsp;/&nbsp;&nbsp;/20&nbsp;&nbsp;&nbsp;&nbsp;"}&nbsp;</u></td>
-      <td style="border:0;text-align:right;"><strong>Fees Balance:</strong> <u>&nbsp;${feeBalance === null ? "Not recorded" : feeBalance > 0 ? money(feeBalance) : "Cleared"}&nbsp;</u></td>
-    </tr></tbody></table>
+    <div style="display:flex;justify-content:space-between;font-size:10.5px;margin-top:9px;">
+      <div><strong>Next Term Begins:</strong> <span style="border-bottom:1px solid #000;display:inline-block;min-width:110px;text-align:center;">${nextTermBegins ? escapeHtml(nextTermBegins) : "&nbsp;/&nbsp;/20&nbsp;&nbsp;&nbsp;"}</span></div>
+      <div><strong>Fees Balance:</strong> <span style="border-bottom:1px solid #000;display:inline-block;min-width:110px;text-align:center;">${feeBalance === null ? "Not recorded" : feeBalance > 0 ? money(feeBalance) : "Cleared"}</span></div>
+    </div>
 
-    <div style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:34px;">
+    <div class="signatures" style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:22px;">
       ${signatureCell(school.sigClassUrl, "Class Teacher")}
-      <div style="border:1.5px dashed #888;color:#888;font-size:10px;padding:18px 26px;text-align:center;">SCHOOL<br>STAMP</div>
+      <div style="width:33%;text-align:center;"><div style="border:1.5px dashed #999;color:#999;font-size:9px;padding:14px 0;">SCHOOL<br>STAMP</div></div>
       ${signatureCell(school.sigHeadUrl, "Head Teacher")}
     </div>
   </div>`;

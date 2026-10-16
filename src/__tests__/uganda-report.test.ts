@@ -157,10 +157,16 @@ describe("generateUgandaPrimaryHTML", () => {
   it("renders every reference section with real data", () => {
     const html = generateUgandaPrimaryHTML(baseInput);
     for (const needle of [
-      "PRIMARY PUPIL'S PROGRESS REPORT",
-      "TERM 2 ACADEMIC REPORT — 2026",
-      "TOTAL OF SUBJECT AVERAGES: 75",
+"PRIMARY PUPIL'S PROGRESS REPORT",
+      // The official Ugandan form carries Class/Term/Year in the identity
+      // block under the boxed title, not in a second boxed subtitle, so the
+      // report matches the form an inspector expects.
+      ">Term:<",
+      ">2<",
+      ">Year:<",
+      ">2026<",
       "ACADEMIC PERFORMANCE",
+      "TOTALS",
       "BOT",
       "MOT",
       "EOT",
