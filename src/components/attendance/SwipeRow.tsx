@@ -5,17 +5,42 @@ import MaterialIcon from "@/components/MaterialIcon";
 /** Finger travel that commits a swipe. Below this the row snaps back. */
 export const SWIPE_COMMIT_PX = 80;
 
+/** Which way the finger went, if far enough to count. */
+export type SwipeDirection = "right" | "left";
+
 /** Pure swipe resolution — tested directly, no DOM needed. */
-export function resolveSwipe(dx: number): "present" | "absent" | null {
-  if (dx >= SWIPE_COMMIT_PX) return "present";
-  if (dx <= -SWIPE_COMMIT_PX) return "absent";
+export function resolveSwipe(dx: number): SwipeDirection | null {
+  if (dx >= SWIPE_COMMIT_PX) return "right";
+  if (dx <= -SWIPE_COMMIT_PX) return "left";
   return null;
 }
+
+/**
+ * What a swipe will actually do, and how it looks while the finger is down.
+ *
+ * These were separate: the row hardcoded green "Present" on a right swipe
+ * while the caller did something else, so the reveal promised Present and the
+ * release marked the child Absent. The reveal is now derived from the same
+ * descriptor that drives the action, so the two cannot drift apart again.
+ */
+export interface SwipeAction {
+  label: string;
+  icon: string;
+  /** Fill behind the label while swiping. */
+  background: string;
+}
+
+export const ABSENT_SWIPE: SwipeAction = { label: "Absent", icon: "cancel", background: "#dc2626" };
+export const PRESENT_SWIPE: SwipeAction = { label: "Present", icon: "check_circle", background: "#059669" };
+export const LATE_SWIPE: SwipeAction = { label: "Late", icon: "schedule", background: "#b45309" };
 
 interface SwipeRowProps {
   id?: string;
   onSwipeRight: () => void;
   onSwipeLeft: () => void;
+  /** What each swipe does, shown while the finger is down. */
+  rightAction?: SwipeAction;
+  leftAction?: SwipeAction;
   /** Plain taps fall through to this (the browser click still fires). */
   onTap: () => void;
   className?: string;
@@ -23,8 +48,9 @@ interface SwipeRowProps {
 }
 
 /**
- * Roll-call swipe row: swipe right marks Present, swipe left marks Absent,
- * tap keeps whatever onTap does (usually cycling all four statuses).
+ * Roll-call swipe row. What each swipe does is supplied by the caller and the
+ * reveal is rendered from the same descriptor, so the label under the finger
+ * is always what will actually happen.
  *
  * Gesture handling uses NATIVE touch listeners (not React synthetic ones) so
  * the move listener can be non-passive: once horizontal intent locks in, it
@@ -41,7 +67,16 @@ interface SwipeRowProps {
  * - Transform is written straight to the DOM (no re-render per pixel); only
  *   the reveal direction is state.
  */
-export function SwipeRow({ id, onSwipeRight, onSwipeLeft, onTap, className = "", children }: SwipeRowProps) {
+export function SwipeRow({
+  id,
+  onSwipeRight,
+  onSwipeLeft,
+  rightAction = PRESENT_SWIPE,
+  leftAction = ABSENT_SWIPE,
+  onTap,
+  className = "",
+  children,
+}: SwipeRowProps) {
   const fgRef = useRef<HTMLDivElement>(null);
   const [lean, setLean] = useState<0 | 1 | -1>(0);
   // Mutable gesture machine + latest commit callbacks. Refs (never state) so
@@ -107,7 +142,7 @@ export function SwipeRow({ id, onSwipeRight, onSwipeLeft, onTap, className = "",
       if (!action) return;
       m.suppressClick = true;
       if (typeof navigator.vibrate === "function") navigator.vibrate(10);
-      if (action === "present") m.actions.onSwipeRight();
+      if (action === "right") m.actions.onSwipeRight();
       else m.actions.onSwipeLeft();
     };
 
@@ -153,15 +188,15 @@ export function SwipeRow({ id, onSwipeRight, onSwipeLeft, onTap, className = "",
         // tap on real devices (jsdom tests dispatch directly, so they never
         // caught it). Pinned by the regression test below.
         className="absolute inset-0 flex items-center justify-between px-5 rounded-xl text-sm font-bold text-white pointer-events-none"
-        style={{ background: lean > 0 ? "#059669" : lean < 0 ? "#dc2626" : "transparent" }}
+        style={{ background: lean > 0 ? rightAction.background : lean < 0 ? leftAction.background : "transparent" }}
       >
         <span className="flex items-center gap-1" style={{ opacity: lean > 0 ? 1 : 0 }}>
-          <MaterialIcon icon="check_circle" className="text-lg" />
-          Present
+          <MaterialIcon icon={rightAction.icon} className="text-lg" />
+          {rightAction.label}
         </span>
         <span className="flex items-center gap-1" style={{ opacity: lean < 0 ? 1 : 0 }}>
-          Absent
-          <MaterialIcon icon="cancel" className="text-lg" />
+          {leftAction.label}
+          <MaterialIcon icon={leftAction.icon} className="text-lg" />
         </span>
       </div>
       <div ref={fgRef} onClick={handleClick} className={className}>

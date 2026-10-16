@@ -388,7 +388,7 @@ export default function CustomReportsBuilder() {
                             <span>{col.label}</span>
                             <button
                               onClick={() => removeColumn(col.id)}
-                              className="opacity-0 group-hover:opacity-100 transition-opacity text-[var(--red)] p-1 hover:bg-[var(--red)]/10 rounded"
+                              className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 transition-opacity text-[var(--red)] p-1 hover:bg-[var(--red)]/10 rounded"
                             >
                               <MaterialIcon icon="close" style={{ fontSize: 14 }} />
                             </button>

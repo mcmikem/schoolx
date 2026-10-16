@@ -25,6 +25,7 @@ import { supabase } from "./supabase";
 import { useRouter } from "next/navigation";
 import type { User, School } from "@/types";
 import { logger } from "./logger";
+import { clearUserScopedStorage } from "./user-scoped-storage";
 import { getErrorMessage } from "./validation";
 import { buildAuthEmailFromPhone, buildAuthLoginAttempts } from "./auth-login";
 import { classifyAuthFailure } from "./auth-failure";
@@ -181,6 +182,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       localStorage.removeItem(OFFLINE_USER_KEY);
       localStorage.removeItem(OFFLINE_SCHOOL_KEY);
+      // Per-user state (recent pages, assistant transcript). Key-scoping is the
+      // real fix -- this is belt and braces for the common case where someone
+      // signs out properly on a shared device.
+      clearUserScopedStorage();
     } catch {
       // Ignore storage errors while clearing invalid cached auth data.
     }

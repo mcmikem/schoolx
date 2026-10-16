@@ -311,7 +311,7 @@ export default function TopBar({ pageTitle, onSignOut }: { pageTitle: string; on
   return (
     <header
       data-testid="dashboard-header"
-      className="topbar h-[56px] flex items-center px-3 sm:px-5 lg:px-6 gap-2 sm:gap-3 sticky top-0 z-30 flex-shrink-0 border-b border-[var(--border)] bg-[var(--surface)] shadow-[var(--sh1)]"
+      className="topbar min-h-[56px] flex items-center px-3 sm:px-5 lg:px-6 gap-2 sm:gap-3 sticky top-0 z-30 flex-shrink-0 border-b border-[var(--border)] bg-[var(--surface)] shadow-[var(--sh1)]"
     >
       {/* Hamburger — below desktop rail breakpoint (sidebar overlays under lg) */}
       <button

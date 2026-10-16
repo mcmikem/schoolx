@@ -326,7 +326,7 @@ function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }
                           </div>
                         </div>
                         {!ev._builtin && (
-                          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="flex gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 transition-opacity">
                             <button
                               onClick={() => openEdit(ev)}
                               className="p-1 hover:bg-[var(--surface)] rounded text-[var(--t3)] hover:text-[var(--t1)]"
@@ -1150,8 +1150,10 @@ export default function TimetablePage() {
                                         </div>
                                         {canEditTimetable && (
                                           <button
+                                            type="button"
                                             onClick={() => setPendingDeleteEntryId(entry.id)}
-                                            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-red-100 rounded text-red-500 transition-all"
+                                            aria-label="Remove timetable entry"
+                                            className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 p-1 hover:bg-red-100 rounded text-red-500 transition-all"
                                             title="Remove entry"
                                           >
                                             <MaterialIcon icon="delete" className="text-sm" />

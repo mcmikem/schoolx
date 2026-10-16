@@ -4,7 +4,11 @@ import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 import { BugReportModal } from "@/components/BugReportButton";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import { useOwlySignals } from "@/lib/owly-signals";
+import { FALLBACK_WALKTHROUGH, pickWalkthrough, type Walkthrough } from "@/lib/owly-walkthroughs";
+import { readUserScoped, writeUserScoped } from "@/lib/user-scoped-storage";
 import { answerLocally, getPageHints } from "@/lib/owly-knowledge";
 import { supabase } from "@/lib/supabase";
 import {
@@ -24,11 +28,15 @@ const STORAGE_KEY = "skoolmate_owly_messages_v1";
 const MAX_STORED_MESSAGES = 40;
 const AI_TIMEOUT_MS = 12000;
 
-function loadStoredMessages(): Message[] | null {
+/**
+ * Scoped to the signed-in user. This transcript is not role-filtered on read,
+ * so a shared device would hand the next person the previous one's questions —
+ * which is exactly the kind of thing that names pupils, balances and parents.
+ */
+function loadStoredMessages(userId: string | null | undefined): Message[] | null {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
+    const parsed = readUserScoped<unknown>(STORAGE_KEY, userId);
+    if (parsed == null) return null;
     if (!Array.isArray(parsed) || parsed.length === 0) return null;
     const valid = parsed.filter(
       (m): m is Message =>
@@ -119,10 +127,22 @@ export default function OwlAssistant() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [bugOpen, setBugOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>(() => loadStoredMessages() ?? [welcomeMessage()]);
+  const [messages, setMessages] = useState<Message[]>(() => loadStoredMessages(userId) ?? [welcomeMessage()]);
   const [input, setInput] = useState("");
+  const router = useRouter();
   const [typing, setTyping] = useState(false);
+  const [suggestionOpen, setSuggestionOpen] = useState(false);
+  const [walkthrough, setWalkthrough] = useState<Walkthrough | null>(null);
+  const [walkthroughStep, setWalkthroughStep] = useState(0);
   const [online, setOnline] = useState(true);
+  const userId = user?.id;
+  const owly = useOwlySignals({
+    page: pathname ?? undefined,
+    role: user?.role ?? undefined,
+    online,
+    userId,
+  });
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -147,14 +167,21 @@ export default function OwlAssistant() {
     };
   }, []);
 
-  // Persist the conversation so Owly remembers it across reloads.
+  // Persist the conversation so Owly remembers it across reloads — per user,
+  // so a shared tablet never carries one person's transcript to the next.
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(messages.slice(-MAX_STORED_MESSAGES)));
-    } catch {
-      // Storage full / private mode — chat just won't survive reloads.
-    }
-  }, [messages]);
+    writeUserScoped(STORAGE_KEY, userId, messages.slice(-MAX_STORED_MESSAGES));
+  }, [messages, userId]);
+
+  // Auth resolves after first paint, so the initial read above ran with no
+  // user id and returned the welcome message. Re-read once the real user is
+  // known, or returning pupils would find their history missing.
+  const loadedFor = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    if (loadedFor.current === userId) return;
+    loadedFor.current = userId;
+    setMessages(loadStoredMessages(userId) ?? [welcomeMessage()]);
+  }, [userId]);
 
   useEffect(() => {
     if (open && messagesEndRef.current) {
@@ -253,17 +280,96 @@ export default function OwlAssistant() {
 
   const hints = getPageHints(pathname || "");
 
+  // Owly only speaks when it has a reason to. `attention` is the single gate on
+  // every interrupting affordance: the blink, the question-mark badge, and the
+  // popup that opens when tapped.
+  const attention = owly.shouldBlink;
+  const currentSuggestion = owly.suggestions[0] ?? null;
+  const tour = pickWalkthrough(user?.roles?.length ? user.roles : user?.role ? [user.role] : []);
+  const fallbackTour = tour ?? FALLBACK_WALKTHROUGH;
+
+  const openWalkthrough = (which: Walkthrough) => {
+    setWalkthrough(which);
+    setWalkthroughStep(0);
+    setOpen(true);
+    setSuggestionOpen(false);
+  };
+
+  const handleSuggestionCta = () => {
+    setSuggestionOpen(false);
+    if (currentSuggestion?.id === "first-run") {
+      openWalkthrough(fallbackTour);
+      return;
+    }
+    if (currentSuggestion?.href) {
+      router.push(currentSuggestion.href);
+      setOpen(false);
+      return;
+    }
+    // Everything else is a question for the guide — open the panel with it
+    // already typed, so the user presses send rather than retyping.
+    setOpen(true);
+    setInput(currentSuggestion?.cta ?? "");
+  };
+
   return (
     <>
+      {/* ── Suggestion popup: what Owly wants to tell you ── */}
+      {suggestionOpen && currentSuggestion && (
+        <div
+          data-owl-suggestion=""
+          className="fixed z-[9991] w-[min(320px,calc(100vw-32px))] rounded-2xl p-4 shadow-2xl bottom-[calc(var(--mobile-nav-clearance)+74px)] right-4 sm:bottom-[92px] sm:right-6"
+          style={{ background: "var(--surface, #fff)", border: "1px solid var(--border, #e5e7eb)" }}
+          role="dialog"
+          aria-label="Owly has a suggestion"
+        >
+          <div className="flex items-start gap-2">
+            <MaterialIcon icon="help" className="mt-0.5 text-[var(--green)]" />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold leading-snug text-[var(--t1)]">{currentSuggestion.title}</p>
+              <p className="mt-1 text-xs leading-relaxed text-[var(--t2)]">{currentSuggestion.detail}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSuggestionOpen(false)}
+              className="tap-44 -m-1 shrink-0 rounded-full p-1 text-[var(--t3)]"
+              aria-label="Dismiss suggestion"
+            >
+              <MaterialIcon icon="close" size={16} />
+            </button>
+          </div>
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              onClick={() => setSuggestionOpen(false)}
+              className="min-h-11 flex-1 rounded-xl border border-[var(--border)] text-sm font-semibold text-[var(--t2)]"
+            >
+              Not now
+            </button>
+            <button
+              type="button"
+              onClick={handleSuggestionCta}
+              className="min-h-11 flex-[2] rounded-xl bg-[var(--primary)] text-sm font-bold text-white"
+            >
+              {currentSuggestion.cta}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── Floating Owly button ── */}
       <button
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => (attention ? setSuggestionOpen((v) => !v) : setOpen((v) => !v))}
         data-owl-assistant=""
-        className="fixed z-[9990] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--green)] bottom-[88px] right-4 sm:bottom-6 sm:right-6"
+        className="fixed z-[9990] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--green)] bottom-[calc(var(--mobile-nav-clearance)+10px)] right-4 sm:bottom-6 sm:right-6"
         style={{ width: 56, height: 56, background: "none", border: "none", cursor: "pointer", padding: 0 }}
-        aria-label="Open SkoolMate Assistant"
+        aria-label={
+          attention
+            ? `Owly has ${owly.suggestions.length} suggestion${owly.suggestions.length === 1 ? "" : "s"}: ${currentSuggestion?.title ?? ""}`
+            : "Ask Owly, your guide"
+        }
         aria-expanded={open}
-        title="Owly — SkoolMate Assistant"
+        title={attention ? (currentSuggestion?.title ?? "Owly has a suggestion") : "Owly — your guide"}
       >
         {open ? (
           <div
@@ -285,21 +391,138 @@ export default function OwlAssistant() {
               loading="eager"
               className="rounded-2xl"
             />
-            <span
-              className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${
-                online ? "bg-green-400 animate-pulse" : "bg-amber-400"
-              }`}
-              aria-hidden
-            />
+            {/* Owly blinks only when it actually has something to offer. The
+                old pulsing green dot meant "there is a server" — meaningless to
+                a teacher, and it never stopped, so it taught people to ignore
+                the one indicator that now matters. */}
+            {attention && (
+              <>
+                <span className="absolute inset-0 rounded-2xl animate-owly-pulse" aria-hidden />
+                <span
+                  className="absolute -top-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full border-2 border-white bg-[var(--green)] text-white shadow-lg"
+                  aria-hidden
+                >
+                  <MaterialIcon icon="help" size={14} />
+                </span>
+              </>
+            )}
           </div>
         )}
       </button>
+
+      {/* ── Walkthrough ──
+          A first-run guided path through this role's real tasks. Each step says
+          what to do and how to tell it worked, because "did that save?" is the
+          question that otherwise goes to the headteacher instead of the app. */}
+      {open && walkthrough && (
+        <div
+          data-owl-walkthrough=""
+          className="fixed z-[9992] inset-0 flex flex-col bg-[var(--bg)] sm:inset-auto sm:w-[min(420px,calc(100vw-32px))] sm:rounded-2xl sm:shadow-2xl sm:bottom-[calc(var(--mobile-nav-clearance)+82px)] sm:right-6 sm:max-h-[min(560px,calc(100vh-160px))]"
+          role="dialog"
+          aria-modal="true"
+          aria-label={walkthrough.title}
+        >
+          <div className="flex items-start gap-3 px-4 py-3 text-white" style={{ background: "#0b1c39" }}>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold leading-tight">{walkthrough.title}</p>
+              <p className="mt-0.5 text-xs text-white/70">
+                Step {Math.min(walkthroughStep + 1, walkthrough.steps.length)} of {walkthrough.steps.length}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setWalkthrough(null)}
+              className="tap-44 -m-1 shrink-0 rounded-full p-1 text-white/80"
+              aria-label="Close walkthrough"
+            >
+              <MaterialIcon icon="close" size={18} />
+            </button>
+          </div>
+
+          <div className="h-1 w-full shrink-0" style={{ background: "var(--surface-container-low, #e5e7eb)" }}>
+            <div
+              className="h-full transition-all"
+              style={{
+                width: `${((walkthroughStep + 1) / walkthrough.steps.length) * 100}%`,
+                background: "var(--green, #16a34a)",
+              }}
+            />
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+            {walkthroughStep === 0 && (
+              <p className="mb-4 text-sm leading-relaxed text-[var(--t2)]">{walkthrough.intro}</p>
+            )}
+            {(() => {
+              const step = walkthrough.steps[walkthroughStep];
+              if (!step) return null;
+              return (
+                <div>
+                  <h3 className="text-lg font-bold leading-snug text-[var(--t1)]">{step.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-[var(--t2)]">{step.how}</p>
+                  <div className="mt-4 rounded-xl p-3" style={{ background: "var(--green-soft, #dcfce7)" }}>
+                    <p className="flex items-start gap-2 text-sm font-semibold leading-relaxed text-[var(--on-surface)]">
+                      <MaterialIcon icon="check_circle" size={18} className="mt-0.5 shrink-0" />
+                      <span>
+                        <span className="block text-[11px] uppercase tracking-wide opacity-70">You will know it worked when</span>
+                        {step.done}
+                      </span>
+                    </p>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+
+          <div className="flex shrink-0 gap-2 border-t border-[var(--border)] px-4 py-3">
+            <button
+              type="button"
+              onClick={() => (walkthroughStep === 0 ? setWalkthrough(null) : setWalkthroughStep((n) => n - 1))}
+              className="min-h-11 rounded-xl border border-[var(--border)] px-4 text-sm font-semibold text-[var(--t2)]"
+            >
+              Back
+            </button>
+            {(() => {
+              const step = walkthrough.steps[walkthroughStep];
+              const isLast = walkthroughStep >= walkthrough.steps.length - 1;
+              return step?.href && !isLast ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    router.push(step.href as string);
+                    setWalkthroughStep((n) => n + 1);
+                  }}
+                  className="min-h-11 flex-[2] rounded-xl bg-[var(--primary)] text-sm font-bold text-white"
+                >
+                  Take me there
+                </button>
+              ) : isLast ? (
+                <button
+                  type="button"
+                  onClick={() => setWalkthrough(null)}
+                  className="min-h-11 flex-[2] rounded-xl bg-[var(--green)] text-sm font-bold text-white"
+                >
+                  Done
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setWalkthroughStep((n) => n + 1)}
+                  className="min-h-11 flex-[2] rounded-xl bg-[var(--primary)] text-sm font-bold text-white"
+                >
+                  Next
+                </button>
+              );
+            })()}
+          </div>
+        </div>
+      )}
 
       {/* ── Chat panel ── */}
       {open && (
         <div
           data-owl-assistant=""
-          className="fixed z-[9989] w-full max-w-[360px] rounded-2xl shadow-2xl flex flex-col overflow-hidden bottom-[160px] right-4 sm:bottom-[100px] sm:right-6"
+          className="fixed z-[9989] w-full max-w-[360px] rounded-2xl shadow-2xl flex flex-col overflow-hidden bottom-[calc(var(--mobile-nav-clearance)+82px)] right-4 sm:bottom-[100px] sm:right-6"
           style={{
             background: "var(--surface, #fff)",
             border: "1px solid var(--border, #e5e7eb)",
@@ -326,7 +549,7 @@ export default function OwlAssistant() {
             <div className="flex-1 min-w-0">
               <p className="text-white font-bold text-sm leading-tight">Owly Assistant</p>
               <p className="text-white/70 text-xs">
-                {online ? "SkoolMate OS · School Management" : "Offline · built-in guide answering"}
+                {online ? "Your guide — tap to ask anything" : "Offline — the built-in guide still answers"}
               </p>
             </div>
             {school?.is_tester && (
@@ -420,6 +643,19 @@ export default function OwlAssistant() {
               </div>
             )}
             <div ref={messagesEndRef} />
+          </div>
+
+          {/* Reopenable walkthrough. The suggestion only ever reaches people who
+              have never seen the app, so without this there is no way back for
+              anyone who skipped it — or who just wants it again next term. */}
+          <div className="px-3 pb-2 flex gap-1.5 flex-wrap">
+            <button
+              type="button"
+              onClick={() => openWalkthrough(fallbackTour)}
+              className="px-2.5 py-1 bg-[#0b1c39]/5 text-[#0b1c39] text-xs rounded-full border border-[#0b1c39]/10 hover:bg-[#0b1c39]/10 transition-colors font-semibold"
+            >
+              Show me around
+            </button>
           </div>
 
           {/* Quick hints */}

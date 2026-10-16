@@ -85,7 +85,7 @@ export default function TrialBanner() {
               Ask an administrator to upgrade
             </span>
           )}
-          <button onClick={handleDismiss} className="p-1 text-slate-500 hover:text-slate-300 transition-colors">
+          <button onClick={handleDismiss} className="tap-44 p-1 text-slate-500 hover:text-slate-300 transition-colors">
             <MaterialIcon icon="close" style={{ fontSize: 16 }} />
           </button>
         </div>

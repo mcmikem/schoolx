@@ -98,7 +98,7 @@ export default function ExpiredNotice() {
               href="https://omuto.org/osx.php"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-3 p-3 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 transition-colors group"
+              className="tap-44 flex items-center gap-3 p-3 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 transition-colors group"
             >
               <div className="w-10 h-10 rounded-lg bg-amber-500 flex items-center justify-center">
                 <MaterialIcon className="text-white" style={{ fontSize: 18 }}>
@@ -117,7 +117,7 @@ export default function ExpiredNotice() {
               href="https://essentials.omuto.org"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-3 p-3 rounded-xl border border-green-200 bg-green-50 hover:bg-green-100 transition-colors group"
+              className="tap-44 flex items-center gap-3 p-3 rounded-xl border border-green-200 bg-green-50 hover:bg-green-100 transition-colors group"
             >
               <div className="w-10 h-10 rounded-lg bg-green-600 flex items-center justify-center">
                 <MaterialIcon className="text-white" style={{ fontSize: 18 }}>

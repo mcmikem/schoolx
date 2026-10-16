@@ -4,15 +4,24 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import MaterialIcon from "@/components/MaterialIcon";
 import { NavGroup, sortNavGroupsByPriority } from "@/lib/navigation";
+import { readUserScoped, writeUserScoped } from "@/lib/user-scoped-storage";
 import { cn } from "@/lib/utils";
 
 interface CollapsibleSidebarProps {
   groups: readonly NavGroup[];
   onNavigate?: () => void;
   compact?: boolean;
+  /**
+   * Auth user id. "Continue where you left off" is namespaced to this: the
+   * recent list used to sit in one global key, so on a shared tablet the next
+   * person to sign in was shown the previous person's pages. Undefined during
+   * the first render (auth still resolving) simply yields an empty list rather
+   * than leaking the previous account's.
+   */
+  userId?: string | null;
 }
 
-export default function CollapsibleSidebar({ groups, onNavigate, compact = false }: CollapsibleSidebarProps) {
+export default function CollapsibleSidebar({ groups, onNavigate, compact = false, userId }: CollapsibleSidebarProps) {
   const pathname = usePathname();
   const path = pathname ?? "";
   const [query, setQuery] = useState("");
@@ -58,14 +67,8 @@ export default function CollapsibleSidebar({ groups, onNavigate, compact = false
   };
 
   useEffect(() => {
-    try {
-      // Support both legacy and current keys during migration
-      const saved = localStorage.getItem("skoolmate_recent_pages") ?? localStorage.getItem("assemble_recent_pages");
-      if (saved) setRecentPages(JSON.parse(saved));
-    } catch {
-      // Ignore localStorage parsing issues
-    }
-  }, []);
+    setRecentPages(readUserScoped<Array<{ href: string; label: string; icon: string }>>("skoolmate_recent_pages", userId) ?? []);
+  }, [userId]);
 
   const normalizedQuery = query.trim().toLowerCase();
   const allowedHrefs = new Set(sortedGroups.flatMap((group) => group.items.map((item) => item.href)));
@@ -96,9 +99,11 @@ export default function CollapsibleSidebar({ groups, onNavigate, compact = false
       .sort((a, b) => b.href.length - a.href.length)[0]?.href ?? null;
 
   const trackRecentPage = (href: string, label: string, icon: string) => {
-    const updated = [{ href, label, icon }, ...recentPages.filter((p) => p.href !== href)].slice(0, 4);
-    setRecentPages(updated);
-    localStorage.setItem("skoolmate_recent_pages", JSON.stringify(updated));
+    setRecentPages((prev) => {
+      const updated = [{ href, label, icon }, ...prev.filter((p) => p.href !== href)].slice(0, 4);
+      writeUserScoped("skoolmate_recent_pages", userId, updated);
+      return updated;
+    });
   };
 
   if (compact) {

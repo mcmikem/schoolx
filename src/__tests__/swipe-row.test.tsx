@@ -1,15 +1,26 @@
 import { render, screen, fireEvent } from "@testing-library/react";
-import { SwipeRow, resolveSwipe, SWIPE_COMMIT_PX } from "@/components/attendance/SwipeRow";
+import {
+  SwipeRow,
+  resolveSwipe,
+  SWIPE_COMMIT_PX,
+  ABSENT_SWIPE,
+  LATE_SWIPE,
+} from "@/components/attendance/SwipeRow";
 
 describe("resolveSwipe", () => {
-  it("commits Present on a right swipe past the threshold", () => {
-    expect(resolveSwipe(SWIPE_COMMIT_PX)).toBe("present");
-    expect(resolveSwipe(SWIPE_COMMIT_PX + 120)).toBe("present");
+  // resolveSwipe reports a DIRECTION, not a status. It used to return
+  // "present"/"absent", which is how the reveal under the finger could end up
+  // promising Present while the caller went on to mark the child Absent.
+  // Nothing here knows what a mark means -- the caller supplies both the
+  // action and the label it reveals.
+  it("reports a right swipe past the threshold", () => {
+    expect(resolveSwipe(SWIPE_COMMIT_PX)).toBe("right");
+    expect(resolveSwipe(SWIPE_COMMIT_PX + 120)).toBe("right");
   });
 
-  it("commits Absent on a left swipe past the threshold", () => {
-    expect(resolveSwipe(-SWIPE_COMMIT_PX)).toBe("absent");
-    expect(resolveSwipe(-SWIPE_COMMIT_PX - 120)).toBe("absent");
+  it("reports a left swipe past the threshold", () => {
+    expect(resolveSwipe(-SWIPE_COMMIT_PX)).toBe("left");
+    expect(resolveSwipe(-SWIPE_COMMIT_PX - 120)).toBe("left");
   });
 
   it("snaps back without committing inside the threshold", () => {
@@ -151,5 +162,44 @@ describe("SwipeRow", () => {
     // But the row body still taps through.
     fireEvent.click(screen.getByText("Jane Doe"));
     expect(onTap).toHaveBeenCalledTimes(1);
+  });
+});
+
+/**
+ * The reveal must say what will actually happen.
+ *
+ * A teacher swiped right, saw a green "Present" appear under their thumb,
+ * released -- and the child was marked Absent, because the row hardcoded the
+ * label while the caller owned the action. The label is now derived from the
+ * same descriptor that drives the action, so this asserts the pairing that the
+ * roll-call page relies on.
+ */
+describe("swipe reveal matches the action", () => {
+  it("shows the caller's labels, not built-in ones", () => {
+    render(
+      <SwipeRow
+        onSwipeRight={jest.fn()}
+        onSwipeLeft={jest.fn()}
+        onTap={jest.fn()}
+        rightAction={ABSENT_SWIPE}
+        leftAction={LATE_SWIPE}
+      >
+        <span>Nakato</span>
+      </SwipeRow>,
+    );
+    expect(screen.getByText(ABSENT_SWIPE.label)).toBeInTheDocument();
+    expect(screen.getByText(LATE_SWIPE.label)).toBeInTheDocument();
+    // The old hardcoded pairing must be gone.
+    expect(screen.queryByText("Present")).not.toBeInTheDocument();
+  });
+
+  it("defaults to the classic Present / Absent pairing when none is given", () => {
+    render(
+      <SwipeRow onSwipeRight={jest.fn()} onSwipeLeft={jest.fn()} onTap={jest.fn()}>
+        <span>Nakato</span>
+      </SwipeRow>,
+    );
+    expect(screen.getByText("Present")).toBeInTheDocument();
+    expect(screen.getByText("Absent")).toBeInTheDocument();
   });
 });

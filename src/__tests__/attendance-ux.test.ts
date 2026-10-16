@@ -54,3 +54,40 @@ describe("attendance mark-and-advance", () => {
     expect(page).toContain("to review or correct");
   });
 });
+
+/**
+ * The one-pupil view must not bounce the teacher back into the register.
+ *
+ * Marking a pupil collapses their row 900ms later, which removes them from
+ * `visibleStudents`. The overlay used to resolve its pupil out of that same
+ * list, so the instant you tapped a status the pupil vanished and you were
+ * dropped into the rows again, mid-roll. These assertions pin the reason it
+ * holds now: the pupil comes from `students`, the un-collapsed class list.
+ */
+describe("one-pupil view stays put", () => {
+  it("resolves the focused pupil from the class, not the collapsing list", () => {
+    expect(page).toContain(
+      "focusStudentId ? (students.find((s) => s.id === focusStudentId) ?? null) : null",
+    );
+    expect(page).not.toContain("visibleStudents.findIndex((s) => s.id === focusStudentId) : -1;\n  const focusStudent");
+  });
+
+  it("is swipeable like the register, and says so", () => {
+    // Both gestures reach the same markAttendance the register uses, so the
+    // muscle memory carries over instead of having to be re-learned.
+    expect(page).toMatch(/focusStudent\.id[^)]*onSwipeRight|onSwipeRight=\{\(\) => markAttendance\(focusStudent\.id/);
+    expect(page).toContain("onSwipeLeft={() => markAttendance(focusStudent.id, leftSwipeStatus(focusStatus))}");
+    expect(page).toContain("onTap={() => markAttendance(focusStudent.id, tapStatus(focusStatus))}");
+    // Same reveal/action pairing as the register rows.
+    expect(page).toContain("rightAction={ABSENT_SWIPE}");
+    expect(page).toContain("leftAction={LATE_SWIPE}");
+  });
+
+  it("offers every status as a large target, plus clear and next", () => {
+    expect(page).toMatch(/STATUS_CYCLE\.map\(\(option\)/);
+    // Thumb-sized, not a hairline button.
+    expect(page).toContain("min-h-24");
+    expect(page).toContain("min-h-14");
+    expect(page).toContain("Next pupil");
+  });
+});

@@ -73,6 +73,10 @@ jest.mock("@/lib/supabase", () => ({
 }));
 
 // Mock localStorage
+// Mirrors the Storage interface, including key() and length. Without them a
+// helper that walks localStorage by index -- e.g. sweeping every per-user
+// namespace on sign-out -- silently does nothing under test while working in
+// the browser, which is the worst possible failure mode for a privacy fix.
 const localStorageMock = (() => {
   let store: Record<string, string> = {};
   return {
@@ -86,6 +90,10 @@ const localStorageMock = (() => {
     clear: jest.fn(() => {
       store = {};
     }),
+    key: jest.fn((index: number) => Object.keys(store)[index] ?? null),
+    get length() {
+      return Object.keys(store).length;
+    },
   };
 })();
 if (typeof window !== "undefined") {

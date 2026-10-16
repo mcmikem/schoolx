@@ -210,7 +210,7 @@ export function SendSMSModal({ student, isOpen, onClose, onSent }: SendSMSModalP
             <h2 className="text-lg font-semibold text-[var(--t1)]">
               SMS Parent of {student.first_name} {student.last_name}
             </h2>
-            <button onClick={onClose} className="p-2 text-[var(--t3)] hover:text-[var(--t1)]">
+            <button onClick={onClose} className="tap-44 p-2 text-[var(--t3)] hover:text-[var(--t1)]">
               <MaterialIcon icon="close" className="text-xl" />
             </button>
           </div>

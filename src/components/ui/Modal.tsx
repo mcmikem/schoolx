@@ -117,8 +117,9 @@ export function Modal({
               {headerAction}
               {showClose && (
                 <button
+                  type="button"
                   onClick={onClose}
-                  className="p-2 rounded-xl hover:bg-[var(--surface-container)] transition-colors"
+                  className="tap-44 p-2 rounded-xl hover:bg-[var(--surface-container)] transition-colors"
                   aria-label="Close modal"
                 >
                   <MaterialIcon icon="close" className="text-lg text-[var(--t3)]" />

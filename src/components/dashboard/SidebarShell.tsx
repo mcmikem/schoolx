@@ -184,7 +184,12 @@ export default function SidebarShell({ onNavigate }: { onNavigate?: () => void }
         </div>
       </div>
 
-      <CollapsibleSidebar groups={navigationGroups} onNavigate={onNavigate} compact={isDesktop && !showExpanded} />
+      <CollapsibleSidebar
+        groups={navigationGroups}
+        onNavigate={onNavigate}
+        compact={isDesktop && !showExpanded}
+        userId={user?.id}
+      />
 
       {showExpanded && canInviteStaff && (
         <div className="px-3 pb-1">

@@ -199,7 +199,7 @@ button {
 
   /* Height of the mobile bottom nav plus its own inset, so bottom-anchored
      transient UI can clear it instead of landing on top of it. */
-  --mobile-nav-clearance: calc(84px + env(safe-area-inset-bottom, 0px));
+  --mobile-nav-clearance: calc(76px + env(safe-area-inset-bottom, 0px));
 
   --bg: #f5f8fe;
   --surface: #ffffff;
@@ -1593,12 +1593,18 @@ table tr {
   /* Mobile Navigation */
   .mobile-bottom-nav {
     @apply fixed left-1/2 -translate-x-1/2 bg-[var(--surface)] border border-[var(--border)] flex items-stretch justify-around z-50 sm:hidden;
-    bottom: max(10px, env(safe-area-inset-bottom));
+    /* viewportFit=cover means the bar owns the bottom edge of the screen, so
+       it sits at 0 and pads its CONTENT by the inset. Lifting it by the inset
+       *and* padding it by the same inset counted the home indicator twice: the
+       bar floated 34px up with 42px of dead space under the icons, which read
+       as "raised, with a gap above them". */
+    bottom: 0;
     width: min(96vw, 520px);
     min-height: 64px;
-    border-radius: 20px;
-    padding: 6px 8px calc(8px + env(safe-area-inset-bottom));
-    padding-top: 8px;
+    /* Top corners only: the bar owns the bottom edge of the screen on a notched
+       device, so a pill bottom would float over the home indicator. */
+    border-radius: 20px 20px 0 0;
+    padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
     overflow: visible;
     box-shadow: var(--sh1);
   }
@@ -1915,6 +1921,36 @@ table tr {
   }
   50% {
     opacity: 0.3;
+  }
+}
+
+/* Owly's "I have something for you" halo.
+   A soft expanding ring, not the old pulsing status dot: the dot pulsed forever
+   regardless of whether there was anything to say, which is how it taught people
+   to ignore the one indicator that now only appears when a suggestion is real. */
+@keyframes owly-attention {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--green) 55%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 14px color-mix(in srgb, var(--green) 0%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--green) 0%, transparent);
+  }
+}
+
+.animate-owly-pulse {
+  animation: owly-attention 2s ease-out infinite;
+}
+
+/* Respect the OS-level motion preference. A blinking control is an accessibility
+   problem for people with vestibular disorders, and the question-mark badge
+   already carries the same information non-visually. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-owly-pulse {
+    animation: none;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--green) 55%, transparent);
   }
 }
 

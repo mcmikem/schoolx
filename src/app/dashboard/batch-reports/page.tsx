@@ -177,7 +177,7 @@ export default function BatchReportsPage() {
                       {student.student_number}
                     </p>
                   </div>
-                  <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 transition-opacity">
                     <span className="px-3 py-1 bg-slate-800 text-white text-[9px] font-black uppercase tracking-widest rounded-full">
                       Preview
                     </span>
