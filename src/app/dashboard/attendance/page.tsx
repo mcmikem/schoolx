@@ -1,6 +1,7 @@
 "use client";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AttendanceMarkCard } from "@/components/attendance/AttendanceMarkCard";
 import { RollCallPhoto } from "@/components/attendance/RollCallPhoto";
 import { ABSENT_SWIPE, LATE_SWIPE, SwipeRow } from "@/components/attendance/SwipeRow";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
@@ -29,6 +30,17 @@ import type { Student } from "@/types";
 
 const STATUS_CYCLE = ["present", "absent", "late", "excused"] as const;
 type AttendanceStatus = (typeof STATUS_CYCLE)[number];
+
+/**
+ * The three marks offered on the card, with the colours that say "this one is
+ * set". Declared here rather than inside the card so the register, the
+ * one-pupil view and any future surface all agree on what "Absent" looks like.
+ */
+const CARD_STATUSES = [
+  { key: "present", label: "Present", icon: "check_circle", activeBg: "bg-secondary", activeText: "text-white" },
+  { key: "absent", label: "Absent", icon: "cancel", activeBg: "bg-error", activeText: "text-white" },
+  { key: "late", label: "Late", icon: "schedule", activeBg: "bg-tertiary", activeText: "text-white" },
+] as const;
 
 const STATUS_CONFIG: Record<AttendanceStatus, { color: string; bg: string; label: string; icon: string }> = {
   absent: {
@@ -88,6 +100,18 @@ function countStatuses(statuses: string[]): { present: number; absent: number; l
     late: statuses.filter((s) => s === "late").length,
     excused: statuses.filter((s) => s === "excused").length,
   };
+}
+
+/** "2026-08-09" → "Sun, 9 Aug 2026" for the register header. Local, never UTC. */
+function formatLongDate(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d) return iso;
+  return new Date(y, m - 1, d).toLocaleDateString("en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
 }
 
 export default function AttendancePage() {
@@ -186,8 +210,9 @@ export default function AttendancePage() {
   // Explicit "bring collapsed rows back" escape hatch (also available in the
   // all-marked empty state and the progress bar).
   const [showMarked, setShowMarked] = useState(false);
-  // Overflow menu: Bulk + SMS settings live here so the register stays first.
-  const [overflowOpen, setOverflowOpen] = useState(false);
+  // One secondary-tools sheet: export, copy-yesterday, notify, bulk marking and
+  // the absentee-SMS toggle all live here, so the register itself stays first.
+  const [showTools, setShowTools] = useState(false);
   const [showSmsSettings, setShowSmsSettings] = useState(false);
   const [filterStatus, setFilterStatus] = useState<"all" | AttendanceStatus>(
     () => (urlFilters.get("status") as "all" | AttendanceStatus) || "all",
@@ -983,21 +1008,21 @@ export default function AttendancePage() {
                   {(canManageSmsAutomation || selectedClass) && (
                     <div className="relative">
                       <Button
-                        onClick={() => setOverflowOpen((v) => !v)}
+                        onClick={() => setShowTools((v) => !v)}
                         variant="secondary"
                         size="sm"
                         icon={<MaterialIcon icon="more_horiz" />}
-                        aria-expanded={overflowOpen}
+                        aria-expanded={showTools}
                         aria-haspopup="menu"
                         aria-label="More attendance tools"
                       />
-                      {overflowOpen && (
+                      {showTools && (
                         <>
                           <button
                             type="button"
                             className="fixed inset-0 z-10 cursor-default"
                             aria-label="Close menu"
-                            onClick={() => setOverflowOpen(false)}
+                            onClick={() => setShowTools(false)}
                           />
                           <div
                             role="menu"
@@ -1007,7 +1032,7 @@ export default function AttendancePage() {
                               role="menuitem"
                               type="button"
                               onClick={() => {
-                                setOverflowOpen(false);
+                                setShowTools(false);
                                 setBulkMode(true);
                               }}
                               className="w-full text-left rounded-lg px-3 py-2.5 min-h-[44px] text-sm font-medium text-on-surface hover:bg-surface-container"
@@ -1019,7 +1044,7 @@ export default function AttendancePage() {
                                 role="menuitem"
                                 type="button"
                                 onClick={() => {
-                                  setOverflowOpen(false);
+                                  setShowTools(false);
                                   setShowSmsSettings((v) => !v);
                                 }}
                                 className="w-full text-left rounded-lg px-3 py-2.5 min-h-[44px] text-sm font-medium text-on-surface hover:bg-surface-container"
@@ -1620,136 +1645,86 @@ export default function AttendancePage() {
                 </button>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2.5">
                 {visibleStudents.map((student, index) => {
-                  // WYSIWYG: an unmarked row shows "Unmarked" — never a fake
-                  // Present. Tap marks Present, which is the common and safe case.
-                  const status = attendance[student.id] as AttendanceStatus | undefined;
-                  const config = status ? STATUS_CONFIG[status] : null;
-                  const borderColor = !status
-                    ? "border-outline-variant"
-                    : status === "present"
-                      ? "border-secondary/30"
-                      : status === "absent"
-                        ? "border-error/30"
-                        : status === "late"
-                          ? "border-tertiary/30"
-                          : "border-[#7c3aed]/30";
-                  const bgColor = !status
-                    ? "bg-surface-container-lowest"
-                    : status === "present"
-                      ? "bg-secondary/5"
-                      : status === "absent"
-                        ? "bg-error/5"
-                        : status === "late"
-                          ? "bg-tertiary/5"
-                          : "bg-[#f3e8ff]";
+                  const studentStatus = attendance[student.id] as AttendanceStatus | undefined;
+                  const rowShell = `${flashId === student.id ? "ring-2 ring-primary" : ""} ${
+                    !peekDone && index === 0 ? "animate-[swipe-peek_1.4s_ease-in-out_0.8s]" : ""
+                  }`;
+
+                  // One map, two layouts. A phone gets the card, because a thumb
+                  // needs the marks printed at a size it can hit and cannot
+                  // afford a cycle-to-discover gesture. A desktop gets a dense
+                  // row, because a headmaster marking forty children wants them
+                  // all on screen at once -- giving them the card would throw
+                  // away the density that makes the wide screen worth having.
                   return (
-                    <SwipeRow
-                      key={student.id}
-                      id={`att-row-${student.id}`}
-                      onSwipeRight={() => markAttendance(student.id, "absent")}
-                      onSwipeLeft={() => markAttendance(student.id, leftSwipeStatus(attendance[student.id]))}
-                      rightAction={ABSENT_SWIPE}
-                      leftAction={LATE_SWIPE}
-                      onTap={() => handleTapStatus(student.id)}
-                      className={`${bgColor} rounded-xl border ${borderColor} p-4 flex items-center justify-between active:scale-[0.98] transition-transform cursor-pointer select-none min-h-[56px] relative ${flashId === student.id ? "ring-2 ring-primary" : ""} ${!peekDone && index === 0 ? "animate-[swipe-peek_1.4s_ease-in-out_0.8s]" : ""}`}
-                    >
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <div className="flex-shrink-0">
+                    <div key={student.id} className={index === 0 ? rowShell : undefined}>
+                      {/* Phone */}
+                      <div className="lg:hidden">
+                        <AttendanceMarkCard
+                          student={student}
+                          status={studentStatus}
+                          onMark={(next) => markAttendance(student.id, next)}
+                          onTapCycle={() => handleTapStatus(student.id)}
+                          onFocus={() => setFocusStudentId(student.id)}
+                          leftAction={LATE_SWIPE}
+                          rightAction={ABSENT_SWIPE}
+                          onSwipeLeft={() => markAttendance(student.id, leftSwipeStatus(studentStatus))}
+                          onSwipeRight={() => markAttendance(student.id, "absent")}
+                          flash={flashId === student.id}
+                          peek={!peekDone && index === 0}
+                          statuses={CARD_STATUSES}
+                        />
+                      </div>
+
+                      {/* Desktop */}
+                      <div className="hidden lg:flex lg:items-center lg:gap-4 rounded-xl border border-outline-variant bg-surface-container-lowest px-4 py-2.5 min-h-[56px]">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
                           <RollCallPhoto
                             name={`${student.first_name} ${student.last_name}`}
                             photoUrl={student.photo_url}
                           />
-                        </div>
-                        <div className="min-w-0">
-                          <div className="font-bold text-on-surface text-base truncate">
-                            {student.first_name} {student.last_name}
+                          <div className="min-w-0">
+                            <p className="font-bold text-on-surface truncate">
+                              {student.first_name} {student.last_name}
+                            </p>
+                            <p className="text-xs text-on-surface-variant">{student.student_number}</p>
                           </div>
-                          <div className="text-xs text-on-surface-variant">{student.student_number}</div>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <span
-                          className={`text-xs font-semibold px-2 py-1 rounded-md ${
-                            !config
-                              ? "bg-surface-container text-on-surface-variant"
-                              : `${config.bg} ${status === "present" ? "text-on-secondary-container" : status === "absent" ? "text-on-error-container" : status === "late" ? "text-on-tertiary-container" : "text-[#7c3aed]"}`
-                          }`}
-                        >
-                          {config ? config.label : "Unmarked"}
-                        </span>
-                        <div
-                          className={`md:hidden w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
-                            !status
-                              ? "bg-surface-container-high text-on-surface-variant"
-                              : status === "present"
-                                ? "bg-secondary"
-                                : status === "absent"
-                                  ? "bg-error"
-                                  : status === "late"
-                                    ? "bg-tertiary"
-                                    : "bg-[#7c3aed]"
-                          }`}
-                        >
-                          <MaterialIcon
-                            icon={config ? config.icon : "radio_button_unchecked"}
-                            className={`${config ? "text-white" : "text-on-surface-variant"} text-lg`}
-                          />
-                        </div>
-                        <div className="hidden md:flex gap-1.5">
-                          {STATUS_CYCLE.map((s) => {
-                            const sConfig = STATUS_CONFIG[s];
-                            const isActive = status === s;
+
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          {CARD_STATUSES.map((option) => {
+                            const active = studentStatus === option.key;
                             return (
                               <button
-                                key={s}
+                                key={option.key}
                                 type="button"
-                                onClick={() => markAttendance(student.id, s)}
-                                aria-pressed={isActive}
-                                aria-label={`Mark ${student.first_name} ${s}`}
-                                className={`px-3 py-1.5 min-h-[44px] rounded-lg text-sm font-medium border transition-all ${
-                                  isActive
-                                    ? `${sConfig.bg} border-current font-bold`
-                                    : "bg-surface-container-lowest text-on-surface-variant border-outline-variant/30 hover:border-outline-variant"
+                                aria-pressed={active}
+                                onClick={() => markAttendance(student.id, option.key)}
+                                className={`flex min-h-[40px] items-center gap-1.5 rounded-lg border px-3 text-xs font-bold transition-colors ${
+                                  active
+                                    ? `${option.activeBg} ${option.activeText} border-transparent`
+                                    : "border-outline-variant bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
                                 }`}
                               >
-                                {sConfig.label}
+                                <MaterialIcon icon={option.icon} size={15} />
+                                {option.label}
                               </button>
                             );
                           })}
+                          <button
+                            type="button"
+                            onClick={() => setFocusStudentId(student.id)}
+                            className="ml-1 rounded-lg p-2 text-on-surface-variant hover:bg-surface-container"
+                            aria-label={`Open ${student.first_name} ${student.last_name} on their own screen`}
+                            title="Mark one pupil at a time"
+                          >
+                            <MaterialIcon icon="open_in_full" size={16} />
+                          </button>
                         </div>
                       </div>
-                      {confirmedId === student.id && config && (
-                        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-end gap-2 rounded-xl bg-surface/70 pr-5 animate-fade-in">
-                          <span
-                            className={`text-base font-bold ${
-                              status === "present"
-                                ? "text-secondary"
-                                : status === "absent"
-                                  ? "text-error"
-                                  : status === "late"
-                                    ? "text-tertiary"
-                                    : "text-[#7c3aed]"
-                            }`}
-                          >
-                            {config.label}
-                          </span>
-                          <MaterialIcon
-                            icon={config.icon}
-                            className={`text-4xl ${
-                              status === "present"
-                                ? "text-secondary"
-                                : status === "absent"
-                                  ? "text-error"
-                                  : status === "late"
-                                    ? "text-tertiary"
-                                    : "text-[#7c3aed]"
-                            }`}
-                          />
-                        </div>
-                      )}
-                    </SwipeRow>
+                    </div>
                   );
                 })}
                 {visibleStudents.length === 0 &&

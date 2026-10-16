@@ -66,9 +66,7 @@ describe("attendance mark-and-advance", () => {
  */
 describe("one-pupil view stays put", () => {
   it("resolves the focused pupil from the class, not the collapsing list", () => {
-    expect(page).toContain(
-      "focusStudentId ? (students.find((s) => s.id === focusStudentId) ?? null) : null",
-    );
+    expect(page).toContain("focusStudentId ? (students.find((s) => s.id === focusStudentId) ?? null) : null");
     expect(page).not.toContain("visibleStudents.findIndex((s) => s.id === focusStudentId) : -1;\n  const focusStudent");
   });
 
@@ -89,5 +87,53 @@ describe("one-pupil view stays put", () => {
     expect(page).toContain("min-h-24");
     expect(page).toContain("min-h-14");
     expect(page).toContain("Next pupil");
+  });
+});
+
+/**
+ * The register is one list with two layouts.
+ *
+ * There is no <table> on this page, so the pupil list used to be the desktop
+ * experience too. Redesigning it for a thumb would have silently handed desktop
+ * users a stack of tall cards — the opposite of what a wide screen is for. Both
+ * layouts now render from one map, and this pins the split so nobody deletes the
+ * dense row believing it is dead code.
+ */
+describe("register adapts without losing desktop density", () => {
+  it("renders a card for phones and a dense row for desktop", () => {
+    expect(page).toContain("lg:hidden");
+    expect(page).toContain("hidden lg:flex lg:items-center lg:gap-4");
+  });
+
+  it("builds both from one pass over the pupils", () => {
+    // Two .map() calls would let the two lists disagree about who is visible.
+    const maps = page.match(/visibleStudents\.map\(/g) ?? [];
+    expect(maps.length).toBe(1);
+  });
+
+  it("offers the same statuses on both layouts", () => {
+    // One palette, so the phone card and the desktop row cannot drift apart.
+    // Declared once, then used twice: handed to the phone card as a prop and
+    // mapped by the desktop row.
+    expect(page.match(/CARD_STATUSES/g) ?? []).toHaveLength(3);
+    expect(page).toContain("statuses={CARD_STATUSES}");
+    expect(page).toContain("{CARD_STATUSES.map((option) => {");
+  });
+});
+
+/**
+ * The page was left mid-refactor by a previous session: the state was renamed to
+ * `showTools` but the overflow menu still referenced the removed `overflowOpen`
+ * and `showSmsSettings`, so the file did not compile. These pin that the menu and
+ * its toggle are wired to state that exists.
+ */
+describe("the secondary tools menu is wired to state that exists", () => {
+  it("no longer references the removed overflowOpen", () => {
+    expect(page).not.toContain("overflowOpen");
+  });
+
+  it("has a state for the menu and one for the SMS toggle", () => {
+    expect(page).toContain("const [showTools, setShowTools] = useState(false);");
+    expect(page).toContain("const [showSmsSettings, setShowSmsSettings] = useState(false);");
   });
 });
