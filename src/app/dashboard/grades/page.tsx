@@ -6,10 +6,10 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useToast } from "@/components/Toast";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
+import { FilterBar } from "@/components/ui/FilterBar";
 import { Badge, Button, Input, Select } from "@/components/ui/index";
 import { Modal, ModalFooter } from "@/components/ui/Modal";
 import { PageHeader, PageSection } from "@/components/ui/PageHeader";
-import { FilterBar } from "@/components/ui/FilterBar";
 import PersonInitials from "@/components/ui/PersonInitials";
 import { FullPageLoader, TableSkeleton } from "@/components/ui/Skeleton";
 import { TabPanel, Tabs } from "@/components/ui/Tabs";
@@ -25,7 +25,6 @@ import {
   isCompetencyScale,
 } from "@/lib/grading";
 import { GRADING_TRACKS, resolveTrackForClass, resolveUseBot } from "@/lib/grading-tracks";
-import { loadSchoolSettings } from "@/lib/school-settings";
 import { useClasses, useStaff, useSubjects } from "@/lib/hooks";
 import { timeoutFallback, withTimeout } from "@/lib/hooks/utils";
 import { lazyWithIdlePrefetch } from "@/lib/lazy-prefetch";
@@ -39,6 +38,7 @@ import {
   getPrevGradeWorkflowStatusActions,
 } from "@/lib/operations";
 import { isClassScopedRole } from "@/lib/roles";
+import { loadSchoolSettings } from "@/lib/school-settings";
 import { supabase } from "@/lib/supabase";
 
 // Split out of the first-load bundle, then warmed in idle time so the import
@@ -423,9 +423,12 @@ export default function GradesPage() {
     undoTimer.current = setTimeout(() => setUndoMark(null), 6000);
   };
 
-  useEffect(() => () => {
-    if (undoTimer.current) clearTimeout(undoTimer.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (undoTimer.current) clearTimeout(undoTimer.current);
+    },
+    [],
+  );
 
   const undoLastMark = () => {
     if (!undoMark) return;
@@ -1436,7 +1439,6 @@ export default function GradesPage() {
             </Button>
           </ModalFooter>
         </Modal>
-
         <PageHeader
           title="Grades & Marks"
           subtitle={
@@ -1474,18 +1476,16 @@ export default function GradesPage() {
               >
                 Export
               </Button>
-              <Button
-                onClick={() => handleSaveGrades()}
-                disabled={saving || !selectedClass || !selectedSubject || isPublished}
-                loading={saving}
-                icon={<MaterialIcon icon="save" className="text-lg" />}
-              >
-                Save Grades
-              </Button>
+              {/*
+                  Save used to live here as well as in the sticky bar, calling a
+                  different handler -- handleSaveGrades here against
+                  handleSaveDraft there -- so what "Save Grades" did depended on
+                  which one you pressed. One action, in the one place that is
+                  reachable without scrolling to the bottom of a 48-row table.
+                */}
             </div>
           }
         />
-
         {/* What still needs grading.
 
             The teacher opens this page with one question: which subject am I
@@ -1496,70 +1496,15 @@ export default function GradesPage() {
             carrying its own count, so the next piece of work is visible rather
             than remembered, and choosing is one tap instead of opening a
             select and scanning it. */}
-        {subjectOptions.length > 0 && (
-          <section aria-labelledby="subject-picker-heading" className="mb-4">
-            <div className="mb-2 flex items-baseline justify-between gap-3">
-              <h2 id="subject-picker-heading" className="text-sm font-semibold text-[var(--t1)]">
-                {selectedClassName ? `What are you grading in ${selectedClassName}?` : "What do you teach?"}
-              </h2>
-              <span className="text-xs text-[var(--t3)]">
-                {selectedClass
-                  ? `${subjectOptions.filter((s) => (subjectProgress[s.id] ?? 0) > 0).length} of ${subjectOptions.length} started`
-                  : `${subjectOptions.length} to choose from`}
-              </span>
-            </div>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
-              {subjectOptions.map((subject) => {
-                const done = subjectProgress[subject.id] ?? 0;
-                const total = displayStudents.length;
-                const active = subject.id === selectedSubject;
-                const complete = total > 0 && done >= total;
-                return (
-                  <button
-                    key={subject.id}
-                    type="button"
-                    aria-pressed={active}
-                    onClick={() => setSelectedSubject(active ? "" : subject.id)}
-                    className={`min-h-16 rounded-xl border p-3 text-left transition-colors ${
-                      active
-                        ? "border-[var(--primary)] bg-[var(--navy-soft)] ring-2 ring-[var(--primary)]"
-                        : "border-[var(--border)] bg-[var(--surface)] hover:border-[var(--primary)]"
-                    }`}
-                  >
-                    <span className="block text-sm font-semibold leading-tight text-[var(--t1)]">
-                      {subject.name}
-                    </span>
-                    <span className="mt-1 flex items-center gap-1.5 text-xs">
-                      {!selectedClass ? (
-                        <span className="text-[var(--t3)]">Tap to choose</span>
-                      ) : total === 0 ? (
-                        <span className="text-[var(--t3)]">No pupils in this class</span>
-                      ) : complete ? (
-                        <>
-                          <MaterialIcon icon="check_circle" size={14} className="text-[var(--green)]" />
-                          <span className="font-semibold text-[var(--green)]">All {total} done</span>
-                        </>
-                      ) : done > 0 ? (
-                        <>
-                          <MaterialIcon icon="edit" size={14} className="text-[var(--amber)]" />
-                          <span className="font-semibold text-[var(--amber)]">
-                            {done} of {total}
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <MaterialIcon icon="radio_button_unchecked" size={14} className="text-[var(--t3)]" />
-                          <span className="text-[var(--t3)]">Not started</span>
-                        </>
-                      )}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          </section>
-        )}
+        {/*
+            Order matters here, and it was backwards.
 
+            The subject list is derived from the selected class, so reading
+            subjects first and choosing the class underneath them asks the
+            teacher to judge a list that is about to change. Class, then
+            subject, then the marks table -- each screen answers the question
+            the previous one raised.
+          */}{" "}
         {/* Class picker — the one thing that has to be right before the
             subject list below means anything. */}
         <div className="grid grid-cols-1 gap-3">
@@ -1606,7 +1551,6 @@ export default function GradesPage() {
             )}
           </div>
         </div>
-
         {/* Sticky context. Once marks are on screen, a teacher scrolling a
             long register needs to be able to answer "which subject is this?"
             without scrolling back up. Sits above the grid on phones, beside it
@@ -1618,10 +1562,6 @@ export default function GradesPage() {
               <span className="text-xs text-[var(--t3)]">
                 {selectedClassName} &middot; Term {currentTerm} &middot; {academicYear}
               </span>
-              <span className="text-xs text-[var(--t3)]">
-                {Object.keys(marks).filter((key) => marks[key] !== null && marks[key] !== undefined).length} of{" "}
-                {displayStudents.length} entered
-              </span>
               <button
                 type="button"
                 onClick={() => setSelectedSubject("")}
@@ -1632,7 +1572,67 @@ export default function GradesPage() {
             </div>
           </div>
         )}
-
+        {subjectOptions.length > 0 && (
+          <section aria-labelledby="subject-picker-heading" className="mb-4">
+            <div className="mb-2 flex items-baseline justify-between gap-3">
+              <h2 id="subject-picker-heading" className="text-sm font-semibold text-[var(--t1)]">
+                {selectedClassName ? `What are you grading in ${selectedClassName}?` : "What do you teach?"}
+              </h2>
+              <span className="text-xs text-[var(--t3)]">
+                {selectedClass
+                  ? `${subjectOptions.filter((s) => (subjectProgress[s.id] ?? 0) > 0).length} of ${subjectOptions.length} started`
+                  : `${subjectOptions.length} to choose from`}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+              {subjectOptions.map((subject) => {
+                const done = subjectProgress[subject.id] ?? 0;
+                const total = displayStudents.length;
+                const active = subject.id === selectedSubject;
+                const complete = total > 0 && done >= total;
+                return (
+                  <button
+                    key={subject.id}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => setSelectedSubject(active ? "" : subject.id)}
+                    className={`min-h-16 rounded-xl border p-3 text-left transition-colors ${
+                      active
+                        ? "border-[var(--primary)] bg-[var(--navy-soft)] ring-2 ring-[var(--primary)]"
+                        : "border-[var(--border)] bg-[var(--surface)] hover:border-[var(--primary)]"
+                    }`}
+                  >
+                    <span className="block text-sm font-semibold leading-tight text-[var(--t1)]">{subject.name}</span>
+                    <span className="mt-1 flex items-center gap-1.5 text-xs">
+                      {!selectedClass ? (
+                        <span className="text-[var(--t3)]">Tap to choose</span>
+                      ) : total === 0 ? (
+                        <span className="text-[var(--t3)]">No pupils in this class</span>
+                      ) : complete ? (
+                        <>
+                          <MaterialIcon icon="check_circle" size={14} className="text-[var(--green)]" />
+                          <span className="font-semibold text-[var(--green)]">All {total} done</span>
+                        </>
+                      ) : done > 0 ? (
+                        <>
+                          <MaterialIcon icon="edit" size={14} className="text-[var(--amber)]" />
+                          <span className="font-semibold text-[var(--amber)]">
+                            {done} of {total}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <MaterialIcon icon="radio_button_unchecked" size={14} className="text-[var(--t3)]" />
+                          <span className="text-[var(--t3)]">Not started</span>
+                        </>
+                      )}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        )}
         {/* First-run guidance. Shown only until the teacher has entered their
             first mark, then it gets out of the way — most of our users are
             not tech-native, so guidance has to be plain and unmissable while
@@ -1644,41 +1644,87 @@ export default function GradesPage() {
               <div>
                 <p className="font-bold text-sm text-[var(--t1)]">How to enter marks</p>
                 <ol className="mt-2 space-y-1.5 text-[13px] text-[var(--t2)] list-decimal list-inside">
-                  <li>Enter each pupil’s mark in the BOT, MOT or EOT box. Every mark is out of 100.</li>
-                  <li>Each pupil has one row. Leave a box empty if that assessment has not happened yet.</li>
-                  <li>Marks save as you move to another box. Use Save Grades when you are ready to finish.</li>
+                  <li>One row per pupil. Type a mark into the BOT, MOT or EOT box — each is out of 100.</li>
+                  <li>Leave any box empty if you have not assessed that pupil yet, and come back to it later.</li>
                   <li>
-                    Leave a box empty if you have not assessed that pupil yet — you can come back and fill it later.
-                  </li>
-                  <li>
-                    When you finish, tap <strong>Save Grades</strong>. It is the button fixed to the bottom of the
-                    screen.
+                    Marks save as you move between boxes. Tap <strong>Save Grades</strong> when you are done.
                   </li>
                 </ol>
               </div>
             </div>
           </div>
         )}
+        {/* What the columns mean, said once.
 
+            This used to be repeated verbatim under every numeric header, so a
+            seven-column table carried seven copies of the same sentence and the
+            header row read as a paragraph. It is opt-in now: nothing on screen
+            until asked, so a teacher who already knows is not interrupted. */}
+        {selectedClass && selectedSubject && Object.keys(marks).length === 0 && (
+          <details className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
+            <summary className="cursor-pointer text-sm font-semibold text-[var(--t1)]">
+              What do BOT, MOT and EOT mean?
+            </summary>
+            <dl className="mt-3 space-y-2 text-[13px] text-[var(--t2)]">
+              <div>
+                <dt className="font-semibold text-[var(--t1)]">BOT, MOT — classwork</dt>
+                <dd>Every test, beginning-of-term, midterm and Saturday mark counts equally.</dd>
+              </div>
+              <div>
+                <dt className="font-semibold text-[var(--t1)]">EOT — end of term</dt>
+                <dd>The end-of-term exam mark. Counts 75% of the subject average.</dd>
+              </div>
+              <div>
+                <dt className="font-semibold text-[var(--t1)]">Average and Grade</dt>
+                <dd>BOT, MOT and EOT are kept as separate marks. The report uses a simple average, not weights.</dd>
+              </div>
+            </dl>
+          </details>
+        )}
         {/* Everything below only appears once a class + subject are chosen */}
         {selectedClass && selectedSubject && (
           <>
-            <section aria-label="grades overview" className="flex items-center gap-x-4 gap-y-1 flex-wrap text-xs px-1">
-              <span className="font-semibold text-[var(--t2)]">
-                <span className="text-[var(--green)] font-bold">{gradedCount}</span> graded
-              </span>
-              <span className="text-[var(--t4)]" aria-hidden="true">
-                ·
-              </span>
-              <span className="font-semibold text-[var(--t2)]">
-                <span className="text-[var(--amber)] font-bold">{pendingCount}</span> pending
-              </span>
-              <span className="text-[var(--t4)]" aria-hidden="true">
-                ·
-              </span>
-              <span className="font-semibold text-[var(--t2)]" title="BOT, MOT and EOT averaged equally">
-                BOT + MOT + EOT · simple average
-              </span>
+            {/*
+                One progress readout, not four.
+
+                This page used to report the same fact in four places at once: "X
+                of N entered" in the sticky context bar, "X graded · Y pending"
+                here, a "0/48 graded 0%" panel under it, and "Still to grade:
+                <four names> +44 more" beside the filter bar. A teacher marking
+                a register should not have to work out which number is current.
+
+                So: one bar, the two numbers that differ (done and left), and
+                the next name to grade when there is one. The averaging rule
+                moved into the explainer above, where it belongs.
+              */}
+            <section aria-label="grades progress" className="px-1">
+              <div className="flex items-baseline justify-between gap-3 text-xs">
+                <span className="font-semibold text-[var(--t2)]">
+                  <span className="text-[var(--green)] font-bold">{gradedCount}</span>
+                  {" of "}
+                  <span className="text-[var(--t1)] font-bold">{displayStudents.length}</span> graded
+                </span>
+                {pendingCount > 0 && completionStats.notGradedNames[0] && (
+                  <span className="text-[var(--t3)]">
+                    Next: <span className="font-semibold text-[var(--t2)]">{completionStats.notGradedNames[0]}</span>
+                  </span>
+                )}
+              </div>
+              <div
+                className="mt-1.5 h-2 w-full overflow-hidden rounded-full bg-[var(--surface-container-high)]"
+                role="progressbar"
+                aria-valuenow={gradedCount}
+                aria-valuemin={0}
+                aria-valuemax={displayStudents.length}
+                aria-label="Pupils graded"
+              >
+                <div
+                  className="h-full rounded-full bg-[var(--green)] transition-all"
+                  style={{
+                    width: `${displayStudents.length ? Math.round((gradedCount / displayStudents.length) * 100) : 0}%`,
+                  }}
+                />
+              </div>
             </section>
 
             {/* Undo. Sits directly under the summary line so it appears next to
@@ -1777,41 +1823,19 @@ export default function GradesPage() {
             )}
           </>
         )}
-
         {/* Completion Tracker — kept to one compact row. It used to be a tall
             card with a progress bar and a full wall of ungraded names, which
             pushed the mark-entry grid far below the fold. */}
         {tab === "marks" && selectedClass && selectedSubject && filteredStudents.length > 0 && (
           <div className="flex items-center gap-3 flex-wrap px-1 text-xs">
-            <span
-              className={`inline-flex items-center justify-center w-8 h-8 rounded-full font-bold text-[11px] shrink-0 ${
-                completionStats.percentage === 100
-                  ? "bg-[var(--green)] text-white"
-                  : completionStats.percentage >= 50
-                    ? "bg-[var(--amber)] text-white"
-                    : "bg-[var(--red)] text-white"
-              }`}
-            >
-              {completionStats.percentage}%
-            </span>
-            <span className="font-semibold text-[var(--t2)]">
-              {completionStats.graded}/{completionStats.total} graded
-            </span>
             {isSubmitted && (
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary font-bold">
                 <MaterialIcon icon="lock" className="text-xs" />
                 Submitted
               </span>
             )}
-            {completionStats.notGraded > 0 && (
-              <span className="font-medium text-[var(--red)]">
-                Still to grade: {completionStats.notGradedNames.slice(0, 4).join(", ")}
-                {completionStats.notGradedNames.length > 4 ? ` +${completionStats.notGradedNames.length - 4} more` : ""}
-              </span>
-            )}
           </div>
         )}
-
         {/* Workflow Status Filter */}
         {selectedClass && selectedSubject && (
           <FilterBar
@@ -1867,7 +1891,6 @@ export default function GradesPage() {
             </div>
           </FilterBar>
         )}
-
         {selectedClass && selectedSubject && (
           <Tabs
             tabs={[
@@ -1878,7 +1901,6 @@ export default function GradesPage() {
             onChange={(id) => setTab(id as "marks" | "coverage")}
           />
         )}
-
         {/* Inline Entry Controls */}
         {tab === "marks" && selectedClass && selectedSubject && filteredStudents.length > 0 && (
           <div className="space-y-4">
@@ -2090,14 +2112,21 @@ export default function GradesPage() {
                                 return (
                                   <th
                                     key={type}
-                                    className="px-4 py-6 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center"
+                                    scope="col"
+                                    className="px-4 py-3 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center align-bottom"
                                   >
-                                    {labelInfo.label}{" "}
-                                    {labelInfo.explain && (
-                                      <div className="text-xs text-gray-500 mt-1 line-clamp-1">{labelInfo.explain}</div>
-                                    )}
-                                    {")"}
-                                    {ASSESSMENT_MAX[type]}
+                                    <span className="block">{labelInfo.label}</span>
+                                    {/*
+                                      The out-of mark belongs here as "/100". It was a
+                                      stray ")" that rendered every numeric header as
+                                      ")100", and the long explanation was repeated
+                                      under every column, turning the header row into a
+                                      paragraph. Both live in the explainer below the
+                                      table now.
+                                    */}
+                                    <span className="block text-[11px] font-semibold normal-case tracking-normal text-[var(--t3)]">
+                                      /{ASSESSMENT_MAX[type]}
+                                    </span>
                                   </th>
                                 );
                               })}
@@ -2730,7 +2759,6 @@ export default function GradesPage() {
             )}
           </div>
         )}
-
         {/* Topic Coverage */}
         {tab === "coverage" && selectedSubject && (
           <div className="space-y-6">
@@ -2788,7 +2816,6 @@ export default function GradesPage() {
             </div>
           </div>
         )}
-
         {(!selectedClass || !selectedSubject) && (
           <EmptyState
             icon="edit_note"
@@ -2796,16 +2823,17 @@ export default function GradesPage() {
             description="Choose a class and subject from the pickers above to start entering grades."
           />
         )}
-
         {/* Sticky Action Bar */}
         <div
           data-page-action-bar=""
           className="fixed bottom-[calc(84px+env(safe-area-inset-bottom,0px))] left-1/2 -translate-x-1/2 flex w-[calc(100%-24px)] max-w-2xl items-center justify-between gap-2 bg-[var(--surface)] dark:bg-[var(--surface-container-lowest)] px-3 py-3 rounded-2xl shadow-2xl z-40 border border-[var(--border)]/50 sm:w-auto sm:gap-4 sm:px-6 sm:py-4 sm:rounded-full"
         >
-          <div className="hidden sm:flex items-center gap-2 text-secondary px-4 border-r border-[var(--border)]">
-            <MaterialIcon className="text-xl">cloud_done</MaterialIcon>
-            <span className="text-xs font-bold uppercase tracking-wider">Sync Active</span>
-          </div>
+          {/*
+              "Sync Active" was a permanent green light that read the same whether
+              or not anything had synced, and it was passing the icon as children
+              instead of the `icon` prop, so it rendered the literal text
+              "cloud_done". Removed: a status that cannot change is decoration.
+            */}
           <button
             onClick={handleSaveDraft}
             disabled={isSubmitted || saving || !selectedClass || !selectedSubject}

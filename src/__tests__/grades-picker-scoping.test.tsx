@@ -308,7 +308,7 @@ describe("grade workflow retreat controls (scenario #19)", () => {
     chooseSubject("Mathematics");
 
     // The workflow block only renders once a class *and* subject are chosen.
-    await screen.findByLabelText(/grades overview/i);
+    await screen.findByLabelText(/grades progress/i);
   }
 
   beforeEach(() => {
