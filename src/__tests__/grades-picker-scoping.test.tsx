@@ -126,8 +126,8 @@ jest.mock("@/components/ui/index", () => ({
   Badge: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
 }));
 
-/** The page renders `<label>` with no htmlFor and no wrapping, so the selects
- *  have no accessible name. Find each by the label text in its own wrapper. */
+/** The page renders `<label>` with no htmlFor and no wrapping, so the class
+ *  select has no accessible name. Find it by the label text in its wrapper. */
 function selectUnder(labelText: RegExp): HTMLSelectElement {
   const label = screen.getByText(labelText);
   const select = label.parentElement?.querySelector("select");
@@ -139,6 +139,39 @@ function optionLabels(select: HTMLSelectElement, placeholder: string) {
   return Array.from(select.options)
     .map((o) => o.textContent?.trim() ?? "")
     .filter((t) => t !== placeholder && t !== "");
+}
+
+/**
+ * Subjects are no longer a `<select>`. The teacher picks one by tapping a card
+ * that carries its own progress, so the assertions read the cards instead.
+ * These tests pin which subjects are *offered* for a given class and role --
+ * that scoping is the behaviour that regressed -- not the shape of the picker.
+ */
+/** The heading reads "What do you teach?" before a class is chosen and names
+ *  the class once one is. */
+function subjectPickerHeading(): HTMLElement {
+  return (
+    screen.queryByRole("heading", { name: /what are you grading/i }) ??
+    screen.queryByRole("heading", { name: /what do you teach/i })!
+  );
+}
+
+function subjectChoices(): string[] {
+  const heading = subjectPickerHeading();
+  const region = heading?.closest("section");
+  if (!region) throw new Error("subject picker section not rendered");
+  return Array.from(region.querySelectorAll("button[aria-pressed]")).map((button) => {
+    const name = button.querySelector("span")?.textContent?.trim() ?? "";
+    return name;
+  });
+}
+
+/** Tap a subject card by name, the way a teacher would. */
+function chooseSubject(name: string) {
+  const button = subjectPickerHeading().closest("section")!.querySelectorAll("button[aria-pressed]");
+  const match = Array.from(button).find((b) => b.querySelector("span")?.textContent?.trim() === name);
+  if (!match) throw new Error(`no subject card named ${name}`);
+  fireEvent.click(match);
 }
 
 describe("grade picker scoping (scenario #18)", () => {
@@ -154,7 +187,7 @@ describe("grade picker scoping (scenario #18)", () => {
     // Guards the tests below: if the list were empty everywhere, "scoped"
     // would pass for the wrong reason.
     await waitFor(() => {
-      expect(optionLabels(selectUnder(/subject area/i), "Select Subject")).toEqual([
+      expect(subjectChoices()).toEqual([
         "Mathematics",
         "English",
         "Science",
@@ -190,7 +223,7 @@ describe("grade picker scoping (scenario #18)", () => {
     fireEvent.change(classSelect, { target: { value: primary3!.value } });
 
     await waitFor(() => {
-      expect(optionLabels(selectUnder(/subject area/i), "Select Subject")).toEqual(["Mathematics"]);
+      expect(subjectChoices()).toEqual(["Mathematics"]);
     });
   });
 
@@ -212,7 +245,7 @@ describe("grade picker scoping (scenario #18)", () => {
     fireEvent.change(classSelect, { target: { value: p4.value } });
 
     await waitFor(() => {
-      expect(optionLabels(selectUnder(/subject area/i), "Select Subject")).toEqual(["English"]);
+      expect(subjectChoices()).toEqual(["English"]);
     });
 
     // …and back to P3 it is Mathematics again.
@@ -223,7 +256,7 @@ describe("grade picker scoping (scenario #18)", () => {
       },
     });
     await waitFor(() => {
-      expect(optionLabels(selectUnder(/subject area/i), "Select Subject")).toEqual(["Mathematics"]);
+      expect(subjectChoices()).toEqual(["Mathematics"]);
     });
   });
 
@@ -249,7 +282,7 @@ describe("grade picker scoping (scenario #18)", () => {
       expect(classes.join(" ")).toContain("Primary 4");
     });
 
-    expect(optionLabels(selectUnder(/subject area/i), "Select Subject")).toEqual(["Mathematics", "English", "Science"]);
+    expect(subjectChoices()).toEqual(["Mathematics", "English", "Science"]);
   });
 });
 /**
@@ -270,13 +303,9 @@ describe("grade workflow retreat controls (scenario #19)", () => {
     fireEvent.change(classSelect, { target: { value: p3.value } });
 
     await waitFor(() => {
-      expect(optionLabels(selectUnder(/subject area/i), "Select Subject").length).toBeGreaterThan(0);
+      expect(subjectChoices().length).toBeGreaterThan(0);
     });
-    const subjectSelect = selectUnder(/subject area/i);
-    const choice =
-      Array.from(subjectSelect.options).find((o) => o.textContent === "Mathematics") ??
-      Array.from(subjectSelect.options).find((o) => o.value !== "");
-    fireEvent.change(subjectSelect, { target: { value: choice!.value } });
+    chooseSubject("Mathematics");
 
     // The workflow block only renders once a class *and* subject are chosen.
     await screen.findByLabelText(/grades overview/i);

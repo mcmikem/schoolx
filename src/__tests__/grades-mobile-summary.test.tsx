@@ -87,11 +87,19 @@ describe("Grades page progressive disclosure", () => {
   it("leads with pickers and hides the heavy UI until a class + subject are chosen", () => {
     render(<GradesPage />);
 
-    // Pickers are the first controls, always visible.
+    // Pickers are the first controls, always visible. The class is still a
+    // select; subjects are tap targets the teacher can see all at once, with
+    // their own progress, rather than a dropdown to open and scan.
     expect(screen.getByText(/target class/i)).toBeInTheDocument();
-    expect(screen.getByText(/subject area/i)).toBeInTheDocument();
     expect(screen.getByText(/select class/i)).toBeInTheDocument();
-    expect(screen.getByText(/select subject/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /what do you teach/i })).toBeInTheDocument();
+    // Every offered subject is reachable in one tap, by name.
+    const picker = screen.getByRole("heading", { name: /what do you teach/i }).closest("section")!;
+    const cards = picker.querySelectorAll("button[aria-pressed]");
+    expect(cards.length).toBeGreaterThan(0);
+    for (const card of Array.from(cards)) {
+      expect(card).toHaveAttribute("aria-pressed", "false");
+    }
     // Empty state guides the next step.
     expect(screen.getAllByText(/select a class and subject/i).length).toBeGreaterThan(0);
     // The overview tiles (graded/pending) only appear after selection.

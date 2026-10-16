@@ -293,6 +293,40 @@ export default function GradesPage() {
   // all. Showing an empty one invites a stray mark, and BOT is weighed into
   // MID, so one accidental entry shifts every average for that pupil.
   const useBotEnabled = resolveUseBot(schoolSettings);
+
+  // How many marks exist per subject for this class and term, so the subject
+  // picker can say "12 of 40 done" instead of leaving the teacher to remember
+  // which of the nine subjects they finished last week. One small column read,
+  // re-run when the class or term changes.
+  const [subjectProgress, setSubjectProgress] = useState<Record<string, number>>({});
+  useEffect(() => {
+    if (!selectedClass || !school?.id) {
+      setSubjectProgress({});
+      return;
+    }
+    let cancelled = false;
+    void withTimeout(
+      supabase
+        .from("student_grades")
+        .select("subject_id")
+        .eq("school_id", school.id)
+        .eq("class_id", selectedClass)
+        .eq("term", currentTerm)
+        .eq("academic_year", academicYear),
+      10000,
+      timeoutFallback(),
+    ).then((result) => {
+      if (cancelled) return;
+      const counts: Record<string, number> = {};
+      for (const row of (result.data ?? []) as Array<{ subject_id: string }>) {
+        counts[row.subject_id] = (counts[row.subject_id] ?? 0) + 1;
+      }
+      setSubjectProgress(counts);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedClass, currentTerm, academicYear, school?.id]);
   const columnLabels = useMemo(() => {
     const labels: Record<string, { label: string; explain: string }> = {
       bot: { label: "BOT", explain: "Beginning of Term · /100" },
@@ -1411,31 +1445,83 @@ export default function GradesPage() {
           }
         />
 
-        {/* Step Guide */}
-        <div className="flex items-center gap-2 sm:gap-4 px-1 mb-2">
-          {[
-            { step: 1, label: "Choose class", done: !!selectedClass },
-            { step: 2, label: "Choose subject", done: !!selectedSubject && !!selectedSubjectName },
-            { step: 3, label: "Enter marks", done: Object.keys(marks).length > 0 },
-          ].map((s, i) => (
-            <div key={s.step} className="flex items-center gap-2">
-              <div
-                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
-                  s.done ? "bg-[var(--green)] text-white" : "bg-[#e5ecf4] text-[var(--t3)]"
-                }`}
-              >
-                {s.done ? <span className="material-symbols-outlined text-sm">check</span> : s.step}
-              </div>
-              <span className={`text-xs font-semibold ${s.done ? "text-[var(--green)]" : "text-[var(--t3)]"}`}>
-                {s.label}
-              </span>
-              {i < 2 && <span className="text-[#d7e3f2] hidden sm:inline">&rarr;</span>}
-            </div>
-          ))}
-        </div>
+        {/* What still needs grading.
 
-        {/* Class & Subject pickers — the only controls before anything else */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            The teacher opens this page with one question: which subject am I
+            here to do? That used to be answered by a dropdown of bare names
+            with no indication of what was already finished, behind a passive
+            three-step strip that described the workflow rather than performing
+            it. Now every subject the teacher is assigned to is a tap target
+            carrying its own count, so the next piece of work is visible rather
+            than remembered, and choosing is one tap instead of opening a
+            select and scanning it. */}
+        {subjectOptions.length > 0 && (
+          <section aria-labelledby="subject-picker-heading" className="mb-4">
+            <div className="mb-2 flex items-baseline justify-between gap-3">
+              <h2 id="subject-picker-heading" className="text-sm font-semibold text-[var(--t1)]">
+                {selectedClassName ? `What are you grading in ${selectedClassName}?` : "What do you teach?"}
+              </h2>
+              <span className="text-xs text-[var(--t3)]">
+                {selectedClass
+                  ? `${subjectOptions.filter((s) => (subjectProgress[s.id] ?? 0) > 0).length} of ${subjectOptions.length} started`
+                  : `${subjectOptions.length} to choose from`}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4">
+              {subjectOptions.map((subject) => {
+                const done = subjectProgress[subject.id] ?? 0;
+                const total = displayStudents.length;
+                const active = subject.id === selectedSubject;
+                const complete = total > 0 && done >= total;
+                return (
+                  <button
+                    key={subject.id}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => setSelectedSubject(active ? "" : subject.id)}
+                    className={`min-h-16 rounded-xl border p-3 text-left transition-colors ${
+                      active
+                        ? "border-[var(--primary)] bg-[var(--navy-soft)] ring-2 ring-[var(--primary)]"
+                        : "border-[var(--border)] bg-[var(--surface)] hover:border-[var(--primary)]"
+                    }`}
+                  >
+                    <span className="block text-sm font-semibold leading-tight text-[var(--t1)]">
+                      {subject.name}
+                    </span>
+                    <span className="mt-1 flex items-center gap-1.5 text-xs">
+                      {!selectedClass ? (
+                        <span className="text-[var(--t3)]">Tap to choose</span>
+                      ) : total === 0 ? (
+                        <span className="text-[var(--t3)]">No pupils in this class</span>
+                      ) : complete ? (
+                        <>
+                          <MaterialIcon icon="check_circle" size={14} className="text-[var(--green)]" />
+                          <span className="font-semibold text-[var(--green)]">All {total} done</span>
+                        </>
+                      ) : done > 0 ? (
+                        <>
+                          <MaterialIcon icon="edit" size={14} className="text-[var(--amber)]" />
+                          <span className="font-semibold text-[var(--amber)]">
+                            {done} of {total}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          <MaterialIcon icon="radio_button_unchecked" size={14} className="text-[var(--t3)]" />
+                          <span className="text-[var(--t3)]">Not started</span>
+                        </>
+                      )}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* Class picker — the one thing that has to be right before the
+            subject list below means anything. */}
+        <div className="grid grid-cols-1 gap-3">
           <div>
             <label htmlFor="grade-target-class" className="block text-sm font-semibold mb-2 text-primary">
               Target Class
@@ -1478,32 +1564,33 @@ export default function GradesPage() {
               </select>
             )}
           </div>
-          <div>
-            <label htmlFor="grade-subject-area" className="block text-sm font-semibold mb-2 text-primary">
-              Subject Area
-            </label>
-            {subjects.length === 0 ? (
-              <div className="bg-[var(--amber-soft)] border border-[var(--amber)]/20 rounded-xl p-4">
-                <p className="text-[var(--t1)] text-sm font-medium">No subjects found</p>
-                <p className="text-[var(--amber)] text-xs mt-1">Contact support if this persists.</p>
-              </div>
-            ) : (
-              <select
-                id="grade-subject-area"
-                value={selectedSubject}
-                onChange={(e) => setSelectedSubject(e.target.value)}
-                className="w-full bg-surface-container-lowest border-none rounded-xl py-3 px-4 focus:ring-2 focus:ring-primary text-sm font-medium"
-              >
-                <option value="">Select Subject</option>
-                {subjectOptions.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
-            )}
-          </div>
         </div>
+
+        {/* Sticky context. Once marks are on screen, a teacher scrolling a
+            long register needs to be able to answer "which subject is this?"
+            without scrolling back up. Sits above the grid on phones, beside it
+            on wide screens. */}
+        {selectedClass && selectedSubjectName && (
+          <div className="sticky top-0 z-20 mb-3 -mx-1 px-1">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2 shadow-sm">
+              <span className="text-sm font-bold text-[var(--t1)]">{selectedSubjectName}</span>
+              <span className="text-xs text-[var(--t3)]">
+                {selectedClassName} &middot; Term {currentTerm} &middot; {academicYear}
+              </span>
+              <span className="text-xs text-[var(--t3)]">
+                {Object.keys(marks).filter((key) => marks[key] !== null && marks[key] !== undefined).length} of{" "}
+                {displayStudents.length} entered
+              </span>
+              <button
+                type="button"
+                onClick={() => setSelectedSubject("")}
+                className="ml-auto min-h-11 text-xs font-semibold text-[var(--primary)] hover:underline"
+              >
+                Change subject
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* First-run guidance. Shown only until the teacher has entered their
             first mark, then it gets out of the way — most of our users are
