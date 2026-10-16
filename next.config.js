@@ -46,6 +46,19 @@ const nextConfig = {
   reactStrictMode: true,
   turbopack: process.env.NEXT_DISABLE_TURBOPACK === "1" ? false : {
     root: __dirname,
+    // See src/lib/supabase-realtime-stub.ts for why. Turbopack and webpack need
+    // the alias each: NEXT_DISABLE_TURBOPACK=1 is a supported escape hatch, so
+    // the webpack build must not quietly ship the WebSocket transport back.
+    resolveAlias: {
+      "@supabase/realtime-js": "./src/lib/supabase-realtime-stub.ts",
+    },
+  },
+  webpack(config) {
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      "@supabase/realtime-js": path.resolve(__dirname, "src/lib/supabase-realtime-stub.ts"),
+    };
+    return config;
   },
   experimental: {
     optimizePackageImports: ["lucide-react", "date-fns", "recharts", "qrcode.react", "react-to-print"],

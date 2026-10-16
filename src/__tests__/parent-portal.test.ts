@@ -1,13 +1,16 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   buildReportCardSummaries,
   calculateAttendanceStats,
   calculateFeeStats,
+  findUnseenNotificationIds,
   getUniqueTerms,
   mapParentStudentLinks,
-  normalizeFeeTermItems,
-  normalizePayments,
   normalizeAttendanceRecords,
+  normalizeFeeTermItems,
   normalizeGrades,
+  normalizePayments,
   normalizeWalletTransactions,
   pickPreferredSchemaRows,
   resolveSelectedChild,
@@ -301,5 +304,70 @@ describe("parent portal helpers", () => {
         legacyError: new Error("legacy schema missing"),
       }),
     ).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Notification polling — the realtime replacement
+// ---------------------------------------------------------------------------
+
+describe("findUnseenNotificationIds", () => {
+  it("announces everything on the first tick", () => {
+    const { toAnnounce } = findUnseenNotificationIds(new Set(), [{ id: "a" }, { id: "b" }]);
+    expect(toAnnounce.map((x) => x.id)).toEqual(["a", "b"]);
+  });
+
+  it("announces nothing when the same rows come back", () => {
+    // The failure this prevents: every tick re-reading the same rows and
+    // re-toasting them, forever.
+    const first = findUnseenNotificationIds(new Set(), [{ id: "a" }, { id: "b" }]);
+    const second = findUnseenNotificationIds(first.seen, [{ id: "a" }, { id: "b" }]);
+    expect(second.toAnnounce).toEqual([]);
+  });
+
+  it("announces only what actually arrived since the last tick", () => {
+    const seen = new Set(["a", "b"]);
+    const { toAnnounce } = findUnseenNotificationIds(seen, [{ id: "a" }, { id: "b" }, { id: "c" }]);
+    expect(toAnnounce.map((x) => x.id)).toEqual(["c"]);
+  });
+
+  it("does not mutate the set it was given", () => {
+    const seen = new Set(["a"]);
+    findUnseenNotificationIds(seen, [{ id: "a" }, { id: "b" }]);
+    expect([...seen]).toEqual(["a"]);
+  });
+
+  it("handles a row with no id by never announcing it", () => {
+    // Untrackable, so announcing it would mean re-announcing it every tick.
+    const { toAnnounce, seen } = findUnseenNotificationIds(new Set(["a"]), [{ id: "a" }, {}]);
+    expect(toAnnounce).toEqual([]);
+    expect([...seen]).toEqual(["a"]);
+  });
+
+  it("falls back to a sensible title", () => {
+    const { toAnnounce } = findUnseenNotificationIds(new Set(), [{ id: "a" } as never]);
+    expect(toAnnounce[0].title).toBe("New notification");
+  });
+
+  it("does not treat a changed row as new", () => {
+    // Rows are re-read with server defaults applied, so is_read flipping from
+    // false to true must not re-announce anything.
+    const seen = new Set(["a"]);
+    const { toAnnounce } = findUnseenNotificationIds(seen, [{ id: "a", is_read: true } as never]);
+    expect(toAnnounce).toEqual([]);
+  });
+});
+
+describe("realtime is gone from the bundle path", () => {
+  const page = readFileSync(join(__dirname, "..", "..", "src/app/parent-portal/page.tsx"), "utf8");
+
+  it("no longer opens a realtime channel", () => {
+    expect(page).not.toContain(".channel(");
+    expect(page).not.toContain("removeChannel");
+  });
+
+  it("polls instead, and re-checks when the tab becomes visible", () => {
+    expect(page).toContain("setInterval(poll, POLL_MS)");
+    expect(page).toContain('addEventListener("visibilitychange"');
   });
 });

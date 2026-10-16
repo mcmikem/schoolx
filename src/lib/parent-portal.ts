@@ -509,3 +509,40 @@ function resolveSingleRelation<T>(relation: T | T[] | null | undefined) {
   }
   return relation || null;
 }
+
+/**
+ * Which notifications a poll should announce.
+ *
+ * Polling replaced a realtime subscription, and the difference that matters is
+ * that every tick re-reads the same rows. A naive "prepend whatever came back"
+ * would re-announce the whole list forever and inflate the unread count without
+ * bound, so the caller tracks which ids it has already seen and only speaks up
+ * about genuinely new ones.
+ *
+ * Ids, not rows, are the identity here: rows are re-read with server defaults
+ * applied (`is_read`, `read_at`), so comparing content would treat an unchanged
+ * notification as new every single tick.
+ *
+ * Returned rather than mutated so the caller owns the new set — a shared mutable
+ * Set threaded through a timer is how "seen" quietly resets itself.
+ */
+export function findUnseenNotificationIds(
+  seen: ReadonlySet<string>,
+  rows: ReadonlyArray<{ id?: unknown }>,
+): { toAnnounce: Array<{ id: string; title: string }>; seen: Set<string> } {
+  const previous = new Set(seen);
+  const toAnnounce: Array<{ id: string; title: string }> = [];
+  const current = new Set<string>();
+
+  for (const row of rows) {
+    const id = typeof row.id === "string" ? row.id : row.id == null ? "" : String(row.id);
+    // A row with no id cannot be tracked, so it can never be safely announced.
+    if (!id) continue;
+    current.add(id);
+    if (!previous.has(id)) {
+      toAnnounce.push({ id, title: String((row as { title?: unknown }).title ?? "New notification") });
+    }
+  }
+
+  return { toAnnounce, seen: current };
+}

@@ -1,30 +1,31 @@
 "use client";
-import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useAuth } from "@/lib/auth-context";
 import Link from "next/link";
-import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
-import MaterialIcon from "@/components/MaterialIcon";
+import { useEffect, useMemo, useState } from "react";
 import OwlMascot from "@/components/brand/OwlMascot";
-import { useToast } from "@/components/Toast";
-import { logger } from "@/lib/logger";
-import ParentPortalShell from "@/components/parent-portal/ParentPortalShell";
+import MaterialIcon from "@/components/MaterialIcon";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { ChildSelector } from "@/components/parent-portal/ChildSelector";
 import { useParentPortal } from "@/components/parent-portal/ParentPortalProvider";
-import { withTimeout, timeoutFallback, getLocalDateString } from "@/lib/hooks/utils";
+import ParentPortalShell from "@/components/parent-portal/ParentPortalShell";
+import { useToast } from "@/components/Toast";
+import { useAuth } from "@/lib/auth-context";
+import { getLocalDateString, timeoutFallback, withTimeout } from "@/lib/hooks/utils";
+import { logger } from "@/lib/logger";
 import {
   calculateFeeStats,
+  findUnseenNotificationIds,
   normalizeFeeTermItems,
-  normalizePayments,
   normalizeGrades,
-  pickPreferredSchemaRows,
+  normalizePayments,
   ParentPortalAttendanceRecord,
   ParentPortalFeeStructureItem,
   ParentPortalGradeRecord,
   ParentPortalNotice,
   ParentPortalPayment,
+  pickPreferredSchemaRows,
 } from "@/lib/parent-portal";
+import { supabase } from "@/lib/supabase";
 
 function ParentDashboardContent() {
   const { user, isDemo } = useAuth();
@@ -43,6 +44,16 @@ function ParentDashboardContent() {
   const [notifications, setNotifications] = useState<ParentPortalNotice[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [childDataLoading, setChildDataLoading] = useState(false);
+
+  /**
+   * How often to check for new parent notifications.
+   *
+   * Long enough not to drain a data bundle, short enough that a parent watching
+   * for their child's result does not wait noticeably. Anything slower than this
+   * and the portal feels broken; anything faster and it costs more than the
+   * WebSocket it replaced.
+   */
+  const POLL_MS = 45_000;
 
   const feeStats = useMemo(() => calculateFeeStats(feeStructureItems, feePayments), [feeStructureItems, feePayments]);
 
@@ -279,29 +290,70 @@ function ParentDashboardContent() {
   }, [isDemo]);
 
   useEffect(() => {
-    // Realtime push is expensive/flaky on slow mobile networks — only keep the
-    // socket open while the device is online.
+    // Polling, not a live channel.
+    //
+    // This used to be a realtime postgres_changes subscription, which was
+    // already noted as "expensive/flaky on slow mobile networks". The socket
+    // transport behind it also had to ship on the critical path of every page
+    // in the app -- `SupabaseClient` builds it unconditionally and no option
+    // turns it off -- so one subscription for one portal was costing every
+    // teacher a WebSocket client they never use. It is now aliased out
+    // (next.config.js, src/lib/supabase-realtime-stub.ts).
+    //
+    // The trade, stated plainly: a notification arrives within POLL_MS rather
+    // than instantly, and nothing arrives while the tab is closed. For a parent
+    // checking their child's results on a phone, that is an acceptable price
+    // for the dashboard loading at all.
     if (isDemo || !user?.id || !isOnline) return;
-    const channel = supabase
-      .channel("parent-notifications")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "parent_notifications",
-          filter: `parent_id=eq.${user.id}`,
-        },
-        (payload) => {
-          const newNotification = payload.new as Record<string, unknown>;
-          setNotifications((prev) => [newNotification as unknown as ParentPortalNotice, ...prev]);
-          setUnreadCount((prev) => prev + 1);
-          toast.info(String(newNotification.title || "New notification"));
-        },
-      )
-      .subscribe();
+
+    let cancelled = false;
+    // Only ids are kept between polls; comparing full rows would re-announce
+    // every notification each tick, since rows are re-read with server defaults
+    // (is_read, read_at) applied. See findUnseenNotificationIds.
+    let seenIds = new Set<string>();
+
+    const poll = async () => {
+      try {
+        const { data, error } = await supabase
+          .from("parent_notifications")
+          .select("id, title, type, message, is_read, action_url, created_at")
+          .eq("parent_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(20);
+        if (cancelled || error || !data) return;
+
+        const rows = data as unknown as ParentPortalNotice[];
+        setNotifications(rows);
+        setUnreadCount(rows.filter((n) => !n.is_read).length);
+
+        // Announce only ids never seen before. Skipped on the very first tick,
+        // where seenIds is empty and every existing row would read as "new".
+        if (seenIds.size > 0) {
+          const { toAnnounce, seen } = findUnseenNotificationIds(seenIds, rows);
+          for (const item of toAnnounce) toast.info(item.title);
+          seenIds = seen;
+        } else {
+          seenIds = new Set(rows.map((n) => (n.id ? String(n.id) : "")).filter(Boolean));
+        }
+      } catch (err) {
+        if (!cancelled) logger.warn("[parent-portal] notification poll failed", err);
+      }
+    };
+
+    void poll();
+    const timer = window.setInterval(poll, POLL_MS);
+
+    // Coming back from a locked phone should feel immediate, not up to a poll
+    // late, so re-check as soon as the tab is visible again.
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void poll();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+
     return () => {
-      supabase.removeChannel(channel);
+      cancelled = true;
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
     };
   }, [user?.id, isDemo, toast, isOnline]);
 
