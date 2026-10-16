@@ -402,6 +402,38 @@ export default function GradesPage() {
   const [setAllOpen, setSetAllOpen] = useState(false);
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const dirtyCellsRef = useRef<Map<string, { subjectId: string; classId: string }>>(new Map());
+
+  // Undo for marks.
+  //
+  // Attendance and fees both had undo; grades did not, and it is the page with
+  // the most data at risk -- forty rows of numbers typed by hand, where a
+  // transposition is only spotted at results time. One entry is kept at a time:
+  // the previous value of the cell that changed, plus enough to describe it.
+  // Set-All and bulk fill snapshot the whole map instead, since they touch
+  // every pupil at once and reverting one cell would leave it half-applied.
+  const [undoMark, setUndoMark] = useState<{
+    before: Record<string, number | null>;
+    describe: string;
+  } | null>(null);
+  const undoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const pushUndo = (before: Record<string, number | null>, describe: string) => {
+    setUndoMark({ before, describe });
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    undoTimer.current = setTimeout(() => setUndoMark(null), 6000);
+  };
+
+  useEffect(() => () => {
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+  }, []);
+
+  const undoLastMark = () => {
+    if (!undoMark) return;
+    setMarks(undoMark.before);
+    setUndoMark(null);
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    toast.info("Change undone.");
+  };
   const assessmentLabels: Record<string, string> = {
     bot: "Beginning of Term (BOT)",
     mid_term: "Mid Term (MOT)",
@@ -642,6 +674,11 @@ export default function GradesPage() {
         const label = assessmentLabels[type] ?? type.toUpperCase();
         toast.error(`${label} for ${who} is out of range (max ${maxVal}). Saved as ${num}.`);
       }
+      const pupilForUndo = filteredStudents.find((st) => st.id === studentId);
+      pushUndo(
+        { [`${studentId}_${type}`]: marks[`${studentId}_${type}`] ?? null },
+        `${pupilForUndo ? `${pupilForUndo.first_name} ${pupilForUndo.last_name}` : "Cell"} · ${assessmentLabels[type] ?? type.toUpperCase()} → ${num}`,
+      );
       setMarks((prev) => ({ ...prev, [`${studentId}_${type}`]: num }));
       dirtyCellsRef.current.set(`${studentId}_${type}`, {
         subjectId: selectedSubject,
@@ -801,6 +838,9 @@ export default function GradesPage() {
         toast.error("CA marks are locked. Contact DOS to unlock.");
         return;
       }
+      // Snapshot the whole sheet: this touches every pupil at once, so undoing
+      // one cell would leave the rest of the fill applied.
+      pushUndo({ ...marks }, `All ${assessmentLabels[type] ?? type.toUpperCase()} → ${value}`);
       setMarks((prev) => {
         const next = { ...prev };
         filteredStudents.forEach((s) => {
@@ -810,17 +850,18 @@ export default function GradesPage() {
       });
       toast.success(`All ${type.toUpperCase()} set to ${value}`);
     },
-    [filteredStudents, caLocked, toast],
+    [filteredStudents, caLocked, toast, marks],
   );
 
   const handleClearAll = useCallback(() => {
     setPendingAction(() => () => {
+      pushUndo({ ...marks }, "All marks cleared");
       setMarks({});
       setSaveStatuses({});
       toast.success("All marks cleared");
     });
     setConfirmOpen(true);
-  }, [toast]);
+  }, [toast, marks]);
 
   const handleCopyFromPreviousTerm = useCallback(async () => {
     if (!selectedClass || !selectedSubject || !user?.id) return;
@@ -1639,6 +1680,25 @@ export default function GradesPage() {
                 BOT + MOT + EOT · simple average
               </span>
             </section>
+
+            {/* Undo. Sits directly under the summary line so it appears next to
+                the "N pending" count it relates to, rather than in a corner the
+                teacher's eye never travels to while typing. */}
+            {undoMark && (
+              <div className="mb-3 flex flex-wrap items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] px-4 py-2.5">
+                <MaterialIcon icon="undo" className="text-lg text-[var(--primary)]" />
+                <span className="text-sm text-[var(--t2)]">
+                  Changed <span className="font-semibold text-[var(--t1)]">{undoMark.describe}</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={undoLastMark}
+                  className="ml-auto min-h-11 rounded-lg bg-[var(--primary)] px-4 text-sm font-bold text-white"
+                >
+                  Undo
+                </button>
+              </div>
+            )}
 
             {/* Marks Entry Info */}
             {Object.keys(marksBy).length > 0 && (

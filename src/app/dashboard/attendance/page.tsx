@@ -179,7 +179,7 @@ export default function AttendancePage() {
   const [showQuickAbsentModal, setShowQuickAbsentModal] = useState(false);
   const [selectedAbsentIds, setSelectedAbsentIds] = useState<Set<string>>(new Set());
   // Undo: keep the last single-row mark so a mis-tap is one tap to reverse.
-  const [undoMark, setUndoMark] = useState<{ studentId: string; prev?: string; name: string } | null>(null);
+  const [undoMark, setUndoMark] = useState<{ studentId: string; prev?: string; status?: string; name: string } | null>(null);
   const undoTimer = useRef<number | null>(null);
   // Explicit "bring collapsed rows back" escape hatch (also available in the
   // all-marked empty state and the progress bar).
@@ -328,7 +328,12 @@ export default function AttendancePage() {
   const markAttendance = (studentId: string, status: string) => {
     const prev = attendance[studentId];
     const student = students.find((s) => s.id === studentId);
-    setUndoMark({ studentId, prev, name: student ? `${student.first_name} ${student.last_name}` : "student" });
+    setUndoMark({
+      studentId,
+      prev,
+      status,
+      name: student ? `${student.first_name} ${student.last_name}` : "student",
+    });
     if (undoTimer.current) window.clearTimeout(undoTimer.current);
     undoTimer.current = window.setTimeout(() => setUndoMark(null), 4000);
     setAttendance((prevMap) => ({ ...prevMap, [studentId]: status }));
@@ -1751,10 +1756,16 @@ export default function AttendancePage() {
             {undoMark && (
               <div className="fixed bottom-[calc(160px+env(safe-area-inset-bottom,0px))] left-0 right-0 px-4 z-20 flex justify-center md:static md:px-0 md:justify-end md:mb-2">
                 <div className="flex items-center gap-3 rounded-xl border border-outline-variant bg-surface-container-lowest px-4 py-2.5 shadow-lg">
+                  {/* Reads as "who became what". It used to show the *previous*
+                      status in brackets, which under the new tap model was
+                      ambiguous -- "(Present)" could be read as the new value. */}
                   <span className="text-sm text-on-surface">
-                    Marked <span className="font-semibold">{undoMark.name}</span>
+                    <span className="font-semibold">{undoMark.name}</span>
+                    {undoMark.status
+                      ? ` marked ${STATUS_CONFIG[undoMark.status as AttendanceStatus]?.label ?? undoMark.status}`
+                      : " unmarked"}
                     {undoMark.prev
-                      ? ` (${STATUS_CONFIG[undoMark.prev as AttendanceStatus]?.label ?? undoMark.prev})`
+                      ? ` · was ${STATUS_CONFIG[undoMark.prev as AttendanceStatus]?.label ?? undoMark.prev}`
                       : ""}
                   </span>
                   <Button variant="secondary" size="sm" onClick={undoLastMark} icon={<MaterialIcon icon="undo" />}>
