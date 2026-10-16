@@ -125,6 +125,10 @@ function formatMessage(text: string) {
 export default function OwlAssistant() {
   const { school, user } = useAuth();
   const pathname = usePathname();
+  // Declared first: the messages initialiser below reads it, and a `const` read
+  // before its declaration throws at runtime even when TypeScript cannot see
+  // the ordering problem through a closure.
+  const userId = user?.id;
   const [open, setOpen] = useState(false);
   const [bugOpen, setBugOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>(() => loadStoredMessages(userId) ?? [welcomeMessage()]);
@@ -135,7 +139,6 @@ export default function OwlAssistant() {
   const [walkthrough, setWalkthrough] = useState<Walkthrough | null>(null);
   const [walkthroughStep, setWalkthroughStep] = useState(0);
   const [online, setOnline] = useState(true);
-  const userId = user?.id;
   const owly = useOwlySignals({
     page: pathname ?? undefined,
     role: user?.role ?? undefined,
