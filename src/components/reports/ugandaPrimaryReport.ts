@@ -1,4 +1,5 @@
 import { escapeHtml } from "@/lib/cbc-report";
+import { brandPalette } from "@/lib/report-brand";
 
 /**
  * Printable Uganda Primary Pupil's Progress Report.
@@ -35,6 +36,8 @@ export interface UgandaPrintInput {
     phone?: string | null;
     motto?: string | null;
     logoUrl?: string | null;
+    /** schools.primary_color -- validated and contrast-floored before use. */
+    primaryColor?: string | null;
     sigClassUrl?: string | null;
     sigHeadUrl?: string | null;
   };
@@ -89,11 +92,28 @@ const BEHAVIOUR_ROWS: Array<[string, string]> = [
   ["Responsibility", "Sports"],
 ];
 
-function signatureCell(imageUrl: string | null | undefined, caption: string): string {
+/**
+ * A signature block.
+ *
+ * `schools` holds one signature_headteacher_url and one
+ * signature_class_teacher_url for the whole school, but every class has a
+ * different class teacher. Printing one image under "Class Teacher" therefore
+ * shows the same signature on every pupil in the school, which reads as
+ * "this child's teacher signed it". Where an image is supplied it is labelled
+ * as the school's authorised signatory instead; where it is not, the rule is
+ * left blank for the teacher who actually taught the class to sign by hand.
+ */
+function signatureCell(
+  imageUrl: string | null | undefined,
+  caption: string,
+  brand: string,
+  signedLabel: string,
+): string {
   const visual = imageUrl
-    ? `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(caption)} signature" style="max-height:54px;max-width:150px;object-fit:contain;">`
-    : `<div style="border-bottom:1px solid #000;width:150px;height:36px;"></div>`;
-  return `<div style="text-align:center;width:33%;">${visual}<div style="font-size:10px;margin-top:3px;">${escapeHtml(caption)}</div></div>`;
+    ? `<img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(signedLabel)}" style="max-height:52px;max-width:140px;object-fit:contain;">`
+    : `<div style="border-bottom:1px solid #000;width:140px;height:34px;"></div>`;
+  const label = imageUrl ? signedLabel : caption;
+  return `<div style="text-align:center;width:33%;">${visual}<div style="font-size:9.5px;margin-top:3px;color:${brand};">${escapeHtml(label)}</div></div>`;
 }
 
 export function generateUgandaPrimaryHTML(input: UgandaPrintInput): string {
@@ -141,6 +161,8 @@ export function generateUgandaPrimaryBody(input: UgandaPrintInput): string {
   const markColspan = markColumns;
   const leadColspan = 1 + markColumns;
 
+  const brand = brandPalette(school.primaryColor);
+
   const divisionCell = /^div\b/i.test(totals.division.trim())
     ? escapeHtml(totals.division)
     : `DIV: ${escapeHtml(totals.division)}`;
@@ -184,26 +206,40 @@ const remarkBlock = (label: string, text: string): string => `
       <div style="border-bottom:1px solid #000;height:24px;"></div>
     </div>`;
 
+  // No photo is common -- most schools never upload one. An empty dashed box
+  // reads as a broken image, so fall back to the pupil's initials on the brand
+  // wash, which looks deliberate and still identifies the child at a glance.
+  const initials = pupil.name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("");
   const photo = pupil.photoUrl
-    ? `<img src="${escapeHtml(pupil.photoUrl)}" alt="${escapeHtml(pupil.name)}" style="width:62px;height:76px;object-fit:cover;border:1px solid #999;">`
-    : `<div style="width:62px;height:76px;border:1px solid #bbb;"></div>`;
+    ? `<img src="${escapeHtml(pupil.photoUrl)}" alt="${escapeHtml(pupil.name)}" style="width:84px;height:102px;object-fit:cover;border:1.5px solid ${brand.ink};">`
+    : `<div style="width:84px;height:102px;border:1.5px solid ${brand.wash === brand.ink ? "#ccc" : brand.ink};background:${brand.wash};display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:bold;color:${brand.ink};">${escapeHtml(initials)}</div>`;
 
   const identity = (label: string, value: string): string =>
     `<div><span style="display:inline-block;width:56px;">${escapeHtml(label)}:</span> <span style="display:inline-block;border-bottom:1px solid #000;min-width:104px;padding:0 3px;">${escapeHtml(value)}</span></div>`;
 
-  return `<div class="uganda-report">
-    <div style="text-align:center;">
-      <div style="font-size:10px;font-weight:bold;letter-spacing:1.4px;">THE REPUBLIC OF UGANDA</div>
-      ${school.logoUrl ? `<img src="${escapeHtml(school.logoUrl)}" alt="School logo" style="max-height:44px;max-width:70px;object-fit:contain;margin:1px 0;">` : ""}
-      <div style="font-size:19px;font-weight:bold;line-height:1.15;">[${escapeHtml(school.name || "SCHOOL NAME")}]</div>
-      <div style="font-size:11px;font-weight:bold;">MINISTRY OF EDUCATION AND SPORTS</div>
-      ${contact ? `<div style="font-size:10px;">${escapeHtml(contact)}</div>` : ""}
-      ${school.motto ? `<div style="font-size:9.5px;font-style:italic;">${escapeHtml(school.motto)}</div>` : ""}
-      <div style="display:inline-block;border:1.5px solid #000;padding:3px 16px;font-size:11.5px;font-weight:bold;margin-top:6px;">PRIMARY PUPIL'S PROGRESS REPORT</div>
+  const watermark = school.logoUrl
+    ? `<img src="${escapeHtml(school.logoUrl)}" alt="" aria-hidden="true" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-32deg);width:300px;height:300px;object-fit:contain;opacity:.05;">`
+    : `<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-32deg);font-size:46px;font-weight:bold;color:${brand.ink};opacity:.045;white-space:nowrap;letter-spacing:.04em;">${escapeHtml(school.name || "")}</div>`;
+
+  return `<div class="uganda-report" style="position:relative;">
+    <div aria-hidden="true" style="position:absolute;inset:0;overflow:hidden;pointer-events:none;">${watermark}</div>
+    <div style="position:relative;text-align:center;">
+      ${school.logoUrl ? `<img src="${escapeHtml(school.logoUrl)}" alt="School logo" style="max-height:62px;max-width:104px;object-fit:contain;margin:0 auto 2px;">` : ""}
+      <div style="font-size:9px;font-weight:bold;letter-spacing:2px;color:${brand.ink};opacity:.75;">THE REPUBLIC OF UGANDA</div>
+      <div style="font-size:22px;font-weight:bold;line-height:1.1;color:${brand.ink};">${escapeHtml(school.name || "SCHOOL NAME")}</div>
+      <div style="font-size:10.5px;font-weight:bold;letter-spacing:.4px;">MINISTRY OF EDUCATION AND SPORTS</div>
+      ${contact ? `<div style="font-size:9.5px;color:#333;">${escapeHtml(contact)}</div>` : ""}
+      ${school.motto ? `<div style="font-size:9.5px;font-style:italic;color:#444;">${escapeHtml(school.motto)}</div>` : ""}
+      <div style="display:inline-block;border:2px solid ${brand.ink};color:${brand.ink};padding:3px 18px;font-size:12px;font-weight:bold;letter-spacing:.5px;margin-top:6px;">PRIMARY PUPIL'S PROGRESS REPORT</div>
     </div>
 
     <div style="display:flex;gap:8px;align-items:flex-start;margin:8px 0 2px;">
-      <div style="width:62px;flex:none;">${photo}</div>
+      <div style="width:84px;flex:none;">${photo}</div>
       <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:1px 12px;font-size:10.5px;">
         ${identity("Name", pupil.name)}
         ${identity("LIN", pupil.studentNumber)}
@@ -215,7 +251,7 @@ const remarkBlock = (label: string, text: string): string => `
       </div>
     </div>
 
-    <h2 class="section">ACADEMIC PERFORMANCE</h2>
+    <h2 class="section" style="color:${brand.ink};border-bottom:2px solid ${brand.ink};padding-bottom:1px;">ACADEMIC PERFORMANCE</h2>
     <table>
       <thead>
         <tr>
@@ -246,11 +282,11 @@ const remarkBlock = (label: string, text: string): string => `
 
     <div style="display:flex;gap:12px;align-items:flex-start;">
       <div style="width:52%;">
-        <h2 class="section">GRADING SYSTEM</h2>
+        <h2 class="section" style="color:${brand.ink};border-bottom:2px solid ${brand.ink};padding-bottom:1px;">GRADING SYSTEM</h2>
         <table>${legendHtml}</table>
       </div>
       <div style="width:48%;">
-        <h2 class="section">BEHAVIOUR &amp; CO-CURRICULAR</h2>
+        <h2 class="section" style="color:${brand.ink};border-bottom:2px solid ${brand.ink};padding-bottom:1px;">BEHAVIOUR &amp; CO-CURRICULAR</h2>
         <table>
           <thead><tr>
             ${td("Skill", "font-weight:bold;font-size:10px;text-align:left;")}
@@ -272,9 +308,18 @@ const remarkBlock = (label: string, text: string): string => `
     </div>
 
     <div class="signatures" style="display:flex;justify-content:space-between;align-items:flex-end;margin-top:22px;">
-      ${signatureCell(school.sigClassUrl, "Class Teacher")}
-      <div style="width:33%;text-align:center;"><div style="border:1.5px dashed #999;color:#999;font-size:9px;padding:14px 0;">SCHOOL<br>STAMP</div></div>
-      ${signatureCell(school.sigHeadUrl, "Head Teacher")}
+      ${signatureCell(school.sigClassUrl, "Class Teacher", brand.ink, "Authorised signatory")}
+      <div style="width:33%;text-align:center;">
+        <div style="display:inline-block;border:2px solid ${brand.ink};border-radius:3px;padding:7px 12px;color:${brand.ink};">
+          ${
+            school.logoUrl
+              ? `<img src="${escapeHtml(school.logoUrl)}" alt="" style="max-height:30px;max-width:60px;object-fit:contain;margin:0 auto 3px;display:block;">`
+              : ""
+          }
+          <div style="font-size:8px;font-weight:bold;letter-spacing:1px;">SCHOOL STAMP</div>
+        </div>
+      </div>
+      ${signatureCell(school.sigHeadUrl, "Head Teacher", brand.ink, "Head Teacher")}
     </div>
   </div>`;
 }

@@ -6,6 +6,7 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { generateUgandaPrimaryBody, ugandaDocumentShell } from "@/components/reports/ugandaPrimaryReport";
 import { openPrintWindow, printWhenReady, writePrintDocument } from "@/lib/print-window";
+import { suggestClassTeacherRemark, suggestHeadTeacherRemark } from "@/lib/report-remarks";
 import { useToast } from "@/components/Toast";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
@@ -92,12 +93,7 @@ function getCompetencyLabel(level: string | undefined): { label: string; emoji: 
   }
 }
 
-function getAutoComment(position: number): string {
-  if (position <= 0) return "Assessment incomplete. Complete the missing marks before ranking.";
-  if (position >= 1 && position <= 5) return "Excellent performance. Keep it up!";
-  if (position >= 6 && position <= 15) return "Good work. Strive for better.";
-  return "Needs more effort. Work harder.";
-}
+
 
 export default function ReportCardsPage() {
   const { school, user, isDemo } = useAuth();
@@ -413,9 +409,13 @@ export default function ReportCardsPage() {
     });
 
     const rankedReports = rankCompleteReports(reportList);
+    // Pre-filled from the pupil's own results, not from a position band. The
+    // head-teacher line is left for the head teacher to write -- it is their
+    // signature, and auto-filling it with a generated sentence put words in a
+    // head teacher's mouth on every report in the school.
     rankedReports.forEach((r) => {
-      r.classTeacherComment = getAutoComment(r.position);
-      r.hmComment = getAutoComment(r.position);
+      r.classTeacherComment = suggestClassTeacherRemark(remarkFactsFor(r));
+      r.hmComment = "";
     });
 
     const missing = reportList.some((r) => r.subjects.some((s: any) => s.isMissing));
@@ -507,9 +507,13 @@ export default function ReportCardsPage() {
     });
 
     const rankedReports = rankCompleteReports(reportList);
+    // Pre-filled from the pupil's own results, not from a position band. The
+    // head-teacher line is left for the head teacher to write -- it is their
+    // signature, and auto-filling it with a generated sentence put words in a
+    // head teacher's mouth on every report in the school.
     rankedReports.forEach((r) => {
-      r.classTeacherComment = getAutoComment(r.position);
-      r.hmComment = getAutoComment(r.position);
+      r.classTeacherComment = suggestClassTeacherRemark(remarkFactsFor(r));
+      r.hmComment = "";
     });
 
     const missing = reportList.some((r) => r.subjects.some((s: any) => s.isMissing));
@@ -822,12 +826,56 @@ export default function ReportCardsPage() {
     }));
   };
 
-  const handleSuggestComment = (studentId: string, position: number) => {
-    const auto = getAutoComment(position);
+  /** Everything the remark writer needs, pulled from one report row. */
+  const remarkFactsFor = (report: StudentReport) => ({
+    pupilName: report.name,
+    className: report.className,
+    position: typeof report.position === "number" && report.position > 0 ? report.position : null,
+    classSize: null as number | null,
+    average: typeof report.average === "number" && report.average > 0 ? report.average : null,
+    division: report.division || null,
+    subjects: (report.subjects ?? [])
+      .filter((subject) => subject?.uganda)
+      .map((subject) => ({
+        name: subject.name,
+        avg: subject.uganda?.avg ?? null,
+        grade: subject.uganda?.grade ?? subject.grade,
+      })),
+  });
+
+  /**
+   * Fill both remark boxes from what the report already says -- attendance,
+   * average, class position, and which subjects carried the pupil.
+   *
+   * This used to band the child by class position and write one of four fixed
+   * sentences, into *both* boxes. Every child in the top five received
+   * "Excellent performance. Keep it up!" twice, which reads as if nobody read
+   * the report. These are suggestions: the teacher edits them, or clears them.
+   */
+  const handleSuggestComment = (report: StudentReport) => {
+    const facts = {
+      pupilName: report.name,
+      className: report.className,
+      position: typeof report.position === "number" && report.position > 0 ? report.position : null,
+      classSize: displayedReports.length || null,
+      average: typeof report.average === "number" ? report.average : null,
+      division: report.division || null,
+      subjects: (report.subjects ?? [])
+        .filter((subject) => subject?.uganda)
+        .map((subject) => ({
+          name: subject.name,
+          avg: subject.uganda?.avg ?? null,
+          grade: subject.uganda?.grade ?? subject.grade,
+        })),
+    };
     setComments((prev) => ({
       ...prev,
-      [studentId]: { classTeacher: auto, hm: auto },
+      [report.studentId]: {
+        classTeacher: suggestClassTeacherRemark(facts),
+        hm: suggestHeadTeacherRemark(facts),
+      },
     }));
+    toast.info("Suggested from this pupil's results — edit before printing.");
   };
 
   // Term attendance + next-term start for the Uganda print layout. Best
@@ -926,6 +974,7 @@ export default function ReportCardsPage() {
         phone: (school as any)?.phone || school?.email || "",
         motto: (school as any)?.school_motto || (school as any)?.motto || "",
         logoUrl: school?.logo_url || "",
+        primaryColor: school?.primary_color || "",
         sigClassUrl: (school as any)?.signature_class_teacher_url || "",
         sigHeadUrl: (school as any)?.signature_headteacher_url || "",
       },
@@ -1682,7 +1731,7 @@ export default function ReportCardsPage() {
                                   />
                                 </div>
                                 <button
-                                  onClick={() => handleSuggestComment(report.studentId, report.position)}
+                                  onClick={() => handleSuggestComment(report)}
                                   type="button"
                                   className="min-h-11 text-xs font-semibold text-[var(--primary)] hover:underline"
                                 >
