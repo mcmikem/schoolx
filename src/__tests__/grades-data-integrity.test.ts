@@ -58,28 +58,39 @@ describe("teacher pickers are scoped to real assignments", () => {
   });
 });
 
-describe("a locked term blocks exam marks", () => {
+describe("a locked term blocks end-of-term marks", () => {
   it("reads the term lock like the exams page does", () => {
     expect(src).toContain("isTermLocked");
     expect(src).toContain("const termLocked = isTermLocked ? isTermLocked(academicYear, currentTerm) : false;");
   });
 
-  it("blocks exam edits in the change handler, the autosave and the bulk save", () => {
-    expect(src).toContain('if (termLocked && type === "exam")');
-    expect(src).toContain("This term is locked. Exam marks can no longer be changed.");
-    expect(src).toContain('k.endsWith("_exam")');
+  it("blocks edits in the change handler and the autosave", () => {
+    // BOT, MOT and EOT are the assessments a term actually closes on, so the
+    // lock has to cover all three. It used to test `type === "exam"`, a legacy
+    // column that the BOT/MOT/EOT model leaves empty for most teachers -- so the
+    // guard existed but almost never fired. Both edit paths must agree.
+    const guards = src.match(/termLocked && \["exam", "bot", "mid_term", "eot"\]\.includes\(type\)/g) ?? [];
+    expect(guards.length).toBeGreaterThanOrEqual(2);
+    expect(src).toContain("This term is locked. Assessment marks can no longer be changed.");
   });
 
-  it("greys the exam cells", () => {
+  it("blocks the bulk save when any end-of-term mark is present", () => {
+    expect(src).toContain("const hasTermMarks");
+    expect(src).toContain("TRADITIONAL_ASSESSMENT_TYPES.some((type) => key.endsWith(`_${type}`))");
+    expect(src).toContain("This term is locked. BOT, MOT, and EOT marks can no longer be changed.");
+  });
+
+  it("greys the affected cells", () => {
     // Whitespace-insensitive on purpose. This assertion used to match one long
     // `disabled={...}` line, and biome's formatter later wrapped it across
-    // three lines — the guard was still correct, the test just went red.
+    // three lines — the guard was still correct, the test just went red. Both
+    // the desktop grid and the mobile card view have to disable these cells.
     const flat = src.replace(/\s+/g, " ");
     const disabled =
       flat.match(
-        /disabled=\{\s*isSubmitted \|\| \(caLocked && type\.startsWith\("ca"\)\) \|\| \(termLocked && type === "exam"\)\s*\}/g,
+        /isSubmitted \|\| \(caLocked && type\.startsWith\("ca"\)\) \|\| \(termLocked && \["exam", "bot", "mid_term", "eot"\]\.includes\(type\)\)/g,
       ) ?? [];
-    expect(disabled.length).toBeGreaterThanOrEqual(3);
+    expect(disabled.length).toBeGreaterThanOrEqual(2);
   });
 });
 
