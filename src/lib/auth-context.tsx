@@ -20,30 +20,30 @@
 // To modify: Run full test suite (lint + typecheck + regression + e2e)
 // ============================================================================
 "use client";
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback, useRef } from "react";
-import { supabase } from "./supabase";
 import { useRouter } from "next/navigation";
-import type { User, School } from "@/types";
-import { logger } from "./logger";
-import { clearUserScopedStorage } from "./user-scoped-storage";
-import { getErrorMessage } from "./validation";
-import { buildAuthEmailFromPhone, buildAuthLoginAttempts } from "./auth-login";
-import { classifyAuthFailure } from "./auth-failure";
-import { isSupabaseLockAbortError, withSupabaseLockRetry } from "./supabase-lock";
-import { timeoutSignal } from "./hooks/utils";
+import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
+import type { School, User } from "@/types";
 import {
   AuthContextType,
-  sanitizeDemoRole,
-  OFFLINE_USER_KEY,
-  OFFLINE_SCHOOL_KEY,
   computeTrialExpired,
-  isSubscriptionActiveCheck,
   getSubscriptionPlan as getPlan,
+  isSubscriptionActiveCheck,
+  OFFLINE_SCHOOL_KEY,
+  OFFLINE_USER_KEY,
+  sanitizeDemoRole,
 } from "./auth-context-types";
-import { decryptDemoData, readDemoStorage, clearDemoStorage } from "./auth-demo";
+import { clearDemoStorage, decryptDemoData, readDemoStorage } from "./auth-demo";
+import { classifyAuthFailure } from "./auth-failure";
+import { buildAuthEmailFromPhone, buildAuthLoginAttempts } from "./auth-login";
 import { buildPhoneLookupCandidates } from "./auth-phone";
-import { FeatureStage, DEFAULT_FEATURE_STAGE } from "./featureStages";
+import { DEFAULT_FEATURE_STAGE, FeatureStage } from "./featureStages";
+import { timeoutSignal } from "./hooks/utils";
+import { logger } from "./logger";
 import type { PlanType } from "./payments/subscription-client";
+import { supabase } from "./supabase";
+import { isSupabaseLockAbortError, withSupabaseLockRetry } from "./supabase-lock";
+import { clearUserScopedStorage } from "./user-scoped-storage";
+import { getErrorMessage } from "./validation";
 
 // ---------------------------------------------------------------------------
 // Role normalisation
@@ -525,6 +525,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             } catch (error) {
               logger.error("Failed to load cached user data:", error);
             }
+          }
+
+          // Optimistic hydration.
+          //
+          // The cached profile is enough to paint the dashboard and costs
+          // nothing — localStorage, no network. Previously the cache was only
+          // consulted when the browser was offline, so every *online* load sat
+          // behind getUser() and then /api/auth/me/: two sequential round trips,
+          // with a blank loading screen for the whole of it. On a rural 2G
+          // connection that is the three seconds the app appeared to take, and
+          // the 2s safety timer was what usually rescued it.
+          //
+          // The cached copy is a display placeholder only. Supabase's session
+          // still decides who you are, RLS still authorises every query, and
+          // the fresh fetch immediately below overwrites this the moment it
+          // lands. Signing out clears the cache, so this cannot outlive a
+          // session on a shared device.
+          try {
+            const cachedUser = localStorage.getItem(OFFLINE_USER_KEY);
+            if (cachedUser) {
+              const cachedSchool = localStorage.getItem(OFFLINE_SCHOOL_KEY);
+              setUser(JSON.parse(cachedUser) as User);
+              setSchool(cachedSchool ? JSON.parse(cachedSchool) : null);
+              setIsDemo(false);
+              setLoading(false);
+              setAuthInitialized(true);
+            }
+          } catch (error) {
+            // Malformed cache must not block the real fetch below.
+            logger.warn("Optimistic profile hydration failed:", error);
           }
 
           let authUserError: unknown = null;

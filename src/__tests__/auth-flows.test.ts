@@ -1,3 +1,6 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 /**
  * Auth-flow regression tests — sign-in, register, sign-out, onboarding guard.
  *
@@ -7,8 +10,8 @@
  *          loading-state invariants that prevent the DashboardRouter race.
  */
 
+import { buildAuthEmailFromPhone, buildAuthLoginAttempts } from "@/lib/auth-login";
 import { normalizeAuthPhone } from "@/lib/validation";
-import { buildAuthLoginAttempts, buildAuthEmailFromPhone } from "@/lib/auth-login";
 
 // ---------------------------------------------------------------------------
 // normalizeAuthPhone — phone normalisation must be stable
@@ -220,5 +223,76 @@ describe("auth-context: onAuthStateChange SIGNED_IN loading guard", () => {
     // INITIAL_SESSION and TOKEN_REFRESHED must NOT toggle loading to prevent
     // loading flickers / infinite loading loops during normal navigation.
     expect(source).toMatch(/if\s*\(\s*event\s*===\s*"SIGNED_IN"\s*\)\s*setLoading\s*\(\s*true\s*\)/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// First-paint hydration — the loading-time critical path
+// ---------------------------------------------------------------------------
+
+describe("dashboard paints without waiting on the network", () => {
+  const src = readFileSync(join(__dirname, "..", "lib", "auth-context.tsx"), "utf8");
+
+  /**
+   * Auth used to gate the entire dashboard on getUser() and then
+   * /api/auth/me/ — two sequential round trips behind a blank loading screen,
+   * with a 2s safety timer as the thing that usually rescued it. On rural 2G
+   * that is the three seconds the app appeared to take to load.
+   *
+   * The cached profile removes both hops from the critical path. Pinned as
+   * source because the value is the ordering of effects inside a large
+   * provider, which no unit test can meaningfully observe without standing up
+   * the whole auth stack.
+   */
+  it("hydrates the cached profile as soon as a session exists", () => {
+    expect(src).toContain("const cachedUser = localStorage.getItem(OFFLINE_USER_KEY);");
+    expect(src).toMatch(/setUser\(JSON\.parse\(cachedUser\) as User\)/);
+  });
+
+  it("does not wait for getUser() or /api/auth/me/ before showing it", () => {
+    // The hydration block must appear before the getUser() call that follows it.
+    const hydrate = src.indexOf("Optimistic profile hydration failed");
+    const getUser = src.indexOf("withSupabaseLockRetry(async () => await supabase!.auth.getUser())");
+    expect(hydrate).toBeGreaterThan(-1);
+    expect(getUser).toBeGreaterThan(-1);
+    expect(hydrate).toBeLessThan(getUser);
+  });
+
+  it("keeps reconciling afterwards, so a stale cache self-corrects", () => {
+    // Optimistic must not mean "trust the cache forever": the fresh profile
+    // fetch still has to run and overwrite it.
+    // Anchor on the *call site* in checkUser, not the fetch itself, which lives
+    // inside fetchUserData and is defined earlier in the file.
+    const hydrate = src.indexOf("Optimistic profile hydration failed");
+    const reconcile = src.indexOf("await fetchUserData(authUser.id)");
+    expect(reconcile).toBeGreaterThan(-1);
+    expect(reconcile).toBeGreaterThan(hydrate);
+  });
+
+  it("survives a corrupt cache instead of blocking on it", () => {
+    expect(src).toContain("Optimistic profile hydration failed");
+  });
+
+  it("still clears the cache on sign-out, so it cannot outlive a session", () => {
+    expect(src).toMatch(/signOut[\s\S]{0,2000}localStorage\.removeItem\(OFFLINE_USER_KEY\)/);
+  });
+});
+
+describe("navigation deadline leaves room for the page to load", () => {
+  const sw = readFileSync(join(__dirname, "..", "..", "public", "sw.js"), "utf8");
+
+  it("serves a cached navigation well inside the budget", () => {
+    // The deadline is pure waiting: the copy is already in hand and the network
+    // keeps running afterwards to refresh the cache. At 3000ms it consumed the
+    // entire budget before a single byte of JS was requested.
+    const cached = Number(sw.match(/NAVIGATION_TIMEOUT_CACHED_MS\s*=\s*(\d+)/)?.[1]);
+    expect(cached).toBeGreaterThan(0);
+    expect(cached).toBeLessThanOrEqual(1500);
+  });
+
+  it("still gives an uncached route a chance to arrive", () => {
+    const uncached = Number(sw.match(/NAVIGATION_TIMEOUT_MS\s*=\s*(\d+)/)?.[1]);
+    const cached = Number(sw.match(/NAVIGATION_TIMEOUT_CACHED_MS\s*=\s*(\d+)/)?.[1]);
+    expect(uncached).toBeGreaterThan(cached);
   });
 });

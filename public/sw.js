@@ -144,8 +144,13 @@ self.addEventListener('fetch', (event) => {
     // on a weak 2G/3G link a teacher would otherwise stare at a blank screen
     // for 8s before the page they opened yesterday appears. The network fetch
     // keeps running after the deadline and refreshes the cache for next time.
-    const NAVIGATION_TIMEOUT_MS = 8000;
-    const NAVIGATION_TIMEOUT_CACHED_MS = 3000;
+    // Held deliberately tight. These deadlines are pure waiting: the cached copy
+    // is already in hand and the network fetch keeps running afterwards to
+    // refresh the cache, so every millisecond spent here is a millisecond of
+    // blank screen before content the user has seen before. An uncached route
+    // still gets longer, because that copy is all the user will ever get.
+    const NAVIGATION_TIMEOUT_MS = 3000;
+    const NAVIGATION_TIMEOUT_CACHED_MS = 1200;
 
     event.respondWith(
       (async () => {

@@ -1,7 +1,7 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 import { NavGroup, sortNavGroupsByPriority } from "@/lib/navigation";
 import { readUserScoped, writeUserScoped } from "@/lib/user-scoped-storage";
@@ -67,7 +67,9 @@ export default function CollapsibleSidebar({ groups, onNavigate, compact = false
   };
 
   useEffect(() => {
-    setRecentPages(readUserScoped<Array<{ href: string; label: string; icon: string }>>("skoolmate_recent_pages", userId) ?? []);
+    setRecentPages(
+      readUserScoped<Array<{ href: string; label: string; icon: string }>>("skoolmate_recent_pages", userId) ?? [],
+    );
   }, [userId]);
 
   const normalizedQuery = query.trim().toLowerCase();
@@ -119,6 +121,7 @@ export default function CollapsibleSidebar({ groups, onNavigate, compact = false
               <Link
                 key={group.label}
                 href={groupHref}
+                prefetch={false}
                 title={group.label}
                 onClick={() => {
                   const firstItem = group.items[0];
@@ -170,6 +173,7 @@ export default function CollapsibleSidebar({ groups, onNavigate, compact = false
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={false}
                 title={item.label}
                 onClick={onNavigate}
                 className="flex min-h-11 items-center gap-2 px-3 py-2 rounded-lg text-[12px] text-[var(--t2)] hover:bg-[var(--surface-container-low)] no-underline"
@@ -223,6 +227,7 @@ export default function CollapsibleSidebar({ groups, onNavigate, compact = false
                       <Link
                         key={item.href}
                         href={item.href}
+                        prefetch={false}
                         title={item.label}
                         onClick={() => {
                           trackRecentPage(item.href, item.label, item.icon);
