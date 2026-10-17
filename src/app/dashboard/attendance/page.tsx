@@ -125,6 +125,7 @@ export default function AttendancePage() {
   const urlFilters = useUrlSyncedFilters();
   const router = useRouter();
   const pathname = usePathname();
+  const classSelectRef = useRef<HTMLSelectElement>(null);
   const [selectedClass, setSelectedClass] = useState<string | null>(() => {
     // URL param wins (deep links), otherwise resume the teacher's last class
     // so the daily flow opens ready-to-mark with zero dropdown hunting.
@@ -1072,9 +1073,22 @@ export default function AttendancePage() {
                 <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--primary)]">Register</p>
                 <h2 className="mt-1 text-lg font-bold text-[var(--t1)] font-['Sora']">Mark today&apos;s class</h2>
               </div>
-              <span className="rounded-full bg-[var(--primary-50)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--t1)]">
+              {/*
+                Reads "Choose class" until one is picked, in a pill that looks
+                pressable. Teachers tapped it and nothing happened, because it
+                was a plain span. Until a class is chosen this is the one thing
+                standing between them and the register, so it now actually does
+                what it looks like it does: focuses the real picker.
+              */}
+              <button
+                type="button"
+                onClick={() => {
+                  classSelectRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+                  classSelectRef.current?.focus();
+                }}
+                className="rounded-full bg-[var(--primary-50)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--t1)]">
                 {selectedClassName?.name || "Choose class"}
-              </span>
+              </button>
             </div>
 
             <p className="mt-3 text-sm text-on-surface-variant">
@@ -1182,6 +1196,7 @@ export default function AttendancePage() {
                   </div>
                 ) : (
                   <select
+                    ref={classSelectRef}
                     value={selectedClass || ""}
                     onChange={(e) => setSelectedClass(e.target.value || null)}
                     className="w-full bg-surface-container border-none rounded-xl py-3 px-4 min-h-[44px] text-base font-medium focus:ring-2 focus:ring-primary/20"
