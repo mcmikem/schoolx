@@ -1,44 +1,42 @@
 "use client";
-import { useState, useMemo, useRef, useEffect, useCallback } from "react";
-import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import { useUrlSyncedFilters } from "@/lib/hooks/useUrlSyncedFilters";
-import { useAuth } from "@/lib/auth-context";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { EmptyState } from "@/components/EmptyState";
+import type { FeeFormData } from "@/components/fees/FeeFormModal";
+import FeeStats from "@/components/fees/FeeStats";
+import FeeTable, { StudentBalance } from "@/components/fees/FeeTable";
+import MaterialIcon from "@/components/MaterialIcon";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
+import { PageGuidance } from "@/components/PageGuidance";
+import { useToast } from "@/components/Toast";
+import { FilterBar } from "@/components/ui/FilterBar";
+import { Button } from "@/components/ui/index";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Tabs } from "@/components/ui/Tabs";
 import { useAcademic } from "@/lib/academic-context";
-
+import { APP_NAME } from "@/lib/app-name";
+import { useAuth } from "@/lib/auth-context";
+import { PAYMENT_METHODS } from "@/lib/constants";
+import { updateRecord } from "@/lib/crud-service";
+import { formatCurrency } from "@/lib/currency";
+import { bucketTriageBalances, partitionFeeRoster, TRIAGE_BANDS } from "@/lib/fee-triage";
 // NOTE: If your school uses fee_terms as the primary system, this fees page
 // uses fee_structure instead. The fee_terms module at /dashboard/fee-terms is
 // legacy and kept for backward compatibility only. See the deprecation notice
 // in fee-terms/page.tsx for details.
-import { useClasses, useFeeAdjustments, useFeePayments, useFeeStructure } from "@/lib/hooks";
-import { useOfflineStudents, useOfflineFees } from "@/lib/offline-hooks";
-import { useToast } from "@/components/Toast";
-import { useFormDraft } from "@/lib/useAutoSave";
-import { FilterBar } from "@/components/ui/FilterBar";
-import { withTimeout, timeoutFallback, getLocalDateString } from "@/lib/hooks/utils";
-import { TRIAGE_BANDS, bucketTriageBalances, partitionFeeRoster } from "@/lib/fee-triage";
-import { PAYMENT_METHODS } from "@/lib/constants";
-import { supabase } from "@/lib/supabase";
-import { updateRecord } from "@/lib/crud-service";
-import MaterialIcon from "@/components/MaterialIcon";
-import FeeStats from "@/components/fees/FeeStats";
-import { StudentBalance } from "@/components/fees/FeeTable";
-import FeeTable from "@/components/fees/FeeTable";
-import { PageHeader } from "@/components/ui/PageHeader";
-import { Tabs } from "@/components/ui/Tabs";
-import { Button } from "@/components/ui/index";
-import { calculateStudentFeePosition, feeAppliesToStudent } from "@/lib/operations";
-import { ConfirmDialog } from "@/components/ConfirmDialog";
-import { useUndo, UndoNotification } from "@/lib/useUndo";
-import { PageGuidance } from "@/components/PageGuidance";
-import { EmptyState } from "@/components/EmptyState";
-import { PageErrorBoundary } from "@/components/PageErrorBoundary";
+import { useClasses, useFeeAdjustments, useFeePayments, useFeeStructure, usePaymentParentNames } from "@/lib/hooks";
 import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
-import { getErrorMessage } from "@/lib/validation";
-import { APP_NAME } from "@/lib/app-name";
-import { logger } from "@/lib/logger";
-import { formatCurrency } from "@/lib/currency";
+import { useUrlSyncedFilters } from "@/lib/hooks/useUrlSyncedFilters";
+import { getLocalDateString, timeoutFallback, withTimeout } from "@/lib/hooks/utils";
 import { lazyWithIdlePrefetch } from "@/lib/lazy-prefetch";
-import type { FeeFormData } from "@/components/fees/FeeFormModal";
+import { logger } from "@/lib/logger";
+import { useOfflineFees, useOfflineStudents } from "@/lib/offline-hooks";
+import { calculateStudentFeePosition, feeAppliesToStudent } from "@/lib/operations";
+import { supabase } from "@/lib/supabase";
+import { useFormDraft } from "@/lib/useAutoSave";
+import { UndoNotification, useUndo } from "@/lib/useUndo";
+import { getErrorMessage } from "@/lib/validation";
 import type { FeeStructure } from "@/types";
 
 // Split out of the first-load bundle (old phones parse less up front) and warmed in
@@ -149,6 +147,7 @@ export default function FinanceHubPage() {
   } = useFeeStructure(school?.id);
   const { adjustments, createAdjustment, deleteAdjustment } = useFeeAdjustments(school?.id);
   const { createPayment, deletePayment } = useFeePayments(school?.id);
+  const parentNamesByStudent = usePaymentParentNames(school?.id);
   const receiptRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -2020,6 +2019,7 @@ export default function FinanceHubPage() {
             student_number: s.student_number,
             class_name: s.class_name,
           }))}
+          parentNamesByStudent={parentNamesByStudent}
           onSubmit={handleRecordPayment}
           newPayment={newPayment}
           onPaymentChange={handlePaymentChange}

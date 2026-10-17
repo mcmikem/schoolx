@@ -253,17 +253,24 @@ export function useFeePayments(schoolId?: string, page: number = 1, limit: numbe
     }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo);
 
-    // `!isOnline` fired exactly when the device was OFFLINE, so a bursar
-    // recording a cash payment with no signal was told "Fee ID is required for
-    // online payments" -- the one case where the rule does not apply. The
-    // condition is now the connectivity it claims to be.
+    // The "Fee ID is required for online payments" guard is gone, and the
+    // condition it used to carry was meaningless anyway.
     //
-    // fee_id is nullable in the database and the offline sync inserts it without
-    // complaint, so nothing downstream needed it; the guard was app policy
-    // contradicting its own message.
-    if (!payment.fee_id && isOnline) {
-      throw new Error("Fee ID is required for online payments");
-    }
+    // normalizePaymentInput() returns a fixed set of fields and fee_id is not
+    // among them, so it is stripped on every write. `payment.fee_id` was
+    // therefore always undefined, `!payment.fee_id` was always true, and this
+    // guard blocked EVERY payment -- offline under its original
+    // `!isOnline` form, online after that was "fixed" to `isOnline`. The form
+    // has no fee picker either, so nothing could ever satisfy it.
+    //
+    // fee_id is nullable in the database, the offline sync inserts without it,
+    // and balances are derived from payments rather than from which fee item
+    // they name. So the requirement had no purpose behind it. Recording a
+    // payment works again on any connection.
+    //
+    // If payments later need to be attributed to a specific fee item, that is
+    // a feature: add the picker, keep fee_id through the normaliser, and bring
+    // the rule back then -- where it can actually be satisfied.
 
     if (payment.fee_id) {
       const { data: feeStructure, error: feeError } = await supabase
@@ -276,6 +283,30 @@ export function useFeePayments(schoolId?: string, page: number = 1, limit: numbe
 
       if (feeError || !feeStructure) {
         throw new Error("Invalid or missing fee structure. Please create the fee first.");
+      }
+    }
+
+    // A payment reference must be unique, but say so in the words a bursar can
+    // act on. The raw Postgres message -- "duplicate key value violates unique
+    // constraint idx_fee_payments_reference" -- was reaching the screen, which
+    // tells a school secretary nothing about what to change.
+    const reference = String(normalizedPayment.payment_reference || "").trim();
+    if (reference) {
+      const { data: seen } = await withTimeout(
+        supabase
+          .from("fee_payments")
+          .select("id, student_id, payment_date")
+          .eq("school_id", querySchoolId)
+          .eq("payment_reference", reference)
+          .is("deleted_at", null)
+          .limit(1),
+        10000,
+        timeoutFallback(),
+      );
+      if (seen && (seen as unknown[]).length > 0) {
+        throw new Error(
+          `That reference (${reference}) has already been used for another payment. Check the number, or clear it if this payment has none.`,
+        );
       }
     }
 
@@ -352,7 +383,7 @@ export function useFeePayments(schoolId?: string, page: number = 1, limit: numbe
       if (isTimeoutResult(result))
         throw new Error("Saving the payment timed out. Check your connection before retrying.");
       const { data, error: insertError } = result;
-      if (insertError) throw insertError;
+      if (insertError) throw translateFeePaymentError(insertError);
       if (!data) throw new Error("The payment could not be saved.");
       setPayments((prev) => [data as unknown as FeePayment, ...prev]);
       await offlineDB.cacheFromServer("fee_payments", [data as unknown as Record<string, unknown>]);
@@ -1347,4 +1378,90 @@ export function useBudget(schoolId?: string) {
     createExpense,
     updateExpenseStatus,
   };
+}
+
+/**
+ * Parent names per pupil, for the "paid by" field on a payment.
+ *
+ * Recording a payment means typing who handed over the money, which is almost
+ * always the parent already on file. That was pure typing on every payment, and
+ * the same name spelled differently each time is exactly what makes a cashbook
+ * hard to reconcile later.
+ *
+ * Only runs while online and only for staff, because RLS on parent_students
+ * restricts it to the pupils in the caller's own school. Offline it resolves to
+ * an empty map, which leaves the field as a normal typed input -- a bursar with
+ * no signal is worse off guessing than typing.
+ */
+export function usePaymentParentNames(schoolId?: string): Record<string, string[]> {
+  const { isDemo } = useAuth();
+  const isOnline = useOnlineStatus();
+  const [byStudent, setByStudent] = useState<Record<string, string[]>>({});
+
+  useEffect(() => {
+    if (!schoolId || isDemoSchool(schoolId) || !isOnline) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const { data, error } = await withTimeout(
+          supabase
+            .from("parent_students")
+            .select("student_id, parent:parent_id (id, full_name, phone)")
+            .limit(5000),
+          15000,
+          timeoutFallback(),
+        );
+        if (cancelled || error || !data) return;
+
+        // A pupil can have more than one parent on file. Keep them all, ordered
+        // so the list is stable, and let the caller offer a choice rather than
+        // silently picking one.
+        const grouped: Record<string, string[]> = {};
+        for (const row of data as unknown as Array<{
+          student_id: string | null;
+          parent: { full_name?: string | null } | { id: string; full_name?: string | null }[] | null;
+        }>) {
+          if (!row.student_id) continue;
+          const parent = Array.isArray(row.parent) ? row.parent[0] : row.parent;
+          const name = parent?.full_name?.trim();
+          if (!name) continue;
+          grouped[row.student_id] = [...new Set([...(grouped[row.student_id] ?? []), name])].sort();
+        }
+        if (!cancelled) setByStudent(grouped);
+      } catch (err) {
+        logger.warn("[Fees] Could not load parent names for payments", err);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [schoolId, isOnline]);
+
+  return byStudent;
+}
+
+/**
+ * Turn a database error into something a bursar can act on.
+ *
+ * PostgREST surfaces Postgres error text verbatim, so a unique-constraint
+ * violation arrived at the payment form as "duplicate key value violates unique
+ * constraint idx_fee_payments_reference" -- an index name, not an instruction.
+ */
+export function translateFeePaymentError(error: unknown): Error {
+  const code = (error as { code?: string } | null)?.code;
+  const message = (error as { message?: string } | null)?.message ?? "";
+  if (code === "23505" && message.includes("fee_payments")) {
+    if (message.includes("reference")) {
+      return new Error(
+        "That payment reference has already been used. Check the number, or clear the reference if this payment has none.",
+      );
+    }
+    return new Error("This payment has already been recorded. Refresh to see it.");
+  }
+  if (code === "23505") {
+    return new Error("This payment has already been recorded. Refresh to see it.");
+  }
+  return error instanceof Error ? error : new Error(message || "The payment could not be saved.");
 }

@@ -13,24 +13,25 @@ import { join } from "node:path";
  * test the mocks rather than the behaviour.
  */
 
+import { translateFeePaymentError } from "@/lib/hooks/fees";
+
 const src = readFileSync(join(__dirname, "..", "lib", "hooks", "fees.ts"), "utf8");
 
 /** Strips comments so prose explaining a fix is never read as the defect. */
 const code = src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/[^\n]*/g, "$1");
 
-describe("cash payments can be recorded offline", () => {
-  it("does not demand a fee id precisely when there is no signal", () => {
-    // Was `!payment.fee_id && !isOnline`, which fired offline and named online
-    // in the error. fee_id is nullable and the sync inserts without it, so the
-    // guard contradicted both the schema and its own message.
-    expect(code).not.toMatch(/!payment\.fee_id && !isOnline/);
-    expect(code).toMatch(/!payment\.fee_id && isOnline/);
+describe("payments can be recorded, on any connection", () => {
+  it("no longer demands a fee id at all", () => {
+    // This guard blocked EVERY payment, not just offline ones. The normaliser
+    // strips fee_id, so `!payment.fee_id` was permanently true, and the form
+    // has no fee picker for a bursar to satisfy it with.
+    expect(code).not.toContain("Fee ID is required for online payments");
+    expect(code).not.toMatch(/!payment\.fee_id &&/);
   });
 
-  it("still refuses an unattributed payment when online", () => {
-    // The rule itself is unchanged; only the condition that triggered it was
-    // inverted.
-    expect(code).toContain("Fee ID is required for online payments");
+  it("records why, so it is not reinstated by accident", () => {
+    expect(src).toMatch(/normalizePaymentInput\(\) returns a fixed set of fields/);
+    expect(src).toMatch(/EVERY payment/);
   });
 
   it("queues the payment rather than dropping it", () => {
@@ -62,6 +63,47 @@ describe("deleting a payment works offline", () => {
     const del = code.slice(code.indexOf("const deletePayment"));
     expect(del).toContain('supabase.from("fee_payments").update(payload).eq("id", id)');
     expect(del).toContain('"Soft-deleted fee payment"');
+  });
+});
+
+describe("a duplicate payment reference explains itself", () => {
+  it("checks the reference before attempting the insert", () => {
+    // findRecentDuplicatePayment matches pupil + amount + method + a time
+    // window, so a repeated reference sailed straight through it.
+    expect(code).toMatch(/\.eq\("payment_reference", reference\)/);
+    expect(code).toMatch(/has already been used for another payment/);
+  });
+
+  it("scopes that check to the school", () => {
+    expect(code).toMatch(/\.eq\("school_id", querySchoolId\)/);
+  });
+
+  it("translates the constraint violation instead of leaking it", () => {
+    // PostgREST passes Postgres text straight through, so an index name was
+    // arriving on the payment form in place of an instruction.
+    expect(code).toContain("translateFeePaymentError");
+  });
+});
+
+describe("translateFeePaymentError", () => {
+  it("turns a unique violation into something actionable", () => {
+    const err = translateFeePaymentError({
+      code: "23505",
+      message: 'duplicate key value violates unique constraint "idx_fee_payments_reference"',
+    });
+    expect(err.message).toMatch(/already been used/i);
+    expect(err.message).not.toMatch(/idx_fee_payments_reference/);
+  });
+
+  it("covers other unique violations without leaking the index name", () => {
+    const err = translateFeePaymentError({ code: "23505", message: '... constraint "idx_something_else"' });
+    expect(err.message).toMatch(/already been recorded/i);
+    expect(err.message).not.toMatch(/idx_/);
+  });
+
+  it("passes other errors through unchanged", () => {
+    const original = new Error("Saving the payment timed out.");
+    expect(translateFeePaymentError(original).message).toBe("Saving the payment timed out.");
   });
 });
 

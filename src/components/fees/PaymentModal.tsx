@@ -24,6 +24,11 @@ interface PaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
   students: PaymentStudentOption[];
+  /**
+   * Parents on file, keyed by pupil id. Used to fill "Paid By" so it is not
+   * typed on every payment -- but only ever as a suggestion, never a lock.
+   */
+  parentNamesByStudent?: Record<string, string[]>;
   onSubmit: (e: React.FormEvent) => void;
   newPayment: PaymentData;
   onPaymentChange: (updates: Record<string, unknown>) => void;
@@ -34,6 +39,7 @@ export default function PaymentModal({
   isOpen,
   onClose,
   students,
+  parentNamesByStudent,
   onSubmit,
   newPayment,
   onPaymentChange,
@@ -108,6 +114,24 @@ export default function PaymentModal({
     fieldError(field)
       ? "border-2 border-[var(--red)] bg-[var(--surface)]"
       : "border border-[var(--border)] bg-[var(--surface)]";
+
+  // Parents on file for the pupil being paid.
+  const payerSuggestions = newPayment.student_id ? (parentNamesByStudent?.[newPayment.student_id] ?? []) : [];
+
+  // Fill "Paid By" once, and only into an empty field.
+  //
+  // The whole point is to stop the same parent being typed differently on every
+  // payment, which is what makes a cashbook impossible to reconcile. It has to
+  // stay a suggestion though: a grandmother, a sponsor, or a staff member
+  // collecting fees is ordinary, and silently overwriting what someone typed is
+  // worse than making them type. A change of pupil starts a fresh suggestion.
+  useEffect(() => {
+    if (!isOpen) return;
+    if (newPayment.paid_by.trim()) return;
+    const first = payerSuggestions[0];
+    if (first) onPaymentChange({ paid_by: first });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, newPayment.student_id]);
 
   if (!isOpen) return null;
 
@@ -461,7 +485,32 @@ export default function PaymentModal({
                   onChange={(e) => onPaymentChange({ paid_by: e.target.value })}
                   className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-xl py-3.5 px-4 text-sm text-[var(--t1)]"
                   placeholder="Name of payer"
+                  autoComplete="off"
                 />
+                {payerSuggestions.length > 1 && (
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                    <span className="text-[11px] text-[var(--t3)]">On file:</span>
+                    {payerSuggestions.map((name) => (
+                      <button
+                        key={name}
+                        type="button"
+                        onClick={() => onPaymentChange({ paid_by: name })}
+                        className={`min-h-9 rounded-full px-2.5 text-[11px] font-semibold transition-colors ${
+                          newPayment.paid_by === name
+                            ? "bg-[var(--primary)] text-white"
+                            : "bg-[var(--surface-container)] text-[var(--t2)]"
+                        }`}
+                      >
+                        {name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {payerSuggestions.length === 1 && !newPayment.paid_by && (
+                  <p className="mt-1.5 text-[11px] text-[var(--t3)]">
+                    Filled from the parent on file. Edit it if someone else paid.
+                  </p>
+                )}
               </div>
               <div>
                 <label
