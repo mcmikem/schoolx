@@ -234,6 +234,17 @@ export function normalizePaymentInput(input: Record<string, unknown>): Record<st
     paid_by: String(input.paid_by || "").trim(),
     notes: String(input.notes || "").trim(),
     payment_date: String(input.payment_date || "").trim(),
+    // Which fee this payment settles. Optional: a school may take a payment that
+    // is not tied to one line of the fee structure.
+    //
+    // This field used to be dropped here, which is why the payment form could
+    // not offer a choice of fee and why every payment ended up looking like it
+    // was tuition. Returned as a real UUID or undefined -- never "" -- because
+    // "" is a value and undefined is the absence of one, and only the latter
+    // leaves the column null.
+    ...(typeof input.fee_id === "string" && input.fee_id.trim()
+      ? { fee_id: input.fee_id.trim() }
+      : {}),
     // Transient intent flag for /api/fee-payments/ (no such DB column —
     // callers building direct inserts must strip it before writing).
     ...(input.allow_overpayment === true || input.allow_overpayment === "true" ? { allow_overpayment: true } : {}),

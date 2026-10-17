@@ -21,12 +21,16 @@ export interface StudentBalance {
     method: string;
     reference: string;
     date: string;
+    /** Fee line this payment settled, when it names one. */
+    fee?: string;
   }>;
   adjustments: Array<{
     id: string;
     adjustment_type: string;
     amount: number;
     description: string;
+    /** Fee line discounted, when the adjustment names one. */
+    fee?: string;
   }>;
 }
 
@@ -110,6 +114,7 @@ function BalanceLedger({ student }: { student: StudentBalance }) {
             Paid · {formatDate(p.date)}
             {p.method ? ` · ${p.method}` : ""}
             {p.reference ? ` · ${p.reference}` : ""}
+            {p.fee ? ` · ${p.fee}` : ""}
           </span>
           <span className="shrink-0 font-semibold tabular-nums text-emerald-700">−{formatCurrency(p.amount || 0)}</span>
         </div>
@@ -118,6 +123,7 @@ function BalanceLedger({ student }: { student: StudentBalance }) {
         <div key={a.id} className="flex items-center justify-between gap-3 text-[var(--t2)]">
           <span className="min-w-0 truncate">
             {a.adjustment_type || "Adjustment"}
+            {a.fee ? ` · ${a.fee}` : ""}
             {a.description ? ` · ${a.description}` : ""}
           </span>
           <span className="shrink-0 font-semibold tabular-nums">{formatCurrency(a.amount || 0)}</span>

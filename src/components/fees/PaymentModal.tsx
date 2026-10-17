@@ -1,5 +1,6 @@
 "use client";
 import { useState, useMemo, useEffect } from "react";
+import FeePicker, { type FeeOption } from "@/components/fees/FeePicker";
 import MaterialIcon from "@/components/MaterialIcon";
 import { Modal } from "@/components/ui/Modal";
 import { formatCurrency } from "@/lib/currency";
@@ -29,6 +30,14 @@ interface PaymentModalProps {
    * typed on every payment -- but only ever as a suggestion, never a lock.
    */
   parentNamesByStudent?: Record<string, string[]>;
+  /**
+   * Fee lines this school charges, so a payment for meals or the development
+   * fund can be recorded against the right fee instead of reading as tuition.
+   */
+  fees?: FeeOption[];
+  /** Which fee is recorded against. "" means the whole bill. */
+  feeId?: string;
+  onFeeChange?: (feeId: string) => void;
   onSubmit: (e: React.FormEvent) => void;
   newPayment: PaymentData;
   onPaymentChange: (updates: Record<string, unknown>) => void;
@@ -40,6 +49,9 @@ export default function PaymentModal({
   onClose,
   students,
   parentNamesByStudent,
+  fees,
+  feeId,
+  onFeeChange,
   onSubmit,
   newPayment,
   onPaymentChange,
@@ -521,6 +533,15 @@ export default function PaymentModal({
                     Filled from the parent on file. Edit it if someone else paid.
                   </p>
                 )}
+              </div>
+              <div>
+                <FeePicker
+                  fees={fees ?? []}
+                  value={feeId ?? ""}
+                  onChange={(id) => onFeeChange?.(id)}
+                  label="Paying Which Fee"
+                  emptyLabel="Whole bill / not fee-specific"
+                />
               </div>
               <div>
                 <label

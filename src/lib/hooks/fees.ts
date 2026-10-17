@@ -35,13 +35,15 @@ async function fetchFeePaymentsWithFallback(options: { schoolId: string; page: n
   const selectWithClass = `
     id, student_id, fee_id, amount_paid, payment_method, payment_reference,
     paid_by, notes, payment_date, created_at,
-    students!inner (id, first_name, last_name, student_number, class_id, school_id, classes (name))
+    students!inner (id, first_name, last_name, student_number, class_id, school_id, classes (name)),
+    fee_structure (name)
   `;
 
   const selectWithoutClass = `
     id, student_id, fee_id, amount_paid, payment_method, payment_reference,
     paid_by, notes, payment_date, created_at,
-    students!inner (id, first_name, last_name, student_number, class_id, school_id)
+    students!inner (id, first_name, last_name, student_number, class_id, school_id),
+    fee_structure (name)
   `;
 
   const joins = [selectWithClass, selectWithoutClass];
@@ -1095,6 +1097,12 @@ export function useFeeAdjustments(schoolId?: string) {
     adjustment_type: "scholarship" | "discount" | "penalty" | "manual_credit" | "write_off" | "bursary" | "amnesty";
     amount: number;
     description?: string;
+    /**
+     * Fee line the adjustment applies to. Omitted means the whole bill, which
+     * is right for a write-off or amnesty and the previous behaviour for every
+     * adjustment.
+     */
+    fee_id?: string;
   }) => {
     const validationErrors = validateAdjustment(adj);
     if (validationErrors.length > 0) {
@@ -1113,6 +1121,7 @@ export function useFeeAdjustments(schoolId?: string) {
         adjustment_type: mappedType,
         amount: adj.amount,
         notes: adj.description,
+        fee_id: adj.fee_id || null,
         id: `demo-adj-${Date.now()}`,
         school_id: schoolId || "00000000-0000-0000-0000-000000000001",
         recorded_by: user?.id,
@@ -1134,9 +1143,37 @@ export function useFeeAdjustments(schoolId?: string) {
       adjustment_type: mappedType,
       amount: adj.amount,
       notes: adj.description,
+      // Undefined rather than "": "" would write an empty string into a UUID
+      // column and fail the insert, and this column is nullable on purpose.
+      ...(adj.fee_id ? { fee_id: adj.fee_id } : {}),
       school_id: querySchoolId,
       recorded_by: user?.id,
     };
+
+    // A discount on meals and a discount on tuition are two different
+    // concessions; the same discount on the same fee twice is a data-entry
+    // slip. This can only be checked online -- the offline queue is written
+    // before the server has seen anything -- so offline entries may still
+    // collide, and the unique index will reject the sync rather than silently
+    // double-counting.
+    if (isOnline && adj.fee_id) {
+      const { data: clash } = await withTimeout(
+        supabase
+          .from("fee_adjustments")
+          .select("id, adjustment_type, amount")
+          .eq("school_id", querySchoolId)
+          .eq("student_id", adj.student_id)
+          .eq("fee_id", adj.fee_id)
+          .limit(1),
+        10000,
+        timeoutFallback(),
+      );
+      if (clash && clash.length > 0) {
+        throw new Error(
+          "This pupil already has an adjustment on that fee. Change the amount on the existing one.",
+        );
+      }
+    }
 
     if (!isOnline) {
       const offlineSaved = await offlineDB.save("fee_adjustments", payload as unknown as Record<string, unknown>);

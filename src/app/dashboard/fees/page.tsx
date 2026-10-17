@@ -256,6 +256,7 @@ export default function FinanceHubPage() {
       amount_paid: "",
       payment_date: getLocalDateString(),
       payment_reference: prev.payment_reference.trim() || generatePaymentReference(school?.school_code),
+      fee_id: prev.fee_id,
       momo_transaction_id: "",
       paid_by: "",
       notes: "",
@@ -339,6 +340,8 @@ export default function FinanceHubPage() {
     payment_date: string;
     payment_method: "cash" | "mobile_money" | "bank" | "installment" | "in_kind";
     payment_reference: string;
+    /** Fee line being paid. "" = whole bill. */
+    fee_id: string;
     momo_provider: "mtn" | "airtel";
     momo_transaction_id: string;
     paid_by: string;
@@ -350,6 +353,7 @@ export default function FinanceHubPage() {
     payment_date: getLocalDateString(),
     payment_method: PAYMENT_METHODS.CASH,
     payment_reference: "",
+    fee_id: "",
     momo_provider: "mtn" as const,
     momo_transaction_id: "",
     paid_by: "",
@@ -357,16 +361,54 @@ export default function FinanceHubPage() {
     allow_overpayment: false,
   });
 
+  // Fee lines to offer on a payment.
+  //
+  // Scoped to the class on screen and the current term. fee_structure is
+  // UNIQUE(school_id, class_id, name, term, academic_year), so a school has a
+  // separate line per class per term -- offering every line the school ever set
+  // would put a year-1 fee in front of a year-6 pupil. Lines with no term are
+  // one-off charges (application fees) and are valid for anyone.
+  //
+  // Falls back to every live line when a class filter is not narrowing things
+  // down, so the bursar is never shown an empty picker because they are on
+  // "All classes".
+  // Adjustments carry a bare fee_id and are not joined to fee_structure, so
+  // resolve names from the fee list already loaded for the picker.
+  const feeNameById = useMemo(
+    () => new Map(feeStructure.map((f) => [f.id, f.name])),
+    [feeStructure],
+  );
+
+  const payableFees = useMemo(() => {
+    const term = Number(currentTerm || 1);
+    const inTerm = (f: (typeof feeStructure)[number]) =>
+      f.term === term || f.term == null;
+    const scoped = feeStructure.filter(
+      (f) => !f.deleted_at && inTerm(f) && f.class_id === selectedClass,
+    );
+    const source = scoped.length > 0 ? scoped : feeStructure.filter((f) => !f.deleted_at && inTerm(f));
+    return source.map((f) => ({
+      id: f.id,
+      name: f.name,
+      amount: f.amount,
+      retired: Boolean(f.deleted_at),
+    }));
+  }, [feeStructure, currentTerm, selectedClass]);
+
+
   const [newAdjustment, setNewAdjustment] = useState<{
     student_id: string;
     adjustment_type: "discount" | "scholarship" | "penalty" | "manual_credit" | "write_off" | "bursary" | "amnesty";
     amount: string;
     description: string;
+    /** Fee line being discounted. "" = whole bill. */
+    fee_id: string;
   }>({
     student_id: "",
     adjustment_type: "bursary",
     amount: "",
     description: "",
+    fee_id: "",
   });
 
   const [plans, setPlans] = useState<PaymentPlan[]>([]);
@@ -565,12 +607,15 @@ export default function FinanceHubPage() {
           method: p.payment_method,
           reference: p.payment_reference || "",
           date: p.payment_date,
+          // Which fee was paid. Optional: a payment may cover the whole bill.
+          fee: p.fee_structure?.name || "",
         })),
         adjustments: studentAdjustments.map((a) => ({
           id: a.id,
           adjustment_type: a.adjustment_type,
           amount: Number(a.amount),
           description: a.notes || "",
+          fee: a.fee_id ? feeNameById.get(a.fee_id) || "" : "",
         })),
       };
     },
@@ -795,6 +840,7 @@ export default function FinanceHubPage() {
         payment_date: newPayment.payment_date,
         payment_method: newPayment.payment_method,
         payment_reference: reference || undefined,
+        fee_id: newPayment.fee_id || undefined,
         paid_by: newPayment.paid_by || undefined,
         notes: newPayment.notes || undefined,
         allow_overpayment: newPayment.allow_overpayment || undefined,
@@ -884,6 +930,7 @@ export default function FinanceHubPage() {
         payment_date: getLocalDateString(),
         payment_method: "cash",
         payment_reference: "",
+        fee_id: "",
         momo_provider: "mtn",
         momo_transaction_id: "",
         paid_by: "",
@@ -1230,6 +1277,7 @@ export default function FinanceHubPage() {
         adjustment_type: newAdjustment.adjustment_type,
         amount: Number(newAdjustment.amount),
         description: newAdjustment.description.trim(),
+        fee_id: newAdjustment.fee_id || undefined,
       });
       toast.success("Adjustment recorded");
       setShowAdjustmentModal(false);
@@ -1238,6 +1286,7 @@ export default function FinanceHubPage() {
         adjustment_type: "bursary",
         amount: "",
         description: "",
+        fee_id: "",
       });
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : "Failed to record adjustment");
@@ -2056,6 +2105,9 @@ export default function FinanceHubPage() {
             class_name: s.class_name,
           }))}
           parentNamesByStudent={parentNamesByStudent}
+          fees={payableFees}
+          feeId={newPayment.fee_id}
+          onFeeChange={(feeId) => setNewPayment((prev) => ({ ...prev, fee_id: feeId }))}
           onSubmit={handleRecordPayment}
           newPayment={newPayment}
           onPaymentChange={handlePaymentChange}

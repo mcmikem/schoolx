@@ -1,4 +1,5 @@
 "use client";
+import FeePicker, { type FeeOption } from "@/components/fees/FeePicker";
 import StudentPicker from "@/components/students/StudentPicker";
 import { Modal } from "@/components/ui/Modal";
 
@@ -7,12 +8,15 @@ interface AdjustmentData {
   adjustment_type: "discount" | "scholarship" | "penalty" | "manual_credit" | "write_off" | "bursary" | "amnesty";
   amount: string;
   description: string;
+  /** Fee line being discounted. "" = whole bill. */
+  fee_id: string;
 }
 
 interface AdjustmentModalProps {
   isOpen: boolean;
   onClose: () => void;
   students: Array<{ id: string; name: string; balance: number }>;
+  fees?: FeeOption[];
   onSubmit: (e: React.FormEvent) => void;
   newAdjustment: AdjustmentData;
   onAdjustmentChange: (updates: Partial<AdjustmentData>) => void;
@@ -23,6 +27,7 @@ export default function AdjustmentModal({
   isOpen,
   onClose,
   students,
+  fees,
   onSubmit,
   newAdjustment,
   onAdjustmentChange,
@@ -98,6 +103,14 @@ export default function AdjustmentModal({
             />
           </div>
         </div>
+
+        <FeePicker
+          fees={fees ?? []}
+          value={newAdjustment.fee_id}
+          onChange={(fee_id) => onAdjustmentChange({ fee_id })}
+          label="Applies To Which Fee"
+          emptyLabel="Whole bill / not fee-specific"
+        />
 
         <div>
           <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">

@@ -298,6 +298,8 @@ export interface FeePayment {
   deleted_by?: string;
   created_at: string;
   students?: Student & { classes?: Class };
+  /** Fee line this payment settled, when it names one. */
+  fee_structure?: { name: string } | null;
 }
 
 export interface CreatePaymentInput {
@@ -319,6 +321,8 @@ export interface FeeAdjustment {
   amount: number;
   adjustment_type: "discount" | "scholarship" | "penalty" | "manual_credit" | "write_off" | "bursary" | "amnesty";
   notes?: string;
+  /** Fee line this adjustment applies to. Absent/null = the pupil's whole bill. */
+  fee_id?: string | null;
   recorded_by?: string;
   deleted_at?: string;
   deleted_by?: string;
