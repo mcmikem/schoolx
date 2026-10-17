@@ -730,6 +730,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               return;
             }
 
+            // On a returning session, paint the last-known profile immediately
+            // instead of leaving the dashboard blank while getUser() and the
+            // profile endpoint make sequential network requests. The session
+            // remains authoritative; the verified profile below reconciles
+            // this display cache as soon as the network responds.
+            if (event === "INITIAL_SESSION" && session) {
+              try {
+                const cachedUser = localStorage.getItem(OFFLINE_USER_KEY);
+                if (cachedUser) {
+                  const parsedUser = JSON.parse(cachedUser) as User;
+                  const belongsToSession = parsedUser.auth_id === session.user.id || parsedUser.id === session.user.id;
+                  if (belongsToSession) {
+                    const cachedSchool = localStorage.getItem(OFFLINE_SCHOOL_KEY);
+                    setUser(parsedUser);
+                    setSchool(cachedSchool ? JSON.parse(cachedSchool) : null);
+                    setIsDemo(false);
+                    setLoading(false);
+                    setAuthInitialized(true);
+                  }
+                }
+              } catch (error) {
+                logger.warn("Initial cached profile hydration failed:", error);
+              }
+            }
+
             // Only set loading=true on explicit SIGNED_IN (user just logged in).
             // INITIAL_SESSION and TOKEN_REFRESHED should NOT toggle loading
             // because they can fire during normal navigation and cause
@@ -995,28 +1020,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             lastError = { message: "No user returned from Supabase" };
             continue;
           }
-
-          // Refresh offline cache in the background — don't await
-          import("@/lib/offline")
-            .then(({ offlineDB }) => {
-              offlineDB
-                .refreshAll([
-                  "students",
-                  "classes",
-                  "subjects",
-                  "attendance",
-                  "grades",
-                  "fee_payments",
-                  "fee_structure",
-                  "fee_adjustments",
-                  "messages",
-                  "events",
-                  "timetable",
-                  "canteen_sales",
-                ])
-                .catch((err) => logger.warn("[auth] Background offlineDB refresh failed", err));
-            })
-            .catch((err) => logger.warn("[auth] Dynamic import of offlineDB failed", err));
 
           releaseSignInLock();
           // Remember the winning format so the next login tries it first.

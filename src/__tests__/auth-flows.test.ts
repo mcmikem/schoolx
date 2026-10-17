@@ -249,6 +249,23 @@ describe("dashboard paints without waiting on the network", () => {
     expect(src).toMatch(/setUser\(JSON\.parse\(cachedUser\) as User\)/);
   });
 
+  it("unblocks a returning session after a matching cached profile is painted", () => {
+    const initialSession = src.indexOf('if (event === "INITIAL_SESSION" && session)');
+    const getUser = src.indexOf("withSupabaseLockRetry(async () => await supabase!.auth.getUser())", initialSession);
+    const hydrate = src.indexOf("setUser(parsedUser)", initialSession);
+    const ready = src.indexOf("setAuthInitialized(true)", hydrate);
+
+    expect(initialSession).toBeGreaterThan(-1);
+    expect(hydrate).toBeGreaterThan(initialSession);
+    expect(ready).toBeGreaterThan(hydrate);
+    expect(ready).toBeLessThan(getUser);
+    expect(src).toContain("parsedUser.auth_id === session.user.id || parsedUser.id === session.user.id");
+  });
+
+  it("does not compete with first paint by downloading whole school tables at sign-in", () => {
+    expect(src).not.toContain("offlineDB.refreshAll([");
+  });
+
   it("does not wait for getUser() or /api/auth/me/ before showing it", () => {
     // The hydration block must appear before the getUser() call that follows it.
     const hydrate = src.indexOf("Optimistic profile hydration failed");

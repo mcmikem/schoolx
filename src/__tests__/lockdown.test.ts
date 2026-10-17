@@ -7,7 +7,7 @@
 // Run: npm test -- --testPathPattern=lockdown
 // ============================================================================
 
-import { describe, it, expect } from "@jest/globals";
+import { describe, expect, it } from "@jest/globals";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -235,9 +235,8 @@ describe("🔒 LOCKDOWN: Auth Context", () => {
     expect(authContext).toContain("res.status === 504");
   });
 
-  it("must refresh offline cache on successful sign-in", () => {
-    expect(authContext).toContain("offlineDB");
-    expect(authContext).toContain("refreshAll");
+  it("must not download whole offline tables on successful sign-in", () => {
+    expect(authContext).not.toContain("offlineDB.refreshAll");
   });
 
   it("must keep a valid session when profile fetch fails (degraded login, NOT signout)", () => {
