@@ -111,3 +111,120 @@ describe("record payment form", () => {
     expect(screen.getByRole("button", { name: /Next/ })).toBeEnabled();
   });
 });
+
+/**
+ * "Paid By" fills itself from the parent on file.
+ *
+ * The hint that says where the name came from was unreachable: it was gated on
+ * the field being EMPTY, and the autofill had already filled it by the time
+ * anything rendered. So the name appeared with no explanation -- which is worse
+ * than no autofill at all, because the bursar cannot tell a suggestion from a
+ * value someone else entered.
+ */
+function FormWithParents({ parents }: { parents: Record<string, string[]> }) {
+  const [payment, setPayment] = useState({
+    student_id: "",
+    amount_paid: "",
+    payment_date: getLocalDateString(),
+    payment_method: "cash",
+    payment_reference: "",
+    momo_provider: "mtn" as const,
+    momo_transaction_id: "",
+    paid_by: "",
+    notes: "",
+    allow_overpayment: false,
+  });
+  return (
+    <PaymentModal
+      isOpen
+      onClose={() => {}}
+      students={students}
+      parentNamesByStudent={parents}
+      newPayment={payment}
+      saving={false}
+      onPaymentChange={(updates) => setPayment((previous) => ({ ...previous, ...updates }))}
+      onSubmit={() => mockSave(payment)}
+    />
+  );
+}
+
+function chooseFirstStudent() {
+  const search = screen.getByRole("combobox", { name: "Student" });
+  fireEvent.change(search, { target: { value: "STU-001" } });
+  fireEvent.keyDown(search, { key: "Enter" });
+  fireEvent.change(screen.getByLabelText("Amount (UGX)"), { target: { value: "50000" } });
+  fireEvent.click(screen.getByRole("button", { name: /Next/ }));
+}
+
+describe("paid by fills from the parent on file", () => {
+  beforeEach(() => mockSave.mockClear());
+
+  it("puts the parent's name in the field", () => {
+    render(<FormWithParents parents={{ "student-1": ["Nakato Sarah"] }} />);
+    chooseFirstStudent();
+    expect(screen.getByLabelText("Paid By")).toHaveValue("Nakato Sarah");
+  });
+
+  it("says where the name came from", () => {
+    // The bug: this hint never rendered, so the name just appeared.
+    render(<FormWithParents parents={{ "student-1": ["Nakato Sarah"] }} />);
+    chooseFirstStudent();
+    expect(screen.getByText(/Filled from the parent on file/i)).toBeInTheDocument();
+  });
+
+  it("stops claiming that once someone types their own name", () => {
+    render(<FormWithParents parents={{ "student-1": ["Nakato Sarah"] }} />);
+    chooseFirstStudent();
+    fireEvent.change(screen.getByLabelText("Paid By"), { target: { value: "Grandma Awo" } });
+    expect(screen.getByLabelText("Paid By")).toHaveValue("Grandma Awo");
+    expect(screen.queryByText(/Filled from the parent on file/i)).toBeNull();
+  });
+
+  it("leaves the field empty when no parent is on file", () => {
+    render(<FormWithParents parents={{}} />);
+    chooseFirstStudent();
+    expect(screen.getByLabelText("Paid By")).toHaveValue("");
+    expect(screen.queryByText(/Filled from the parent on file/i)).toBeNull();
+  });
+
+  it("offers both parents rather than guessing when there are two", () => {
+    render(<FormWithParents parents={{ "student-1": ["Nakato Sarah", "Nakato Peter"] }} />);
+    chooseFirstStudent();
+    expect(screen.getByRole("button", { name: "Nakato Sarah" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Nakato Peter" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Nakato Peter" }));
+    expect(screen.getByLabelText("Paid By")).toHaveValue("Nakato Peter");
+  });
+
+  it("never overwrites a name someone already typed", () => {
+    function PreTyped() {
+      const [payment, setPayment] = useState({
+        student_id: "",
+        amount_paid: "",
+        payment_date: getLocalDateString(),
+        payment_method: "cash",
+        payment_reference: "",
+        momo_provider: "mtn" as const,
+        momo_transaction_id: "",
+        paid_by: "Sponsor X",
+        notes: "",
+        allow_overpayment: false,
+      });
+      return (
+        <PaymentModal
+          isOpen
+          onClose={() => {}}
+          students={students}
+          parentNamesByStudent={{ "student-1": ["Nakato Sarah"] }}
+          newPayment={payment}
+          saving={false}
+          onPaymentChange={(u) => setPayment((p) => ({ ...p, ...u }))}
+          onSubmit={() => mockSave(payment)}
+        />
+      );
+    }
+    render(<PreTyped />);
+    chooseFirstStudent();
+    expect(screen.getByLabelText("Paid By")).toHaveValue("Sponsor X");
+  });
+});

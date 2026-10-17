@@ -125,11 +125,18 @@ export default function PaymentModal({
   // stay a suggestion though: a grandmother, a sponsor, or a staff member
   // collecting fees is ordinary, and silently overwriting what someone typed is
   // worse than making them type. A change of pupil starts a fresh suggestion.
+  const [payerAutoFilled, setPayerAutoFilled] = useState(false);
+
   useEffect(() => {
     if (!isOpen) return;
     if (newPayment.paid_by.trim()) return;
     const first = payerSuggestions[0];
-    if (first) onPaymentChange({ paid_by: first });
+    if (first) {
+      onPaymentChange({ paid_by: first });
+      setPayerAutoFilled(true);
+      return;
+    }
+    setPayerAutoFilled(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen, newPayment.student_id]);
 
@@ -482,7 +489,10 @@ export default function PaymentModal({
                   id="payment-payer"
                   type="text"
                   value={newPayment.paid_by}
-                  onChange={(e) => onPaymentChange({ paid_by: e.target.value })}
+                  onChange={(e) => {
+                    setPayerAutoFilled(false);
+                    onPaymentChange({ paid_by: e.target.value });
+                  }}
                   className="w-full bg-[var(--surface)] border border-[var(--border)] rounded-xl py-3.5 px-4 text-sm text-[var(--t1)]"
                   placeholder="Name of payer"
                   autoComplete="off"
@@ -506,7 +516,7 @@ export default function PaymentModal({
                     ))}
                   </div>
                 )}
-                {payerSuggestions.length === 1 && !newPayment.paid_by && (
+                {payerAutoFilled && payerSuggestions.includes(newPayment.paid_by) && (
                   <p className="mt-1.5 text-[11px] text-[var(--t3)]">
                     Filled from the parent on file. Edit it if someone else paid.
                   </p>
