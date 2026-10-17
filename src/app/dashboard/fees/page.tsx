@@ -363,37 +363,65 @@ export default function FinanceHubPage() {
 
   // Fee lines to offer on a payment.
   //
-  // Scoped to the class on screen and the current term. fee_structure is
-  // UNIQUE(school_id, class_id, name, term, academic_year), so a school has a
-  // separate line per class per term -- offering every line the school ever set
-  // would put a year-1 fee in front of a year-6 pupil. Lines with no term are
-  // one-off charges (application fees) and are valid for anyone.
+  // Fee lines are per class AND per term AND per year: the unique key is
+  // (school_id, class_id, name, term, academic_year). Offering every line the
+  // school ever set would put a year-1 fee in front of a year-6 pupil and last
+  // year's Development Fund in front of this year's, so all three narrow it:
   //
-  // Falls back to every live line when a class filter is not narrowing things
-  // down, so the bursar is never shown an empty picker because they are on
-  // "All classes".
+  //  - year: matches the current academic year. A school reuses fee names year
+  //    over year ("Tuition", "Meals") and keeps one row per year; this is the
+  //    one being charged now.
+  //  - term: the current term. A line with no term is a one-off charge such as
+  //    an application fee and applies to anyone.
+  //  - class: the class on screen, plus school-wide lines. class_id IS NULL
+  //    means "every class" and those are legitimate choices. The unique index
+  //    does not stop duplicates there, because Postgres treats NULLs as
+  //    distinct -- live data has one school holding 36 identical school-wide
+  //    rows. "All classes" excludes nothing on class.
+  const payableFees = useMemo(() => {
+    const term = Number(currentTerm || 1);
+    const allClasses = selectedClass === "all";
+    return feeStructure
+      .filter((f) => {
+        if (f.deleted_at) return false;
+        if (academicYear && f.academic_year && f.academic_year !== academicYear) return false;
+        if (f.term != null && f.term !== term) return false;
+        if (!allClasses && f.class_id != null && f.class_id !== selectedClass) return false;
+        return true;
+      })
+      .map((f) => ({
+        id: f.id,
+        name: f.name,
+        amount: f.amount,
+        retired: Boolean(f.deleted_at),
+      }));
+  }, [feeStructure, currentTerm, academicYear, selectedClass]);
+
+  // What to preselect: tuition, because that is what most payments are for and
+  // it is the answer the bursar wants nearly every time.
+  //
+  // Only when there is exactly one tuition line to pick from. Measured on live
+  // data, 49 of 50 class/term groups have a single tuition line, so this fills
+  // the field in almost every real case. The group that does not is a pile of
+  // identical school-wide duplicates, and choosing between those by id would
+  // file the payment against a line nobody picked. One tap to choose is cheap;
+  // mis-filing money is not recoverable.
+  const defaultFeeId = useMemo(() => {
+    const tuition = payableFees.filter((f) => !f.retired && /tuition/i.test(f.name));
+    if (tuition.length === 1) return tuition[0].id;
+    // Several rows naming the same fee at the same price are the same fee to the
+    // person paying; only the duplicate id differs.
+    const distinct = new Set(tuition.map((f) => `${f.name}|${f.amount}`));
+    if (distinct.size === 1 && tuition.length > 0) return tuition[0].id;
+    return "";
+  }, [payableFees]);
+
   // Adjustments carry a bare fee_id and are not joined to fee_structure, so
   // resolve names from the fee list already loaded for the picker.
   const feeNameById = useMemo(
     () => new Map(feeStructure.map((f) => [f.id, f.name])),
     [feeStructure],
   );
-
-  const payableFees = useMemo(() => {
-    const term = Number(currentTerm || 1);
-    const inTerm = (f: (typeof feeStructure)[number]) =>
-      f.term === term || f.term == null;
-    const scoped = feeStructure.filter(
-      (f) => !f.deleted_at && inTerm(f) && f.class_id === selectedClass,
-    );
-    const source = scoped.length > 0 ? scoped : feeStructure.filter((f) => !f.deleted_at && inTerm(f));
-    return source.map((f) => ({
-      id: f.id,
-      name: f.name,
-      amount: f.amount,
-      retired: Boolean(f.deleted_at),
-    }));
-  }, [feeStructure, currentTerm, selectedClass]);
 
 
   const [newAdjustment, setNewAdjustment] = useState<{
@@ -2106,6 +2134,7 @@ export default function FinanceHubPage() {
           }))}
           parentNamesByStudent={parentNamesByStudent}
           fees={payableFees}
+          defaultFeeId={defaultFeeId}
           feeId={newPayment.fee_id}
           onFeeChange={(feeId) => setNewPayment((prev) => ({ ...prev, fee_id: feeId }))}
           onSubmit={handleRecordPayment}

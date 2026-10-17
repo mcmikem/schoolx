@@ -20,6 +20,12 @@ interface FeePickerProps {
   emptyLabel?: string;
   disabled?: boolean;
   required?: boolean;
+  /**
+   * Line to preselect, decided by the caller. The caller knows the school, class
+   * and term, so it can tell whether tuition is unambiguous; this component only
+   * falls back to it when the bursar has not chosen anything themselves.
+   */
+  defaultFeeId?: string;
 }
 
 /**
@@ -45,6 +51,7 @@ export default function FeePicker({
   emptyLabel = "Whole bill / not fee-specific",
   disabled,
   required,
+  defaultFeeId = "",
 }: FeePickerProps) {
   const [touched, setTouched] = useState(false);
 
@@ -55,9 +62,14 @@ export default function FeePicker({
       ? `${fee.name} — ${formatCurrency(Number(fee.amount))}`
       : fee.name;
 
-  // Preselect only when there is no real choice to make, and never after the
-  // person has already chosen something.
-  const autoPicked = !touched && !value && live.length === 1 ? live[0] : null;
+  // A default is shown but never committed: it is only a starting point for the
+  // select. Reporting it back to the parent is left to them deliberately -- a
+  // payment that names a fee the bursar never looked at is a claim about money
+  // they did not make, so the parent decides when it counts.
+  const autoPicked =
+    !touched && !value && defaultFeeId
+      ? live.find((f) => f.id === defaultFeeId) ?? null
+      : null;
   const selected = value || autoPicked?.id || "";
 
   return (

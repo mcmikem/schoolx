@@ -17,6 +17,8 @@ interface AdjustmentModalProps {
   onClose: () => void;
   students: Array<{ id: string; name: string; balance: number }>;
   fees?: FeeOption[];
+  /** Tuition line to preselect when the bursar has not chosen a fee. */
+  defaultFeeId?: string;
   onSubmit: (e: React.FormEvent) => void;
   newAdjustment: AdjustmentData;
   onAdjustmentChange: (updates: Partial<AdjustmentData>) => void;
@@ -28,6 +30,7 @@ export default function AdjustmentModal({
   onClose,
   students,
   fees,
+  defaultFeeId,
   onSubmit,
   newAdjustment,
   onAdjustmentChange,
@@ -106,6 +109,7 @@ export default function AdjustmentModal({
 
         <FeePicker
           fees={fees ?? []}
+          defaultFeeId={defaultFeeId}
           value={newAdjustment.fee_id}
           onChange={(fee_id) => onAdjustmentChange({ fee_id })}
           label="Applies To Which Fee"

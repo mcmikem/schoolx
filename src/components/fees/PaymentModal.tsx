@@ -35,6 +35,8 @@ interface PaymentModalProps {
    * fund can be recorded against the right fee instead of reading as tuition.
    */
   fees?: FeeOption[];
+  /** Tuition line to preselect when the bursar has not chosen a fee. */
+  defaultFeeId?: string;
   /** Which fee is recorded against. "" means the whole bill. */
   feeId?: string;
   onFeeChange?: (feeId: string) => void;
@@ -50,6 +52,7 @@ export default function PaymentModal({
   students,
   parentNamesByStudent,
   fees,
+  defaultFeeId,
   feeId,
   onFeeChange,
   onSubmit,
@@ -537,6 +540,7 @@ export default function PaymentModal({
               <div>
                 <FeePicker
                   fees={fees ?? []}
+                  defaultFeeId={defaultFeeId}
                   value={feeId ?? ""}
                   onChange={(id) => onFeeChange?.(id)}
                   label="Paying Which Fee"
