@@ -1,24 +1,33 @@
 "use client";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { useMemo } from "react";
 import OwlMascot from "@/components/brand/OwlMascot";
 import ActionPanel from "@/components/dashboard/ActionPanel";
-import SchoolCalendar from "@/components/dashboard/SchoolCalendar";
 import StatCard from "@/components/dashboard/StatCard";
-import TaskManager from "@/components/dashboard/TaskManager";
-import TeamPreview from "@/components/dashboard/TeamPreview";
 import UpNextCard from "@/components/dashboard/UpNextCard";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import MaterialIcon from "@/components/MaterialIcon";
-import SetupChecklist from "@/components/onboarding/SetupChecklist";
 import CollapsibleSection from "@/components/ui/CollapsibleSection";
 import { StuckLoadingOverlay, TopLoadingBar } from "@/components/ui/Skeleton";
 import { useAcademic } from "@/lib/academic-context";
 import { useAuth } from "@/lib/auth-context";
-import { useAllStudents, useClasses, useDashboardStats, useFeeStructure } from "@/lib/hooks";
+import { useDashboardStats } from "@/lib/hooks/analytics";
+import { useAllStudents, useClasses } from "@/lib/hooks/students";
 import { useDashboardExtraData } from "@/lib/hooks/useDashboardExtraData";
 import { formatNumber, greetingFor, todayLabelFor } from "@/lib/utils";
+
+const SetupChecklist = dynamic(() => import("@/components/onboarding/SetupChecklist"), {
+  loading: () => <div className="h-16 rounded-xl bg-[var(--surface)]" aria-hidden="true" />,
+});
+const TaskManager = dynamic(() => import("@/components/dashboard/TaskManager"));
+const TeamPreview = dynamic(() => import("@/components/dashboard/TeamPreview"), {
+  loading: () => <div className="h-32 rounded-xl bg-[var(--surface)]" aria-hidden="true" />,
+});
+const SchoolCalendar = dynamic(() => import("@/components/dashboard/SchoolCalendar"), {
+  loading: () => <div className="h-48 rounded-xl bg-[var(--surface)]" aria-hidden="true" />,
+});
 
 function HeadmasterDashboardContent() {
   const { school, user } = useAuth();
@@ -26,7 +35,6 @@ function HeadmasterDashboardContent() {
 
   const { stats, loading: statsLoading } = useDashboardStats(school?.id, { term: currentTerm, academicYear });
   const { students, ready: rosterReady } = useAllStudents(school?.id);
-  const { feeStructure = [] } = useFeeStructure(school?.id);
   const { classes = [] } = useClasses(school?.id);
 
   const {
@@ -38,7 +46,7 @@ function HeadmasterDashboardContent() {
     dropoutRiskCount,
     loading: loadingExtra,
     timedOut,
-  } = useDashboardExtraData(school?.id, rosterReady ? students : null, feeStructure, currentTerm, academicYear);
+  } = useDashboardExtraData(school?.id, rosterReady ? students : null, [], currentTerm, academicYear);
 
   const currentDate = useMemo(() => new Date(), []);
   const greeting = greetingFor(currentDate);
@@ -330,6 +338,65 @@ function HeadmasterDashboardContent() {
               </div>
             </div>
           </div>
+            <div className="stat-grid !mb-0 md:!grid-cols-3 lg:!grid-cols-3">
+              <StatCard
+                label="Students"
+                value={statsLoading ? "—" : formatNumber(stats.totalStudents)}
+                subValue={`${formatNumber(boysCount)}B · ${formatNumber(girlsCount)}G`}
+                icon="group"
+                accentColor="navy"
+                loading={statsLoading}
+                href="/dashboard/students"
+                hrefLabel="Open students"
+              />
+              <StatCard
+                label="Attendance today"
+                value={
+                  statsLoading || stats.presentToday < 0
+                    ? "—"
+                    : stats.presentToday > 0
+                      ? `${attendanceRate}%`
+                      : "Not recorded"
+                }
+                subValue={
+                  statsLoading || stats.presentToday < 0
+                    ? "Updating…"
+                    : stats.presentToday > 0
+                      ? `${stats.presentToday} present`
+                      : "Not taken yet"
+                }
+                icon="how_to_reg"
+                accentColor={
+                  statsLoading || stats.presentToday < 0
+                    ? "amber"
+                    : stats.presentToday > 0
+                      ? attendanceRate >= 80
+                        ? "green"
+                        : "amber"
+                      : "red"
+                }
+                loading={statsLoading}
+                href="/dashboard/attendance"
+                hrefLabel="Open attendance"
+              />
+              <StatCard
+                label="Fees collected"
+                value={statsLoading ? "—" : totalExpected > 0 ? `UGX ${compactFeesCollected}` : "Not set"}
+                subValue={
+                  statsLoading
+                    ? undefined
+                    : totalExpected > 0
+                      ? `${collectionRate}% of expected${overdueFeeCount > 0 ? ` · ${overdueFeeCount} overdue` : ""}`
+                      : "No fees set"
+                }
+                icon="payments"
+                accentColor={totalExpected > 0 ? (collectionRate >= 70 ? "green" : "amber") : "red"}
+                loading={statsLoading}
+                href="/dashboard/fees"
+                hrefLabel="Open fees"
+              />
+            </div>
+
           <SetupChecklist autoHide />
 
           <div className="mb-5">
@@ -346,65 +413,6 @@ function HeadmasterDashboardContent() {
             {/* ── Left Column: Metrics + Task Manager ── */}
             <div className="xl:col-span-2 space-y-5">
               <UpNextCard task={primaryTask} />
-
-              <div className="stat-grid !mb-0 md:!grid-cols-3 lg:!grid-cols-3">
-                <StatCard
-                  label="Students"
-                  value={statsLoading ? "—" : formatNumber(stats.totalStudents)}
-                  subValue={`${formatNumber(boysCount)}B · ${formatNumber(girlsCount)}G`}
-                  icon="group"
-                  accentColor="navy"
-                  loading={statsLoading}
-                  href="/dashboard/students"
-                  hrefLabel="Open students"
-                />
-                <StatCard
-                  label="Attendance today"
-                  value={
-                    statsLoading || stats.presentToday < 0
-                      ? "—"
-                      : stats.presentToday > 0
-                        ? `${attendanceRate}%`
-                        : "Not recorded"
-                  }
-                  subValue={
-                    statsLoading || stats.presentToday < 0
-                      ? "Updating…"
-                      : stats.presentToday > 0
-                        ? `${stats.presentToday} present`
-                        : "Not taken yet"
-                  }
-                  icon="how_to_reg"
-                  accentColor={
-                    statsLoading || stats.presentToday < 0
-                      ? "amber"
-                      : stats.presentToday > 0
-                        ? attendanceRate >= 80
-                          ? "green"
-                          : "amber"
-                        : "red"
-                  }
-                  loading={statsLoading}
-                  href="/dashboard/attendance"
-                  hrefLabel="Open attendance"
-                />
-                <StatCard
-                  label="Fees collected"
-                  value={statsLoading ? "—" : totalExpected > 0 ? `UGX ${compactFeesCollected}` : "Not set"}
-                  subValue={
-                    statsLoading
-                      ? undefined
-                      : totalExpected > 0
-                        ? `${collectionRate}% of expected${overdueFeeCount > 0 ? ` · ${overdueFeeCount} overdue` : ""}`
-                        : "No fees set"
-                  }
-                  icon="payments"
-                  accentColor={totalExpected > 0 ? (collectionRate >= 70 ? "green" : "amber") : "red"}
-                  loading={statsLoading}
-                  href="/dashboard/fees"
-                  hrefLabel="Open fees"
-                />
-              </div>
 
               {tasks.length > 1 && (
                 <CollapsibleSection
