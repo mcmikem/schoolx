@@ -28,7 +28,8 @@ import {
   generateCBCReportHTML,
 } from "@/lib/cbc-report";
 import { DEMO_GRADES, DEMO_SUBJECTS } from "@/lib/demo-data";
-import { useClasses, useFeePayments, useFeeStructure, useStudents, useSubjects } from "@/lib/hooks";
+import { useClasses, useFeeAdjustments, useFeePayments, useFeeStructure, useStudents, useSubjects } from "@/lib/hooks";
+import { computeFeeClearance, type FeeClearance } from "@/lib/fee-clearance";
 import { isTimeoutResult, timeoutFallback, withTimeout } from "@/lib/hooks/utils";
 import { logger } from "@/lib/logger";
 import { searchReportList } from "@/lib/report-list";
@@ -95,8 +96,6 @@ function getCompetencyLabel(level: string | undefined): { label: string; emoji: 
   }
 }
 
-
-
 export default function ReportCardsPage() {
   const { school, user, isDemo } = useAuth();
   const { academicYear, currentTerm } = useAcademic();
@@ -104,8 +103,9 @@ export default function ReportCardsPage() {
   const { classes } = useClasses(school?.id);
   const { subjects } = useSubjects(school?.id);
   const { students: classStudents } = useStudents(school?.id, { limit: 1000 });
-  const { payments } = useFeePayments(school?.id);
+  const { payments } = useFeePayments(school?.id, 1, 5000);
   const { feeStructure } = useFeeStructure(school?.id);
+  const { adjustments } = useFeeAdjustments(school?.id);
 
   const [selectedClass, setSelectedClass] = useState("");
   const [reportFormat, setReportFormat] = useState<"numerical" | "competency" | "both" | "cbc">("numerical");
@@ -119,7 +119,9 @@ export default function ReportCardsPage() {
   const [behaviour, setBehaviour] = useState<Record<string, Record<string, number | null>>>({});
   const [savingRating, setSavingRating] = useState<string | null>(null);
   // Guards the bulk remark action against silently overwriting a hand-written line.
-  const [confirmOverwrite, setConfirmOverwrite] = useState<{ field: "classTeacher" | "hm"; count: number } | null>(null);
+  const [confirmOverwrite, setConfirmOverwrite] = useState<{ field: "classTeacher" | "hm"; count: number } | null>(
+    null,
+  );
   const [sendingSms, setSendingSms] = useState(false);
   const [hasMissingMarks, setHasMissingMarks] = useState(false);
   const [generatingAll, setGeneratingAll] = useState(false);
@@ -164,17 +166,40 @@ export default function ReportCardsPage() {
     ? `${selectedClassObj.name}${selectedClassObj.stream ? ` ${selectedClassObj.stream}` : ""}`
     : "";
 
-  const totalFeePerStudent = useMemo(() => {
-    return feeStructure.reduce((sum, f) => sum + Number(f.amount || 0), 0);
-  }, [feeStructure]);
+  // Fee clearance per pupil, from the same engine the bursar's screen uses
+  // (class/boarding/meal applicability, adjustments and opening balance). This
+  // is the lawful lever: withholding the REPORT CARD, never the exam sitting.
+  const clearanceByStudent = useMemo(() => {
+    const paymentsByStudent = new Map<string, typeof payments>();
+    payments.forEach((p) => {
+      if (!paymentsByStudent.has(p.student_id)) paymentsByStudent.set(p.student_id, []);
+      paymentsByStudent.get(p.student_id)!.push(p);
+    });
+    const adjustmentsByStudent = new Map<string, typeof adjustments>();
+    adjustments.forEach((a) => {
+      if (!adjustmentsByStudent.has(a.student_id)) adjustmentsByStudent.set(a.student_id, []);
+      adjustmentsByStudent.get(a.student_id)!.push(a);
+    });
+    const map = new Map<string, FeeClearance>();
+    classStudents.forEach((s) => {
+      map.set(
+        s.id,
+        computeFeeClearance({
+          student: s,
+          fees: feeStructure,
+          payments: paymentsByStudent.get(s.id) || [],
+          adjustments: adjustmentsByStudent.get(s.id) || [],
+          academicYear,
+          currentTerm,
+        }),
+      );
+    });
+    return map;
+  }, [classStudents, feeStructure, payments, adjustments, academicYear, currentTerm]);
 
   const getStudentFeeBalance = useCallback(
-    (studentId: string): number => {
-      const studentPayments = payments.filter((p) => p.student_id === studentId);
-      const paid = studentPayments.reduce((sum, p) => sum + Number(p.amount_paid || 0), 0);
-      return Math.max(0, totalFeePerStudent - paid);
-    },
-    [payments, totalFeePerStudent],
+    (studentId: string): number => clearanceByStudent.get(studentId)?.balance ?? 0,
+    [clearanceByStudent],
   );
 
   const displayedReports = useMemo(() => {
@@ -203,11 +228,7 @@ export default function ReportCardsPage() {
       }
       return;
     }
-    void withTimeout(
-      loadSchoolSettings(school.id),
-      10000,
-      {},
-    ).then((settings) => {
+    void withTimeout(loadSchoolSettings(school.id), 10000, {}).then((settings) => {
       if (cancelled) return;
       const resolved = settings[SETTING_KEYS.reportLayout] === "ncdc_cbc" ? "ncdc_cbc" : "uganda_classic";
       setReportLayout(resolved);
@@ -1743,7 +1764,7 @@ export default function ReportCardsPage() {
             </Card>
             <Card>
               <CardBody className="text-center">
-                <div className="text-xs font-semibold text-[var(--t3)] mb-1">Fee Defaulters</div>
+                <div className="text-xs font-semibold text-[var(--t3)] mb-1">Cards withheld</div>
                 <div className="text-2xl font-bold text-red-600">{stats.withFees} students</div>
               </CardBody>
             </Card>
@@ -1766,7 +1787,7 @@ export default function ReportCardsPage() {
                 className="w-4 h-4"
               />
               <span className="text-sm font-semibold text-[var(--on-surface)]">
-                Hide students with outstanding fees
+                Withhold report cards from pupils with unpaid fees
               </span>
             </label>
           </div>
@@ -1909,9 +1930,7 @@ export default function ReportCardsPage() {
                                       const current = behaviour[report.studentId]?.[skill] ?? null;
                                       return (
                                         <div key={skill} className="flex items-center gap-1.5">
-                                          <span className="flex-1 truncate text-xs text-[var(--t2)]">
-                                            {skill}
-                                          </span>
+                                          <span className="flex-1 truncate text-xs text-[var(--t2)]">{skill}</span>
                                           <div
                                             role="radiogroup"
                                             aria-label={`${skill} rating for ${report.name}`}
@@ -1926,11 +1945,7 @@ export default function ReportCardsPage() {
                                                 aria-label={`${skill} ${value} of 5`}
                                                 disabled={savingRating === `${report.studentId}:${skill}`}
                                                 onClick={() =>
-                                                  handleRate(
-                                                    report.studentId,
-                                                    skill,
-                                                    current === value ? null : value,
-                                                  )
+                                                  handleRate(report.studentId, skill, current === value ? null : value)
                                                 }
                                                 className={`h-8 w-8 rounded-md text-xs font-bold transition-colors ${
                                                   current === value
