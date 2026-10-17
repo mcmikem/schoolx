@@ -14,6 +14,10 @@ export interface StudentBalance {
   expected: number;
   paid: number;
   balance: number;
+  /** Unpaid charges brought forward from earlier terms. */
+  arrears?: number;
+  /** Portion of the balance attributable to the current term. */
+  currentDue?: number;
   status?: "paid" | "partial" | "unpaid" | "written_off";
   payments: Array<{
     id: string;
@@ -104,6 +108,14 @@ function BalanceLedger({ student }: { student: StudentBalance }) {
   };
   return (
     <div className="space-y-1.5 text-sm">
+      {student.arrears ? (
+        <div className="flex items-center justify-between text-[var(--t2)]">
+          <span className="min-w-0 truncate">Brought forward · earlier terms</span>
+          <span className="shrink-0 font-semibold tabular-nums text-[var(--red)]">
+            {formatCurrency(student.arrears)}
+          </span>
+        </div>
+      ) : null}
       <div className="flex items-center justify-between text-[var(--t2)]">
         <span>Expected</span>
         <span className="font-semibold tabular-nums">{formatCurrency(student.expected || 0)}</span>
