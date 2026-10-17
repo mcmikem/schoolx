@@ -69,6 +69,7 @@ WITH CHECK (
 
 DROP POLICY IF EXISTS "School users fee_payments update" ON public.fee_payments;
 DROP POLICY IF EXISTS "fee_payments_update" ON public.fee_payments;
+DROP POLICY IF EXISTS "Fee managers update fee_payments" ON public.fee_payments;
 
 CREATE POLICY "Fee managers update fee_payments"
 ON public.fee_payments
@@ -86,6 +87,8 @@ WITH CHECK (
 -- ─── Deletes: admins only ────────────────────────────────────────────────────
 
 DROP POLICY IF EXISTS "School users fee_payments delete" ON public.fee_payments;
+DROP POLICY IF EXISTS "fee_payments_delete" ON public.fee_payments;
+DROP POLICY IF EXISTS "School admins delete fee_payments" ON public.fee_payments;
 
 CREATE POLICY "School admins delete fee_payments"
 ON public.fee_payments

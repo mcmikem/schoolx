@@ -43,6 +43,11 @@ interface UseFeeTemplateImportParams {
   academicYear: string;
   /** Term a per-term row without a Term column belongs to. */
   defaultTerm: number;
+  /**
+   * Class a row without a Class column belongs to. Blank means the whole school
+   * (every class), which is what a fee line with no class means.
+   */
+  fallbackClassId?: string;
   /** The school's live fee list, used to skip rows that are already billed. */
   existingFees: FeeStructure[];
   createFeeStructure: (fee: FeeCreateInput) => Promise<unknown>;
@@ -62,7 +67,7 @@ const PREVIEW_COLUMNS: Array<keyof ParsedFeeRow> = [
 ];
 
 export function useFeeTemplateImport(params: UseFeeTemplateImportParams) {
-  const { classes, academicYear, defaultTerm, existingFees, createFeeStructure } = params;
+  const { classes, academicYear, defaultTerm, fallbackClassId = "", existingFees, createFeeStructure } = params;
   const [seedableRows, setSeedableRows] = useState<SeedableFee[]>([]);
   const [templatePreviewRows, setTemplatePreviewRows] = useState<FeeTemplateRow[]>([]);
   const [templateStatus, setTemplateStatus] = useState<"idle" | "parsing" | "ready">("idle");
@@ -192,6 +197,8 @@ export function useFeeTemplateImport(params: UseFeeTemplateImportParams) {
               );
               return;
             }
+          } else {
+            classId = fallbackClassId;
           }
 
           const term = data.frequency === "per_term" ? (data.term ? Number(data.term) : defaultTerm) : null;
@@ -229,7 +236,7 @@ export function useFeeTemplateImport(params: UseFeeTemplateImportParams) {
         setTemplateStatus("idle");
       }
     },
-    [classes, academicYear, defaultTerm, readTabularRows],
+    [classes, academicYear, defaultTerm, fallbackClassId, readTabularRows],
   );
 
   const handleSeedFeesFromTemplate = useCallback(async (): Promise<ImportSummary | null> => {

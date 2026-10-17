@@ -64,6 +64,7 @@ export default function FeeImportModal({
 }: FeeImportModalProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [fallbackClassId, setFallbackClassId] = useState("");
 
   const {
     templateRows,
@@ -79,6 +80,7 @@ export default function FeeImportModal({
     classes,
     academicYear,
     defaultTerm,
+    fallbackClassId,
     existingFees,
     createFeeStructure,
   });
@@ -149,6 +151,28 @@ export default function FeeImportModal({
               Upload a CSV or Excel file of your fee list — Tuition, Development, Lunch, Transport and so on. Each line
               bills the class named in it (or every class when it is blank) for the term and year you are working on.
             </p>
+          </div>
+
+          <div>
+            <label
+              htmlFor="fee-import-fallback-class"
+              className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-[var(--t3)]"
+            >
+              If a row has no Class column, bill
+            </label>
+            <select
+              id="fee-import-fallback-class"
+              value={fallbackClassId}
+              onChange={(e) => setFallbackClassId(e.target.value)}
+              className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-3 py-2.5 text-sm text-[var(--t1)]"
+            >
+              <option value="">All classes (whole school)</option>
+              {classes.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div
