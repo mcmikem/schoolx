@@ -364,24 +364,29 @@ export default function FinanceHubPage() {
     notes: "",
     allow_overpayment: false,
   });
-
   // Fee lines to offer, for one particular class.
   //
-  // Fee lines are per class AND per term AND per year: the unique key is
-  // (school_id, class_id, name, term, academic_year). Offering every line the
-  // school ever set would put a year-1 fee in front of a year-6 pupil and last
-  // year's Development Fund in front of this year's, so all three narrow it:
+  // The only things excluded here are fees that genuinely cannot apply: a line
+  // the school has retired, a line belonging to a different class, and a line
+  // written for day pupils when this one boards (and vice versa). Fee lines
+  // carry their own boarding_status, so that part is exact.
   //
-  //  - year: matches the current academic year. A school reuses fee names year
-  //    over year ("Tuition", "Meals") and keeps one row per year; this is the
-  //    one being charged now.
-  //  - term: the current term. A line with no term is a one-off charge such as
-  //    an application fee and applies to anyone.
-  //  - class: the pupil's own class, plus school-wide lines. class_id IS NULL
-  //    means "every class" and those are legitimate choices. The unique index
-  //    does not stop duplicates there, because Postgres treats NULLs as
-  //    distinct -- live data has one school holding 36 identical school-wide
-  //    rows.
+  // Term and academic year deliberately do NOT exclude anything. They only
+  // decide the ORDER.
+  //
+  // An earlier version filtered on both, and that was wrong. Only 3 of the 8
+  // schools with fees have a current term marked at all, so currentTerm falls
+  // back to 1 for the rest, and one school sets its fees for term 3 only. The
+  // filter then matched nothing and the form reported "this class has no fees
+  // set up" on a class carrying twelve fees, with money owed on it.
+  //
+  // A pupil can be owed a fee for a term the app does not consider current:
+  // balances come from what was billed, not from today's date. Narrowing to one
+  // term therefore hides charges the bursar is obliged to be able to record.
+  // Ordering keeps the likely choice first without making the right choice
+  // unreachable.
+  //
+  // Which fee gets preselected is decided by pickDefaultFee in lib/fee-default.
   const feesForClass = useCallback(
     (classId: string, boardingStatus?: string) => {
       const term = Number(currentTerm || 1);
@@ -389,12 +394,7 @@ export default function FinanceHubPage() {
       return feeStructure
         .filter((f) => {
           if (f.deleted_at) return false;
-          if (academicYear && f.academic_year && f.academic_year !== academicYear) return false;
-          if (f.term != null && f.term !== term) return false;
           if (!allClasses && f.class_id != null && f.class_id !== classId) return false;
-          // Fee lines carry their own boarding_status (day | boarding | both),
-          // so a day pupil is not offered the boarding fee and vice versa.
-          // Unset means the line applies to everyone.
           if (
             boardingStatus &&
             f.boarding_status &&
@@ -404,6 +404,17 @@ export default function FinanceHubPage() {
             return false;
           }
           return true;
+        })
+        .sort((a, b) => {
+          // A null term is a one-off charge (application, registration) and is
+          // as good a candidate as the current term, so the two sort together.
+          const aTerm = a.term == null || a.term === term ? 0 : 1;
+          const bTerm = b.term == null || b.term === term ? 0 : 1;
+          if (aTerm !== bTerm) return aTerm - bTerm;
+          const aYear = academicYear && a.academic_year && a.academic_year !== academicYear ? 1 : 0;
+          const bYear = academicYear && b.academic_year && b.academic_year !== academicYear ? 1 : 0;
+          if (aYear !== bYear) return aYear - bYear;
+          return a.name.localeCompare(b.name);
         })
         .map((f) => ({
           id: f.id,
@@ -416,15 +427,7 @@ export default function FinanceHubPage() {
     [feeStructure, currentTerm, academicYear],
   );
 
-  // What to preselect: tuition, because that is what most payments are for and
-  // it is the answer the bursar wants nearly every time.
-  //
-  // Only when there is exactly one tuition line to pick from. Measured on live
-  // data, 49 of 50 class/term groups have a single tuition line, so this fills
-  // the field in almost every real case. The group that does not is a pile of
-  // identical school-wide duplicates, and choosing between those by id would
-  // file the payment against a line nobody picked. One tap to choose is cheap;
-  // mis-filing money is not recoverable.
+
   // Adjustments carry a bare fee_id and are not joined to fee_structure, so
   // resolve names from the fee list already loaded for the picker.
   const feeNameById = useMemo(() => new Map(feeStructure.map((f) => [f.id, f.name])), [feeStructure]);
