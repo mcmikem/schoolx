@@ -1483,7 +1483,14 @@ export default function AttendancePage() {
                       </span>
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="truncate text-sm font-bold text-[var(--t1)]">
+                      {/*
+                        Wraps rather than truncates. In the register header of a
+                        real class this reads "0 of 128 marked", which does not
+                        fit beside the progress ring on a 393px phone -- it was
+                        cut to "0 of 8 mark..." with the number that matters
+                        hidden.
+                      */}
+                      <div className="text-sm font-bold text-[var(--t1)] leading-snug">
                         {markedCount} of {students.length} marked
                       </div>
                       <div className="truncate text-xs text-[var(--t3)]">

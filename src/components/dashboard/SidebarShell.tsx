@@ -1,10 +1,9 @@
 "use client";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import CollapsibleSidebar from "@/components/CollapsibleSidebar";
-import ContactSupport from "@/components/ContactSupport";
-import { MODULE_FOR_ROUTE, isRouteAllowed } from "@/components/dashboard/AccessControlGuard";
+import { isRouteAllowed, MODULE_FOR_ROUTE } from "@/components/dashboard/AccessControlGuard";
 import MaterialIcon from "@/components/MaterialIcon";
 import { useSidebar } from "@/contexts/SidebarContext";
 import { useAcademic } from "@/lib/academic-context";
@@ -15,6 +14,9 @@ import { getNavigationForRoles } from "@/lib/navigation";
 import { type RoleRouteOverrides, resolveRouteAccess, useRoleRouteOverrides } from "@/lib/role-access-overrides";
 import { canAccess, type UserRole } from "@/lib/roles";
 import { useSyncStatus } from "@/lib/useSyncStatus";
+
+const CollapsibleSidebar = dynamic(() => import("@/components/CollapsibleSidebar"), { loading: () => null });
+const ContactSupport = dynamic(() => import("@/components/ContactSupport"), { loading: () => null });
 
 const ROUTE_TO_MODULE: Record<string, ModuleKey> = {};
 for (const [route, mod] of Object.entries(MODULE_FOR_ROUTE)) {

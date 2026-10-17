@@ -563,6 +563,7 @@ export function useFeeStructure(schoolId?: string) {
     }
 
     const querySchoolId = getQuerySchoolId(schoolId, isDemo);
+    let hasPersistedFees = false;
     try {
       setLoading(true);
       setError(null);
@@ -573,6 +574,18 @@ export function useFeeStructure(schoolId?: string) {
         setFeeStructure(cached as unknown as FeeStructure[]);
         setLoading(false);
         return;
+      }
+      try {
+        const persistedFees = await offlineDB.getAllFromCache("fee_structure", {
+          school_id: querySchoolId,
+        });
+        if (persistedFees.length > 0) {
+          hasPersistedFees = true;
+          setFeeStructure(persistedFees as unknown as FeeStructure[]);
+          setLoading(false);
+        }
+      } catch (cacheError) {
+        logger.warn("Could not read cached fee structure:", cacheError);
       }
       const data = await withTimeout(
         supabase
@@ -587,7 +600,7 @@ export function useFeeStructure(schoolId?: string) {
             if (r.error) throw r.error;
             return r.data;
           }),
-        5000,
+        15000,
         null,
       );
       if (data === null) throw new Error("Loading fees took too long. Please try again.");
@@ -596,8 +609,14 @@ export function useFeeStructure(schoolId?: string) {
       setCachedData(cacheKey, result);
       await offlineDB.cacheFromServer("fee_structure", (data as unknown as Record<string, unknown>[]) || []);
     } catch (err) {
-      logger.error("Error fetching fee structure:", err);
-      setError(getErrorMessage(err, "Could not load fee structure"));
+      const message = getErrorMessage(err, "Could not load fee structure");
+      if (message.includes("Loading fees took too long")) {
+        logger.warn("Fee structure refresh timed out; keeping saved fees when available");
+        if (!hasPersistedFees) setError(message);
+      } else {
+        logger.error("Error fetching fee structure:", err);
+        setError(message);
+      }
     } finally {
       setLoading(false);
     }
@@ -1169,9 +1188,7 @@ export function useFeeAdjustments(schoolId?: string) {
         timeoutFallback(),
       );
       if (clash && clash.length > 0) {
-        throw new Error(
-          "This pupil already has an adjustment on that fee. Change the amount on the existing one.",
-        );
+        throw new Error("This pupil already has an adjustment on that fee. Change the amount on the existing one.");
       }
     }
 

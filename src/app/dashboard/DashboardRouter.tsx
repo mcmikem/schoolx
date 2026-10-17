@@ -9,7 +9,7 @@ import { logger } from "@/lib/logger";
 import { greetingFor } from "@/lib/utils";
 
 const HeadmasterDashboard = dynamic(() => import("./dashboards/HeadmasterDashboard"), {
-  loading: () => <DashboardSkeleton />,
+  loading: () => <HeadmasterDashboardLoading />,
 });
 const DeanDashboard = dynamic(() => import("./dashboards/DeanDashboard"), { loading: () => <DashboardSkeleton /> });
 const BursarDashboard = dynamic(() => import("./dashboards/BursarDashboard"), { loading: () => <DashboardSkeleton /> });
@@ -25,6 +25,41 @@ const MarketerDashboard = dynamic(() => import("./dashboards/MarketerDashboard")
 
 function getFirstName(fullName?: string | null) {
   return fullName?.trim().split(" ").filter(Boolean)[0] || "User";
+}
+
+function HeadmasterDashboardLoading() {
+  const { user, school } = useAuth();
+
+  return (
+    <main className="content !gap-4 overflow-x-hidden" aria-busy="true">
+      <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
+        <p className="text-xs font-bold uppercase tracking-wider text-[var(--primary)]">School dashboard</p>
+        <h1 className="mt-1 text-2xl font-bold text-[var(--t1)]">
+          {greetingFor()}, {getFirstName(user?.full_name)}
+        </h1>
+        <p className="mt-1 text-sm text-[var(--t3)]">{school?.name || "Your school"}</p>
+      </section>
+      <nav aria-label="Quick actions" className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        {[
+          ["/dashboard/attendance", "how_to_reg", "Take attendance"],
+          ["/dashboard/fees", "payments", "Record a payment"],
+          ["/dashboard/students?action=add", "person_add", "Add a student"],
+        ].map(([href, icon, label]) => (
+          <Link
+            key={href}
+            href={href}
+            className="flex min-h-24 flex-col justify-between rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 font-semibold text-[var(--t1)]"
+          >
+            <span className="material-symbols-outlined text-[var(--primary)]" aria-hidden="true">
+              {icon}
+            </span>
+            <span className="text-sm">{label}</span>
+          </Link>
+        ))}
+      </nav>
+      <p className="text-center text-xs text-[var(--t3)]">Loading your school summary…</p>
+    </main>
+  );
 }
 
 function RoleDashboardHeader({
@@ -210,6 +245,34 @@ export default function DashboardRouter() {
     return () => window.clearTimeout(timer);
   }, [profileDegraded, school]);
 
+  // Memoised so the dependency stays stable across renders. Building the
+  // fallback inline made a fresh array every render, which defeated the memo
+  // below and re-derived the dashboard list on every single render.
+  const roles = useMemo<readonly string[]>(
+    () => (user?.roles?.length ? user.roles : user?.role ? [user.role as string] : []),
+    [user?.roles, user?.role],
+  );
+
+  // Which dashboard this person actually qualifies for. A headmaster who also
+  // teaches is both, and should be able to pick — but only between dashboards
+  // they really hold, never one they merely inherited via role equivalence.
+  const eligibleDashboards = useMemo(() => {
+    const available: Record<string, () => JSX.Element> = {
+      headmaster: () => <HeadmasterDashboard />,
+      dean_of_studies: () => <DeanDashboard />,
+      bursar: () => <BursarDashboard />,
+      teacher: () => <TeacherDashboard />,
+      secretary: () => <SecretaryDashboard />,
+      dorm_master: () => <DormMasterDashboard />,
+      marketer: () => <MarketerDashboard />,
+    };
+    const ordered = roles.map((candidate) => String(candidate));
+    if (ordered.includes("headmaster") || ordered.includes("admin") || ordered.includes("school_admin")) {
+      if (!ordered.includes("headmaster")) ordered.unshift("headmaster");
+    }
+    return ordered.filter((candidate) => candidate in available).map((candidate) => available[candidate]);
+  }, [roles]);
+
   if (loading && !loadingTimedOut) {
     return <DashboardSkeleton />;
   }
@@ -285,34 +348,6 @@ export default function DashboardRouter() {
       </div>
     );
   }
-
-  // Memoised so the dependency stays stable across renders. Building the
-  // fallback inline made a fresh array every render, which defeated the memo
-  // below and re-derived the dashboard list on every single render.
-  const roles = useMemo<readonly string[]>(
-    () => (user.roles?.length ? user.roles : user.role ? [user.role as string] : []),
-    [user.roles, user.role],
-  );
-
-  // Which dashboard this person actually qualifies for. A headmaster who also
-  // teaches is both, and should be able to pick — but only between dashboards
-  // they really hold, never one they merely inherited via role equivalence.
-  const eligibleDashboards = useMemo(() => {
-    const available: Record<string, () => JSX.Element> = {
-      headmaster: () => <HeadmasterDashboard />,
-      dean_of_studies: () => <DeanDashboard />,
-      bursar: () => <BursarDashboard />,
-      teacher: () => <TeacherDashboard />,
-      secretary: () => <SecretaryDashboard />,
-      dorm_master: () => <DormMasterDashboard />,
-      marketer: () => <MarketerDashboard />,
-    };
-    const ordered = roles.map((candidate) => String(candidate));
-    if (ordered.includes("headmaster") || ordered.includes("admin") || ordered.includes("school_admin")) {
-      if (!ordered.includes("headmaster")) ordered.unshift("headmaster");
-    }
-    return ordered.filter((candidate) => candidate in available).map((candidate) => available[candidate]);
-  }, [roles]);
 
   // Their remembered choice, when it is one they are still eligible for.
   const preferred = user.preferred_dashboard ?? null;

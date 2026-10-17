@@ -66,6 +66,24 @@ describe("deleting a payment works offline", () => {
   });
 });
 
+describe("fee structure refresh on slow connections", () => {
+  const feeStructureHook = code.slice(
+    code.indexOf("export function useFeeStructure"),
+    code.indexOf("export function useFeeAdjustments"),
+  );
+
+  it("shows persisted fees while the online refresh runs", () => {
+    expect(feeStructureHook).toContain('offlineDB.getAllFromCache("fee_structure"');
+    expect(feeStructureHook).toContain("setFeeStructure(persistedFees as unknown as FeeStructure[])");
+    expect(feeStructureHook).toContain("setLoading(false)");
+  });
+
+  it("allows slow rural connections more than five seconds to respond", () => {
+    expect(feeStructureHook).toContain("15000,");
+    expect(feeStructureHook).toContain("Fee structure refresh timed out; keeping saved fees when available");
+  });
+});
+
 describe("a duplicate payment reference explains itself", () => {
   it("checks the reference before attempting the insert", () => {
     // findRecentDuplicatePayment matches pupil + amount + method + a time

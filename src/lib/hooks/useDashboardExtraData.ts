@@ -1,12 +1,12 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/lib/supabase";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { isDemoSchool } from "@/lib/demo-utils";
+import { getLocalDateString, timeoutFallback, withTimeout } from "@/lib/hooks/utils";
 import { logger } from "@/lib/logger";
 import { offlineDB } from "@/lib/offline";
-import { withTimeout, timeoutFallback, getLocalDateString } from "@/lib/hooks/utils";
+import { supabase } from "@/lib/supabase";
 
 // Stale-while-revalidate dashboard data backed by React Query + the canonical
 // OfflineDB cache:
@@ -154,70 +154,88 @@ function computePayloadLegacy(
     const dropoutStartDate = getLocalDateString(fourteenDaysAgo);
     const effectiveAcademicYear = academicYear || new Date().getFullYear().toString();
 
-    const [attendanceRes, gradesRes, messagesRes, paymentsRes, staffAttRes, dropoutAttRes] = await Promise.all([
-      withTimeout(
-        supabase
-          .from("attendance")
-          .select("student_id, class_id, status, students!inner(school_id)")
-          .eq("students.school_id", schoolId)
-          .eq("date", today),
-        15000,
-        timeoutFallback(),
-      ),
-      withTimeout(
-        supabase
-          .from("grades")
-          .select("student_id, score, term, academic_year, students!inner(school_id)")
-          .eq("students.school_id", schoolId)
-          .eq("term", currentTerm || 1)
-          .eq("academic_year", effectiveAcademicYear),
-        15000,
-        timeoutFallback(),
-      ),
-      withTimeout(
-        supabase.from("messages").select("status, created_at").eq("school_id", schoolId).gte("created_at", today),
-        15000,
-        timeoutFallback(),
-      ),
-      withTimeout(
-        supabase
-          .from("fee_payments")
-          .select("student_id, amount_paid, payment_date, students!inner(school_id)")
-          .eq("students.school_id", schoolId)
-          .gte("payment_date", termStart),
-        15000,
-        timeoutFallback(),
-      ),
-      withTimeout(
-        supabase
-          .from("staff_attendance")
-          .select("status, staff_id, users!inner(school_id)")
-          .eq("users.school_id", schoolId)
-          .eq("date", today)
-          .in("status", ["present", "late"]),
-        15000,
-        timeoutFallback(),
-      ),
-      withTimeout(
-        supabase
-          .from("attendance")
-          .select("student_id, status, date, students!inner(school_id)")
-          .eq("students.school_id", schoolId)
-          .gte("date", dropoutStartDate)
-          .lte("date", today)
-          .order("date", { ascending: false }),
-        15000,
-        timeoutFallback(),
-      ),
-    ]);
+    const [attendanceRes, gradesRes, messagesRes, paymentsRes, staffAttRes, dropoutAttRes, feeStructureRes] =
+      await Promise.all([
+        withTimeout(
+          supabase
+            .from("attendance")
+            .select("student_id, class_id, status, students!inner(school_id)")
+            .eq("students.school_id", schoolId)
+            .eq("date", today),
+          15000,
+          timeoutFallback(),
+        ),
+        withTimeout(
+          supabase
+            .from("grades")
+            .select("student_id, score, term, academic_year, students!inner(school_id)")
+            .eq("students.school_id", schoolId)
+            .eq("term", currentTerm || 1)
+            .eq("academic_year", effectiveAcademicYear),
+          15000,
+          timeoutFallback(),
+        ),
+        withTimeout(
+          supabase.from("messages").select("status, created_at").eq("school_id", schoolId).gte("created_at", today),
+          15000,
+          timeoutFallback(),
+        ),
+        withTimeout(
+          supabase
+            .from("fee_payments")
+            .select("student_id, amount_paid, payment_date, students!inner(school_id)")
+            .eq("students.school_id", schoolId)
+            .gte("payment_date", termStart),
+          15000,
+          timeoutFallback(),
+        ),
+        withTimeout(
+          supabase
+            .from("staff_attendance")
+            .select("status, staff_id, users!inner(school_id)")
+            .eq("users.school_id", schoolId)
+            .eq("date", today)
+            .in("status", ["present", "late"]),
+          15000,
+          timeoutFallback(),
+        ),
+        withTimeout(
+          supabase
+            .from("attendance")
+            .select("student_id, status, date, students!inner(school_id)")
+            .eq("students.school_id", schoolId)
+            .gte("date", dropoutStartDate)
+            .lte("date", today)
+            .order("date", { ascending: false }),
+          15000,
+          timeoutFallback(),
+        ),
+        feeStructure.length > 0
+          ? Promise.resolve({ data: feeStructure, error: null, status: 200 })
+          : withTimeout(
+              supabase
+                .from("fee_structure")
+                .select("class_id, amount")
+                .eq("school_id", schoolId)
+                .is("deleted_at", null),
+              15000,
+              timeoutFallback(),
+            ),
+      ]);
 
     // If ANY core query timed out (status 408 from timeoutFallback()), the
     // payload below would be full of plausible-looking zeros. Prefer the last
     // known-good cached payload; if there is none, raise so the caller can
     // surface a retry state instead of claiming the school has no data.
-    const mainTimedOut = [attendanceRes, gradesRes, messagesRes, paymentsRes, staffAttRes, dropoutAttRes].some(
-      (r) => r.status === 408,
-    );
+    const mainTimedOut = [
+      attendanceRes,
+      gradesRes,
+      messagesRes,
+      paymentsRes,
+      staffAttRes,
+      dropoutAttRes,
+      feeStructureRes,
+    ].some((r) => r.status === 408);
     if (mainTimedOut) {
       if (fallback) return { ...fallback };
       throw new DashboardTimeoutsError();
@@ -348,7 +366,8 @@ function computePayloadLegacy(
     });
 
     let overdueCount = 0;
-    if (feeStructure.length > 0) {
+    const feeRows = feeStructure.length > 0 ? feeStructure : feeStructureRes.data || [];
+    if (feeRows.length > 0) {
       const paidByStudent: Record<string, number> = {};
       allPayments?.forEach((p: any) => {
         const sid = p.student_id || "";
@@ -356,7 +375,7 @@ function computePayloadLegacy(
       });
 
       overdueCount = students.filter((student) => {
-        const expectedForStudent = feeStructure
+        const expectedForStudent = feeRows
           .filter((fee) => !fee.class_id || fee.class_id === student.class_id)
           .reduce((sum, fee) => sum + Number(fee.amount || 0), 0);
 
