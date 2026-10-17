@@ -101,3 +101,37 @@ describe("the page asks for the class before listing its subjects", () => {
     expect(emptyBoxAdvice).toBeLessThanOrEqual(1);
   });
 });
+
+describe("a phone sees the class, not one pupil at a time", () => {
+  it("defaults to the full list on every screen size", () => {
+    // Phones used to open in the one-pupil swipe deck, so a teacher arriving to
+    // mark a class of forty-eight was shown one child and had to swipe through
+    // all of them. One-at-a-time is a good way to mark and a bad way to arrive.
+    expect(live).not.toMatch(
+      /window\.innerWidth\s*>=\s*768\)\s*setInlineEntryMode\(true\);\s*\n\s*else\s+setInlineEntryMode\(false\)/,
+    );
+    // The branch that used to do this is gone entirely, and the list default
+    // is set unconditionally in the mount effect.
+    expect(live).not.toContain("window.innerWidth >= 768");
+    expect(live).toContain("setInlineEntryMode(true);");
+  });
+
+  it("keeps both layouts reachable", () => {
+    expect(live).toContain("hidden md:block");
+    expect(live).toContain("md:hidden");
+  });
+
+  it("names the modes for what they do", () => {
+    // They were labelled for the layout each button hides.
+    expect(live).toContain("All pupils");
+    expect(live).toContain("One at a time");
+    expect(live).not.toContain("Table View");
+    expect(live).not.toContain("Mobile View");
+  });
+
+  it("tells you which pupil you are on in the deck", () => {
+    // Without a position, a deck of forty-eight reads as finished after four.
+    expect(live).toContain("Pupil {mobileStudentIndex + 1} of {filteredStudents.length}");
+    expect(live).toContain("See all");
+  });
+});

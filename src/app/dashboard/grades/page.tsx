@@ -387,8 +387,15 @@ export default function GradesPage() {
   const [inlineEntryMode, setInlineEntryMode] = useState(true);
 
   useEffect(() => {
-    if (window.innerWidth >= 768) setInlineEntryMode(true);
-    else setInlineEntryMode(false);
+    // Default to the full list on every screen size.
+    //
+    // Phones used to start in the one-pupil-at-a-time swipe deck, which meant
+    // opening the page showed a single child out of forty-eight and required
+    // swiping through every one of them to see the class. One-at-a-time is a
+    // good way to mark; it is a bad way to arrive. The list is the default
+    // everywhere and the focused deck is opt-in, which is also how the
+    // attendance register works.
+    setInlineEntryMode(true);
   }, []);
   const [saveStatuses, setSaveStatuses] = useState<Record<string, SaveStatus>>({});
   const [mobileStudentIndex, setMobileStudentIndex] = useState(0);
@@ -1915,7 +1922,7 @@ export default function GradesPage() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setInlineEntryMode(true)}
-                  title="Enter marks in a grid table"
+                  title="Show every pupil in a list"
                   className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
                     inlineEntryMode
                       ? "bg-primary text-on-primary shadow-sm"
@@ -1923,13 +1930,13 @@ export default function GradesPage() {
                   }`}
                 >
                   <span className="flex items-center gap-2">
-                    <MaterialIcon icon="grid_view" className="text-lg" />
-                    Table View
+                    <MaterialIcon icon="view_list" className="text-lg" />
+                    All pupils
                   </span>
                 </button>
                 <button
                   onClick={() => setInlineEntryMode(false)}
-                  title="Enter marks one student at a time"
+                  title="Mark one pupil at a time"
                   className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all md:hidden ${
                     !inlineEntryMode
                       ? "bg-primary text-on-primary shadow-sm"
@@ -1938,7 +1945,7 @@ export default function GradesPage() {
                 >
                   <span className="flex items-center gap-2">
                     <MaterialIcon icon="smartphone" className="text-lg" />
-                    Mobile View
+                    One at a time
                   </span>
                 </button>
               </div>
@@ -2572,6 +2579,21 @@ export default function GradesPage() {
             {/* Mobile: Card View with Swipe */}
             {!inlineEntryMode && filteredStudents.length > 0 && (
               <div className="md:hidden">
+                {/* Where am I? A deck of forty-eight shows one pupil, so without
+                    a position and a way back it is easy to believe you have
+                    finished when you have seen four. */}
+                <div className="mb-3 flex items-center justify-between gap-3 px-1">
+                  <span className="text-sm font-bold text-[var(--t1)]">
+                    Pupil {mobileStudentIndex + 1} of {filteredStudents.length}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setInlineEntryMode(true)}
+                    className="min-h-11 rounded-xl bg-[var(--surface-container)] px-3 text-sm font-semibold text-[var(--t2)]"
+                  >
+                    See all
+                  </button>
+                </div>
                 <div
                   ref={mobileCardRef}
                   onTouchStart={handleMobileTouchStart}
