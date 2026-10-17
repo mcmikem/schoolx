@@ -1,4 +1,5 @@
 import type { Student, Class, User, Attendance, SMSTrigger, FeeStructure } from "@/types";
+import { isChargedMeals, isMealFee } from "./meal-fee";
 import { getLocalDateString } from "@/lib/hooks/utils";
 
 export type FinancialAdjustmentType =
@@ -230,14 +231,36 @@ export function recommendBulkPromotion(candidates: PromotionCandidate[]): Promot
   });
 }
 
+/**
+ * Whether this fee line applies to this pupil.
+ *
+ * This is the single predicate behind expected, balance and arrears, so the
+ * meal rule belongs here rather than in one caller: if the picker's list and
+ * the owed amount disagreed, a bursar would be shown meals owed for a pupil the
+ * app then refuses to let them charge for.
+ *
+ * A fee row with no name or category cannot be identified as a meal, so callers
+ * passing a narrowed row are unaffected.
+ */
 export function feeAppliesToStudent(
-  fee: Pick<FeeStructure, "class_id" | "boarding_status">,
-  student: Pick<Student, "class_id" | "boarding_status">,
+  fee: Pick<FeeStructure, "class_id" | "boarding_status"> &
+    Partial<Pick<FeeStructure, "name" | "category">>,
+  student: Pick<Student, "class_id" | "boarding_status"> &
+    Partial<Pick<Student, "takes_meals">>,
 ): boolean {
-  return (
-    (!fee.class_id || fee.class_id === student.class_id) &&
-    (!fee.boarding_status || fee.boarding_status === (student.boarding_status || "day"))
-  );
+  if (fee.class_id && fee.class_id !== student.class_id) return false;
+  if (fee.boarding_status && fee.boarding_status !== (student.boarding_status || "day")) return false;
+
+  // A meal is only owed by a pupil who eats at school. Plenty of day pupils go
+  // home to eat, and charging them puts a fee on the bill for a meal they never
+  // receive -- which then reads as money owed that cannot be collected.
+  //
+  // Only an explicit opt-in is charged. false (goes home) and null (undecided)
+  // are both not charged, so adding the column does not immediately start
+  // billing every existing pupil for meals.
+  if (isMealFee(fee) && !isChargedMeals(student.takes_meals)) return false;
+
+  return true;
 }
 
 export function calculateStudentFeePosition(input: StudentFeePositionInput): StudentFeePosition {

@@ -147,6 +147,9 @@ function buildCoreStudentPayload(student: Record<string, unknown>) {
     photo_url: student.photo_url,
     blood_type: student.blood_type,
     boarding_status: student.boarding_status,
+    // Explicit undefined is dropped rather than written as null, so an edit
+    // that never touches this field cannot silently clear a pupil's opt-in.
+    ...(student.takes_meals === undefined ? {} : { takes_meals: student.takes_meals }),
     house_id: student.house_id,
     previous_school: student.previous_school,
     district_origin: student.district_origin,

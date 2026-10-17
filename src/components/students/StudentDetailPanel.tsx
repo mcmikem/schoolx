@@ -58,6 +58,7 @@ interface StudentDetailData {
   photo_url?: string | null;
   blood_type?: string | null;
   boarding_status?: string | null;
+  takes_meals?: boolean | null;
   house_id?: string | null;
   previous_school?: string | null;
   district_origin?: string | null;
@@ -106,6 +107,8 @@ type EditForm = {
   ple_index_number: string;
   opening_balance: string;
   boarding_status: "day" | "boarding" | "weekly";
+  /** Meal opt-in. "" = not yet decided. */
+  takes_meals: "" | "yes" | "no";
   house_id: string;
   previous_school: string;
   district_origin: string;
@@ -138,6 +141,8 @@ type NewStudent = {
   ple_index_number: string;
   opening_balance: string;
   boarding_status: "day" | "boarding" | "weekly";
+  /** Meal opt-in. "" = not yet decided. */
+  takes_meals: "" | "yes" | "no";
   house_id: string;
   previous_school: string;
   district_origin: string;
@@ -166,6 +171,7 @@ const INITIAL_NEW_STUDENT: NewStudent = {
   ple_index_number: "",
   opening_balance: "0",
   boarding_status: "day",
+  takes_meals: "",
   house_id: "",
   previous_school: "",
   district_origin: "",
@@ -234,6 +240,7 @@ export default function StudentDetailPanel({
     ple_index_number: "",
     opening_balance: "0",
     boarding_status: "day",
+    takes_meals: "",
     house_id: "",
     previous_school: "",
     district_origin: "",
@@ -321,6 +328,7 @@ export default function StudentDetailPanel({
         ple_index_number: student.ple_index_number || "",
         opening_balance: student.opening_balance?.toString() || "0",
         boarding_status: (student.boarding_status || "day") as "day" | "boarding" | "weekly",
+        takes_meals: student.takes_meals === true ? "yes" : student.takes_meals === false ? "no" : "",
         house_id: student.house_id || "",
         previous_school: student.previous_school || "",
         district_origin: student.district_origin || "",
@@ -513,6 +521,7 @@ export default function StudentDetailPanel({
         opening_balance: openingBalance,
         blood_type: editForm.blood_type || null,
         boarding_status: editForm.boarding_status,
+        takes_meals: editForm.takes_meals === "" ? null : editForm.takes_meals === "yes",
         house_id: editForm.house_id || null,
         previous_school: editForm.previous_school || null,
         district_origin: editForm.district_origin || null,
@@ -1207,6 +1216,36 @@ export default function StudentDetailPanel({
                       <option value="day">Day Scholar</option>
                       <option value="boarding">Boarding</option>
                       <option value="weekly">Weekly Boarder</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="takes-meals"
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: "var(--t3)",
+                        marginBottom: 6,
+                        display: "block",
+                      }}
+                    >
+                      School Meals
+                      <FieldHint tip="Only pupils who eat at school are charged the meals fee. Anyone who goes home to eat should be set to No, or their bill keeps carrying a meal they never receive." />
+                    </label>
+                    <select
+                      id="takes-meals"
+                      name="takes_meals"
+                      value={formData.takes_meals}
+                      onChange={(e) =>
+                        handleFormChange({
+                          takes_meals: e.target.value as "" | "yes" | "no",
+                        })
+                      }
+                      className="input"
+                    >
+                      <option value="">Not decided yet</option>
+                      <option value="yes">Takes school meals</option>
+                      <option value="no">Goes home to eat</option>
                     </select>
                   </div>
                   <div>

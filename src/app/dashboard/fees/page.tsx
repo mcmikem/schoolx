@@ -43,6 +43,7 @@ import { lazyWithIdlePrefetch } from "@/lib/lazy-prefetch";
 import { logger } from "@/lib/logger";
 import { useOfflineFees, useOfflineStudents } from "@/lib/offline-hooks";
 import { calculateStudentFeePosition, feeAppliesToStudent } from "@/lib/operations";
+import { computeArrearsSplit } from "@/lib/arrears";
 import { supabase } from "@/lib/supabase";
 import { useFormDraft } from "@/lib/useAutoSave";
 import { UndoNotification, useUndo } from "@/lib/useUndo";
@@ -648,6 +649,14 @@ export default function FinanceHubPage() {
         adjustments: studentAdjustments,
         openingBalance: Number(student.opening_balance || 0),
       });
+      const arrearsSplit = computeArrearsSplit({
+        fees: applicableFees,
+        payments: studentPayments,
+        adjustments: studentAdjustments,
+        openingBalance: Number(student.opening_balance || 0),
+        academicYear,
+        currentTerm,
+      });
 
       return {
         id: student.id,
@@ -661,6 +670,8 @@ export default function FinanceHubPage() {
         expected: feePosition.totalExpected,
         paid: feePosition.totalPaid,
         balance: feePosition.balance,
+        arrears: arrearsSplit.arrears,
+        currentDue: arrearsSplit.currentDue,
         status: feePosition.status,
         payments: studentPayments.map((p) => ({
           id: p.id,
@@ -680,7 +691,7 @@ export default function FinanceHubPage() {
         })),
       };
     },
-    [paymentsByStudent, adjustmentsByStudent, feesByClass],
+    [paymentsByStudent, adjustmentsByStudent, feesByClass, academicYear, currentTerm],
   );
 
   const studentBalanceMap = useMemo(() => {

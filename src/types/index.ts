@@ -125,6 +125,12 @@ export interface Student {
   parish?: string;
   village?: string;
   boarding_status?: string;
+  /**
+   * Meal opt-in. true = eats at school and is charged the Meals fee; false =
+   * goes home; null = not yet decided. null and false bill the same, but
+   * keeping them apart lets the bursar see who is still undecided.
+   */
+  takes_meals?: boolean | null;
   games_house?: string;
   is_class_monitor?: boolean;
   prefect_role?: string;

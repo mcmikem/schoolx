@@ -147,6 +147,7 @@ export async function POST(request: NextRequest) {
       ple_index_number: studentData.ple_index_number || null,
       opening_balance: isNaN(openingBalance) ? 0 : openingBalance,
       boarding_status: studentData.boarding_status || "day",
+      takes_meals: studentData.takes_meals ?? null,
       house_id: studentData.house_id || null,
       previous_school: studentData.previous_school || null,
       district_origin: studentData.district_origin || null,
