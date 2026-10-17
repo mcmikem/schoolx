@@ -51,6 +51,72 @@ export function buildFeeTemplateCsv(): string {
   return FEE_TEMPLATE_HEADERS.join(",");
 }
 
+/** Display names for the categories, shared so the export round-trips. */
+export const FEE_CATEGORY_LABELS: Record<string, string> = {
+  tuition: "Tuition",
+  boarding: "Boarding",
+  meals: "Meals",
+  transport: "Transport",
+  uniform: "Uniform",
+  registration: "Registration",
+  functional: "Functional",
+  pta: "PTA",
+  development: "Development",
+  library: "Library",
+  sports: "Sports",
+  ict: "ICT",
+  medical: "Medical",
+  exam: "Exam",
+  uneb: "UNEB",
+  bank_charges: "Bank Charges",
+  other: "Other",
+};
+
+function csvCell(value: unknown): string {
+  const text = value === null || value === undefined ? "" : String(value);
+  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+interface ExportableFee {
+  name?: string | null;
+  class_id?: string | null;
+  amount?: number | string | null;
+  term?: number | null;
+  category?: string | null;
+  boarding_status?: string | null;
+  frequency?: string | null;
+  transport_zone?: string | null;
+  due_date?: string | null;
+  academic_year?: string | null;
+  classes?: { name?: string } | null;
+}
+
+/**
+ * The current fee list as a template-shaped CSV, so a bursar can export it,
+ * edit amounts in Excel and re-import. Every value it writes is one the
+ * importer reads back, so the round trip is lossless.
+ */
+export function feeStructureToCsv(fees: ExportableFee[], classes: Array<{ id: string; name: string }> = []): string {
+  const classNames = new Map(classes.map((c) => [c.id, c.name]));
+  const rows = fees.map((fee) =>
+    [
+      fee.name ?? "",
+      fee.classes?.name || classNames.get(fee.class_id ?? "") || "",
+      fee.amount ?? "",
+      fee.term ?? "",
+      FEE_CATEGORY_LABELS[fee.category ?? ""] || fee.category || "",
+      fee.boarding_status === "day" ? "Day" : fee.boarding_status === "boarding" ? "Boarding" : "Both",
+      fee.frequency === "one_off" ? "One-off" : fee.frequency === "per_year" ? "Per Year" : "Per Term",
+      fee.transport_zone ?? "",
+      fee.due_date ?? "",
+      fee.academic_year ?? "",
+    ]
+      .map(csvCell)
+      .join(","),
+  );
+  return [FEE_TEMPLATE_HEADERS.join(","), ...rows].join("\n");
+}
+
 type FeeField = keyof ParsedFeeRow;
 
 /**

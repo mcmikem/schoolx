@@ -4,7 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/index";
-import { buildFeeTemplateCsv } from "@/lib/import/fees";
+import { buildFeeTemplateCsv, FEE_CATEGORY_LABELS, feeStructureToCsv } from "@/lib/import/fees";
 import { useFeeTemplateImport, type FeeCreateInput } from "@/lib/hooks/useFeeTemplateImport";
 import { formatCurrency } from "@/lib/currency";
 import type { FeeStructure } from "@/types";
@@ -19,26 +19,6 @@ interface FeeImportModalProps {
   createFeeStructure: (fee: FeeCreateInput) => Promise<unknown>;
   onComplete?: () => void;
 }
-
-const CATEGORY_LABELS: Record<string, string> = {
-  tuition: "Tuition",
-  boarding: "Boarding",
-  meals: "Meals",
-  transport: "Transport",
-  uniform: "Uniform",
-  registration: "Registration",
-  functional: "Functional",
-  pta: "PTA",
-  development: "Development",
-  library: "Library",
-  sports: "Sports",
-  ict: "ICT",
-  medical: "Medical",
-  exam: "Exam",
-  uneb: "UNEB",
-  bank_charges: "Bank Charges",
-  other: "Other",
-};
 
 const STATUS_LABELS: Record<string, string> = {
   day: "Day",
@@ -111,6 +91,17 @@ export default function FeeImportModal({
     const a = document.createElement("a");
     a.href = url;
     a.download = "fee_structure_import_template.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportCurrentFees = () => {
+    const csv = feeStructureToCsv(existingFees as unknown as Parameters<typeof feeStructureToCsv>[0], classes);
+    const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `fee_structure_${academicYear}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -209,15 +200,25 @@ export default function FeeImportModal({
             />
           </div>
 
-          <div className="flex justify-center">
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
             <button
               type="button"
               onClick={downloadTemplate}
               className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--primary)] underline underline-offset-2"
             >
               <MaterialIcon icon="download" />
-              Download CSV template
+              Download blank template
             </button>
+            {existingFees.length > 0 && (
+              <button
+                type="button"
+                onClick={exportCurrentFees}
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--primary)] underline underline-offset-2"
+              >
+                <MaterialIcon icon="file_download" />
+                Export current {existingFees.length} {existingFees.length === 1 ? "fee" : "fees"}
+              </button>
+            )}
           </div>
 
           {templateErrors && (
@@ -264,7 +265,7 @@ export default function FeeImportModal({
                       {FREQUENCY_LABELS[row.data.frequency] || row.data.frequency}
                     </td>
                     <td className="px-3 py-2 text-[var(--t2)]">
-                      {CATEGORY_LABELS[row.data.category] || row.data.category}
+                      {FEE_CATEGORY_LABELS[row.data.category] || row.data.category}
                     </td>
                   </tr>
                 ))}

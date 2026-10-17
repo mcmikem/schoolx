@@ -2,10 +2,12 @@ import {
   buildFeeTemplateCsv,
   FEE_TEMPLATE_HEADERS,
   feeStructureKey,
+  feeStructureToCsv,
   normalizeBoardingStatus,
   normalizeFeeCategory,
   normalizeFeeDate,
   normalizeFeeFrequency,
+  parseFeeRows,
   validateFeeRow,
 } from "@/lib/import/fees";
 
@@ -98,6 +100,93 @@ describe("column normalisation", () => {
     expect(normalizeFeeDate("").value).toBe("");
   });
 });
+
+describe("feeStructureToCsv", () => {
+  it("writes a header and one row per fee, resolving the class name", () => {
+    const csv = feeStructureToCsv(
+      [
+        {
+          name: "Tuition",
+          class_id: "c1",
+          amount: 500000,
+          term: 1,
+          category: "tuition",
+          boarding_status: "day",
+          frequency: "per_term",
+          academic_year: "2026",
+        },
+      ],
+      [{ id: "c1", name: "P.1" }],
+    );
+
+    const lines = csv.split("\n");
+    expect(lines[0]).toBe(FEE_TEMPLATE_HEADERS.join(","));
+    expect(lines[1]).toContain("Tuition,P.1,500000,1,Tuition,Day,Per Term");
+  });
+
+  it("round-trips through the importer without losing a value", () => {
+    const csv = feeStructureToCsv(
+      [
+        {
+          name: "Lunch, Snacks & Porridge",
+          class_id: null,
+          amount: 45000,
+          term: null,
+          category: "meals",
+          boarding_status: "both",
+          frequency: "one_off",
+          transport_zone: "",
+          due_date: "2026-03-15",
+          academic_year: "2026",
+        },
+      ],
+      [],
+    );
+
+    const row = csv.split("\n")[1];
+    const parsed = parseFeeRows([Object.fromEntries(FEE_TEMPLATE_HEADERS.map((h, i) => [h, splitCsvRow(row)[i]]))])[0];
+
+    expect(parsed.isValid).toBe(true);
+    expect(parsed.data).toMatchObject({
+      name: "Lunch, Snacks & Porridge",
+      class_name: "",
+      amount: "45000",
+      category: "meals",
+      boarding_status: "both",
+      frequency: "one_off",
+      due_date: "2026-03-15",
+      academic_year: "2026",
+    });
+  });
+});
+
+function splitCsvRow(row: string): string[] {
+  const cells: string[] = [];
+  let current = "";
+  let quoted = false;
+  for (let i = 0; i < row.length; i++) {
+    const ch = row[i];
+    if (quoted) {
+      if (ch === '"' && row[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else if (ch === '"') {
+        quoted = false;
+      } else {
+        current += ch;
+      }
+    } else if (ch === '"') {
+      quoted = true;
+    } else if (ch === ",") {
+      cells.push(current);
+      current = "";
+    } else {
+      current += ch;
+    }
+  }
+  cells.push(current);
+  return cells;
+}
 
 describe("feeStructureKey", () => {
   it("treats the same fee on the same terms as one entry", () => {
