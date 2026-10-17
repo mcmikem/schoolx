@@ -49,6 +49,10 @@ export default function SetupChecklist({ onComplete, showAll = false, autoHide =
   const demo = isDemo || isDemoSchool(school?.id);
   const [items, setItems] = useState<ChecklistItem[]>([]);
   const [loading, setLoading] = useState(true);
+  // Collapsed by default on the dashboard. Expanded wherever the user has
+  // explicitly asked for the checklist (the settings tab passes showAll),
+  // because there they are already looking at it.
+  const [expanded, setExpanded] = useState(showAll);
 
   const fetchChecklist = useCallback(async () => {
     if (!school?.id) return;
@@ -230,21 +234,57 @@ export default function SetupChecklist({ onComplete, showAll = false, autoHide =
 
   if (autoHide && (progress === 100 || schoolAgeDays > NEW_SCHOOL_DAYS)) return null;
 
+  // Collapsed: one row. Setup is a one-time task, and on the dashboard it sat
+  // between the greeting and the school's actual numbers -- 847 pupils, 94%
+  // attendance, what was collected today all fell below the fold for anyone
+  // opening the app to do their job rather than to configure it.
+  const summary = (
+    <div className="flex items-center justify-between gap-4">
+      <div className="min-w-0">
+        <h3 className="text-base font-semibold text-[var(--on-surface)]">School Setup Checklist</h3>
+        <p className="text-[13px] text-[var(--t3)]">
+          {completedCount} of {items.length} completed
+        </p>
+      </div>
+      <div className="flex items-center gap-3 flex-shrink-0">
+        <div className="text-xl font-bold text-[var(--primary)]">{progress}%</div>
+        <Button variant="secondary" onClick={() => setExpanded(true)} aria-expanded={false}>
+          Set up
+        </Button>
+      </div>
+    </div>
+  );
+
+  if (!expanded) {
+    return (
+      <Card>
+        <CardBody>{summary}</CardBody>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardBody>
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h3 className="text-lg font-semibold text-[var(--on-surface)]">School Setup Checklist</h3>
+            <h3 className="text-base font-semibold text-[var(--on-surface)]">School Setup Checklist</h3>
             <p className="text-sm text-[var(--t3)]">
               {completedCount} of {items.length} completed
             </p>
           </div>
-          <div className="text-3xl font-bold text-[var(--primary)]">{progress}%</div>
+          <button
+            type="button"
+            onClick={() => setExpanded(false)}
+            className="text-[13px] font-medium text-[var(--primary)] hover:underline flex items-center gap-1"
+          >
+            <MaterialIcon icon="expand_less" style={{ fontSize: 16 }} />
+            Hide
+          </button>
         </div>
 
         {/* Progress Bar */}
-        <div className="w-full h-3 bg-[var(--surface-container)] rounded-full mb-6 overflow-hidden">
+        <div className="w-full h-2 bg-[var(--surface-container)] rounded-full mb-6 overflow-hidden">
           <div className="h-full bg-teal-500 transition-all duration-500" style={{ width: `${progress}%` }} />
         </div>
 
