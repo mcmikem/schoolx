@@ -253,7 +253,15 @@ export function useFeePayments(schoolId?: string, page: number = 1, limit: numbe
     }
     const querySchoolId = getQuerySchoolId(schoolId, isDemo);
 
-    if (!payment.fee_id && !isOnline) {
+    // `!isOnline` fired exactly when the device was OFFLINE, so a bursar
+    // recording a cash payment with no signal was told "Fee ID is required for
+    // online payments" -- the one case where the rule does not apply. The
+    // condition is now the connectivity it claims to be.
+    //
+    // fee_id is nullable in the database and the offline sync inserts it without
+    // complaint, so nothing downstream needed it; the guard was app policy
+    // contradicting its own message.
+    if (!payment.fee_id && isOnline) {
       throw new Error("Fee ID is required for online payments");
     }
 
@@ -386,6 +394,33 @@ export function useFeePayments(schoolId?: string, page: number = 1, limit: numbe
         deleted_at: new Date().toISOString(),
         deleted_by: user?.id || null,
       };
+
+      // Offline deletes used to have no branch at all: the Supabase update threw,
+      // the catch re-threw, and the row stayed on screen looking undeletable.
+      // fee_payments is in SOFT_DELETE_TABLES, so the queued delete soft-deletes
+      // on sync -- the same end state as the online path.
+      if (!isOnline) {
+        await offlineDB.delete("fee_payments", id);
+        // Remove it now rather than after a sync the user cannot wait for.
+        setPayments((prev) => prev.filter((p) => p.id !== id));
+        invalidateCache(cacheKey);
+        if (school?.id && user?.id && existing) {
+          await logAuditEventWithOfflineSupport(
+            false,
+            school.id,
+            user.id,
+            user.full_name,
+            "delete",
+            "fees",
+            "Queued offline deletion of fee payment",
+            id,
+            existing as unknown as Record<string, unknown>,
+            payload,
+          );
+        }
+        return;
+      }
+
       const { error: deleteError } = await withTimeout(
         supabase.from("fee_payments").update(payload).eq("id", id),
         15000,
