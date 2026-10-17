@@ -51,6 +51,7 @@ import type { FeeStructure } from "@/types";
 // idle time so the forms and tabs still open offline once the page has been visited.
 const PaymentModal = lazyWithIdlePrefetch(() => import("@/components/fees/PaymentModal"));
 const FeeFormModal = lazyWithIdlePrefetch(() => import("@/components/fees/FeeFormModal"));
+const FeeImportModal = lazyWithIdlePrefetch(() => import("@/components/fees/FeeImportModal"));
 const ReceiptModal = lazyWithIdlePrefetch(() => import("@/components/fees/ReceiptModal"));
 const InvoiceModal = lazyWithIdlePrefetch(() => import("@/components/fees/InvoiceModal"));
 const AdjustmentModal = lazyWithIdlePrefetch(() => import("@/components/fees/AdjustmentModal"));
@@ -269,6 +270,7 @@ export default function FinanceHubPage() {
   const [recordedPaymentAmount, setRecordedPaymentAmount] = useState<number | undefined>();
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [showFeeModal, setShowFeeModal] = useState(false);
+  const [showFeeImport, setShowFeeImport] = useState(false);
   const [showAdjustmentModal, setShowAdjustmentModal] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<{
     type: "payment" | "fee" | "adjustment";
@@ -436,9 +438,7 @@ export default function FinanceHubPage() {
     // Otherwise tuition, the common case. category is checked as well as the
     // name because schools record it inconsistently: live data has "tuition"
     // and "Tuition" in the same column.
-    const tuition = live.filter(
-      (f) => /^tuition$/i.test(f.category || "") || /tuition/i.test(f.name),
-    );
+    const tuition = live.filter((f) => /^tuition$/i.test(f.category || "") || /tuition/i.test(f.name));
     if (tuition.length === 1) return tuition[0].id;
     // Several rows naming the same fee at the same price are the same fee to the
     // person paying; only the duplicate id differs.
@@ -449,11 +449,7 @@ export default function FinanceHubPage() {
 
   // Adjustments carry a bare fee_id and are not joined to fee_structure, so
   // resolve names from the fee list already loaded for the picker.
-  const feeNameById = useMemo(
-    () => new Map(feeStructure.map((f) => [f.id, f.name])),
-    [feeStructure],
-  );
-
+  const feeNameById = useMemo(() => new Map(feeStructure.map((f) => [f.id, f.name])), [feeStructure]);
 
   const [newAdjustment, setNewAdjustment] = useState<{
     student_id: string;
@@ -469,7 +465,6 @@ export default function FinanceHubPage() {
     description: "",
     fee_id: "",
   });
-
 
   const [plans, setPlans] = useState<PaymentPlan[]>([]);
   const [planStudents, setPlanStudents] = useState<any[]>([]);
@@ -726,7 +721,6 @@ export default function FinanceHubPage() {
     () => pickDefaultFee(adjustmentFees, adjustmentBoarding),
     [pickDefaultFee, adjustmentFees, adjustmentBoarding],
   );
-
 
   const [bandFilter, setBandFilter] = useState<string | null>(null);
   // The bursar's job is collecting: open on pupils who owe, with a visible
@@ -1710,6 +1704,10 @@ export default function FinanceHubPage() {
                 <MaterialIcon icon="event_note" />
                 Payment Plans
               </Button>
+              <Button variant="secondary" size="sm" onClick={() => setShowFeeImport(true)}>
+                <MaterialIcon icon="upload_file" />
+                Bulk Import
+              </Button>
               <Button
                 variant="primary"
                 size="sm"
@@ -2236,6 +2234,17 @@ export default function FinanceHubPage() {
           isEditing={Boolean(editingFeeId)}
           draftLastSaved={feeDraft.lastSaved}
           draftIsDirty={feeDraft.isDirty}
+        />
+
+        <FeeImportModal
+          isOpen={showFeeImport}
+          onClose={() => setShowFeeImport(false)}
+          classes={classes}
+          academicYear={academicYear}
+          defaultTerm={currentTerm || 1}
+          existingFees={feeStructure}
+          createFeeStructure={createFeeStructure}
+          onComplete={refetchFeeStructure}
         />
 
         <AdjustmentModal
