@@ -1,19 +1,20 @@
 "use client";
-import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { useState, useEffect, useCallback, useRef } from "react";
-import { useAuth } from "@/lib/auth-context";
-import { useStudents } from "@/lib/hooks";
-import { useToast } from "@/components/Toast";
-import { supabase } from "@/lib/supabase";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { EmptyState } from "@/components/EmptyState";
 import MaterialIcon from "@/components/MaterialIcon";
-import { PageHeader } from "@/components/ui/PageHeader";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
+import StudentPicker from "@/components/students/StudentPicker";
+import { useToast } from "@/components/Toast";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
-import { Tabs } from "@/components/ui/Tabs";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { TableSkeleton } from "@/components/ui/Skeleton";
-import { EmptyState } from "@/components/EmptyState";
+import { Tabs } from "@/components/ui/Tabs";
+import { useAuth } from "@/lib/auth-context";
+import { useStudents } from "@/lib/hooks";
+import { timeoutFallback, withTimeout } from "@/lib/hooks/utils";
 import { logger } from "@/lib/logger";
-import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
+import { supabase } from "@/lib/supabase";
 
 interface Student {
   id: string;
@@ -352,7 +353,7 @@ export default function BehaviorPage() {
               <div className="p-6 border-b border-[var(--border)]">
                 <div className="flex items-center justify-between">
                   <h2 className="text-lg font-semibold text-[var(--t1)]">{editingLog ? "Edit Log" : "Add Log"}</h2>
-                  <button onClick={closeModal} className="p-2 text-[var(--t3)] hover:text-[var(--t1)]">
+                  <button onClick={closeModal} className="tap-44 p-2 text-[var(--t3)] hover:text-[var(--t1)]">
                     <MaterialIcon icon="close" className="text-xl" />
                   </button>
                 </div>
@@ -365,19 +366,17 @@ export default function BehaviorPage() {
                       No students available
                     </div>
                   ) : (
-                    <select
+                    <StudentPicker
+                      students={students.map((student) => ({
+                        id: student.id,
+                        name: `${student.first_name} ${student.last_name}`,
+                        student_number: student.student_number,
+                        class_name: student.classes?.name,
+                      }))}
                       value={formData.student_id}
-                      onChange={(e) => setFormData({ ...formData, student_id: e.target.value })}
-                      className="input"
+                      onChange={(studentId) => setFormData({ ...formData, student_id: studentId })}
                       required
-                    >
-                      <option value="">Select student</option>
-                      {students.map((student) => (
-                        <option key={student.id} value={student.id}>
-                          {student.first_name} {student.last_name}
-                        </option>
-                      ))}
-                    </select>
+                    />
                   )}
                 </div>
 

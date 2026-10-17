@@ -1,6 +1,6 @@
 "use client";
+import StudentPicker from "@/components/students/StudentPicker";
 import { Modal } from "@/components/ui/Modal";
-import { formatCurrency } from "@/lib/currency";
 
 interface AdjustmentData {
   student_id: string;
@@ -54,19 +54,12 @@ export default function AdjustmentModal({
           <label className="block text-xs font-bold uppercase tracking-wider text-on-surface-variant mb-2">
             Student
           </label>
-          <select
+          <StudentPicker
+            students={students}
             value={newAdjustment.student_id}
-            onChange={(e) => onAdjustmentChange({ student_id: e.target.value })}
-            className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm"
+            onChange={(studentId) => onAdjustmentChange({ student_id: studentId })}
             required
-          >
-            <option value="">Select student</option>
-            {students.map((student) => (
-              <option key={student.id} value={student.id}>
-                {student.name} - {formatCurrency(student.balance)}
-              </option>
-            ))}
-          </select>
+          />
         </div>
 
         <div className="grid grid-cols-2 gap-4">

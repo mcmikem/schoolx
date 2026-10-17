@@ -2,9 +2,10 @@
 
 import type { MutableRefObject } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
-import PersonInitials from "@/components/ui/PersonInitials";
-import { Card } from "@/components/ui/Card";
+import StudentPicker from "@/components/students/StudentPicker";
 import { Button } from "@/components/ui";
+import { Card } from "@/components/ui/Card";
+import PersonInitials from "@/components/ui/PersonInitials";
 import { Tabs } from "@/components/ui/Tabs";
 
 interface TransferOutRecord {
@@ -574,20 +575,19 @@ export default function StudentTransfersPanel({
                     No active students
                   </div>
                 ) : (
-                  <select
-                    id="transfer-out-student"
+                  <StudentPicker
+                    label="Transfer out"
+                    students={activeStudents.map((student) => ({
+                      id: student.id,
+                      name: `${student.first_name} ${student.last_name}`,
+                      student_number: student.student_number,
+                      class_name: student.classes?.name,
+                    }))}
                     value={transferOutForm.student_id}
-                    onChange={(e) => setTransferOutForm({ ...transferOutForm, student_id: e.target.value })}
-                    className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--on-surface)]"
+                    onChange={(studentId) => setTransferOutForm({ ...transferOutForm, student_id: studentId })}
+                    placeholder="Search by name or number…"
                     required
-                  >
-                    <option value="">Select student...</option>
-                    {activeStudents.map((student) => (
-                      <option key={student.id} value={student.id}>
-                        {student.first_name} {student.last_name} - {student.classes?.name || "No class"}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 )}
               </div>
               <div className="mb-4">
