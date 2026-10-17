@@ -272,7 +272,7 @@ export interface FeeStructure {
   academic_year: string;
   due_date?: string;
   category?: string;
-  boarding_status?: "day" | "boarding" | null;
+  boarding_status?: "day" | "boarding" | "both" | null;
   frequency?: "per_term" | "one_off" | "per_year";
   transport_zone?: string | null;
   deleted_at?: string;

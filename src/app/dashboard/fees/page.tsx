@@ -380,7 +380,7 @@ export default function FinanceHubPage() {
   //    distinct -- live data has one school holding 36 identical school-wide
   //    rows.
   const feesForClass = useCallback(
-    (classId: string) => {
+    (classId: string, boardingStatus?: string) => {
       const term = Number(currentTerm || 1);
       const allClasses = !classId || classId === "all";
       return feeStructure
@@ -389,9 +389,26 @@ export default function FinanceHubPage() {
           if (academicYear && f.academic_year && f.academic_year !== academicYear) return false;
           if (f.term != null && f.term !== term) return false;
           if (!allClasses && f.class_id != null && f.class_id !== classId) return false;
+          // Fee lines carry their own boarding_status (day | boarding | both),
+          // so a day pupil is not offered the boarding fee and vice versa.
+          // Unset means the line applies to everyone.
+          if (
+            boardingStatus &&
+            f.boarding_status &&
+            f.boarding_status !== "both" &&
+            f.boarding_status !== boardingStatus
+          ) {
+            return false;
+          }
           return true;
         })
-        .map((f) => ({ id: f.id, name: f.name, amount: f.amount, retired: Boolean(f.deleted_at) }));
+        .map((f) => ({
+          id: f.id,
+          name: f.name,
+          amount: f.amount,
+          category: f.category,
+          retired: Boolean(f.deleted_at),
+        }));
     },
     [feeStructure, currentTerm, academicYear],
   );
@@ -405,8 +422,23 @@ export default function FinanceHubPage() {
   // identical school-wide duplicates, and choosing between those by id would
   // file the payment against a line nobody picked. One tap to choose is cheap;
   // mis-filing money is not recoverable.
-  const pickDefaultFee = useCallback((fees: FeeOption[]) => {
-    const tuition = fees.filter((f) => !f.retired && /tuition/i.test(f.name));
+  const pickDefaultFee = useCallback((fees: FeeOption[], boardingStatus?: string) => {
+    const live = fees.filter((f) => !f.retired);
+    // A fee written for this pupil's kind of student wins outright. A boarding
+    // pupil has a boarding fee, not the day rate, and the school has already
+    // recorded which is which on the fee line.
+    if (boardingStatus) {
+      const forCategory = live.filter(
+        (f) => f.category === boardingStatus || new RegExp(`\b${boardingStatus}\b`, "i").test(f.name),
+      );
+      if (forCategory.length === 1) return forCategory[0].id;
+    }
+    // Otherwise tuition, the common case. category is checked as well as the
+    // name because schools record it inconsistently: live data has "tuition"
+    // and "Tuition" in the same column.
+    const tuition = live.filter(
+      (f) => /^tuition$/i.test(f.category || "") || /tuition/i.test(f.name),
+    );
     if (tuition.length === 1) return tuition[0].id;
     // Several rows naming the same fee at the same price are the same fee to the
     // person paying; only the duplicate id differs.
@@ -671,23 +703,28 @@ export default function FinanceHubPage() {
   // classes", which left the picker listing every fee in the school at once --
   // a P.1 applicant saw P.6 fees and three years of Development Fund. The page
   // filter is only a fallback for before a pupil is chosen.
-  const paymentClassId =
-    studentBalances.find((s) => s.id === newPayment.student_id)?.class_id || selectedClass;
-  const adjustmentClassId =
-    studentBalances.find((s) => s.id === newAdjustment.student_id)?.class_id || selectedClass;
+  const paymentStudent = students.find((s) => s.id === newPayment.student_id);
+  const adjustmentStudent = students.find((s) => s.id === newAdjustment.student_id);
+  const paymentClassId = paymentStudent?.class_id || selectedClass;
+  const adjustmentClassId = adjustmentStudent?.class_id || selectedClass;
+  const paymentBoarding = paymentStudent?.boarding_status || "";
+  const adjustmentBoarding = adjustmentStudent?.boarding_status || "";
 
-  const paymentFees = useMemo(() => feesForClass(paymentClassId), [feesForClass, paymentClassId]);
+  const paymentFees = useMemo(
+    () => feesForClass(paymentClassId, paymentBoarding),
+    [feesForClass, paymentClassId, paymentBoarding],
+  );
   const adjustmentFees = useMemo(
-    () => feesForClass(adjustmentClassId),
-    [feesForClass, adjustmentClassId],
+    () => feesForClass(adjustmentClassId, adjustmentBoarding),
+    [feesForClass, adjustmentClassId, adjustmentBoarding],
   );
   const paymentDefaultFeeId = useMemo(
-    () => pickDefaultFee(paymentFees),
-    [pickDefaultFee, paymentFees],
+    () => pickDefaultFee(paymentFees, paymentBoarding),
+    [pickDefaultFee, paymentFees, paymentBoarding],
   );
   const adjustmentDefaultFeeId = useMemo(
-    () => pickDefaultFee(adjustmentFees),
-    [pickDefaultFee, adjustmentFees],
+    () => pickDefaultFee(adjustmentFees, adjustmentBoarding),
+    [pickDefaultFee, adjustmentFees, adjustmentBoarding],
   );
 
 
@@ -895,7 +932,10 @@ export default function FinanceHubPage() {
         payment_date: newPayment.payment_date,
         payment_method: newPayment.payment_method,
         payment_reference: reference || undefined,
-        fee_id: newPayment.fee_id || undefined,
+        // The picker shows a preselected fee without storing it, so fall back to
+        // that here. Otherwise an untouched form would send no fee at all and be
+        // rejected by the validator it is meant to satisfy.
+        fee_id: newPayment.fee_id || paymentDefaultFeeId || undefined,
         paid_by: newPayment.paid_by || undefined,
         notes: newPayment.notes || undefined,
         allow_overpayment: newPayment.allow_overpayment || undefined,
@@ -1332,7 +1372,7 @@ export default function FinanceHubPage() {
         adjustment_type: newAdjustment.adjustment_type,
         amount: Number(newAdjustment.amount),
         description: newAdjustment.description.trim(),
-        fee_id: newAdjustment.fee_id || undefined,
+        fee_id: newAdjustment.fee_id || adjustmentDefaultFeeId || undefined,
       });
       toast.success("Adjustment recorded");
       setShowAdjustmentModal(false);

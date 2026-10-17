@@ -37,9 +37,14 @@ export default function AdjustmentModal({
   saving,
 }: AdjustmentModalProps) {
   const parsedAmount = Number(newAdjustment.amount);
+  // Mirrors the payment form: the shown default counts as chosen, so an
+  // untouched form is not blocked by a fee it is already displaying.
+  const missingFee = !newAdjustment.fee_id && !defaultFeeId;
   const adjustmentValidationError =
     !newAdjustment.student_id || !newAdjustment.amount || !newAdjustment.description.trim()
       ? "Select a student, amount, and reason to continue."
+      : missingFee
+        ? "Choose which fee this applies to."
       : Number.isNaN(parsedAmount) || parsedAmount <= 0
         ? "Adjustment amount must be greater than 0."
         : "";
@@ -113,7 +118,6 @@ export default function AdjustmentModal({
           value={newAdjustment.fee_id}
           onChange={(fee_id) => onAdjustmentChange({ fee_id })}
           label="Applies To Which Fee"
-          emptyLabel="Whole bill / not fee-specific"
         />
 
         <div>

@@ -19,6 +19,8 @@ interface PaymentData {
   paid_by: string;
   notes: string;
   allow_overpayment: boolean;
+  /** Fee being paid. "" means the preselected one is showing. */
+  fee_id: string;
 }
 
 interface PaymentModalProps {
@@ -94,16 +96,21 @@ export default function PaymentModal({
       errs.payment_date = "Choose the date the payment was received.";
     else if (newPayment.payment_date > getLocalDateString())
       errs.payment_date = "Payment date cannot be in the future.";
+    // The preselected fee is shown but not stored in state, so a blank fee_id
+    // still counts as chosen as long as a default is on offer. Only when there
+    // is nothing to preselect and nothing picked is this an error.
+    if (!newPayment.fee_id && !defaultFeeId)
+      errs.fee_id = "Choose which fee this payment is for";
     return errs;
-  }, [newPayment, selectedStudent]);
+  }, [newPayment, selectedStudent, defaultFeeId]);
   const overpaymentAmount =
     selectedStudent && Number(newPayment.amount_paid) > selectedStudent.balance
       ? Number(newPayment.amount_paid) - selectedStudent.balance
       : 0;
 
-  const step1Valid = !errors.student_id && !errors.amount_paid;
+  const step1Valid = !errors.student_id && !errors.amount_paid && !errors.fee_id;
   const submitDisabledReason = !step1Valid
-    ? "Complete the student and amount fields first."
+    ? errors.fee_id || "Complete the student and amount fields first."
     : errors.payment_date || errors.momo_transaction_id || errors.amount_paid || errors.student_id
       ? errors.payment_date || errors.momo_transaction_id || errors.amount_paid || errors.student_id || ""
       : "";
@@ -544,8 +551,8 @@ export default function PaymentModal({
                   value={feeId ?? ""}
                   onChange={(id) => onFeeChange?.(id)}
                   label="Paying Which Fee"
-                  emptyLabel="Whole bill / not fee-specific"
                 />
+                {errors.fee_id && <p className="mt-1 text-[11px] text-[var(--red)]">{errors.fee_id}</p>}
               </div>
               <div>
                 <label

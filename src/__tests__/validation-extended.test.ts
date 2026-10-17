@@ -414,8 +414,33 @@ describe("Validation - Payment Input", () => {
           amount_paid: 50000,
           payment_method: "cash",
           payment_date: "2026-04-10",
+          fee_id: "fee-1",
         }),
       ).toEqual([]);
+    });
+
+    test("requires a fee, because a payment has to settle something named", () => {
+      // fee_payments.fee_id is nullable and older rows have none, but a new
+      // payment without one cannot be traced to what it paid for.
+      expect(
+        validatePaymentInput({
+          student_id: "student-1",
+          amount_paid: 50000,
+          payment_method: "cash",
+          payment_date: "2026-04-10",
+        }),
+      ).toContain("Choose which fee this payment is for");
+    });
+
+    test("treats a blank fee as no fee", () => {
+      expect(
+        validatePaymentInput({
+          student_id: "student-1",
+          amount_paid: 50000,
+          payment_method: "cash",
+          fee_id: "   ",
+        }),
+      ).toContain("Choose which fee this payment is for");
     });
 
     test("rejects invalid payment payload", () => {
@@ -434,6 +459,7 @@ describe("Validation - Payment Input", () => {
         "Amount must be greater than 0",
         "Payment method is invalid",
         "Payment date cannot be in the future",
+        "Choose which fee this payment is for",
       ]);
     });
   });

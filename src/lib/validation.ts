@@ -349,6 +349,11 @@ export function validatePaymentInput(input: Record<string, any>, options: { toda
   if (input.payment_date && !isValidDate(String(input.payment_date))) errors.push("Payment date must be valid");
   if (input.payment_date && isFutureDate(String(input.payment_date), today))
     errors.push("Payment date cannot be in the future");
+  // Every payment names a fee. The column is nullable and older rows have no
+  // fee set, but new payments have to: a payment that settles "the bill" cannot
+  // be traced to what it paid for, which is the reason this field exists.
+  if (!input.fee_id || String(input.fee_id).trim() === "")
+    errors.push("Choose which fee this payment is for");
   return errors;
 }
 

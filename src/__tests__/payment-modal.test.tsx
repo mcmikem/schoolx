@@ -27,6 +27,7 @@ function Form() {
     paid_by: "",
     notes: "",
     allow_overpayment: false,
+    fee_id: "fee-1",
   });
   return (
     <PaymentModal
@@ -133,6 +134,7 @@ function FormWithParents({ parents }: { parents: Record<string, string[]> }) {
     paid_by: "",
     notes: "",
     allow_overpayment: false,
+    fee_id: "fee-1",
   });
   return (
     <PaymentModal
@@ -209,6 +211,7 @@ describe("paid by fills from the parent on file", () => {
         paid_by: "Sponsor X",
         notes: "",
         allow_overpayment: false,
+    fee_id: "fee-1",
       });
       return (
         <PaymentModal

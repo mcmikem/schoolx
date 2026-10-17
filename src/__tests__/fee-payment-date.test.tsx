@@ -21,6 +21,7 @@ describe("payment received dates", () => {
       const saved = await result.current.createPayment({
         student_id: "student-1",
         amount_paid: 50000,
+        fee_id: "fee-1",
         payment_method: "cash",
         payment_date: "2026-02-05",
       });
@@ -34,6 +35,7 @@ describe("payment received dates", () => {
       const saved = await result.current.createPayment({
         student_id: "student-1",
         amount_paid: 50000,
+        fee_id: "fee-1",
         payment_method: "cash",
       });
       expect(saved.payment_date).toBe(getLocalDateString());

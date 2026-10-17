@@ -24,6 +24,31 @@ const tuition = (id: string, amount = 250000): FeeOption => ({
 });
 const meals = (id: string): FeeOption => ({ id, name: "Meals", amount: 80000 });
 
+describe("FeePicker boarding preselect", () => {
+  const boarding = (id: string, category: string): FeeOption => ({
+    id,
+    name: category === "boarding" ? "Boarding" : "Day",
+    category,
+  });
+
+  it("offers only the fee written for that kind of pupil", () => {
+    // The page filters the list by students.boarding_status before it gets
+    // here, so a boarding pupil is handed the boarding fee and a day pupil the
+    // day fee, and neither sees a charge that does not apply to them.
+    renderPicker([boarding("b1", "boarding")], "b1");
+    const select = screen.getByRole("combobox") as HTMLSelectElement;
+    expect(select.value).toBe("b1");
+    expect(select.textContent).toContain("Boarding");
+    expect(select.textContent).not.toContain("Day");
+  });
+
+  it("keeps a shared fee for both kinds of pupil", () => {
+    renderPicker([{ id: "t1", name: "Tuition", category: "tuition" }, boarding("b1", "boarding")], "b1");
+    const select = screen.getByRole("combobox") as HTMLSelectElement;
+    expect(select.textContent).toContain("Tuition");
+  });
+});
+
 describe("FeePicker tuition preselect", () => {
   it("preselects tuition when the caller offers exactly one", () => {
     const opts = [tuition("t1"), meals("m1")];
@@ -36,7 +61,6 @@ describe("FeePicker tuition preselect", () => {
     renderPicker([tuition("t1"), meals("m1"), { id: "d1", name: "Development Fund" }], "t1");
     const select = screen.getByRole("combobox") as HTMLSelectElement;
     expect([...select.options].map((o) => o.textContent)).toEqual([
-      "Whole bill / not fee-specific",
       expect.stringContaining("Term 1 Tuition"),
       expect.stringContaining("Meals"),
       expect.stringContaining("Development Fund"),
@@ -45,8 +69,8 @@ describe("FeePicker tuition preselect", () => {
 
   it("shows the amount so the bursar can recognise the fee", () => {
     renderPicker([tuition("t1", 250000)], "t1");
-    const option = (screen.getByRole("combobox") as HTMLSelectElement).options[1];
-    expect(option.textContent).toContain("250");
+    const select = screen.getByRole("combobox") as HTMLSelectElement;
+    expect(select.options[0].textContent).toContain("250");
   });
 
   it("falls back to the whole bill when the default names a fee that is gone", () => {
@@ -68,10 +92,29 @@ describe("FeePicker tuition preselect", () => {
     expect([...select.options].map((o) => o.value)).toEqual(["", "m1"]);
   });
 
-  it("shows the whole-bill option first so it stays reachable", () => {
-    renderPicker([tuition("t1")], "t1");
+  it("offers no way to leave the payment unattached to a fee", () => {
+    // A school charges named fees, so every payment belongs to one of them.
+    // An escape hatch only produced payments that could not be attributed to
+    // anything, which is the reason the field exists.
+    renderPicker([tuition("t1"), meals("m1")], "t1");
     const select = screen.getByRole("combobox") as HTMLSelectElement;
-    expect(select.options[0].value).toBe("");
+    expect(select.required).toBe(true);
+    expect([...select.options].every((o) => o.value !== "" || o.textContent === "Choose a fee")).toBe(true);
+  });
+
+  it("prompts only when nothing is preselected", () => {
+    renderPicker([meals("m1")], "");
+    expect(screen.getByRole("combobox").textContent).toContain("Choose a fee");
+  });
+
+  it("says so when the class has no fees at all", () => {
+    renderPicker([], "");
+    expect(screen.getByText(/no fees set up/i)).toBeInTheDocument();
+  });
+
+  it("does not show a bare Choose a fee once tuition is preselected", () => {
+    renderPicker([tuition("t1")], "t1");
+    expect(screen.getByRole("combobox").textContent).not.toContain("Choose a fee");
   });
 
   it("still records an explicit choice over the default", async () => {

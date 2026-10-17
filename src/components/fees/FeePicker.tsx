@@ -7,6 +7,12 @@ export interface FeeOption {
   id: string;
   name: string;
   amount?: number | string | null;
+  /**
+   * What the school filed the fee under -- "tuition", "meals", "development".
+   * Recorded inconsistently in practice (live data has both "tuition" and
+   * "Tuition"), so it is used alongside the name rather than instead of it.
+   */
+  category?: string | null;
   /** Set when the fee line was retired; kept visible but marked. */
   retired?: boolean;
 }
@@ -16,8 +22,6 @@ interface FeePickerProps {
   value: string;
   onChange: (feeId: string) => void;
   label?: string;
-  /** What an empty selection means, worded for the person filling the form. */
-  emptyLabel?: string;
   disabled?: boolean;
   required?: boolean;
   /**
@@ -40,6 +44,11 @@ interface FeePickerProps {
  * than one candidate is left to the person: guessing wrong here would file a
  * payment against the wrong fee, which is worse than asking.
  *
+ * There is deliberately no "not fee-specific" option. A school charges named
+ * fees -- tuition, meals, transport, development -- so a payment belongs to one
+ * of them, and offering an escape hatch only produced payments that could not
+ * be attributed to anything when the bursar left it alone.
+ *
  * The fee list is passed in rather than fetched here, so the caller decides
  * which school, class and term it applies to.
  */
@@ -48,7 +57,6 @@ export default function FeePicker({
   value,
   onChange,
   label = "Fee",
-  emptyLabel = "Whole bill / not fee-specific",
   disabled,
   required,
   defaultFeeId = "",
@@ -85,20 +93,25 @@ export default function FeePicker({
         id="fee-picker-select"
         value={selected}
         disabled={disabled}
-        required={required && !selected}
+        required
         onChange={(e) => {
           setTouched(true);
           onChange(e.target.value);
         }}
         className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-container)] px-4 py-3 text-sm text-[var(--t1)]"
       >
-        <option value="">{emptyLabel}</option>
+        {!selected && <option value="">Choose a fee</option>}
         {live.map((fee) => (
           <option key={fee.id} value={fee.id}>
             {labelText(fee)}
           </option>
         ))}
       </select>
+      {!live.length && (
+        <p className="mt-1 text-[11px] text-[var(--red)]">
+          This class has no fees set up. Add them under Fee Structure first.
+        </p>
+      )}
       {fees.length > live.length && (
         <p className="mt-1 text-[11px] text-[var(--t3)]">
           {fees.length - live.length} retired fee line{fees.length - live.length === 1 ? "" : "s"} hidden.
