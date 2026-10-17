@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui";
+import { isDemoSchool } from "@/lib/demo-utils";
 
 interface ChecklistItem {
   id: string;
@@ -44,12 +45,27 @@ function sortItems<T extends { item_key: string; sort_order?: number | null }>(l
 
 export default function SetupChecklist({ onComplete, showAll = false, autoHide = false }: Props) {
   const router = useRouter();
-  const { school, user } = useAuth();
+  const { school, user, isDemo } = useAuth();
+  const demo = isDemo || isDemoSchool(school?.id);
   const [items, setItems] = useState<ChecklistItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchChecklist = useCallback(async () => {
     if (!school?.id) return;
+    if (demo) {
+      setItems(
+        DEFAULT_ITEMS.map((item, index) => ({
+          ...item,
+          id: `demo-${index}`,
+          is_completed: false,
+          completed_at: null,
+          skipped: false,
+          sort_order: index,
+        })),
+      );
+      setLoading(false);
+      return;
+    }
     try {
       const res = await fetch("/api/setup-progress/", { method: "GET" });
       const body = await res.json();
@@ -109,9 +125,18 @@ export default function SetupChecklist({ onComplete, showAll = false, autoHide =
     }
 
     setLoading(false);
-  }, [school?.id]);
+  }, [school?.id, demo]);
 
   const markComplete = async (id: string, key: string) => {
+    if (demo) {
+      setItems((previous) =>
+        previous.map((item) =>
+          item.id === id ? { ...item, is_completed: true, completed_at: new Date().toISOString() } : item,
+        ),
+      );
+      onComplete?.(key);
+      return;
+    }
     const { error } = await supabase
       .from("setup_checklist")
       .update({ is_completed: true, completed_at: new Date().toISOString() })
@@ -134,6 +159,10 @@ export default function SetupChecklist({ onComplete, showAll = false, autoHide =
   };
 
   const markSkipped = async (id: string) => {
+    if (demo) {
+      setItems((previous) => previous.map((item) => (item.id === id ? { ...item, skipped: true } : item)));
+      return;
+    }
     const { error } = await supabase
       .from("setup_checklist")
       .update({ skipped: true, skipped_at: new Date().toISOString() })
@@ -148,7 +177,11 @@ export default function SetupChecklist({ onComplete, showAll = false, autoHide =
 
   const getItemIcon = (key: string): string => {
     const icons: Record<string, string> = {
-      school_details: "apartment",
+      // `apartment` is a Material Icons name but NOT a Material Symbols
+      // ligature, so it silently rendered the word "APARTMENTS" as 162px of
+      // fallback text on top of the checklist row. `domain` is the real
+      // symbols name and reads the same for school details.
+      school_details: "domain",
       academic_term: "calendar_month",
       classes: "school",
       subjects: "menu_book",

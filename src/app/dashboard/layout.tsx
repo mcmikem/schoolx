@@ -1,16 +1,17 @@
 "use client";
 import dynamic from "next/dynamic";
 import { Suspense, useEffect, useRef, useState } from "react";
-import { useAuth } from "@/lib/auth-context";
-import { useToast } from "@/components/Toast";
-import { OfflineIndicator } from "@/components/OfflineIndicator";
-import ErrorBoundary from "@/components/ErrorBoundary";
-import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import ExpiredNotice from "@/components/dashboard/ExpiredNotice";
-import TrialBanner from "@/components/dashboard/TrialBanner";
+import MobileBottomNav from "@/components/dashboard/MobileBottomNav";
 import SidebarShell from "@/components/dashboard/SidebarShell";
 import TopBar from "@/components/dashboard/TopBar";
-import MobileBottomNav from "@/components/dashboard/MobileBottomNav";
+import TrialBanner from "@/components/dashboard/TrialBanner";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import { OfflineIndicator } from "@/components/OfflineIndicator";
+import { PageErrorBoundary } from "@/components/PageErrorBoundary";
+import { useToast } from "@/components/Toast";
+import { useAuth } from "@/lib/auth-context";
+
 const OnboardingFlow = dynamic(() => import("@/components/onboarding/OnboardingFlow"), {
   ssr: false,
   loading: () => null,
@@ -20,18 +21,25 @@ const PostOnboardingSetup = dynamic(() => import("@/components/onboarding/PostOn
   loading: () => null,
 });
 const GoLiveGate = dynamic(() => import("@/components/GoLiveGate"), { ssr: false, loading: () => null });
-import { useAccessControl, getPageTitle } from "@/components/dashboard/AccessControlGuard";
+const PWAInstallPrompt = dynamic(() => import("@/components/PWAInstallPrompt").then((m) => m.PWAInstallPrompt), {
+  ssr: false,
+  loading: () => null,
+});
+
 import { usePathname, useRouter } from "next/navigation";
-import { SidebarProvider, useSidebar } from "@/contexts/SidebarContext";
-import { MinimalLoadingScreen, TopLoadingBar, StuckLoadingOverlay } from "@/components/ui/Skeleton";
-import { useSessionTimeout } from "@/lib/useSessionTimeout";
-import { useSchoolColors } from "@/lib/useSchoolColors";
-import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
+import { getPageTitle, useAccessControl } from "@/components/dashboard/AccessControlGuard";
 import MaterialIcon from "@/components/MaterialIcon";
-import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
+import { readDemoStorage } from "@/lib/auth-demo";
+import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
+import { MinimalLoadingScreen, StuckLoadingOverlay, TopLoadingBar } from "@/components/ui/Skeleton";
+import { SidebarProvider, useSidebar } from "@/contexts/SidebarContext";
+import { useSchoolColors } from "@/lib/useSchoolColors";
+import { useSessionTimeout } from "@/lib/useSessionTimeout";
+
 const OwlAssistant = dynamic(() => import("@/components/OwlAssistant"), { ssr: false });
 // CommandPalette removed — GlobalSearch is now the single search system (see src/components/GlobalSearch.tsx)
 const RoleBasedWalkthrough = dynamic(() => import("@/components/RoleBasedWalkthrough"), { ssr: false });
+
 import { supabase } from "@/lib/supabase";
 
 function hasCompletedSetupProgress(value: unknown): boolean {
@@ -175,6 +183,17 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
     if (!authInitialized || loading) return;
     if (user || isDemo) return;
 
+    // A demo session can still be hydrating when this runs.
+    //
+    // checkUser() arms a 2s safety timer that sets authInitialized without
+    // touching user or isDemo. If that timer wins the race against demo
+    // hydration, this guard sees "auth finished, nobody signed in" and bounces
+    // to /login -- which is why demo mode could never be reached in a browser
+    // at all. The stored session is the authority on whether a browser belongs
+    // to a demo user, so ask it directly instead of inferring from state that
+    // is still settling.
+    if (readDemoStorage() !== null) return;
+
     let cancelled = false;
     const timer = setTimeout(async () => {
       try {
@@ -263,6 +282,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showPostSetup, setShowPostSetup] = useState(false);
   const [showGoLive, setShowGoLive] = useState(false);
+  const [showDeferredChrome, setShowDeferredChrome] = useState(false);
   const [rememberSession, setRememberSession] = useState(true);
   const [loadingTimedOut, setLoadingTimedOut] = useState(false);
   const showInlineLoading = loading && !!user && !loadingTimedOut;
@@ -275,6 +295,23 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       currentPath.startsWith("/dashboard/payment-plans"),
   );
   const isDashboardHome = currentPath === "/dashboard" || currentPath === "/dashboard/";
+
+  useEffect(() => {
+    if (!user && !isDemo) return;
+    let fallbackTimer: ReturnType<typeof setTimeout> | undefined;
+    const idleWindow = window as Window & {
+      requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+    if (idleWindow.requestIdleCallback) {
+      const idleId = idleWindow.requestIdleCallback(() => setShowDeferredChrome(true), { timeout: 1800 });
+      return () => idleWindow.cancelIdleCallback?.(idleId);
+    }
+    fallbackTimer = setTimeout(() => setShowDeferredChrome(true), 1200);
+    return () => {
+      if (fallbackTimer) clearTimeout(fallbackTimer);
+    };
+  }, [user, isDemo]);
 
   const schoolData = (school as unknown as Record<string, unknown>) || null;
   const hasOperationalStudentData = Number(schoolData?.student_count || 0) > 0;
@@ -445,6 +482,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             </div>
           )}
           <TrialBanner />
+          {showDeferredChrome && <RoleBasedWalkthrough />}
           <PageErrorBoundary>
             <Suspense
               fallback={
@@ -466,9 +504,12 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       </div>
 
       <MobileBottomNav />
-      <RoleBasedWalkthrough />
-      <OwlAssistant />
-      <PWAInstallPrompt />
+      {showDeferredChrome && (
+        <>
+          <OwlAssistant />
+          <PWAInstallPrompt />
+        </>
+      )}
     </ErrorBoundary>
   );
 }

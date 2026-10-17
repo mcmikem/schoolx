@@ -12,6 +12,7 @@ Usage:
     python3 scripts/build/material-symbols-subset.py
 """
 
+import json
 import os
 import re
 import subprocess
@@ -26,6 +27,9 @@ from fontTools.ttLib.tables import otTables
 ROOT = os.path.dirname(os.path.abspath(__file__))
 SRC_DIR = os.path.join(ROOT, "..", "..", "src")
 OUT = os.path.join(ROOT, "..", "..", "public", "fonts", "material-symbols-outlined.woff2")
+MANIFEST = os.path.join(
+    ROOT, "..", "..", "public", "fonts", "material-symbols-subset.json"
+)
 
 MATERIAL_CSS_URL = (
     "https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght@20..48,300..700&display=swap"
@@ -325,6 +329,32 @@ def main():
     missing = sorted(w for w in words if w not in recs)
     print(f"icons: {len(words)} | records: {len(recs)} | restored: {added} | missing: {missing}")
     print(f"wrote {OUT} ({os.path.getsize(OUT):,} bytes)")
+
+    # Record what actually made it into the font.
+    #
+    # A woff2 cannot be read from Node without a Brotli/font parser, so the
+    # icons test cannot verify the binary directly. This manifest is the
+    # contract: it lists the ligatures the saved font really contains, read
+    # back out of it above, so the test catches an icon name that is not
+    # covered instead of trusting the source list.
+    with open(MANIFEST, "w", encoding="utf8") as fh:
+        json.dump(
+            {
+                "font": os.path.basename(OUT),
+                "ligatures": sorted(recs),
+                "missing": missing,
+                # What the scanner found in source. The icons test compares
+                # this against "ligatures" so it uses the build's own
+                # extraction rather than a looser regex that would flag every
+                # object property in the codebase.
+                "scanned": sorted(static_words | dynamic_words),
+            },
+            fh,
+            indent=2,
+            sort_keys=True,
+        )
+        fh.write("\n")
+    print(f"wrote {MANIFEST} ({len(recs)} ligatures)")
 
 
 if __name__ == "__main__":
