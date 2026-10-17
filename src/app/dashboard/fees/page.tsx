@@ -5,6 +5,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
 import type { FeeOption } from "@/components/fees/FeePicker";
 import { pickDefaultFee } from "@/lib/fee-default";
+import { isMealFee } from "@/lib/meal-fee";
 import type { FeeFormData } from "@/components/fees/FeeFormModal";
 import FeeStats from "@/components/fees/FeeStats";
 import FeeTable, { StudentBalance } from "@/components/fees/FeeTable";
@@ -53,6 +54,7 @@ import type { FeeStructure } from "@/types";
 const PaymentModal = lazyWithIdlePrefetch(() => import("@/components/fees/PaymentModal"));
 const FeeFormModal = lazyWithIdlePrefetch(() => import("@/components/fees/FeeFormModal"));
 const FeeImportModal = lazyWithIdlePrefetch(() => import("@/components/fees/FeeImportModal"));
+const MobileMoneyImportModal = lazyWithIdlePrefetch(() => import("@/components/fees/MobileMoneyImportModal"));
 const ReceiptModal = lazyWithIdlePrefetch(() => import("@/components/fees/ReceiptModal"));
 const InvoiceModal = lazyWithIdlePrefetch(() => import("@/components/fees/InvoiceModal"));
 const AdjustmentModal = lazyWithIdlePrefetch(() => import("@/components/fees/AdjustmentModal"));
@@ -155,6 +157,20 @@ export default function FinanceHubPage() {
     deleteFeeStructure,
     refetch: refetchFeeStructure,
   } = useFeeStructure(school?.id);
+
+  // Fees offered to the mobile-money importer: this year's lines, with the
+  // tuition line preselected because that is what most MoMo payments settle.
+  const mobileFeeOptions = useMemo(
+    () =>
+      feeStructure
+        .filter((fee) => !academicYear || !fee.academic_year || fee.academic_year === academicYear)
+        .map((fee) => ({ id: fee.id, name: fee.name, class_name: fee.classes?.name ?? null })),
+    [feeStructure, academicYear],
+  );
+  const mobileDefaultFeeId = useMemo(() => {
+    const tuition = mobileFeeOptions.find((fee) => /tuition|school fees/i.test(fee.name));
+    return (tuition || mobileFeeOptions[0])?.id || "";
+  }, [mobileFeeOptions]);
   const { adjustments, createAdjustment, deleteAdjustment } = useFeeAdjustments(school?.id);
   const { createPayment, deletePayment } = useFeePayments(school?.id);
   const parentNamesByStudent = usePaymentParentNames(school?.id);
@@ -272,6 +288,7 @@ export default function FinanceHubPage() {
   const [showInvoiceModal, setShowInvoiceModal] = useState(false);
   const [showFeeModal, setShowFeeModal] = useState(false);
   const [showFeeImport, setShowFeeImport] = useState(false);
+  const [showMobileImport, setShowMobileImport] = useState(false);
   const [showAdjustmentModal, setShowAdjustmentModal] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<{
     type: "payment" | "fee" | "adjustment";
@@ -388,7 +405,7 @@ export default function FinanceHubPage() {
   //
   // Which fee gets preselected is decided by pickDefaultFee in lib/fee-default.
   const feesForClass = useCallback(
-    (classId: string, boardingStatus?: string) => {
+    (classId: string, boardingStatus?: string, takesMeals?: boolean | null) => {
       const term = Number(currentTerm || 1);
       const allClasses = !classId || classId === "all";
       return feeStructure
@@ -403,6 +420,15 @@ export default function FinanceHubPage() {
           ) {
             return false;
           }
+          // A meal is only owed by a pupil who eats at school. Not every day
+          // pupil does -- some go home -- and charging them produces a Meals
+          // fee they will refuse and a balance they never settle.
+          //
+          // Only true opts in. null means nobody has decided yet, and false
+          // means the pupil goes home; neither is charged, so an existing
+          // school stops billing meals to pupils who do not eat without anyone
+          // having to touch a single row first.
+          if (isMealFee(f) && takesMeals !== true) return false;
           return true;
         })
         .sort((a, b) => {
@@ -426,7 +452,6 @@ export default function FinanceHubPage() {
     },
     [feeStructure, currentTerm, academicYear],
   );
-
 
   // Adjustments carry a bare fee_id and are not joined to fee_structure, so
   // resolve names from the fee list already loaded for the picker.
@@ -684,15 +709,17 @@ export default function FinanceHubPage() {
   const paymentClassId = paymentStudent?.class_id || selectedClass;
   const adjustmentClassId = adjustmentStudent?.class_id || selectedClass;
   const paymentBoarding = paymentStudent?.boarding_status || "";
+  const paymentTakesMeals = paymentStudent?.takes_meals ?? null;
   const adjustmentBoarding = adjustmentStudent?.boarding_status || "";
+  const adjustmentTakesMeals = adjustmentStudent?.takes_meals ?? null;
 
   const paymentFees = useMemo(
-    () => feesForClass(paymentClassId, paymentBoarding),
-    [feesForClass, paymentClassId, paymentBoarding],
+    () => feesForClass(paymentClassId, paymentBoarding, paymentTakesMeals),
+    [feesForClass, paymentClassId, paymentBoarding, paymentTakesMeals],
   );
   const adjustmentFees = useMemo(
-    () => feesForClass(adjustmentClassId, adjustmentBoarding),
-    [feesForClass, adjustmentClassId, adjustmentBoarding],
+    () => feesForClass(adjustmentClassId, adjustmentBoarding, adjustmentTakesMeals),
+    [feesForClass, adjustmentClassId, adjustmentBoarding, adjustmentTakesMeals],
   );
   const paymentDefaultFeeId = useMemo(
     () => pickDefaultFee(paymentFees, paymentBoarding),
@@ -1689,6 +1716,10 @@ export default function FinanceHubPage() {
                 <MaterialIcon icon="upload_file" />
                 Bulk Import
               </Button>
+              <Button variant="secondary" size="sm" onClick={() => setShowMobileImport(true)}>
+                <MaterialIcon icon="smartphone" />
+                MoMo Import
+              </Button>
               <Button
                 variant="primary"
                 size="sm"
@@ -2226,6 +2257,16 @@ export default function FinanceHubPage() {
           existingFees={feeStructure}
           createFeeStructure={createFeeStructure}
           onComplete={refetchFeeStructure}
+        />
+
+        <MobileMoneyImportModal
+          isOpen={showMobileImport}
+          onClose={() => setShowMobileImport(false)}
+          students={students ?? []}
+          fees={mobileFeeOptions}
+          defaultFeeId={mobileDefaultFeeId}
+          createPayment={createPayment}
+          onComplete={refetchPayments}
         />
 
         <AdjustmentModal
