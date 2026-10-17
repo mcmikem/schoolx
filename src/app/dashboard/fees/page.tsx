@@ -3,6 +3,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
+import type { FeeOption } from "@/components/fees/FeePicker";
 import type { FeeFormData } from "@/components/fees/FeeFormModal";
 import FeeStats from "@/components/fees/FeeStats";
 import FeeTable, { StudentBalance } from "@/components/fees/FeeTable";
@@ -361,7 +362,7 @@ export default function FinanceHubPage() {
     allow_overpayment: false,
   });
 
-  // Fee lines to offer on a payment.
+  // Fee lines to offer, for one particular class.
   //
   // Fee lines are per class AND per term AND per year: the unique key is
   // (school_id, class_id, name, term, academic_year). Offering every line the
@@ -373,29 +374,27 @@ export default function FinanceHubPage() {
   //    one being charged now.
   //  - term: the current term. A line with no term is a one-off charge such as
   //    an application fee and applies to anyone.
-  //  - class: the class on screen, plus school-wide lines. class_id IS NULL
+  //  - class: the pupil's own class, plus school-wide lines. class_id IS NULL
   //    means "every class" and those are legitimate choices. The unique index
   //    does not stop duplicates there, because Postgres treats NULLs as
   //    distinct -- live data has one school holding 36 identical school-wide
-  //    rows. "All classes" excludes nothing on class.
-  const payableFees = useMemo(() => {
-    const term = Number(currentTerm || 1);
-    const allClasses = selectedClass === "all";
-    return feeStructure
-      .filter((f) => {
-        if (f.deleted_at) return false;
-        if (academicYear && f.academic_year && f.academic_year !== academicYear) return false;
-        if (f.term != null && f.term !== term) return false;
-        if (!allClasses && f.class_id != null && f.class_id !== selectedClass) return false;
-        return true;
-      })
-      .map((f) => ({
-        id: f.id,
-        name: f.name,
-        amount: f.amount,
-        retired: Boolean(f.deleted_at),
-      }));
-  }, [feeStructure, currentTerm, academicYear, selectedClass]);
+  //    rows.
+  const feesForClass = useCallback(
+    (classId: string) => {
+      const term = Number(currentTerm || 1);
+      const allClasses = !classId || classId === "all";
+      return feeStructure
+        .filter((f) => {
+          if (f.deleted_at) return false;
+          if (academicYear && f.academic_year && f.academic_year !== academicYear) return false;
+          if (f.term != null && f.term !== term) return false;
+          if (!allClasses && f.class_id != null && f.class_id !== classId) return false;
+          return true;
+        })
+        .map((f) => ({ id: f.id, name: f.name, amount: f.amount, retired: Boolean(f.deleted_at) }));
+    },
+    [feeStructure, currentTerm, academicYear],
+  );
 
   // What to preselect: tuition, because that is what most payments are for and
   // it is the answer the bursar wants nearly every time.
@@ -406,15 +405,15 @@ export default function FinanceHubPage() {
   // identical school-wide duplicates, and choosing between those by id would
   // file the payment against a line nobody picked. One tap to choose is cheap;
   // mis-filing money is not recoverable.
-  const defaultFeeId = useMemo(() => {
-    const tuition = payableFees.filter((f) => !f.retired && /tuition/i.test(f.name));
+  const pickDefaultFee = useCallback((fees: FeeOption[]) => {
+    const tuition = fees.filter((f) => !f.retired && /tuition/i.test(f.name));
     if (tuition.length === 1) return tuition[0].id;
     // Several rows naming the same fee at the same price are the same fee to the
     // person paying; only the duplicate id differs.
     const distinct = new Set(tuition.map((f) => `${f.name}|${f.amount}`));
     if (distinct.size === 1 && tuition.length > 0) return tuition[0].id;
     return "";
-  }, [payableFees]);
+  }, []);
 
   // Adjustments carry a bare fee_id and are not joined to fee_structure, so
   // resolve names from the fee list already loaded for the picker.
@@ -438,6 +437,7 @@ export default function FinanceHubPage() {
     description: "",
     fee_id: "",
   });
+
 
   const [plans, setPlans] = useState<PaymentPlan[]>([]);
   const [planStudents, setPlanStudents] = useState<any[]>([]);
@@ -663,6 +663,33 @@ export default function FinanceHubPage() {
     if (!school?.id) return [];
     return students.map((s) => studentBalanceMap.get(s.id)!);
   }, [students, studentBalanceMap, school?.id]);
+
+  // A payment is for one pupil, so the fee list follows THAT pupil's class, not
+  // the class filter above the table.
+  //
+  // Those are two different things and the page filter defaults to "All
+  // classes", which left the picker listing every fee in the school at once --
+  // a P.1 applicant saw P.6 fees and three years of Development Fund. The page
+  // filter is only a fallback for before a pupil is chosen.
+  const paymentClassId =
+    studentBalances.find((s) => s.id === newPayment.student_id)?.class_id || selectedClass;
+  const adjustmentClassId =
+    studentBalances.find((s) => s.id === newAdjustment.student_id)?.class_id || selectedClass;
+
+  const paymentFees = useMemo(() => feesForClass(paymentClassId), [feesForClass, paymentClassId]);
+  const adjustmentFees = useMemo(
+    () => feesForClass(adjustmentClassId),
+    [feesForClass, adjustmentClassId],
+  );
+  const paymentDefaultFeeId = useMemo(
+    () => pickDefaultFee(paymentFees),
+    [pickDefaultFee, paymentFees],
+  );
+  const adjustmentDefaultFeeId = useMemo(
+    () => pickDefaultFee(adjustmentFees),
+    [pickDefaultFee, adjustmentFees],
+  );
+
 
   const [bandFilter, setBandFilter] = useState<string | null>(null);
   // The bursar's job is collecting: open on pupils who owe, with a visible
@@ -2133,8 +2160,8 @@ export default function FinanceHubPage() {
             class_name: s.class_name,
           }))}
           parentNamesByStudent={parentNamesByStudent}
-          fees={payableFees}
-          defaultFeeId={defaultFeeId}
+          fees={paymentFees}
+          defaultFeeId={paymentDefaultFeeId}
           feeId={newPayment.fee_id}
           onFeeChange={(feeId) => setNewPayment((prev) => ({ ...prev, fee_id: feeId }))}
           onSubmit={handleRecordPayment}
