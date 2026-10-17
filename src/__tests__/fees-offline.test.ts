@@ -71,7 +71,7 @@ describe("a duplicate payment reference explains itself", () => {
     // findRecentDuplicatePayment matches pupil + amount + method + a time
     // window, so a repeated reference sailed straight through it.
     expect(code).toMatch(/\.eq\("payment_reference", reference\)/);
-    expect(code).toMatch(/has already been used for another payment/);
+    expect(code).toMatch(/is already on a payment/);
   });
 
   it("scopes that check to the school", () => {
@@ -82,6 +82,29 @@ describe("a duplicate payment reference explains itself", () => {
     // PostgREST passes Postgres text straight through, so an index name was
     // arriving on the payment form in place of an instruction.
     expect(code).toContain("translateFeePaymentError");
+  });
+});
+
+describe("bursars can correct a payment", () => {
+  it("is not blocked in the UI", () => {
+    // A guard here refused bursars and pointed them at the headmaster, while the
+    // database was already allowing it. I checked RLS and reported the
+    // permission was fine; it was this line that stopped them.
+    const page = readFileSync(join(__dirname, "..", "..", "src/app/dashboard/fees/page.tsx"), "utf8");
+    expect(page).not.toContain("Bursars cannot delete payments");
+  });
+
+  it("is not blocked by a hard 403 in the API", () => {
+    // The 403 sat directly under an allowedRoles check that already listed
+    // "bursar", making that check decorative for the one role it mattered for.
+    const route = readFileSync(join(__dirname, "..", "..", "src/app/api/fee-payments/[id]/route.ts"), "utf8");
+    expect(route).not.toContain("Bursars cannot delete payments");
+  });
+
+  it("still goes through the confirm dialog and undo", () => {
+    const page = readFileSync(join(__dirname, "..", "..", "src/app/dashboard/fees/page.tsx"), "utf8");
+    const handler = page.slice(page.indexOf("const handleDeletePayment"));
+    expect(handler.slice(0, 800)).toContain('setConfirmDelete({ type: "payment"');
   });
 });
 

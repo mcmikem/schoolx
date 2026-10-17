@@ -1,16 +1,14 @@
 "use client";
-import { useState, useEffect, useCallback, useRef } from "react";
 import type { PostgrestSingleResponse } from "@supabase/supabase-js";
-import { supabase } from "@/lib/supabase";
-import { useAuth } from "@/lib/auth-context";
-import type { FeePayment, FeeStructure, FeeAdjustment, CreatePaymentInput } from "@/types";
-import { getLocalDateString, getQuerySchoolId, withTimeout, timeoutFallback, isTimeoutResult } from "./utils";
-import { getCachedData, setCachedData, invalidateCache, revalidateShared } from "./queryCache";
-import { DEMO_FEE_PAYMENTS, DEMO_FEE_STRUCTURE, DEMO_EXPENSES, DEMO_BUDGETS, DemoExpense } from "@/lib/demo-data";
-import { isDemoSchool } from "@/lib/demo-utils";
-import { offlineDB, useOnlineStatus } from "@/lib/offline";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { logAuditEventWithOfflineSupport } from "@/lib/audit";
+import { useAuth } from "@/lib/auth-context";
+import { DEMO_BUDGETS, DEMO_EXPENSES, DEMO_FEE_PAYMENTS, DEMO_FEE_STRUCTURE, DemoExpense } from "@/lib/demo-data";
+import { isDemoSchool } from "@/lib/demo-utils";
 import { logger } from "@/lib/logger";
+import { offlineDB, useOnlineStatus } from "@/lib/offline";
+import { validateAdjustment } from "@/lib/server/fee-logic";
+import { supabase } from "@/lib/supabase";
 import {
   getErrorMessage,
   normalizeFeeStructureInput,
@@ -18,7 +16,9 @@ import {
   validateFeeStructureInput,
   validatePaymentInput,
 } from "@/lib/validation";
-import { validateAdjustment } from "@/lib/server/fee-logic";
+import type { CreatePaymentInput, FeeAdjustment, FeePayment, FeeStructure } from "@/types";
+import { getCachedData, invalidateCache, revalidateShared, setCachedData } from "./queryCache";
+import { getLocalDateString, getQuerySchoolId, isTimeoutResult, timeoutFallback, withTimeout } from "./utils";
 
 let feePaymentsDeletedAtSupported: boolean | null = null;
 
@@ -295,7 +295,7 @@ export function useFeePayments(schoolId?: string, page: number = 1, limit: numbe
       const { data: seen } = await withTimeout(
         supabase
           .from("fee_payments")
-          .select("id, student_id, payment_date")
+          .select("id, student_id, amount_paid, payment_date, payment_method, students (first_name, last_name)")
           .eq("school_id", querySchoolId)
           .eq("payment_reference", reference)
           .is("deleted_at", null)
@@ -303,9 +303,26 @@ export function useFeePayments(schoolId?: string, page: number = 1, limit: numbe
         10000,
         timeoutFallback(),
       );
-      if (seen && (seen as unknown[]).length > 0) {
+      const clash = (seen as unknown[] | null)?.[0] as
+        | {
+            amount_paid?: number | string;
+            payment_date?: string;
+            payment_method?: string;
+            students?: { first_name?: string; last_name?: string } | null;
+          }
+        | undefined;
+      if (clash) {
+        // Say WHICH payment took the reference. "Already used" leaves a bursar
+        // with nothing to act on beyond guessing, and the usual answer is that
+        // they are looking at a different day's work than they think.
+        const who = clash.students
+          ? `${clash.students.first_name ?? ""} ${clash.students.last_name ?? ""}`.trim()
+          : null;
+        const when = clash.payment_date ?? "";
+        const amount = Number(clash.amount_paid ?? 0);
         throw new Error(
-          `That reference (${reference}) has already been used for another payment. Check the number, or clear it if this payment has none.`,
+          `Reference "${reference}" is already on a payment${who ? ` for ${who}` : ""}${when ? ` dated ${when}` : ""}` +
+            `${amount ? ` of ${amount.toLocaleString()}` : ""}. Use a different reference, or leave it blank if this payment has none.`,
         );
       }
     }
@@ -1405,10 +1422,7 @@ export function usePaymentParentNames(schoolId?: string): Record<string, string[
     (async () => {
       try {
         const { data, error } = await withTimeout(
-          supabase
-            .from("parent_students")
-            .select("student_id, parent:parent_id (id, full_name, phone)")
-            .limit(5000),
+          supabase.from("parent_students").select("student_id, parent:parent_id (id, full_name, phone)").limit(5000),
           15000,
           timeoutFallback(),
         );
@@ -1464,4 +1478,46 @@ export function translateFeePaymentError(error: unknown): Error {
     return new Error("This payment has already been recorded. Refresh to see it.");
   }
   return error instanceof Error ? error : new Error(message || "The payment could not be saved.");
+}
+
+/**
+ * A payment reference for when nobody supplied one.
+ *
+ * Shaped so a bursar can read it back over the phone to a parent: the school's
+ * own code, the date, then enough randomness that two payments recorded in the
+ * same second cannot collide. The random part is what makes it a poor guess to
+ * type by hand, which is the point -- these are machine references, and a
+ * school using its own receipt book types over it.
+ *
+ * Deliberately not derived from the amount, the pupil, or the payer: those
+ * repeat, and a reference that repeats is a reference that gets rejected.
+ */
+export function generatePaymentReference(schoolCode?: string | null, now: Date = new Date()): string {
+  const prefix =
+    (schoolCode || "PAY")
+      .replace(/[^A-Za-z0-9]/g, "")
+      .slice(0, 8)
+      .toUpperCase() || "PAY";
+  const y = String(now.getFullYear()).slice(-2);
+  const m = String(now.getMonth() + 1).padStart(2, "0");
+  const d = String(now.getDate()).padStart(2, "0");
+  // Four bytes, six characters.
+  //
+  // crypto.getRandomValues avoids Math.random's collisions under load. The
+  // width matters too: an earlier version took five characters of three bytes,
+  // which silently clipped the last byte to a single base-36 character and left
+  // about 46,000 possibilities. Two thousand draws in one second then produced
+  // five collisions. Six characters of four bytes is roughly 16.7 million, so a
+  // clash stops being something a bursar meets.
+  const bytes = new Uint8Array(4);
+  if (typeof crypto !== "undefined" && typeof crypto.getRandomValues === "function") {
+    crypto.getRandomValues(bytes);
+  } else {
+    for (let i = 0; i < bytes.length; i += 1) bytes[i] = Math.floor(Math.random() * 256);
+  }
+  const tail = Array.from(bytes, (b) => b.toString(36).padStart(2, "0"))
+    .join("")
+    .slice(0, 6)
+    .toUpperCase();
+  return `${prefix}-${y}${m}${d}-${tail}`;
 }

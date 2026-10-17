@@ -102,9 +102,11 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     });
     if (!roleCheck.ok) return roleCheck.response;
 
-    if (auth.context.user.role === "bursar") {
-      return apiError("Bursars cannot delete payments", 403);
-    }
+    // There was a hard 403 for bursars here, immediately after a role check
+    // whose allowedRoles (FEE_MGMT_ROLES) already includes "bursar". The second
+    // check made the first one decorative for exactly the role the money
+    // actually matters for. Voiding is a soft delete, audited, and behind a
+    // confirm in the UI -- a bursar mistyping an amount is who it serves.
 
     const supabase = createServiceRoleClientOrThrow();
 

@@ -25,7 +25,14 @@ import { bucketTriageBalances, partitionFeeRoster, TRIAGE_BANDS } from "@/lib/fe
 // uses fee_structure instead. The fee_terms module at /dashboard/fee-terms is
 // legacy and kept for backward compatibility only. See the deprecation notice
 // in fee-terms/page.tsx for details.
-import { useClasses, useFeeAdjustments, useFeePayments, useFeeStructure, usePaymentParentNames } from "@/lib/hooks";
+import {
+  generatePaymentReference,
+  useClasses,
+  useFeeAdjustments,
+  useFeePayments,
+  useFeeStructure,
+  usePaymentParentNames,
+} from "@/lib/hooks";
 import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
 import { useUrlSyncedFilters } from "@/lib/hooks/useUrlSyncedFilters";
 import { getLocalDateString, timeoutFallback, withTimeout } from "@/lib/hooks/utils";
@@ -228,6 +235,33 @@ export default function FinanceHubPage() {
     }
   };
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+
+  /**
+   * Open the payment form with a reference already filled in.
+   *
+   * Every payment gets a reference, so there is nothing left to clash with and
+   * nothing to forget -- which is what "clear the reference if this payment has
+   * none" was asking people to do by hand. It stays editable, because a school
+   * with its own receipt book should be able to type it.
+   *
+   * Generated once per opening, not once per render and not once per submit:
+   * the reference is the idempotency key, so a retry after a timeout must reuse
+   * the same value or the duplicate guard cannot see it and the payment is
+   * recorded twice.
+   */
+  const openPaymentModal = () => {
+    setNewPayment((prev) => ({
+      ...prev,
+      student_id: "",
+      amount_paid: "",
+      payment_date: getLocalDateString(),
+      payment_reference: prev.payment_reference.trim() || generatePaymentReference(school?.school_code),
+      momo_transaction_id: "",
+      paid_by: "",
+      notes: "",
+    }));
+    setShowPaymentModal(true);
+  };
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [recordedPaymentDate, setRecordedPaymentDate] = useState("");
   const [recordedPaymentAmount, setRecordedPaymentAmount] = useState<number | undefined>();
@@ -258,7 +292,7 @@ export default function FinanceHubPage() {
     {
       key: "n",
       ctrl: true,
-      action: () => setShowPaymentModal(true),
+      action: () => openPaymentModal(),
       description: "Record new payment",
     },
     {
@@ -864,10 +898,12 @@ export default function FinanceHubPage() {
   };
 
   const handleDeletePayment = async (paymentId: string) => {
-    if (user?.role === "bursar") {
-      toast.error("Bursars cannot delete payments. Please contact the Headmaster.");
-      return;
-    }
+    // The previous guard here refused bursars outright, telling them to contact
+    // the headmaster -- while the database was already letting them: can_manage_fees()
+    // includes 'bursar', and so does FEE_MGMT_ROLES in /api/fees. The whole
+    // layer was theatre. Voiding is a soft delete behind a confirm dialog with a
+    // five-second undo, and a bursar recording the wrong payment is exactly who
+    // most needs to correct it.
     setConfirmDelete({ type: "payment", id: paymentId });
   };
 
@@ -1518,7 +1554,7 @@ export default function FinanceHubPage() {
           variant="premium"
           actions={
             <div className="flex items-center gap-3 flex-wrap justify-start lg:justify-end">
-              <Button variant="primary" size="sm" onClick={() => setShowPaymentModal(true)}>
+              <Button variant="primary" size="sm" onClick={openPaymentModal}>
                 <MaterialIcon icon="payments" />
                 Add Payment
               </Button>
@@ -1903,7 +1939,7 @@ export default function FinanceHubPage() {
                   students={students}
                   formatCurrency={formatCurrency}
                   onDeletePayment={handleDeletePayment}
-                  onRecordPayment={() => setShowPaymentModal(true)}
+                  onRecordPayment={openPaymentModal}
                 />
                 <div className="flex justify-between items-center mt-4">
                   <div className="text-sm text-[var(--t3)]">
