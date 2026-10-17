@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
 import type { FeeOption } from "@/components/fees/FeePicker";
+import { pickDefaultFee } from "@/lib/fee-default";
 import type { FeeFormData } from "@/components/fees/FeeFormModal";
 import FeeStats from "@/components/fees/FeeStats";
 import FeeTable, { StudentBalance } from "@/components/fees/FeeTable";
@@ -424,29 +425,6 @@ export default function FinanceHubPage() {
   // identical school-wide duplicates, and choosing between those by id would
   // file the payment against a line nobody picked. One tap to choose is cheap;
   // mis-filing money is not recoverable.
-  const pickDefaultFee = useCallback((fees: FeeOption[], boardingStatus?: string) => {
-    const live = fees.filter((f) => !f.retired);
-    // A fee written for this pupil's kind of student wins outright. A boarding
-    // pupil has a boarding fee, not the day rate, and the school has already
-    // recorded which is which on the fee line.
-    if (boardingStatus) {
-      const forCategory = live.filter(
-        (f) => f.category === boardingStatus || new RegExp(`\b${boardingStatus}\b`, "i").test(f.name),
-      );
-      if (forCategory.length === 1) return forCategory[0].id;
-    }
-    // Otherwise tuition, the common case. category is checked as well as the
-    // name because schools record it inconsistently: live data has "tuition"
-    // and "Tuition" in the same column.
-    const tuition = live.filter((f) => /^tuition$/i.test(f.category || "") || /tuition/i.test(f.name));
-    if (tuition.length === 1) return tuition[0].id;
-    // Several rows naming the same fee at the same price are the same fee to the
-    // person paying; only the duplicate id differs.
-    const distinct = new Set(tuition.map((f) => `${f.name}|${f.amount}`));
-    if (distinct.size === 1 && tuition.length > 0) return tuition[0].id;
-    return "";
-  }, []);
-
   // Adjustments carry a bare fee_id and are not joined to fee_structure, so
   // resolve names from the fee list already loaded for the picker.
   const feeNameById = useMemo(() => new Map(feeStructure.map((f) => [f.id, f.name])), [feeStructure]);
