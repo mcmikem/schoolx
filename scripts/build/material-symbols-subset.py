@@ -148,9 +148,16 @@ def collect_icon_names() -> tuple:
             if "?" in m.group(1):
                 dynamic |= _quoted_words(m.group(1))
 
-    for dirpath, _dirnames, filenames in os.walk(SRC_DIR):
+    for dirpath, dirnames, filenames in os.walk(SRC_DIR):
+        # Tests name icons as subjects under test rather than as icons the UI
+        # renders. Scanning them pulls unused names into the shipped subset --
+        # a test asserting a name is missing would add that very name to the
+        # font. Skipped so the subset reflects only what is actually drawn.
+        dirnames[:] = [d for d in dirnames if d != "__tests__"]
         for fn in filenames:
             if not fn.endswith((".tsx", ".ts", ".jsx", ".js")):
+                continue
+            if ".test." in fn or ".spec." in fn or fn.endswith((".test.tsx", ".spec.tsx")):
                 continue
             path = os.path.join(dirpath, fn)
             with open(path, encoding="utf-8") as handle:

@@ -57,7 +57,7 @@ describe("MaterialIcon missing-ligature guard", () => {
   afterEach(() => layout.restore());
 
   it("falls back when the name renders too wide to be a glyph", () => {
-    const { container } = render(<MaterialIcon icon="apartment" size={18} />);
+    const { container } = render(<MaterialIcon icon="not_a_real_icon" size={18} />);
     expect(container.textContent).toBe("help");
   });
 
