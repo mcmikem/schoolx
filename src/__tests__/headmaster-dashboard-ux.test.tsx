@@ -1,5 +1,6 @@
 import React from "react";
 import { render, screen, within } from "@testing-library/react";
+import { ToastProvider } from "@/components/Toast";
 import HeadmasterDashboard from "@/app/dashboard/dashboards/HeadmasterDashboard";
 
 jest.mock("@/lib/auth-context", () => ({
@@ -25,6 +26,24 @@ jest.mock("@/lib/hooks", () => ({
   useAllStudents: () => ({ students: [{ id: "student-1" }], ready: true }),
   useFeeStructure: () => ({ feeStructure: [] }),
   useClasses: () => ({ classes: [{ id: "class-1", class_teacher_id: "teacher-1" }] }),
+}));
+jest.mock("@/lib/hooks/analytics", () => ({
+  // The dashboard imports useDashboardStats from "@/lib/hooks/analytics". The
+  // sibling mock below mocks "@/lib/hooks", which is a different module id, so
+  // the real hook used to run here -- hit the network, and render "—" for
+  // fees collected.
+  useDashboardStats: () => ({
+    stats: {
+      totalStudents: 20,
+      activeStudents: 18,
+      maleStudents: 10,
+      femaleStudents: 10,
+      presentToday: 10,
+      feesCollected: 2_500_000,
+      feesBalance: 2_500_000,
+    },
+    loading: false,
+  }),
 }));
 jest.mock("@/lib/hooks/useDashboardExtraData", () => ({
   useDashboardExtraData: () => ({
@@ -68,7 +87,14 @@ jest.mock("@/components/dashboard/StatCard", () => ({
 
 describe("Headmaster dashboard metrics", () => {
   it("shows the collected fee amount and its collection rate as separate information", () => {
-    render(<HeadmasterDashboard />);
+    // The dashboard reaches useClasses, which reports failures through a toast.
+    // In the app that provider sits in the layout; the test has to supply it, as
+    // timetable-generate-modal.test.tsx already does.
+    render(
+      <ToastProvider>
+        <HeadmasterDashboard />
+      </ToastProvider>,
+    );
 
     const feeCard = screen.getByTestId("stat-Fees collected");
     expect(within(feeCard).getByText(/UGX/)).toBeInTheDocument();
