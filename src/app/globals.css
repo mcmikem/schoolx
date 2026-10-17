@@ -2649,32 +2649,64 @@ html.lite [role="button"] {
   }
 }
 
-/* ── Flat + tight visual direction ─────────────────────────────────────
-   No gradients, small radii. Circles (avatars, dots, photos) and pills
-   (chips, badges) are functional shapes and keep rounded-full; everything
-   else tightens to 6–10px. Unlayered on purpose: plain author rules beat
-   Tailwind's layered utilities at equal specificity, so one block retunes
-   ~2,000 call sites without touching markup. */
-.rounded-lg { border-radius: 6px; }
-.rounded-xl { border-radius: 8px; }
-.rounded-2xl { border-radius: 8px; }
-.rounded-3xl { border-radius: 10px; }
+/* ── Radii: soft and generous ───────────────────────────────────────────
+   Cards, panels, sheets and controls are rounded. The reference look is a
+   dashboard of rounded cards on a pale blue-grey field, with pill-shaped
+   controls, so corners read as soft rather than clipped.
+
+   This used to run the opposite way. A "flat + tight" pass collapsed every
+   radius in the app to 6-8px, including the .card component's own 22px, by
+   matching arbitrary values out of the class attribute. That flattened roughly
+   1,700 call sites -- 1,096 rounded-xl, 434 rounded-2xl and 149 arbitrary
+   radii -- so cards declared at 22px rendered at 8px and the whole app read as
+   boxy next to its own primitives.
+
+   Still unlayered on purpose: plain author rules beat Tailwind's layered
+   utilities at equal specificity, so the whole app retunes from here without
+   touching markup.
+
+   Authored values are snapped onto the scale rather than honoured literally,
+   so a leftover rounded-[8px] cannot reintroduce a tight corner next to a
+   rounded-xl. Circles and pills are functional shapes and stay round. */
+.rounded-lg { border-radius: 10px; }
+.rounded-xl { border-radius: 14px; }
+.rounded-2xl { border-radius: 18px; }
+.rounded-3xl { border-radius: 24px; }
+
+[class*="rounded-[6px]"],
+[class*="rounded-[8px]"],
+[class*="rounded-[10px]"],
+[class*="rounded-[12px]"] { border-radius: 10px; }
 [class*="rounded-[14px]"],
 [class*="rounded-[15px]"],
-[class*="rounded-[16px]"],
+[class*="rounded-[16px]"] { border-radius: 14px; }
 [class*="rounded-[18px]"],
 [class*="rounded-[20px]"],
+[class*="rounded-[1.25rem]"] { border-radius: 18px; }
 [class*="rounded-[22px]"],
 [class*="rounded-[24px]"],
 [class*="rounded-[26px]"],
+[class*="rounded-[1.5rem]"] { border-radius: 24px; }
 [class*="rounded-[28px]"],
 [class*="rounded-[30px]"],
 [class*="rounded-[32px]"],
+[class*="rounded-[2rem]"],
+[class*="rounded-[2.5rem]"],
+[class*="rounded-[3rem]"],
+[class*="rounded-[4mm]"] { border-radius: 28px; }
 [class*="rounded-[34px]"],
 [class*="rounded-[36px]"],
-[class*="rounded-[40px]"],
-[class*="rounded-[2.5rem]"],
-[class*="rounded-[4mm]"] { border-radius: 8px; }
+[class*="rounded-[40px]"] { border-radius: 32px; }
+
+/* Directional variants, so a top-rounded sheet matches the scale too. */
+.rounded-t-lg { border-radius: 10px 10px 0 0; }
+.rounded-t-xl { border-radius: 14px 14px 0 0; }
+.rounded-t-2xl { border-radius: 18px 18px 0 0; }
+.rounded-t-3xl { border-radius: 24px 24px 0 0; }
+.rounded-b-lg { border-radius: 0 0 10px 10px; }
+.rounded-b-xl { border-radius: 0 0 14px 14px; }
+.rounded-b-2xl { border-radius: 0 0 18px 18px; }
+.rounded-b-3xl { border-radius: 0 0 24px 24px; }
 
 body:has([aria-modal="true"]) [data-owl-assistant] {
   visibility: hidden;
