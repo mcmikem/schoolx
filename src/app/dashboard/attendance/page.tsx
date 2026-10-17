@@ -1064,55 +1064,64 @@ export default function AttendancePage() {
             }
           />
 
-          <div
-            aria-label="Teacher attendance register summary"
-            className="rounded-[28px] border border-[var(--border)] bg-white p-4 shadow-[0_16px_35px_rgba(15,23,42,0.06)]"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--primary)]">Register</p>
-                <h2 className="mt-1 text-lg font-bold text-[var(--t1)] font-['Sora']">Mark today&apos;s class</h2>
+          {/*
+              Only shown once a class is chosen. Before that it reads
+              "0/0 marked - 0 present - 0 absent", which says nothing,
+              and it pushes the class picker -- the one control a
+              teacher needs first -- roughly 350px further down the
+              page on a phone.
+          */}
+          {selectedClass && (
+            <div
+              aria-label="Teacher attendance register summary"
+              className="rounded-[28px] border border-[var(--border)] bg-white p-4 shadow-[0_16px_35px_rgba(15,23,42,0.06)]"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--primary)]">Register</p>
+                  <h2 className="mt-1 text-lg font-bold text-[var(--t1)] font-['Sora']">Mark today&apos;s class</h2>
+                </div>
+                {/*
+                  Reads "Choose class" until one is picked, in a pill that looks
+                  pressable. Teachers tapped it and nothing happened, because it
+                  was a plain span. Until a class is chosen this is the one thing
+                  standing between them and the register, so it now actually does
+                  what it looks like it does: focuses the real picker.
+                */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    classSelectRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+                    classSelectRef.current?.focus();
+                  }}
+                  className="rounded-full bg-[var(--primary-50)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--t1)]">
+                  {selectedClassName?.name || "Choose class"}
+                </button>
               </div>
-              {/*
-                Reads "Choose class" until one is picked, in a pill that looks
-                pressable. Teachers tapped it and nothing happened, because it
-                was a plain span. Until a class is chosen this is the one thing
-                standing between them and the register, so it now actually does
-                what it looks like it does: focuses the real picker.
-              */}
-              <button
-                type="button"
-                onClick={() => {
-                  classSelectRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
-                  classSelectRef.current?.focus();
-                }}
-                className="rounded-full bg-[var(--primary-50)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--t1)]">
-                {selectedClassName?.name || "Choose class"}
-              </button>
-            </div>
 
-            <p className="mt-3 text-sm text-on-surface-variant">
-              <span className="font-bold text-on-surface">
-                {markedCount}/{students.length} marked
-              </span>
-              {" · "}
-              <span className="font-semibold text-secondary">{effectivePresentCount} present</span>
-              {" · "}
-              <span className="font-semibold text-error">{absentCount} absent</span>
-              {lateCount > 0 && (
-                <>
-                  {" · "}
-                  <span className="font-semibold text-tertiary">{lateCount} late</span>
-                </>
-              )}
-              {excusedCount > 0 && (
-                <>
-                  {" · "}
-                  <span className="font-semibold text-[#7c3aed]">{excusedCount} excused</span>
-                </>
-              )}
-            </p>
-          </div>
+              <p className="mt-3 text-sm text-on-surface-variant">
+                <span className="font-bold text-on-surface">
+                  {markedCount}/{students.length} marked
+                </span>
+                {" · "}
+                <span className="font-semibold text-secondary">{effectivePresentCount} present</span>
+                {" · "}
+                <span className="font-semibold text-error">{absentCount} absent</span>
+                {lateCount > 0 && (
+                  <>
+                    {" · "}
+                    <span className="font-semibold text-tertiary">{lateCount} late</span>
+                  </>
+                )}
+                {excusedCount > 0 && (
+                  <>
+                    {" · "}
+                    <span className="font-semibold text-[#7c3aed]">{excusedCount} excused</span>
+                  </>
+                )}
+              </p>
+            </div>
+          )}
 
           {canManageSmsAutomation && showSmsSettings && (
             <div className="bg-surface-container-lowest rounded-xl border border-outline-variant p-4 flex items-center justify-between gap-3">
