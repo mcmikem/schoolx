@@ -206,12 +206,13 @@ describe("Production Hardening Regression Tests", () => {
   });
 
   describe("UI/UX Fixes", () => {
-    it("should use shared MaterialIcon in login page", () => {
+    it("uses lightweight inline icons on the login page", () => {
       const loginPage = require("fs").readFileSync(
         require("path").join(process.cwd(), "src/app/login/page.tsx"),
         "utf8",
       );
-      expect(loginPage).toContain('from "@/components/MaterialIcon"');
+      expect(loginPage).toContain('from "lucide-react"');
+      expect(loginPage).not.toContain('from "@/components/MaterialIcon"');
     });
 
     it("should use shared MaterialIcon in register page", () => {
@@ -682,7 +683,8 @@ describe("Production Hardening Regression Tests", () => {
     it("mounts the gate inside the AuthProvider so every portal is covered", () => {
       const providers = readSrc("src/app/providers.tsx");
       expect(providers).toContain("<ForcePasswordChangeGate />");
-      expect(providers.indexOf("<ForcePasswordChangeGate />")).toBeGreaterThan(providers.indexOf("<AuthProvider>"));
+      expect(providers).toContain("{user && <ForcePasswordChangeGate />}");
+      expect(providers.indexOf("<AuthProvider>")).toBeLessThan(providers.indexOf("<LoadingChecker>"));
     });
 
     it("admin reset-password marks the account for a forced change", () => {
@@ -1601,7 +1603,12 @@ describe("Offline sync queue holds rows", () => {
 
   it("bumps the IndexedDB version so existing clients migrate", () => {
     const src = read("src/lib/offline.ts");
-    expect(src).toContain("const DB_VERSION = 10");
+    // Pinned as a floor, not an exact value: version 11 added the
+    // academic_terms, homework, homework_submissions, dorms, dorm_students and
+    // dorm_attendance stores, which were being cached with no store to read
+    // from. Pinning the exact number meant every later bump broke this test.
+    const version = Number(src.match(/const DB_VERSION = (\d+)/)?.[1] ?? 0);
+    expect(version).toBeGreaterThanOrEqual(11);
     // The v9 store cannot change key options in place — it must be recreated.
     expect(src).toContain("db.deleteObjectStore(storeName)");
   });

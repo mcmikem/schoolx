@@ -5,7 +5,10 @@ import { useState, useEffect } from "react";
 import { logger } from "@/lib/logger";
 
 const DB_NAME = "omuto.org-db";
-const DB_VERSION = 10;
+// 10 -> 11: adds the academic_terms, homework and homework_submissions stores.
+// Existing browsers only run onupgradeneeded when the version rises, so a
+// version bump is what actually creates them.
+const DB_VERSION = 11;
 
 /**
  * IndexedDB key configuration for each object store, exported so unit tests can
@@ -95,6 +98,18 @@ class OfflineDB {
           "students",
           "classes",
           "subjects",
+          // Cached and read by offline-hooks but never given a store, so every
+          // read threw NotFoundError: Failed to execute 'transaction' on
+          // 'IDBDatabase'. The academic term is the one that matters most --
+          // without it the app cannot tell which term it is in while offline.
+          "academic_terms",
+          "homework",
+          "homework_submissions",
+          // Same story: read through the offline cache by hooks/attendance.ts
+          // with no store to read from.
+          "dorms",
+          "dorm_students",
+          "dorm_attendance",
           "attendance",
           "period_attendance",
           "grades",
@@ -259,14 +274,20 @@ class OfflineDB {
     return new Promise((resolve, reject) => {
       const transaction = db.transaction([table], "readonly");
       const store = transaction.objectStore(table);
-      const request = store.getAll();
+      const filterEntries = Object.entries(filters ?? {});
+      const indexedFilter = filterEntries.find(
+        ([key, value]) => store.indexNames.contains(key) && (typeof value === "string" || typeof value === "number"),
+      );
+      const request = indexedFilter
+        ? store.index(indexedFilter[0]).getAll(IDBKeyRange.only(indexedFilter[1]))
+        : store.getAll();
 
       request.onsuccess = () => {
         let results = request.result || [];
 
-        if (filters) {
+        if (filterEntries.length > 0) {
           results = results.filter((item) => {
-            return Object.entries(filters).every(([key, value]) => item[key] === value);
+            return filterEntries.every(([key, value]) => item[key] === value);
           });
         }
 
