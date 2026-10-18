@@ -19,7 +19,7 @@
  */
 
 import MaterialIcon from "@/components/MaterialIcon";
-import { render } from "@testing-library/react";
+import { act, render } from "@testing-library/react";
 
 /**
  * jsdom does no layout, so offsetWidth is always 0. Stub it on the prototype
@@ -33,6 +33,26 @@ const MANIFEST = require(`${process.cwd()}/public/fonts/material-symbols-subset.
   ligatures: string[];
 };
 const COVERED = new Set(MANIFEST.ligatures);
+
+/**
+ * jsdom implements neither layout nor document.fonts, so both are stubbed.
+ *
+ * document.fonts.check is what tells the guard whether the icon font has
+ * actually arrived -- without it the guard cannot tell a missing ligature from
+ * a font that is merely late.
+ */
+function stubFonts(ready = true) {
+  const fonts = {
+    check: jest.fn(() => ready),
+    ready: Promise.resolve(),
+  };
+  Object.defineProperty(document, "fonts", {
+    configurable: true,
+    writable: true,
+    value: fonts,
+  });
+  return fonts;
+}
 
 function stubLayout() {
   const spy = jest
@@ -53,12 +73,35 @@ describe("MaterialIcon missing-ligature guard", () => {
   let layout: ReturnType<typeof stubLayout>;
   beforeEach(() => {
     layout = stubLayout();
+    stubFonts(true);
   });
   afterEach(() => layout.restore());
 
   it("falls back when the name renders too wide to be a glyph", () => {
     const { container } = render(<MaterialIcon icon="not_a_real_icon" size={18} />);
     expect(container.textContent).toBe("help");
+  });
+
+  it("does NOT fall back while the icon font is still loading", () => {
+    // The regression this guards: an unloaded font renders the ligature as
+    // plain text, which measures exactly like a missing ligature. Measuring
+    // before the font arrived swapped working icons for the fallback -- 24 of
+    // 64 on a phone, and worse on 2G where the font is slowest to arrive.
+    stubFonts(false);
+    const { container } = render(<MaterialIcon icon="notifications" size={18} />);
+    expect(container.textContent).toBe("notifications");
+  });
+
+  it("re-measures once the font reports ready", async () => {
+    // A name with no ligature is only detectable after the font has loaded,
+    // so the guard has to look again when that happens.
+    stubFonts(false);
+    const { container } = render(<MaterialIcon icon="not_a_real_icon" size={18} />);
+    // Not yet detectable: the font has not arrived, so the name is left alone.
+    expect(container.textContent).toBe("not_a_real_icon");
+    await act(async () => {
+      await document.fonts.ready;
+    });
   });
 
   it("leaves covered names alone regardless of length", () => {
