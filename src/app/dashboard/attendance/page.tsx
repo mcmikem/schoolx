@@ -126,6 +126,9 @@ export default function AttendancePage() {
   const router = useRouter();
   const pathname = usePathname();
   const classSelectRef = useRef<HTMLSelectElement>(null);
+  // True once the teacher has marked anything this session that has not been
+  // saved. A refresh triggered by returning to the tab must not clobber it.
+  const dirtyRef = useRef(false);
   const [selectedClass, setSelectedClass] = useState<string | null>(() => {
     // URL param wins (deep links), otherwise resume the teacher's last class
     // so the daily flow opens ready-to-mark with zero dropdown hunting.
@@ -321,12 +324,14 @@ export default function AttendancePage() {
     data: offlineStudents,
     loading: studentsLoading,
     error: studentsError,
+    refetch: refetchStudents,
   } = useOfflineStudents(selectedClass && school?.id ? school.id : undefined);
 
   const {
     data: offlineAttendance,
     loading: attendanceLoading,
     error: attendanceError,
+    refetch: refetchAttendance,
   } = useOfflineAttendance(selectedClass && school?.id ? school.id : undefined, date);
 
   useEffect(() => {
@@ -351,10 +356,34 @@ export default function AttendancePage() {
     // "Unmarked" chip (first tap = Absent) and still save as Present, so a
     // save is never silently partial.
     setAttendance(attendanceMap);
+    // Freshly loaded from source — nothing local is unsaved.
+    dirtyRef.current = false;
   }, [selectedClass, school?.id, offlineStudents, offlineAttendance, studentsLoading, attendanceLoading]);
+
+  // Returning to this tab (a phone call, another app, a locked screen) should
+  // show the truth: marks may have moved on another device, or synced in from
+  // offline. Re-fetch then — but never while there are unsaved marks, because
+  // the register rebuilds from the fetched rows and a refresh would wipe them.
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    const refresh = () => {
+      if (document.visibilityState !== "visible") return;
+      if (dirtyRef.current) return;
+      void refetchStudents();
+      void refetchAttendance();
+      void loadOfflineCount();
+    };
+    document.addEventListener("visibilitychange", refresh);
+    window.addEventListener("focus", refresh);
+    return () => {
+      document.removeEventListener("visibilitychange", refresh);
+      window.removeEventListener("focus", refresh);
+    };
+  }, [refetchStudents, refetchAttendance, loadOfflineCount]);
 
   const markAttendance = (studentId: string, status: string) => {
     const prev = attendance[studentId];
+    dirtyRef.current = true;
     const student = students.find((s) => s.id === studentId);
     setUndoMark({
       studentId,
@@ -372,6 +401,7 @@ export default function AttendancePage() {
 
   const undoLastMark = () => {
     if (!undoMark) return;
+    dirtyRef.current = true;
     setAttendance((prevMap) => {
       const next = { ...prevMap };
       if (undoMark.prev === undefined) delete next[undoMark.studentId];
@@ -417,6 +447,7 @@ export default function AttendancePage() {
 
   const markAll = (status: string) => {
     const newAttendance: Record<string, string> = {};
+    dirtyRef.current = true;
     students.forEach((s) => {
       newAttendance[s.id] = status;
     });
@@ -430,6 +461,7 @@ export default function AttendancePage() {
       setCollapsedIds(new Set());
       setConfirmedId(null);
       setAllMarked(false);
+      dirtyRef.current = true;
       toast.info("Marks cleared");
     } else {
       setConfirmMarkAll(true);
@@ -448,6 +480,7 @@ export default function AttendancePage() {
       });
       return updated;
     });
+    dirtyRef.current = true;
     toast.success(`${selectedAbsentIds.size} student(s) marked absent`);
     // Freshly-marked absentees tuck away with the rest of this session's marks.
     setCollapsedIds((prev) => new Set([...prev, ...selectedAbsentIds]));
@@ -566,6 +599,7 @@ export default function AttendancePage() {
         notifyDashboardStatsChanged(school?.id);
         await loadOfflineCount();
         const summaryCounts = countStatuses(Object.values(effective));
+        dirtyRef.current = false;
         setSavedSummary({
           ...summaryCounts,
           total: records.length,
@@ -607,6 +641,7 @@ export default function AttendancePage() {
       toast.success(`Saved locally (${records.length} records)`);
       await loadOfflineCount();
       const summaryCounts = countStatuses(records.map((r) => String((r as { status?: unknown }).status ?? "")));
+      dirtyRef.current = false;
       setSavedSummary({
         ...summaryCounts,
         total: records.length,
@@ -783,6 +818,7 @@ export default function AttendancePage() {
           copied[r.student_id] = r.status;
         });
         setAttendance((prev) => ({ ...prev, ...copied }));
+        dirtyRef.current = true;
         setAllMarked(true);
         toast.success(`Copied attendance from ${yesterdayStr} (${data.length} records)`);
       } else {
@@ -1094,7 +1130,8 @@ export default function AttendancePage() {
                     classSelectRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
                     classSelectRef.current?.focus();
                   }}
-                  className="rounded-full bg-[var(--primary-50)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--t1)]">
+                  className="rounded-full bg-[var(--primary-50)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--t1)]"
+                >
                   {selectedClassName?.name || "Choose class"}
                 </button>
               </div>
