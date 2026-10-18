@@ -10,6 +10,7 @@ import {
 } from "@/lib/api-utils";
 import { logger } from "@/lib/logger";
 import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
+import { matchClaimsToPayments, type ClaimMatchPayment } from "@/lib/claim-match";
 
 const REVIEW_ROLES = ["super_admin", "school_admin", "admin", "headmaster", "bursar"];
 const CLAIM_METHODS = new Set(["mobile_money", "cash", "bank", "in_kind"]);
@@ -158,7 +159,33 @@ async function handlePost(request: NextRequest) {
         return apiError("Could not load payment claims", 500);
       }
 
-      return apiSuccess({ claims: data ?? [] });
+      const claims = (data ?? []) as unknown as Array<{
+        id: string;
+        student_id: string;
+        amount: number;
+        claimed_method?: string | null;
+        reference?: string | null;
+        created_at?: string | null;
+      }>;
+
+      // Suggest which claims are already recorded, so the bursar's review is a
+      // glance rather than a hunt through the cashbook. Failure here must not
+      // hide the claims themselves.
+      const payRes = await withTimeout(
+        supabase
+          .from("fee_payments")
+          .select("id, student_id, amount_paid, payment_reference, payment_method, payment_date, created_at")
+          .eq("school_id", schoolId)
+          .is("deleted_at", null)
+          .order("created_at", { ascending: false })
+          .limit(500),
+        15000,
+        timeoutFallback(),
+      );
+      const paymentRows = ((payRes as { data?: ClaimMatchPayment[] }).data ?? []) as ClaimMatchPayment[];
+      const matches = matchClaimsToPayments(claims, paymentRows);
+
+      return apiSuccess({ claims: claims.map((claim) => ({ ...claim, match: matches.get(claim.id) })) });
     }
 
     // review

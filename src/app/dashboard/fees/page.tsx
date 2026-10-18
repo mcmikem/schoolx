@@ -2145,7 +2145,19 @@ export default function FinanceHubPage() {
                 formatCurrency={formatCurrency}
                 onDeleteFee={handleDeleteFee}
                 onEditFee={handleEditFee}
-                onAddFee={() => setShowFeeModal(true)}
+                onAddFee={() => {
+                  // Default the new fee to the class being viewed.
+                  //
+                  // The form's first option is school-wide, so without this a
+                  // bursar working inside one class added a fee and it silently
+                  // applied to every class in the school -- which is why the fee
+                  // table is mostly "All Classes". School-wide is still
+                  // available, but it now has to be chosen on purpose.
+                  if (selectedClass !== "all") {
+                    setNewFee((prev) => ({ ...prev, class_id: selectedClass }));
+                  }
+                  setShowFeeModal(true);
+                }}
                 feePage={feePage}
                 feeTotalPages={feeTotalPages}
                 setFeePage={setFeePage}

@@ -1,5 +1,6 @@
 import MaterialIcon from "@/components/MaterialIcon";
 import { Button } from "@/components/ui";
+import type { ClaimMatch } from "@/lib/claim-match";
 
 type PaymentClaim = {
   id: string;
@@ -11,6 +12,8 @@ type PaymentClaim = {
   created_at: string;
   student_id: string;
   students?: { first_name?: string; last_name?: string; class?: { name?: string } | null } | null;
+  /** Suggested match to an already-recorded payment, from the API. */
+  match?: ClaimMatch | null;
 };
 
 const METHOD_LABEL: Record<string, string> = {
@@ -94,6 +97,19 @@ export default function PaymentClaimsPanel({
             </div>
 
             {claim.note ? <p className="text-sm text-[var(--t2)] italic">“{claim.note}”</p> : null}
+
+            {claim.match && claim.match.alreadyRecorded ? (
+              <div
+                className={`flex items-start gap-2 rounded-xl px-3 py-2 text-xs ${
+                  claim.match.confidence === "high"
+                    ? "bg-[var(--red-soft)] text-[var(--red)]"
+                    : "bg-[var(--amber-soft)] text-[var(--amber)]"
+                }`}
+              >
+                <MaterialIcon icon="warning" className="text-base shrink-0" />
+                <span>{claim.match.reason}. Confirm only if it is genuinely a second payment.</span>
+              </div>
+            ) : null}
 
             <div className="flex gap-2 pt-1">
               <Button

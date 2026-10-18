@@ -177,7 +177,7 @@ export default function FeeFormModal({
               onBlur={() => feeValidation.markTouched("class_id")}
               className="w-full bg-surface-container border-none rounded-xl py-3 px-4 text-sm"
             >
-              <option value="">All Classes</option>
+              <option value="">All classes (school-wide)</option>
               {classes.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
