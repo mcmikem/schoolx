@@ -2713,8 +2713,14 @@ body:has([aria-modal="true"]) [data-owl-assistant] {
   pointer-events: none;
 }
 
+/* The assistant clears a page's bottom action bar. The clearance is measured
+   by OwlAssistant and published as --action-bar-clearance, rather than being a
+   fixed number: a guessed 176px cleared the attendance Save bar by 8px and
+   would have cleared it by nothing at all on a page with a taller bar. */
 @media (max-width: 639px) {
   body:has([data-page-action-bar]) button[data-owl-assistant] {
-    bottom: calc(176px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(
+      var(--mobile-nav-clearance) + var(--action-bar-clearance, 0px) + 10px
+    );
   }
 }

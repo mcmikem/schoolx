@@ -239,7 +239,9 @@ export default function PeriodAttendancePage() {
               ))}
             </div>
 
-            <div className="mobile-sticky-action sticky bottom-[calc(84px+env(safe-area-inset-bottom,0px))] z-10 -mx-4 border-t border-[var(--border)] bg-[var(--surface)]/95 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
+            <div
+        data-page-action-bar=""
+        className="mobile-sticky-action sticky bottom-[calc(84px+env(safe-area-inset-bottom,0px))] z-10 -mx-4 border-t border-[var(--border)] bg-[var(--surface)]/95 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:backdrop-blur-none">
               <Button
                 onClick={saveAttendance}
                 disabled={saving || Object.keys(attendanceMap).length === 0}

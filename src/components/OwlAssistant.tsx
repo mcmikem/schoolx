@@ -125,6 +125,62 @@ function formatMessage(text: string) {
 export default function OwlAssistant() {
   const { school, user } = useAuth();
   const pathname = usePathname();
+
+  // How far up from the bottom of the viewport a page's action bar reaches.
+  //
+  // The assistant is anchored to the bottom right, and a page that pins a bar
+  // along the bottom -- the attendance Save bar, for one -- would otherwise
+  // have the assistant sitting on top of it. The clearance was a guessed
+  // 176px, which cleared the bar by 8px and would have cleared it by nothing
+  // on a page with a taller bar. Measured instead, so it cannot drift.
+  useEffect(() => {
+    const root = document.documentElement;
+
+    const measure = () => {
+      const bar = document.querySelector("[data-page-action-bar]");
+      if (!bar) {
+        root.style.setProperty("--action-bar-clearance", "0px");
+        return;
+      }
+      const rect = bar.getBoundingClientRect();
+      const clearance = Math.max(0, Math.round(window.innerHeight - rect.top));
+      root.style.setProperty("--action-bar-clearance", `${clearance}px`);
+    };
+
+    measure();
+
+    const bar = document.querySelector("[data-page-action-bar]");
+    const observer =
+      typeof ResizeObserver !== "undefined" && bar
+        ? new ResizeObserver(measure)
+        : null;
+    if (observer && bar) observer.observe(bar);
+    window.addEventListener("resize", measure);
+
+    // The bar often appears without a navigation -- the attendance page shows
+    // its Save bar once a class is picked -- so watching the page for changes
+    // is what keeps the measurement current. Without this the clearance stayed
+    // at zero and the assistant sat on the bar.
+    const mutations =
+      typeof MutationObserver !== "undefined"
+        ? new MutationObserver(() => {
+            const current = document.querySelector("[data-page-action-bar]");
+            if (current !== bar) {
+              observer?.disconnect();
+              if (current && observer) observer.observe(current);
+            }
+            measure();
+          })
+        : null;
+    mutations?.observe(document.body, { childList: true, subtree: true });
+
+    return () => {
+      observer?.disconnect();
+      mutations?.disconnect();
+      window.removeEventListener("resize", measure);
+      root.style.setProperty("--action-bar-clearance", "0px");
+    };
+  }, [pathname]);
   // Declared first: the messages initialiser below reads it, and a `const` read
   // before its declaration throws at runtime even when TypeScript cannot see
   // the ordering problem through a closure.
