@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { APP_NAME } from "@/lib/app-name";
 import { ParentPortalProvider } from "@/components/parent-portal/ParentPortalProvider";
+import { AcademicProvider } from "@/lib/academic-context";
 
 export const metadata: Metadata = {
   title: `Parent Portal | ${APP_NAME}`,
@@ -19,7 +20,16 @@ export const metadata: Metadata = {
 export default function ParentPortalLayout({ children }: { children: React.ReactNode }) {
   return (
     <Suspense fallback={null}>
-      <ParentPortalProvider>{children}</ParentPortalProvider>
+      {/*
+        The portal shell renders the dashboard TopBar, which reads the current
+        term and academic year from the academic context. That provider was only
+        ever mounted in the dashboard layout, so every parent-portal page threw
+        "useAcademic must be used within an AcademicProvider" and showed
+        "Something went wrong" instead of the child's attendance, grades or fees.
+      */}
+      <AcademicProvider>
+        <ParentPortalProvider>{children}</ParentPortalProvider>
+      </AcademicProvider>
     </Suspense>
   );
 }

@@ -65,7 +65,7 @@ export default function ParentHomeworkPage() {
         supabase
           .from("homework")
           .select(
-            "id, title, description, subject_id, class_id, due_date, marks, academic_year, term, created_at, subjects(name), classes(name), homework_submissions(status, submitted_at, marks, feedback)",
+            "id, title, description, subject_id, class_id, due_date, marks, academic_year, term, created_at, subjects(name), classes(name), homework_submissions(status, submitted_at, marks_obtained, feedback)",
           )
           .eq("class_id", child.class_id)
           .order("due_date", { ascending: false }),

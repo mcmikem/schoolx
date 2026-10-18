@@ -150,7 +150,13 @@ export function normalizeHomeworkAssignments(
     homework_submissions?: Array<{
       status: string;
       submitted_at?: string | null;
-      marks?: number | null;
+      /**
+       * The column is marks_obtained. The dashboard writes that name, and
+       * selecting "marks" made every parent-portal homework query fail with
+       * "column homework_submissions.marks does not exist", so a parent saw an
+       * empty homework list.
+       */
+      marks_obtained?: number | null;
       feedback?: string | null;
     }> | null;
   }>,
@@ -170,7 +176,7 @@ export function normalizeHomeworkAssignments(
       ? {
           status: isHomeworkStatus(h.homework_submissions[0].status) ? h.homework_submissions[0].status : "pending",
           submitted_at: h.homework_submissions[0].submitted_at,
-          marks: h.homework_submissions[0].marks,
+          marks: h.homework_submissions[0].marks_obtained,
           feedback: h.homework_submissions[0].feedback,
         }
       : null,

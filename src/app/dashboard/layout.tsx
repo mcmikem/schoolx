@@ -35,6 +35,7 @@ import { MinimalLoadingScreen, StuckLoadingOverlay, TopLoadingBar } from "@/comp
 import { SidebarProvider, useSidebar } from "@/contexts/SidebarContext";
 import { useSchoolColors } from "@/lib/useSchoolColors";
 import { useSessionTimeout } from "@/lib/useSessionTimeout";
+import { ReactQueryProvider } from "@/app/providers/ReactQueryProvider";
 
 const OwlAssistant = dynamic(() => import("@/components/OwlAssistant"), { ssr: false });
 // CommandPalette removed — GlobalSearch is now the single search system (see src/components/GlobalSearch.tsx)
@@ -528,8 +529,14 @@ function SidebarOverlay() {
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
-    <SidebarProvider>
-      <DashboardContent>{children}</DashboardContent>
-    </SidebarProvider>
+    <ReactQueryProvider>
+      {/*
+        AcademicProvider and NotificationsProvider moved to the root providers
+        so the parent portal, which renders the same TopBar, has them too.
+      */}
+      <SidebarProvider>
+        <DashboardContent>{children}</DashboardContent>
+      </SidebarProvider>
+    </ReactQueryProvider>
   );
 }
