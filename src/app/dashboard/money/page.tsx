@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { EXPENSE_CATEGORIES, OTHER_INCOME_CATEGORIES, useMoney, type ExpenseStatus } from "@/lib/hooks/money";
 import { getLocalDateString } from "@/lib/hooks/utils";
 import { formatCurrency } from "@/lib/currency";
+import UnebQuarantinePanel from "@/components/fees/UnebQuarantinePanel";
 
 /**
  * Money out, and the money in that is not fees.
@@ -195,6 +196,7 @@ export default function MoneyPage() {
 
       {tab === "position" && (
         <div className="space-y-5">
+          <UnebQuarantinePanel />
           <section className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
             <h2 className="text-sm font-bold text-[var(--t1)]">Where the money went</h2>
             <p className="mt-1 text-xs text-[var(--t3)]">Approved and paid spending this period.</p>
