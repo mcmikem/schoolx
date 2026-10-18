@@ -148,6 +148,7 @@ export function isRouteAllowed(role: UserRole | undefined, path: string): boolea
 }
 
 const PAGE_TITLE_OVERRIDES: Record<string, string> = deepFreeze({
+  "/dashboard/learn": "Learn step by step",
   "/dashboard": "Dashboard Overview",
   "/dashboard/moes": "MoES Module",
   "/dashboard/moes-reports": "MoES Reports",
@@ -193,16 +194,32 @@ const PAGE_TITLE_OVERRIDES: Record<string, string> = deepFreeze({
 
 export { PAGE_TITLE_OVERRIDES };
 
+/**
+ * The title shown in the top bar.
+ *
+ * Built from the path, so a nested route used to come out as a raw path:
+ * "/dashboard/attendance/history/" became "Attendance/History/" -- slashes and
+ * a trailing slash included. In the top bar that is then truncated to about
+ * 69px, so what a teacher actually read was "Attendance/Hist...".
+ *
+ * Each path segment becomes a word instead, so nested routes read as
+ * "Attendance History" and "Batch Reports".
+ */
 export function getPageTitle(pathname: string): string {
   const basePathname = `/${pathname.split("/").slice(0, 3).join("/").replace(/^\//, "")}`;
-  return (
-    PAGE_TITLE_OVERRIDES[basePathname] ??
-    pathname
-      .replace("/dashboard/", "")
-      .replace(/\/[0-9a-f-]{8,}(\/.+)?$/, "")
-      .replace(/-/g, " ")
-      .replace(/\b\w/g, (c) => c.toUpperCase())
-  );
+  const override = PAGE_TITLE_OVERRIDES[basePathname];
+  if (override) return override;
+
+  return pathname
+    .replace("/dashboard/", "")
+    // A record id at the end of the path, with or without a trailing slash.
+    .replace(/\/[0-9a-f-]{8,}(\/.+)?\/?$/, "")
+    .split("/")
+    .filter(Boolean)
+    .map((segment) =>
+      segment.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
+    )
+    .join(" ");
 }
 
 export function useAccessControl() {
