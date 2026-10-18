@@ -410,6 +410,7 @@ CREATE TABLE IF NOT EXISTS events (
     start_date DATE NOT NULL,
     end_date DATE,
     created_by UUID REFERENCES users(id),
+    audience TEXT NOT NULL DEFAULT 'school' CHECK (audience IN ('personal', 'school', 'parents')),
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 

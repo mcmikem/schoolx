@@ -91,7 +91,7 @@ export default function DisciplinePage() {
     try {
       const { data, error } = await supabase
         .from("discipline")
-        .select("*, students(first_name, last_name, student_number), exams(title)")
+        .select("*, students(first_name, last_name, student_number), exams(name)")
         .eq("school_id", school.id)
         .order("created_at", { ascending: false });
 

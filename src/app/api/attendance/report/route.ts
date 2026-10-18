@@ -94,14 +94,27 @@ export async function GET(request: NextRequest) {
 
     const studentIds = [...new Set(attendance.map((a: any) => a.student_id))];
 
-    const { data: studentsData, error: studentsError } = await supabase
-      .from("students")
-      .select("id, first_name, last_name, student_number, class_id")
-      .in("id", studentIds);
+    // Fetched in chunks.
+    //
+    // A month of attendance at the demo school touches 686 pupils, and every
+    // id in one `.in()` list goes into the query string -- about 26KB of it.
+    // PostgREST rejects a request that long with a bare "Bad Request", and the
+    // route turned that into a 500, so the attendance report was broken for any
+    // school with more than a couple of hundred pupils.
+    const STUDENT_CHUNK = 200;
+    const studentsData: Array<Record<string, unknown>> = [];
+    for (let i = 0; i < studentIds.length; i += STUDENT_CHUNK) {
+      const chunk = studentIds.slice(i, i + STUDENT_CHUNK);
+      const { data, error: studentsError } = await supabase
+        .from("students")
+        .select("id, first_name, last_name, student_number, class_id")
+        .in("id", chunk);
 
-    if (studentsError) {
-      logger.error("Failed to fetch student details:", studentsError);
-      return apiError(studentsError.message, 500);
+      if (studentsError) {
+        logger.error("Failed to fetch student details:", studentsError);
+        return apiError(studentsError.message, 500);
+      }
+      if (data) studentsData.push(...(data as Array<Record<string, unknown>>));
     }
 
     const studentMap = new Map((studentsData || []).map((s: any) => [s.id, s]));

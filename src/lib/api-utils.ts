@@ -322,6 +322,64 @@ export function withSecurity(
   return securedHandler;
 }
 
+/**
+ * A demo session has no Supabase session, so getUser() cannot resolve it and
+ * every API route answers 401. The proxy already trusts the demo cookie, so
+ * the API layer has to trust it too -- otherwise the pages that fetch through
+ * an API route (the attendance report, for one) show errors in demo mode while
+ * working fine for a signed-in user.
+ *
+ * Only reachable in development: DEMO_MODE_ENABLED requires
+ * NODE_ENV === "development" and the dev routes flag.
+ */
+const DEMO_KEY = "skoolmate_demo_v1";
+const DEMO_ALLOWED_ROLES = new Set([
+  "headmaster",
+  "dean_of_studies",
+  "bursar",
+  "teacher",
+  "secretary",
+  "dorm_master",
+  "parent",
+  "super_admin",
+]);
+
+interface DemoIdentity {
+  userId: string;
+  role: string;
+  name: string;
+  schoolId: string;
+  schoolName: string;
+}
+
+function readDemoIdentity(request: NextRequest): DemoIdentity | null {
+  if (process.env.NODE_ENV !== "development") return null;
+  if (process.env.NEXT_PUBLIC_ENABLE_DEV_TEST_ROUTES !== "true") return null;
+
+  const raw = request.cookies.get(DEMO_KEY)?.value;
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(Buffer.from(raw, "base64").toString("utf8")) as {
+      demoUser?: { name?: unknown; role?: unknown };
+      demoSchool?: { id?: unknown; name?: unknown };
+    };
+    if (!parsed.demoSchool?.id || !parsed.demoSchool?.name) return null;
+    if (typeof parsed.demoUser?.name !== "string") return null;
+    if (typeof parsed.demoUser?.role !== "string") return null;
+    if (!DEMO_ALLOWED_ROLES.has(parsed.demoUser.role)) return null;
+    return {
+      // The client uses this id for its demo user, so the API and the UI agree.
+      userId: "demo-user",
+      role: parsed.demoUser.role,
+      name: parsed.demoUser.name,
+      schoolId: String(parsed.demoSchool.id),
+      schoolName: String(parsed.demoSchool.name),
+    };
+  } catch {
+    return null;
+  }
+}
+
 export interface AuthenticatedUserContext {
   authUserId: string;
 }
@@ -338,6 +396,14 @@ export async function requireAuthenticatedUser(
   const middlewareUserId = request.headers.get("x-user-id");
   if (middlewareUserId) {
     return { ok: true, context: { authUserId: middlewareUserId } };
+  }
+
+  // A demo session is not a Supabase session, so getUser() cannot resolve it.
+  // Checked before the round trip so a demo user does not wait on a US-hosted
+  // auth server on every call.
+  const demo = readDemoIdentity(request);
+  if (demo) {
+    return { ok: true, context: { authUserId: demo.userId } };
   }
 
   const supabase = await createSupabaseServerClient();
@@ -370,6 +436,29 @@ export async function requireUserWithSchool(
 ): Promise<{ ok: true; context: UserWithSchoolContext } | { ok: false; response: NextResponse }> {
   const auth = await requireAuthenticatedUser(request);
   if (!auth.ok) return auth;
+
+  // A demo user has no row in users -- there is no auth user to attach one
+  // to. The identity comes from the demo cookie, so build the context from
+  // that rather than failing with "User profile not found" and leaving the
+  // page broken for whoever is previewing the app.
+  const demoIdentity = readDemoIdentity(request);
+  if (demoIdentity && auth.context.authUserId === demoIdentity.userId) {
+    return {
+      ok: true,
+      context: {
+        authUserId: demoIdentity.userId,
+        user: {
+          id: demoIdentity.userId,
+          auth_id: demoIdentity.userId,
+          school_id: demoIdentity.schoolId,
+          full_name: demoIdentity.name,
+          role: demoIdentity.role,
+          is_active: true,
+        } as User,
+        schoolId: demoIdentity.schoolId,
+      },
+    };
+  }
 
   const supabase = await createSupabaseServerClient();
   const { data: userRow, error } = await supabase
