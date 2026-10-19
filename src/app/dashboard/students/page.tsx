@@ -33,6 +33,7 @@ import { loadSchoolHouses } from "@/lib/houses";
 import { logger } from "@/lib/logger";
 import { supabase } from "@/lib/supabase";
 import { canAccess, isClassScopedRole, type UserRole } from "@/lib/roles";
+import { filterStudents, sortStudents } from "@/lib/students/registry";
 import { useTablePreferences } from "@/lib/useTablePreferences";
 
 type StudentWorkspaceTab = "registry" | "transfers" | "dropouts" | "promotion";
@@ -172,6 +173,7 @@ export default function StudentHubPage() {
   const [filterPosition, setFilterPosition] = useState<string>(() => urlFilters.get("position") ?? "all");
   const [filterDefaulters, setFilterDefaulters] = useState(() => urlFilters.get("defaulters") === "1");
   const [sortBy, setSortBy] = useState<"name" | "number" | "class">("name");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [houseMap, setHouseMap] = useState<Record<string, HouseMeta>>({});
 
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -394,41 +396,32 @@ export default function StudentHubPage() {
     },
   ]);
 
-  const filtered = useMemo(() => {
-    const normalizedSearch = searchTerm.trim().toLowerCase();
-    let result = students.filter((s) => {
-      const name = `${s.first_name} ${s.last_name}`.toLowerCase();
-      const matchesSearch =
-        !normalizedSearch ||
-        normalizedSearch
-          .split(" ")
-          .every(
-            (word) =>
-              name.includes(word) ||
-              s.parent_name?.toLowerCase().includes(word) ||
-              s.student_number?.toLowerCase().includes(word),
-          );
-      const matchesClass = selectedClass === "all" || s.class_id === selectedClass;
-      const matchesGender = filterGender === "all" || s.gender === filterGender;
-      const matchesStatus = filterStatus === "all" || s.status === filterStatus;
-      const matchesPosition =
-        filterPosition === "all" ||
-        (filterPosition === "monitor" && s.is_class_monitor) ||
-        (filterPosition === "prefect" && (s.prefect_role || s.student_council_role));
-      const matchesDefaulters = !filterDefaulters || Number(s.opening_balance || 0) > 0;
-      return matchesSearch && matchesClass && matchesGender && matchesStatus && matchesPosition && matchesDefaulters;
-    });
-    result.sort((a, b) => {
-      if (sortBy === "name") {
-        return `${a.first_name} ${a.last_name}`.localeCompare(`${b.first_name} ${b.last_name}`);
-      }
-      if (sortBy === "number") {
-        return (a.student_number || "").localeCompare(b.student_number || "");
-      }
-      return (a.classes?.name || "").localeCompare(b.classes?.name || "");
-    });
-    return result;
-  }, [students, searchTerm, selectedClass, filterGender, filterStatus, filterPosition, filterDefaulters, sortBy]);
+  const filtered = useMemo(
+    () =>
+      sortStudents(
+        filterStudents(students, {
+          search: searchTerm,
+          classId: selectedClass,
+          gender: filterGender,
+          status: filterStatus,
+          position: filterPosition,
+          defaultersOnly: filterDefaulters,
+        }),
+        sortBy,
+        sortDir,
+      ),
+    [
+      students,
+      searchTerm,
+      selectedClass,
+      filterGender,
+      filterStatus,
+      filterPosition,
+      filterDefaulters,
+      sortBy,
+      sortDir,
+    ],
+  );
 
   const pageSize = itemsPerPage;
   const paginatedStudents =
@@ -491,6 +484,7 @@ export default function StudentHubPage() {
     filterPosition,
     filterDefaulters,
     sortBy,
+    sortDir,
     pageSize,
     school?.id,
   ]);
@@ -793,6 +787,8 @@ export default function StudentHubPage() {
             onFilterDefaultersChange={setFilterDefaulters}
             sortBy={sortBy}
             onSortByChange={setSortBy}
+            sortDir={sortDir}
+            onSortDirChange={setSortDir}
             pageSize={pageSize}
             onPageSizeChange={(value) => {
               updateTablePrefs({ pageSize: value });

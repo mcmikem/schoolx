@@ -138,6 +138,8 @@ interface StudentRegistryPanelProps {
   onFilterDefaultersChange: (value: boolean) => void;
   sortBy: "name" | "number" | "class";
   onSortByChange: (value: "name" | "number" | "class") => void;
+  sortDir: "asc" | "desc";
+  onSortDirChange: (value: "asc" | "desc") => void;
   pageSize: number;
   onPageSizeChange: (value: number) => void;
   loading: boolean;
@@ -190,6 +192,8 @@ export default function StudentRegistryPanel({
   onFilterDefaultersChange,
   sortBy,
   onSortByChange,
+  sortDir,
+  onSortDirChange,
   pageSize,
   onPageSizeChange,
   loading,
@@ -829,16 +833,27 @@ export default function StudentRegistryPanel({
               </>
             )}
           </div>
-          <select
-            value={sortBy}
-            onChange={(e) => onSortByChange(e.target.value as "name" | "number" | "class")}
-            aria-label="Sort students"
-            className="cursor-pointer rounded-xl border border-[var(--border)] bg-[var(--surface-container-lowest)] px-3 py-2.5 text-xs font-semibold text-[var(--t1)]"
-          >
-            <option value="name">Sort by Name</option>
-            <option value="number">Sort by Number</option>
-            <option value="class">Sort by Class</option>
-          </select>
+          <div className="flex items-center gap-1">
+            <select
+              value={sortBy}
+              onChange={(e) => onSortByChange(e.target.value as "name" | "number" | "class")}
+              aria-label="Sort students"
+              className="cursor-pointer rounded-xl border border-[var(--border)] bg-[var(--surface-container-lowest)] px-3 py-2.5 text-xs font-semibold text-[var(--t1)]"
+            >
+              <option value="name">Sort by Name</option>
+              <option value="number">Sort by Number</option>
+              <option value="class">Sort by Class</option>
+            </select>
+            <button
+              type="button"
+              onClick={() => onSortDirChange(sortDir === "asc" ? "desc" : "asc")}
+              aria-label={sortDir === "asc" ? "Reverse to descending order" : "Reverse to ascending order"}
+              title={sortDir === "asc" ? "Ascending" : "Descending"}
+              className="flex h-full min-h-10 items-center rounded-xl border border-[var(--border)] bg-[var(--surface-container-lowest)] px-2.5 text-[var(--t2)] hover:bg-[var(--surface-container)]"
+            >
+              <MaterialIcon size={18}>{sortDir === "asc" ? "arrow_upward" : "arrow_downward"}</MaterialIcon>
+            </button>
+          </div>
           <div className="ml-auto text-xs font-semibold text-[var(--t3)]">
             Showing {paginatedStudents.length} of {filteredTotal} students
           </div>
@@ -1397,9 +1412,8 @@ export default function StudentRegistryPanel({
       >
         <div className="space-y-4">
           <p className="text-xs" style={{ color: "var(--t2)" }}>
-            Applies to the <strong>{selectedIds.size}</strong> selected{" "}
-            {selectedIds.size === 1 ? "pupil" : "pupils"}. Anything left as &ldquo;don&rsquo;t change&rdquo;
-            keeps whatever it says today.
+            Applies to the <strong>{selectedIds.size}</strong> selected {selectedIds.size === 1 ? "pupil" : "pupils"}.
+            Anything left as &ldquo;don&rsquo;t change&rdquo; keeps whatever it says today.
           </p>
 
           <div>
@@ -1423,11 +1437,7 @@ export default function StudentRegistryPanel({
           </div>
 
           <div>
-            <label
-              htmlFor="bulk-new-admission"
-              className="block text-xs font-bold mb-1"
-              style={{ color: "var(--t1)" }}
-            >
+            <label htmlFor="bulk-new-admission" className="block text-xs font-bold mb-1" style={{ color: "var(--t1)" }}>
               New admission
             </label>
             <select
