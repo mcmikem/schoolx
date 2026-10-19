@@ -17,6 +17,7 @@ import { useParentPortal } from "@/components/parent-portal/ParentPortalProvider
 import {
   calculateFeeStats,
   groupFeesByTerm,
+  nextDueDate,
   ParentPortalFeeStructureItem,
   ParentPortalPayment,
   ParentPortalWalletTransaction,
@@ -262,18 +263,7 @@ export default function ParentFeesPage() {
 
   const feeGroups = useMemo(() => groupFeesByTerm(feeStructure), [feeStructure]);
 
-  const nextDue = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return (
-      feeStructure
-        .map((fee) => fee.due_date)
-        .filter((value): value is string => Boolean(value))
-        .map((value) => new Date(value))
-        .filter((date) => !Number.isNaN(date.getTime()) && date >= today)
-        .sort((a, b) => a.getTime() - b.getTime())[0] ?? null
-    );
-  }, [feeStructure]);
+  const nextDue = useMemo(() => nextDueDate(feeStructure), [feeStructure]);
 
   // In demo mode there is no server clearance row; mirror the balance shown.
   const effectiveClearance = isDemo ? { isCleared: stats.balance <= 0, balance: stats.balance } : clearance;

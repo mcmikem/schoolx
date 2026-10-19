@@ -13,6 +13,7 @@ import {
   normalizeGrades,
   normalizePayments,
   normalizeWalletTransactions,
+  nextDueDate,
   pickPreferredSchemaRows,
   resolveSelectedChild,
 } from "@/lib/parent-portal";
@@ -399,5 +400,25 @@ describe("groupFeesByTerm", () => {
   it("keeps a non-numeric term (academic year) as its own bucket", () => {
     const groups = groupFeesByTerm([fee("a", "2026", 100), fee("b", "1", 50)]);
     expect(groups.map((group) => group.label)).toEqual(["Term 1", "2026"]);
+  });
+});
+
+describe("nextDueDate", () => {
+  const today = new Date("2026-10-19T10:00:00");
+
+  it("returns the soonest upcoming due date", () => {
+    expect(
+      nextDueDate([{ due_date: "2026-12-01" }, { due_date: "2026-10-25" }, { due_date: "2026-11-10" }], today)
+        ?.toISOString()
+        .slice(0, 10),
+    ).toBe("2026-10-25");
+  });
+
+  it("ignores past and invalid dates", () => {
+    expect(nextDueDate([{ due_date: "2026-10-01" }, { due_date: "not-a-date" }, { due_date: null }], today)).toBeNull();
+  });
+
+  it("counts a due date later today", () => {
+    expect(nextDueDate([{ due_date: "2026-10-19T18:00:00" }], today)).not.toBeNull();
   });
 });

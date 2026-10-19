@@ -600,3 +600,23 @@ export function findUnseenNotificationIds(
 
   return { toAnnounce, seen: current };
 }
+
+/**
+ * The soonest fee due date that has not passed. Dates are compared at local
+ * midnight so a fee due "today" still counts.
+ */
+export function nextDueDate(
+  feeStructure: Array<Pick<ParentPortalFeeStructureItem, "due_date">>,
+  today: Date = new Date(),
+): Date | null {
+  const start = new Date(today);
+  start.setHours(0, 0, 0, 0);
+  return (
+    feeStructure
+      .map((fee) => fee.due_date)
+      .filter((value): value is string => Boolean(value))
+      .map((value) => new Date(value))
+      .filter((date) => !Number.isNaN(date.getTime()) && date >= start)
+      .sort((a, b) => a.getTime() - b.getTime())[0] ?? null
+  );
+}

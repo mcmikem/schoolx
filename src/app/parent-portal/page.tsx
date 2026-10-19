@@ -15,6 +15,7 @@ import { logger } from "@/lib/logger";
 import {
   calculateFeeStats,
   findUnseenNotificationIds,
+  nextDueDate,
   normalizeFeeTermItems,
   normalizeGrades,
   normalizePayments,
@@ -56,6 +57,7 @@ function ParentDashboardContent() {
   const POLL_MS = 45_000;
 
   const feeStats = useMemo(() => calculateFeeStats(feeStructureItems, feePayments), [feeStructureItems, feePayments]);
+  const nextDue = useMemo(() => nextDueDate(feeStructureItems), [feeStructureItems]);
 
   useEffect(() => {
     async function fetchNotices() {
@@ -521,6 +523,14 @@ function ParentDashboardContent() {
                       </div>
                       <p className="mt-3 text-sm text-[var(--portal-ink-soft)]">
                         Total fee: UGX {feeStats.totalFee?.toLocaleString()}
+                      </p>
+                      <p className="text-sm text-[var(--portal-ink-soft)]">
+                        Paid so far: UGX {feeStats.totalPaid?.toLocaleString()}
+                      </p>
+                      <p className="text-sm text-[var(--portal-ink-soft)]">
+                        {nextDue
+                          ? `Next due: ${nextDue.toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}`
+                          : "No upcoming due date set"}
                       </p>
                     </article>
                   </div>
