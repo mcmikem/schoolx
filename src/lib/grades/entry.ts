@@ -79,6 +79,28 @@ export function isStudentGraded(
   });
 }
 
+function round1(value: number): number {
+  return Math.round(value * 10) / 10;
+}
+
+/** Class average for one assessment column, ignoring blank cells. */
+export function columnAverage(marks: StudentMarks, studentIds: string[], type: string): number | null {
+  const values = studentIds
+    .map((studentId) => marks[`${studentId}_${type}`])
+    .filter((value): value is number => value !== null && value !== undefined);
+  if (values.length === 0) return null;
+  return round1(values.reduce((sum, value) => sum + value, 0) / values.length);
+}
+
+/** Class average of per-pupil totals. */
+export function averageOfTotals(marks: StudentMarks, studentIds: string[], competencyMode: boolean): number | null {
+  const totals = studentIds
+    .map((studentId) => getStudentTotal(marks, studentId, competencyMode))
+    .filter((value): value is number => value !== null);
+  if (totals.length === 0) return null;
+  return round1(totals.reduce((sum, value) => sum + value, 0) / totals.length);
+}
+
 const DEFAULT_LABELS: Record<string, string> = {
   bot: "Beginning of Term",
   mid_term: "Mid Term",

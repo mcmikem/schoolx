@@ -1,6 +1,8 @@
 import {
   assessmentLabel,
   assessmentTypesFor,
+  averageOfTotals,
+  columnAverage,
   getGrade,
   getStudentTotal,
   isStudentGraded,
@@ -82,5 +84,26 @@ describe("assessment labels", () => {
     expect(assessmentLabel("mid_term")).toBe("Mid Term");
     expect(assessmentLabel("ca2")).toBe("CA2");
     expect(assessmentLabel("custom_test")).toBe("CUSTOM TEST");
+  });
+});
+
+describe("class averages", () => {
+  const marks = {
+    a_bot: 50,
+    b_bot: 70,
+    c_bot: null,
+    a_eot: 40,
+    b_eot: null,
+  };
+
+  it("averages a column across pupils, ignoring blanks", () => {
+    expect(columnAverage(marks, ["a", "b", "c"], "bot")).toBe(60);
+    expect(columnAverage(marks, ["c"], "bot")).toBeNull();
+  });
+
+  it("averages per-pupil totals, ignoring pupils with no marks", () => {
+    // a has 50/40 -> 45; b has only bot 70 -> 70; c has nothing.
+    expect(averageOfTotals(marks, ["a", "b", "c"], false)).toBe(57.5);
+    expect(averageOfTotals(marks, ["c"], false)).toBeNull();
   });
 });

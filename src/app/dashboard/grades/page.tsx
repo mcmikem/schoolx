@@ -2,6 +2,7 @@
 import { type ComponentProps, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState, NoData } from "@/components/EmptyState";
+import { GradeStatusBadge } from "@/components/grades/GradeStatusBadge";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useToast } from "@/components/Toast";
@@ -30,6 +31,8 @@ import {
   TRADITIONAL_ASSESSMENT_TYPES,
   assessmentLabel,
   assessmentTypesFor,
+  averageOfTotals,
+  columnAverage,
   getGrade,
   getStudentTotal as computeStudentTotal,
   isStudentGraded as computeIsStudentGraded,
@@ -2157,30 +2160,7 @@ export default function GradesPage() {
                                         {student.first_name} {student.last_name}
                                       </p>
                                       <p className="text-xs text-on-surface-variant">{student.student_number || "-"}</p>
-                                      {(() => {
-                                        const sStatus = studentStatusMap[student.id] || "draft";
-                                        return (
-                                          <span
-                                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black mt-1 ${
-                                              sStatus === "draft"
-                                                ? "bg-[var(--amber-soft)] text-[var(--amber)]"
-                                                : sStatus === "submitted"
-                                                  ? "bg-blue-50 text-blue-700"
-                                                  : sStatus === "approved"
-                                                    ? "bg-[var(--green-soft)] text-[var(--green)]"
-                                                    : "bg-surface-container text-on-surface-variant"
-                                            }`}
-                                          >
-                                            {sStatus === "draft"
-                                              ? "Draft"
-                                              : sStatus === "submitted"
-                                                ? "Submitted"
-                                                : sStatus === "approved"
-                                                  ? "Approved"
-                                                  : "Published"}
-                                          </span>
-                                        );
-                                      })()}
+                                      <GradeStatusBadge status={studentStatusMap[student.id]} />
                                     </div>
                                     {graded && <MaterialIcon icon="check_circle" className="text-green-500 text-lg" />}
                                   </div>
@@ -2274,13 +2254,11 @@ export default function GradesPage() {
                               </span>
                             </td>
                             {activeAssessmentTypes.map((type) => {
-                              const vals = displayStudents
-                                .map((s) => marks[`${s.id}_${type}`])
-                                .filter((v): v is number => v !== null && v !== undefined);
-                              const avg =
-                                vals.length > 0
-                                  ? Math.round((vals.reduce((a, b) => a + b, 0) / vals.length) * 10) / 10
-                                  : null;
+                              const avg = columnAverage(
+                                marks,
+                                displayStudents.map((s) => s.id),
+                                type,
+                              );
                               return (
                                 <td key={type} className="px-4 py-4 text-center">
                                   <span
@@ -2293,13 +2271,11 @@ export default function GradesPage() {
                             })}
                             <td className="px-4 py-4 text-center">
                               {(() => {
-                                const totals = displayStudents
-                                  .map((s) => getStudentTotal(s.id))
-                                  .filter((v): v is number => v !== null);
-                                const classAvg =
-                                  totals.length > 0
-                                    ? Math.round((totals.reduce((a, b) => a + b, 0) / totals.length) * 10) / 10
-                                    : null;
+                                const classAvg = averageOfTotals(
+                                  marks,
+                                  displayStudents.map((s) => s.id),
+                                  competencyMode,
+                                );
                                 return (
                                   <span
                                     className={`text-sm font-bold ${classAvg !== null ? "text-primary" : "text-on-surface-variant/50"}`}
@@ -2366,7 +2342,6 @@ export default function GradesPage() {
                       const total = getStudentTotal(student.id);
                       const gradeInfo = total !== null ? getGrade(total) : null;
                       const graded = isStudentGraded(student.id);
-                      const sStatus = studentStatusMap[student.id] || "draft";
                       return (
                         <Card key={student.id}>
                           <CardBody className="space-y-4">
@@ -2377,25 +2352,7 @@ export default function GradesPage() {
                                   {student.first_name} {student.last_name}
                                 </p>
                                 <p className="text-xs text-[var(--t3)]">{student.student_number || "-"}</p>
-                                <span
-                                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black mt-1 ${
-                                    sStatus === "draft"
-                                      ? "bg-[var(--amber-soft)] text-[var(--amber)]"
-                                      : sStatus === "submitted"
-                                        ? "bg-blue-50 text-blue-700"
-                                        : sStatus === "approved"
-                                          ? "bg-[var(--green-soft)] text-[var(--green)]"
-                                          : "bg-surface-container text-[var(--on-surface)]"
-                                  }`}
-                                >
-                                  {sStatus === "draft"
-                                    ? "Draft"
-                                    : sStatus === "submitted"
-                                      ? "Submitted"
-                                      : sStatus === "approved"
-                                        ? "Approved"
-                                        : "Published"}
-                                </span>
+                                <GradeStatusBadge status={studentStatusMap[student.id]} />
                               </div>
                               {graded && <MaterialIcon icon="check_circle" className="text-green-500 text-lg" />}
                             </div>
@@ -2565,28 +2522,7 @@ export default function GradesPage() {
                         {(() => {
                           const sid = filteredStudents[mobileStudentIndex]?.id;
                           if (!sid) return null;
-                          const sStatus = studentStatusMap[sid] || "draft";
-                          return (
-                            <span
-                              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black mt-1 ${
-                                sStatus === "draft"
-                                  ? "bg-[var(--amber-soft)] text-[var(--amber)]"
-                                  : sStatus === "submitted"
-                                    ? "bg-blue-50 text-blue-700"
-                                    : sStatus === "approved"
-                                      ? "bg-[var(--green-soft)] text-[var(--green)]"
-                                      : "bg-surface-container text-on-surface-variant"
-                              }`}
-                            >
-                              {sStatus === "draft"
-                                ? "Draft"
-                                : sStatus === "submitted"
-                                  ? "Submitted"
-                                  : sStatus === "approved"
-                                    ? "Approved"
-                                    : "Published"}
-                            </span>
-                          );
+                          return <GradeStatusBadge status={studentStatusMap[sid]} />;
                         })()}
                       </div>
                     </div>
