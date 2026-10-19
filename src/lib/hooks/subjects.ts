@@ -105,8 +105,13 @@ export function useSubjectAllocations(schoolId?: string, academicYear?: string) 
       const { data, error } = await withTimeout(
         supabase
           .from("subject_allocations")
-          .insert({ ...allocation, school_id: querySchoolId })
-          .select("id, school_id, teacher_id, subject_id, class_id, academic_year, term, is_class_teacher, created_at")
+          // No school_id: subject_allocations has no such column. The table is
+          // scoped to a school through class_id -> classes.school_id in its RLS
+          // policy, and writing the column made every allocation fail with
+          // "column subject_allocations.school_id does not exist" -- so
+          // allocating a subject to a teacher silently did nothing.
+          .insert({ ...allocation })
+          .select("id, teacher_id, subject_id, class_id, academic_year, term, is_class_teacher, created_at")
           .single(),
         15000,
         {

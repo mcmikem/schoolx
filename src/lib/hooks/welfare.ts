@@ -128,7 +128,10 @@ export function useTransportManager(schoolId?: string) {
         setLoading(true);
         const { data: routesRes } = await supabase
           .from("transport_routes")
-          .select("id, route_name, vehicle_number, driver_name, transport_stops(id, stop_name, arrival_time)")
+          // Stops live in the pickup_points text column; there is no
+          // transport_stops table. Embedding it made PostgREST answer PGRST200,
+          // the catch swallowed it, and the whole route list came back empty.
+          .select("id, route_name, vehicle_number, driver_name, driver_phone, pickup_points, monthly_fee")
           .eq("school_id", querySchoolId);
         setRoutes(routesRes || []);
       } catch (err) {

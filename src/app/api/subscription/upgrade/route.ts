@@ -75,7 +75,9 @@ export async function POST(request: NextRequest) {
         user_id: auth.context.authUserId,
         action: "update",
         module: "subscription",
-        details: `Plan upgraded from ${currentPlan} to ${newPlan}`,
+        // The column is description. audit_log has no details column, so the
+        // write was failing and the upgrade left no audit trail.
+        description: `Plan upgraded from ${currentPlan} to ${newPlan}`,
       })
       .maybeSingle();
 
