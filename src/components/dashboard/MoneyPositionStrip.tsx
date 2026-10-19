@@ -22,8 +22,6 @@ export default function MoneyPositionStrip() {
   const { school } = useAuth();
   const { position, loading } = useMoney(school?.id);
 
-  const tone = position.balance >= 0 ? "var(--green)" : "var(--red)";
-
   return (
     <section aria-label="money position" className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
       <div className="flex items-center justify-between gap-3">
@@ -50,7 +48,13 @@ export default function MoneyPositionStrip() {
           hint={`${formatCompactCurrency(position.pendingOut)} pending`}
           loading={loading}
         />
-        <Figure label="Balance" value={position.balance} colour={tone} loading={loading} />
+        <Figure
+          label="Available"
+          value={position.available}
+          hint={position.unebHeld > 0 ? `${formatCompactCurrency(position.unebHeld)} UNEB held` : "Spendable"}
+          colour={position.available >= 0 ? "var(--green)" : "var(--red)"}
+          loading={loading}
+        />
         <Figure label="Other income" value={position.otherIncome} hint="Not fees" loading={loading} />
       </div>
 

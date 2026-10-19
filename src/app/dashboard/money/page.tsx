@@ -157,7 +157,7 @@ export default function MoneyPage() {
       )}
 
       {/* Position first — it is the answer bursars are asked for. */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Stat
           label="Money in"
           value={position.moneyIn}
@@ -171,6 +171,12 @@ export default function MoneyPage() {
           hint={`${formatCurrency(position.pendingOut)} pending`}
         />
         <Stat label="Balance" value={position.balance} tone={position.balance >= 0 ? "green" : "red"} />
+        <Stat
+          label="Available"
+          value={position.available}
+          tone={position.available >= 0 ? "green" : "red"}
+          hint={position.unebHeld > 0 ? `UNEB held ${formatCurrency(position.unebHeld)}` : "Excludes UNEB money held"}
+        />
         <Stat label="Other income" value={position.otherIncome} tone="navy" hint="Not school fees" />
       </div>
 

@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import { useOnlineStatus } from "@/lib/offline";
 import { logger } from "@/lib/logger";
+import { summarizeUnebQuarantine } from "@/lib/uneb-quarantine";
 
 /**
  * Money out and non-fee money in.
@@ -90,6 +91,10 @@ export interface MoneyPosition {
   /** Only approved/paid spending counts as gone. Pending is still ours. */
   committedOut: number;
   pendingOut: number;
+  /** UNEB exam money collected but not yet remitted — held in trust, not ours. */
+  unebHeld: number;
+  /** `balance` less the UNEB money held in trust: what the school may actually spend. */
+  available: number;
   balance: number;
 }
 
@@ -97,6 +102,7 @@ export function useMoney(schoolId?: string) {
   const [expenses, setExpenses] = useState<ExpenseRow[]>([]);
   const [otherIncome, setOtherIncome] = useState<OtherIncomeRow[]>([]);
   const [feesCollected, setFeesCollected] = useState(0);
+  const [unebHeld, setUnebHeld] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const isOnline = useOnlineStatus();
@@ -108,7 +114,7 @@ export function useMoney(schoolId?: string) {
     }
     try {
       setError(null);
-      const [expRes, incRes, payRes] = await Promise.all([
+      const [expRes, incRes, payRes, feesRes, remitRes] = await Promise.all([
         withTimeout(
           supabase
             .from("expenses")
@@ -133,9 +139,26 @@ export function useMoney(schoolId?: string) {
           timeoutFallback<OtherIncomeRow[]>(),
         ),
         withTimeout(
-          supabase.from("fee_payments").select("amount_paid").eq("school_id", schoolId).is("deleted_at", null),
+          supabase.from("fee_payments").select("amount_paid, fee_id").eq("school_id", schoolId).is("deleted_at", null),
           15000,
-          timeoutFallback<{ amount_paid: number }[]>(),
+          timeoutFallback<{ amount_paid: number; fee_id: string | null }[]>(),
+        ),
+        // UNEB exam money is a liability, not income. Read the fee lines and the
+        // remittance ledger so the spendable figure can exclude what is held.
+        withTimeout(
+          supabase.from("fee_structure").select("id, name, category").eq("school_id", schoolId).is("deleted_at", null),
+          15000,
+          timeoutFallback<{ id: string; name: string | null; category: string | null }[]>(),
+        ),
+        withTimeout(
+          supabase
+            .from("uneb_remittances")
+            .select("amount_invoiced, amount_collected, amount_remitted, status")
+            .eq("school_id", schoolId),
+          15000,
+          timeoutFallback<
+            { amount_invoiced: number; amount_collected: number; amount_remitted: number; status: string }[]
+          >(),
         ),
       ]);
 
@@ -147,8 +170,23 @@ export function useMoney(schoolId?: string) {
       setExpenses((expRes as { data?: ExpenseRow[] }).data ?? []);
       setOtherIncome((incRes as { data?: OtherIncomeRow[] }).data ?? []);
 
-      const payRows = (payRes as { data?: { amount_paid: number }[] }).data ?? [];
+      const payRows = (payRes as { data?: { amount_paid: number; fee_id?: string | null }[] }).data ?? [];
       setFeesCollected(payRows.reduce((sum, p) => sum + Number(p.amount_paid || 0), 0));
+
+      const unebFees =
+        (feesRes as { data?: { id: string; name: string | null; category: string | null }[] }).data ?? [];
+      const unebRows =
+        (
+          remitRes as {
+            data?: { amount_invoiced: number; amount_collected: number; amount_remitted: number; status: string }[];
+          }
+        ).data ?? [];
+      const quarantine = summarizeUnebQuarantine({
+        fees: unebFees,
+        payments: payRows,
+        remittances: unebRows,
+      });
+      setUnebHeld(quarantine.held);
     } catch (err) {
       // Keep whatever loaded rather than blanking the screen — a bursar on a
       // weak connection should still see the last known position.
@@ -246,6 +284,7 @@ export function useMoney(schoolId?: string) {
       .reduce((sum, e) => sum + Number(e.amount || 0), 0);
     const pending = expenses.filter((e) => e.status === "pending").reduce((sum, e) => sum + Number(e.amount || 0), 0);
     const moneyIn = feesCollected + otherIn;
+    const balance = moneyIn - committed;
     return {
       feesCollected,
       otherIncome: otherIn,
@@ -253,9 +292,11 @@ export function useMoney(schoolId?: string) {
       moneyOut: committed,
       committedOut: committed,
       pendingOut: pending,
-      balance: moneyIn - committed,
+      unebHeld,
+      available: balance - unebHeld,
+      balance,
     };
-  }, [expenses, otherIncome, feesCollected]);
+  }, [expenses, otherIncome, feesCollected, unebHeld]);
 
   const byCategory = useMemo(() => {
     const map = new Map<string, number>();
