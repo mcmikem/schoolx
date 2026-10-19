@@ -32,6 +32,7 @@ import { useClasses, useFeeAdjustments, useFeePayments, useFeeStructure, useStud
 import { computeFeeClearance, type FeeClearance } from "@/lib/fee-clearance";
 import { isTimeoutResult, timeoutFallback, withTimeout } from "@/lib/hooks/utils";
 import { logger } from "@/lib/logger";
+import { competencyBadge, reportGradeColor } from "@/lib/report-card-presentation";
 import { searchReportList } from "@/lib/report-list";
 import { classicReportSubject, rankCompleteReports, summarizeClassicReport } from "@/lib/report-summary";
 import { loadSchoolSettings } from "@/lib/school-settings";
@@ -72,28 +73,6 @@ interface StudentReport {
   isComplete?: boolean;
   recordedSubjects?: number;
   aggregate?: number | null;
-}
-
-function getGradeColor(grade: string): string {
-  if (grade.startsWith("D")) return "text-green-600";
-  if (grade.startsWith("C")) return "text-blue-600";
-  if (grade.startsWith("P")) return "text-yellow-600";
-  return grade === "F9" ? "text-red-500" : "text-amber-600";
-}
-
-function getCompetencyLabel(level: string | undefined): { label: string; emoji: string; color: string } {
-  switch (level) {
-    case "mastered":
-      return { label: "Mastered", emoji: "⭐⭐⭐", color: "text-green-600" };
-    case "demonstrates":
-      return { label: "Demonstrates", emoji: "⭐⭐", color: "text-blue-600" };
-    case "developing":
-      return { label: "Developing", emoji: "⭐", color: "text-yellow-600" };
-    case "extended":
-      return { label: "Extended", emoji: "🏆", color: "text-purple-600" };
-    default:
-      return { label: "Not Started", emoji: "—", color: "text-gray-400" };
-  }
 }
 
 export default function ReportCardsPage() {
@@ -396,7 +375,7 @@ export default function ReportCardsPage() {
           name: data.name,
           score: result.score,
           grade: result.grade,
-          gradeColor: getGradeColor(result.grade),
+          gradeColor: reportGradeColor(result.grade),
           competencyLevel: comp?.level,
           competencyNotes: comp?.notes,
           isMissing: result.isMissing,
@@ -1260,7 +1239,7 @@ export default function ReportCardsPage() {
       .map((s) => {
         const compCell =
           reportFormat !== "numerical" && s.competencyLevel
-            ? `<td style="padding:6px 10px;border:1px solid #ddd;text-align:center">${s.competencyLevel === "mastered" ? "⭐⭐⭐" : s.competencyLevel === "demonstrates" ? "⭐⭐" : s.competencyLevel === "developing" ? "⭐" : "—"}</td>`
+            ? `<td style="padding:6px 10px;border:1px solid #ddd;text-align:center">${competencyBadge(s.competencyLevel).emoji}</td>`
             : "";
         return `<tr>
         <td style="padding:6px 10px;border:1px solid #ddd">${escapeHtml(s.name)}</td>
