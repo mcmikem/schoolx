@@ -50,6 +50,7 @@ const STUDENT_SELECT_FIELDS = `
   consecutive_absent_days, created_at, house_id, previous_school, district_origin,
   sub_county, parish, village, boarding_status, games_house, is_class_monitor,
   prefect_role, student_council_role, opening_balance, nin,
+  takes_meals, is_new_admission,
   classes(id, name, level, stream)
 `;
 

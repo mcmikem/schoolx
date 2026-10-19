@@ -24,7 +24,7 @@ export interface ClearanceAdjustmentLike {
 }
 
 export type ClearanceStudentLike = Pick<Student, "id" | "class_id" | "boarding_status"> &
-  Partial<Pick<Student, "takes_meals" | "opening_balance">>;
+  Partial<Pick<Student, "takes_meals" | "is_new_admission" | "opening_balance">>;
 
 export interface FeeClearanceInput {
   student: ClearanceStudentLike;

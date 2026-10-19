@@ -148,6 +148,7 @@ export async function POST(request: NextRequest) {
       opening_balance: isNaN(openingBalance) ? 0 : openingBalance,
       boarding_status: studentData.boarding_status || "day",
       takes_meals: studentData.takes_meals ?? null,
+      is_new_admission: studentData.is_new_admission ?? null,
       house_id: studentData.house_id || null,
       previous_school: studentData.previous_school || null,
       district_origin: studentData.district_origin || null,

@@ -131,6 +131,8 @@ export interface Student {
    * keeping them apart lets the bursar see who is still undecided.
    */
   takes_meals?: boolean | null;
+  /** true = newly admitted this year, charged the Registration fee. */
+  is_new_admission?: boolean | null;
   games_house?: string;
   is_class_monitor?: boolean;
   prefect_role?: string;

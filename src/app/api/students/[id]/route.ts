@@ -108,6 +108,11 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
       "games_house",
       "is_class_monitor",
       "nin",
+      // Both opt-ins are tri-state, so null has to survive as a value rather
+      // than being dropped as absent -- otherwise you can set an answer but
+      // never clear one back to undecided.
+      "takes_meals",
+      "is_new_admission",
       "status",
       "transfer_from",
       "transfer_to",

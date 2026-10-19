@@ -13,6 +13,7 @@ import {
   useState,
 } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
+import { Modal } from "@/components/ui/Modal";
 import OnboardingTips from "@/components/OnboardingTips";
 import PersonInitials from "@/components/ui/PersonInitials";
 import SearchField from "@/components/ui/SearchField";
@@ -101,6 +102,12 @@ interface AttendanceStatusMeta {
  * Word templates cannot drift from this one.
  */
 
+/** The two bulk-editable opt-ins. Both tri-state; null means undecided. */
+export interface StudentBulkPatch {
+  takes_meals?: boolean | null;
+  is_new_admission?: boolean | null;
+}
+
 interface StudentRegistryPanelProps {
   schoolId?: string;
   lowBandwidthMode: boolean;
@@ -146,6 +153,8 @@ interface StudentRegistryPanelProps {
   onSmsParent: (student: StudentRow) => void;
   onEditStudent: (student: StudentRow) => void;
   onDeleteStudent: (studentId: string) => void;
+  /** Applies one bulk edit to many pupils at once (meal opt-in, new admission). */
+  onBulkUpdateStudents: (studentIds: string[], patch: StudentBulkPatch) => Promise<void>;
   /** False for class-scoped roles: the registry is read-only for them (RLS
    * already refuses the writes; this just stops offering the buttons). */
   canManage?: boolean;
@@ -196,6 +205,7 @@ export default function StudentRegistryPanel({
   onSmsParent,
   onEditStudent,
   onDeleteStudent,
+  onBulkUpdateStudents,
   canManage = true,
 }: StudentRegistryPanelProps) {
   const { user } = useAuth();
@@ -207,6 +217,40 @@ export default function StudentRegistryPanel({
   const [showPhotosOverride, setShowPhotosOverride] = useState<boolean | null>(null);
   const showPhotos = showPhotosOverride ?? !lowBandwidthMode;
   const [showQuickImport, setShowQuickImport] = useState(false);
+
+  // Bulk opt-in. Both questions are asked together because a bursar working
+  // through a new intake is answering both at once, and neither can be inferred
+  // reliably -- admission_date cannot tell a new pupil from an old one (see
+  // supabase/migrations/20261127000000_student_new_admission.sql).
+  const [showBulkOptIn, setShowBulkOptIn] = useState(false);
+  const [bulkMeals, setBulkMeals] = useState<"" | "yes" | "no" | "skip">("skip");
+  const [bulkNewAdmission, setBulkNewAdmission] = useState<"" | "yes" | "no" | "skip">("skip");
+  const [bulkSaving, setBulkSaving] = useState(false);
+  const [bulkError, setBulkError] = useState<string | null>(null);
+
+  const applyBulkOptIn = async () => {
+    if (bulkMeals === "skip" && bulkNewAdmission === "skip") return;
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+
+    const patch: StudentBulkPatch = {};
+    if (bulkMeals !== "skip") patch.takes_meals = bulkMeals === "yes";
+    if (bulkNewAdmission !== "skip") patch.is_new_admission = bulkNewAdmission === "yes";
+
+    setBulkSaving(true);
+    setBulkError(null);
+    try {
+      await onBulkUpdateStudents(ids, patch);
+      setShowBulkOptIn(false);
+      setBulkMeals("skip");
+      setBulkNewAdmission("skip");
+      setSelectedIds(new Set());
+    } catch (err) {
+      setBulkError(err instanceof Error ? err.message : "Could not update the selected pupils");
+    } finally {
+      setBulkSaving(false);
+    }
+  };
   // Filters popover: gender/status/position/defaulters/page-size live here so
   // the toolbar is search + class + sort + Filters (touch-friendly, no
   // horizontal scroll on a phone).
@@ -837,6 +881,19 @@ export default function StudentRegistryPanel({
             style={{ borderBottom: "1px solid var(--border)", background: "var(--navy-soft)" }}
           >
             <span className="text-xs font-bold text-[var(--navy)]">{selectedIds.size} selected on this page</span>
+            {canManage && (
+              <button
+                type="button"
+                onClick={() => {
+                  setBulkError(null);
+                  setShowBulkOptIn(true);
+                }}
+                className="btn btn-primary btn-sm"
+              >
+                <MaterialIcon style={{ fontSize: 16 }}>restaurant</MaterialIcon>
+                Meals &amp; registration
+              </button>
+            )}
             {canExport && (
               <button type="button" onClick={exportSelectedCsv} className="btn btn-primary btn-sm">
                 <MaterialIcon style={{ fontSize: 16 }}>download</MaterialIcon>
@@ -1331,6 +1388,90 @@ export default function StudentRegistryPanel({
           </div>
         )}
       </div>
+
+      <Modal
+        isOpen={showBulkOptIn}
+        onClose={() => !bulkSaving && setShowBulkOptIn(false)}
+        title="Meals & registration"
+        size="sm"
+      >
+        <div className="space-y-4">
+          <p className="text-xs" style={{ color: "var(--t2)" }}>
+            Applies to the <strong>{selectedIds.size}</strong> selected{" "}
+            {selectedIds.size === 1 ? "pupil" : "pupils"}. Anything left as &ldquo;don&rsquo;t change&rdquo;
+            keeps whatever it says today.
+          </p>
+
+          <div>
+            <label htmlFor="bulk-meals" className="block text-xs font-bold mb-1" style={{ color: "var(--t1)" }}>
+              Eats at school
+            </label>
+            <select
+              id="bulk-meals"
+              value={bulkMeals}
+              onChange={(e) => setBulkMeals(e.target.value as "" | "yes" | "no" | "skip")}
+              className="w-full px-3 py-2 rounded-lg border text-sm"
+              style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--t1)" }}
+            >
+              <option value="skip">Don&rsquo;t change</option>
+              <option value="yes">Takes school meals &mdash; charged</option>
+              <option value="no">Goes home &mdash; not charged</option>
+            </select>
+            <p className="text-[11px] mt-1" style={{ color: "var(--t3)" }}>
+              Only pupils who eat here are charged the meals fee.
+            </p>
+          </div>
+
+          <div>
+            <label
+              htmlFor="bulk-new-admission"
+              className="block text-xs font-bold mb-1"
+              style={{ color: "var(--t1)" }}
+            >
+              New admission
+            </label>
+            <select
+              id="bulk-new-admission"
+              value={bulkNewAdmission}
+              onChange={(e) => setBulkNewAdmission(e.target.value as "" | "yes" | "no" | "skip")}
+              className="w-full px-3 py-2 rounded-lg border text-sm"
+              style={{ borderColor: "var(--border)", background: "var(--surface)", color: "var(--t1)" }}
+            >
+              <option value="skip">Don&rsquo;t change</option>
+              <option value="yes">Just joined &mdash; charge registration</option>
+              <option value="no">Already on roll &mdash; no registration</option>
+            </select>
+            <p className="text-[11px] mt-1" style={{ color: "var(--t3)" }}>
+              Registration is a one-off, charged when a pupil joins &mdash; not every term.
+            </p>
+          </div>
+
+          {bulkError && (
+            <p className="text-xs" style={{ color: "var(--error)" }}>
+              {bulkError}
+            </p>
+          )}
+
+          <div className="flex gap-2 justify-end pt-1">
+            <button
+              type="button"
+              onClick={() => setShowBulkOptIn(false)}
+              disabled={bulkSaving}
+              className="btn btn-ghost btn-sm"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={applyBulkOptIn}
+              disabled={bulkSaving || (bulkMeals === "skip" && bulkNewAdmission === "skip")}
+              className="btn btn-primary btn-sm"
+            >
+              {bulkSaving ? "Saving..." : "Apply"}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </>
   );
 }

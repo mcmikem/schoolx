@@ -428,6 +428,16 @@ export function normalizeStudentUpdateInput(input: Record<string, any>): Record<
   if (input.prefect_role !== undefined) out.prefect_role = input.prefect_role || null;
   if (input.student_council_role !== undefined) out.student_council_role = input.student_council_role || null;
 
+  // Both opt-ins are tri-state and were being dropped on the floor here. This
+  // function is an allowlist: a field it does not name never reaches the
+  // database, so the "School Meals" answer on the pupil form saved, reported
+  // success, and changed nothing. Anything genuinely falsey (false, null, or
+  // "" meaning undecided) still has to survive, so guard on !== undefined and
+  // coerce rather than using || null, which would eat `false`.
+  if (input.takes_meals !== undefined) out.takes_meals = input.takes_meals === "" ? null : input.takes_meals === true;
+  if (input.is_new_admission !== undefined)
+    out.is_new_admission = input.is_new_admission === "" ? null : input.is_new_admission === true;
+
   if (input.status !== undefined) out.status = input.status;
   if (input.transfer_from !== undefined) out.transfer_from = input.transfer_from || null;
   if (input.transfer_to !== undefined) out.transfer_to = input.transfer_to || null;

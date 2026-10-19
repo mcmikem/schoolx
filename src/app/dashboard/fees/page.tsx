@@ -6,6 +6,7 @@ import { EmptyState } from "@/components/EmptyState";
 import type { FeeOption } from "@/components/fees/FeePicker";
 import { pickDefaultFee } from "@/lib/fee-default";
 import { isMealFee } from "@/lib/meal-fee";
+import { isRegistrationFee } from "@/lib/registration-fee";
 import type { FeeFormData } from "@/components/fees/FeeFormModal";
 import FeeStats from "@/components/fees/FeeStats";
 import FeeTable, { StudentBalance } from "@/components/fees/FeeTable";
@@ -406,7 +407,7 @@ export default function FinanceHubPage() {
   //
   // Which fee gets preselected is decided by pickDefaultFee in lib/fee-default.
   const feesForClass = useCallback(
-    (classId: string, boardingStatus?: string, takesMeals?: boolean | null) => {
+    (classId: string, boardingStatus?: string, takesMeals?: boolean | null, isNewAdmission?: boolean | null) => {
       const term = Number(currentTerm || 1);
       const allClasses = !classId || classId === "all";
       return feeStructure
@@ -430,6 +431,11 @@ export default function FinanceHubPage() {
           // school stops billing meals to pupils who do not eat without anyone
           // having to touch a single row first.
           if (isMealFee(f) && takesMeals !== true) return false;
+          // Registration is owed once, on joining. A pupil who is already on
+          // roll has not joined again, so showing the line invites the bursar
+          // to bill a fee that cannot be collected. Only an explicit new
+          // admission sees it.
+          if (isRegistrationFee(f) && isNewAdmission !== true) return false;
           return true;
         })
         .sort((a, b) => {
@@ -721,16 +727,18 @@ export default function FinanceHubPage() {
   const adjustmentClassId = adjustmentStudent?.class_id || selectedClass;
   const paymentBoarding = paymentStudent?.boarding_status || "";
   const paymentTakesMeals = paymentStudent?.takes_meals ?? null;
+  const paymentIsNewAdmission = paymentStudent?.is_new_admission ?? null;
   const adjustmentBoarding = adjustmentStudent?.boarding_status || "";
   const adjustmentTakesMeals = adjustmentStudent?.takes_meals ?? null;
+  const adjustmentIsNewAdmission = adjustmentStudent?.is_new_admission ?? null;
 
   const paymentFees = useMemo(
-    () => feesForClass(paymentClassId, paymentBoarding, paymentTakesMeals),
-    [feesForClass, paymentClassId, paymentBoarding, paymentTakesMeals],
+    () => feesForClass(paymentClassId, paymentBoarding, paymentTakesMeals, paymentIsNewAdmission),
+    [feesForClass, paymentClassId, paymentBoarding, paymentTakesMeals, paymentIsNewAdmission],
   );
   const adjustmentFees = useMemo(
-    () => feesForClass(adjustmentClassId, adjustmentBoarding, adjustmentTakesMeals),
-    [feesForClass, adjustmentClassId, adjustmentBoarding, adjustmentTakesMeals],
+    () => feesForClass(adjustmentClassId, adjustmentBoarding, adjustmentTakesMeals, adjustmentIsNewAdmission),
+    [feesForClass, adjustmentClassId, adjustmentBoarding, adjustmentTakesMeals, adjustmentIsNewAdmission],
   );
   const paymentDefaultFeeId = useMemo(
     () => pickDefaultFee(paymentFees, paymentBoarding),

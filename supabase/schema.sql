@@ -243,6 +243,14 @@ ALTER TABLE students ADD COLUMN IF NOT EXISTS student_council_role TEXT;
 ALTER TABLE students ADD COLUMN IF NOT EXISTS opening_balance NUMERIC(12,2) DEFAULT 0;
 ALTER TABLE students ADD COLUMN IF NOT EXISTS nin TEXT;
 
+-- takes_meals: true = pupil eats at school and is charged the Meals fee;
+-- false/NULL = not charged. See migrations/20261125000000_student_meal_opt_in.sql.
+ALTER TABLE students ADD COLUMN IF NOT EXISTS takes_meals BOOLEAN;
+-- is_new_admission: true = newly admitted this year, charged the Registration
+-- fee; false/NULL = already on roll or undecided, not charged. See
+-- migrations/20261127000000_student_new_admission.sql.
+ALTER TABLE students ADD COLUMN IF NOT EXISTS is_new_admission BOOLEAN;
+
 CREATE INDEX IF NOT EXISTS idx_students_school_status
   ON public.students (school_id, status);
 

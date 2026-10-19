@@ -10,7 +10,7 @@ import { SendSMSModal } from "@/components/SendSMSModal";
 import StudentDetailPanel from "@/components/students/StudentDetailPanel";
 import { useStudentImport } from "@/components/students/StudentImportModal";
 import StudentPromotionPanel from "@/components/students/StudentPromotionPanel";
-import StudentRegistryPanel from "@/components/students/StudentRegistryPanel";
+import StudentRegistryPanel, { type StudentBulkPatch } from "@/components/students/StudentRegistryPanel";
 import StudentRetentionPanel from "@/components/students/StudentRetentionPanel";
 import StudentTransfersPanel from "@/components/students/StudentTransfersPanel";
 import StudentWorkspaceShell from "@/components/students/StudentWorkspaceShell";
@@ -563,6 +563,24 @@ export default function StudentHubPage() {
     }
   };
 
+  /**
+   * Bulk opt-in from the registry.
+   *
+   * Goes through updateStudent so the write is validated and scoped exactly as
+   * every other pupil edit is -- RLS, the school scope check and the normalised
+   * payload all still apply. Doing one .in() update here instead would quietly
+   * become the only student write in the app that skips them.
+   *
+   * One pupil at a time on purpose: updateStudent returns the updated record and
+   * patches it into local state, so a single bulk statement would leave the list
+   * showing the old answers until the next fetch.
+   */
+  const handleBulkUpdateStudents = async (studentIds: string[], patch: StudentBulkPatch) => {
+    for (const id of studentIds) {
+      await updateStudent(id, patch);
+    }
+  };
+
   const handleDeleteStudent = async () => {
     if (!deleteConfirm.studentId) return;
     try {
@@ -777,6 +795,7 @@ export default function StudentHubPage() {
               setShowEditModal(true);
             }}
             onDeleteStudent={(id) => setDeleteConfirm({ open: true, studentId: id })}
+            onBulkUpdateStudents={handleBulkUpdateStudents}
             canManage={canManageStudents}
           />
 
