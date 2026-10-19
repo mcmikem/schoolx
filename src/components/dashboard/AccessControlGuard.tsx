@@ -210,16 +210,16 @@ export function getPageTitle(pathname: string): string {
   const override = PAGE_TITLE_OVERRIDES[basePathname];
   if (override) return override;
 
-  return pathname
-    .replace("/dashboard/", "")
-    // A record id at the end of the path, with or without a trailing slash.
-    .replace(/\/[0-9a-f-]{8,}(\/.+)?\/?$/, "")
-    .split("/")
-    .filter(Boolean)
-    .map((segment) =>
-      segment.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
-    )
-    .join(" ");
+  return (
+    pathname
+      .replace("/dashboard/", "")
+      // A record id at the end of the path, with or without a trailing slash.
+      .replace(/\/[0-9a-f-]{8,}(\/.+)?\/?$/, "")
+      .split("/")
+      .filter(Boolean)
+      .map((segment) => segment.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()))
+      .join(" ")
+  );
 }
 
 export function useAccessControl() {
@@ -280,7 +280,7 @@ export function useDashboardNotifications() {
   // `students.length`, and the default page of 100 silently under-counted.
   const { students } = useStudents(isDemo ? undefined : school?.id, { limit: 1000 });
   const { classes } = useClasses(isDemo ? undefined : school?.id);
-  const { payments } = useFeePayments(isDemo ? undefined : school?.id);
+  const { payments } = useFeePayments(isDemo ? undefined : school?.id, 1, 50, true);
   const { feeStructure } = useFeeStructure(isDemo ? undefined : school?.id);
 
   const notifications = useMemo(() => {

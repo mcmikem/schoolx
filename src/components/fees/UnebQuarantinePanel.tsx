@@ -22,7 +22,7 @@ export default function UnebQuarantinePanel() {
   const { school } = useAuth();
   const { academicYear } = useAcademic();
   const { feeStructure } = useFeeStructure(school?.id);
-  const { payments } = useFeePayments(school?.id, 1, 5000);
+  const { payments } = useFeePayments(school?.id, 1, 50, true);
   const { remittances, loading, error, addRemittance } = useUnebRemittances(school?.id);
 
   const [formOpen, setFormOpen] = useState(false);

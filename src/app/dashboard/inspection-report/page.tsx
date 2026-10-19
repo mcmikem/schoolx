@@ -75,7 +75,7 @@ function InspectionReportContent() {
   const { students, ready: rosterReady } = useAllStudents(school?.id);
   const { classes = [] } = useClasses(school?.id);
   const { staff = [] } = useStaff(school?.id);
-  const { payments = [] } = useFeePayments(school?.id);
+  const { payments = [] } = useFeePayments(school?.id, 1, 50, true);
   const { feeStructure = [] } = useFeeStructure(school?.id);
   const { stats } = useDashboardStats(school?.id, { term: currentTerm, academicYear });
 

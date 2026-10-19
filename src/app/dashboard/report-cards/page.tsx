@@ -103,7 +103,7 @@ export default function ReportCardsPage() {
   const { classes } = useClasses(school?.id);
   const { subjects } = useSubjects(school?.id);
   const { students: classStudents } = useStudents(school?.id, { limit: 1000 });
-  const { payments } = useFeePayments(school?.id, 1, 5000);
+  const { payments } = useFeePayments(school?.id, 1, 5000, true);
   const { feeStructure } = useFeeStructure(school?.id);
   const { adjustments } = useFeeAdjustments(school?.id);
 

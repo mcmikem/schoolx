@@ -43,7 +43,7 @@ export default function TrendAnalyticsPage() {
   // Counting rows caps the trend at `useStudents`' first page (and at
   // PostgREST's 1000-row ceiling); the roster hook pages the whole school.
   const { students } = useAllStudents(school?.id);
-  const { payments } = useFeePayments(school?.id);
+  const { payments } = useFeePayments(school?.id, 1, 50, true);
   const [historicalData, setHistoricalData] = useState<TrendData[]>([]);
   const [loading, setLoading] = useState(true);
   const [academicYears, setAcademicYears] = useState<string[]>([]);

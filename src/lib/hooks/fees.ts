@@ -137,7 +137,12 @@ export async function findRecentDuplicatePayment(params: {
   }
 }
 
-export function useFeePayments(schoolId?: string, page: number = 1, limit: number = 50) {
+export function useFeePayments(schoolId?: string, page: number = 1, limit?: number, all?: boolean) {
+  // A caller that does not pass a page size is not paginating — it is almost
+  // certainly computing a total, and a total from one 50-row page is wrong. So
+  // an omitted limit means "fetch them all"; an explicit limit keeps paging.
+  const fetchAll = all ?? limit === undefined;
+  const effectiveLimit = limit ?? 50;
   const [payments, setPayments] = useState<FeePayment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -156,7 +161,7 @@ export function useFeePayments(schoolId?: string, page: number = 1, limit: numbe
     prevIsDemo.current = isDemo;
   }, [isDemo]);
 
-  const cacheKey = `fee_payments:${schoolId}:${page}:${limit}`;
+  const cacheKey = `fee_payments:${schoolId}:${page}:${effectiveLimit}:${fetchAll ? "all" : "page"}`;
 
   const fetchPayments = useCallback(async () => {
     setError(null);
@@ -195,22 +200,46 @@ export function useFeePayments(schoolId?: string, page: number = 1, limit: numbe
         setLoading(false);
         return;
       }
-      const data = await withTimeout(
-        fetchFeePaymentsWithFallback({
-          schoolId: querySchoolId,
-          page,
-          limit,
-        }),
-        8000,
-        null,
-      );
-      if (data === null) throw new Error("Loading payments timed out. Please try again.");
-      const result = (data.data as unknown as FeePayment[]) || [];
+      let result: FeePayment[] = [];
+      let count = 0;
+      if (fetchAll) {
+        // Totals must never be computed from a single page. Page through until
+        // every row is in hand; the cap is a runaway guard, not a real limit.
+        const pageSize = Math.max(effectiveLimit, 1000);
+        const MAX_PAGES = 100;
+        let currentPage = 1;
+        while (currentPage <= MAX_PAGES) {
+          const chunk = await withTimeout(
+            fetchFeePaymentsWithFallback({ schoolId: querySchoolId, page: currentPage, limit: pageSize }),
+            8000,
+            null,
+          );
+          if (chunk === null) throw new Error("Loading payments timed out. Please try again.");
+          const rows = (chunk.data as unknown as FeePayment[]) || [];
+          count = chunk.count || rows.length;
+          result = result.concat(rows);
+          if (rows.length < pageSize || result.length >= count) break;
+          currentPage += 1;
+        }
+      } else {
+        const data = await withTimeout(
+          fetchFeePaymentsWithFallback({
+            schoolId: querySchoolId,
+            page,
+            limit: effectiveLimit,
+          }),
+          8000,
+          null,
+        );
+        if (data === null) throw new Error("Loading payments timed out. Please try again.");
+        result = (data.data as unknown as FeePayment[]) || [];
+        count = data.count || 0;
+      }
       setPayments(result);
-      setTotalCount(data.count || 0);
+      setTotalCount(count);
       setCachedData(cacheKey, result);
-      setCachedData(`${cacheKey}:count`, data.count || 0);
-      await offlineDB.cacheFromServer("fee_payments", (data.data as unknown as Record<string, unknown>[]) || []);
+      setCachedData(`${cacheKey}:count`, count);
+      await offlineDB.cacheFromServer("fee_payments", result as unknown as Record<string, unknown>[]);
     } catch (err: unknown) {
       const message =
         err instanceof Error
@@ -222,7 +251,7 @@ export function useFeePayments(schoolId?: string, page: number = 1, limit: numbe
     } finally {
       setLoading(false);
     }
-  }, [schoolId, isDemo, isOnline, cacheKey, page, limit]);
+  }, [schoolId, isDemo, isOnline, cacheKey, page, effectiveLimit, fetchAll]);
 
   const createPayment = async (payment: CreatePaymentInput) => {
     const normalizedPayment = normalizePaymentInput({
