@@ -798,16 +798,24 @@ export default function FinanceHubPage() {
   const [hideCleared, setHideCleared] = useState(true);
 
   const filteredBalances = useMemo(() => {
+    // Searching for a pupil must never be defeated by the "hide cleared"
+    // toggle. That toggle defaults on because triaging who owes money is the
+    // job -- but it meant a name could match and then be filtered straight out
+    // again, so a search for "mbab" reported "3 of 263 pupils" when it matched
+    // four, and the missing child looked absent from the school rather than
+    // paid. Asking for someone by name means wanting them either way.
+    const query = searchTerm.trim().toLowerCase();
+    const hasSearch = query.length > 0;
+
     return studentBalances
       .filter((s) => {
         const matchesSearch =
-          s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          s.student_number.toLowerCase().includes(searchTerm.toLowerCase());
+          !hasSearch || s.name.toLowerCase().includes(query) || s.student_number.toLowerCase().includes(query);
         const matchesClass = selectedClass === "all" || s.class_id === selectedClass;
         const matchesStatus = statusFilter === "all" || s.status === statusFilter;
         const band = bandFilter ? TRIAGE_BANDS.find((b) => b.id === bandFilter) : null;
         const matchesBand = !band || (s.balance >= band.min && s.balance < band.max);
-        const matchesOwing = !hideCleared || s.balance > 0;
+        const matchesOwing = !hideCleared || s.balance > 0 || hasSearch;
         return matchesSearch && matchesClass && matchesStatus && matchesBand && matchesOwing;
       })
       .sort((a, b) => b.balance - a.balance);
