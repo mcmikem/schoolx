@@ -319,6 +319,8 @@ CREATE TABLE IF NOT EXISTS fee_structure (
     term INTEGER CHECK (term IN (1, 2, 3)) NOT NULL,
     academic_year TEXT NOT NULL,
     due_date DATE,
+    category TEXT DEFAULT 'tuition',
+    boarding_status TEXT CHECK (boarding_status IS NULL OR boarding_status IN ('day', 'boarding')),
     deleted_at TIMESTAMPTZ,
     deleted_by UUID REFERENCES users(id),
     created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -751,15 +753,153 @@ CREATE TABLE IF NOT EXISTS fee_adjustments (
     student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
     amount NUMERIC(12,2) NOT NULL,
     adjustment_type TEXT CHECK (adjustment_type IN ('discount', 'scholarship', 'penalty', 'manual_credit', 'write_off', 'bursary', 'amnesty')) NOT NULL,
+    fee_id UUID REFERENCES fee_structure(id) ON DELETE SET NULL,
     notes TEXT,
     recorded_by UUID REFERENCES users(id),
+    deleted_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_fee_adjustments_student ON fee_adjustments(student_id);
 CREATE INDEX IF NOT EXISTS idx_fee_adjustments_type ON fee_adjustments(adjustment_type);
+CREATE INDEX IF NOT EXISTS idx_fee_adjustments_fee_id ON fee_adjustments(fee_id);
 ALTER TABLE fee_adjustments ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "School users fee_adjustments all" ON fee_adjustments;
 CREATE POLICY "School users fee_adjustments all" ON fee_adjustments FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+
+-- ============================================
+-- 26b. BURSAR FINANCE: OTHER INCOME, BURSARIES, UNEB, REQUIREMENTS, CLEARANCE
+-- ============================================
+-- These tables arrived in the bursar finance upgrade (20261114000000) but were
+-- never back-filled into this file, so a schema.sql-built database drifted from
+-- a migrated one. Kept identical to the migration.
+
+-- Money in that is not school fees: capitation, grants, donations, farm, rent.
+CREATE TABLE IF NOT EXISTS other_income (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    source TEXT NOT NULL,
+    category TEXT NOT NULL DEFAULT 'other' CHECK (category IN ('capitation', 'grant', 'sfg', 'donation', 'alumni', 'farm', 'rent', 'uniform_sales', 'tuck_shop', 'other')),
+    amount NUMERIC(12,2) NOT NULL CHECK (amount <> 0),
+    received_on DATE NOT NULL DEFAULT CURRENT_DATE,
+    term INTEGER CHECK (term BETWEEN 1 AND 3),
+    academic_year TEXT,
+    reference TEXT,
+    notes TEXT,
+    received_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    deleted_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_other_income_school_date ON other_income(school_id, received_on DESC) WHERE deleted_at IS NULL;
+ALTER TABLE other_income ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users other_income all" ON other_income;
+CREATE POLICY "School users other_income all" ON other_income FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+
+-- A bursary says who funded it and what it covers, unlike a bare adjustment row.
+CREATE TABLE IF NOT EXISTS bursaries (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    sponsor TEXT,
+    amount NUMERIC(12,2) NOT NULL CHECK (amount > 0),
+    covers_term INTEGER CHECK (covers_term BETWEEN 1 AND 3),
+    academic_year TEXT,
+    is_conditional BOOLEAN NOT NULL DEFAULT false,
+    conditions TEXT,
+    status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'completed', 'withdrawn')),
+    awarded_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    deleted_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_bursaries_student ON bursaries(school_id, student_id) WHERE deleted_at IS NULL;
+ALTER TABLE bursaries ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users bursaries all" ON bursaries;
+CREATE POLICY "School users bursaries all" ON bursaries FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+
+-- UNEB registration money is a liability held for UNEB, never school income.
+CREATE TABLE IF NOT EXISTS uneb_remittances (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    academic_year TEXT NOT NULL,
+    level TEXT NOT NULL,
+    invoice_number TEXT,
+    amount_invoiced NUMERIC(12,2) NOT NULL DEFAULT 0,
+    amount_collected NUMERIC(12,2) NOT NULL DEFAULT 0,
+    amount_remitted NUMERIC(12,2) NOT NULL DEFAULT 0,
+    remitted_on DATE,
+    bank_reference TEXT,
+    status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'part_remitted', 'remitted', 'closed')),
+    notes TEXT,
+    recorded_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+ALTER TABLE uneb_remittances ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users uneb_remittances all" ON uneb_remittances;
+CREATE POLICY "School users uneb_remittances all" ON uneb_remittances FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+
+-- The second bill: levies published per class/term in the end-of-term circular.
+CREATE TABLE IF NOT EXISTS requirement_items (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    class_id UUID REFERENCES classes(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    description TEXT,
+    is_mandatory BOOLEAN NOT NULL DEFAULT true,
+    is_monetary BOOLEAN NOT NULL DEFAULT false,
+    amount NUMERIC(12,2) CHECK (amount IS NULL OR amount >= 0),
+    unit TEXT,
+    supplied_by_school BOOLEAN NOT NULL DEFAULT false,
+    term INTEGER CHECK (term BETWEEN 1 AND 3),
+    academic_year TEXT,
+    display_order INTEGER NOT NULL DEFAULT 0,
+    deleted_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_requirement_items_lookup ON requirement_items(school_id, academic_year, term) WHERE deleted_at IS NULL;
+ALTER TABLE requirement_items ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users requirement_items all" ON requirement_items;
+CREATE POLICY "School users requirement_items all" ON requirement_items FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+
+-- Per-pupil compliance board for those requirements.
+CREATE TABLE IF NOT EXISTS student_requirements (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    requirement_id UUID NOT NULL REFERENCES requirement_items(id) ON DELETE CASCADE,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'brought', 'paid', 'waived')),
+    amount_paid NUMERIC(12,2) NOT NULL DEFAULT 0,
+    fulfilled_on DATE,
+    verified_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    notes TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (student_id, requirement_id)
+);
+CREATE INDEX IF NOT EXISTS idx_student_requirements_student ON student_requirements(school_id, student_id);
+ALTER TABLE student_requirements ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users student_requirements all" ON student_requirements;
+CREATE POLICY "School users student_requirements all" ON student_requirements FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
+
+-- Drives report-card/transcript release and the defaulter list. Never an exam gate.
+CREATE TABLE IF NOT EXISTS clearance_records (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    school_id UUID NOT NULL REFERENCES schools(id) ON DELETE CASCADE,
+    student_id UUID NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    academic_year TEXT NOT NULL,
+    term INTEGER NOT NULL CHECK (term BETWEEN 1 AND 3),
+    fees_cleared BOOLEAN NOT NULL DEFAULT false,
+    requirements_cleared BOOLEAN NOT NULL DEFAULT false,
+    balance_at_clearance NUMERIC(12,2) NOT NULL DEFAULT 0,
+    is_cleared BOOLEAN NOT NULL DEFAULT false,
+    cleared_on DATE,
+    cleared_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    notes TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (student_id, academic_year, term)
+);
+CREATE INDEX IF NOT EXISTS idx_clearance_school_term ON clearance_records(school_id, academic_year, term);
+ALTER TABLE clearance_records ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "School users clearance_records all" ON clearance_records;
+CREATE POLICY "School users clearance_records all" ON clearance_records FOR ALL TO authenticated USING (school_id = my_school_id()) WITH CHECK (school_id = my_school_id());
 
 -- ============================================
 -- 27. FEE TERMS
