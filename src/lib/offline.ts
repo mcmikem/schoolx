@@ -306,20 +306,31 @@ class OfflineDB {
       const store = transaction.objectStore(table);
       const syncStore = transaction.objectStore("sync_queue");
 
-      store.delete(id);
+      // Capture the record's updated_at BEFORE deleting it locally so the sync
+      // step can detect a delete that races a newer edit from another device.
+      // Without it a queued delete silently destroys the other device's change.
+      const getRequest = store.get(id);
 
-      try {
-        syncStore.add({
-          table,
-          data: { id },
-          action: "delete",
-          timestamp: Date.now(),
-          synced: false,
-          attempts: 0,
-        });
-      } catch (queueErr) {
-        logger.warn("Failed to enqueue offline delete for sync", { table, queueErr });
-      }
+      getRequest.onsuccess = () => {
+        const localUpdatedAt = (getRequest.result as Record<string, unknown> | undefined)?.updated_at as
+          | string
+          | undefined;
+
+        store.delete(id);
+
+        try {
+          syncStore.add({
+            table,
+            data: { id, ...(localUpdatedAt ? { updated_at: localUpdatedAt } : {}) },
+            action: "delete",
+            timestamp: Date.now(),
+            synced: false,
+            attempts: 0,
+          });
+        } catch (queueErr) {
+          logger.warn("Failed to enqueue offline delete for sync", { table, queueErr });
+        }
+      };
 
       transaction.oncomplete = () => {
         this.queueSync().catch(() => {});
@@ -601,7 +612,6 @@ class OfflineDB {
       if (
         rowId &&
         localUpdatedAt &&
-        item.action !== "delete" &&
         item.table !== "attendance" &&
         item.table !== "grades" &&
         item.table !== "canteen_sales"
@@ -711,7 +721,10 @@ class OfflineDB {
         await this.markConflicted(itemId, result.reason || "server copy is newer");
         errors.push(
           `Conflict on ${item.table} (id: ${item.data?.id}): the server has a newer version. ` +
-            `Your offline change was kept locally and NOT overwritten — review it in Sync Center before deciding.`,
+            (item.action === "delete"
+              ? `Your offline delete was NOT applied because another device changed the record afterwards. ` +
+                `Review it in Sync Center before deciding.`
+              : `Your offline change was kept locally and NOT overwritten — review it in Sync Center before deciding.`),
         );
       } else {
         await this.incrementAttempts(itemId);
