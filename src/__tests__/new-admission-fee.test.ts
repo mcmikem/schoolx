@@ -16,54 +16,64 @@
  * them. See supabase/migrations/20261127000000_student_new_admission.sql.
  */
 
-import { isChargedRegistration, isRegistrationFee } from "@/lib/registration-fee";
+import { isChargedNewAdmission, isNewAdmissionFee } from "@/lib/new-admission-fee";
 import { feeAppliesToStudent } from "@/lib/operations";
 import { normalizeStudentUpdateInput } from "@/lib/validation";
 
-describe("isRegistrationFee", () => {
+describe("isNewAdmissionFee", () => {
   it("matches on the live fee that exists today", () => {
     // Live data: name "Registration", category "registration", 20,000.
-    expect(isRegistrationFee({ name: "Registration", category: "registration" })).toBe(true);
+    expect(isNewAdmissionFee({ name: "Registration", category: "registration" })).toBe(true);
   });
 
   it("matches either capitalisation, because schools record both", () => {
-    expect(isRegistrationFee({ name: "registration", category: "Registration" })).toBe(true);
-    expect(isRegistrationFee({ name: "REGISTRATION", category: "Registration" })).toBe(true);
+    expect(isNewAdmissionFee({ name: "registration", category: "Registration" })).toBe(true);
+    expect(isNewAdmissionFee({ name: "REGISTRATION", category: "Registration" })).toBe(true);
   });
 
   it("matches the words a school actually uses for it", () => {
     for (const name of ["Registration", "Registration Fee", "Admission", "Admission Fee", "Enrolment", "Joining Fee"]) {
-      expect(isRegistrationFee({ name, category: null })).toBe(true);
+      expect(isNewAdmissionFee({ name, category: null })).toBe(true);
     }
   });
 
+  it("treats uniform as a joining charge too", () => {
+    // A school whose current pupils already own their uniform is owed nothing
+    // for it. Live Kikunyu data: name "Uniform", category "uniform", 135,000,
+    // school-wide and one_off -- which was being demanded of every pupil on the
+    // roll on top of their tuition.
+    expect(isNewAdmissionFee({ name: "Uniform", category: "uniform" })).toBe(true);
+    expect(isNewAdmissionFee({ name: "School Uniform", category: null })).toBe(true);
+    expect(isNewAdmissionFee({ name: "uniform", category: "Uniform" })).toBe(true);
+  });
+
   it("leaves ordinary recurring fees alone", () => {
-    // Live data carries these categories; none of them is registration.
-    for (const category of ["Tuition", "tuition", "Development", "meals", "uniform", "uneb", "Other"]) {
-      expect(isRegistrationFee({ name: category, category })).toBe(false);
+    // Live data carries these categories; none is owed for joining.
+    for (const category of ["Tuition", "tuition", "Development", "meals", "uneb", "Other"]) {
+      expect(isNewAdmissionFee({ name: category, category })).toBe(false);
     }
   });
 
   it("does not match a null term fee just because it is one-off", () => {
     // Term is not part of the shape passed here, and "Registration" is matched
     // on name alone -- but a fee with no registration word must not be caught.
-    expect(isRegistrationFee({ name: "Term 1 Book", category: null })).toBe(false);
+    expect(isNewAdmissionFee({ name: "Term 1 Book", category: null })).toBe(false);
   });
 });
 
-describe("isChargedRegistration", () => {
+describe("isChargedNewAdmission", () => {
   it("charges only an explicit new admission", () => {
-    expect(isChargedRegistration(true)).toBe(true);
+    expect(isChargedNewAdmission(true)).toBe(true);
   });
 
   it("treats already-on-roll and undecided the same: not charged", () => {
-    expect(isChargedRegistration(false)).toBe(false);
-    expect(isChargedRegistration(null)).toBe(false);
-    expect(isChargedRegistration(undefined)).toBe(false);
+    expect(isChargedNewAdmission(false)).toBe(false);
+    expect(isChargedNewAdmission(null)).toBe(false);
+    expect(isChargedNewAdmission(undefined)).toBe(false);
   });
 });
 
-describe("feeAppliesToStudent with a registration fee", () => {
+describe("feeAppliesToStudent with an entry fee", () => {
   // class_id is optional and not nullable, so these omit it: a school-wide fee
   // has no class on it.
   const registration = { boarding_status: null, name: "Registration", category: "registration" };
@@ -84,6 +94,14 @@ describe("feeAppliesToStudent with a registration fee", () => {
     expect(feeAppliesToStudent(registration, pupil)).toBe(false);
   });
 
+  it("does not demand a uniform from a pupil who already owns one", () => {
+    // The exact shape that produced the reported 135,000 balance.
+    const uniform = { boarding_status: null, name: "Uniform", category: "uniform" };
+    expect(feeAppliesToStudent(uniform, { ...pupil, is_new_admission: true })).toBe(true);
+    expect(feeAppliesToStudent(uniform, { ...pupil, is_new_admission: false })).toBe(false);
+    expect(feeAppliesToStudent(uniform, { ...pupil, is_new_admission: null })).toBe(false);
+  });
+
   it("leaves tuition alone for every pupil", () => {
     const tuition = { boarding_status: null, name: "Tuition", category: "Tuition" };
     for (const is_new_admission of [true, false, null]) {
@@ -96,9 +114,7 @@ describe("feeAppliesToStudent with a registration fee", () => {
     // New admission does not buy a meal, and eating does not earn registration.
     expect(feeAppliesToStudent(meals, { ...pupil, is_new_admission: true })).toBe(false);
     expect(feeAppliesToStudent(registration, { ...pupil, takes_meals: true })).toBe(false);
-    expect(
-      feeAppliesToStudent(registration, { ...pupil, takes_meals: true, is_new_admission: true }),
-    ).toBe(true);
+    expect(feeAppliesToStudent(registration, { ...pupil, takes_meals: true, is_new_admission: true })).toBe(true);
   });
 });
 

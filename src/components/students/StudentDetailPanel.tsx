@@ -59,6 +59,7 @@ interface StudentDetailData {
   blood_type?: string | null;
   boarding_status?: string | null;
   takes_meals?: boolean | null;
+  is_new_admission?: boolean | null;
   house_id?: string | null;
   previous_school?: string | null;
   district_origin?: string | null;
@@ -92,6 +93,54 @@ interface StudentDetailPanelProps {
   updateStudent?: (id: string, data: any) => Promise<any>;
   student?: StudentDetailData | null;
   minimal?: boolean;
+  /**
+   * The roll, so admission can warn about a pupil who is already here.
+   *
+   * Optional on purpose: the panel is reused by transfers, dropouts and
+   * promotion, which do not hold the list. Where it is absent the check simply
+   * does not run, rather than firing a query per keystroke.
+   */
+  existingStudents?: DuplicateCandidate[];
+}
+
+/** Enough of a pupil to answer "is this person already on the roll?". */
+export interface DuplicateCandidate {
+  id: string;
+  student_number?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  date_of_birth?: string | null;
+}
+
+/**
+ * Pupils who look like the one being typed.
+ *
+ * Name plus date of birth, because a name alone is far too weak: Ugandan
+ * schools routinely have two Peter Okellos in P.3, and flagging those would
+ * train staff to ignore the warning. Where a date of birth has been entered on
+ * both sides it has to agree, which is what separates a genuine duplicate from
+ * a common name.
+ */
+export function findDuplicateCandidates(
+  candidates: DuplicateCandidate[] | undefined,
+  draft: { first_name: string; last_name: string; date_of_birth: string },
+  excludeId?: string,
+): DuplicateCandidate[] {
+  const first = draft.first_name?.trim().toLowerCase();
+  const last = draft.last_name?.trim().toLowerCase();
+  if (!first || !last) return [];
+
+  const dob = draft.date_of_birth?.trim();
+  return (candidates ?? []).filter((c) => {
+    if (c.id === excludeId) return false;
+    if ((c.first_name ?? "").trim().toLowerCase() !== first) return false;
+    if ((c.last_name ?? "").trim().toLowerCase() !== last) return false;
+    // Only compare dates when both sides have one; a blank field is not a
+    // mismatch, it is an absence of evidence.
+    const theirs = (c.date_of_birth ?? "").trim();
+    if (dob && theirs) return dob === theirs;
+    return true;
+  });
 }
 
 type EditForm = {
@@ -109,6 +158,8 @@ type EditForm = {
   boarding_status: "day" | "boarding" | "weekly";
   /** Meal opt-in. "" = not yet decided. */
   takes_meals: "" | "yes" | "no";
+  /** New admission. "" = not yet decided. Drives admission fee + uniform. */
+  is_new_admission: "" | "yes" | "no";
   house_id: string;
   previous_school: string;
   district_origin: string;
@@ -143,6 +194,8 @@ type NewStudent = {
   boarding_status: "day" | "boarding" | "weekly";
   /** Meal opt-in. "" = not yet decided. */
   takes_meals: "" | "yes" | "no";
+  /** New admission. "" = not yet decided. Drives admission fee + uniform. */
+  is_new_admission: "" | "yes" | "no";
   house_id: string;
   previous_school: string;
   district_origin: string;
@@ -172,6 +225,7 @@ const INITIAL_NEW_STUDENT: NewStudent = {
   opening_balance: "0",
   boarding_status: "day",
   takes_meals: "",
+  is_new_admission: "",
   house_id: "",
   previous_school: "",
   district_origin: "",
@@ -215,10 +269,13 @@ export default function StudentDetailPanel({
   updateStudent,
   student,
   minimal = false,
+  existingStudents,
 }: StudentDetailPanelProps) {
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [houses, setHouses] = useState<{ id: string; name: string }[]>([]);
+  // Set once the bursar has seen the warning and chosen to go ahead anyway.
+  const [duplicateAcknowledged, setDuplicateAcknowledged] = useState(false);
   const addStudentFirstInputRef = useRef<HTMLInputElement>(null);
   const addStudentModalRef = useRef<HTMLDivElement>(null);
   const modalTitleId = "student-detail-form-title";
@@ -241,6 +298,7 @@ export default function StudentDetailPanel({
     opening_balance: "0",
     boarding_status: "day",
     takes_meals: "",
+    is_new_admission: "",
     house_id: "",
     previous_school: "",
     district_origin: "",
@@ -329,6 +387,8 @@ export default function StudentDetailPanel({
         opening_balance: student.opening_balance?.toString() || "0",
         boarding_status: (student.boarding_status || "day") as "day" | "boarding" | "weekly",
         takes_meals: student.takes_meals === true ? "yes" : student.takes_meals === false ? "no" : "",
+        is_new_admission:
+          student.is_new_admission === true ? "yes" : student.is_new_admission === false ? "no" : "",
         house_id: student.house_id || "",
         previous_school: student.previous_school || "",
         district_origin: student.district_origin || "",
@@ -433,6 +493,10 @@ export default function StudentDetailPanel({
       toast.error("Your session is still loading. Please try again in a moment.");
       return;
     }
+    if (duplicateWarningOpen) {
+      toast.error("This looks like a pupil already on the roll. Confirm before adding.");
+      return;
+    }
     if (!newStudent.first_name?.trim()) {
       toast.error("First name is required");
       return;
@@ -491,6 +555,10 @@ export default function StudentDetailPanel({
         blood_type: newStudent.blood_type || undefined,
         status: "active",
         nin: newStudent.nin?.trim() || undefined,
+        // Both opt-ins. The create path was sending neither, so the answers on
+        // this form were read and then dropped before the insert.
+        takes_meals: newStudent.takes_meals === "" ? null : newStudent.takes_meals === "yes",
+        is_new_admission: newStudent.is_new_admission === "" ? null : newStudent.is_new_admission === "yes",
       });
       toast.success("Student added successfully");
       onClose();
@@ -522,6 +590,7 @@ export default function StudentDetailPanel({
         blood_type: editForm.blood_type || null,
         boarding_status: editForm.boarding_status,
         takes_meals: editForm.takes_meals === "" ? null : editForm.takes_meals === "yes",
+        is_new_admission: editForm.is_new_admission === "" ? null : editForm.is_new_admission === "yes",
         house_id: editForm.house_id || null,
         previous_school: editForm.previous_school || null,
         district_origin: editForm.district_origin || null,
@@ -547,6 +616,28 @@ export default function StudentDetailPanel({
 
   const isEdit = mode === "edit";
   const formData: Record<string, any> = isEdit ? editForm : newStudent;
+
+  // Always computed, so the submit handler can refuse an unconfirmed match.
+  // The acknowledgement only controls what is *shown*: once given it has to
+  // survive further typing, or the warning would reappear on every keystroke.
+  const duplicateCandidates = useMemo(
+    () =>
+      isEdit
+        ? []
+        : findDuplicateCandidates(existingStudents, {
+            first_name: String(formData.first_name || ""),
+            last_name: String(formData.last_name || ""),
+            date_of_birth: String(formData.date_of_birth || ""),
+          }),
+    [
+      isEdit,
+      existingStudents,
+      formData.first_name,
+      formData.last_name,
+      formData.date_of_birth,
+    ],
+  );
+  const duplicateWarningOpen = duplicateCandidates.length > 0 && !duplicateAcknowledged;
   const handleFormChange = (updates: Record<string, any>) =>
     isEdit ? setEditForm((p) => ({ ...p, ...updates })) : handleNewStudentChange(updates);
 
@@ -694,6 +785,50 @@ export default function StudentDetailPanel({
               title="Student basics"
               description="These are the minimum details needed to place the learner in the registry."
             >
+              {duplicateWarningOpen && (
+                <div
+                  className="mb-4"
+                  role="alert"
+                  style={{
+                    border: "1px solid var(--amber)",
+                    background: "var(--amber-soft)",
+                    borderRadius: 10,
+                    padding: "12px 14px",
+                  }}
+                >
+                  <div
+                    className="flex items-start gap-2"
+                    style={{ fontSize: 12, fontWeight: 700, color: "var(--t1)" }}
+                  >
+                    <MaterialIcon style={{ fontSize: 18, color: "var(--amber)" }}>warning</MaterialIcon>
+                    <span>
+                      {duplicateCandidates.length === 1
+                        ? "This looks like a pupil already on the roll"
+                        : `This looks like ${duplicateCandidates.length} pupils already on the roll`}
+                    </span>
+                  </div>
+                  <ul style={{ margin: "8px 0 0", paddingLeft: 18, fontSize: 12, color: "var(--t2)" }}>
+                    {duplicateCandidates.slice(0, 4).map((c) => (
+                      <li key={c.id}>
+                        {c.student_number || "—"} · {c.first_name} {c.last_name}
+                        {c.date_of_birth ? ` · born ${c.date_of_birth}` : ""}
+                      </li>
+                    ))}
+                    {duplicateCandidates.length > 4 && (
+                      <li>…and {duplicateCandidates.length - 4} more</li>
+                    )}
+                  </ul>
+                  <div className="flex gap-2 mt-3">
+                    <button
+                      type="button"
+                      onClick={() => setDuplicateAcknowledged(true)}
+                      className="btn btn-secondary btn-sm"
+                    >
+                      Add anyway
+                    </button>
+                  </div>
+                </div>
+              )}
               <ResponsiveFieldGrid className="mb-4">
                 <div>
                   <label
@@ -1246,6 +1381,36 @@ export default function StudentDetailPanel({
                       <option value="">Not decided yet</option>
                       <option value="yes">Takes school meals</option>
                       <option value="no">Goes home to eat</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="is-new-admission"
+                      style={{
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: "var(--t3)",
+                        marginBottom: 6,
+                        display: "block",
+                      }}
+                    >
+                      New Admission
+                      <FieldHint tip="Set to Yes only for a pupil joining for the first time. That is what charges the admission/registration fee and the uniform. A pupil already on roll already owns their uniform, so charging them again puts money on a bill that cannot be collected." />
+                    </label>
+                    <select
+                      id="is-new-admission"
+                      name="is_new_admission"
+                      value={formData.is_new_admission}
+                      onChange={(e) =>
+                        handleFormChange({
+                          is_new_admission: e.target.value as "" | "yes" | "no",
+                        })
+                      }
+                      className="input"
+                    >
+                      <option value="">Not decided yet</option>
+                      <option value="yes">Just joined — charge admission + uniform</option>
+                      <option value="no">Already on roll — no admission fee</option>
                     </select>
                   </div>
                   <div>

@@ -6,7 +6,8 @@ import { EmptyState } from "@/components/EmptyState";
 import type { FeeOption } from "@/components/fees/FeePicker";
 import { pickDefaultFee } from "@/lib/fee-default";
 import { isMealFee } from "@/lib/meal-fee";
-import { isRegistrationFee } from "@/lib/registration-fee";
+import { isNewAdmissionFee } from "@/lib/new-admission-fee";
+import { allocateAcrossFees } from "@/lib/fee-allocation";
 import type { FeeFormData } from "@/components/fees/FeeFormModal";
 import FeeStats from "@/components/fees/FeeStats";
 import FeeTable, { StudentBalance } from "@/components/fees/FeeTable";
@@ -174,7 +175,7 @@ export default function FinanceHubPage() {
     return (tuition || mobileFeeOptions[0])?.id || "";
   }, [mobileFeeOptions]);
   const { adjustments, createAdjustment, deleteAdjustment } = useFeeAdjustments(school?.id);
-  const { createPayment, deletePayment } = useFeePayments(school?.id);
+  const { createPayment, deletePayment } = useFeePayments(school?.id, 1, 50);
   const parentNamesByStudent = usePaymentParentNames(school?.id);
   const receiptRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -431,11 +432,11 @@ export default function FinanceHubPage() {
           // school stops billing meals to pupils who do not eat without anyone
           // having to touch a single row first.
           if (isMealFee(f) && takesMeals !== true) return false;
-          // Registration is owed once, on joining. A pupil who is already on
-          // roll has not joined again, so showing the line invites the bursar
-          // to bill a fee that cannot be collected. Only an explicit new
-          // admission sees it.
-          if (isRegistrationFee(f) && isNewAdmission !== true) return false;
+          // Registration and uniform are owed for joining, not for staying. A
+          // pupil already on roll has not joined again and already owns their
+          // uniform, so offering the line invites a bill nobody can collect.
+          // Only an explicit new admission sees it.
+          if (isNewAdmissionFee(f) && isNewAdmission !== true) return false;
           return true;
         })
         .sort((a, b) => {
@@ -679,6 +680,26 @@ export default function FinanceHubPage() {
         arrears: arrearsSplit.arrears,
         currentDue: arrearsSplit.currentDue,
         status: feePosition.status,
+        feeBreakdown: allocateAcrossFees(
+          applicableFees.map((f) => ({
+            id: f.id,
+            name: f.name,
+            category: f.category ?? null,
+            term: f.term ?? null,
+            amount: Number(f.amount || 0),
+          })),
+          studentPayments.map((p) => ({
+            id: p.id,
+            amount_paid: Number(p.amount_paid || 0),
+            fee_id: p.fee_id ?? null,
+          })),
+          studentAdjustments.map((a) => ({
+            id: a.id,
+            adjustment_type: a.adjustment_type,
+            amount: Number(a.amount || 0),
+            fee_id: a.fee_id ?? null,
+          })),
+        ),
         payments: studentPayments.map((p) => ({
           id: p.id,
           amount: Number(p.amount_paid),

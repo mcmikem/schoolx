@@ -212,6 +212,11 @@ describe("Validation - Student Input", () => {
         nin: null,
         uneab_number: null,
         status: "active",
+        // Same story as nin and uneab_number: both opt-ins were missing from the
+        // return object, so the admission form's answers were read, validated
+        // and dropped an instant before the insert.
+        takes_meals: null,
+        is_new_admission: null,
       });
     });
   });

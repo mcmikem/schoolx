@@ -1,6 +1,6 @@
 import type { Student, Class, User, Attendance, SMSTrigger, FeeStructure } from "@/types";
 import { isChargedMeals, isMealFee } from "./meal-fee";
-import { isChargedRegistration, isRegistrationFee } from "./registration-fee";
+import { isChargedNewAdmission, isNewAdmissionFee } from "./new-admission-fee";
 import { getLocalDateString } from "@/lib/hooks/utils";
 
 export type FinancialAdjustmentType =
@@ -244,10 +244,8 @@ export function recommendBulkPromotion(candidates: PromotionCandidate[]): Promot
  * passing a narrowed row are unaffected.
  */
 export function feeAppliesToStudent(
-  fee: Pick<FeeStructure, "class_id" | "boarding_status"> &
-    Partial<Pick<FeeStructure, "name" | "category">>,
-  student: Pick<Student, "class_id" | "boarding_status"> &
-    Partial<Pick<Student, "takes_meals" | "is_new_admission">>,
+  fee: Pick<FeeStructure, "class_id" | "boarding_status"> & Partial<Pick<FeeStructure, "name" | "category">>,
+  student: Pick<Student, "class_id" | "boarding_status"> & Partial<Pick<Student, "takes_meals" | "is_new_admission">>,
 ): boolean {
   if (fee.class_id && fee.class_id !== student.class_id) return false;
   if (fee.boarding_status && fee.boarding_status !== (student.boarding_status || "day")) return false;
@@ -261,14 +259,14 @@ export function feeAppliesToStudent(
   // billing every existing pupil for meals.
   if (isMealFee(fee) && !isChargedMeals(student.takes_meals)) return false;
 
-  // Registration is owed once, on joining. A pupil already on roll has not
-  // joined again, so the fee would sit on their bill as money owed that cannot
-  // be collected.
+  // Registration and uniform are owed for joining, not for staying. A pupil
+  // already on roll has not joined again and already owns their uniform, so
+  // either fee sits on their bill as money owed that cannot be collected.
   //
   // Only an explicit new admission is charged, for the same reason meals are:
   // false and null both mean "not owed", so the column can land without billing
   // the whole school a fee it only ever charges at the door.
-  if (isRegistrationFee(fee) && !isChargedRegistration(student.is_new_admission)) return false;
+  if (isNewAdmissionFee(fee) && !isChargedNewAdmission(student.is_new_admission)) return false;
 
   return true;
 }

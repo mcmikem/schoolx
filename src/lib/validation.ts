@@ -242,9 +242,7 @@ export function normalizePaymentInput(input: Record<string, unknown>): Record<st
     // was tuition. Returned as a real UUID or undefined -- never "" -- because
     // "" is a value and undefined is the absence of one, and only the latter
     // leaves the column null.
-    ...(typeof input.fee_id === "string" && input.fee_id.trim()
-      ? { fee_id: input.fee_id.trim() }
-      : {}),
+    ...(typeof input.fee_id === "string" && input.fee_id.trim() ? { fee_id: input.fee_id.trim() } : {}),
     // Transient intent flag for /api/fee-payments/ (no such DB column —
     // callers building direct inserts must strip it before writing).
     ...(input.allow_overpayment === true || input.allow_overpayment === "true" ? { allow_overpayment: true } : {}),
@@ -307,6 +305,18 @@ export function normalizeStudentInput(input: Record<string, any>): Record<string
     // Supplied rather than left to the column default so a caller asking for a
     // specific status gets it instead of silently receiving 'active'.
     status: input.status || "active",
+    // Same two opt-ins the update path was missing. Without them the admission
+    // form's answers were read, validated and then dropped an instant before the
+    // insert, which is how a pupil ends up on the roll uncharged and nobody
+    // finds out. Guarded on !== undefined and coerced with === true rather than
+    // || null, which would quietly turn "goes home" into "undecided".
+    takes_meals: input.takes_meals === undefined ? null : input.takes_meals === "" ? null : input.takes_meals === true,
+    is_new_admission:
+      input.is_new_admission === undefined
+        ? null
+        : input.is_new_admission === ""
+          ? null
+          : input.is_new_admission === true,
   };
 }
 
@@ -352,8 +362,7 @@ export function validatePaymentInput(input: Record<string, any>, options: { toda
   // Every payment names a fee. The column is nullable and older rows have no
   // fee set, but new payments have to: a payment that settles "the bill" cannot
   // be traced to what it paid for, which is the reason this field exists.
-  if (!input.fee_id || String(input.fee_id).trim() === "")
-    errors.push("Choose which fee this payment is for");
+  if (!input.fee_id || String(input.fee_id).trim() === "") errors.push("Choose which fee this payment is for");
   return errors;
 }
 

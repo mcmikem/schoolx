@@ -3,6 +3,7 @@ import { useState, useMemo, Fragment } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 import { RollCallPhoto } from "@/components/attendance/RollCallPhoto";
 import { formatCurrency } from "@/lib/currency";
+import type { AllocatedFee } from "@/lib/fee-allocation";
 
 export interface StudentBalance {
   id: string;
@@ -19,6 +20,14 @@ export interface StudentBalance {
   /** Portion of the balance attributable to the current term. */
   currentDue?: number;
   status?: "paid" | "partial" | "unpaid" | "written_off";
+  /**
+   * What each fee line still owes, and how far through it the pupil is.
+   *
+   * Without this the screen can only say "135,000 owing", which tells a bursar
+   * nothing about whether the tuition is cleared and the uniform is not -- the
+   * question they are actually being asked when they call about a balance.
+   */
+  feeBreakdown?: AllocatedFee[];
   payments: Array<{
     id: string;
     amount: number;
@@ -40,6 +49,87 @@ export interface StudentBalance {
 
 type SortKey = "name" | "balance" | "class_name";
 type SortDir = "asc" | "desc";
+
+/**
+ * What each fee line owes, and how far through it the pupil is.
+ *
+ * Sits under the overall bar rather than replacing it: the bar answers "how far
+ * through the bill", this answers "which fee", which is the question behind
+ * every "why do I owe this?" a bursar gets.
+ *
+ * Settled lines are kept, muted, rather than hidden. Hiding them loses the
+ * information that the tuition was paid at all -- which is exactly the confusion
+ * this exists to remove.
+ */
+function FeeBreakdownLines({ fees }: { fees: AllocatedFee[] }) {
+  if (!fees || fees.length === 0) return null;
+  // A single line adds nothing under the overall bar that repeats it.
+  if (fees.length === 1) return null;
+
+  const shortFormat = (n: number) => {
+    if (n >= 1000000) return `${(n / 1000000).toFixed(1)}M`;
+    if (n >= 1000) return `${(n / 1000).toFixed(0)}K`;
+    return String(n);
+  };
+
+  // A school sets Term 1, Term 2 and Term 3 lines all named "Tuition", and the
+  // balance deliberately totals across terms rather than hiding charges. Left
+  // alone that renders as "Tuition" three times over, which reads as a bug.
+  // Where a name repeats, the term is what tells them apart.
+  const nameCounts = new Map<string, number>();
+  for (const fee of fees) nameCounts.set(fee.name, (nameCounts.get(fee.name) ?? 0) + 1);
+
+  const MAX_LINES = 6;
+  const visible = fees.slice(0, MAX_LINES);
+  const hidden = fees.length - visible.length;
+
+  return (
+    <div className="mt-2.5 space-y-1.5" aria-label="Fee breakdown">
+      {visible.map((fee) => {
+        const settled = fee.status === "paid";
+        return (
+          <div key={fee.id ?? fee.name} className="text-[11px] leading-tight">
+            <div className="flex items-baseline justify-between gap-2">
+              <span
+                className="truncate"
+                style={{ color: settled ? "var(--t3)" : "var(--t2)", opacity: settled ? 0.75 : 1 }}
+              >
+                {fee.name}
+                {(nameCounts.get(fee.name) ?? 0) > 1 && fee.term != null && (
+                  <span style={{ color: "var(--t3)" }}> · T{fee.term}</span>
+                )}
+              </span>
+              <span className="tabular-nums whitespace-nowrap" style={{ color: "var(--t3)" }}>
+                {settled ? (
+                  <span className="inline-flex items-center gap-1">
+                    <MaterialIcon style={{ fontSize: 12 }}>check_circle</MaterialIcon>
+                    {shortFormat(fee.amount)}
+                  </span>
+                ) : (
+                  <span style={{ color: "var(--red)", fontWeight: 600 }}>{shortFormat(fee.remaining)} left</span>
+                )}
+              </span>
+            </div>
+            <div className="mt-1 h-1 rounded-full overflow-hidden" style={{ background: "var(--border)" }}>
+              <div
+                className="h-full rounded-full transition-all duration-500"
+                style={{
+                  width: `${fee.progress}%`,
+                  background: settled ? "var(--green)" : fee.progress >= 50 ? "var(--amber)" : "var(--red)",
+                }}
+              />
+            </div>
+          </div>
+        );
+      })}
+      {hidden > 0 && (
+        <div className="text-[11px]" style={{ color: "var(--t3)" }}>
+          +{hidden} more fee{hidden === 1 ? "" : "s"}
+        </div>
+      )}
+    </div>
+  );
+}
 
 interface EnhancedFeeTableProps {
   balances: StudentBalance[];
@@ -372,8 +462,9 @@ export default function FeeTable({
                         </div>
                       </td>
                       <td className="px-6 py-4 text-sm text-[var(--t2)] whitespace-nowrap">{student.class_name}</td>
-                      <td className="px-6 py-4 min-w-[180px]">
+                      <td className="px-6 py-4 min-w-[180px] max-w-[260px]">
                         <FeeProgressBar percentage={percentage} amount={paid} total={total} />
+                        <FeeBreakdownLines fees={student.feeBreakdown ?? []} />
                       </td>
                       <td className="px-6 py-4 text-sm font-medium text-[var(--t2)] tabular-nums text-right whitespace-nowrap">
                         {formatCurrency(paid)}
@@ -545,6 +636,7 @@ export default function FeeTable({
 
               <div className="mb-4">
                 <FeeProgressBar percentage={percentage} amount={paid} total={total} />
+                <FeeBreakdownLines fees={student.feeBreakdown ?? []} />
               </div>
 
               <div className="flex gap-2">

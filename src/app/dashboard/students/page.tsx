@@ -575,6 +575,25 @@ export default function StudentHubPage() {
    * patches it into local state, so a single bulk statement would leave the list
    * showing the old answers until the next fetch.
    */
+  /**
+   * The roll, in the shape the admission duplicate check reads.
+   *
+   * Only the six fields it needs, and memoised, because the check runs on every
+   * keystroke in the name fields and a fresh array each render would make it
+   * recompute for no reason.
+   */
+  const duplicateSource = useMemo(
+    () =>
+      students.map((s) => ({
+        id: s.id,
+        student_number: s.student_number ?? null,
+        first_name: s.first_name ?? null,
+        last_name: s.last_name ?? null,
+        date_of_birth: s.date_of_birth ?? null,
+      })),
+    [students],
+  );
+
   const handleBulkUpdateStudents = async (studentIds: string[], patch: StudentBulkPatch) => {
     for (const id of studentIds) {
       await updateStudent(id, patch);
@@ -808,6 +827,7 @@ export default function StudentHubPage() {
             isDemo={!!isDemo}
             toast={toast}
             createStudent={createStudent}
+            existingStudents={duplicateSource}
           />
 
           <StudentDetailPanel
