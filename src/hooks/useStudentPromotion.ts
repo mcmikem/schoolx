@@ -125,7 +125,13 @@ export function useStudentPromotion(
     }
     const { data } = await supabase
       .from("student_promotions")
-      .select("*, from_classes(name), to_classes(name), users(full_name)")
+      // The joins are named from_class_id / to_class_id / promoted_by, so
+      // "from_classes" and "to_classes" are not relationships this table has and
+      // PostgREST answered PGRST200. The aliases keep the keys the panel reads.
+      // students has first_name and last_name, not full_name.
+      .select(
+        "*, students!student_id(first_name, last_name), from_classes:classes!from_class_id(name), to_classes:classes!to_class_id(name), users:users!promoted_by(full_name)",
+      )
       .eq("school_id", schoolId)
       .order("promoted_at", { ascending: false })
       .limit(20);

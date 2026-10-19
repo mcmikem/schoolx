@@ -73,7 +73,11 @@ export default function ExamTimetablePage() {
     try {
       const { data, error } = await supabase
         .from("events")
-        .select("*, subjects(name), classes(name), users!events_supervisor_id_fkey(full_name)")
+        // Nothing here is read off the event row: subject, class and supervisor
+        // all come out of the description JSON below. The embeds named relations
+        // events does not have (there is no supervisor_id column at all), so the
+        // query failed with PGRST200 and the whole exam timetable came back empty.
+        .select("*")
         .eq("school_id", school.id)
         .eq("event_type", "exam")
         .order("start_date", { ascending: true });

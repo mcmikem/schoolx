@@ -44,7 +44,7 @@ export default function DormitoryPage() {
       if (!school?.id) return;
       const { data } = await supabase
         .from("students")
-        .select("id, first_name, last_name, admission_number")
+        .select("id, first_name, last_name, student_number")
         .eq("school_id", school.id)
         .order("first_name");
       if (!cancelled) setStudents(data || []);
@@ -363,7 +363,7 @@ export default function DormitoryPage() {
                       {assignableStudents.map((s) => (
                         <option key={s.id} value={s.id}>
                           {s.first_name} {s.last_name}
-                          {s.admission_number ? ` (${s.admission_number})` : ""}
+                          {s.student_number ? ` (${s.student_number})` : ""}
                         </option>
                       ))}
                     </select>
@@ -569,7 +569,7 @@ export default function DormitoryPage() {
                     {students.map((s) => (
                       <option key={s.id} value={s.id}>
                         {s.first_name} {s.last_name}
-                        {s.admission_number ? ` (${s.admission_number})` : ""}
+                        {s.student_number ? ` (${s.student_number})` : ""}
                       </option>
                     ))}
                   </select>

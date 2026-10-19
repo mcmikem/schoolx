@@ -25,6 +25,7 @@
  */
 import { execSync } from "child_process";
 import { readFileSync } from "fs";
+import { createClient } from "@supabase/supabase-js";
 
 const REPO = process.cwd();
 const auth = (extra = {}) => ({
@@ -53,24 +54,66 @@ const files = execSync(`find ${REPO}/src -name '*.ts' -o -name '*.tsx' | grep -v
 
 /* ------------------------------------------------------------------ reads -- */
 
+/**
+ * The select string that follows `.select(` at `i`. A non-greedy regex stops at
+ * the first quote, which truncates every select written across several lines.
+ */
+function selectAfter(text, i) {
+  let j = i;
+  while (j < text.length && /\s/.test(text[j])) j++;
+  const q = text[j];
+  if (q !== '"' && q !== "'" && q !== "`") return null;
+  let out = "";
+  for (let k = j + 1; k < text.length; k++) {
+    const c = text[k];
+    if (c === "\\" && k + 1 < text.length) { out += text[k + 1]; k++; continue; }
+    if (q === "`" && c === "$" && text[k + 1] === "{") {
+      let depth = 1;
+      k += 2;
+      while (k < text.length && depth > 0) {
+        if (text[k] === "{") depth++;
+        else if (text[k] === "}") depth--;
+        if (depth > 0) k++;
+      }
+      out += "";
+      continue;
+    }
+    if (c === q) return out;
+    out += c;
+  }
+  return null;
+}
+
 const pairs = new Map(); // "table|select" -> [files]
 for (const f of files) {
   const text = readFileSync(f, "utf8");
-  const re = /\.from\(\s*["'`](\w+)["'`]\s*\)[\s\S]{0,400}?\.select\(\s*["'`]([^"'`]+)["'`]/g;
-  for (const m of text.matchAll(re)) {
-    const key = `${m[1]}|${m[2]}`;
+  const rel = f.replace(REPO + "/", "");
+  const fromRe = /\.from\(\s*["'`](\w+)["'`]\s*\)/g;
+  for (const fm of text.matchAll(fromRe)) {
+    // Only look as far as the next .from(): a fixed character window pairs a
+    // table with the *next* builder's select and reports columns that the
+    // first query never asked for.
+    const after = text.slice(fm.index + fm[0].length);
+    const stop = after.search(/\.from\(/);
+    const window = stop === -1 ? after.slice(0, 600) : after.slice(0, stop);
+    const at = window.indexOf(".select(");
+    if (at === -1) continue;
+    const sel = selectAfter(window, at + ".select(".length);
+    if (!sel) continue;
+    const key = `${fm[1]}|${sel}`;
     if (!pairs.has(key)) pairs.set(key, new Set());
-    pairs.get(key).add(f.replace(REPO + "/", ""));
+    pairs.get(key).add(rel);
   }
 }
 
-/**
- * postgrest-js tidies the select string before it goes on the wire: runs of
- * whitespace collapse to one space, and a space before "(" is dropped. Replaying
- * the raw source text instead reports every multi-line select and every
- * "students!inner (...)" as PGRST100, and those are all fine in the app.
- */
-const normalise = (s) => s.replace(/\s+/g, " ").replace(/\s+\(/g, "(").trim();
+// Replayed through supabase-js, the same client the app uses. Sending the raw
+// text to PostgREST instead reports things the app never hits: postgrest-js
+// tidies the select before it goes on the wire, and guessing at that tidy-up
+// makes it worse -- dropping the space before "(" fixes "students!inner (...)"
+// but breaks "students:student_id (...)". Ask the client, not the server.
+const client = createClient(SUPA, KEY, {
+  auth: { persistSession: false, autoRefreshToken: false },
+});
 
 console.log(`replaying ${pairs.size} distinct table/select pairs against the live database\n`);
 
@@ -79,13 +122,16 @@ let readOk = 0;
 
 for (const [key, where] of pairs) {
   const [table, select] = key.split("|");
-  const url = `${SUPA}/rest/v1/${table}?select=${encodeURIComponent(normalise(select))}&limit=1`;
   let status = 0;
   let body = "";
   try {
-    const res = await fetch(url, { headers: auth() });
-    status = res.status;
-    body = (await res.text()).slice(0, 220);
+    const { error } = await client.from(table).select(select).limit(1);
+    if (error) {
+      status = 400;
+      body = `${error.code} ${error.message}`;
+    } else {
+      status = 200;
+    }
   } catch (e) {
     status = 0;
     body = String(e).slice(0, 120);

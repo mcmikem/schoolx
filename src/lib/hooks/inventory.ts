@@ -93,10 +93,11 @@ export function useInventory(schoolId?: string) {
       setLoading(true)
       const { data, error } = await supabase
         .from('inventory_transactions')
-        .select(`
-          *,
-          asset:assets(id, name, type, current_stock)
-        `)
+        // assets holds category and quantity; there is no type or current_stock.
+        // Selecting them was rejected with 42703 and the movement history came
+        // back empty. The comment has to stay out of the string below: anything
+        // inside the backticks goes to PostgREST as part of the select.
+        .select(`*, asset:assets(id, name, category, quantity)`)
         .eq('school_id', querySchoolId)
         .order('transaction_date', { ascending: false })
 

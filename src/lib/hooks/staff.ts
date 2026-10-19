@@ -195,7 +195,9 @@ export function useSalaryPayments(schoolId?: string) {
           supabase
             .from("salary_payments")
             .select(
-              "id, school_id, staff_id, month, year, base_paid, allowances_paid, deductions_applied, net_paid, payment_date, payment_status, created_at, staff:users(id, full_name)",
+              // staff_id and processed_by both point at users, so PostgREST
+              // cannot pick one and answers PGRST201. Name the constraint.
+              "id, school_id, staff_id, month, year, base_paid, allowances_paid, deductions_applied, net_paid, payment_date, payment_status, created_at, staff:users!salary_payments_staff_id_fkey(id, full_name)",
             )
             .eq("school_id", querySchoolId)
             .order("payment_date", { ascending: false }),
@@ -264,7 +266,8 @@ export function useStaffReviews(schoolId?: string, staffId?: string) {
         let query = supabase
           .from("staff_reviews")
           .select(
-            "id, school_id, staff_id, reviewer_id, review_date, rating, strengths, areas_for_improvement, goals, comments, status, created_at, staff:users(id, full_name, role), reviewer:users(id, full_name)",
+            // staff_id and reviewer_id both point at users; name both constraints.
+            "id, school_id, staff_id, reviewer_id, review_date, rating, strengths, areas_for_improvement, goals, comments, status, created_at, staff:users!staff_reviews_staff_id_fkey(id, full_name, role), reviewer:users!staff_reviews_reviewer_id_fkey(id, full_name)",
           )
           .eq("school_id", querySchoolId);
         if (staffId) query = query.eq("staff_id", staffId);

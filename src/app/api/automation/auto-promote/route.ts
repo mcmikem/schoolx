@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
         `
         id, first_name, last_name, class_id, student_number, school_id,
         classes (id, name, level),
-        grades (subject_id, ca1, ca2, ca3, exam_score, subjects (name)),
+        grades (subject_id, score, max_score),
         attendance (status)
       `,
       )
@@ -114,25 +114,29 @@ export async function POST(request: NextRequest) {
 
         studentOps.originalClassId = studentClass.id;
 
-        const grades = student.grades || [];
-        const validGrades = grades.filter(
-          (g: any) => g.ca1 !== null && g.ca2 !== null && g.ca3 !== null && g.exam_score !== null,
-        );
-
-        let averageScore = 0;
-        let failedSubjects = 0;
-
-        if (validGrades.length > 0) {
-          const totalScore = validGrades.reduce(
-            (sum: number, g: any) => sum + (g.ca1 || 0) + (g.ca2 || 0) + (g.ca3 || 0) + (g.exam_score || 0),
-            0,
-          );
-          averageScore = totalScore / (validGrades.length * 4);
-          failedSubjects = validGrades.filter((g: any) => {
-            const total = (g.ca1 || 0) + (g.ca2 || 0) + (g.ca3 || 0) + (g.exam_score || 0);
-            return total / 4 < 40;
-          }).length;
+        // A grade is one row per assessment, each carrying its own score and
+        // max_score. There is no per-subject row of ca1/ca2/ca3/exam_score --
+        // selecting those columns was rejected outright (42703 on grades.ca1)
+        // and every promotion run ended in a 500 before it read a single pupil.
+        //
+        // This asks the same question as before: what did each subject average
+        // out of 100, and which subjects fell under the 40 mark.
+        const bySubject = new Map<string, { score: number; max: number }>();
+        for (const g of (student.grades || []) as any[]) {
+          if (!g?.subject_id || g.score === null || g.max_score === null) continue;
+          const acc = bySubject.get(g.subject_id) ?? { score: 0, max: 0 };
+          acc.score += Number(g.score);
+          acc.max += Number(g.max_score);
+          bySubject.set(g.subject_id, acc);
         }
+
+        const subjectMarks = [...bySubject.values()].filter((a) => a.max > 0).map((a) => (a.score / a.max) * 100);
+
+        const averageScore =
+          subjectMarks.length > 0
+            ? subjectMarks.reduce((sum: number, m: number) => sum + m, 0) / subjectMarks.length
+            : 0;
+        const failedSubjects = subjectMarks.filter((m) => m < 40).length;
 
         const attendanceRecords = student.attendance || [];
         const totalDays = attendanceRecords.length;

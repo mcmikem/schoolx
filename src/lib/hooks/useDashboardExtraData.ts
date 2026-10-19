@@ -192,7 +192,9 @@ function computePayloadLegacy(
         withTimeout(
           supabase
             .from("staff_attendance")
-            .select("status, staff_id, users!inner(school_id)")
+            // staff_id and recorded_by both point at users, so PostgREST
+            // refused the embed with PGRST201. Name the constraint.
+            .select("status, staff_id, users!staff_attendance_staff_id_fkey!inner(school_id)")
             .eq("users.school_id", schoolId)
             .eq("date", today)
             .in("status", ["present", "late"]),
