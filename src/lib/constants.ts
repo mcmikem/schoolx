@@ -70,6 +70,19 @@ export const PAYMENT_METHODS = {
 
 export type PaymentMethod = (typeof PAYMENT_METHODS)[keyof typeof PAYMENT_METHODS];
 
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  cash: "Cash",
+  mobile_money: "Mobile Money",
+  bank: "Bank transfer",
+  installment: "Instalments",
+  in_kind: "In kind",
+};
+
+/** Human label for a stored payment method, falling back to the raw value. */
+export function paymentMethodLabel(method: string): string {
+  return PAYMENT_METHOD_LABELS[method] ?? method.replace(/_/g, " ");
+}
+
 // Grade types
 export const ASSESSMENT_TYPES = {
   CA1: "ca1",

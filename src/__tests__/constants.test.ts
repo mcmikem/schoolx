@@ -5,6 +5,7 @@ import {
   EVENT_TYPES,
   GENDER,
   PAYMENT_METHODS,
+  paymentMethodLabel,
   ASSESSMENT_TYPES,
   TERMS,
 } from "../lib/constants";
@@ -112,5 +113,17 @@ describe("Enum Consistency", () => {
     Object.values(GENDER).forEach((g) => {
       expect(g.length).toBe(1);
     });
+  });
+});
+
+describe("paymentMethodLabel", () => {
+  test("maps known methods to readable labels", () => {
+    expect(paymentMethodLabel("mobile_money")).toBe("Mobile Money");
+    expect(paymentMethodLabel("bank")).toBe("Bank transfer");
+    expect(paymentMethodLabel("cash")).toBe("Cash");
+  });
+
+  test("falls back to a spaced version of unknown values", () => {
+    expect(paymentMethodLabel("cheque_deposit")).toBe("cheque deposit");
   });
 });
