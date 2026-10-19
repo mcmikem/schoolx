@@ -137,6 +137,102 @@ export async function findRecentDuplicatePayment(params: {
   }
 }
 
+/**
+ * Every payment for the school, in the smallest projection that can still
+ * settle a fee line.
+ *
+ * This exists because the fees screen used the *paginated* cashbook slice for
+ * every balance. With 50 rows on screen and 62 recorded, 12 pupils' payments
+ * were never fetched, so a child who had paid in full showed as UGX 0 paid,
+ * 0% and their whole balance outstanding. A bursar called about a Kikunyu pupil
+ * whose 100,000 payment was real and on record, and the screen said he had
+ * paid nothing.
+ *
+ * The cashbook table still pages -- it is a long list and nobody reads 5,000
+ * rows of it. But a *balance* is a total, and a total from one page is a wrong
+ * number rather than an incomplete one. So the two concerns are fetched
+ * separately: the table pages, the arithmetic does not.
+ *
+ * Six columns, no join, ordered by id rather than date. Ordering by
+ * payment_date ties every row in a school that records a whole term on one day,
+ * and which rows land on page 1 then becomes arbitrary.
+ */
+export function useCompleteFeePayments(schoolId?: string) {
+  const [payments, setPayments] = useState<
+    Array<{
+      id: string;
+      student_id: string;
+      amount_paid: number;
+      fee_id: string | null;
+      payment_date: string;
+      payment_method: string;
+      payment_reference: string | null;
+    }>
+  >([]);
+  const [loading, setLoading] = useState(true);
+  const [truncated, setTruncated] = useState(false);
+  const { isDemo } = useAuth();
+
+  useEffect(() => {
+    if (!schoolId || isDemo || isDemoSchool(schoolId)) {
+      setPayments([]);
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    // A guard, not a design limit. If a school really does reach this, the
+    // flag tells the bursar the totals are incomplete instead of quietly
+    // showing them a wrong balance.
+    const CAP = 20000;
+
+    void (async () => {
+      setLoading(true);
+      try {
+        const result = (await withTimeout(
+          supabase
+            .from("fee_payments")
+            .select("id, student_id, amount_paid, fee_id, payment_date, payment_method, payment_reference")
+            .eq("school_id", schoolId)
+            .is("deleted_at", null)
+            .order("id", { ascending: true })
+            .limit(CAP),
+          20000,
+          null,
+        )) as PostgrestSingleResponse<
+          {
+            id: string;
+            student_id: string;
+            amount_paid: number;
+            fee_id: string | null;
+            payment_date: string;
+            payment_method: string;
+            payment_reference: string | null;
+          }[]
+        >;
+        if (cancelled) return;
+        if (result.error) throw result.error;
+        const data = result.data;
+        setPayments((data ?? []) as typeof payments);
+        setTruncated((data?.length ?? 0) >= CAP);
+      } catch (e) {
+        if (!cancelled) {
+          logger.error("Could not load the full payment ledger:", e);
+          setPayments([]);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [schoolId, isDemo]);
+
+  return { payments, loading, truncated };
+}
+
 export function useFeePayments(schoolId?: string, page: number = 1, limit?: number, all?: boolean) {
   // A caller that does not pass a page size is not paginating — it is almost
   // certainly computing a total, and a total from one 50-row page is wrong. So

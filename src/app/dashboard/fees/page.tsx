@@ -34,6 +34,7 @@ import {
   generatePaymentReference,
   useClasses,
   useFeeAdjustments,
+  useCompleteFeePayments,
   useFeePayments,
   useFeeStructure,
   usePaymentParentNames,
@@ -176,6 +177,15 @@ export default function FinanceHubPage() {
   }, [mobileFeeOptions]);
   const { adjustments, createAdjustment, deleteAdjustment } = useFeeAdjustments(school?.id);
   const { createPayment, deletePayment } = useFeePayments(school?.id, 1, 50);
+  const { payments: completePayments, truncated: ledgerTruncated } = useCompleteFeePayments(school?.id);
+
+  // If the ledger ever hits its safety cap the totals below are incomplete, and
+  // a balance that is short is worse than one that says so.
+  useEffect(() => {
+    if (ledgerTruncated) {
+      logger.warn("Payment ledger truncated; fee totals may be incomplete");
+    }
+  }, [ledgerTruncated]);
   const parentNamesByStudent = usePaymentParentNames(school?.id);
   const receiptRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -613,14 +623,23 @@ export default function FinanceHubPage() {
     }
   }, [selectedPlan, fetchInstallments]);
 
+  /**
+   * Balances come from the complete ledger, never from the cashbook slice.
+   *
+   * `payments` is whatever page of the cashbook happens to be on screen -- 50
+   * rows. Using it for arithmetic meant a pupil whose payment was the 51st most
+   * recent showed UGX 0 paid and their whole balance outstanding, which is a
+   * wrong number rather than an incomplete one. The table still pages; the
+   * totals do not.
+   */
   const paymentsByStudent = useMemo(() => {
-    const map = new Map<string, typeof payments>();
-    payments.forEach((p) => {
+    const map = new Map<string, typeof completePayments>();
+    completePayments.forEach((p) => {
       if (!map.has(p.student_id)) map.set(p.student_id, []);
       map.get(p.student_id)!.push(p);
     });
     return map;
-  }, [payments]);
+  }, [completePayments]);
 
   const adjustmentsByStudent = useMemo(() => {
     const map = new Map<string, typeof adjustments>();
@@ -706,8 +725,11 @@ export default function FinanceHubPage() {
           method: p.payment_method,
           reference: p.payment_reference || "",
           date: p.payment_date,
-          // Which fee was paid. Optional: a payment may cover the whole bill.
-          fee: p.fee_structure?.name || "",
+          // Which fee was paid. Resolved from the id against the fee structure
+          // the page already holds, so the complete-ledger projection does not
+          // have to carry a join. A payment may cover the whole bill and name
+          // no fee at all.
+          fee: (p.fee_id && feeNameById.get(p.fee_id)) || "",
         })),
         adjustments: studentAdjustments.map((a) => ({
           id: a.id,
@@ -718,7 +740,7 @@ export default function FinanceHubPage() {
         })),
       };
     },
-    [paymentsByStudent, adjustmentsByStudent, feesByClass, academicYear, currentTerm],
+    [paymentsByStudent, adjustmentsByStudent, feesByClass, feeNameById, academicYear, currentTerm],
   );
 
   const studentBalanceMap = useMemo(() => {
