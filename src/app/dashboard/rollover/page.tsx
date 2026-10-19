@@ -362,30 +362,25 @@ export default function RolloverPage() {
                     />
                     Archive current-year grading summary
                   </label>
-                  <label className="flex items-center gap-3 text-sm text-[var(--primary-900)]">
-                    <input
-                      type="checkbox"
-                      checked={wizardOptions.carryForwardBalances}
-                      onChange={(e) =>
-                        setWizardOptions((prev) => ({
-                          ...prev,
-                          carryForwardBalances: e.target.checked,
-                          resetOpeningBalances: e.target.checked ? false : prev.resetOpeningBalances,
-                        }))
-                      }
-                    />
-                    Carry forward fee balances into next year
-                  </label>
+                  <div className="space-y-1">
+                    <label className="flex items-center gap-3 text-sm text-[var(--primary-900)]">
+                      <input type="checkbox" checked disabled />
+                      Carry forward unpaid fee balances
+                    </label>
+                    <p className="text-xs text-[var(--t3)] pl-7">
+                      Automatic. Unpaid fees stay on the pupil&apos;s ledger because the fee and payment history carries
+                      over; nothing is added to opening balances (which would count the debt twice).
+                    </p>
+                  </div>
                   <label className="flex items-center gap-3 text-sm text-[var(--primary-900)]">
                     <input
                       type="checkbox"
                       checked={wizardOptions.resetOpeningBalances}
-                      disabled={wizardOptions.carryForwardBalances}
                       onChange={(e) =>
                         setWizardOptions((prev) => ({ ...prev, resetOpeningBalances: e.target.checked }))
                       }
                     />
-                    Reset student opening balances to zero
+                    Reset manually entered opening balances to zero
                   </label>
                   <label className="flex items-center gap-3 text-sm text-[var(--primary-900)]">
                     <input
