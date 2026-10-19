@@ -10,12 +10,13 @@ import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
-import { Button } from "@/components/ui/index";
+import { Button, StatStrip } from "@/components/ui/index";
 import ParentPortalShell from "@/components/parent-portal/ParentPortalShell";
 import { ChildSelector } from "@/components/parent-portal/ChildSelector";
 import { useParentPortal } from "@/components/parent-portal/ParentPortalProvider";
 import {
   calculateFeeStats,
+  groupFeesByTerm,
   ParentPortalFeeStructureItem,
   ParentPortalPayment,
   ParentPortalWalletTransaction,
@@ -48,6 +49,9 @@ export default function ParentFeesPage() {
   const [payments, setPayments] = useState<ParentPortalPayment[]>([]);
   const [walletBalance, setWalletBalance] = useState(0);
   const [walletTransactions, setWalletTransactions] = useState<ParentPortalWalletTransaction[]>([]);
+  // Clearance comes from the same engine the bursar's screen uses. It gates
+  // report-card release only -- never exams or class placement.
+  const [clearance, setClearance] = useState<{ isCleared: boolean; balance: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [showTopup, setShowTopup] = useState(false);
   const [topupAmount, setTopupAmount] = useState("");
@@ -114,7 +118,7 @@ export default function ParentFeesPage() {
           withTimeout(
             supabase
               .from("fee_structure")
-              .select("id, name, amount, term")
+              .select("id, name, amount, term, due_date")
               .eq("school_id", child.school_id)
               .is("deleted_at", null)
               .or(`class_id.is.null,class_id.eq.${child.class_id}`),
@@ -201,6 +205,31 @@ export default function ParentFeesPage() {
     }
   }, [selectedChild, fetchFees]);
 
+  useEffect(() => {
+    if (!selectedChild || isDemo) {
+      setClearance(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`/api/parent/fee-clearance/?studentId=${encodeURIComponent(selectedChild.id)}`);
+        const json = await res.json();
+        if (!cancelled && res.ok && json?.success) {
+          setClearance({
+            isCleared: Boolean(json.data?.isCleared),
+            balance: Number(json.data?.balance || 0),
+          });
+        }
+      } catch {
+        // Clearance is advisory here; a failed check must not hide the balance.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedChild, isDemo]);
+
   // Where this school wants parents to send money. Read once on mount so the
   // pay sheet always shows the school's real numbers, never a guess.
   useEffect(() => {
@@ -230,6 +259,30 @@ export default function ParentFeesPage() {
   const stats = useMemo(() => calculateFeeStats(feeStructure, payments), [feeStructure, payments]);
 
   const paidPct = stats.totalFee > 0 ? Math.round((stats.totalPaid / stats.totalFee) * 100) : 0;
+
+  const feeGroups = useMemo(() => groupFeesByTerm(feeStructure), [feeStructure]);
+
+  const nextDue = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return (
+      feeStructure
+        .map((fee) => fee.due_date)
+        .filter((value): value is string => Boolean(value))
+        .map((value) => new Date(value))
+        .filter((date) => !Number.isNaN(date.getTime()) && date >= today)
+        .sort((a, b) => a.getTime() - b.getTime())[0] ?? null
+    );
+  }, [feeStructure]);
+
+  // In demo mode there is no server clearance row; mirror the balance shown.
+  const effectiveClearance = isDemo ? { isCleared: stats.balance <= 0, balance: stats.balance } : clearance;
+
+  const openPaySheet = () => {
+    setPayAmount(stats.balance > 0 ? String(stats.balance) : "");
+    setPayStep("form");
+    setShowPayModal(true);
+  };
 
   const handleTopup = async () => {
     if (!selectedChild) return;
@@ -360,48 +413,56 @@ export default function ParentFeesPage() {
 
         <ChildSelector />
 
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-          {[
+        <StatStrip
+          columns={4}
+          items={[
             {
-              label: "Total Fee",
-              value: `UGX ${stats.totalFee.toLocaleString()}`,
-              icon: "receipt_long",
-              color: "text-[var(--on-surface)]",
-            },
-            {
-              label: "Paid",
-              value: `UGX ${stats.totalPaid.toLocaleString()}`,
-              icon: "check_circle",
-              color: "text-emerald-600",
-            },
-            {
-              label: "Balance",
+              label: "Outstanding",
               value: `UGX ${stats.balance.toLocaleString()}`,
-              icon: stats.balance > 0 ? "warning" : "verified",
-              color: stats.balance > 0 ? "text-red-600" : "text-emerald-600",
+              tone: stats.balance > 0 ? "negative" : "positive",
+              hint: stats.balance > 0 ? "still to pay" : "fully cleared",
             },
             {
-              label: "Wallet Balance",
-              value: `UGX ${walletBalance.toLocaleString()}`,
-              icon: "account_balance_wallet",
-              color: walletBalance > 0 ? "text-[var(--primary)]" : "text-slate-500",
+              label: "Paid so far",
+              value: `UGX ${stats.totalPaid.toLocaleString()}`,
+              tone: "positive",
+              hint: `${paidPct}% of billed fees`,
             },
-          ].map((item) => (
-            <Card key={item.label}>
-              <CardBody className="flex items-center gap-4 bg-[var(--portal-surface-tint)]">
-                <div className="flex h-12 w-12 items-center justify-center rounded-[16px] bg-[var(--surface-container-low)] border border-[var(--border)]">
-                  <MaterialIcon icon={item.icon} className={`text-2xl ${item.color}`} />
-                </div>
-                <div>
-                  <p className={`text-xl font-semibold tracking-[-0.03em] ${item.color}`}>{item.value}</p>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
-                    {item.label}
-                  </p>
-                </div>
-              </CardBody>
-            </Card>
-          ))}
-        </div>
+            {
+              label: "Total billed",
+              value: `UGX ${stats.totalFee.toLocaleString()}`,
+              tone: "default",
+              hint: `${feeStructure.length} fee line${feeStructure.length === 1 ? "" : "s"}`,
+            },
+            {
+              label: "Next due",
+              value: nextDue ? nextDue.toLocaleDateString("en-GB", { day: "2-digit", month: "short" }) : "—",
+              tone: nextDue ? "warning" : "default",
+              hint: nextDue ? "term due date" : "no due date set",
+            },
+          ]}
+        />
+
+        {effectiveClearance && !effectiveClearance.isCleared && effectiveClearance.balance > 0 && (
+          <Card className="border-[var(--amber)]/40 bg-[var(--amber-soft)]/40">
+            <CardBody className="flex items-start gap-3">
+              <MaterialIcon icon="lock_clock" className="mt-0.5 text-2xl text-[var(--amber)]" />
+              <div className="min-w-0 space-y-1">
+                <p className="text-sm font-semibold text-[var(--t1)]">Report card withheld</p>
+                <p className="text-sm text-[var(--t2)]">
+                  UGX {effectiveClearance.balance.toLocaleString()} is still outstanding, so the school is holding{" "}
+                  {selectedChild ? `${selectedChild.first_name}'s` : "the"} report card.
+                </p>
+                <p className="text-xs text-[var(--t3)]">
+                  Exams and class placement are not affected. Pay the school, then ask the bursar to release the card.
+                </p>
+                <Button size="sm" className="mt-2" onClick={openPaySheet} disabled={!selectedChild}>
+                  <MaterialIcon icon="bolt" /> Pay now
+                </Button>
+              </div>
+            </CardBody>
+          </Card>
+        )}
 
         <Card>
           <CardBody className="space-y-4 bg-[var(--portal-surface-tint)]">
@@ -418,14 +479,7 @@ export default function ParentFeesPage() {
                 <Button onClick={() => setShowTopup(true)} disabled={!selectedChild} variant="secondary">
                   <MaterialIcon icon="add_card" /> Wallet Top-up
                 </Button>
-                <Button
-                  onClick={() => {
-                    setPayAmount(stats.balance > 0 ? String(stats.balance) : "");
-                    setPayStep("form");
-                    setShowPayModal(true);
-                  }}
-                  disabled={!selectedChild}
-                >
+                <Button onClick={openPaySheet} disabled={!selectedChild}>
                   <MaterialIcon icon="bolt" /> Pay Fees
                 </Button>
               </div>
@@ -462,21 +516,48 @@ export default function ParentFeesPage() {
               ) : feeStructure.length === 0 ? (
                 <p className="text-sm text-[var(--on-surface-variant)] text-center py-4">No fee structure set</p>
               ) : (
-                <div className="space-y-2">
-                  {feeStructure.map((fee) => (
-                    <div
-                      key={fee.id}
-                      className="flex justify-between items-center p-3 bg-[var(--surface-container-low)] rounded-[18px] border border-[var(--border)]"
-                    >
-                      <div>
-                        <p className="font-bold text-sm text-[var(--on-surface)]">{fee.name}</p>
-                        {fee.term && <p className="text-[10px] text-[var(--on-surface-variant)]">{fee.term}</p>}
+                <div className="space-y-4">
+                  {feeGroups.map((group) => (
+                    <div key={group.key} className="space-y-2">
+                      <div className="flex items-baseline justify-between gap-3">
+                        <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
+                          {group.label}
+                        </p>
+                        <p className="text-xs font-semibold tabular-nums text-[var(--on-surface-variant)]">
+                          UGX {group.total.toLocaleString()}
+                        </p>
                       </div>
-                      <p className="font-black text-sm text-[var(--on-surface)]">
-                        UGX {Number(fee.amount).toLocaleString()}
-                      </p>
+                      {group.items.map((fee) => (
+                        <div
+                          key={fee.id}
+                          className="flex items-center justify-between gap-3 rounded-[18px] border border-[var(--border)] bg-[var(--surface-container-low)] p-3"
+                        >
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-bold text-[var(--on-surface)]">{fee.name}</p>
+                            {fee.due_date && (
+                              <p className="text-[10px] text-[var(--on-surface-variant)]">
+                                Due{" "}
+                                {new Date(fee.due_date).toLocaleDateString("en-GB", {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric",
+                                })}
+                              </p>
+                            )}
+                          </div>
+                          <p className="shrink-0 text-sm font-black tabular-nums text-[var(--on-surface)]">
+                            UGX {Number(fee.amount).toLocaleString()}
+                          </p>
+                        </div>
+                      ))}
                     </div>
                   ))}
+                  <div className="flex items-center justify-between border-t border-[var(--border)] pt-3">
+                    <p className="text-sm font-semibold text-[var(--on-surface)]">Total billed</p>
+                    <p className="text-sm font-black tabular-nums text-[var(--on-surface)]">
+                      UGX {stats.totalFee.toLocaleString()}
+                    </p>
+                  </div>
                 </div>
               )}
             </CardBody>
@@ -533,7 +614,12 @@ export default function ParentFeesPage() {
 
           <Card>
             <CardBody>
-              <h2 className="font-semibold text-[var(--on-surface)] mb-4">Wallet Activity</h2>
+              <div className="mb-4 flex items-baseline justify-between gap-3">
+                <h2 className="font-semibold text-[var(--on-surface)]">Wallet Activity</h2>
+                <span className="text-xs font-bold tabular-nums text-[var(--primary)]">
+                  UGX {walletBalance.toLocaleString()}
+                </span>
+              </div>
               {loading ? (
                 <div className="space-y-2">
                   {Array.from({ length: 3 }).map((_, index) => (
@@ -657,7 +743,10 @@ export default function ParentFeesPage() {
                     {selectedChild ? `${selectedChild.first_name}'s fee payment` : "Select a learner first"}
                   </p>
                 </div>
-                <button onClick={closePayModal} className="p-2 hover:bg-[var(--surface-container)] rounded-xl shrink-0">
+                <button
+                  onClick={closePayModal}
+                  className="tap-44 p-2 hover:bg-[var(--surface-container)] rounded-xl shrink-0"
+                >
                   <MaterialIcon icon="close" />
                 </button>
               </div>

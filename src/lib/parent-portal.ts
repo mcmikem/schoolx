@@ -38,6 +38,7 @@ export interface ParentPortalFeeStructureItem {
   name: string;
   amount: number;
   term?: string | null;
+  due_date?: string | null;
 }
 
 export interface ParentPortalPayment {
@@ -371,6 +372,53 @@ export function normalizeFeeTermItems(terms: ParentPortalModernFeeTermRecord[]):
     amount: Number(term.final_amount || 0),
     term: term.academic_year || null,
   }));
+}
+
+export interface ParentPortalFeeGroup {
+  key: string;
+  label: string;
+  items: ParentPortalFeeStructureItem[];
+  total: number;
+}
+
+/**
+ * Group fee lines by term so a parent can see exactly what each term costs
+ * instead of one opaque total. Numeric terms (1/2/3) sort first; an academic
+ * year or "All fees" bucket follows.
+ */
+export function groupFeesByTerm(fees: ParentPortalFeeStructureItem[]): ParentPortalFeeGroup[] {
+  const groups = new Map<string, ParentPortalFeeStructureItem[]>();
+
+  for (const fee of fees) {
+    const raw = fee.term == null ? "" : String(fee.term).trim();
+    const key = raw || "unspecified";
+    const list = groups.get(key) ?? [];
+    list.push(fee);
+    groups.set(key, list);
+  }
+
+  const asTermNumber = (key: string): number | null => {
+    const value = Number(key);
+    return Number.isInteger(value) && value > 0 && value <= 3 ? value : null;
+  };
+
+  return Array.from(groups.entries())
+    .sort(([a], [b]) => {
+      const na = asTermNumber(a);
+      const nb = asTermNumber(b);
+      if (na != null && nb != null) return na - nb;
+      if (na != null) return -1;
+      if (nb != null) return 1;
+      if (a === "unspecified") return 1;
+      if (b === "unspecified") return -1;
+      return a.localeCompare(b);
+    })
+    .map(([key, items]) => ({
+      key,
+      label: asTermNumber(key) != null ? `Term ${key}` : key === "unspecified" ? "All fees" : key,
+      items,
+      total: items.reduce((sum, item) => sum + Number(item.amount || 0), 0),
+    }));
 }
 
 export function pickPreferredSchemaRows<T>({

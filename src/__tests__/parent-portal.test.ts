@@ -6,6 +6,7 @@ import {
   calculateFeeStats,
   findUnseenNotificationIds,
   getUniqueTerms,
+  groupFeesByTerm,
   mapParentStudentLinks,
   normalizeAttendanceRecords,
   normalizeFeeTermItems,
@@ -369,5 +370,34 @@ describe("realtime is gone from the bundle path", () => {
   it("polls instead, and re-checks when the tab becomes visible", () => {
     expect(page).toContain("setInterval(poll, POLL_MS)");
     expect(page).toContain('addEventListener("visibilitychange"');
+  });
+});
+
+describe("groupFeesByTerm", () => {
+  const fee = (id: string, term: string | null, amount: number) => ({
+    id,
+    name: `Fee ${id}`,
+    amount,
+    term,
+  });
+
+  it("groups by term, sorts numeric terms, and subtotals each group", () => {
+    const groups = groupFeesByTerm([
+      fee("c", "3", 300),
+      fee("a", "1", 100),
+      fee("b", "1", 50),
+      fee("d", null, 25),
+      fee("e", "2", 200),
+    ]);
+
+    expect(groups.map((group) => group.label)).toEqual(["Term 1", "Term 2", "Term 3", "All fees"]);
+    expect(groups[0].total).toBe(150);
+    expect(groups[0].items.map((item) => item.id)).toEqual(["a", "b"]);
+    expect(groups[3].total).toBe(25);
+  });
+
+  it("keeps a non-numeric term (academic year) as its own bucket", () => {
+    const groups = groupFeesByTerm([fee("a", "2026", 100), fee("b", "1", 50)]);
+    expect(groups.map((group) => group.label)).toEqual(["Term 1", "2026"]);
   });
 });
