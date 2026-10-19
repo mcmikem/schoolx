@@ -25,6 +25,18 @@ import {
   isCompetencyScale,
 } from "@/lib/grading";
 import { GRADING_TRACKS, resolveTrackForClass, resolveUseBot } from "@/lib/grading-tracks";
+import {
+  ASSESSMENT_MAX,
+  TRADITIONAL_ASSESSMENT_TYPES,
+  assessmentLabel,
+  assessmentTypesFor,
+  getGrade,
+  getStudentTotal as computeStudentTotal,
+  isStudentGraded as computeIsStudentGraded,
+  readMark,
+  type SaveStatus,
+  type StudentMarks,
+} from "@/lib/grades/entry";
 import { useClasses, useStaff, useSubjects } from "@/lib/hooks";
 import { timeoutFallback, withTimeout } from "@/lib/hooks/utils";
 import { lazyWithIdlePrefetch } from "@/lib/lazy-prefetch";
@@ -73,24 +85,11 @@ const ASSESSMENT_TYPES = [
   "u1",
   "u2",
 ] as const;
-const TRADITIONAL_ASSESSMENT_TYPES = ["bot", "mid_term", "eot"] as const;
 /** The continuous-assessment subset, i.e. everything a CA lock is meant to cover.
  *  Lock and unlock must both derive from this: they previously hardcoded
  *  different lists (lock covered ca1-ca3, unlock ca1-ca4) so CA4 was never
  *  actually locked and stayed editable after "CA locked". */
 const CA_ASSESSMENT_TYPES = ASSESSMENT_TYPES.filter((t) => t.startsWith("ca")) as readonly string[];
-const COMPETENCY_ASSESSMENT_TYPES = ["competency"] as const;
-const ASSESSMENT_MAX: Record<string, number> = {
-  bot: 100,
-  mid_term: 100,
-  eot: 100,
-  ca1: 100,
-  ca2: 100,
-  ca3: 100,
-  ca4: 100,
-  project: 100,
-  exam: 100,
-};
 
 async function saveGrade(grade: {
   student_id: string;
@@ -212,22 +211,6 @@ async function syncStudentGrades(params: {
     await withTimeout(supabase.from("student_grades").insert(studentGradePayload), 15000, timeoutFallback());
   }
 }
-
-function getGrade(score: number) {
-  if (score >= 80) return { grade: "D1", color: "text-secondary" };
-  if (score >= 70) return { grade: "D2", color: "text-secondary" };
-  if (score >= 65) return { grade: "C3", color: "text-primary" };
-  if (score >= 60) return { grade: "C4", color: "text-primary" };
-  if (score >= 55) return { grade: "C5", color: "text-tertiary" };
-  if (score >= 50) return { grade: "C6", color: "text-tertiary" };
-  if (score >= 45) return { grade: "P7", color: "text-yellow-600" };
-  if (score >= 40) return { grade: "P8", color: "text-yellow-500" };
-  return { grade: "F9", color: "text-error" };
-}
-
-type StudentMarks = Record<string, number | null>;
-
-type SaveStatus = "idle" | "dirty" | "saving" | "saved";
 
 export default function GradesPage() {
   const { school, user, isDemo } = useAuth();
@@ -512,14 +495,7 @@ export default function GradesPage() {
   const gradeOffset = (gradePage - 1) * gradesPerPage;
   const gradeTotalPages = Math.max(1, Math.ceil(displayStudents.length / gradesPerPage));
   const isStudentGraded = useCallback(
-    (studentId: string): boolean => {
-      const types = competencyMode
-        ? COMPETENCY_ASSESSMENT_TYPES
-        : useBotEnabled
-          ? TRADITIONAL_ASSESSMENT_TYPES
-          : (["mid_term", "eot"] as const);
-      return types.every((t) => marks[`${studentId}_${t}`] !== null && marks[`${studentId}_${t}`] !== undefined);
-    },
+    (studentId: string): boolean => computeIsStudentGraded(marks, studentId, competencyMode, useBotEnabled),
     [marks, competencyMode, useBotEnabled],
   );
   const gradedCount = useMemo(
@@ -697,35 +673,23 @@ export default function GradesPage() {
     }
   };
 
-  const getMark = (studentId: string, type: string): number | null => {
-    return marks[`${studentId}_${type}`] ?? null;
-  };
+  const getMark = (studentId: string, type: string): number | null => readMark(marks, studentId, type);
 
-  const getStudentTotal = (studentId: string): number | null => {
-    if (competencyMode) {
-      const score = marks[`${studentId}_competency`];
-      if (score === null || score === undefined) return null;
-      return score;
-    }
-    const recorded = TRADITIONAL_ASSESSMENT_TYPES.map((type) => marks[`${studentId}_${type}`]).filter(
-      (value): value is number => value !== null && value !== undefined,
-    );
-    if (recorded.length === 0) return null;
-    return Math.round(recorded.reduce((sum, value) => sum + value, 0) / recorded.length);
-  };
+  const getStudentTotal = (studentId: string): number | null => computeStudentTotal(marks, studentId, competencyMode);
 
   // Columns shown on a fresh sheet. The list used to be derived from existing
   // marks, so a class/subject with nothing entered yet rendered a sheet with
   // no input boxes at all -- while the on-page guidance said "type the score in
   // the box under CA1". The guidance described a UI that did not exist on
   // first use, which is why teachers could not work out where to type.
-  const activeAssessmentTypes = useMemo(() => {
-    if (competencyMode) return [...COMPETENCY_ASSESSMENT_TYPES];
-    // A school that does not run a beginning-of-term test must not be shown a
-    // column for it: it invites a mark nobody intended to record, and it is
-    // weighed into MID, so a stray entry silently shifts every average.
-    return useBotEnabled ? ["bot", "mid_term", "eot"] : ["mid_term", "eot"];
-  }, [competencyMode, useBotEnabled]);
+  const activeAssessmentTypes = useMemo(
+    () => assessmentTypesFor(competencyMode, useBotEnabled),
+    [competencyMode, useBotEnabled],
+  );
+
+  // Identity + one column per assessment + average/status + grade. The empty and
+  // loading rows were pinned at 7, which over-spans a two-column sheet.
+  const markSheetColumnCount = activeAssessmentTypes.length + 3;
 
   const debouncedAutoSave = useCallback(
     (studentId: string, type: string, target?: { subjectId: string; classId: string }) => {
@@ -2096,24 +2060,7 @@ export default function GradesPage() {
                             <>
                               {activeAssessmentTypes.map((type) => {
                                 const labelInfo = columnLabels[type] || {
-                                  label:
-                                    type === "bot"
-                                      ? "Beginning of Term"
-                                      : type === "mid_term"
-                                        ? "Mid Term"
-                                        : type === "eot"
-                                          ? "End of Term"
-                                          : type === "ca1"
-                                            ? "CA1"
-                                            : type === "ca2"
-                                              ? "CA2"
-                                              : type === "ca3"
-                                                ? "CA3"
-                                                : type === "ca4"
-                                                  ? "CA4"
-                                                  : type === "project"
-                                                    ? "Project"
-                                                    : "Exam",
+                                  label: assessmentLabel(type),
                                   explain: "",
                                 };
                                 return (
@@ -2150,13 +2097,13 @@ export default function GradesPage() {
                       <tbody className="divide-y divide-surface-container">
                         {studentsLoading ? (
                           <tr>
-                            <td colSpan={7} className="px-8 py-12">
+                            <td colSpan={markSheetColumnCount} className="px-8 py-12">
                               <TableSkeleton rows={5} />
                             </td>
                           </tr>
                         ) : displayStudents.length === 0 ? (
                           <tr>
-                            <td colSpan={7} className="px-8 py-12">
+                            <td colSpan={markSheetColumnCount} className="px-8 py-12">
                               <NoData
                                 title={
                                   statusFilter !== "all"
@@ -2171,7 +2118,7 @@ export default function GradesPage() {
                           // absence can erase a whole assessment column. Say so
                           // rather than let the sheet look complete.
                           <tr>
-                            <td colSpan={7} className="px-8 py-10">
+                            <td colSpan={markSheetColumnCount} className="px-8 py-10">
                               <div className="rounded-xl border border-[var(--amber)]/30 bg-[var(--amber-soft)] px-4 py-3 text-sm text-[var(--t1)]">
                                 <p className="font-semibold">
                                   {unassignedStudents.length} student
