@@ -557,6 +557,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             logger.warn("Optimistic profile hydration failed:", error);
           }
 
+          const sessionUser = session.user;
+          const profile = await fetchUserData(sessionUser.id);
+          if (profile) {
+            setIsDemo(false);
+            setLoading(false);
+            setAuthInitialized(true);
+            return;
+          }
+
           let authUserError: unknown = null;
           let authUser: User | null = null;
           try {
@@ -572,10 +581,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
 
           if (authUser) {
-            const profile = await fetchUserData(authUser.id);
-            if (!profile && typeof navigator !== "undefined" && navigator.onLine) {
-              applyDegradedUser(authUser);
-            }
+            if (typeof navigator !== "undefined" && navigator.onLine) applyDegradedUser(authUser);
             setIsDemo(false);
             setLoading(false);
             setAuthInitialized(true);
@@ -772,44 +778,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }, 8000);
 
             try {
-              const {
-                data: { user: verifiedUser },
-              }: { data: { user: User | null } } = (await Promise.race([
-                withSupabaseLockRetry(async () => await supabase!.auth.getUser()),
-                new Promise<never>((_, reject) =>
-                  setTimeout(() => reject(new Error("getUser() timed out in auth state handler")), 10000),
-                ),
-              ])) as { data: { user: User | null } };
-
-              if (verifiedUser) {
+              const sessionUser = session?.user;
+              const profile = sessionUser ? await fetchUserData(sessionUser.id) : null;
+              if (profile) {
                 authCheckedRef.current = true;
-                // Always fetch user data here — this is the single source of truth
-                // for populating the user after auth. signIn() no longer calls
-                // fetchUserData to avoid race conditions and timeouts.
-                try {
-                  const profile = await fetchUserData(verifiedUser.id);
-                  if (!profile && typeof navigator !== "undefined" && navigator.onLine) {
-                    // Profile endpoint unreachable but we hold a valid session —
-                    // degrade to cached/metadata user instead of signing out.
-                    applyDegradedUser(verifiedUser);
-                  }
-                } catch {
-                  logger.warn("[Auth] fetchUserData failed in state change handler");
-                  applyDegradedUser(verifiedUser);
-                }
                 if (!handlerSafetyFired) {
                   setIsDemo(false);
                   setLoading(false);
                   setAuthInitialized(true);
                 }
-              } else if (!handlerSafetyFired) {
-                // If getUser() returned null without a network error, the session
-                // is genuinely invalid. Only then do we clear user state.
-                setUser(null);
-                setSchool(null);
-                setIsDemo(false);
-                setLoading(false);
-                setAuthInitialized(true);
+              } else {
+                // /api/auth/me verifies the bearer token in the normal path. If
+                // it cannot provide a profile, verify via Supabase before using
+                // cached/metadata fallback or clearing the session.
+                let authUserError: unknown = null;
+                let verifiedUser: User | null = null;
+                try {
+                  const result = (await Promise.race([
+                    withSupabaseLockRetry(async () => await supabase!.auth.getUser()),
+                    new Promise<never>((_, reject) =>
+                      setTimeout(() => reject(new Error("getUser() timed out in auth state handler")), 10000),
+                    ),
+                  ])) as { data: { user: User | null } };
+                  verifiedUser = result.data.user;
+                } catch (error) {
+                  authUserError = error;
+                }
+
+                if (verifiedUser && typeof navigator !== "undefined" && navigator.onLine) {
+                  applyDegradedUser(verifiedUser);
+                } else if (!verifiedUser && !authUserError && !handlerSafetyFired) {
+                  setUser(null);
+                  setSchool(null);
+                  setIsDemo(false);
+                  setLoading(false);
+                  setAuthInitialized(true);
+                } else if (authUserError && isNetworkError(authUserError) && !handlerSafetyFired) {
+                  setLoading(false);
+                  setAuthInitialized(true);
+                }
               }
             } finally {
               clearTimeout(handlerSafetyTimer);

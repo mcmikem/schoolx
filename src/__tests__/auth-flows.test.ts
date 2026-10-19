@@ -275,15 +275,20 @@ describe("dashboard paints without waiting on the network", () => {
     expect(hydrate).toBeLessThan(getUser);
   });
 
-  it("keeps reconciling afterwards, so a stale cache self-corrects", () => {
+  it("refreshes the profile after hydration and verifies only on profile failure", () => {
     // Optimistic must not mean "trust the cache forever": the fresh profile
     // fetch still has to run and overwrite it.
     // Anchor on the *call site* in checkUser, not the fetch itself, which lives
     // inside fetchUserData and is defined earlier in the file.
     const hydrate = src.indexOf("Optimistic profile hydration failed");
-    const reconcile = src.indexOf("await fetchUserData(authUser.id)");
+    const reconcile = src.indexOf("await fetchUserData(sessionUser.id)");
     expect(reconcile).toBeGreaterThan(-1);
     expect(reconcile).toBeGreaterThan(hydrate);
+    const fallbackVerification = src.indexOf(
+      "withSupabaseLockRetry(async () => await supabase!.auth.getUser())",
+      reconcile,
+    );
+    expect(fallbackVerification).toBeGreaterThan(reconcile);
   });
 
   it("survives a corrupt cache instead of blocking on it", () => {
