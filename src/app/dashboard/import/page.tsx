@@ -4,7 +4,7 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useToast } from "@/components/Toast";
 import { Card as UICard } from "@/components/ui/Card";
-import { Button } from "@/components/ui/index";
+import { Button, DataTable, StatStrip, type DataColumn } from "@/components/ui/index";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { useAuth } from "@/lib/auth-context";
 import {
@@ -267,6 +267,92 @@ export default function ImportPage() {
     setSheetsUrl("");
   };
 
+  // Invalid rows first so the fix-list is the first thing a bursar sees.
+  const previewRows = validatedRows
+    .map((row, index) => ({ ...row, key: index }))
+    .sort((a, b) => Number(a.isValid) - Number(b.isValid));
+
+  const downloadErrorRows = () => {
+    const invalid = validatedRows.filter((row) => !row.isValid);
+    if (invalid.length === 0) return;
+    const escape = (value: unknown) => `"${String(value ?? "").replace(/"/g, '""')}"`;
+    const header = ["first_name", "last_name", "gender", "class_name", "parent_phone", "errors"];
+    const lines = [
+      header.join(","),
+      ...invalid.map((row) =>
+        [
+          row.data.first_name,
+          row.data.last_name,
+          row.data.gender,
+          row.data.class_name,
+          row.data.parent_phone,
+          row.errors.join("; "),
+        ]
+          .map(escape)
+          .join(","),
+      ),
+    ];
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = "student_import_errors.csv";
+    anchor.click();
+    URL.revokeObjectURL(url);
+    toast.success("Downloaded the rows that need fixing");
+  };
+
+  const previewColumns: DataColumn<(typeof previewRows)[number]>[] = [
+    {
+      key: "name",
+      header: "Name",
+      render: (row) => (
+        <span className="font-medium">
+          {row.data.first_name} {row.data.last_name || ""}
+        </span>
+      ),
+    },
+    {
+      key: "gender",
+      header: "Gender",
+      hideOnMobile: true,
+      render: (row) => <span className="text-[var(--t3)]">{row.data.gender || "—"}</span>,
+    },
+    {
+      key: "class",
+      header: "Class",
+      hideOnMobile: true,
+      render: (row) => <span className="text-[var(--t3)]">{row.data.class_name || "—"}</span>,
+    },
+    {
+      key: "phone",
+      header: "Parent phone",
+      hideOnMobile: true,
+      render: (row) => <span className="text-[var(--t3)]">{row.data.parent_phone || "—"}</span>,
+    },
+    {
+      key: "status",
+      header: "Status",
+      render: (row) =>
+        row.isValid ? (
+          <span className="inline-flex items-center gap-1 rounded-lg border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700">
+            <MaterialIcon icon="check_circle" className="text-sm" /> Ready
+          </span>
+        ) : (
+          <span className="inline-flex flex-wrap gap-1">
+            {row.errors.map((err, errIdx) => (
+              <span
+                key={errIdx}
+                className="rounded border border-[var(--red)]/20 bg-[var(--red-soft)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--red)]"
+              >
+                {err}
+              </span>
+            ))}
+          </span>
+        ),
+    },
+  ];
+
   const methodCard = (m: AddMethod, icon: string, title: string, description: string) => (
     <button
       onClick={() => {
@@ -396,76 +482,58 @@ export default function ImportPage() {
 
         {validatedRows.length > 0 && result === null && (
           <UICard className="mb-6 p-6">
-            <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center mb-4">
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <h2 className="font-semibold text-[var(--on-surface)]">Review your students</h2>
-                <p className="text-sm text-[var(--t3)] mt-1">
-                  <strong className="text-[var(--on-surface)]">{validCount}</strong> ready
-                  {invalidCount > 0 && (
-                    <>
-                      {" "}
-                      · <strong className="text-[var(--red)]">{invalidCount} need fixing</strong> (will be skipped)
-                    </>
-                  )}
+                <p className="mt-1 text-sm text-[var(--t3)]">
+                  Check the rows below, then import. Rows that need fixing are listed first and will be skipped.
                 </p>
               </div>
-              <Button variant="ghost" onClick={reset}>
-                <MaterialIcon icon="arrow_back" className="text-lg" />
-                Start over
-              </Button>
+              <div className="flex shrink-0 gap-2">
+                {invalidCount > 0 && (
+                  <Button variant="outline" size="sm" onClick={downloadErrorRows}>
+                    <MaterialIcon icon="download" className="text-lg" />
+                    Download fixes
+                  </Button>
+                )}
+                <Button variant="ghost" size="sm" onClick={reset}>
+                  <MaterialIcon icon="arrow_back" className="text-lg" />
+                  Start over
+                </Button>
+              </div>
             </div>
 
-            <div className="overflow-x-auto rounded-xl border border-[var(--border)]">
-              <table className="w-full text-sm">
-                <thead className="bg-[var(--surface-container)]">
-                  <tr>
-                    <th className="text-left p-3 text-sm font-semibold text-[var(--on-surface)]">Name</th>
-                    <th className="text-left p-3 text-sm font-semibold text-[var(--on-surface)]">Gender</th>
-                    <th className="text-left p-3 text-sm font-semibold text-[var(--on-surface)]">Class</th>
-                    <th className="text-left p-3 text-sm font-semibold text-[var(--on-surface)]">Parent Phone</th>
-                    <th className="text-left p-3 text-sm font-semibold text-[var(--on-surface)]">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {validatedRows.slice(0, 50).map((row, i) => (
-                    <tr
-                      key={i}
-                      className={`border-t border-[var(--border)] ${row.isValid ? "" : "bg-[var(--red-soft)]/40"}`}
-                    >
-                      <td className="p-3 font-medium text-[var(--on-surface)]">
-                        {row.data.first_name} {row.data.last_name || ""}
-                      </td>
-                      <td className="p-3 text-[var(--t3)]">{row.data.gender}</td>
-                      <td className="p-3 text-[var(--t3)]">{row.data.class_name || "—"}</td>
-                      <td className="p-3 text-[var(--t3)]">{row.data.parent_phone || "—"}</td>
-                      <td className="p-3">
-                        {row.isValid ? (
-                          <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-lg border border-emerald-100">
-                            <MaterialIcon icon="check_circle" className="text-sm" /> Ready
-                          </span>
-                        ) : (
-                          <span className="inline-flex flex-wrap gap-1">
-                            {row.errors.map((err, errIdx) => (
-                              <span
-                                key={errIdx}
-                                className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide text-[var(--red)] bg-[var(--red-soft)] border border-[var(--red)]/20"
-                              >
-                                {err}
-                              </span>
-                            ))}
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {validatedRows.length > 50 && (
-                <p className="p-3 text-sm text-[var(--t3)] italic border-t border-[var(--border)]">
-                  ... plus {validatedRows.length - 50} more rows
-                </p>
-              )}
-            </div>
+            <StatStrip
+              columns={2}
+              className="mb-4"
+              items={[
+                {
+                  label: "Ready to import",
+                  value: validCount,
+                  tone: validCount > 0 ? "positive" : "default",
+                  hint: "rows will be saved",
+                },
+                {
+                  label: "Need fixing",
+                  value: invalidCount,
+                  tone: invalidCount > 0 ? "negative" : "default",
+                  hint: invalidCount > 0 ? "skipped unless corrected" : "nothing to fix",
+                },
+              ]}
+            />
+
+            <DataTable
+              caption="Students ready to import"
+              columns={previewColumns}
+              rows={previewRows}
+              getRowId={(row) => String(row.key)}
+              rowClassName={(row) => (row.isValid ? undefined : "bg-[var(--red-soft)]/30")}
+              footer={
+                <span className="text-xs text-[var(--t3)]">
+                  {validatedRows.length} row{validatedRows.length === 1 ? "" : "s"} loaded · all shown on this device
+                </span>
+              }
+            />
 
             <Button
               onClick={handleImport}
