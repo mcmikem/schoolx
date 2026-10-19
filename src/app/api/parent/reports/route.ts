@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { logger } from "@/lib/logger";
 import { supabaseClientOptions } from "@/lib/api-utils";
+import { loadFeeClearanceMap } from "@/lib/server/fee-clearance";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -60,6 +61,18 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ success: true, data: [] });
     }
 
+    // A report card is released to a parent only when fees are cleared. Cards
+    // stay on the register; only the parent handoff is withheld, and on the same
+    // figure the bursar's screen shows — never the exam sitting.
+    const { data: studentRows } = await supabaseAdmin.from("students").select("id, school_id").in("id", filteredIds);
+
+    const clearance = new Map<string, { isCleared: boolean; balance: number }>();
+    const schoolIds = [...new Set((studentRows || []).map((s: any) => s.school_id).filter(Boolean))];
+    for (const sid of schoolIds) {
+      const map = await loadFeeClearanceMap(supabaseAdmin, sid as string, { studentIds: filteredIds });
+      map.forEach((value, key) => clearance.set(key, value));
+    }
+
     let query = supabaseAdmin
       .from("report_cards")
       .select(`
@@ -79,7 +92,12 @@ export async function GET(req: NextRequest) {
     const { data, error } = await query;
     if (error) throw error;
 
-    return NextResponse.json({ success: true, data: data || [] });
+    const visible = (data || []).filter((card: any) => clearance.get(card.student_id)?.isCleared !== false);
+    const withheld = filteredIds
+      .filter((id: string) => clearance.get(id)?.isCleared === false)
+      .map((id: string) => ({ student_id: id, balance: clearance.get(id)?.balance ?? 0 }));
+
+    return NextResponse.json({ success: true, data: visible, withheld });
   } catch (err: any) {
     logger.error("parent reports error:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });

@@ -104,17 +104,32 @@ export default function ParentResultsPage() {
   const [selectedYear, setSelectedYear] = useState<string>("all");
   const [selectedTerm, setSelectedTerm] = useState<string>("all");
   const [years, setYears] = useState<string[]>([]);
+  // Fees outstanding means the report card is withheld from the parent — the
+  // lawful lever. The exam sitting itself is never blocked.
+  const [withheld, setWithheld] = useState<{ balance: number } | null>(null);
 
   const fetchReports = useCallback(
     async (child: typeof selectedChild) => {
       if (!child) return;
       setLoading(true);
+      setWithheld(null);
       if (isDemo) {
         setReports(getDemoReportCards(child));
         setYears(["2026", "2025"]);
         setLoading(false);
         return;
       }
+
+      let clearance: { isCleared: boolean; balance: number } | null = null;
+      try {
+        const res = await fetch(`/api/parent/fee-clearance/?studentId=${encodeURIComponent(child.id)}`);
+        const json = await res.json().catch(() => null);
+        clearance = json?.data ?? null;
+      } catch {
+        clearance = null;
+      }
+      setWithheld(clearance && clearance.isCleared === false ? { balance: clearance.balance } : null);
+
       const { data, error } = await withTimeout(
         supabase
           .from("report_cards")
@@ -220,6 +235,23 @@ export default function ParentResultsPage() {
               <div key={i} className="h-40 bg-[var(--surface-container)] rounded-2xl animate-pulse" />
             ))}
           </div>
+        ) : withheld ? (
+          <Card className="no-hover">
+            <CardBody className="text-center py-12 space-y-3">
+              <div className="w-16 h-16 mx-auto rounded-full bg-amber-50 flex items-center justify-center">
+                <MaterialIcon icon="lock" className="text-3xl text-amber-600" />
+              </div>
+              <p className="text-lg font-semibold text-[var(--t1)]">Report card withheld</p>
+              <p className="text-sm text-[var(--t3)] max-w-md mx-auto">
+                This report card is being held because school fees are outstanding
+                {withheld.balance > 0 ? ` (balance UGX ${withheld.balance.toLocaleString()})` : ""}. It will be released
+                as soon as the balance is cleared.
+              </p>
+              <p className="text-xs text-[var(--t3)]">
+                Please contact the school office or make a payment to have it released.
+              </p>
+            </CardBody>
+          </Card>
         ) : filtered.length === 0 ? (
           <div className="text-center py-16">
             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[var(--surface-container)] flex items-center justify-center">

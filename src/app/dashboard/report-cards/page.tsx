@@ -110,7 +110,7 @@ export default function ReportCardsPage() {
   const [selectedClass, setSelectedClass] = useState("");
   const [reportFormat, setReportFormat] = useState<"numerical" | "competency" | "both" | "cbc">("numerical");
   const [generated, setGenerated] = useState(false);
-  const [hideWithFees, setHideWithFees] = useState(false);
+  const [hideWithFees, setHideWithFees] = useState(true);
   const [reports, setReports] = useState<StudentReport[]>([]);
   const [comments, setComments] = useState<Record<string, { classTeacher: string; hm: string }>>({});
   // Behaviour / co-curricular ratings, 1-5. The report printed four empty

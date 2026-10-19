@@ -16,6 +16,7 @@ import { detectLevelFromClass, isLowerPrimary, pleAggregate, weighOldCurriculum 
 import { bucketUgandaSubject, ugandaGrade } from "@/lib/uganda-report";
 
 import { REPORT_ALLOWED_ROLES } from "@/lib/server/report-access";
+import { loadFeeClearanceMap } from "@/lib/server/fee-clearance";
 
 function getUNEBGrade(score: number): string {
   if (score >= 80) return "D1";
@@ -215,6 +216,22 @@ export async function POST(request: NextRequest) {
         }
       } else {
         return apiError("Not authorized to view this student report", 403);
+      }
+    }
+
+    // A report card is the lawful lever when fees are outstanding — stopping a
+    // registered exam candidate over money is a criminal offence in Uganda, but
+    // release of the CARD to a parent may be withheld. Staff still see it; only
+    // the parent handoff is gated, and only on the figure the bursar sees.
+    if (userRole === "parent") {
+      const clearance = await loadFeeClearanceMap(supabase, scope.schoolId, {
+        studentIds: [studentId],
+        academicYear: resolvedAcademicYear,
+        currentTerm: term || 1,
+      });
+      const record = clearance.get(studentId);
+      if (record && !record.isCleared) {
+        return apiError("Report card withheld — school fees are outstanding", 403);
       }
     }
 

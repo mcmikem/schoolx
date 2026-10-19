@@ -8,6 +8,7 @@ import {
 } from "@/lib/automation";
 import { buildRolloverPreview, isTerminalClass, getNextClassName } from "@/lib/operations";
 import { requireCronSecretOrDeny, createServiceRoleClientOrThrow, requireExistingSchoolOrDeny } from "@/lib/api-utils";
+import { loadFeeClearanceMap } from "@/lib/server/fee-clearance";
 import { sendToParent } from "@/lib/messaging-server";
 import { logger } from "@/lib/logger";
 
@@ -123,6 +124,16 @@ export async function POST(request: NextRequest) {
 
       let generatedCount = 0;
       let emailedCount = 0;
+      let withheldCount = 0;
+
+      // Cards are still generated for the register, but release to a parent is
+      // withheld while fees are outstanding — the lawful lever, applied on the
+      // same figure the bursar's screen shows.
+      const clearanceByStudent = await loadFeeClearanceMap(supabase, school.schoolId, {
+        studentIds: (students as any[]).map((s) => s.id),
+        academicYear: year,
+        currentTerm: term,
+      });
 
       for (const student of students as any[]) {
         try {
@@ -305,19 +316,24 @@ export async function POST(request: NextRequest) {
 
           // Send email if parent email exists
           if (student.parent_email) {
-            try {
-              await sendReportCardEmail(
-                student.parent_email,
-                `${student.first_name} ${student.last_name}`,
-                studentClass.name,
-                year,
-                term,
-                subjectResults,
-                division,
-              );
-              emailedCount++;
-            } catch (e) {
-              logger.warn(`Report card email failed for student ${student.id}:`, e);
+            const clearance = clearanceByStudent.get(student.id);
+            if (clearance && !clearance.isCleared) {
+              withheldCount++;
+            } else {
+              try {
+                await sendReportCardEmail(
+                  student.parent_email,
+                  `${student.first_name} ${student.last_name}`,
+                  studentClass.name,
+                  year,
+                  term,
+                  subjectResults,
+                  division,
+                );
+                emailedCount++;
+              } catch (e) {
+                logger.warn(`Report card email failed for student ${student.id}:`, e);
+              }
             }
           }
         } catch (e) {
@@ -328,7 +344,7 @@ export async function POST(request: NextRequest) {
       steps[1] = {
         step: "generate_report_cards",
         status: "completed",
-        details: { generated: generatedCount, emailed: emailedCount },
+        details: { generated: generatedCount, emailed: emailedCount, withheld: withheldCount },
       };
     } catch (err) {
       steps[1] = {

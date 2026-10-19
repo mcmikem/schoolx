@@ -9,6 +9,7 @@ import {
 import { getUNEBGrade } from "@/lib/grading";
 import { logger } from "@/lib/logger";
 import { requireCronSecretOrDeny, createServiceRoleClientOrThrow, requireExistingSchoolOrDeny } from "@/lib/api-utils";
+import { loadFeeClearanceMap } from "@/lib/server/fee-clearance";
 
 export async function POST(request: NextRequest) {
   try {
@@ -57,6 +58,16 @@ export async function POST(request: NextRequest) {
     }
 
     const studentIds = (students as any[]).map((s) => s.id);
+
+    // Cards are still generated for the school register, but a card may only be
+    // RELEASED to a parent when fees are cleared. Stopping a registered exam
+    // candidate over money is unlawful in Uganda; withholding the card is the
+    // lawful lever, and it is applied on the same figure the bursar sees.
+    const clearanceByStudent = await loadFeeClearanceMap(supabase, school.schoolId, {
+      studentIds,
+      academicYear: currentYear,
+      currentTerm,
+    });
 
     const [{ data: allGrades, error: gradesError }, { data: allAttendance, error: attendanceError }] =
       await Promise.all([
@@ -308,36 +319,45 @@ export async function POST(request: NextRequest) {
 
         // Send via email if parent email is configured
         if (student.parent_email) {
-          try {
-            const emailResult = await sendReportCardEmail(
-              student.parent_email,
-              `${student.first_name} ${student.last_name}`,
-              studentClass.name,
-              currentYear,
-              currentTerm,
-              subjectResults,
-              division,
-              attendanceRate,
-            );
+          const clearance = clearanceByStudent.get(student.id);
+          if (clearance && !clearance.isCleared) {
+            results.skipped.push({
+              studentId: student.id,
+              name: `${student.first_name} ${student.last_name}`,
+              reason: "Fees outstanding — report card not released to parent",
+            });
+          } else {
+            try {
+              const emailResult = await sendReportCardEmail(
+                student.parent_email,
+                `${student.first_name} ${student.last_name}`,
+                studentClass.name,
+                currentYear,
+                currentTerm,
+                subjectResults,
+                division,
+                attendanceRate,
+              );
 
-            if (emailResult.success) {
-              results.emailed.push({
-                studentId: student.id,
-                email: student.parent_email,
-              });
-            } else {
+              if (emailResult.success) {
+                results.emailed.push({
+                  studentId: student.id,
+                  email: student.parent_email,
+                });
+              } else {
+                results.errors.push({
+                  studentId: student.id,
+                  name: `${student.first_name} ${student.last_name}`,
+                  reason: emailResult.error || "Email sending failed",
+                });
+              }
+            } catch (emailErr) {
               results.errors.push({
                 studentId: student.id,
                 name: `${student.first_name} ${student.last_name}`,
-                reason: emailResult.error || "Email sending failed",
+                reason: "Email sending failed",
               });
             }
-          } catch (emailErr) {
-            results.errors.push({
-              studentId: student.id,
-              name: `${student.first_name} ${student.last_name}`,
-              reason: "Email sending failed",
-            });
           }
         }
       } catch (err) {

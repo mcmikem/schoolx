@@ -4,6 +4,7 @@ import { isDemoSchool } from "@/lib/demo-utils";
 import { getCurrentTerm } from "@/lib/automation";
 import { sendSchoolMessage, type ParentMessageKind } from "@/lib/messaging";
 import { getLocalDateString } from "@/lib/hooks/utils";
+import { loadFeeClearanceMap } from "@/lib/server/fee-clearance";
 
 export interface SMSResult {
   success: boolean;
@@ -575,8 +576,19 @@ export async function sendReportCardReady(options?: {
 
   const { data: school } = await supabase.from("schools").select("name").eq("id", schoolId).single();
 
+  // A "your report card is ready" SMS is a release to the parent. Hold it back
+  // while fees are outstanding — the card itself is not blocked, only its
+  // release, on the same figure the bursar's screen shows.
+  const clearanceByStudent = await loadFeeClearanceMap(supabase, schoolId, {
+    studentIds: students.map((s) => s.id),
+    currentTerm: term,
+  });
+
   for (const student of students) {
     if (!student.parent_phone) continue;
+
+    const clearance = clearanceByStudent.get(student.id);
+    if (clearance && !clearance.isCleared) continue;
 
     const message = generateSMSTemplate("report_card_ready", {
       student_name: `${student.first_name} ${student.last_name}`,
