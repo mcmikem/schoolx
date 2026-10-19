@@ -249,8 +249,9 @@ async function handlePost(request: NextRequest) {
       ? (claim.claimed_method as "cash" | "mobile_money" | "bank" | "installment" | "in_kind")
       : "mobile_money";
 
-    // Attach the claim to the student's oldest still-open fee term so the
-    // payment reduces a real balance rather than floating unallocated.
+    // Attach the claim to the student's oldest still-open fee term (FIFO) so the
+    // payment reduces a real outstanding balance rather than settling a term
+    // that is already paid off and leaving the debt showing.
     let studentFeeTermId: string | null = null;
     try {
       const { data: openTerm } = await withTimeout(
@@ -258,6 +259,8 @@ async function handlePost(request: NextRequest) {
           .from("student_fee_terms")
           .select("id")
           .eq("student_id", claim.student_id)
+          .eq("status", "active")
+          .gt("balance", 0)
           .order("created_at", { ascending: true })
           .limit(1)
           .maybeSingle(),
