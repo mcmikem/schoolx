@@ -283,6 +283,10 @@ export function Avatar({ src, name, size = "md" }: AvatarProps) {
   );
 }
 
+export { DataTable } from "./DataTable";
+export type { DataColumn } from "./DataTable";
+export { StatStrip } from "./StatStrip";
+export type { StatItem, StatTone } from "./StatStrip";
 export { Breadcrumbs } from "./Breadcrumbs";
 export {
   useKeyboardShortcuts,

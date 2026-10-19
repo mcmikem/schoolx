@@ -1,17 +1,19 @@
 "use client";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from "react";
-import { useAuth } from "@/lib/auth-context";
 import { offlineDB } from "@/lib/offline";
 import { useOnlineStatus } from "@/lib/offline";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody } from "@/components/ui/Card";
-import { Button } from "@/components/ui/index";
+import { Badge, Button, DataTable, StatStrip, type DataColumn } from "@/components/ui/index";
+import { ConflictResolver } from "@/components/ui/ConflictResolver";
+import { EmptyState } from "@/components/EmptyState";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { logger } from "@/lib/logger";
 
 interface PendingItem {
-  id: number | string;
+  id: number;
   table: string;
   action: "create" | "update" | "delete";
   data: Record<string, unknown>;
@@ -26,13 +28,37 @@ interface SyncMetadata {
   record_count: number;
 }
 
+type ServerRow = Record<string, unknown>;
+
+function isConflict(item: PendingItem): boolean {
+  return Boolean(item.reason && item.reason.includes("server newer"));
+}
+
+function actionVariant(action: PendingItem["action"]): "success" | "info" | "error" {
+  if (action === "create") return "success";
+  if (action === "update") return "info";
+  return "error";
+}
+
+function formatTime(timestamp: number): string {
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleString();
+}
+
+function shortId(item: PendingItem): string {
+  const id = item.data.id;
+  return typeof id === "string" && id ? id.slice(0, 8) : "—";
+}
+
 export default function SyncCenterPage() {
-  const { user } = useAuth();
   const isOnline = useOnlineStatus();
   const [pending, setPending] = useState<PendingItem[]>([]);
   const [failed, setFailed] = useState<PendingItem[]>([]);
+  const [serverRows, setServerRows] = useState<Record<string, ServerRow | null>>({});
   const [metadata, setMetadata] = useState<SyncMetadata[]>([]);
   const [syncing, setSyncing] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
   const [syncResult, setSyncResult] = useState<{
     success: number;
     failed: number;
@@ -41,12 +67,12 @@ export default function SyncCenterPage() {
 
   const loadData = useCallback(async () => {
     try {
-      const pendingItems = await offlineDB.getPendingSync();
-      const failedItems = await offlineDB.getFailedSync();
+      const pendingItems = (await offlineDB.getPendingSync()) as unknown as PendingItem[];
+      const failedItems = (await offlineDB.getFailedSync()) as unknown as PendingItem[];
       const meta = await offlineDB.getAllLastSynced();
 
-      setPending(pendingItems as PendingItem[]);
-      setFailed(failedItems as PendingItem[]);
+      setPending(pendingItems);
+      setFailed(failedItems);
 
       const metaList: SyncMetadata[] = Object.entries(meta).map(([table, timestamp]) => ({
         table,
@@ -54,6 +80,29 @@ export default function SyncCenterPage() {
         record_count: 0,
       }));
       setMetadata(metaList);
+
+      const conflicts = failedItems.filter(isConflict);
+      if (conflicts.length === 0) {
+        setServerRows({});
+        return;
+      }
+
+      const { supabase } = await import("@/lib/supabase");
+      const entries = await Promise.all(
+        conflicts.map(async (item) => {
+          const rowId = item.data.id;
+          if (typeof rowId !== "string" || !rowId) return [String(item.id), null] as const;
+          try {
+            const { data, error } = await supabase.from(item.table).select("*").eq("id", rowId).maybeSingle();
+            if (error) throw error;
+            return [String(item.id), (data as ServerRow | null) ?? null] as const;
+          } catch (e) {
+            logger.warn("Could not load server copy for conflict", { table: item.table, rowId, e });
+            return [String(item.id), null] as const;
+          }
+        }),
+      );
+      setServerRows(Object.fromEntries(entries));
     } catch (e) {
       logger.error("Error loading sync data:", e);
     }
@@ -83,182 +132,263 @@ export default function SyncCenterPage() {
     setSyncing(false);
   };
 
-  const handleClearFailed = async () => {
-    await offlineDB.clearSyncQueue();
+  const handleKeepLocal = async (item: PendingItem) => {
+    if (!isOnline) return;
+    await offlineDB.retrySyncItem(item.id);
+    await handleSync();
+  };
+
+  const handleKeepServer = async (item: PendingItem) => {
+    const server = serverRows[String(item.id)];
+    try {
+      if (server) await offlineDB.cacheFromServer(item.table, [server]);
+      await offlineDB.removeSyncItem(item.id);
+    } catch (e) {
+      logger.error("Failed to accept the server copy", { table: item.table, id: item.id, e });
+      setSyncResult({
+        success: 0,
+        failed: 1,
+        errors: ["Could not keep the server copy. Check your connection and try again."],
+      });
+      return;
+    }
     await loadData();
   };
 
-  const formatTime = (timestamp: number) => {
-    const date = new Date(timestamp);
-    return date.toLocaleString();
-  };
-
-  const getActionColor = (action: string) => {
-    switch (action) {
-      case "create":
-        return "bg-green-100 text-green-800";
-      case "update":
-        return "bg-blue-100 text-blue-800";
-      case "delete":
-        return "bg-red-100 text-red-800";
-      default:
-        return "bg-gray-100 text-gray-800";
+  const handleRetryFailed = async () => {
+    if (!isOnline) return;
+    for (const item of failed.filter((entry) => !isConflict(entry))) {
+      await offlineDB.retrySyncItem(item.id);
     }
+    await handleSync();
   };
 
-  const totalPending = pending.length;
-  const totalFailed = failed.length;
+  const handleDiscardFailed = async () => {
+    for (const item of failed) {
+      await offlineDB.removeSyncItem(item.id);
+    }
+    setConfirmClear(false);
+    await loadData();
+  };
+
+  const conflicts = failed.filter(isConflict);
+  const otherFailed = failed.filter((item) => !isConflict(item));
+  const lastSynced = metadata.reduce((latest, entry) => Math.max(latest, entry.last_synced), 0);
+
+  const pendingColumns: DataColumn<PendingItem>[] = [
+    {
+      key: "table",
+      header: "Table",
+      sortValue: (item) => item.table,
+      render: (item) => <span className="font-medium">{item.table.replaceAll("_", " ")}</span>,
+    },
+    {
+      key: "action",
+      header: "Action",
+      sortValue: (item) => item.action,
+      render: (item) => <Badge variant={actionVariant(item.action)}>{item.action}</Badge>,
+    },
+    {
+      key: "id",
+      header: "ID",
+      hideOnMobile: true,
+      render: (item) => <span className="font-mono text-xs text-[var(--t3)]">{shortId(item)}</span>,
+    },
+    {
+      key: "time",
+      header: "Queued",
+      sortValue: (item) => item.timestamp,
+      render: (item) => <span className="text-xs text-[var(--t3)]">{formatTime(item.timestamp)}</span>,
+    },
+    {
+      key: "attempts",
+      header: "Tries",
+      align: "right",
+      sortValue: (item) => item.attempts,
+      render: (item) => <span className="tabular-nums">{item.attempts}</span>,
+    },
+  ];
+
+  const failedColumns: DataColumn<PendingItem>[] = [
+    ...pendingColumns,
+    {
+      key: "reason",
+      header: "Reason",
+      hideOnMobile: true,
+      render: (item) => (
+        <span className="block max-w-[28rem] break-words text-xs text-[var(--error)]">{item.reason || "—"}</span>
+      ),
+    },
+  ];
 
   return (
     <PageErrorBoundary>
-      <div className="content">
-        <PageHeader title="Sync Center" subtitle="Manage offline changes and sync status" />
+      <div className="content space-y-6">
+        <PageHeader
+          title="Sync Center"
+          subtitle="Offline changes, conflicts and last-sync status — one place, on any device"
+        />
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <Card>
-            <CardBody className="text-center">
-              <div className={`text-3xl font-bold mb-1 ${isOnline ? "text-green-600" : "text-red-500"}`}>
-                {isOnline ? "Online" : "Offline"}
-              </div>
-              <div className="text-sm text-on-surface-variant">
-                {isOnline ? "Connected to server" : "Working offline"}
-              </div>
-            </CardBody>
-          </Card>
+        <StatStrip
+          ariaLive="polite"
+          columns={4}
+          items={[
+            {
+              label: "Connection",
+              value: isOnline ? "Online" : "Offline",
+              tone: isOnline ? "positive" : "negative",
+              hint: isOnline ? "Connected to the server" : "Changes are queued on this device",
+            },
+            {
+              label: "Waiting",
+              value: pending.length,
+              tone: "info",
+              hint: pending.length === 1 ? "change not uploaded yet" : "changes not uploaded yet",
+            },
+            {
+              label: "Conflicts",
+              value: conflicts.length,
+              tone: conflicts.length > 0 ? "warning" : "default",
+              hint: "changed on another device",
+            },
+            {
+              label: "Other failures",
+              value: otherFailed.length,
+              tone: otherFailed.length > 0 ? "negative" : "default",
+              hint: lastSynced ? `Last sync ${new Date(lastSynced).toLocaleString()}` : "Never synced",
+            },
+          ]}
+        />
 
-          <Card>
-            <CardBody className="text-center">
-              <div className="text-3xl font-bold text-primary mb-1">{totalPending}</div>
-              <div className="text-sm text-on-surface-variant">Pending changes</div>
-            </CardBody>
-          </Card>
-
-          <Card>
-            <CardBody className="text-center">
-              <div className="text-3xl font-bold text-error mb-1">{totalFailed}</div>
-              <div className="text-sm text-on-surface-variant">Failed to sync</div>
-            </CardBody>
-          </Card>
-        </div>
-
-        <div className="flex gap-3 mb-6">
+        <div className="flex flex-wrap gap-3">
           <Button variant="primary" onClick={handleSync} disabled={!isOnline || syncing}>
-            <MaterialIcon icon={syncing ? "sync" : "cloud_sync"} className={syncing ? "animate-spin" : ""} />
-            {syncing ? "Syncing..." : "Sync Now"}
+            <MaterialIcon icon="cloud_sync" className={syncing ? "animate-spin" : ""} />
+            {syncing ? "Syncing…" : "Sync now"}
           </Button>
-          {totalFailed > 0 && (
-            <Button variant="secondary" onClick={handleClearFailed}>
-              <MaterialIcon icon="delete_sweep" />
-              Clear Failed
+          {otherFailed.length > 0 && (
+            <Button variant="secondary" onClick={handleRetryFailed} disabled={!isOnline || syncing}>
+              <MaterialIcon icon="refresh" />
+              Retry failed
             </Button>
+          )}
+          {failed.length > 0 && (
+            <Button variant="ghost" onClick={() => setConfirmClear(true)}>
+              <MaterialIcon icon="delete_sweep" />
+              Discard all failed
+            </Button>
+          )}
+          {!isOnline && (
+            <p className="self-center text-xs text-[var(--t3)]">
+              Reconnect to sync — your changes are safe on this device.
+            </p>
           )}
         </div>
 
         {syncResult && (
-          <Card className="mb-6">
+          <Card>
             <CardBody>
-              <div className="flex items-center gap-3 mb-2">
+              <div className="mb-2 flex items-center gap-3">
                 <MaterialIcon
                   icon={syncResult.failed === 0 ? "check_circle" : "warning"}
-                  className={syncResult.failed === 0 ? "text-green-500" : "text-amber-500"}
+                  className={syncResult.failed === 0 ? "text-[var(--green)]" : "text-[var(--amber)]"}
                 />
-                <span className="font-semibold">Sync Complete</span>
+                <span className="font-semibold">
+                  {syncResult.failed === 0 ? "Sync complete" : "Sync finished with problems"}
+                </span>
               </div>
-              <div className="text-sm text-on-surface-variant">
+              <div className="text-sm text-[var(--on-surface-variant)]">
                 {syncResult.success} synced, {syncResult.failed} failed
               </div>
-              {syncResult.errors.length > 0 && <div className="mt-2 text-xs text-error">{syncResult.errors[0]}</div>}
+              {syncResult.errors.length > 0 && (
+                <ul className="mt-2 space-y-1 text-xs text-[var(--error)]">
+                  {syncResult.errors.slice(0, 3).map((error) => (
+                    <li key={error}>{error}</li>
+                  ))}
+                </ul>
+              )}
             </CardBody>
           </Card>
         )}
 
-        {totalPending > 0 && (
-          <Card className="mb-6">
-            <CardBody>
-              <h3 className="font-semibold mb-4">Pending Changes</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-left text-on-surface-variant">
-                      <th className="pb-2">Table</th>
-                      <th className="pb-2">Action</th>
-                      <th className="pb-2">ID</th>
-                      <th className="pb-2">Time</th>
-                      <th className="pb-2">Attempts</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pending.slice(0, 20).map((item) => (
-                      <tr key={item.id} className="border-t border-outline/10">
-                        <td className="py-2 font-medium">{item.table}</td>
-                        <td className="py-2">
-                          <span className={`px-2 py-0.5 rounded text-xs ${getActionColor(item.action)}`}>
-                            {item.action}
-                          </span>
-                        </td>
-                        <td className="py-2 font-mono text-xs">{(item.data.id as string)?.slice(0, 8) || "-"}</td>
-                        <td className="py-2 text-xs text-on-surface-variant">{formatTime(item.timestamp)}</td>
-                        <td className="py-2">{item.attempts}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-                {totalPending > 20 && (
-                  <div className="text-sm text-on-surface-variant mt-2">+{totalPending - 20} more items</div>
-                )}
-              </div>
-            </CardBody>
-          </Card>
+        {conflicts.length > 0 && (
+          <section className="space-y-3">
+            <div>
+              <h2 className="text-sm font-semibold text-[var(--t1)]">Conflicts to resolve</h2>
+              <p className="text-xs text-[var(--t3)]">
+                Your edit was kept on this device. Choose a version to finish syncing.
+              </p>
+            </div>
+            {conflicts.map((item) => {
+              const server = serverRows[String(item.id)];
+              return (
+                <ConflictResolver
+                  key={item.id}
+                  title={`${item.table.replaceAll("_", " ")} · ${shortId(item)}`}
+                  subtitle={formatTime(item.timestamp)}
+                  reason={item.reason}
+                  local={item.data}
+                  server={server ?? {}}
+                  onKeepLocal={() => handleKeepLocal(item)}
+                  onKeepServer={() => handleKeepServer(item)}
+                  busy={syncing}
+                />
+              );
+            })}
+          </section>
         )}
 
-        {totalFailed > 0 && (
-          <Card className="mb-6 border-error/30">
-            <CardBody>
-              <h3 className="font-semibold mb-4 text-error">Failed Sync Items</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="text-left text-on-surface-variant">
-                      <th className="pb-2">Table</th>
-                      <th className="pb-2">Action</th>
-                      <th className="pb-2">ID</th>
-                      <th className="pb-2">Time</th>
-                      <th className="pb-2">Attempts</th>
-                      <th className="pb-2">Reason</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {failed.map((item) => (
-                      <tr key={item.id} className="border-t border-outline/10">
-                        <td className="py-2 font-medium">{item.table}</td>
-                        <td className="py-2">
-                          <span className={`px-2 py-0.5 rounded text-xs ${getActionColor(item.action)}`}>
-                            {item.action}
-                          </span>
-                        </td>
-                        <td className="py-2 font-mono text-xs">{(item.data.id as string)?.slice(0, 8) || "-"}</td>
-                        <td className="py-2 text-xs text-on-surface-variant">{formatTime(item.timestamp)}</td>
-                        <td className="py-2 text-error">{item.attempts}</td>
-                        <td className="py-2 text-xs text-on-surface-variant">{item.reason || "-"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </CardBody>
-          </Card>
+        {pending.length > 0 && (
+          <section className="space-y-2">
+            <h2 className="text-sm font-semibold text-[var(--t1)]">Waiting to upload</h2>
+            <DataTable
+              caption="Offline changes waiting to upload"
+              columns={pendingColumns}
+              rows={pending}
+              getRowId={(item) => String(item.id)}
+              initialSort={{ key: "time", dir: "asc" }}
+              footer={
+                <span className="text-xs text-[var(--t3)]">
+                  {pending.length} queued · oldest first · retried automatically when online
+                </span>
+              }
+            />
+          </section>
         )}
 
-        {totalPending === 0 && totalFailed === 0 && (
-          <Card>
-            <CardBody className="text-center py-12">
-              <MaterialIcon className="text-5xl text-green-500 mb-4">check_circle</MaterialIcon>
-              <h3 className="text-lg font-semibold mb-2">All Synced!</h3>
-              <p className="text-sm text-on-surface-variant">All your data is up to date</p>
-            </CardBody>
-          </Card>
+        {otherFailed.length > 0 && (
+          <section className="space-y-2">
+            <h2 className="text-sm font-semibold text-[var(--error)]">Could not sync</h2>
+            <DataTable
+              caption="Offline changes that could not be synced"
+              columns={failedColumns}
+              rows={otherFailed}
+              getRowId={(item) => String(item.id)}
+              initialSort={{ key: "time", dir: "asc" }}
+              footer={
+                <span className="text-xs text-[var(--t3)]">Retry after fixing the reason, or discard the change.</span>
+              }
+            />
+          </section>
+        )}
+
+        {pending.length === 0 && failed.length === 0 && (
+          <EmptyState
+            icon="cloud_done"
+            title="All synced"
+            description="Every change on this device has reached the server. You can keep working offline — new changes will appear here."
+          />
         )}
       </div>
+
+      <ConfirmDialog
+        isOpen={confirmClear}
+        onClose={() => setConfirmClear(false)}
+        onConfirm={handleDiscardFailed}
+        title="Discard all failed changes?"
+        message={`${failed.length} change${failed.length === 1 ? "" : "s"} will be removed from this device and will not be sent to the server. This cannot be undone.`}
+        confirmLabel="Discard changes"
+        variant="danger"
+      />
     </PageErrorBoundary>
   );
 }

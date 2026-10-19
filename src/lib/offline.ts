@@ -531,6 +531,32 @@ class OfflineDB {
     });
   }
 
+  // Re-apply the local version of a conflicted item. Bumps the local
+  // updated_at to "now" so the server-wins guard lets it through on the next
+  // sync, and clears the retry cap/reason that kept it parked.
+  async retrySyncItem(id: number): Promise<void> {
+    const db = await this.ensureDb();
+
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction(["sync_queue"], "readwrite");
+      const store = transaction.objectStore("sync_queue");
+      const request = store.get(id);
+
+      request.onsuccess = () => {
+        const item = request.result as OfflineRecord | undefined;
+        if (item) {
+          item.synced = false;
+          item.attempts = 0;
+          delete item.reason;
+          item.data = { ...item.data, updated_at: new Date().toISOString() };
+          store.put(item);
+        }
+        resolve();
+      };
+      request.onerror = () => reject(request.error);
+    });
+  }
+
   // Remove a sync queue item
   async removeSyncItem(id: number): Promise<void> {
     const db = await this.ensureDb();
