@@ -1589,6 +1589,55 @@ export function useBudget(schoolId?: string) {
  * an empty map, which leaves the field as a normal typed input -- a bursar with
  * no signal is worse off guessing than typing.
  */
+/**
+ * Who recorded each transaction, resolved to a name.
+ *
+ * Transparency is the whole point of an audit trail: a bursar checking a figure
+ * needs to see who entered it and when, and a row of amounts with no names on
+ * them is not an audit trail. fee_payments and fee_adjustments both carry
+ * `recorded_by`, but they carry an id, and an id is not something you can read.
+ *
+ * Fetched once as a map of id -> name rather than per row, so a school with
+ * thousands of payments does not turn the ledger into a thousand lookups.
+ */
+export function useTransactionRecorders(schoolId?: string): Map<string, string> {
+  const { isDemo } = useAuth();
+  const isOnline = useOnlineStatus();
+  const [names, setNames] = useState<Map<string, string>>(new Map());
+
+  useEffect(() => {
+    if (!schoolId || isDemo || isDemoSchool(schoolId) || !isOnline) {
+      setNames(new Map());
+      return;
+    }
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const result = (await withTimeout(
+          supabase.from("users").select("id, full_name").eq("school_id", schoolId),
+          15000,
+          null,
+        )) as PostgrestSingleResponse<Array<{ id: string; full_name: string }>> | null;
+        if (cancelled) return;
+        if (result?.error) throw result.error;
+        setNames(new Map((result?.data ?? []).map((u) => [u.id, u.full_name || ""])));
+      } catch (e) {
+        if (!cancelled) {
+          logger.warn("Could not resolve who recorded transactions:", e);
+          setNames(new Map());
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [schoolId, isDemo, isOnline]);
+
+  return names;
+}
+
 export function usePaymentParentNames(schoolId?: string): Record<string, string[]> {
   const { isDemo } = useAuth();
   const isOnline = useOnlineStatus();

@@ -35,6 +35,7 @@ import {
   useClasses,
   useFeeAdjustments,
   useCompleteFeePayments,
+  useTransactionRecorders,
   useFeePayments,
   useFeeStructure,
   usePaymentParentNames,
@@ -178,6 +179,9 @@ export default function FinanceHubPage() {
   const { adjustments, createAdjustment, deleteAdjustment } = useFeeAdjustments(school?.id);
   const { createPayment, deletePayment } = useFeePayments(school?.id, 1, 50);
   const { payments: completePayments, truncated: ledgerTruncated } = useCompleteFeePayments(school?.id);
+  // Every transaction carries a recorded_by id. An id is not something a bursar
+  // can read, so the ledger resolves them to names once.
+  const recordedByName = useTransactionRecorders(school?.id);
 
   // If the ledger ever hits its safety cap the totals below are incomplete, and
   // a balance that is short is worse than one that says so.
@@ -2152,7 +2156,11 @@ export default function FinanceHubPage() {
                     </div>
                   </div>
 
-                  <FeeTable balances={filteredBalances} onViewReceipt={handleViewReceipt} />
+                  <FeeTable
+                    balances={filteredBalances}
+                    recordedByName={recordedByName}
+                    onViewReceipt={handleViewReceipt}
+                  />
                 </>
               ))}
 

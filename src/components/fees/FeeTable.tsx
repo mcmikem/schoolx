@@ -36,6 +36,10 @@ export interface StudentBalance {
     date: string;
     /** Fee line this payment settled, when it names one. */
     fee?: string;
+    /** When the row was written, to the minute. */
+    recorded_at?: string | null;
+    /** Who entered it. Null for a payment claimed in the parent portal. */
+    recorded_by?: string | null;
   }>;
   adjustments: Array<{
     id: string;
@@ -44,6 +48,8 @@ export interface StudentBalance {
     description: string;
     /** Fee line discounted, when the adjustment names one. */
     fee?: string;
+    recorded_at?: string | null;
+    recorded_by?: string | null;
   }>;
 }
 
@@ -133,10 +139,41 @@ function FeeBreakdownLines({ fees }: { fees: AllocatedFee[] }) {
 
 interface EnhancedFeeTableProps {
   balances: StudentBalance[];
+  /** id -> name, so the ledger can say who entered each row. */
+  recordedByName?: Map<string, string>;
   onViewReceipt: (student: StudentBalance) => void;
   onRecordPayment?: (student: StudentBalance) => void;
   onSendSMS?: (students: StudentBalance[]) => void;
   onExport?: (students: StudentBalance[]) => void;
+}
+
+/**
+ * The clock time a row was written, in the reader's own timezone.
+ *
+ * Rendered from created_at rather than from the payment_date the bursar typed:
+ * a payment entered at 23:50 for "today" must be visible as late in the day, or
+ * a correction made this morning is indistinguishable from one made at closing.
+ * Returns null when there is no timestamp, so an imported row with only a date
+ * shows the date and nothing invented.
+ */
+export function formatTimeOfDay(iso?: string | null): string | null {
+  if (!iso) return null;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
+/**
+ * Who entered the row.
+ *
+ * An audit trail that says "by Unknown" is worse than useless -- it reads as
+ * suspicion where the truth is usually a payment claimed in the parent portal
+ * or a row imported without a user. So each case says what it actually is.
+ */
+export function describeWho(recordedBy: string | null | undefined, names?: Map<string, string>): string {
+  if (!recordedBy) return "Parent portal or an uncredited import";
+  const name = names?.get(recordedBy);
+  return name || "a staff member no longer on the account";
 }
 
 function FeeProgressBar({ percentage, amount, total }: { percentage: number; amount: number; total: number }) {
@@ -191,7 +228,7 @@ function getStatusBadge(status: string | undefined, percentage: number) {
 
 const ITEMS_PER_PAGE = 20;
 
-function BalanceLedger({ student }: { student: StudentBalance }) {
+function BalanceLedger({ student, recordedByName }: { student: StudentBalance; recordedByName?: Map<string, string> }) {
   const formatDate = (value: string) => {
     const parsed = new Date(value);
     return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString();
@@ -211,22 +248,30 @@ function BalanceLedger({ student }: { student: StudentBalance }) {
         <span className="font-semibold tabular-nums">{formatCurrency(student.expected || 0)}</span>
       </div>
       {student.payments.map((p) => (
-        <div key={p.id} className="flex items-center justify-between gap-3 text-[var(--t2)]">
-          <span className="min-w-0 truncate">
-            Paid · {formatDate(p.date)}
-            {p.method ? ` · ${p.method}` : ""}
-            {p.reference ? ` · ${p.reference}` : ""}
-            {p.fee ? ` · ${p.fee}` : ""}
+        <div key={p.id} className="flex items-start justify-between gap-3 text-[var(--t2)]">
+          <span className="min-w-0">
+            <span className="block truncate">
+              Paid · {formatDate(p.date)}
+              {formatTimeOfDay(p.recorded_at) ? ` at ${formatTimeOfDay(p.recorded_at)}` : ""}
+              {p.method ? ` · ${p.method}` : ""}
+              {p.reference ? ` · ${p.reference}` : ""}
+              {p.fee ? ` · ${p.fee}` : ""}
+            </span>
+            <span className="block text-[11px] text-[var(--t3)]">by {describeWho(p.recorded_by, recordedByName)}</span>
           </span>
           <span className="shrink-0 font-semibold tabular-nums text-emerald-700">−{formatCurrency(p.amount || 0)}</span>
         </div>
       ))}
       {student.adjustments.map((a) => (
-        <div key={a.id} className="flex items-center justify-between gap-3 text-[var(--t2)]">
-          <span className="min-w-0 truncate">
-            {a.adjustment_type || "Adjustment"}
-            {a.fee ? ` · ${a.fee}` : ""}
-            {a.description ? ` · ${a.description}` : ""}
+        <div key={a.id} className="flex items-start justify-between gap-3 text-[var(--t2)]">
+          <span className="min-w-0">
+            <span className="block truncate">
+              {a.adjustment_type || "Adjustment"}
+              {formatTimeOfDay(a.recorded_at) ? ` at ${formatTimeOfDay(a.recorded_at)}` : ""}
+              {a.fee ? ` · ${a.fee}` : ""}
+              {a.description ? ` · ${a.description}` : ""}
+            </span>
+            <span className="block text-[11px] text-[var(--t3)]">by {describeWho(a.recorded_by, recordedByName)}</span>
           </span>
           <span className="shrink-0 font-semibold tabular-nums">{formatCurrency(a.amount || 0)}</span>
         </div>
@@ -247,6 +292,7 @@ function BalanceLedger({ student }: { student: StudentBalance }) {
 
 export default function FeeTable({
   balances,
+  recordedByName,
   onViewReceipt,
   onRecordPayment,
   onSendSMS,
@@ -521,7 +567,7 @@ export default function FeeTable({
                     {expandedId === student.id && (
                       <tr className="bg-[var(--surface-container-low)]/60">
                         <td colSpan={7} className="px-6 py-4">
-                          <BalanceLedger student={student} />
+                          <BalanceLedger student={student} recordedByName={recordedByName} />
                         </td>
                       </tr>
                     )}
@@ -671,7 +717,7 @@ export default function FeeTable({
               </button>
               {expandedId === student.id && (
                 <div className="mt-2 rounded-xl bg-[var(--surface-container-low)] p-3">
-                  <BalanceLedger student={student} />
+                  <BalanceLedger student={student} recordedByName={recordedByName} />
                 </div>
               )}
             </div>
