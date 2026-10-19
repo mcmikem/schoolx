@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 
 interface Tab {
@@ -85,20 +85,33 @@ interface TabPanelProps {
   activeTab: string;
   tabId: string;
   id?: string;
+  /**
+   * Mount the panel only after its tab has been opened, then keep it mounted.
+   * Saves rendering a heavy tab (tables, charts) the user may never visit.
+   */
+  lazy?: boolean;
 }
 
-export function TabPanel({ children, activeTab, tabId, id: customId }: TabPanelProps) {
+export function TabPanel({ children, activeTab, tabId, id: customId, lazy = false }: TabPanelProps) {
   // Note: when used with Tabs, pass id={`panel-${uid}-${tabId}`} to keep aria-controls ↔ panel id in sync.
   // Fallback preserves backward compatibility for standalone usage.
   const panelId = customId || `panel-${tabId}`;
+  const isActive = activeTab === tabId;
+  const [visited, setVisited] = useState(isActive);
+
+  useEffect(() => {
+    if (isActive && !visited) setVisited(true);
+  }, [isActive, visited]);
+
+  if (lazy && !visited) return null;
 
   return (
     <div
       role="tabpanel"
       id={panelId}
       aria-labelledby={panelId.replace(/^panel-/, "tab-")}
-      hidden={activeTab !== tabId}
-      className={activeTab === tabId ? "block" : "hidden"}
+      hidden={!isActive}
+      className={isActive ? "block" : "hidden"}
     >
       {children}
     </div>

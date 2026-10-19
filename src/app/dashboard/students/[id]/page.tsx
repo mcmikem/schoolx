@@ -994,7 +994,7 @@ export default function StudentProfilePage() {
               </div>
             </TabPanel>
 
-            <TabPanel activeTab={activeTab} tabId="guardians">
+            <TabPanel activeTab={activeTab} tabId="guardians" lazy>
               <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="flex items-center gap-2 font-semibold text-gray-900 dark:text-gray-100">
@@ -1130,7 +1130,7 @@ export default function StudentProfilePage() {
               </div>
             </TabPanel>
 
-            <TabPanel activeTab={activeTab} tabId="messages">
+            <TabPanel activeTab={activeTab} tabId="messages" lazy>
               <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
                 <div className="mb-4 flex items-center justify-between">
                   <h3 className="flex items-center gap-2 font-semibold text-gray-900 dark:text-gray-100">

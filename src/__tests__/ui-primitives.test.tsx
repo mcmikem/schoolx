@@ -1,8 +1,10 @@
+import React from "react";
 import { render, screen, fireEvent, waitFor, renderHook, act } from "@testing-library/react";
 import { DataTable, type DataColumn } from "@/components/ui/DataTable";
 import { StatStrip } from "@/components/ui/StatStrip";
 import { ConflictResolver } from "@/components/ui/ConflictResolver";
 import { useListState } from "@/lib/hooks/useListState";
+import { Tabs, TabPanel } from "@/components/ui/Tabs";
 
 interface Row {
   id: string;
@@ -96,5 +98,38 @@ describe("useListState", () => {
     expect(result.current.q).toBe("asha");
 
     await waitFor(() => expect(window.location.search).toContain("q=asha"));
+  });
+});
+
+describe("TabPanel lazy mounting", () => {
+  function Harness() {
+    const [tab, setTab] = React.useState("one");
+    return (
+      <>
+        <Tabs
+          tabs={[
+            { id: "one", label: "One" },
+            { id: "two", label: "Two" },
+          ]}
+          activeTab={tab}
+          onChange={setTab}
+        />
+        <TabPanel activeTab={tab} tabId="one">
+          <p>First panel</p>
+        </TabPanel>
+        <TabPanel activeTab={tab} tabId="two" lazy>
+          <p>Second panel</p>
+        </TabPanel>
+      </>
+    );
+  }
+
+  it("does not mount an unvisited lazy panel until its tab is opened", () => {
+    render(<Harness />);
+    expect(screen.getByText("First panel")).toBeInTheDocument();
+    expect(screen.queryByText("Second panel")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Two" }));
+    expect(screen.getByText("Second panel")).toBeInTheDocument();
   });
 });
