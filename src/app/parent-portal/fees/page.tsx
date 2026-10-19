@@ -270,6 +270,10 @@ export default function ParentFeesPage() {
           p_amount: amount,
           p_description: "Top-up by Parent via Portal",
           p_ref: `PAR-${Date.now()}`,
+          // Deliberately null: recorded_by is a staff column, and this is the
+          // parent paying. The description already says who acted, so the row
+          // explains itself instead of carrying an unattributed gap.
+          p_recorded_by: null,
         }),
         12000,
         timeoutFallback(),

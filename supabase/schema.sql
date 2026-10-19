@@ -1788,9 +1788,16 @@ CREATE TABLE IF NOT EXISTS wallet_transactions (
     description TEXT,
     reference_id TEXT,
     reference TEXT,
+    -- Who made the transaction. A top-up is cash handed over at the counter,
+    -- and the amount alone records nothing about who took it. NULL on rows
+    -- written before this column existed, and on entries made by a parent in
+    -- the portal, who is not a staff account. See
+    -- migrations/20261129000000_wallet_transaction_recorder.sql.
+    recorded_by UUID REFERENCES users(id) ON DELETE SET NULL,
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_wallet_transactions_school ON wallet_transactions(school_id);
+CREATE INDEX IF NOT EXISTS idx_wallet_transactions_recorded_by ON wallet_transactions(school_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_wallet_transactions_wallet ON wallet_transactions(wallet_id);
 ALTER TABLE wallet_transactions ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "School users wallet_transactions all" ON wallet_transactions;

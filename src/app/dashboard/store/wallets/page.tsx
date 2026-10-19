@@ -48,7 +48,7 @@ function resolveStudent(
 }
 
 export default function StudentWalletsPage() {
-  const { school } = useAuth();
+  const { school, user } = useAuth();
   const toast = useToast();
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -121,6 +121,9 @@ export default function StudentWalletsPage() {
         p_amount: amount,
         p_description: "Manual Top-up by Admin",
         p_ref: `ADM-${Date.now()}`,
+        // Who took the money. A top-up is cash handed over at the counter, and
+        // the amount alone is not a record of anything.
+        p_recorded_by: user?.id ?? null,
       });
 
       if (error) throw error;

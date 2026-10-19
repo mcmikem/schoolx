@@ -326,7 +326,8 @@ export async function POST(request: NextRequest) {
             p_student_id UUID,
             p_amount NUMERIC,
             p_description TEXT,
-            p_ref TEXT
+            p_ref TEXT,
+    p_recorded_by UUID DEFAULT NULL
           ) RETURNS VOID AS $$
           DECLARE
             v_wallet_id UUID;
@@ -351,8 +352,8 @@ export async function POST(request: NextRequest) {
             RETURNING id INTO v_wallet_id;
 
             -- Record transaction
-            INSERT INTO wallet_transactions (school_id, wallet_id, amount, transaction_type, description, reference_id)
-            VALUES (v_school_id, v_wallet_id, p_amount, 'topup', p_description, p_ref);
+            INSERT INTO wallet_transactions (school_id, wallet_id, amount, transaction_type, description, reference_id, recorded_by)
+            VALUES (v_school_id, v_wallet_id, p_amount, 'topup', p_description, p_ref, p_recorded_by);
           END;
           $$ LANGUAGE plpgsql;
         `,
