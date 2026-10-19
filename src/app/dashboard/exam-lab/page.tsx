@@ -21,6 +21,8 @@ import { needsHuman, needsReview, reconcile } from "@/lib/exam/exam-model";
 import { parsePaper } from "@/lib/exam/parse-paper";
 import { renderPaperForm } from "@/lib/exam/render-form";
 
+import { extractTextFromPdf } from "@/lib/exam/pdf-text";
+
 const SAMPLE = `MATHEMATICS END OF TERM TEST
 Subject: Mathematics
 Class: P.7
@@ -44,6 +46,10 @@ export default function ExamLabPage() {
   const [text, setText] = useState(SAMPLE);
   const [ocr, setOcr] = useState(true);
   const [showModel, setShowModel] = useState(false);
+  const [reading, setReading] = useState<string | null>(null);
+  const [howRead, setHowRead] = useState<string | null>(null);
+  const [rawExtract, setRawExtract] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const result = useMemo(() => {
     try {
@@ -116,14 +122,96 @@ export default function ExamLabPage() {
             <div style={{ marginTop: 8 }}>
               <input
                 type="file"
-                accept=".txt,text/plain"
+                accept=".txt,.pdf,text/plain,application/pdf"
                 onChange={async (e) => {
                   const file = e.target.files?.[0];
-                  if (file) setText(await file.text());
+                  e.target.value = "";
+                  if (!file) return;
+                  setError(null);
+                  setRawExtract(null);
+                  setHowRead(null);
+                  try {
+                    if (file.name.toLowerCase().endsWith(".pdf")) {
+                      setReading("Reading PDF...");
+                      const buffer = await file.arrayBuffer();
+                      const result = await extractTextFromPdf(buffer, {
+                        progress: (message) => setReading(message),
+                      });
+                      setReading(null);
+                      setHowRead(`Read as ${result.method} — ${result.pages} page${result.pages === 1 ? "" : "s"}.`);
+                      setRawExtract(result.text);
+                      // The parse flag must match how the text actually arrived,
+                      // or the warnings lie about the source.
+                      if (result.method === "ocr") setOcr(true);
+                      if (!result.text.trim()) {
+                        setError(
+                          "The PDF gave no readable text at all — neither a text layer nor anything Tesseract could recognise. Nothing was parsed.",
+                        );
+                      } else {
+                        setText(result.text);
+                      }
+                    } else {
+                      setReading(null);
+                      setHowRead("Read from the text file directly.");
+                      setRawExtract(null);
+                      setText(await file.text());
+                    }
+                  } catch (err) {
+                    setReading(null);
+                    setHowRead(null);
+                    setError(`Could not read the file: ${err instanceof Error ? err.message : String(err)}.`);
+                  }
                 }}
                 style={{ fontSize: 12 }}
               />
+              <span style={{ fontSize: 11, color: "#5b6472", display: "block", marginTop: 4 }}>
+                .txt or .pdf. A scanned PDF is read by OCR in this browser — expect tens of seconds per page, not
+                instantly.
+              </span>
             </div>
+
+            {(reading || howRead || rawExtract) && (
+              <div style={{ marginTop: 8, fontSize: 12 }}>
+                {reading && <div style={{ color: "#8a5a00" }}>{reading}</div>}
+                {howRead && <div style={{ color: "#1b5e34" }}>{howRead}</div>}
+                {rawExtract && rawExtract.trim() && (
+                  <details style={{ marginTop: 4 }}>
+                    <summary style={{ cursor: "pointer", color: "#5b6472" }}>
+                      Show exactly what was read from the file
+                    </summary>
+                    <pre
+                      style={{
+                        maxHeight: 240,
+                        overflow: "auto",
+                        background: "#f4f5f7",
+                        padding: 8,
+                        borderRadius: 6,
+                        fontSize: 11,
+                        whiteSpace: "pre-wrap",
+                      }}
+                    >
+                      {rawExtract}
+                    </pre>
+                  </details>
+                )}
+              </div>
+            )}
+            {error && (
+              <div
+                role="alert"
+                style={{
+                  marginTop: 8,
+                  fontSize: 12,
+                  color: "#8a5a00",
+                  background: "#fff6e0",
+                  border: "1px solid #f0d090",
+                  borderRadius: 6,
+                  padding: 8,
+                }}
+              >
+                {error}
+              </div>
+            )}
 
             {/* What the parser thought */}
             <div style={{ marginTop: 12, fontSize: 13 }}>

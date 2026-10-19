@@ -84,6 +84,10 @@ const alwaysPublicPaths = [
   "/login",
   "/register",
   "/demo-login",
+  // Static runtime assets (pdf.js / Tesseract workers, wasm, trained data).
+  // Content-free binaries with no data in them; gates here would just break
+  // loading them from inside an authenticated page.
+  "/vendor",
   "/privacy",
   "/features",
   "/pricing",
