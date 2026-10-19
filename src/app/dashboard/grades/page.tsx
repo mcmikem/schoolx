@@ -2,6 +2,7 @@
 import { type ComponentProps, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState, NoData } from "@/components/EmptyState";
+import { ClassAverageRow } from "@/components/grades/ClassAverageRow";
 import { GradeStatusBadge } from "@/components/grades/GradeStatusBadge";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
@@ -2248,44 +2249,12 @@ export default function GradesPage() {
                       {displayStudents.length > 0 && !competencyMode && (
                         <tfoot className="bg-surface-container-low/40">
                           <tr>
-                            <td className="px-8 py-4">
-                              <span className="text-xs font-bold uppercase tracking-wider text-on-surface-variant">
-                                Class Avg
-                              </span>
-                            </td>
-                            {activeAssessmentTypes.map((type) => {
-                              const avg = columnAverage(
-                                marks,
-                                displayStudents.map((s) => s.id),
-                                type,
-                              );
-                              return (
-                                <td key={type} className="px-4 py-4 text-center">
-                                  <span
-                                    className={`text-sm font-bold ${avg !== null ? "text-primary" : "text-on-surface-variant/50"}`}
-                                  >
-                                    {avg !== null ? avg : "—"}
-                                  </span>
-                                </td>
-                              );
-                            })}
-                            <td className="px-4 py-4 text-center">
-                              {(() => {
-                                const classAvg = averageOfTotals(
-                                  marks,
-                                  displayStudents.map((s) => s.id),
-                                  competencyMode,
-                                );
-                                return (
-                                  <span
-                                    className={`text-sm font-bold ${classAvg !== null ? "text-primary" : "text-on-surface-variant/50"}`}
-                                  >
-                                    {classAvg !== null ? classAvg : "—"}
-                                  </span>
-                                );
-                              })()}
-                            </td>
-                            <td />
+                            <ClassAverageRow
+                              marks={marks}
+                              studentIds={displayStudents.map((s) => s.id)}
+                              assessmentTypes={activeAssessmentTypes}
+                              competencyMode={competencyMode}
+                            />
                           </tr>
                         </tfoot>
                       )}
