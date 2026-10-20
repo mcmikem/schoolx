@@ -1,7 +1,7 @@
 "use client";
+import { useMemo } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
-import { Button } from "@/components/ui/index";
-import { Card, CardBody } from "@/components/ui/Card";
+import { Button, DataTable, Modal, StatStrip, type DataColumn } from "@/components/ui/index";
 
 interface PlanStudent {
   id: string;
@@ -57,6 +57,23 @@ interface FeePaymentPlansProps {
   plansLoading: boolean;
 }
 
+const STATUS_STYLE: Record<PaymentPlan["status"], string> = {
+  active: "bg-blue-100 text-blue-800",
+  completed: "bg-green-100 text-green-800",
+  defaulted: "bg-red-100 text-red-800",
+};
+
+const STATUS_LABEL: Record<PaymentPlan["status"], string> = {
+  active: "Active",
+  completed: "Completed",
+  defaulted: "Defaulted",
+};
+
+function formatDate(value: string): string {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString();
+}
+
 export default function FeePaymentPlans({
   plans,
   activePlanCount,
@@ -88,244 +105,271 @@ export default function FeePaymentPlans({
             ? "Choose a start date for the plan."
             : "";
 
+  const installmentSummary = useMemo(() => {
+    const paid = installments.filter((item) => item.paid);
+    const paidAmount = paid.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+    return {
+      paidCount: paid.length,
+      paidAmount,
+      remaining: Math.max(0, Number(selectedPlan?.total_amount || 0) - paidAmount),
+    };
+  }, [installments, selectedPlan]);
+
+  const columns: DataColumn<PaymentPlan>[] = [
+    {
+      key: "student",
+      header: "Student",
+      sortValue: (plan) => `${plan.students?.first_name ?? ""} ${plan.students?.last_name ?? ""}`,
+      render: (plan) => (
+        <span className="font-medium">
+          {plan.students?.first_name} {plan.students?.last_name}
+        </span>
+      ),
+    },
+    {
+      key: "class",
+      header: "Class",
+      sortValue: (plan) => plan.students?.classes?.name ?? "",
+      render: (plan) => <span className="text-sm text-[var(--t3)]">{plan.students?.classes?.name || "—"}</span>,
+    },
+    {
+      key: "total",
+      header: "Total",
+      align: "right",
+      sortValue: (plan) => Number(plan.total_amount),
+      render: (plan) => <span className="font-bold text-[var(--t1)]">{formatCurrency(Number(plan.total_amount))}</span>,
+    },
+    {
+      key: "installments",
+      header: "Instalments",
+      align: "center",
+      sortValue: (plan) => plan.installments,
+      render: (plan) => <span className="text-sm">{plan.installments}</span>,
+    },
+    {
+      key: "start",
+      header: "Start date",
+      hideOnMobile: true,
+      sortValue: (plan) => plan.start_date,
+      render: (plan) => <span className="text-sm text-[var(--t3)]">{formatDate(plan.start_date)}</span>,
+    },
+    {
+      key: "status",
+      header: "Status",
+      sortValue: (plan) => plan.status,
+      render: (plan) => (
+        <span className={`rounded px-2 py-1 text-xs font-bold uppercase ${STATUS_STYLE[plan.status]}`}>
+          {STATUS_LABEL[plan.status]}
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      header: <span className="sr-only">Actions</span>,
+      align: "right",
+      hideOnMobile: true,
+      render: (plan) => (
+        <Button size="sm" variant="ghost" onClick={() => setSelectedPlan(plan)}>
+          View
+        </Button>
+      ),
+    },
+  ];
+
   return (
     <>
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
-        <Card>
-          <CardBody className="text-center">
-            <div className="text-2xl font-bold text-[var(--t1)]">{plans.length}</div>
-            <div className="text-sm text-[var(--t3)] mt-1">Total Plans</div>
-          </CardBody>
-        </Card>
-        <Card>
-          <CardBody className="text-center">
-            <div className="text-2xl font-bold text-[var(--primary)]">{activePlanCount}</div>
-            <div className="text-sm text-[var(--t3)] mt-1">Active</div>
-          </CardBody>
-        </Card>
-        <Card>
-          <CardBody className="text-center">
-            <div className="text-2xl font-bold text-[var(--green)]">{completedPlanCount}</div>
-            <div className="text-sm text-[var(--t3)] mt-1">Completed</div>
-          </CardBody>
-        </Card>
-        <Card>
-          <CardBody className="text-center">
-            <div className="text-2xl font-bold text-[var(--amber)]">{formatCurrency(totalOutstanding)}</div>
-            <div className="text-sm text-[var(--t3)] mt-1">Outstanding</div>
-          </CardBody>
-        </Card>
+      <StatStrip
+        columns={4}
+        className="mb-6"
+        items={[
+          { label: "Total Plans", value: plans.length },
+          { label: "Active", value: activePlanCount, tone: "info" },
+          { label: "Completed", value: completedPlanCount, tone: "positive" },
+          { label: "Outstanding", value: formatCurrency(totalOutstanding), tone: "warning" },
+        ]}
+      />
+
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div>
+          <h3 className="font-semibold text-[var(--t1)]">Payment Plans</h3>
+          <p className="text-sm text-[var(--t3)]">Instalment plans for parents</p>
+        </div>
+        <Button variant="primary" size="sm" onClick={() => setShowCreatePlan(true)}>
+          <MaterialIcon icon="add" />
+          Create Plan
+        </Button>
       </div>
 
-      <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
-        <div className="px-6 py-4 border-b border-outline-variant/10 flex items-center justify-between">
-          <div>
-            <h3 className="font-semibold text-on-surface">Payment Plans</h3>
-            <p className="text-sm text-on-surface-variant">Installment plans for parents</p>
+      <DataTable
+        columns={columns}
+        rows={plans}
+        getRowId={(plan) => plan.id}
+        loading={plansLoading}
+        caption="Payment plans"
+        initialSort={{ key: "student", dir: "asc" }}
+        empty={
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] py-12 text-center text-[var(--t3)]">
+            No payment plans
           </div>
-          <Button variant="primary" size="sm" onClick={() => setShowCreatePlan(true)}>
-            <MaterialIcon icon="add" />
+        }
+        footer={
+          <span className="text-[var(--t3)]">
+            {plans.length} plan{plans.length === 1 ? "" : "s"} · {activePlanCount} active
+          </span>
+        }
+        renderMobileCard={(plan) => (
+          <div className="space-y-1.5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="font-medium">
+                  {plan.students?.first_name} {plan.students?.last_name}
+                </p>
+                <p className="text-xs text-[var(--t3)]">{plan.students?.classes?.name || "—"}</p>
+              </div>
+              <span
+                className={`shrink-0 rounded px-2 py-1 text-[10px] font-bold uppercase ${STATUS_STYLE[plan.status]}`}
+              >
+                {STATUS_LABEL[plan.status]}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-3 text-sm">
+              <span className="text-[var(--t3)]">
+                {plan.installments} instalments · starts {formatDate(plan.start_date)}
+              </span>
+              <span className="font-bold">{formatCurrency(Number(plan.total_amount))}</span>
+            </div>
+            <Button size="sm" variant="ghost" onClick={() => setSelectedPlan(plan)}>
+              View
+            </Button>
+          </div>
+        )}
+      />
+
+      <Modal isOpen={showCreatePlan} onClose={() => setShowCreatePlan(false)} title="Create Payment Plan" size="md">
+        <div className="space-y-4">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-[var(--t1)]">Student</label>
+            {planStudents.length === 0 ? (
+              <div className="rounded-xl border border-[var(--amber)]/30 bg-[var(--amber-soft)] px-3 py-2 text-sm text-[var(--t1)]">
+                No students available
+              </div>
+            ) : (
+              <select
+                value={newPlan.student_id}
+                onChange={(e) => setNewPlan({ ...newPlan, student_id: e.target.value })}
+                className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm"
+              >
+                <option value="">Select student...</option>
+                {planStudents.map((student) => (
+                  <option key={student.id} value={student.id}>
+                    {student.first_name} {student.last_name} - {student.classes?.name}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-[var(--t1)]">Total Amount (UGX)</label>
+            <input
+              type="number"
+              inputMode="numeric"
+              value={newPlan.total_amount}
+              onChange={(e) => setNewPlan({ ...newPlan, total_amount: Number(e.target.value) })}
+              className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm"
+              placeholder="Enter total amount"
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-[var(--t1)]">Number of Instalments</label>
+            <select
+              value={newPlan.installments}
+              onChange={(e) => setNewPlan({ ...newPlan, installments: Number(e.target.value) })}
+              className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm"
+            >
+              <option value={2}>2 Instalments</option>
+              <option value={3}>3 Instalments</option>
+              <option value={4}>4 Instalments</option>
+              <option value={5}>5 Instalments</option>
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-[var(--t1)]">Start Date</label>
+            <input
+              type="date"
+              value={newPlan.start_date}
+              onChange={(e) => setNewPlan({ ...newPlan, start_date: e.target.value })}
+              className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm"
+            />
+          </div>
+          {newPlan.total_amount > 0 && newPlan.installments > 0 && (
+            <div className="rounded-lg bg-[var(--primary)]/10 p-3">
+              <div className="text-sm text-[var(--primary)]">
+                Each instalment:{" "}
+                <strong>{formatCurrency(Math.round(newPlan.total_amount / newPlan.installments))}</strong>
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="mt-6 flex gap-3">
+          <Button variant="secondary" className="flex-1" onClick={() => setShowCreatePlan(false)}>
+            Cancel
+          </Button>
+          <Button variant="primary" className="flex-1" onClick={createPlan} disabled={!canCreatePlan}>
             Create Plan
           </Button>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-surface-container-low text-left">
-                <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                  Student
-                </th>
-                <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Class</th>
-                <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Total</th>
-                <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                  Installments
-                </th>
-                <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                  Start Date
-                </th>
-                <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                  Status
-                </th>
-                <th className="px-6 py-4"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-outline-variant/5">
-              {plans.map((plan) => (
-                <tr key={plan.id} className="hover:bg-surface-bright">
-                  <td className="px-6 py-4 font-medium">
-                    {plan.students?.first_name} {plan.students?.last_name}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-on-surface-variant">{plan.students?.classes?.name}</td>
-                  <td className="px-6 py-4 font-bold text-secondary">{formatCurrency(Number(plan.total_amount))}</td>
-                  <td className="px-6 py-4 text-sm">{plan.installments}</td>
-                  <td className="px-6 py-4 text-sm text-on-surface-variant">
-                    {new Date(plan.start_date).toLocaleDateString()}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={`px-2 py-1 rounded text-xs font-bold uppercase ${
-                        plan.status === "completed"
-                          ? "bg-green-100 text-green-800"
-                          : plan.status === "active"
-                            ? "bg-blue-100 text-blue-800"
-                            : "bg-red-100 text-red-800"
-                      }`}
-                    >
-                      {plan.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <Button size="sm" variant="ghost" onClick={() => setSelectedPlan(plan)}>
-                      View
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-              {plans.length === 0 && !plansLoading && (
-                <tr>
-                  <td colSpan={7} className="text-center py-8 text-on-surface-variant">
-                    No payment plans
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+        {!canCreatePlan && createPlanDisabledReason && (
+          <p className="mt-3 text-sm text-[var(--t3)]">{createPlanDisabledReason}</p>
+        )}
+      </Modal>
 
-      {showCreatePlan && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
-          <div className="bg-surface-container-lowest rounded-2xl p-6 w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto shadow-xl my-auto">
-            <h2 className="text-xl font-bold text-on-surface mb-4">Create Payment Plan</h2>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-on-surface mb-1">Student</label>
-                {planStudents.length === 0 ? (
-                  <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm text-amber-800">
-                    No students available
-                  </div>
-                ) : (
-                  <select
-                    value={newPlan.student_id}
-                    onChange={(e) =>
-                      setNewPlan({
-                        ...newPlan,
-                        student_id: e.target.value,
-                      })
-                    }
-                    className="w-full bg-surface-container-lowest border border-outline-variant rounded-xl py-3 px-4 text-sm"
-                  >
-                    <option value="">Select student...</option>
-                    {planStudents.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.first_name} {s.last_name} - {s.classes?.name}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-on-surface mb-1">Total Amount (UGX)</label>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  value={newPlan.total_amount}
-                  onChange={(e) =>
-                    setNewPlan({
-                      ...newPlan,
-                      total_amount: Number(e.target.value),
-                    })
-                  }
-                  className="w-full bg-surface-container-lowest border border-outline-variant rounded-xl py-3 px-4 text-sm"
-                  placeholder="Enter total amount"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-on-surface mb-1">Number of Installments</label>
-                <select
-                  value={newPlan.installments}
-                  onChange={(e) =>
-                    setNewPlan({
-                      ...newPlan,
-                      installments: Number(e.target.value),
-                    })
-                  }
-                  className="w-full bg-surface-container-lowest border border-outline-variant rounded-xl py-3 px-4 text-sm"
-                >
-                  <option value={2}>2 Installments</option>
-                  <option value={3}>3 Installments</option>
-                  <option value={4}>4 Installments</option>
-                  <option value={5}>5 Installments</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-on-surface mb-1">Start Date</label>
-                <input
-                  type="date"
-                  value={newPlan.start_date}
-                  onChange={(e) => setNewPlan({ ...newPlan, start_date: e.target.value })}
-                  className="w-full bg-surface-container-lowest border border-outline-variant rounded-xl py-3 px-4 text-sm"
-                />
-              </div>
-              {newPlan.total_amount > 0 && newPlan.installments > 0 && (
-                <div className="p-3 bg-primary/10 rounded-lg">
-                  <div className="text-sm text-primary">
-                    Each installment:{" "}
-                    <strong>{formatCurrency(Math.round(newPlan.total_amount / newPlan.installments))}</strong>
-                  </div>
-                </div>
-              )}
-            </div>
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => setShowCreatePlan(false)}
-                className="flex-1 py-3 bg-surface-container font-semibold rounded-xl text-on-surface-variant"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={createPlan}
-                disabled={!canCreatePlan}
-                className="flex-1 py-3 bg-primary text-white font-semibold rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Create Plan
-              </button>
-            </div>
-            {!canCreatePlan && createPlanDisabledReason && (
-              <p className="mt-3 text-sm text-[var(--t3)]">{createPlanDisabledReason}</p>
-            )}
-          </div>
-        </div>
-      )}
-
-      {selectedPlan && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
-          <div className="bg-surface-container-lowest rounded-2xl p-6 w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto shadow-xl my-auto">
-            <h2 className="text-xl font-bold text-on-surface mb-2">Payment Details</h2>
-            <p className="text-sm text-on-surface-variant mb-4">
-              {selectedPlan.students?.first_name} {selectedPlan.students?.last_name} -{" "}
+      <Modal
+        isOpen={Boolean(selectedPlan)}
+        onClose={() => setSelectedPlan(null)}
+        title="Payment Details"
+        size="md"
+        headerAction={
+          selectedPlan && (
+            <span className="text-xs font-semibold text-[var(--t3)]">
+              {installmentSummary.paidCount}/{installments.length} paid
+            </span>
+          )
+        }
+      >
+        {selectedPlan && (
+          <>
+            <p className="mb-4 text-sm text-[var(--t3)]">
+              {selectedPlan.students?.first_name} {selectedPlan.students?.last_name} ·{" "}
               {selectedPlan.students?.classes?.name}
             </p>
+            <div className="mb-4 rounded-xl bg-[var(--surface-container-low)] px-4 py-3 text-sm">
+              <p className="text-[var(--t2)]">
+                Paid <strong className="text-[var(--green)]">{formatCurrency(installmentSummary.paidAmount)}</strong> of{" "}
+                {formatCurrency(Number(selectedPlan.total_amount))}
+              </p>
+              <p className="mt-1 text-[var(--t3)]">
+                Remaining{" "}
+                <strong className="text-[var(--amber)]">{formatCurrency(installmentSummary.remaining)}</strong>
+              </p>
+            </div>
             <div className="space-y-3">
               {installments.map((inst, idx) => (
                 <div
                   key={inst.id}
-                  className="flex items-center justify-between p-3 border border-outline-variant/20 rounded-lg"
+                  className="flex items-center justify-between rounded-lg border border-[var(--border)] p-3"
                 >
                   <div>
-                    <div className="font-medium text-on-surface">Installment {idx + 1}</div>
-                    <div className="text-sm text-on-surface-variant">
-                      Due: {new Date(inst.due_date).toLocaleDateString()}
-                    </div>
+                    <div className="font-medium text-[var(--t1)]">Instalment {idx + 1}</div>
+                    <div className="text-sm text-[var(--t3)]">Due: {formatDate(inst.due_date)}</div>
                   </div>
                   <div className="text-right">
-                    <div className="font-bold text-on-surface">{formatCurrency(inst.amount)}</div>
+                    <div className="font-bold text-[var(--t1)]">{formatCurrency(inst.amount)}</div>
                     {inst.paid ? (
-                      <span className="text-sm text-green-600">Paid</span>
+                      <span className="text-sm text-[var(--green)]">Paid</span>
                     ) : (
                       <button
                         onClick={() => markInstallmentPaid(inst.id)}
-                        className="text-sm bg-green-600 text-white px-3 py-1 rounded-lg"
+                        className="rounded-lg bg-[var(--green)] px-3 py-1 text-sm font-semibold text-white"
                       >
                         Mark Paid
                       </button>
@@ -334,15 +378,12 @@ export default function FeePaymentPlans({
                 </div>
               ))}
             </div>
-            <button
-              onClick={() => setSelectedPlan(null)}
-              className="w-full mt-4 py-3 bg-surface-container font-semibold rounded-xl text-on-surface-variant"
-            >
+            <Button variant="secondary" className="mt-4 w-full" onClick={() => setSelectedPlan(null)}>
               Close
-            </button>
-          </div>
-        </div>
-      )}
+            </Button>
+          </>
+        )}
+      </Modal>
     </>
   );
 }
