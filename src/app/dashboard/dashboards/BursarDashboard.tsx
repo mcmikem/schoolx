@@ -248,11 +248,15 @@ function BursarDashboardContent() {
             <dl className="grid !grid-cols-3 gap-2 sm:gap-4">
               {channels.map((channel) => (
                 <div key={channel.label} className="min-w-0">
-                  <MaterialIcon icon={channel.icon} className="mb-2 text-xl text-[#b8f2dc]" />
-                  <dt className="text-xs text-blue-100">{channel.label}</dt>
+                  <div className="flex items-center gap-1.5">
+                    <MaterialIcon icon={channel.icon} className="text-base text-[#b8f2dc]" />
+                    <dt className="truncate text-[11px] font-medium uppercase tracking-wide text-blue-100 sm:text-xs sm:tracking-normal">
+                      {channel.label}
+                    </dt>
+                  </div>
                   <dd
                     title={formatCurrency(channel.amount)}
-                    className="mt-1 break-words text-base font-bold tabular-nums sm:text-lg"
+                    className="mt-1.5 break-words text-base font-bold tabular-nums leading-none sm:text-lg"
                   >
                     {paymentsLoading || paymentsError ? "—" : formatCompactCurrency(channel.amount, true)}
                   </dd>
