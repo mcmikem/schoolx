@@ -192,6 +192,8 @@ export default function OwlAssistant() {
   const [walkthrough, setWalkthrough] = useState<Walkthrough | null>(null);
   const [walkthroughStep, setWalkthroughStep] = useState(0);
   const [online, setOnline] = useState(true);
+  const [fabVisible, setFabVisible] = useState(true);
+  const lastScrollY = useRef(0);
   const owly = useOwlySignals({
     page: pathname ?? undefined,
     role: user?.role ?? undefined,
@@ -250,6 +252,30 @@ export default function OwlAssistant() {
       inputRef.current.focus();
     }
   }, [open]);
+
+  // Hide the launcher while the user scrolls down and reveal it on the first
+  // upward scroll. A fixed 56px badge permanently covers a full column of
+  // content (search fields, filter chips, CTAs); hiding it while reading is
+  // the standard pattern for non-dismissable floating affordances.
+  useEffect(() => {
+    lastScrollY.current = window.scrollY;
+    let ticking = false;
+    const onScroll = () => {
+      if (ticking) return;
+      ticking = true;
+      window.requestAnimationFrame(() => {
+        const y = window.scrollY;
+        const delta = y - lastScrollY.current;
+        if (Math.abs(delta) > 12) {
+          setFabVisible(delta < 0 || y < 120);
+          lastScrollY.current = y;
+        }
+        ticking = false;
+      });
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const submitMessage = async (raw: string) => {
     const text = raw.trim();
@@ -417,7 +443,11 @@ export default function OwlAssistant() {
       <button
         onClick={() => (attention ? setSuggestionOpen((v) => !v) : setOpen((v) => !v))}
         data-owl-assistant=""
-        className="fixed z-[9990] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--green)] bottom-[calc(var(--mobile-nav-clearance)+10px)] right-4 sm:bottom-6 sm:right-6"
+        aria-hidden={!fabVisible && !open && !attention}
+        tabIndex={!fabVisible && !open && !attention ? -1 : undefined}
+        className={`fixed z-[9990] focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[var(--green)] bottom-[calc(var(--mobile-nav-clearance)+10px)] right-4 sm:bottom-6 sm:right-6 transition-all duration-200 ${
+          fabVisible || open || attention ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3 pointer-events-none"
+        }`}
         style={{ width: 56, height: 56, background: "none", border: "none", cursor: "pointer", padding: 0 }}
         aria-label={
           attention

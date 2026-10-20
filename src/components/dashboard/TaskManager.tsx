@@ -54,11 +54,11 @@ export default function TaskManager({
               <MaterialIcon icon={task.icon} className="text-lg" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[13px] font-bold text-[var(--t1)]">{task.label}</p>
+              <p className="line-clamp-2 text-[13px] font-bold leading-snug text-[var(--t1)]">{task.label}</p>
             </div>
             <Link
               href={task.href}
-              className={`shrink-0 rounded-full px-3.5 py-2 text-xs font-bold text-white transition-all hover:opacity-90 ${
+              className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold text-white transition-all hover:opacity-90 sm:px-3.5 sm:py-2 ${
                 task.priority === "urgent"
                   ? "bg-[var(--red)]"
                   : task.priority === "attention"

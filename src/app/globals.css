@@ -1280,7 +1280,7 @@ table tr {
   }
 
   .stat-grid {
-    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-2;
+    @apply grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-2;
     container-type: inline-size;
     align-items: start;
   }

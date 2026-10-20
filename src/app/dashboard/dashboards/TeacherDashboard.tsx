@@ -248,7 +248,7 @@ export function TeacherDashboardContent() {
           dateLabel={todayLabel}
           bottomCenter={
             <div className="text-xs text-[var(--t2)]">
-              <span className="font-semibold">{school?.name}</span> · Term {currentTerm} · {academicYear}
+              Term {currentTerm} · {academicYear}
             </div>
           }
         />
@@ -283,16 +283,8 @@ export function TeacherDashboardContent() {
         }
         bottomCenter={
           <div className="text-xs text-[var(--t2)]">
-            <span className="font-semibold">{school?.name}</span> · Term {currentTerm} · {academicYear}
+            Term {currentTerm} · {academicYear}
           </div>
-        }
-        bottomRight={
-          stats?.totalStudents > 0 ? (
-            <div className="flex items-center gap-1.5 rounded-full bg-[var(--primary-50)] px-3 py-1">
-              <span className="h-1.5 w-1.5 rounded-full bg-[var(--t1)]" />
-              <span className="text-xs font-bold text-[var(--t1)]">{stats.totalStudents} students</span>
-            </div>
-          ) : undefined
         }
       />
 
@@ -436,20 +428,27 @@ export function TeacherDashboardContent() {
                           <p className="mt-2 text-xs text-[var(--t3)]">
                             {count === 0 ? "No students assigned yet" : "Ready for teaching"}
                           </p>
-                          <div className="mt-4 flex gap-2">
-                            <Link
-                              href={`/dashboard/attendance?class=${cls.id}`}
-                              className="flex-1 rounded-xl bg-[var(--t1)] py-2.5 min-h-[44px] flex items-center justify-center text-xs font-bold text-white hover:opacity-90 transition-opacity"
-                            >
-                              Attendance
-                            </Link>
-                            <Link
-                              href={`/dashboard/grades?class=${cls.id}`}
-                              className="flex-1 rounded-xl bg-[var(--primary-50)] py-2.5 min-h-[44px] flex items-center justify-center text-xs font-bold text-[var(--t1)] hover:bg-[var(--border)] transition-colors"
-                            >
-                              Grades
-                            </Link>
-                          </div>
+                          {count === 0 ? (
+                            <p className="mt-4 flex items-center justify-center gap-1.5 rounded-xl border border-dashed border-[var(--border)] py-2.5 min-h-[44px] text-xs font-semibold text-[var(--t3)]">
+                              <MaterialIcon icon="hourglass_empty" className="text-base" />
+                              Waiting for roster
+                            </p>
+                          ) : (
+                            <div className="mt-4 flex gap-2">
+                              <Link
+                                href={`/dashboard/attendance?class=${cls.id}`}
+                                className="flex-1 rounded-xl bg-[var(--t1)] py-2.5 min-h-[44px] flex items-center justify-center text-xs font-bold text-white hover:opacity-90 transition-opacity"
+                              >
+                                Attendance
+                              </Link>
+                              <Link
+                                href={`/dashboard/grades?class=${cls.id}`}
+                                className="flex-1 rounded-xl bg-[var(--primary-50)] py-2.5 min-h-[44px] flex items-center justify-center text-xs font-bold text-[var(--t1)] hover:bg-[var(--border)] transition-colors"
+                              >
+                                Grades
+                              </Link>
+                            </div>
+                          )}
                         </div>
                       );
                     })}

@@ -57,7 +57,7 @@ const StatCard = memo(function StatCard({
               <Link
                 href={href}
                 aria-label={hrefLabel || `Open ${label}`}
-                className="w-11 h-11 rounded-full bg-white flex items-center justify-center text-[var(--t1)] transition-transform hover:scale-105 flex-shrink-0 no-underline"
+                className="w-8 h-8 sm:w-11 sm:h-11 rounded-full bg-white flex items-center justify-center text-[var(--t1)] transition-transform hover:scale-105 flex-shrink-0 no-underline"
               >
                 <MaterialIcon icon="arrow_outward" style={{ fontSize: 16 }} />
               </Link>
@@ -86,7 +86,11 @@ const StatCard = memo(function StatCard({
       <div className="flex items-start justify-between gap-2">
         <p className="text-[13px] font-medium text-[var(--t2)] leading-snug">{label}</p>
         {href && !loading ? (
-          <Link href={href} aria-label={hrefLabel || `Open ${label}`} className="stat-link-arrow !w-11 !h-11 shrink-0">
+          <Link
+            href={href}
+            aria-label={hrefLabel || `Open ${label}`}
+            className="stat-link-arrow !w-8 !h-8 sm:!w-11 sm:!h-11 shrink-0"
+          >
             <MaterialIcon icon="arrow_outward" style={{ fontSize: 16 }} />
           </Link>
         ) : (

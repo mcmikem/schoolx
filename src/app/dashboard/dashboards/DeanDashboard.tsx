@@ -125,7 +125,7 @@ function DeanDashboardContent() {
         {/* ── Left Column ── */}
         <div className="xl:col-span-2 space-y-5">
           {/* Stats Row */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <div className="group rounded-2xl bg-white border border-[var(--surface-container-low)] p-4 transition-all hover:shadow-md hover:-translate-y-0.5">
               <div className="flex items-center gap-2">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--primary-50)] text-[var(--t1)]">
