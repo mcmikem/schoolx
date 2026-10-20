@@ -4,11 +4,11 @@ import Link from "next/link";
 import { useState } from "react";
 import { NoData } from "@/components/EmptyState";
 import { Card, CardBody } from "@/components/ui/Card";
-import { Button, Input, Select } from "@/components/ui/index";
+import { Button, DataTable, Input, Select, StatStrip, type DataColumn } from "@/components/ui/index";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { TableSkeleton } from "@/components/ui/Skeleton";
 import { useAuth } from "@/lib/auth-context";
+import { paymentMethodLabel } from "@/lib/constants";
 import { formatCurrency } from "@/lib/currency";
 import { useClasses, useFeePayments, useStudents } from "@/lib/hooks";
 import type { FeePayment } from "@/types";
@@ -24,9 +24,13 @@ export default function FeeLedgerPage() {
   const [selectedPayment, setSelectedPayment] = useState<FeePayment | null>(null);
   const studentFor = (payment: FeePayment) =>
     payment.students || students.find((student) => student.id === payment.student_id);
+  const classNameFor = (payment: FeePayment) => {
+    const student = studentFor(payment);
+    return student?.classes?.name || classes.find((item) => item.id === student?.class_id)?.name || "No class";
+  };
   const filtered = payments.filter((payment) => {
     const student = studentFor(payment);
-    const className = student?.classes?.name || classes.find((item) => item.id === student?.class_id)?.name || "";
+    const className = classNameFor(payment);
     const query = search.trim().toLowerCase();
     return (
       (!classId || student?.class_id === classId) &&
@@ -37,7 +41,68 @@ export default function FeeLedgerPage() {
     );
   });
   const total = filtered.reduce((sum, payment) => sum + Number(payment.amount_paid || 0), 0);
+  const sumMethod = (method: string) =>
+    filtered
+      .filter((payment) => payment.payment_method === method)
+      .reduce((sum, payment) => sum + Number(payment.amount_paid || 0), 0);
   const totalPages = Math.max(1, Math.ceil(totalCount / 50));
+
+  const columns: DataColumn<FeePayment>[] = [
+    {
+      key: "date",
+      header: "Date",
+      sortValue: (payment) => payment.payment_date,
+      render: (payment) => (
+        <span className="whitespace-nowrap">{new Date(payment.payment_date).toLocaleDateString("en-GB")}</span>
+      ),
+    },
+    {
+      key: "student",
+      header: "Student",
+      sortValue: (payment) => {
+        const student = studentFor(payment);
+        return student ? `${student.first_name} ${student.last_name}` : "Unknown student";
+      },
+      render: (payment) => {
+        const student = studentFor(payment);
+        const name = student ? `${student.first_name} ${student.last_name}` : "Unknown student";
+        return (
+          <span className="font-medium">
+            {name}
+            <span className="block text-xs font-normal text-[var(--t3)]">{classNameFor(payment)}</span>
+          </span>
+        );
+      },
+    },
+    {
+      key: "method",
+      header: "Method",
+      align: "center",
+      sortValue: (payment) => paymentMethodLabel(payment.payment_method),
+      render: (payment) => (
+        <span className="inline-flex rounded-full bg-[var(--primary)]/10 px-2.5 py-1 text-xs font-medium text-[var(--primary)]">
+          {paymentMethodLabel(payment.payment_method)}
+        </span>
+      ),
+    },
+    {
+      key: "reference",
+      header: "Reference",
+      hideOnMobile: true,
+      render: (payment) => (
+        <span className="font-mono text-xs text-[var(--t3)]">{payment.payment_reference || "—"}</span>
+      ),
+    },
+    {
+      key: "amount",
+      header: "Amount",
+      align: "right",
+      sortValue: (payment) => Number(payment.amount_paid),
+      render: (payment) => (
+        <span className="font-bold text-[var(--primary)]">{formatCurrency(Number(payment.amount_paid))}</span>
+      ),
+    },
+  ];
 
   return (
     <div className="space-y-6 min-w-0 p-4 sm:p-6 pb-24 sm:pb-6">
@@ -50,20 +115,24 @@ export default function FeeLedgerPage() {
           </Link>
         }
       />
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <Card>
-          <CardBody className="p-4">
-            <p className="text-sm text-[var(--t3)]">Receipts shown</p>
-            <p className="mt-1 text-2xl font-bold">{loading ? "—" : filtered.length}</p>
-          </CardBody>
-        </Card>
-        <Card>
-          <CardBody className="p-4">
-            <p className="text-sm text-[var(--t3)]">Amount shown</p>
-            <p className="mt-1 text-2xl font-bold break-words">{loading ? "—" : formatCurrency(total)}</p>
-          </CardBody>
-        </Card>
-      </div>
+
+      {/* Every figure here is scoped to the rows on screen, and says so — this
+          page pages receipts, so a school-wide total would be a different
+          number every page. */}
+      <StatStrip
+        columns={4}
+        items={[
+          { label: "Receipts shown", value: loading ? "—" : filtered.length },
+          { label: "Amount shown", value: loading ? "—" : formatCurrency(total) },
+          { label: "Cash", value: loading ? "—" : formatCurrency(sumMethod("cash")), tone: "positive" },
+          {
+            label: "Mobile Money",
+            value: loading ? "—" : formatCurrency(sumMethod("mobile_money")),
+            tone: "warning",
+          },
+        ]}
+      />
+
       <Card>
         <CardBody className="space-y-5 p-4 sm:p-6">
           <div className="grid gap-3 sm:grid-cols-2">
@@ -90,77 +159,77 @@ export default function FeeLedgerPage() {
                 Try again
               </Button>
             </div>
-          ) : loading ? (
-            <TableSkeleton rows={5} />
-          ) : filtered.length === 0 ? (
-            <NoData
-              title="No payments found"
-              description={
-                search || classId ? "Change the filters or check another page." : "Recorded payments will appear here."
-              }
-            />
           ) : (
-            <div className="space-y-3">
-              {filtered.map((payment) => {
+            <DataTable
+              columns={columns}
+              rows={filtered}
+              getRowId={(payment) => payment.id}
+              loading={loading}
+              onRowClick={(payment) => setSelectedPayment(payment)}
+              caption="Recorded fee receipts"
+              initialSort={{ key: "date", dir: "desc" }}
+              empty={
+                <NoData
+                  title="No payments found"
+                  description={
+                    search || classId
+                      ? "Change the filters or check another page."
+                      : "Recorded payments will appear here."
+                  }
+                />
+              }
+              renderMobileCard={(payment) => {
                 const student = studentFor(payment);
                 const name = student ? `${student.first_name} ${student.last_name}` : "Unknown student";
                 return (
-                  <div
-                    key={payment.id}
-                    className="flex flex-col gap-3 rounded-xl border border-[var(--border)] p-4 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="min-w-0">
-                      <h2 className="font-semibold break-words">{name}</h2>
-                      <p className="mt-1 text-sm text-[var(--t3)]">
-                        {new Date(payment.payment_date).toLocaleDateString("en-GB")} ·{" "}
-                        {payment.payment_method.replace(/_/g, " ")}
-                      </p>
-                      <p className="mt-1 text-sm text-[var(--t3)]">
-                        {student?.classes?.name ||
-                          classes.find((item) => item.id === student?.class_id)?.name ||
-                          "No class"}
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3">
-                      <span className="mr-auto font-bold text-primary">
+                  <div className="space-y-1.5">
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="min-w-0">
+                        <span className="block truncate font-medium">{name}</span>
+                        <span className="block text-xs text-[var(--t3)]">{classNameFor(payment)}</span>
+                      </span>
+                      <span className="shrink-0 font-bold text-[var(--primary)]">
                         {formatCurrency(Number(payment.amount_paid))}
                       </span>
-                      <Button
-                        variant="ghost"
-                        onClick={() => setSelectedPayment(payment)}
-                        aria-label={`Payment details for ${name}`}
-                      >
-                        Details
-                      </Button>
                     </div>
+                    <p className="text-xs text-[var(--t3)]">
+                      {new Date(payment.payment_date).toLocaleDateString("en-GB")} ·{" "}
+                      {paymentMethodLabel(payment.payment_method)}
+                    </p>
+                    {payment.payment_reference && (
+                      <p className="font-mono text-xs text-[var(--t3)]">{payment.payment_reference}</p>
+                    )}
                   </div>
                 );
-              })}
-            </div>
+              }}
+              footer={
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <span className="text-sm text-[var(--t3)]">
+                    Page {page} of {totalPages} · {filtered.length} shown
+                  </span>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      disabled={page === 1 || loading}
+                      onClick={() => setPage((previous) => previous - 1)}
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      disabled={page >= totalPages || loading}
+                      onClick={() => setPage((previous) => previous + 1)}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              }
+            />
           )}
-          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--border)] pt-4">
-            <p className="text-sm text-[var(--t3)]">
-              Page {page} of {totalPages}
-            </p>
-            <div className="flex gap-2">
-              <Button
-                variant="ghost"
-                disabled={page === 1 || loading}
-                onClick={() => setPage((previous) => previous - 1)}
-              >
-                Previous
-              </Button>
-              <Button
-                variant="ghost"
-                disabled={page >= totalPages || loading}
-                onClick={() => setPage((previous) => previous + 1)}
-              >
-                Next
-              </Button>
-            </div>
-          </div>
         </CardBody>
       </Card>
+
       <Modal isOpen={Boolean(selectedPayment)} onClose={() => setSelectedPayment(null)} title="Payment Details">
         {selectedPayment && (
           <dl className="space-y-4">
@@ -170,7 +239,7 @@ export default function FeeLedgerPage() {
             </div>
             <div>
               <dt className="text-sm text-[var(--t3)]">Method</dt>
-              <dd>{selectedPayment.payment_method.replace(/_/g, " ")}</dd>
+              <dd>{paymentMethodLabel(selectedPayment.payment_method)}</dd>
             </div>
             <div>
               <dt className="text-sm text-[var(--t3)]">Reference</dt>
