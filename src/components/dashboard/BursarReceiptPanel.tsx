@@ -4,16 +4,9 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 import SearchField from "@/components/ui/SearchField";
+import { paymentMethodLabel } from "@/lib/constants";
 import { formatCurrency } from "@/lib/currency";
 import type { FeePayment, Student } from "@/types";
-
-const METHOD_LABELS: Record<string, string> = {
-  cash: "Cash",
-  mobile_money: "Mobile money",
-  bank: "Bank",
-  installment: "Installment",
-  in_kind: "In kind",
-};
 
 function isToday(value: string) {
   const date = new Date(value);
@@ -174,7 +167,7 @@ export default function BursarReceiptPanel({
                   </p>
                 </div>
                 <span className="col-start-1 row-start-2 w-fit rounded-md bg-[var(--surface-container-low)] px-2 py-1 text-[10px] font-semibold text-[var(--t2)] sm:col-start-auto sm:row-start-auto">
-                  {METHOD_LABELS[payment.payment_method] || payment.payment_method || "Not specified"}
+                  {payment.payment_method ? paymentMethodLabel(payment.payment_method) : "Not specified"}
                 </span>
                 <p className="col-start-2 row-start-1 text-right text-xs font-bold tabular-nums text-[var(--green)] sm:col-start-auto sm:row-start-auto sm:text-sm">
                   {formatCurrency(Number(payment.amount_paid))}

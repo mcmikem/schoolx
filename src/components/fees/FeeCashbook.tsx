@@ -1,8 +1,8 @@
 "use client";
 import MaterialIcon from "@/components/MaterialIcon";
-import { Button } from "@/components/ui/index";
-import { Card, CardBody } from "@/components/ui/Card";
 import { EmptyState } from "@/components/EmptyState";
+import { Button, DataTable, StatStrip, type DataColumn } from "@/components/ui/index";
+import { paymentMethodLabel } from "@/lib/constants";
 
 interface CashbookPayment {
   id: string;
@@ -32,6 +32,16 @@ interface FeeCashbookProps {
   filteredCashbookPayments: CashbookPayment[];
 }
 
+function paymentStudent(payment: CashbookPayment): string {
+  const name = `${payment.students?.first_name ?? ""} ${payment.students?.last_name ?? ""}`.trim();
+  return name || "Unknown student";
+}
+
+function formatDate(value: string): string {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleDateString();
+}
+
 export default function FeeCashbook({
   cashbookSummary,
   formatCurrency,
@@ -41,153 +51,123 @@ export default function FeeCashbook({
   filteredCashbookPayments,
 }: FeeCashbookProps) {
   const dateLabel =
-    cashbookDateFilter === "today"
-      ? "Today"
-      : cashbookDateFilter === "week"
-        ? "This Week"
-        : "This Month";
+    cashbookDateFilter === "today" ? "Today" : cashbookDateFilter === "week" ? "This Week" : "This Month";
+
+  const columns: DataColumn<CashbookPayment>[] = [
+    {
+      key: "date",
+      header: "Date",
+      sortValue: (payment) => payment.payment_date,
+      render: (payment) => <span className="whitespace-nowrap">{formatDate(payment.payment_date)}</span>,
+    },
+    {
+      key: "student",
+      header: "Student",
+      sortValue: paymentStudent,
+      render: (payment) => <span className="font-medium">{paymentStudent(payment)}</span>,
+    },
+    {
+      key: "amount",
+      header: "Amount",
+      align: "right",
+      sortValue: (payment) => Number(payment.amount_paid),
+      render: (payment) => (
+        <span className="font-medium text-[var(--green)]">{formatCurrency(Number(payment.amount_paid))}</span>
+      ),
+    },
+    {
+      key: "method",
+      header: "Method",
+      align: "center",
+      sortValue: (payment) => paymentMethodLabel(payment.payment_method),
+      render: (payment) => (
+        <span className="inline-flex rounded-full bg-[var(--primary)]/10 px-2.5 py-1 text-xs font-medium text-[var(--primary)]">
+          {paymentMethodLabel(payment.payment_method)}
+        </span>
+      ),
+    },
+    {
+      key: "reference",
+      header: "Reference",
+      hideOnMobile: true,
+      render: (payment) => <span className="text-sm text-[var(--t3)]">{payment.payment_reference || "—"}</span>,
+    },
+  ];
 
   return (
     <>
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <Card>
-          <CardBody>
-            <div className="text-xl font-bold text-[var(--t1)]">
-              {formatCurrency(cashbookSummary.total)}
-            </div>
-            <div className="text-sm text-[var(--t3)]">
-              Total Collected
-            </div>
-          </CardBody>
-        </Card>
-        <Card>
-          <CardBody>
-            <div className="text-xl font-bold text-[var(--green)]">
-              {formatCurrency(cashbookSummary.cash)}
-            </div>
-            <div className="text-sm text-[var(--t3)]">Cash</div>
-          </CardBody>
-        </Card>
-        <Card>
-          <CardBody>
-            <div className="text-xl font-bold text-[var(--amber)]">
-              {formatCurrency(cashbookSummary.momo)}
-            </div>
-            <div className="text-sm text-[var(--t3)]">Mobile Money</div>
-          </CardBody>
-        </Card>
-        <Card>
-          <CardBody>
-            <div className="text-xl font-bold text-[var(--navy)]">
-              {formatCurrency(cashbookSummary.bank)}
-            </div>
-            <div className="text-sm text-[var(--t3)]">Bank</div>
-          </CardBody>
-        </Card>
+      <StatStrip
+        columns={4}
+        className="mb-6"
+        items={[
+          { label: "Total Collected", value: formatCurrency(cashbookSummary.total) },
+          { label: "Cash", value: formatCurrency(cashbookSummary.cash), tone: "positive" },
+          { label: "Mobile Money", value: formatCurrency(cashbookSummary.momo), tone: "warning" },
+          { label: "Bank", value: formatCurrency(cashbookSummary.bank), tone: "info" },
+        ]}
+      />
+
+      <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h3 className="font-semibold text-[var(--t1)]">Transactions</h3>
+          <p className="text-sm text-[var(--t3)]">
+            {cashbookSummary.count} transactions · {dateLabel}
+          </p>
+        </div>
+        <div className="flex gap-3">
+          <select
+            value={cashbookDateFilter}
+            onChange={(e) => setCashbookDateFilter(e.target.value)}
+            className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm"
+            aria-label="Date range filter"
+          >
+            <option value="today">Today</option>
+            <option value="week">This Week</option>
+            <option value="month">This Month</option>
+          </select>
+          <Button variant="secondary" size="sm" onClick={exportCashbookCSV}>
+            <MaterialIcon icon="download" />
+            Export CSV
+          </Button>
+        </div>
       </div>
 
-      <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
-        <div className="px-6 py-4 border-b border-outline-variant/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-          <div>
-            <h3 className="font-semibold text-on-surface">
-              Transactions
-            </h3>
-            <p className="text-sm text-on-surface-variant">
-              {cashbookSummary.count} transactions &bull; {dateLabel}
+      <DataTable
+        columns={columns}
+        rows={filteredCashbookPayments}
+        getRowId={(payment) => payment.id}
+        caption="Cashbook transactions"
+        initialSort={{ key: "date", dir: "desc" }}
+        empty={
+          <EmptyState
+            icon="receipt_long"
+            title="No transactions found"
+            description="There are no payments recorded for the selected period"
+          />
+        }
+        footer={
+          <span className="text-[var(--t3)]">
+            {filteredCashbookPayments.length} transaction
+            {filteredCashbookPayments.length === 1 ? "" : "s"} shown
+          </span>
+        }
+        renderMobileCard={(payment) => (
+          <div className="space-y-1.5">
+            <div className="flex items-start justify-between gap-3">
+              <span className="min-w-0 font-medium">{paymentStudent(payment)}</span>
+              <span className="shrink-0 font-medium text-[var(--green)]">
+                {formatCurrency(Number(payment.amount_paid))}
+              </span>
+            </div>
+            <p className="text-xs text-[var(--t3)]">
+              {formatDate(payment.payment_date)} · {paymentMethodLabel(payment.payment_method)}
             </p>
+            {payment.payment_reference && (
+              <p className="font-mono text-xs text-[var(--t3)]">{payment.payment_reference}</p>
+            )}
           </div>
-          <div className="flex gap-3">
-            <select
-              value={cashbookDateFilter}
-              onChange={(e) => setCashbookDateFilter(e.target.value)}
-              className="bg-surface-container-lowest border border-outline-variant rounded-xl py-2 px-4 text-sm"
-              aria-label="Date range filter"
-            >
-              <option value="today">Today</option>
-              <option value="week">This Week</option>
-              <option value="month">This Month</option>
-            </select>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={exportCashbookCSV}
-            >
-              <MaterialIcon icon="download" />
-              Export CSV
-            </Button>
-          </div>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-surface-container-low text-left">
-                <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                  Date
-                </th>
-                <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                  Student
-                </th>
-                <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-right">
-                  Amount
-                </th>
-                <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant text-center">
-                  Method
-                </th>
-                <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                  Reference
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-outline-variant/5">
-              {filteredCashbookPayments.length === 0 ? (
-                <tr>
-                  <td colSpan={5}>
-                    <EmptyState
-                      icon="receipt_long"
-                      title="No transactions found"
-                      description="There are no payments recorded for the selected period"
-                    />
-                  </td>
-                </tr>
-              ) : (
-                filteredCashbookPayments.map((payment) => (
-                  <tr
-                    key={payment.id}
-                    className="hover:bg-surface-bright"
-                  >
-                    <td className="px-6 py-4 text-sm text-on-surface">
-                      {new Date(
-                        payment.payment_date,
-                      ).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 font-medium text-on-surface">
-                      {payment.students?.first_name}{" "}
-                      {payment.students?.last_name}
-                    </td>
-                    <td className="px-6 py-4 text-right text-green-600 font-medium">
-                      {formatCurrency(Number(payment.amount_paid))}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <span className="inline-flex px-2.5 py-1 rounded-full text-xs font-medium bg-primary/10 text-primary">
-                        {payment.payment_method === "mobile_money"
-                          ? "MoMo"
-                          : payment.payment_method === "cash"
-                            ? "Cash"
-                            : payment.payment_method === "bank"
-                              ? "Bank"
-                              : "Other"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-on-surface-variant">
-                      {payment.payment_reference || "-"}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+        )}
+      />
     </>
   );
 }

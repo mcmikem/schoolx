@@ -43,7 +43,7 @@ describe("bursar receipts", () => {
     const rows = within(screen.getByRole("list", { name: "Loaded receipts" })).getAllByRole("listitem");
     expect(rows[0]).toHaveTextContent("Brian Ochen");
     expect(rows[0]).toHaveTextContent("UGX 0");
-    expect(rows[1]).toHaveTextContent("Mobile money");
+    expect(rows[1]).toHaveTextContent("Mobile Money");
     expect(payments[0].id).toBe("payment-1");
   });
 

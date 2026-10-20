@@ -1,6 +1,7 @@
 import MaterialIcon from "@/components/MaterialIcon";
 import { Button } from "@/components/ui";
 import type { ClaimMatch } from "@/lib/claim-match";
+import { paymentMethodLabel } from "@/lib/constants";
 
 type PaymentClaim = {
   id: string;
@@ -14,13 +15,6 @@ type PaymentClaim = {
   students?: { first_name?: string; last_name?: string; class?: { name?: string } | null } | null;
   /** Suggested match to an already-recorded payment, from the API. */
   match?: ClaimMatch | null;
-};
-
-const METHOD_LABEL: Record<string, string> = {
-  mobile_money: "Mobile Money",
-  cash: "Cash",
-  bank: "Bank transfer",
-  in_kind: "In kind",
 };
 
 export default function PaymentClaimsPanel({
@@ -87,7 +81,7 @@ export default function PaymentClaimsPanel({
 
             <div className="flex flex-wrap gap-2 text-xs">
               <span className="px-2 py-1 rounded-full bg-[var(--surface-container)] text-[var(--t2)] font-semibold">
-                {METHOD_LABEL[claim.claimed_method] ?? claim.claimed_method}
+                {paymentMethodLabel(claim.claimed_method)}
               </span>
               {claim.reference ? (
                 <span className="px-2 py-1 rounded-full bg-[var(--surface-container)] font-mono text-[var(--t2)]">
