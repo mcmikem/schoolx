@@ -61,8 +61,32 @@ export interface ParentPortalWalletTransaction {
   created_at: string;
 }
 
+/**
+ * A discount, scholarship, write-off or fine on the pupil's bill.
+ *
+ * The parent portal used to add up the fee lines and the payments and stop
+ * there, so a parent of a discounted pupil was shown the gross bill — a
+ * balance HIGHER than the one the bursar's ledger showed, for the same child.
+ * Two numbers for one debt is worse than a wrong one: the parent argues with
+ * the school over a figure the school never held.
+ */
+export interface ParentPortalAdjustment {
+  id: string;
+  adjustment_type: string;
+  amount: number;
+  notes?: string | null;
+  created_at?: string | null;
+}
+
 export interface ParentPortalFeeStats {
+  /** What the fee lines add up to, before any credit. */
   totalFee: number;
+  /** Discounts, scholarships and write-offs. */
+  totalCredits: number;
+  /** Fines and other charges added on top of the fee lines. */
+  totalPenalties: number;
+  /** What is actually owed: totalFee + penalties − credits. */
+  expected: number;
   totalPaid: number;
   balance: number;
   status: "unknown" | "pending" | "paid";
@@ -310,16 +334,36 @@ export function resolveSelectedChild(children: ParentPortalChild[], childId?: st
   return children.find((child) => child.id === childId) || null;
 }
 
+const PARENT_CREDIT_ADJUSTMENTS = new Set([
+  "discount",
+  "scholarship",
+  "manual_credit",
+  "write_off",
+  "bursary",
+  "amnesty",
+]);
+
 export function calculateFeeStats(
   feeStructure: ParentPortalFeeStructureItem[],
   payments: ParentPortalPayment[],
+  adjustments: ParentPortalAdjustment[] = [],
 ): ParentPortalFeeStats {
   const totalFee = feeStructure.reduce((sum, item) => sum + Number(item.amount || 0), 0);
   const totalPaid = payments.reduce((sum, payment) => sum + Number(payment.amount_paid || 0), 0);
-  const balance = Math.max(0, totalFee - totalPaid);
+  const totalCredits = adjustments
+    .filter((a) => PARENT_CREDIT_ADJUSTMENTS.has(a.adjustment_type))
+    .reduce((sum, a) => sum + Math.max(0, Number(a.amount || 0)), 0);
+  const totalPenalties = adjustments
+    .filter((a) => a.adjustment_type === "penalty")
+    .reduce((sum, a) => sum + Math.max(0, Number(a.amount || 0)), 0);
+  const expected = Math.max(0, totalFee + totalPenalties - totalCredits);
+  const balance = Math.max(0, expected - totalPaid);
 
   return {
     totalFee,
+    totalCredits,
+    totalPenalties,
+    expected,
     totalPaid,
     balance,
     status: totalFee === 0 ? "unknown" : balance === 0 ? "paid" : "pending",

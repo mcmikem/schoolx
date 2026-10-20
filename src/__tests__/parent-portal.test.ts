@@ -81,10 +81,46 @@ describe("parent portal helpers", () => {
       ),
     ).toEqual({
       totalFee: 1000000,
+      totalCredits: 0,
+      totalPenalties: 0,
+      expected: 1000000,
       totalPaid: 650000,
       balance: 350000,
       status: "pending",
     });
+  });
+
+  it("nets a discount off the bill so the parent sees the school's figure", () => {
+    // A Kikunyu parent was shown the gross bill while the bursar's ledger had
+    // already taken the discount off: same child, two balances.
+    const stats = calculateFeeStats(
+      [{ id: "f1", name: "Tuition", amount: 300000 }],
+      [{ id: "p1", amount_paid: 100000, payment_date: "2026-01-01" }],
+      [{ id: "a1", adjustment_type: "discount", amount: 120000 }],
+    );
+    expect(stats.totalFee).toBe(300000);
+    expect(stats.totalCredits).toBe(120000);
+    expect(stats.expected).toBe(180000);
+    expect(stats.balance).toBe(80000);
+  });
+
+  it("adds a penalty and treats a fully-sponsored bill as paid", () => {
+    const withFine = calculateFeeStats(
+      [{ id: "f1", name: "Tuition", amount: 100000 }],
+      [],
+      [{ id: "a1", adjustment_type: "penalty", amount: 5000 }],
+    );
+    expect(withFine.expected).toBe(105000);
+    expect(withFine.totalPenalties).toBe(5000);
+
+    const sponsored = calculateFeeStats(
+      [{ id: "f1", name: "Tuition", amount: 100000 }],
+      [],
+      [{ id: "a1", adjustment_type: "scholarship", amount: 100000 }],
+    );
+    expect(sponsored.expected).toBe(0);
+    expect(sponsored.balance).toBe(0);
+    expect(sponsored.status).toBe("paid");
   });
 
   it("normalizes attendance and calculates counters", () => {

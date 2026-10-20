@@ -19,6 +19,7 @@ import {
   normalizeFeeTermItems,
   normalizeGrades,
   normalizePayments,
+  ParentPortalAdjustment,
   ParentPortalAttendanceRecord,
   ParentPortalFeeStructureItem,
   ParentPortalGradeRecord,
@@ -42,6 +43,7 @@ function ParentDashboardContent() {
   const [grades, setGrades] = useState<ParentPortalGradeRecord[]>([]);
   const [feeStructureItems, setFeeStructureItems] = useState<ParentPortalFeeStructureItem[]>([]);
   const [feePayments, setFeePayments] = useState<ParentPortalPayment[]>([]);
+  const [feeAdjustments, setFeeAdjustments] = useState<ParentPortalAdjustment[]>([]);
   const [notifications, setNotifications] = useState<ParentPortalNotice[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [childDataLoading, setChildDataLoading] = useState(false);
@@ -56,7 +58,10 @@ function ParentDashboardContent() {
    */
   const POLL_MS = 45_000;
 
-  const feeStats = useMemo(() => calculateFeeStats(feeStructureItems, feePayments), [feeStructureItems, feePayments]);
+  const feeStats = useMemo(
+    () => calculateFeeStats(feeStructureItems, feePayments, feeAdjustments),
+    [feeStructureItems, feePayments, feeAdjustments],
+  );
   const nextDue = useMemo(() => nextDueDate(feeStructureItems), [feeStructureItems]);
 
   useEffect(() => {
@@ -110,6 +115,7 @@ function ParentDashboardContent() {
   useEffect(() => {
     if (!selectedChild) return;
     if (isDemo) {
+      setFeeAdjustments([]);
       setFeeStructureItems([{ id: "demo-fee", name: "Tuition", amount: 1200000, term: "Term 1" }]);
       setFeePayments([
         {
@@ -132,65 +138,77 @@ function ParentDashboardContent() {
         return;
       }
       try {
-        const [attRes, gradesRes, modernFeeTermsRes, modernPaymentsRes, legacyPaymentsRes, legacyFeeTermsRes] =
-          await Promise.all([
-            withTimeout(
-              supabase
-                .from("attendance")
-                .select("id, date, status, remarks")
-                .eq("student_id", scopedChild.id)
-                .limit(10),
-              12000,
-              timeoutFallback(),
-            ),
-            withTimeout(
-              supabase
-                .from("grades")
-                .select("id, score, max_score, term, assessment_type, subjects(name)")
-                .eq("student_id", scopedChild.id)
-                .limit(6),
-              12000,
-              timeoutFallback(),
-            ),
-            withTimeout(
-              supabase
-                .from("student_fee_terms")
-                .select("id, final_amount, academic_year, fee_terms(name)")
-                .eq("student_id", scopedChild.id)
-                .order("created_at", { ascending: false }),
-              12000,
-              timeoutFallback(),
-            ),
-            withTimeout(
-              supabase
-                .from("fee_payments")
-                .select(
-                  "id, amount_paid, payment_date, payment_method, payment_reference, student_fee_terms!inner(student_id, fee_terms(name))",
-                )
-                .eq("student_fee_terms.student_id", scopedChild.id)
-                .order("payment_date", { ascending: false }),
-              12000,
-              timeoutFallback(),
-            ),
-            withTimeout(
-              supabase
-                .from("fee_payments")
-                .select("id, amount_paid, payment_date, payment_method, payment_reference")
-                .eq("student_id", scopedChild.id),
-              12000,
-              timeoutFallback(),
-            ),
-            withTimeout(
-              supabase
-                .from("fee_structure")
-                .select("*")
-                .eq("school_id", scopedChild.school_id)
-                .is("deleted_at", null)
-                .or(`class_id.is.null,class_id.eq.${scopedChild.class_id}`),
-              12000,
-              timeoutFallback(),
-            ),
-          ]);
+        const [
+          attRes,
+          gradesRes,
+          modernFeeTermsRes,
+          modernPaymentsRes,
+          legacyPaymentsRes,
+          legacyFeeTermsRes,
+          adjustmentsHomeRes,
+        ] = await Promise.all([
+          withTimeout(
+            supabase.from("attendance").select("id, date, status, remarks").eq("student_id", scopedChild.id).limit(10),
+            12000,
+            timeoutFallback(),
+          ),
+          withTimeout(
+            supabase
+              .from("grades")
+              .select("id, score, max_score, term, assessment_type, subjects(name)")
+              .eq("student_id", scopedChild.id)
+              .limit(6),
+            12000,
+            timeoutFallback(),
+          ),
+          withTimeout(
+            supabase
+              .from("student_fee_terms")
+              .select("id, final_amount, academic_year, fee_terms(name)")
+              .eq("student_id", scopedChild.id)
+              .order("created_at", { ascending: false }),
+            12000,
+            timeoutFallback(),
+          ),
+          withTimeout(
+            supabase
+              .from("fee_payments")
+              .select(
+                "id, amount_paid, payment_date, payment_method, payment_reference, student_fee_terms!inner(student_id, fee_terms(name))",
+              )
+              .eq("student_fee_terms.student_id", scopedChild.id)
+              .order("payment_date", { ascending: false }),
+            12000,
+            timeoutFallback(),
+          ),
+          withTimeout(
+            supabase
+              .from("fee_payments")
+              .select("id, amount_paid, payment_date, payment_method, payment_reference")
+              .eq("student_id", scopedChild.id),
+            12000,
+            timeoutFallback(),
+          ),
+          withTimeout(
+            supabase
+              .from("fee_structure")
+              .select("*")
+              .eq("school_id", scopedChild.school_id)
+              .is("deleted_at", null)
+              .or(`class_id.is.null,class_id.eq.${scopedChild.class_id}`),
+            12000,
+            timeoutFallback(),
+          ),
+          withTimeout(
+            supabase
+              .from("fee_adjustments")
+              .select("id, adjustment_type, amount, notes, created_at")
+              .eq("student_id", scopedChild.id)
+              .order("created_at", { ascending: false }),
+            12000,
+            { data: [], error: null } as never,
+          ),
+        ]);
 
         const normalizedFeeStructure = pickPreferredSchemaRows({
           modernRows: normalizeFeeTermItems((modernFeeTermsRes.data || []) as never[]),
@@ -217,6 +235,23 @@ function ParentDashboardContent() {
         setGrades(normalizeGrades(gradesRes.data || []));
         setFeeStructureItems(normalizedFeeStructure);
         setFeePayments(normalizedPayments);
+        setFeeAdjustments(
+          (
+            (adjustmentsHomeRes?.data || []) as Array<{
+              id: string;
+              adjustment_type: string;
+              amount: number | string;
+              notes?: string | null;
+              created_at?: string | null;
+            }>
+          ).map((a) => ({
+            id: a.id,
+            adjustment_type: a.adjustment_type,
+            amount: Number(a.amount || 0),
+            notes: a.notes ?? null,
+            created_at: a.created_at ?? null,
+          })),
+        );
       } catch (err) {
         logger.error("Fetch student data error:", err);
       } finally {
@@ -522,8 +557,15 @@ function ParentDashboardContent() {
                         <span className="material-symbols-outlined text-4xl text-[var(--portal-ink)]">payments</span>
                       </div>
                       <p className="mt-3 text-sm text-[var(--portal-ink-soft)]">
-                        Total fee: UGX {feeStats.totalFee?.toLocaleString()}
+                        {feeStats.totalCredits > 0
+                          ? `Fees due: UGX ${feeStats.expected?.toLocaleString()}`
+                          : `Total fee: UGX ${feeStats.totalFee?.toLocaleString()}`}
                       </p>
+                      {feeStats.totalCredits > 0 && (
+                        <p className="text-sm text-[var(--portal-success)]">
+                          Discount applied: −UGX {feeStats.totalCredits.toLocaleString()}
+                        </p>
+                      )}
                       <p className="text-sm text-[var(--portal-ink-soft)]">
                         Paid so far: UGX {feeStats.totalPaid?.toLocaleString()}
                       </p>

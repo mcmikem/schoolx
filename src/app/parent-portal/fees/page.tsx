@@ -18,6 +18,7 @@ import {
   calculateFeeStats,
   groupFeesByTerm,
   nextDueDate,
+  ParentPortalAdjustment,
   ParentPortalFeeStructureItem,
   ParentPortalPayment,
   ParentPortalWalletTransaction,
@@ -48,6 +49,7 @@ export default function ParentFeesPage() {
   const { selectedChild } = useParentPortal();
   const [feeStructure, setFeeStructure] = useState<ParentPortalFeeStructureItem[]>([]);
   const [payments, setPayments] = useState<ParentPortalPayment[]>([]);
+  const [adjustments, setAdjustments] = useState<ParentPortalAdjustment[]>([]);
   const [walletBalance, setWalletBalance] = useState(0);
   const [walletTransactions, setWalletTransactions] = useState<ParentPortalWalletTransaction[]>([]);
   // Clearance comes from the same engine the bursar's screen uses. It gates
@@ -80,6 +82,7 @@ export default function ParentFeesPage() {
       if (isDemo) {
         setFeeStructure(getDemoFeeStructure(child.id));
         setPayments(getDemoPayments(child.id));
+        setAdjustments([]);
         setWalletBalance(getDemoWalletBalance(child.id));
         setWalletTransactions(getDemoWalletTransactions(child.id));
         setLoading(false);
@@ -87,7 +90,7 @@ export default function ParentFeesPage() {
       }
 
       try {
-        const [modernFeeTermsRes, modernPaymentsRes, walletRes] = await Promise.all([
+        const [modernFeeTermsRes, modernPaymentsRes, walletRes, adjustmentsRes] = await Promise.all([
           withTimeout(
             supabase
               .from("student_fee_terms")
@@ -112,6 +115,19 @@ export default function ParentFeesPage() {
             supabase.from("student_wallets").select("id, balance").eq("student_id", child.id).maybeSingle(),
             12000,
             timeoutFallback(),
+          ),
+          // Discounts and scholarships. The bursar's ledger already nets these
+          // off; without them the parent was shown the gross bill and argued
+          // over a balance the school did not hold. A blocked read (RLS) just
+          // leaves the list empty rather than failing the page.
+          withTimeout(
+            supabase
+              .from("fee_adjustments")
+              .select("id, adjustment_type, amount, notes, created_at")
+              .eq("student_id", child.id)
+              .order("created_at", { ascending: false }),
+            12000,
+            { data: [], error: null } as never,
           ),
         ]);
 
@@ -191,6 +207,23 @@ export default function ParentFeesPage() {
 
         setFeeStructure(feeRows);
         setPayments(paymentRows);
+        setAdjustments(
+          (
+            (adjustmentsRes?.data || []) as Array<{
+              id: string;
+              adjustment_type: string;
+              amount: number | string;
+              notes?: string | null;
+              created_at?: string | null;
+            }>
+          ).map((a) => ({
+            id: a.id,
+            adjustment_type: a.adjustment_type,
+            amount: Number(a.amount || 0),
+            notes: a.notes ?? null,
+            created_at: a.created_at ?? null,
+          })),
+        );
         setWalletBalance(Number(walletRes.data?.balance || 0));
         setWalletTransactions(walletTxData);
       } finally {
@@ -257,9 +290,14 @@ export default function ParentFeesPage() {
     };
   }, [isDemo, selectedChild?.school_id]);
 
-  const stats = useMemo(() => calculateFeeStats(feeStructure, payments), [feeStructure, payments]);
+  const stats = useMemo(
+    () => calculateFeeStats(feeStructure, payments, adjustments),
+    [feeStructure, payments, adjustments],
+  );
 
-  const paidPct = stats.totalFee > 0 ? Math.round((stats.totalPaid / stats.totalFee) * 100) : 0;
+  // Progress is against what is actually due, not the gross bill: a discount
+  // must not leave a parent stuck at 70% when they have paid everything owed.
+  const paidPct = stats.expected > 0 ? Math.min(100, Math.round((stats.totalPaid / stats.expected) * 100)) : 0;
 
   const feeGroups = useMemo(() => groupFeesByTerm(feeStructure), [feeStructure]);
 
@@ -422,7 +460,10 @@ export default function ParentFeesPage() {
               label: "Total billed",
               value: `UGX ${stats.totalFee.toLocaleString()}`,
               tone: "default",
-              hint: `${feeStructure.length} fee line${feeStructure.length === 1 ? "" : "s"}`,
+              hint:
+                stats.totalCredits > 0
+                  ? `UGX ${stats.totalCredits.toLocaleString()} discounted`
+                  : `${feeStructure.length} fee line${feeStructure.length === 1 ? "" : "s"}`,
             },
             {
               label: "Next due",
@@ -542,10 +583,44 @@ export default function ParentFeesPage() {
                       ))}
                     </div>
                   ))}
+                  {adjustments.map((adjustment) => {
+                    const credit = [
+                      "discount",
+                      "scholarship",
+                      "manual_credit",
+                      "write_off",
+                      "bursary",
+                      "amnesty",
+                    ].includes(adjustment.adjustment_type);
+                    const penalty = adjustment.adjustment_type === "penalty";
+                    return (
+                      <div
+                        key={adjustment.id}
+                        className="flex items-start justify-between gap-3 rounded-[18px] border border-dashed border-[var(--border)] p-3"
+                      >
+                        <div className="min-w-0">
+                          <p className="truncate text-sm font-bold capitalize text-[var(--on-surface)]">
+                            {adjustment.adjustment_type.replace(/_/g, " ")}
+                          </p>
+                          {adjustment.notes && (
+                            <p className="text-xs text-[var(--on-surface-variant)]">{adjustment.notes}</p>
+                          )}
+                        </div>
+                        <p
+                          className={`shrink-0 text-sm font-black tabular-nums ${credit ? "text-emerald-600" : penalty ? "text-red-600" : "text-[var(--on-surface)]"}`}
+                        >
+                          {credit ? "−" : penalty ? "+" : ""}
+                          UGX {Number(adjustment.amount).toLocaleString()}
+                        </p>
+                      </div>
+                    );
+                  })}
                   <div className="flex items-center justify-between border-t border-[var(--border)] pt-3">
-                    <p className="text-sm font-semibold text-[var(--on-surface)]">Total billed</p>
+                    <p className="text-sm font-semibold text-[var(--on-surface)]">
+                      {stats.totalCredits > 0 ? "Fees due (after discounts)" : "Total billed"}
+                    </p>
                     <p className="text-sm font-black tabular-nums text-[var(--on-surface)]">
-                      UGX {stats.totalFee.toLocaleString()}
+                      UGX {(stats.totalCredits > 0 ? stats.expected : stats.totalFee).toLocaleString()}
                     </p>
                   </div>
                 </div>
