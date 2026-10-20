@@ -13,7 +13,10 @@ import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth-context";
 import { canAccess, type UserRole } from "@/lib/roles";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { Card, CardBody } from "@/components/ui/Card";
 import { Tabs, TabPanel } from "@/components/ui/Tabs";
+import { telHref, whatsappHref } from "@/lib/phone-links";
+import ContactActions from "@/components/students/ContactActions";
 import StudentDetailPanel from "@/components/students/StudentDetailPanel";
 import { normalizeStudentInput } from "@/lib/validation";
 
@@ -990,9 +993,10 @@ export default function StudentProfilePage() {
                     <MaterialIcon icon="person" size={16} className="w-4 text-gray-400" />
                     <span className="font-medium">{student.parent_name || "N/A"}</span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     <MaterialIcon icon="call" size={16} className="w-4 text-gray-400" />
                     <span>{student.parent_phone || "N/A"}</span>
+                    <ContactActions phone={student.parent_phone} name={student.parent_name || undefined} />
                   </div>
                   {student.parent_phone2 && (
                     <div className="flex items-center gap-2">
@@ -1069,7 +1073,7 @@ export default function StudentProfilePage() {
                           key={g.id}
                           className="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3 dark:bg-gray-700/30"
                         >
-                          <div>
+                          <div className="min-w-0">
                             <div className="flex items-center gap-2">
                               <span className="text-sm font-medium">{user.full_name || "Unknown"}</span>
                               {isPrimary && (
@@ -1082,11 +1086,14 @@ export default function StudentProfilePage() {
                               {user.phone || ""}
                               {g.relationship !== "parent" ? ` · ${g.relationship}` : ""}
                             </div>
+                            <div className="mt-1.5">
+                              <ContactActions phone={user.phone} name={user.full_name || undefined} />
+                            </div>
                           </div>
                           {canEditStudent && !isPrimary && (
                             <button
                               onClick={() => handleSetPrimaryGuardian(g)}
-                              className="text-xs text-blue-600 hover:underline"
+                              className="shrink-0 text-xs text-blue-600 hover:underline"
                               title="Set as primary guardian"
                             >
                               Set Primary
