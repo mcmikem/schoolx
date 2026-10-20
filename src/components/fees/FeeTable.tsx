@@ -3,7 +3,8 @@ import { useState, useMemo, Fragment } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 import { RollCallPhoto } from "@/components/attendance/RollCallPhoto";
 import { formatCurrency } from "@/lib/currency";
-import type { AllocatedFee } from "@/lib/fee-allocation";
+import { isCreditAdjustment, type AllocatedFee } from "@/lib/fee-allocation";
+import { summariseLedger } from "@/lib/fee-ledger";
 
 export interface StudentBalance {
   id: string;
@@ -15,6 +16,8 @@ export interface StudentBalance {
   expected: number;
   paid: number;
   balance: number;
+  /** Debt carried in from before the school joined the system. */
+  openingBalance?: number;
   /** Unpaid charges brought forward from earlier terms. */
   arrears?: number;
   /** Portion of the balance attributable to the current term. */
@@ -233,9 +236,19 @@ function BalanceLedger({ student, recordedByName }: { student: StudentBalance; r
     const parsed = new Date(value);
     return Number.isNaN(parsed.getTime()) ? value : parsed.toLocaleDateString();
   };
+  // Start from the charge, not from the net: "Expected 300,000" beside a
+  // 120,000 discount read like the discount was never taken off. The equation
+  // now walks gross fees + carried debt + fines − credits = expected, so the
+  // reader can reproduce it on paper.
+  const ledger = summariseLedger({
+    fees: student.feeBreakdown,
+    adjustments: student.adjustments,
+    openingBalance: student.openingBalance,
+  });
+
   return (
     <div className="space-y-1.5 text-sm">
-      {student.arrears ? (
+      {!ledger.itemised && student.arrears ? (
         <div className="flex items-center justify-between text-[var(--t2)]">
           <span className="min-w-0 truncate">Brought forward · earlier terms</span>
           <span className="shrink-0 font-semibold tabular-nums text-[var(--red)]">
@@ -243,6 +256,41 @@ function BalanceLedger({ student, recordedByName }: { student: StudentBalance; r
           </span>
         </div>
       ) : null}
+      {ledger.openingBalance > 0 ? (
+        <div className="flex items-center justify-between text-[var(--t2)]">
+          <span className="min-w-0 truncate">Opening balance · before system</span>
+          <span className="shrink-0 font-semibold tabular-nums">+{formatCurrency(ledger.openingBalance)}</span>
+        </div>
+      ) : null}
+      {ledger.itemised && ledger.grossFees > 0 ? (
+        <div className="flex items-center justify-between text-[var(--t2)]">
+          <span className="min-w-0 truncate">Fees charged</span>
+          <span className="shrink-0 font-semibold tabular-nums">+{formatCurrency(ledger.grossFees)}</span>
+        </div>
+      ) : null}
+      {student.adjustments.map((a) => {
+        const credit = isCreditAdjustment(a.adjustment_type);
+        const penalty = a.adjustment_type === "penalty";
+        return (
+          <div key={a.id} className="flex items-start justify-between gap-3 text-[var(--t2)]">
+            <span className="min-w-0">
+              <span className="block truncate">
+                {a.adjustment_type || "Adjustment"}
+                {formatTimeOfDay(a.recorded_at) ? ` at ${formatTimeOfDay(a.recorded_at)}` : ""}
+                {a.fee ? ` · ${a.fee}` : ""}
+                {a.description ? ` · ${a.description}` : ""}
+              </span>
+              <span className="block text-xs text-[var(--t3)]">by {describeWho(a.recorded_by, recordedByName)}</span>
+            </span>
+            <span
+              className={`shrink-0 font-semibold tabular-nums ${credit ? "text-[var(--green)]" : penalty ? "text-[var(--red)]" : ""}`}
+            >
+              {credit ? "−" : penalty ? "+" : ""}
+              {formatCurrency(a.amount || 0)}
+            </span>
+          </div>
+        );
+      })}
       <div className="flex items-center justify-between text-[var(--t2)]">
         <span>Expected</span>
         <span className="font-semibold tabular-nums">{formatCurrency(student.expected || 0)}</span>
@@ -260,20 +308,6 @@ function BalanceLedger({ student, recordedByName }: { student: StudentBalance; r
             <span className="block text-xs text-[var(--t3)]">by {describeWho(p.recorded_by, recordedByName)}</span>
           </span>
           <span className="shrink-0 font-semibold tabular-nums text-emerald-700">−{formatCurrency(p.amount || 0)}</span>
-        </div>
-      ))}
-      {student.adjustments.map((a) => (
-        <div key={a.id} className="flex items-start justify-between gap-3 text-[var(--t2)]">
-          <span className="min-w-0">
-            <span className="block truncate">
-              {a.adjustment_type || "Adjustment"}
-              {formatTimeOfDay(a.recorded_at) ? ` at ${formatTimeOfDay(a.recorded_at)}` : ""}
-              {a.fee ? ` · ${a.fee}` : ""}
-              {a.description ? ` · ${a.description}` : ""}
-            </span>
-            <span className="block text-xs text-[var(--t3)]">by {describeWho(a.recorded_by, recordedByName)}</span>
-          </span>
-          <span className="shrink-0 font-semibold tabular-nums">{formatCurrency(a.amount || 0)}</span>
         </div>
       ))}
       {student.payments.length === 0 && student.adjustments.length === 0 && (

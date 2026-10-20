@@ -1,4 +1,10 @@
-import { bucketTriageBalances, partitionFeeRoster, splitBalance, TRIAGE_BANDS } from "@/lib/fee-triage";
+import {
+  bucketTriageBalances,
+  matchesFeeStatus,
+  partitionFeeRoster,
+  splitBalance,
+  TRIAGE_BANDS,
+} from "@/lib/fee-triage";
 
 describe("bucketTriageBalances", () => {
   const balances = [
@@ -103,5 +109,32 @@ describe("partitionFeeRoster", () => {
     const w = partitionFeeRoster([{ expected: 200_000, paid: 0, balance: 0 }]);
     expect(w.cleared).toBe(1);
     expect(w.owing).toBe(0);
+  });
+});
+
+describe("matchesFeeStatus", () => {
+  const cleared = { expected: 300_000, paid: 300_000, balance: 0, status: "paid" };
+  const partial = { expected: 300_000, paid: 100_000, balance: 200_000, status: "partial" };
+  const owing = { expected: 300_000, paid: 0, balance: 300_000, status: "unpaid" };
+  const unbilled = { expected: 0, paid: 0, balance: 0, status: "paid" };
+  const writtenOff = { expected: 200_000, paid: 0, balance: 0, status: "written_off" };
+  const rows = [cleared, partial, owing, unbilled, writtenOff];
+
+  it("agrees exactly with the tiles a bursar just tapped", () => {
+    const p = partitionFeeRoster(rows);
+    const count = (f: string) => rows.filter((r) => matchesFeeStatus(r, f)).length;
+    expect(count("paid")).toBe(p.cleared - 1); // written-off is not "paid"
+    expect(count("partial")).toBe(p.partial);
+    expect(count("unpaid")).toBe(p.owing);
+    expect(count("unbilled")).toBe(p.unbilled);
+    expect(count("written_off")).toBe(1);
+  });
+
+  it("never files an unbilled pupil under Paid", () => {
+    // expected 0 / balance 0 used to pass the balance === 0 test, so the pupil
+    // the warning pointed at was invisible in every filter.
+    expect(matchesFeeStatus(unbilled, "paid")).toBe(false);
+    expect(matchesFeeStatus(unbilled, "unbilled")).toBe(true);
+    expect(matchesFeeStatus(unbilled, "all")).toBe(true);
   });
 });

@@ -81,4 +81,15 @@ describe("fees tracker redesign", () => {
     // Keep the autosave indicator the header used to carry.
     expect(feeForm).toContain("headerAction");
   });
+
+  it("lets the bursar reach the unbilled pupil the warning names", () => {
+    // A count with no route to the row is a dead end: the pupil has balance 0,
+    // so the debtors-first default hid exactly the child the warning pointed at.
+    const page = read("src/app/dashboard/fees/page.tsx");
+    const stats = read("src/components/fees/FeeStats.tsx");
+    expect(page).toContain("matchesFeeStatus");
+    expect(page).toContain('option value="unbilled"');
+    expect(stats).toContain('onFilter?.("unbilled")');
+    expect(stats).toContain("pupils cleared");
+  });
 });

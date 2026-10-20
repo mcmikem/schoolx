@@ -3,7 +3,7 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { formatCurrency } from "@/lib/currency";
 import type { FeeRosterPartition } from "@/lib/fee-triage";
 
-export type FeeStatusFilter = "all" | "paid" | "partial" | "unpaid";
+export type FeeStatusFilter = "all" | "paid" | "partial" | "unpaid" | "unbilled";
 
 interface FeeStatsProps {
   stats: FeeRosterPartition;
@@ -93,7 +93,9 @@ function RosterDonut({
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
         <span className="text-2xl font-extrabold tabular-nums text-[var(--t1)]">{stats.collectionRate}%</span>
-        <span className="text-xs font-semibold uppercase tracking-wider text-[var(--t3)]">cleared</span>
+        {/* "cleared" alone read as a share of MONEY; it is a share of PUPILS.
+            The money rate is stated once, in the footer. */}
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--t3)]">pupils cleared</span>
       </div>
     </div>
   );
@@ -104,6 +106,9 @@ export default function FeeStats({ stats, paymentsCount, onFilter, activeFilter 
     { key: "paid", label: "Cleared", count: stats.cleared, dot: "bg-[var(--green)]" },
     { key: "partial", label: "Part paid", count: stats.partial, dot: "bg-[var(--amber)]" },
     { key: "unpaid", label: "Owes in full", count: stats.owing, dot: "bg-[var(--red)]" },
+    ...(stats.unbilled > 0
+      ? [{ key: "unbilled" as const, label: "No fees", count: stats.unbilled, dot: "bg-[var(--t3)]" }]
+      : []),
   ];
 
   return (
@@ -122,7 +127,7 @@ export default function FeeStats({ stats, paymentsCount, onFilter, activeFilter 
             </span>
           </div>
 
-          <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <div className={`mt-3 grid grid-cols-1 gap-2 ${rows.length > 3 ? "sm:grid-cols-4" : "sm:grid-cols-3"}`}>
             {rows.map((r) => {
               const active = activeFilter === r.key;
               return (
@@ -167,6 +172,15 @@ export default function FeeStats({ stats, paymentsCount, onFilter, activeFilter 
             {stats.unbilled === 1 ? "pupil has" : "pupils have"} no fee structure for{" "}
             {stats.unbilled === 1 ? "their class" : "their class"} — excluded from the rate above.
           </p>
+          <button
+            type="button"
+            onClick={() => onFilter?.("unbilled")}
+            aria-pressed={activeFilter === "unbilled"}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 min-h-[44px] text-xs font-bold text-[var(--t1)] hover:bg-[var(--surface-container-low)]"
+          >
+            <MaterialIcon icon="visibility" className="text-[16px]" />
+            Show {stats.unbilled === 1 ? "pupil" : "pupils"}
+          </button>
           <a
             href="/dashboard/fees/?tab=balances"
             className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 min-h-[44px] text-xs font-bold text-[var(--primary)] hover:bg-[var(--surface-container-low)]"

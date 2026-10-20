@@ -132,3 +132,35 @@ export function partitionFeeRoster(rows: FeeRosterRow[]): FeeRosterPartition {
     realizationRate: totalExpected > 0 ? Math.round((totalPaid / totalExpected) * 100) : 0,
   };
 }
+
+/** Status pills the balances list can filter by. */
+export type FeeStatusFilterId = "all" | "paid" | "partial" | "unpaid" | "written_off" | "unbilled";
+
+/**
+ * Does this roster row belong in the chosen status filter?
+ *
+ * The list used to compare `student.status` directly, which put unbilled pupils
+ * (expected 0, balance 0) in the "Paid" bucket while the tiles above counted
+ * them separately. Same pupil, two answers. This mirrors `partitionFeeRoster`
+ * so tapping a tile and reading the list always agree — and `unbilled` gives the
+ * bursar a way to see WHICH pupil the warning is about, instead of a count with
+ * no way to reach the row.
+ */
+export function matchesFeeStatus(
+  row: FeeRosterRow & { status?: string | null },
+  filter: FeeStatusFilterId | string,
+): boolean {
+  if (!filter || filter === "all") return true;
+  const expected = Math.max(0, Number(row.expected) || 0);
+  const paid = Math.max(0, Number(row.paid) || 0);
+  const balance = Math.max(0, Number(row.balance) || 0);
+
+  if (filter === "unbilled") return expected === 0;
+  if (filter === "written_off") return row.status === "written_off";
+  // A written-off bill is settled for the ledger but was never *paid*, and
+  // the old status === "paid" test excluded it too.
+  if (filter === "paid") return expected > 0 && balance === 0 && row.status !== "written_off";
+  if (filter === "partial") return expected > 0 && balance > 0 && paid > 0;
+  if (filter === "unpaid") return expected > 0 && balance > 0 && paid === 0;
+  return true;
+}

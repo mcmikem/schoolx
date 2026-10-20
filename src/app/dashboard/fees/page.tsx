@@ -25,7 +25,7 @@ import { useAuth } from "@/lib/auth-context";
 import { PAYMENT_METHODS } from "@/lib/constants";
 import { updateRecord } from "@/lib/crud-service";
 import { formatCurrency } from "@/lib/currency";
-import { bucketTriageBalances, partitionFeeRoster, TRIAGE_BANDS } from "@/lib/fee-triage";
+import { bucketTriageBalances, matchesFeeStatus, partitionFeeRoster, TRIAGE_BANDS } from "@/lib/fee-triage";
 // NOTE: If your school uses fee_terms as the primary system, this fees page
 // uses fee_structure instead. The fee_terms module at /dashboard/fee-terms is
 // legacy and kept for backward compatibility only. See the deprecation notice
@@ -315,8 +315,8 @@ export default function FinanceHubPage() {
   const undo = useUndo();
   const [selectedStudent, setSelectedStudent] = useState<StudentBalance | null>(null);
   const [selectedClass, setSelectedClass] = useState(() => urlFilters.get("class") || "all");
-  const [statusFilter, setStatusFilter] = useState<"all" | "unpaid" | "partial" | "paid" | "written_off">(
-    () => (urlFilters.get("status") as "all" | "unpaid" | "partial" | "paid" | "written_off") || "all",
+  const [statusFilter, setStatusFilter] = useState<"all" | "unpaid" | "partial" | "paid" | "written_off" | "unbilled">(
+    () => (urlFilters.get("status") as "all" | "unpaid" | "partial" | "paid" | "written_off" | "unbilled") || "all",
   );
   const [searchTerm, setSearchTerm] = useState(() => urlFilters.get("q") || "");
   const [saving, setSaving] = useState(false);
@@ -699,6 +699,7 @@ export default function FinanceHubPage() {
         class_id: student.class_id ?? "",
         expected: feePosition.totalExpected,
         paid: feePosition.totalPaid,
+        openingBalance: Number(student.opening_balance || 0),
         balance: feePosition.balance,
         arrears: arrearsSplit.arrears,
         currentDue: arrearsSplit.currentDue,
@@ -816,10 +817,16 @@ export default function FinanceHubPage() {
         const matchesSearch =
           !hasSearch || s.name.toLowerCase().includes(query) || s.student_number.toLowerCase().includes(query);
         const matchesClass = selectedClass === "all" || s.class_id === selectedClass;
-        const matchesStatus = statusFilter === "all" || s.status === statusFilter;
+        // Same rules the tiles above use. Unbilled pupils (expected 0) are NOT
+        // "paid" — they were never billed — and "unbilled" is the only filter
+        // that shows them, so the warning finally has a destination.
+        const matchesStatus = matchesFeeStatus(s, statusFilter);
         const band = bandFilter ? TRIAGE_BANDS.find((b) => b.id === bandFilter) : null;
         const matchesBand = !band || (s.balance >= band.min && s.balance < band.max);
-        const matchesOwing = !hideCleared || s.balance > 0 || hasSearch;
+        // The debtors-first default hides cleared rows, but it must never hide
+        // the rows a bursar just asked for by picking a status or the unbilled
+        // warning.
+        const matchesOwing = !hideCleared || statusFilter !== "all" || s.balance > 0 || hasSearch;
         return matchesSearch && matchesClass && matchesStatus && matchesBand && matchesOwing;
       })
       .sort((a, b) => b.balance - a.balance);
@@ -1920,16 +1927,12 @@ export default function FinanceHubPage() {
           <>
             <FeeStats
               stats={partition}
-              paymentsCount={payments.length}
+              paymentsCount={completePayments.length}
               onFilter={(status) =>
                 setStatusFilter(
-                  status === "unpaid"
-                    ? "unpaid"
-                    : status === "paid"
-                      ? "paid"
-                      : status === "partial"
-                        ? "partial"
-                        : "all",
+                  status === "unpaid" || status === "paid" || status === "partial" || status === "unbilled"
+                    ? status
+                    : "all",
                 )
               }
               activeFilter={statusFilter === "written_off" ? "all" : statusFilter}
@@ -1975,6 +1978,7 @@ export default function FinanceHubPage() {
                     <option value="partial">Partial</option>
                     <option value="paid">Paid</option>
                     <option value="written_off">Written Off</option>
+                    <option value="unbilled">No fee structure</option>
                   </select>
                   <button
                     type="button"

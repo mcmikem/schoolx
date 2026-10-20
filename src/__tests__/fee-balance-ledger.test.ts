@@ -56,4 +56,12 @@ describe("fee balances use the complete payment ledger", () => {
     expect(OFFLINE).toMatch(/\.range\(offset, offset \+ limit - 1\)/);
     expect(PAGE).toMatch(/useOfflineFees\(school\?\.id, \{ limit: itemsPerPage, offset \}\)/);
   });
+
+  it("counts transactions from the ledger, not the 50-row cashbook page", () => {
+    // "50 transactions recorded" sat under a school with 62 payments: the
+    // footer was reading the page slice while every other figure read the
+    // ledger, so the two disagreed on the same screen.
+    expect(PAGE).toMatch(/paymentsCount=\{completePayments\.length\}/);
+    expect(PAGE).not.toMatch(/paymentsCount=\{payments\.length\}/);
+  });
 });
