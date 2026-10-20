@@ -51,6 +51,18 @@ export interface FeeRosterRow {
   expected: number;
   paid: number;
   balance: number;
+  /**
+   * Whether the pupil actually had fee lines this term.
+   *
+   * `expected === 0` alone cannot tell "nobody set up this class's fees" apart
+   * from "this pupil's whole bill was discounted away". Kikunyu's Mutebi Keron
+   * has a 100,000 tuition line and a 100,000 discount, so every number is
+   * right and the pupil still landed in the "no fee structure" warning — a
+   * fully-sponsored child reported as a setup mistake. Callers that can tell
+   * the difference pass this; when omitted, the old `expected === 0` test
+   * stands.
+   */
+  billed?: boolean;
 }
 
 /**
@@ -104,7 +116,9 @@ export function partitionFeeRoster(rows: FeeRosterRow[]): FeeRosterPartition {
     totalPaid += paid;
     totalBalance += balance;
 
-    if (expected === 0) {
+    const notBilled = row.billed === undefined ? expected === 0 : row.billed === false;
+
+    if (notBilled) {
       unbilled += 1;
     } else if (balance === 0) {
       cleared += 1;
@@ -155,12 +169,14 @@ export function matchesFeeStatus(
   const paid = Math.max(0, Number(row.paid) || 0);
   const balance = Math.max(0, Number(row.balance) || 0);
 
-  if (filter === "unbilled") return expected === 0;
+  const notBilled = row.billed === undefined ? expected === 0 : row.billed === false;
+
+  if (filter === "unbilled") return notBilled;
   if (filter === "written_off") return row.status === "written_off";
   // A written-off bill is settled for the ledger but was never *paid*, and
   // the old status === "paid" test excluded it too.
-  if (filter === "paid") return expected > 0 && balance === 0 && row.status !== "written_off";
-  if (filter === "partial") return expected > 0 && balance > 0 && paid > 0;
-  if (filter === "unpaid") return expected > 0 && balance > 0 && paid === 0;
+  if (filter === "paid") return !notBilled && balance === 0 && row.status !== "written_off";
+  if (filter === "partial") return !notBilled && balance > 0 && paid > 0;
+  if (filter === "unpaid") return !notBilled && balance > 0 && paid === 0;
   return true;
 }

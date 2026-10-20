@@ -700,6 +700,9 @@ export default function FinanceHubPage() {
         expected: feePosition.totalExpected,
         paid: feePosition.totalPaid,
         openingBalance: Number(student.opening_balance || 0),
+        // Distinguishes "this class has no fees" from "a discount wiped the
+        // bill", so a sponsored pupil is not reported as a setup error.
+        billed: applicableFees.length > 0,
         balance: feePosition.balance,
         arrears: arrearsSplit.arrears,
         currentDue: arrearsSplit.currentDue,

@@ -130,6 +130,26 @@ describe("matchesFeeStatus", () => {
     expect(count("written_off")).toBe(1);
   });
 
+  it("does not call a fully-discounted pupil unbilled", () => {
+    // Kikunyu's Mutebi Keron: a 100,000 Middle Class tuition line and a
+    // 100,000 discount. expected is 0, so the old test told the bursar his
+    // class had no fee structure.
+    const sponsored = { expected: 0, paid: 0, balance: 0, billed: true, status: "paid" };
+    const p = partitionFeeRoster([sponsored]);
+    expect(p.unbilled).toBe(0);
+    expect(p.cleared).toBe(1);
+    expect(matchesFeeStatus(sponsored, "unbilled")).toBe(false);
+    expect(matchesFeeStatus(sponsored, "paid")).toBe(true);
+  });
+
+  it("still reports a class with no fee lines as unbilled", () => {
+    const noFees = { expected: 0, paid: 0, balance: 0, billed: false, status: "paid" };
+    const p = partitionFeeRoster([noFees]);
+    expect(p.unbilled).toBe(1);
+    expect(p.cleared).toBe(0);
+    expect(matchesFeeStatus(noFees, "unbilled")).toBe(true);
+  });
+
   it("never files an unbilled pupil under Paid", () => {
     // expected 0 / balance 0 used to pass the balance === 0 test, so the pupil
     // the warning pointed at was invisible in every filter.

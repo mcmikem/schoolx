@@ -18,6 +18,8 @@ export interface StudentBalance {
   balance: number;
   /** Debt carried in from before the school joined the system. */
   openingBalance?: number;
+  /** Whether the pupil had fee lines at all (vs. a bill discounted to zero). */
+  billed?: boolean;
   /** Unpaid charges brought forward from earlier terms. */
   arrears?: number;
   /** Portion of the balance attributable to the current term. */
