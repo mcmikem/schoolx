@@ -2,16 +2,10 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import OwlMascot from "@/components/brand/OwlMascot";
-import ActionPanel from "@/components/dashboard/ActionPanel";
-import CollectionDonut from "@/components/dashboard/CollectionDonut";
-import RecentPayments from "@/components/dashboard/RecentPayments";
+import BursarReceiptPanel from "@/components/dashboard/BursarReceiptPanel";
 import SchoolCalendar from "@/components/dashboard/SchoolCalendar";
-import SchoolHero from "@/components/dashboard/SchoolHero";
 import MoneyPositionStrip from "@/components/dashboard/MoneyPositionStrip";
 
-import StatCard from "@/components/dashboard/StatCard";
-import TaskManager from "@/components/dashboard/TaskManager";
-import TopDefaulters from "@/components/dashboard/TopDefaulters";
 import WeeklyCollections from "@/components/dashboard/WeeklyCollections";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import MaterialIcon from "@/components/MaterialIcon";
@@ -20,7 +14,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { StuckLoadingOverlay, TopLoadingBar } from "@/components/ui/Skeleton";
 import { useAcademic } from "@/lib/academic-context";
 import { useAuth } from "@/lib/auth-context";
-import { formatCompactCurrency } from "@/lib/currency";
+import { formatCompactCurrency, formatCurrency } from "@/lib/currency";
 import {
   HIGH_RISK_ARREARS_THRESHOLD,
   MAX_RETURNED_DEFAULTERS,
@@ -35,9 +29,14 @@ import { greetingFor, todayLabelFor } from "@/lib/utils";
 function BursarDashboardContent() {
   const { school, user, isDemo } = useAuth();
   const { academicYear, currentTerm } = useAcademic();
-  const { students, loading: studentsLoading } = useStudents(school?.id, { limit: 1000 });
-  const { payments, loading: paymentsLoading } = useFeePayments(school?.id);
-  const { feeStructure, loading: feeStructureLoading } = useFeeStructure(school?.id);
+  const { students, loading: studentsLoading, error: studentsError } = useStudents(school?.id, { limit: 1000 });
+  const {
+    payments,
+    loading: paymentsLoading,
+    error: paymentsError,
+    refetch: refetchPayments,
+  } = useFeePayments(school?.id);
+  const { feeStructure, loading: feeStructureLoading, error: feeStructureError } = useFeeStructure(school?.id);
   // Scoped to the term the header names. fee_summary() falls back to the
   // school's other fees when that term has none that apply, so this never
   // drops to zero just because a term has not been set up yet.
@@ -59,13 +58,6 @@ function BursarDashboardContent() {
   const currentDate = new Date();
   const greeting = greetingFor(currentDate);
 
-  // Client-side totals — the fallback when fee_summary() cannot answer (demo
-  // mode, offline, a timeout, or a deployment where the migration has not run
-  // yet). It deliberately skips the RPC's term scoping: this path only ever
-  // sees the first 100 students and 50 payments, so re-running the tier
-  // fallback against a truncated roster would disagree with the database more
-  // often than it agreed. In normal operation the RPC wins and these numbers
-  // are not what the dashboard shows.
   const legacyFigures = useMemo(() => {
     const expected = students.reduce((total, student) => {
       const classFees = feeStructure.filter((f) => !f.class_id || f.class_id === student.class_id);
@@ -153,28 +145,11 @@ function BursarDashboardContent() {
   const collectionRate = totalFeesExpected > 0 ? Math.round((totalFeesCollected / totalFeesExpected) * 100) : 0;
   const overdueCount = figures.overdueCount;
   const highRiskArrearsCount = figures.highRiskCount;
-  const thisMonthTotal = figures.thisMonthTotal;
   // The fee_summary() RPC is a term-level rollup and does not return these,
   // so the locally derived figures are always the source for today.
   const todayTotal = legacyFigures.todayTotal;
   const todayCount = legacyFigures.todayCount;
-  const lastMonthTotal = figures.lastMonthTotal;
-  const collectionTrend =
-    lastMonthTotal > 0 ? Math.round(((thisMonthTotal - lastMonthTotal) / lastMonthTotal) * 100) : 0;
   const studentTotal = figures.studentsCount;
-
-  const recentPayments = useMemo(() => {
-    const studentMap = Object.fromEntries(students.map((s) => [s.id, s]));
-    return [...payments]
-      .sort((a, b) => new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime())
-      .slice(0, 5)
-      .map((p) => ({
-        ...p,
-        studentName: studentMap[p.student_id]
-          ? `${studentMap[p.student_id].first_name || ""} ${studentMap[p.student_id].last_name || ""}`.trim()
-          : "Unknown",
-      }));
-  }, [payments, students]);
 
   // Fees are set per class, per term and per year. When the term the header
   // names has no fee items yet there is nothing to collect against, so
@@ -184,91 +159,26 @@ function BursarDashboardContent() {
   const hasCurrentTermFees = feeStructure.some(
     (f) => Number(f.term) === Number(currentTerm) && (!f.academic_year || f.academic_year === academicYear),
   );
-  const feeSetupPending = !feeStructureLoading && feeStructure.length > 0 && !hasCurrentTermFees;
-  const noFeesAtAll = !feeStructureLoading && feeStructure.length === 0;
-
-  const recordPaymentAction = {
-    href: "/dashboard/fees",
-    label: "Record payment",
-    icon: "point_of_sale",
-  };
-  const setFeesAction = {
-    href: "/dashboard/fees?tab=structure",
-    label: noFeesAtAll ? "Set fees" : `Set Term ${currentTerm} fees`,
-    icon: "payments",
-  };
-
-  // Order follows the school's actual state: whatever is blocking comes first.
-  const todayActions =
-    hasCurrentTermFees || feeStructureLoading
-      ? [
-          recordPaymentAction,
-          {
-            href: "/dashboard/reports",
-            label: "Collections report",
-            icon: "analytics",
-          },
-          {
-            // Arrears, not the plain balances list — "Record payment" above already
-            // lands there. `status` is the filter the fees page reads from the URL;
-            // the `tab=defaulters` these links used to carry is not one of the five
-            // tabs that page accepts, so it silently fell back to Balances.
-            href: "/dashboard/fees?status=unpaid",
-            label: "Follow up arrears",
-            icon: "campaign",
-          },
-          {
-            href: "/dashboard/messages",
-            label: "Send reminders",
-            icon: "sms",
-          },
-        ]
-      : [
-          setFeesAction,
-          recordPaymentAction,
-          {
-            href: "/dashboard/reports",
-            label: "Collections report",
-            icon: "analytics",
-          },
-          {
-            href: "/dashboard/fees?status=unpaid",
-            label: "Follow up arrears",
-            icon: "campaign",
-          },
-          {
-            href: "/dashboard/messages",
-            label: "Send reminders",
-            icon: "sms",
-          },
-        ];
+  const noFeesAtAll = !feeStructureLoading && !feeStructureError && feeStructure.length === 0;
 
   const todayLabel = todayLabelFor(currentDate);
-
-  const tasks = useMemo(() => {
-    const items = [];
-    if (totalArrears > 0) {
-      items.push({
-        id: "arrears",
-        label: `${overdueCount} student${overdueCount > 1 ? "s" : ""} in arrears — UGX ${totalArrears.toLocaleString()} total`,
-        icon: "payments",
-        priority: "urgent" as const,
-        href: "/dashboard/fees",
-        cta: "View",
-      });
-    }
-    if (highRiskArrearsCount > 0) {
-      items.push({
-        id: "high-risk",
-        label: `${highRiskArrearsCount} high-risk arrears above UGX ${HIGH_RISK_ARREARS_THRESHOLD.toLocaleString()}`,
-        icon: "warning",
-        priority: "attention" as const,
-        href: "/dashboard/fees?status=unpaid",
-        cta: "Review",
-      });
-    }
-    return items;
-  }, [totalArrears, overdueCount, highRiskArrearsCount]);
+  const fallbackUnavailable = Boolean(studentsError || paymentsError || feeStructureError);
+  const figuresReady = feeSummary !== null || (!dataLoading && !fallbackUnavailable);
+  const sourceLabel = isDemo ? "Demo figures" : feeSummary ? "School-wide summary" : "Loaded-record estimate";
+  const channels = [
+    { label: "Cash", icon: "payments", amount: legacyFigures.todayByMethod.cash ?? 0 },
+    { label: "Mobile money", icon: "smartphone", amount: legacyFigures.todayByMethod.mobile_money ?? 0 },
+    { label: "Bank", icon: "account_balance", amount: legacyFigures.todayByMethod.bank ?? 0 },
+  ];
+  const otherTakings = Object.entries(legacyFigures.todayByMethod)
+    .filter(([method]) => !["cash", "mobile_money", "bank"].includes(method))
+    .reduce((total, [, amount]) => total + amount, 0);
+  const shortcuts = [
+    { href: "/dashboard/fees", label: "Fee balances", icon: "account_balance_wallet", hint: "View student accounts" },
+    { href: "/dashboard/fee-ledger", label: "Payment ledger", icon: "receipt_long", hint: "Find a recorded receipt" },
+    { href: "/dashboard/fee-structure", label: "Fee structure", icon: "tune", hint: "Manage charges" },
+    { href: "/dashboard/money", label: "Income & expenses", icon: "swap_horiz", hint: "Track money in and out" },
+  ];
 
   if ((!school?.id || dataLoading) && !loadingTimedOut) {
     return (
@@ -286,230 +196,342 @@ function BursarDashboardContent() {
   }
 
   return (
-    <div className="content !gap-4 overflow-x-hidden">
+    <div className="content !gap-5 min-w-0">
       <PageHeader
         title="Fees overview"
-        subtitle="Record receipts, follow up balances, and keep school finances on track."
+        subtitle={`${greeting}, ${user?.full_name?.split(" ")[0] || "Bursar"}. Your finance desk, at a glance.`}
         actions={
-          <>
-            <Link href="/dashboard/fees" className="btn-pill btn-primary">
-              <MaterialIcon icon="add" style={{ fontSize: 16 }} />
-              Record payment
-            </Link>
-            <Link href="/dashboard/reports" className="btn-pill btn-secondary">
-              Reports
-            </Link>
-          </>
-        }
-      />
-      <SchoolHero
-        school={school}
-        greeting={greeting}
-        userName={user?.full_name?.split(" ")[0] || ""}
-        dateLabel={todayLabel}
-        headingLevel="h2"
-        bottomCenter={
-          <p className="text-xs font-semibold text-[var(--t2)]">
-            {school?.name} · Term {currentTerm} · {academicYear}
-          </p>
+          <Link href="/dashboard/reports" className="btn-pill btn-secondary">
+            <MaterialIcon icon="analytics" className="text-lg" />
+            Collections report
+          </Link>
         }
       />
 
-      <div className="mb-5">
-        <ActionPanel
-          title="Today Actions"
-          label="Bursar quick actions"
-          description="Start with your next finance task."
-          actions={todayActions}
-        />
-      </div>
-
-      {/* First task. Everything below — collection rate, arrears, debtors — is
-          derived from the fee items, so with none set for this term those
-          figures are meaningless zeros. Name the blocking step instead of
-          showing an empty dashboard. */}
-      {!hasCurrentTermFees && !feeStructureLoading && (
-        <div className="rounded-2xl border border-[var(--primary)]/30 bg-[var(--primary)]/5 p-5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--primary)]/10">
-                <MaterialIcon icon="payments" className="text-xl text-primary" />
-              </div>
-              <div>
-                <h3 className="font-bold text-[var(--t1)]">
-                  {noFeesAtAll ? "Start by setting your fees" : `No fees set for Term ${currentTerm}, ${academicYear}`}
-                </h3>
-                <p className="mt-1 max-w-xl text-sm text-[var(--t2)]">
-                  {noFeesAtAll
-                    ? "Add what each class owes for this term. Payments, balances and arrears all fill in from there — and you can change the amounts any time fees change."
-                    : `You have fees for another term, but nothing for this one yet. Add Term ${currentTerm} amounts before recording payments, or the collection figures below will not reflect the current term.`}
-                </p>
-              </div>
-            </div>
-            <Link href="/dashboard/fees?tab=structure" className="btn-pill btn-primary shrink-0">
-              <MaterialIcon icon="add" style={{ fontSize: 16 }} />
-              {noFeesAtAll ? "Set fees" : `Set Term ${currentTerm} fees`}
-            </Link>
-          </div>
-        </div>
-      )}
-
-      {/* ── Two-Column Layout ── */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
-        {/* ── Left Column ── */}
-        <div className="xl:col-span-2 space-y-5">
-          {/* Fee metrics — shared StatCard with Donezo featured + ↗ affordance */}
-          <div className="stat-grid !grid-cols-2 !items-stretch !mb-0">
-            <StatCard
-              label="Expected"
-              value={`UGX ${formatCompactCurrency(totalFeesExpected)}`}
-              subValue={`${studentTotal} students`}
-              icon="account_balance"
-              accentColor="navy"
-              loading={dataLoading}
-              href="/dashboard/fees"
-              hrefLabel="Open fees"
-            />
-            <StatCard
-              label="Collected"
-              value={`UGX ${formatCompactCurrency(totalFeesCollected)}`}
-              icon="payments"
-              accentColor="green"
-              loading={dataLoading}
-              variant="premium-teal"
-              href="/dashboard/fees"
-              hrefLabel="Open fees"
-              trend={{
-                value: Math.abs(collectionTrend),
-                direction: collectionTrend > 0 ? "up" : collectionTrend < 0 ? "down" : "neutral",
-                label: "vs last month",
-              }}
-            />
-            <StatCard
-              label="Arrears"
-              value={`UGX ${formatCompactCurrency(totalArrears)}`}
-              subValue={`${overdueCount} in arrears`}
-              icon="warning"
-              accentColor={totalArrears > 0 ? "red" : "green"}
-              loading={dataLoading}
-              href="/dashboard/fees?status=unpaid"
-              hrefLabel="Open defaulters"
-            />
-            <StatCard
-              label="Collection rate"
-              value={`${collectionRate}%`}
-              subValue={collectionRate >= 70 ? "On track" : "Needs follow-up"}
-              icon="percent"
-              accentColor={collectionRate >= 70 ? "green" : collectionRate >= 40 ? "amber" : "red"}
-              loading={dataLoading}
-              href="/dashboard/reports"
-              hrefLabel="Open reports"
-            />
-          </div>
-
-          {/* Money out is invisible on a fees-only dashboard, yet it is half of
-              what the headmaster and bursar are asked about every month. */}
-          <MoneyPositionStrip />
-
-          {/* Today's takings, by channel. Mobile money is the dominant channel
-              in Uganda and its alerts carry no student name, so the bursar
-              reconciles by hand — this is the number they are checking against
-              the day's transaction list. */}
-          <section
-            aria-label="today's takings"
-            className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-sm font-bold text-[var(--t1)]">Today&apos;s takings</h2>
-              <span className="text-xs text-[var(--t3)]">
-                {todayCount} {todayCount === 1 ? "payment" : "payments"}
+      <section aria-label="Daily collections" className="overflow-hidden rounded-3xl bg-[#17325f] text-white shadow-sm">
+        <div className="grid gap-6 p-5 sm:p-7 lg:grid-cols-[1.1fr_1fr] lg:gap-10">
+          <div className="min-w-0">
+            <div className="mb-5 flex flex-wrap items-center gap-2 text-xs font-medium text-blue-100">
+              <span className="rounded-full border border-white/20 px-3 py-1.5">BURSAR WORKSPACE</span>
+              <span>
+                Term {currentTerm} · {academicYear}
               </span>
             </div>
-            <p className="mt-1 text-2xl font-bold tabular-nums text-[var(--green)]">
-              UGX {formatCompactCurrency(todayTotal)}
+            <h2 className="text-sm font-medium text-blue-100">Today&apos;s collections</h2>
+            <p className="mt-2 break-words text-3xl font-bold tracking-tight tabular-nums sm:text-4xl">
+              {paymentsLoading || paymentsError ? "—" : formatCurrency(todayTotal)}
             </p>
-            <p className="mt-0.5 text-xs text-[var(--t3)]">
-              {todayTotal === 0 ? "Nothing taken yet today." : "Taken so far today"}
+            <p className="mt-2 text-sm text-blue-100">
+              {paymentsLoading
+                ? "Loading receipts…"
+                : paymentsError
+                  ? "Receipts could not be loaded."
+                  : `${todayCount} ${todayCount === 1 ? "receipt" : "receipts"} dated today in loaded records`}
             </p>
-          </section>
-
-          {/* ── Analytics row (Donezo bento: weekly bars + progress donut) ── */}
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-            <div className="lg:col-span-3">
-              <WeeklyCollections payments={payments} />
-            </div>
-            <div className="lg:col-span-2">
-              <CollectionDonut collected={totalFeesCollected} expected={totalFeesExpected} />
-            </div>
+            <Link
+              href="/dashboard/fees"
+              className="mt-5 inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#b8f2dc] px-5 text-sm font-bold text-[#123c35] transition-colors hover:bg-[#d1fae9] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white"
+            >
+              <MaterialIcon icon="add" className="text-xl" />
+              Record payment
+              <MaterialIcon icon="arrow_forward" className="ml-3 text-lg" />
+            </Link>
           </div>
-
-          <CollapsibleSection
-            title="Task Manager"
-            badge={tasks.length > 0 ? tasks.length : null}
-            storageKey={`bursar-tasks-${school?.id}`}
-            defaultOpen={tasks.length > 0}
-          >
-            <TaskManager tasks={tasks} emptyMessage="All caught up! No pending tasks." />
-          </CollapsibleSection>
-
-          {/* Exceptions First */}
-          <div className="rounded-2xl border border-[var(--surface-container-low)] bg-white p-4">
-            <div className="mb-3 flex items-center gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--amber)]/10">
-                <MaterialIcon icon="warning" className="text-sm text-[var(--amber)]" />
-              </div>
-              <h2 className="text-sm font-bold text-[var(--t1)] font-['Sora']">Exceptions First</h2>
+          <div className="flex min-w-0 flex-col justify-between gap-5 border-t border-white/15 pt-5 lg:border-l lg:border-t-0 lg:pl-8 lg:pt-0">
+            <div>
+              <p className="text-xs text-blue-100">{todayLabel}</p>
+              <p className="mt-1 text-sm font-semibold">{school?.name}</p>
             </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div
-                className={`rounded-xl border p-3 ${totalArrears > 0 ? "border-[var(--red-soft)] bg-[var(--red-soft)]" : "border-[var(--green-soft)] bg-[var(--green-soft)]"}`}
-              >
-                <div className="text-xs font-semibold text-[var(--t1)]">Collection gap</div>
-                <div
-                  className={`text-sm font-bold mt-1 ${totalArrears > 0 ? "text-[var(--red)]" : "text-[var(--green)]"}`}
-                >
-                  {totalArrears > 0 ? `UGX ${totalArrears.toLocaleString()}` : "Target met"}
+            <dl className="grid !grid-cols-3 gap-2 sm:gap-4">
+              {channels.map((channel) => (
+                <div key={channel.label} className="min-w-0">
+                  <MaterialIcon icon={channel.icon} className="mb-2 text-xl text-[#b8f2dc]" />
+                  <dt className="text-xs text-blue-100">{channel.label}</dt>
+                  <dd
+                    title={formatCurrency(channel.amount)}
+                    className="mt-1 break-words text-base font-bold tabular-nums sm:text-lg"
+                  >
+                    {paymentsLoading || paymentsError ? "—" : formatCompactCurrency(channel.amount, true)}
+                  </dd>
                 </div>
-              </div>
-              <div
-                className={`rounded-xl border p-3 ${highRiskArrearsCount > 0 ? "border-[var(--amber)] bg-[var(--amber-soft)]" : "border-[var(--surface-container-low)] bg-[var(--surface-bright)]"}`}
-              >
-                <div className="text-xs font-semibold text-[var(--t1)]">High-risk arrears</div>
-                <div className="text-sm font-bold mt-1 text-[var(--t1)]">
-                  {highRiskArrearsCount} above UGX {HIGH_RISK_ARREARS_THRESHOLD.toLocaleString()}
-                </div>
-              </div>
-              <div className="rounded-xl border border-[var(--surface-container-low)] bg-[var(--surface-bright)] p-3">
-                <div className="text-xs font-semibold text-[var(--t1)]">Students in arrears</div>
-                <div className="text-sm font-bold mt-1 text-[var(--t1)]">
-                  {overdueCount} of {studentTotal}
-                </div>
-              </div>
-              <div className="rounded-xl border border-[var(--surface-container-low)] bg-[var(--surface-bright)] p-3">
-                <div className="text-xs font-semibold text-[var(--t1)]">Month trend</div>
-                <div
-                  className={`text-sm font-bold mt-1 ${collectionTrend >= 0 ? "text-[var(--green)]" : "text-[var(--red)]"}`}
-                >
-                  {collectionTrend >= 0 ? "+" : ""}
-                  {collectionTrend}% vs last month
-                </div>
-              </div>
-            </div>
+              ))}
+            </dl>
+            <p className="text-xs leading-relaxed text-blue-100">
+              {otherTakings > 0 && !paymentsError ? `Other channels: ${formatCurrency(otherTakings)}. ` : ""}
+              Based on the receipts loaded here, not a reconciled daily total.
+            </p>
           </div>
-
-          <TopDefaulters
-            defaulters={figures.defaulters}
-            debtorCount={figures.overdueCount}
-            totalBalance={figures.overdueBalance}
-          />
-          <RecentPayments payments={payments} students={students} thisMonthTotal={thisMonthTotal} />
         </div>
+      </section>
 
-        {/* ── Right Column: Calendar ── */}
-        <div className="space-y-5">
-          <SchoolCalendar schoolId={school?.id} userId={user?.id} />
+      <nav aria-label="Bursar quick actions" className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+        {shortcuts.map((action) => (
+          <Link
+            key={action.href}
+            href={action.href}
+            className="group flex min-h-[84px] min-w-0 items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3 transition-colors hover:border-[var(--primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary)] sm:p-4"
+          >
+            <span className="hidden h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--primary-50)] text-[var(--primary)] sm:flex">
+              <MaterialIcon icon={action.icon} className="text-xl" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-sm font-bold text-[var(--t1)]">{action.label}</span>
+              <span className="mt-1 hidden text-xs text-[var(--t3)] sm:block">{action.hint}</span>
+            </span>
+            <MaterialIcon
+              icon="arrow_outward"
+              className="shrink-0 text-base text-[var(--t3)] group-hover:text-[var(--primary)]"
+            />
+          </Link>
+        ))}
+      </nav>
+
+      {!hasCurrentTermFees && !feeStructureLoading && !feeStructureError && (
+        <section
+          aria-label="Fee setup needed"
+          className="flex flex-col gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div className="flex items-start gap-3">
+            <MaterialIcon icon="info" className="mt-0.5 shrink-0 text-xl text-amber-700" />
+            <div>
+              <h2 className="text-sm font-bold text-amber-950">
+                {noFeesAtAll ? "Start by setting your fees" : `No fees set for Term ${currentTerm}, ${academicYear}`}
+              </h2>
+              <p className="mt-1 text-xs leading-relaxed text-amber-900">
+                Set the current term&apos;s charges before relying on collection progress. Figures below may include
+                other fee items.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/dashboard/fee-structure"
+            className="inline-flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-xl border border-amber-300 bg-white px-4 text-sm font-bold text-amber-950"
+          >
+            {noFeesAtAll ? "Set fees" : `Set Term ${currentTerm} fees`}
+            <MaterialIcon icon="arrow_forward" className="text-base" />
+          </Link>
+        </section>
+      )}
+
+      <section aria-label="Fee summary" className="space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-base font-bold text-[var(--t1)]">Collection overview</h2>
+          <span className="flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1 text-xs text-[var(--t2)]">
+            <MaterialIcon icon={isDemo ? "science" : feeSummary ? "database" : "info"} className="text-sm" />
+            {sourceLabel}
+          </span>
+        </div>
+        {!isDemo && !feeSummary && !feeSummaryLoading && (
+          <p role="status" className="text-xs text-amber-800">
+            {fallbackUnavailable
+              ? "Some finance records could not be loaded. Summary values remain unknown until the data is available."
+              : "School-wide totals are unavailable. Estimates use only loaded students, fee items and receipts; verify totals in finance reports."}
+          </p>
+        )}
+        <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          {[
+            {
+              label: "Expected fees",
+              value: formatCompactCurrency(totalFeesExpected, true),
+              exact: formatCurrency(totalFeesExpected),
+              hint: `${studentTotal} students`,
+              icon: "account_balance",
+              href: "/dashboard/fees",
+              tone: "text-[var(--t1)]",
+            },
+            {
+              label: "Fees collected",
+              value: formatCompactCurrency(totalFeesCollected, true),
+              exact: formatCurrency(totalFeesCollected),
+              hint: "Recorded fee income",
+              icon: "payments",
+              href: "/dashboard/fee-ledger",
+              tone: "text-[var(--green)]",
+            },
+            {
+              label: "Outstanding",
+              value: formatCompactCurrency(totalArrears, true),
+              exact: formatCurrency(totalArrears),
+              hint: `${overdueCount} students in arrears`,
+              icon: "account_balance_wallet",
+              href: "/dashboard/fees?status=unpaid",
+              tone: "text-[var(--red)]",
+            },
+            {
+              label: "Collection rate",
+              value: totalFeesExpected > 0 ? `${collectionRate}%` : "—",
+              exact: totalFeesExpected > 0 ? `${collectionRate}%` : "No expected fees",
+              hint: totalFeesExpected > 0 ? "Of expected fee income" : "Set fees to see progress",
+              icon: "percent",
+              href: "/dashboard/reports",
+              tone: "text-[var(--primary)]",
+            },
+          ].map((metric) => (
+            <Link
+              key={metric.label}
+              href={metric.href}
+              className="min-w-0 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 transition-colors hover:border-[var(--primary)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--primary)]"
+            >
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-medium text-[var(--t2)]">{metric.label}</p>
+                <MaterialIcon icon={metric.icon} className="text-lg text-[var(--t3)]" />
+              </div>
+              <p
+                title={metric.exact}
+                className={`mt-3 break-words text-xl font-bold tracking-tight tabular-nums sm:text-2xl ${metric.tone}`}
+              >
+                {figuresReady ? metric.value : "—"}
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-[var(--t3)]">
+                {figuresReady ? metric.hint : fallbackUnavailable ? "Summary unavailable" : "Loading summary…"}
+              </p>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <div className="grid min-w-0 gap-5 xl:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
+        <BursarReceiptPanel
+          payments={payments}
+          students={students}
+          loading={paymentsLoading}
+          error={paymentsError}
+          onRetry={() => void refetchPayments()}
+        />
+        <section
+          aria-labelledby="arrears-follow-up-title"
+          className="min-w-0 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <h2 id="arrears-follow-up-title" className="text-base font-bold text-[var(--t1)]">
+              Arrears follow-up
+            </h2>
+            <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800">
+              {figuresReady ? overdueCount : "—"} accounts
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-[var(--t3)]">
+            Largest balances in this summary. Review before contacting a parent.
+          </p>
+          <div className="my-4 rounded-xl bg-[var(--surface-container-low)] p-3">
+            <div className="flex items-center justify-between gap-2 text-xs text-[var(--t2)]">
+              <span>Fees collected</span>
+              <span className="font-bold">{figuresReady && totalFeesExpected > 0 ? `${collectionRate}%` : "—"}</span>
+            </div>
+            <div
+              role="progressbar"
+              aria-label="Fee collection progress"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={figuresReady && totalFeesExpected > 0 ? Math.min(100, collectionRate) : undefined}
+              aria-valuetext={
+                figuresReady && totalFeesExpected > 0
+                  ? `${collectionRate}% collected`
+                  : "Collection progress unavailable"
+              }
+              className="mt-2 h-2 overflow-hidden rounded-full bg-[var(--border)]"
+            >
+              <div
+                className="h-full rounded-full bg-[var(--green)]"
+                style={{ width: `${figuresReady ? Math.min(100, collectionRate) : 0}%` }}
+              />
+            </div>
+            <p className="mt-2 text-xs text-[var(--t3)]">
+              {figuresReady
+                ? `${highRiskArrearsCount} balances of UGX ${HIGH_RISK_ARREARS_THRESHOLD.toLocaleString()} or more`
+                : "Loading balances…"}
+            </p>
+          </div>
+          {figuresReady && figures.defaulters.length > 0 ? (
+            <ul className="divide-y divide-[var(--border)]">
+              {figures.defaulters.slice(0, 4).map((student) => {
+                const name = `${student.first_name || ""} ${student.last_name || ""}`.trim() || "Student";
+                return (
+                  <li key={student.student_id}>
+                    <Link
+                      href={`/dashboard/fees?status=unpaid&q=${encodeURIComponent(name)}`}
+                      className="flex min-h-16 items-center gap-3 rounded-lg py-3 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[var(--primary)]"
+                    >
+                      <span
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-50 text-xs font-bold text-amber-800"
+                        aria-hidden="true"
+                      >
+                        {student.first_name?.[0]}
+                        {student.last_name?.[0]}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold text-[var(--t1)]">{name}</span>
+                        <span className="block text-xs text-[var(--t3)]">
+                          {student.class_name || "Class not available"}
+                        </span>
+                      </span>
+                      <span
+                        title={formatCurrency(student.balance)}
+                        className="text-sm font-bold tabular-nums text-[var(--red)]"
+                      >
+                        {formatCompactCurrency(student.balance, true)}
+                      </span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <p className="py-6 text-sm text-[var(--t3)]">
+              {figuresReady ? "No outstanding accounts in this summary." : "Loading accounts…"}
+            </p>
+          )}
+          <div className="mt-4 flex flex-wrap gap-2 border-t border-[var(--border)] pt-4">
+            <Link
+              href="/dashboard/fees?status=unpaid"
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[var(--primary)] px-3 text-xs font-bold text-[var(--on-primary)]"
+            >
+              View all arrears
+              <MaterialIcon icon="arrow_forward" className="text-base" />
+            </Link>
+            <Link
+              href="/dashboard/messages"
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-[var(--border)] px-3 text-xs font-semibold text-[var(--t2)]"
+            >
+              <MaterialIcon icon="sms" className="text-base" />
+              Send reminders
+            </Link>
+          </div>
+        </section>
+      </div>
+
+      <div className="grid min-w-0 items-start gap-5 xl:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)]">
+        <MoneyPositionStrip />
+        <div className="min-w-0">
+          {paymentsLoading || paymentsError ? (
+            <section
+              aria-label="Weekly collections"
+              className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5"
+            >
+              <h2 className="text-sm font-bold text-[var(--t1)]">Collections this week</h2>
+              <p className="mt-3 text-sm text-[var(--t3)]">
+                {paymentsError
+                  ? "Weekly activity is unavailable. Retry loading receipts above."
+                  : "Loading receipt activity…"}
+              </p>
+            </section>
+          ) : (
+            <WeeklyCollections payments={payments} />
+          )}
+          <p className="mt-2 px-1 text-xs text-[var(--t3)]">
+            Weekly activity uses the receipts loaded on this dashboard.
+          </p>
         </div>
       </div>
+
+      <CollapsibleSection
+        title="School calendar"
+        headerClassName="min-h-11"
+        storageKey={`bursar-calendar-${school?.id}`}
+        defaultOpen={false}
+      >
+        <SchoolCalendar schoolId={school?.id} userId={user?.id} />
+      </CollapsibleSection>
     </div>
   );
 }
