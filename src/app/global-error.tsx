@@ -2,18 +2,12 @@
 
 import { useEffect } from "react";
 import * as Sentry from "@sentry/nextjs";
-import { AlertTriangle, RefreshCw, Home } from "lucide-react";
+import MaterialIcon from "@/components/MaterialIcon";
 import { t } from "@/i18n";
 import { logger } from "@/lib/logger";
 import { APP_NAME } from "@/lib/app-name";
 
-export default function GlobalError({
-  error,
-  reset,
-}: {
-  error: Error & { digest?: string };
-  reset: () => void;
-}) {
+export default function GlobalError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
     logger.error("Application error:", error);
     Sentry.captureException(error);
@@ -28,30 +22,27 @@ export default function GlobalError({
           content={`An unexpected error occurred in ${APP_NAME}. Your Digital School Partner. Please try refreshing the page or contact support.`}
         />
         <meta property="og:title" content={`${APP_NAME} - Error`} />
-        <meta
-          property="og:description"
-          content="An unexpected error occurred. Please try refreshing the page."
-        />
+        <meta property="og:description" content="An unexpected error occurred. Please try refreshing the page." />
         <meta property="og:type" content="website" />
       </head>
       <body>
-        <a 
-          href="#error-content" 
+        <a
+          href="#error-content"
           className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 z-50 bg-gray-900 text-white px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900"
         >
           Skip to main content
         </a>
-        <div id="error-content" tabIndex={-1} className="min-h-screen flex items-center justify-center p-8 bg-gray-50 focus:outline-none">
+        <div
+          id="error-content"
+          tabIndex={-1}
+          className="min-h-screen flex items-center justify-center p-8 bg-gray-50 focus:outline-none"
+        >
           <div className="text-center max-w-md">
             <div className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
-              <AlertTriangle className="w-8 h-8 text-red-600" />
+              <MaterialIcon icon="warning" size={32} className="h-8 text-red-600" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">
-              {t("error.somethingWentWrong")}
-            </h2>
-            <p className="text-gray-500 text-sm mb-6">
-              {t("error.unexpectedError")}
-            </p>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">{t("error.somethingWentWrong")}</h2>
+            <p className="text-gray-500 text-sm mb-6">{t("error.unexpectedError")}</p>
             {error.digest && (
               <p className="text-xs text-gray-400 mb-4">
                 {t("error.errorId")}: {error.digest}
@@ -68,13 +59,13 @@ export default function GlobalError({
                 }}
                 className="px-4 py-2 bg-gray-900 text-white rounded-lg font-medium text-sm flex items-center gap-2 hover:bg-gray-800 transition-colors"
               >
-                <RefreshCw className="w-4 h-4" /> {t("error.tryAgain")}
+                <MaterialIcon icon="refresh" size={16} className="h-4" /> {t("error.tryAgain")}
               </button>
               <a
                 href="/dashboard"
                 className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium text-sm flex items-center gap-2 hover:bg-green-700 transition-colors"
               >
-                <Home className="w-4 h-4" /> {t("error.goToDashboard")}
+                <MaterialIcon icon="home" size={16} className="h-4" /> {t("error.goToDashboard")}
               </a>
             </div>
           </div>

@@ -4,37 +4,7 @@ import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useParams, useRouter } from "next/navigation";
-import {
-  ArrowLeft,
-  Phone,
-  Mail,
-  MapPin,
-  Calendar,
-  User,
-  Droplets,
-  IdCard,
-  GraduationCap,
-  ClipboardCheck,
-  FileText,
-  CreditCard,
-  MoreHorizontal,
-  TrendingUp,
-  Edit,
-  Printer,
-  Home,
-  Moon,
-  Trophy,
-  School,
-  Star,
-  Award,
-  MessageSquare,
-  CheckCircle,
-  AlertCircle,
-  Clock,
-  MessageCircle,
-  Copy,
-  Share2,
-} from "lucide-react";
+import MaterialIcon from "@/components/MaterialIcon";
 import { useStudent, useClasses } from "@/lib/hooks";
 import { SendSMSModal } from "@/components/SendSMSModal";
 import { useToast } from "@/components/Toast";
@@ -393,9 +363,9 @@ function GradeSparkline({ data }: { data: { term: string; average: number }[] })
         <div className={`text-lg font-extrabold ${trend ? "text-emerald-600" : "text-red-600"}`}>{lastVal}%</div>
         <div className="flex items-center gap-0.5 text-[10px] font-bold text-[var(--t3)] uppercase tracking-wider">
           {trend ? (
-            <TrendingUp className="w-3 h-3 text-emerald-500" />
+            <MaterialIcon icon="trending_up" size={12} className="h-3 text-emerald-500" />
           ) : (
-            <TrendingUp className="w-3 h-3 text-red-500 rotate-180" />
+            <MaterialIcon icon="trending_up" size={12} className="h-3 text-red-500 rotate-180" />
           )}
           {trend ? "Improving" : "Declining"}
         </div>
@@ -783,7 +753,7 @@ export default function StudentProfilePage() {
                     aria-label="Back to students"
                     className="shrink-0 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-2 transition-colors hover:bg-[var(--surface-container-low)]"
                   >
-                    <ArrowLeft className="h-5 w-5 text-[var(--t2)]" />
+                    <MaterialIcon icon="arrow_back" size={20} className="w-5 text-[var(--t2)]" />
                   </Link>
                   <div className="min-w-0">
                     <h1 className="truncate text-2xl font-bold text-[var(--t1)]">
@@ -791,12 +761,12 @@ export default function StudentProfilePage() {
                     </h1>
                     <div className="mt-2 flex flex-wrap items-center gap-2">
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--surface-container-low)] px-2.5 py-1 text-xs font-medium text-[var(--t2)]">
-                        <School className="h-3 w-3" />
+                        <MaterialIcon icon="school" size={12} className="w-3" />
                         {classLabel}
                       </span>
                       {student.student_number && (
                         <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--surface-container-low)] px-2.5 py-1 font-mono text-xs font-medium text-[var(--t2)]">
-                          <IdCard className="h-3 w-3" />
+                          <MaterialIcon icon="badge" size={12} className="w-3" />
                           {student.student_number}
                         </span>
                       )}
@@ -809,7 +779,7 @@ export default function StudentProfilePage() {
                       onClick={() => setShowEdit(true)}
                       className="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700"
                     >
-                      <Edit className="h-4 w-4" />
+                      <MaterialIcon icon="edit" size={16} className="w-4" />
                       Edit
                     </button>
                   )}
@@ -818,7 +788,7 @@ export default function StudentProfilePage() {
                       onClick={() => setSmsOpen(true)}
                       className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--t1)] transition-colors hover:bg-[var(--surface-container-low)]"
                     >
-                      <MessageSquare className="h-4 w-4" />
+                      <MaterialIcon icon="chat" size={16} className="w-4" />
                       SMS Parent
                     </button>
                   )}
@@ -826,7 +796,7 @@ export default function StudentProfilePage() {
                     href="/dashboard/timetable"
                     className="inline-flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--t1)] transition-colors hover:bg-[var(--surface-container-low)]"
                   >
-                    <Calendar className="h-4 w-4" />
+                    <MaterialIcon icon="calendar_month" size={16} className="w-4" />
                     Schedule
                   </Link>
                 </div>
@@ -839,7 +809,7 @@ export default function StudentProfilePage() {
                   label: "Attendance",
                   value: `${attendancePct}%`,
                   tone: "text-emerald-600 dark:text-emerald-400",
-                  Icon: ClipboardCheck,
+                  icon: "fact_check",
                 },
                 ...(canSeeFeePosition
                   ? [
@@ -850,7 +820,7 @@ export default function StudentProfilePage() {
                           outstandingBalance > 0
                             ? "text-red-600 dark:text-red-400"
                             : "text-emerald-600 dark:text-emerald-400",
-                        Icon: CreditCard,
+                        icon: "payment",
                       },
                     ]
                   : []),
@@ -858,13 +828,13 @@ export default function StudentProfilePage() {
                   label: "Average",
                   value: latestGrade !== null ? `${latestGrade}%` : "No grades",
                   tone: "text-blue-600 dark:text-blue-400",
-                  Icon: TrendingUp,
+                  icon: "trending_up",
                 },
                 {
                   label: "Contacts",
                   value: `${parentContacts} linked`,
                   tone: "text-gray-900 dark:text-gray-100",
-                  Icon: Phone,
+                  icon: "call",
                 },
               ].map((item) => (
                 <div
@@ -872,7 +842,7 @@ export default function StudentProfilePage() {
                   className="flex items-center gap-3 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800"
                 >
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-100 dark:bg-gray-700/60">
-                    <item.Icon className={`h-5 w-5 ${item.tone}`} />
+                    <MaterialIcon icon={item.icon} size={20} className={item.tone} />
                   </div>
                   <div className="min-w-0">
                     <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">
@@ -890,7 +860,7 @@ export default function StudentProfilePage() {
               <div className="grid gap-6 xl:grid-cols-3">
                 <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
                   <h3 className="mb-4 flex items-center gap-2 font-semibold text-gray-900 dark:text-gray-100">
-                    <ClipboardCheck className="h-4 w-4 text-emerald-600" />
+                    <MaterialIcon icon="fact_check" size={16} className="w-4 text-emerald-600" />
                     Attendance
                   </h3>
                   {detailsLoading ? (
@@ -914,7 +884,7 @@ export default function StudentProfilePage() {
                 {canSeeFeePosition && (
                   <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
                     <h3 className="mb-4 flex items-center gap-2 font-semibold text-gray-900 dark:text-gray-100">
-                      <CreditCard className="h-4 w-4 text-yellow-600" />
+                      <MaterialIcon icon="payment" size={16} className="w-4 text-yellow-600" />
                       Fees
                     </h3>
                     {detailsLoading ? (
@@ -934,7 +904,7 @@ export default function StudentProfilePage() {
 
                 <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
                   <h3 className="mb-4 flex items-center gap-2 font-semibold text-gray-900 dark:text-gray-100">
-                    <TrendingUp className="h-4 w-4 text-blue-600" />
+                    <MaterialIcon icon="trending_up" size={16} className="w-4 text-blue-600" />
                     Performance
                   </h3>
                   {detailsLoading ? (
@@ -958,7 +928,7 @@ export default function StudentProfilePage() {
 
               <div className="mt-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
                 <h3 className="mb-4 flex items-center gap-2 font-semibold text-gray-900 dark:text-gray-100">
-                  <User className="h-4 w-4 text-gray-500" />
+                  <MaterialIcon icon="person" size={16} className="w-4 text-gray-500" />
                   About this pupil
                 </h3>
                 <dl className="grid gap-x-8 gap-y-3 text-sm text-gray-700 sm:grid-cols-2 dark:text-gray-300">
@@ -998,7 +968,7 @@ export default function StudentProfilePage() {
               <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="flex items-center gap-2 font-semibold text-gray-900 dark:text-gray-100">
-                    <Phone className="h-4 w-4 text-emerald-600" />
+                    <MaterialIcon icon="call" size={16} className="w-4 text-emerald-600" />
                     Guardians & contact
                   </h3>
                   {canEditStudent && (
@@ -1006,7 +976,7 @@ export default function StudentProfilePage() {
                       onClick={() => setShowGuardianModal(true)}
                       className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-700"
                     >
-                      <User className="h-3.5 w-3.5" />
+                      <MaterialIcon icon="person" size={14} className="w-3.5" />
                       Add Guardian
                     </button>
                   )}
@@ -1017,28 +987,28 @@ export default function StudentProfilePage() {
                 </p>
                 <div className="space-y-3 text-sm text-gray-700 dark:text-gray-300">
                   <div className="flex items-center gap-2">
-                    <User className="h-4 w-4 text-gray-400" />
+                    <MaterialIcon icon="person" size={16} className="w-4 text-gray-400" />
                     <span className="font-medium">{student.parent_name || "N/A"}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Phone className="h-4 w-4 text-gray-400" />
+                    <MaterialIcon icon="call" size={16} className="w-4 text-gray-400" />
                     <span>{student.parent_phone || "N/A"}</span>
                   </div>
                   {student.parent_phone2 && (
                     <div className="flex items-center gap-2">
-                      <Phone className="h-4 w-4 text-gray-400" />
+                      <MaterialIcon icon="call" size={16} className="w-4 text-gray-400" />
                       <span>{student.parent_phone2}</span>
                     </div>
                   )}
                   {student.parent_email && (
                     <div className="flex items-center gap-2 break-all">
-                      <Mail className="h-4 w-4 text-gray-400" />
+                      <MaterialIcon icon="mail" size={16} className="w-4 text-gray-400" />
                       <span>{student.parent_email}</span>
                     </div>
                   )}
                   {(student.village || student.parish || student.sub_county || student.district_origin) && (
                     <div className="flex items-start gap-2">
-                      <MapPin className="mt-0.5 h-4 w-4 text-gray-400" />
+                      <MaterialIcon icon="location_on" size={16} className="mt-0.5 w-4 text-gray-400" />
                       <span>
                         {[student.village, student.parish, student.sub_county, student.district_origin]
                           .filter(Boolean)
@@ -1054,7 +1024,7 @@ export default function StudentProfilePage() {
                       disabled={creatingPortal}
                       className="inline-flex items-center gap-1.5 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700 disabled:opacity-50"
                     >
-                      <User className="h-3.5 w-3.5" />
+                      <MaterialIcon icon="person" size={14} className="w-3.5" />
                       {creatingPortal ? "Creating..." : "Create Parent Portal Access"}
                     </button>
                   </div>
@@ -1134,7 +1104,7 @@ export default function StudentProfilePage() {
               <div className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
                 <div className="mb-4 flex items-center justify-between">
                   <h3 className="flex items-center gap-2 font-semibold text-gray-900 dark:text-gray-100">
-                    <MessageSquare className="h-4 w-4 text-blue-600" />
+                    <MaterialIcon icon="chat" size={16} className="w-4 text-blue-600" />
                     SMS History
                   </h3>
                   {canSmsParent && (
@@ -1142,7 +1112,7 @@ export default function StudentProfilePage() {
                       onClick={() => setSmsOpen(true)}
                       className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-primary-700"
                     >
-                      <MessageSquare className="h-3.5 w-3.5" />
+                      <MaterialIcon icon="chat" size={14} className="w-3.5" />
                       SMS Parent
                     </button>
                   )}

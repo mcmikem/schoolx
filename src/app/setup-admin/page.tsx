@@ -2,7 +2,7 @@
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState } from "react";
 import Link from "next/link";
-import { BookOpen, CheckCircle } from "lucide-react";
+import MaterialIcon from "@/components/MaterialIcon";
 import { Button, Input } from "@/components/ui";
 import { getErrorMessage, normalizeAuthPhone } from "@/lib/validation";
 
@@ -73,7 +73,7 @@ export default function SetupAdminPage() {
     return (
       <div className="min-h-screen bg-[var(--primary)] flex items-center justify-center px-4">
         <div className="bg-[var(--surface)] rounded-2xl shadow-[var(--sh2)] border border-[var(--border)] w-full max-w-md p-8 text-center">
-          <CheckCircle className="w-16 h-16 text-[var(--green)] mx-auto mb-4" />
+          <MaterialIcon icon="check_circle" size={64} className="h-16 text-[var(--green)] mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-[var(--t1)] mb-2">Super Admin Created!</h2>
           <p className="text-[var(--t3)] mb-6">
             Login with your phone number: <strong>{form.phone}</strong>
@@ -95,7 +95,7 @@ export default function SetupAdminPage() {
         <div className="bg-[var(--surface)] rounded-2xl shadow-[var(--sh2)] border border-[var(--border)] w-full max-w-md p-8">
           <div className="text-center mb-8">
             <div className="inline-flex items-center justify-center w-14 h-14 bg-[var(--primary-50)] rounded-xl mb-4">
-              <BookOpen className="w-8 h-8 text-[var(--primary)]" />
+              <MaterialIcon icon="menu_book" size={32} className="h-8 text-[var(--primary)]" />
             </div>
             <h1 className="text-2xl font-bold text-[var(--t1)]">Create Super Admin</h1>
             <p className="text-[var(--t3)] text-sm mt-1">Set up your admin account</p>

@@ -206,13 +206,29 @@ describe("Production Hardening Regression Tests", () => {
   });
 
   describe("UI/UX Fixes", () => {
-    it("uses lightweight inline icons on the login page", () => {
-      const loginPage = require("fs").readFileSync(
-        require("path").join(process.cwd(), "src/app/login/page.tsx"),
-        "utf8",
-      );
-      expect(loginPage).toContain('from "lucide-react"');
-      expect(loginPage).not.toContain('from "@/components/MaterialIcon"');
+    it("uses the shared icon system everywhere and has retired lucide", () => {
+      // One icon component across the whole app: MaterialIcon with its stale
+      // ligature fallback. Lucide was two of a kind for years; every divergent
+      // import re-introduces the missing-glyph and bundle-size problems the
+      // unified component exists to prevent.
+      const fs = require("fs");
+      const path = require("path");
+      const offenders: string[] = [];
+      const walk = (dir: string) => {
+        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+          const full = path.join(dir, entry.name);
+          if (entry.isDirectory()) walk(full);
+          else if (/\.(tsx?|jsx?)$/.test(entry.name) && !entry.name.endsWith(".d.ts")) {
+            const text = fs.readFileSync(full, "utf8");
+            if (text.includes("lucide" + "-react")) offenders.push(path.relative(process.cwd(), full));
+          }
+        }
+      };
+      walk("src");
+      expect(offenders).toEqual([]);
+
+      const loginPage = fs.readFileSync(require("path").join(process.cwd(), "src/app/login/page.tsx"), "utf8");
+      expect(loginPage).toContain('from "@/components/MaterialIcon"');
     });
 
     it("should use shared MaterialIcon in register page", () => {

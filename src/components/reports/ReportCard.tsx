@@ -1,7 +1,7 @@
 "use client";
 import { useRef, useState } from "react";
 import Image from "next/image";
-import { Printer, Download, Settings } from "lucide-react";
+import MaterialIcon from "@/components/MaterialIcon";
 import OwlMascot from "@/components/brand/OwlMascot";
 import { sumUgandaTotals } from "@/lib/uganda-report";
 import { generateUgandaPrimaryBody } from "@/components/reports/ugandaPrimaryReport";
@@ -505,7 +505,7 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
             onClick={handlePrint}
             className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
-            <Printer className="w-4 h-4" />
+            <MaterialIcon icon="print" size={16} className="h-4" />
             Print
           </button>
           <button
@@ -513,7 +513,7 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
             className="flex items-center gap-2 px-4 py-2 text-white rounded-lg text-sm font-medium hover:opacity-90"
             style={{ backgroundColor: primaryColor }}
           >
-            <Download className="w-4 h-4" />
+            <MaterialIcon icon="download" size={16} className="h-4" />
             Print / Save PDF
           </button>
           {onCustomize && (
@@ -521,7 +521,7 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
               onClick={onCustomize}
               className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
             >
-              <Settings className="w-4 h-4" />
+              <MaterialIcon icon="settings" size={16} className="h-4" />
               Customize
             </button>
           )}
@@ -550,7 +550,7 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
           aria-label="Print report card"
           className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
         >
-          <Printer className="w-4 h-4" />
+          <MaterialIcon icon="print" size={16} className="h-4" />
           Print
         </button>
         <button
@@ -559,7 +559,7 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
           className="flex items-center gap-2 px-4 py-2 text-white rounded-lg text-sm font-medium hover:opacity-90"
           style={{ backgroundColor: primaryColor }}
         >
-          <Download className="w-4 h-4" />
+          <MaterialIcon icon="download" size={16} className="h-4" />
           Download PDF
         </button>
         {onCustomize && (
@@ -567,7 +567,7 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
             onClick={onCustomize}
             className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
-            <Settings className="w-4 h-4" />
+            <MaterialIcon icon="settings" size={16} className="h-4" />
             Customize
           </button>
         )}
