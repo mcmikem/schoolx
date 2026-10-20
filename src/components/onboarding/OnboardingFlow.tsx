@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -11,6 +11,8 @@ import SkoolMateLogo from "@/components/SkoolMateLogo";
 import MaterialIcon from "@/components/MaterialIcon";
 import OwlStage from "@/components/brand/OwlStage";
 import OwlMascot from "@/components/brand/OwlMascot";
+import SetupStepHelp from "@/components/onboarding/SetupStepHelp";
+import { createPortal } from "react-dom";
 import { z } from "zod";
 import { useAutoSave } from "@/lib/hooks/useAutoSave";
 
@@ -97,6 +99,8 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
   const [saving, setSaving] = useState(false);
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   const currentYear = new Date().getFullYear().toString();
   const schoolType = (school?.school_type as SchoolSetupType) || "primary";
@@ -140,6 +144,9 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
   );
   const [customSubjectInput, setCustomSubjectInput] = useState("");
   const [customSubjects, setCustomSubjects] = useState<string[]>([]);
+  const curriculumKey = `${localSchoolType}:${localHasNursery}`;
+  const previousCurriculum = useRef(curriculumKey);
+  const restoringDraft = useRef(false);
   const ADDITIONAL_OPTIONAL_SUBJECTS: { name: string; code: string }[] = [
     { name: "Music", code: "MUS" },
     { name: "Physical Education", code: "PE" },
@@ -232,18 +239,23 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
     gradingPrefs,
     reportBrand,
     featureStage,
+    boardingConfig,
+    completedSteps: Array.from(completedSteps),
     step,
   };
-  const { loadFromStorage, clearDraft } = useAutoSave({
+  const { loadFromStorage, clearDraft, storageAvailable } = useAutoSave({
     data: draftData,
     storageKey: draftKey,
     interval: 5000,
+    maxAgeMs: 30 * 24 * 60 * 60 * 1000,
     enabled: !!school?.id && step < 5,
   });
   useEffect(() => {
     const saved = loadFromStorage() as typeof draftData | null;
     if (saved && saved.schoolDetails?.name) {
       try {
+        restoringDraft.current = true;
+        previousCurriculum.current = `${saved.localSchoolType || localSchoolType}:${saved.localHasNursery === true}`;
         setSchoolDetails(saved.schoolDetails);
         if (saved.branding) setBranding(saved.branding);
         if (saved.localSchoolType) setLocalSchoolType(saved.localSchoolType as SchoolSetupType);
@@ -255,8 +267,28 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
         if (saved.gradingPrefs) setGradingPrefs(saved.gradingPrefs);
         if (saved.reportBrand) setReportBrand(saved.reportBrand);
         if (saved.featureStage) setFeatureStage(saved.featureStage as typeof featureStage);
+        if (
+          saved.boardingConfig &&
+          Array.isArray(saved.boardingConfig.dormitories) &&
+          Array.isArray(saved.boardingConfig.houses)
+        )
+          setBoardingConfig(saved.boardingConfig);
+        if (Array.isArray(saved.completedSteps))
+          setCompletedSteps(
+            new Set(saved.completedSteps.filter((value) => Number.isInteger(value) && value >= 1 && value <= 5)),
+          );
         if (typeof saved.step === "number" && saved.step >= 1 && saved.step <= 5) setStep(saved.step);
       } catch {}
+    } else if (school?.id) {
+      setTerms(
+        buildUgandaAcademicTerms(school.id, currentYear).map((term) => ({
+          name: term.name,
+          code: term.code,
+          term_number: term.term_number,
+          start: term.start_date,
+          end: term.end_date,
+        })),
+      );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [school?.id]);
@@ -288,17 +320,23 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
 
   // Steps config
   const steps: StepConfig[] = [
-    { title: "School & Subjects", icon: "auto_stories" },
-    { title: "Calendar & Fees", icon: "payments" },
-    { title: "Grading & Reports", icon: "badge" },
-    { title: "Boarding & Features", icon: "widgets" },
-    { title: "Launch", icon: "verified" },
+    { title: "Your school", icon: "school" },
+    { title: "Dates and fees", icon: "payments" },
+    { title: "Marks and reports", icon: "badge" },
+    { title: "School services", icon: "widgets" },
+    { title: "Check and finish", icon: "verified" },
   ];
 
   const TOTAL_STEPS = steps.length;
 
   // Sync subjects when school type or the pre-primary section changes
   useEffect(() => {
+    if (restoringDraft.current) {
+      restoringDraft.current = false;
+      return;
+    }
+    if (previousCurriculum.current === curriculumKey) return;
+    previousCurriculum.current = curriculumKey;
     const defaults = getTemplateForType(localSchoolType, localHasNursery).subjects.map((s) => s.name);
     setSelectedSubjects(Array.from(new Set([...defaults, ...customSubjects])));
   }, [localSchoolType, localHasNursery, customSubjects]);
@@ -317,21 +355,6 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
     setSelectedSubjects((prev) => [...prev, name]);
     setCustomSubjectInput("");
   };
-
-  // Sync terms when school ID changes
-  useEffect(() => {
-    if (school?.id) {
-      setTerms(
-        buildUgandaAcademicTerms(school.id, currentYear).map((term) => ({
-          name: term.name,
-          code: term.code,
-          term_number: term.term_number,
-          start: term.start_date,
-          end: term.end_date,
-        })),
-      );
-    }
-  }, [school?.id, currentYear]);
 
   // Keep page behind the wizard from scrolling while preserving wizard-internal scrolling.
   useEffect(() => {
@@ -1142,9 +1165,9 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
     onComplete();
   };
 
-  if (!school) return null;
+  if (!school || !mounted) return null;
 
-  const progressPercent = Math.round((completedSteps.size / TOTAL_STEPS) * 100);
+  const progressPercent = Math.round(((step - 1) / TOTAL_STEPS) * 100);
 
   if (
     currentPath.startsWith("/dashboard/fees") ||
@@ -1156,8 +1179,13 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
     return null;
   }
 
-  return (
-    <div className="fixed inset-0 z-[100] flex flex-col overflow-y-auto bg-white md:overflow-hidden md:bg-[var(--bg)]/90 md:items-center md:justify-center">
+  return createPortal(
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Set up your school"
+      className="fixed inset-0 z-[10000] flex flex-col overflow-y-auto bg-white md:overflow-hidden md:bg-[var(--bg)]/90 md:items-center md:justify-center [&_input]:!text-base [&_select]:!text-base [&_button]:min-h-11"
+    >
       {/* Mobile header with progress */}
       <div className="md:hidden flex items-center gap-3 px-4 py-3 border-b border-slate-100 bg-white sticky top-0 z-10">
         <button
@@ -1167,13 +1195,14 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
           }}
           className="p-2 -ml-2 rounded-full hover:bg-slate-100 active:bg-slate-200"
           aria-label="Go back"
+          disabled={saving || loading}
         >
           <MaterialIcon icon="arrow_back" className="text-slate-600" />
         </button>
         <div className="flex-1">
           <div className="flex items-center justify-between mb-1">
             <span className="text-xs font-semibold text-slate-500">
-              Step {step} of {TOTAL_STEPS}
+              Step {step} of {TOTAL_STEPS}: {steps[step - 1].title}
             </span>
             <span className="text-xs font-semibold text-teal-600">{progressPercent}%</span>
           </div>
@@ -1186,8 +1215,9 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
         </div>
         <button
           onClick={onDismiss ?? onComplete}
-          className="p-2 -mr-2 rounded-full hover:bg-slate-100 active:bg-slate-200"
+          className="tap-44 p-2 -mr-2 rounded-full hover:bg-slate-100 active:bg-slate-200"
           aria-label="Close onboarding"
+          disabled={saving || loading}
         >
           <MaterialIcon icon="close" className="text-slate-400" />
         </button>
@@ -1207,11 +1237,13 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                   setStep(stepNum);
                 }
               }}
-              className={`rounded-full transition-all duration-200 ${
-                isActive ? "w-6 h-2 bg-teal-500" : isPassed ? "w-2 h-2 bg-teal-300" : "w-2 h-2 bg-slate-200"
-              }`}
+              disabled={saving || loading || (!isActive && !isPassed)}
+              className={`flex h-11 min-w-11 items-center justify-center rounded-xl border text-base font-bold ${isActive ? "border-teal-700 bg-teal-50 text-teal-900" : "border-slate-200 text-slate-600"}`}
               aria-label={`Go to step ${stepNum}: ${s.title}`}
-            />
+              aria-current={isActive ? "step" : undefined}
+            >
+              {stepNum}
+            </button>
           );
         })}
       </div>
@@ -1221,8 +1253,9 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
         <div className="relative hidden md:flex md:w-1/3 md:min-h-[600px] flex-col overflow-hidden bg-[#0b1c39] p-10 text-white">
           <button
             onClick={onDismiss ?? onComplete}
-            className="absolute top-4 right-4 z-20 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+            className="tap-44 absolute top-4 right-4 z-20 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
             aria-label="Close onboarding"
+            disabled={saving || loading}
           >
             <MaterialIcon icon="close" className="text-white/70" />
           </button>
@@ -1236,7 +1269,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
               <OwlMascot size={84} premium ring glow animated />
             </div>
 
-            <h2 className="text-3xl font-bold mb-8">Setup Your Campus</h2>
+            <h2 className="text-3xl font-bold mb-8">Set up your school</h2>
 
             <div className="space-y-6">
               {steps.map((s, idx) => {
@@ -1275,22 +1308,33 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
         {/* Right Side: Step Content */}
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
           <div className="flex-1 overflow-y-auto p-4 pb-28 md:p-8 md:pb-8 lg:p-12">
-            <div className="animate-fade-in w-full">
+            <div className="w-full">
+              <SetupStepHelp step={step} />
+              {!storageAvailable && (
+                <p
+                  role="alert"
+                  className="mx-auto mb-4 max-w-lg rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950"
+                >
+                  This phone could not keep a setup draft. Do not close the page if you need to keep these changes.
+                  School records are saved only after the app confirms a save.
+                </p>
+              )}
               {/* Step 1: School & Subjects (Welcome + School Info + Curriculum) */}
               {step === 1 && (
                 <div className="flex-1 flex flex-col max-w-lg mx-auto">
                   <OwlStage
                     eyebrow="Welcome"
                     title={`Set up ${APP_NAME}`}
-                    description="We will guide you through the essentials. Most schools finish in 5-10 minutes, and you can update anything later."
+                    description="Take one step at a time. Keep your school records nearby. You can pause and return on this phone."
                     chips={["School profile & subjects", "Calendar & fee structure", "Grading & report cards"]}
                     className="mb-6"
                   />
 
                   <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 mb-6">
-                    <p className="font-semibold text-slate-900">Need a guided setup call?</p>
+                    <p className="font-semibold text-slate-900">Before you start</p>
                     <p className="mt-1">
-                      If this feels too technical, our team can help you complete setup by phone or WhatsApp.
+                      Have your school name, term calendar and fee list ready. Open “Show me an example” above if a step
+                      is not clear.
                     </p>
                   </div>
 
@@ -1299,26 +1343,16 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
 
                   <div className="space-y-4 mb-6">
                     <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">
+                      <label htmlFor="setup-school-name" className="block text-sm font-semibold text-slate-700 mb-2">
                         School Name <span className="text-red-500">*</span>
                       </label>
                       <Input
+                        id="setup-school-name"
                         value={schoolDetails.name}
                         onChange={(e) => setSchoolDetails({ ...schoolDetails, name: e.target.value })}
                         placeholder="St. Mary&apos;s Primary School"
                         error={validationErrors["name"]}
                         required
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">
-                        School Motto <span className="text-slate-400 font-normal">(optional)</span>
-                      </label>
-                      <Input
-                        value={schoolDetails.motto}
-                        onChange={(e) => setSchoolDetails({ ...schoolDetails, motto: e.target.value })}
-                        placeholder="For God and My Country"
                       />
                     </div>
 
@@ -1340,38 +1374,58 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                       </select>
                     </div>
 
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">
-                        School Phone <span className="text-slate-400 font-normal">(optional)</span>
-                      </label>
-                      <Input
-                        value={schoolDetails.phone}
-                        onChange={(e) => setSchoolDetails({ ...schoolDetails, phone: e.target.value })}
-                        placeholder="0772 123456"
-                      />
-                    </div>
+                    <details className="rounded-xl border border-slate-200 bg-slate-50">
+                      <summary className="min-h-12 cursor-pointer px-4 py-3 text-base font-semibold text-slate-800">
+                        Other school details (optional)
+                      </summary>
+                      <div className="space-y-4 p-4">
+                        <div>
+                          <label className="block text-sm font-semibold text-slate-700 mb-2">
+                            School Motto <span className="text-slate-400 font-normal">(optional)</span>
+                          </label>
+                          <Input
+                            value={schoolDetails.motto}
+                            onChange={(e) => setSchoolDetails({ ...schoolDetails, motto: e.target.value })}
+                            placeholder="For God and My Country"
+                          />
+                        </div>
 
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">
-                        School Email <span className="text-slate-400 font-normal">(optional)</span>
-                      </label>
-                      <Input
-                        value={schoolDetails.email}
-                        onChange={(e) => setSchoolDetails({ ...schoolDetails, email: e.target.value })}
-                        placeholder="admin@school.ug"
-                      />
-                    </div>
+                        <div>
+                          <label className="block text-sm font-semibold text-slate-700 mb-2">
+                            School Phone <span className="text-slate-400 font-normal">(optional)</span>
+                          </label>
+                          <Input
+                            value={schoolDetails.phone}
+                            onChange={(e) => setSchoolDetails({ ...schoolDetails, phone: e.target.value })}
+                            type="tel"
+                            inputMode="tel"
+                            placeholder="0772123456"
+                          />
+                        </div>
 
-                    <div>
-                      <label className="block text-sm font-semibold text-slate-700 mb-2">
-                        UNEB Center Number <span className="text-slate-400 font-normal">(optional)</span>
-                      </label>
-                      <Input
-                        value={schoolDetails.uneb_center_number}
-                        onChange={(e) => setSchoolDetails({ ...schoolDetails, uneb_center_number: e.target.value })}
-                        placeholder="U0012"
-                      />
-                    </div>
+                        <div>
+                          <label className="block text-sm font-semibold text-slate-700 mb-2">
+                            School Email <span className="text-slate-400 font-normal">(optional)</span>
+                          </label>
+                          <Input
+                            value={schoolDetails.email}
+                            onChange={(e) => setSchoolDetails({ ...schoolDetails, email: e.target.value })}
+                            placeholder="admin@school.ug"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-semibold text-slate-700 mb-2">
+                            UNEB Center Number <span className="text-slate-400 font-normal">(optional)</span>
+                          </label>
+                          <Input
+                            value={schoolDetails.uneb_center_number}
+                            onChange={(e) => setSchoolDetails({ ...schoolDetails, uneb_center_number: e.target.value })}
+                            placeholder="0012"
+                          />
+                        </div>
+                      </div>
+                    </details>
 
                     <Select
                       label="District"
@@ -1719,7 +1773,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                     compact
                     eyebrow="Academic Calendar & Fees"
                     title="Set term dates and fees"
-                    description="Uganda term dates are preloaded. Adjust them and define your fee structure."
+                    description="Check these suggested dates against your school’s approved calendar. Then enter the fees for each class and term."
                     chips={["3 terms per year", "Per-term billing"]}
                     className="mb-6"
                   />
@@ -2086,10 +2140,10 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
               {/* Step 5: Launch */}
               {step === 5 && (
                 <div className="flex-1 flex flex-col max-w-md mx-auto">
-                  <h3 className="text-2xl font-bold text-slate-800 mb-2">Launch Ready</h3>
+                  <h3 className="text-2xl font-bold text-slate-800 mb-2">Check your choices</h3>
                   <p className="text-slate-500 mb-6">
-                    Your school package, default calendar, and starter setup are already in place so the team can begin
-                    working immediately.
+                    You have reached the last step. Use Back if you want to change anything. Tap Finish setup once and
+                    wait for confirmation.
                   </p>
 
                   <div className="grid grid-cols-1 gap-4 mb-6">
@@ -2106,17 +2160,18 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
 
                     <div className="rounded-2xl border border-blue-200 bg-blue-50/70 p-5">
                       <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-bold text-slate-800">Calendar Ready</h4>
+                        <h4 className="font-bold text-slate-800">Check your calendar</h4>
                         <MaterialIcon icon="calendar_month" className="text-blue-600" />
                       </div>
                       <p className="text-sm text-slate-500">
-                        Uganda term dates and holiday windows are preloaded. Headteachers can tweak them later.
+                        Suggested dates are preloaded. Compare them with your school’s approved calendar before
+                        finishing.
                       </p>
                     </div>
                   </div>
 
                   <Button variant="primary" onClick={handleComplete} loading={loading} className="w-full" size="lg">
-                    Finish Setup & Launch
+                    Finish setup
                   </Button>
                 </div>
               )}
@@ -2131,20 +2186,26 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
             >
               <div className="flex gap-3">
                 {step > 1 && (
-                  <Button variant="secondary" onClick={() => handleBack(step - 1)} className="flex-1">
+                  <Button
+                    variant="secondary"
+                    disabled={saving || loading}
+                    onClick={() => handleBack(step - 1)}
+                    className="flex-1"
+                  >
                     Back
                   </Button>
                 )}
                 <Button variant="primary" loading={saving} onClick={handleGenericNext} className="flex-1">
-                  {step === TOTAL_STEPS - 1 ? "Review & Launch" : "Next"}
+                  {step === TOTAL_STEPS - 1 ? "Check my choices" : "Next step"}
                 </Button>
               </div>
               <button
                 type="button"
-                onClick={() => setStep(TOTAL_STEPS)}
+                onClick={onDismiss ?? onComplete}
+                disabled={saving || loading}
                 className="w-full mt-2 text-center text-xs text-slate-500 underline-offset-2 hover:underline"
               >
-                Skip for now — finish in dashboard
+                Pause setup — come back later
               </button>
             </div>
           )}
@@ -2154,25 +2215,27 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
             <div className="hidden md:flex flex-col gap-2 px-8 pb-8 pt-4">
               <div className="flex gap-3">
                 {step > 1 && (
-                  <Button variant="secondary" onClick={() => handleBack(step - 1)}>
+                  <Button variant="secondary" disabled={saving || loading} onClick={() => handleBack(step - 1)}>
                     Back
                   </Button>
                 )}
                 <Button variant="primary" loading={saving} onClick={handleGenericNext}>
-                  {step === TOTAL_STEPS - 1 ? "Review & Launch" : "Next Step"}
+                  {step === TOTAL_STEPS - 1 ? "Check my choices" : "Next step"}
                 </Button>
               </div>
               <button
                 type="button"
-                onClick={() => setStep(TOTAL_STEPS)}
+                onClick={onDismiss ?? onComplete}
+                disabled={saving || loading}
                 className="self-start text-xs text-slate-500 underline-offset-2 hover:underline"
               >
-                Skip for now — finish in dashboard
+                Pause setup — come back later
               </button>
             </div>
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
