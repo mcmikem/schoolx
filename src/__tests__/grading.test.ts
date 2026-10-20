@@ -301,6 +301,13 @@ describe("Grading Utilities", () => {
       expect(getDivisionColor("Division IV")).toBe("text-orange-500");
       expect(getDivisionColor("Ungraded")).toBe("text-red-500");
     });
+
+    test("accepts numeric division labels from older rows", () => {
+      expect(getDivisionColor("Division 1")).toBe("text-green-600");
+      expect(getDivisionColor("Division 2")).toBe("text-blue-600");
+      expect(getDivisionColor("Division 3")).toBe("text-yellow-600");
+      expect(getDivisionColor("Division 4")).toBe("text-orange-500");
+    });
   });
 
   describe("getGradeForLevel", () => {
