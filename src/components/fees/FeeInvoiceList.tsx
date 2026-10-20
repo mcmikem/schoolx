@@ -1,6 +1,6 @@
 "use client";
 import MaterialIcon from "@/components/MaterialIcon";
-import { Card, CardBody } from "@/components/ui/Card";
+import { DataTable, StatStrip, type DataColumn } from "@/components/ui/index";
 
 interface InvoiceData {
   student_id: string;
@@ -46,51 +46,119 @@ export default function FeeInvoiceList({
   printInvoice,
   sendInvoiceSMS,
 }: FeeInvoiceListProps) {
+  const columns: DataColumn<InvoiceData>[] = [
+    {
+      key: "student",
+      header: "Student",
+      sortValue: (invoice) => invoice.student_name,
+      render: (invoice) => (
+        <div>
+          <div className="font-medium text-[var(--t1)]">{invoice.student_name}</div>
+          <div className="text-xs text-[var(--t3)]">{invoice.student_number}</div>
+        </div>
+      ),
+    },
+    {
+      key: "class",
+      header: "Class",
+      sortValue: (invoice) => invoice.class_name,
+      render: (invoice) => <span className="text-sm text-[var(--t3)]">{invoice.class_name}</span>,
+    },
+    {
+      key: "total",
+      header: "Total",
+      align: "right",
+      sortValue: (invoice) => invoice.total_amount,
+      render: (invoice) => <span className="font-medium">{formatCurrency(invoice.total_amount)}</span>,
+    },
+    {
+      key: "paid",
+      header: "Paid",
+      align: "right",
+      sortValue: (invoice) => invoice.amount_paid,
+      render: (invoice) => <span className="text-[var(--green)]">{formatCurrency(invoice.amount_paid)}</span>,
+    },
+    {
+      key: "balance",
+      header: "Balance",
+      align: "right",
+      sortValue: (invoice) => invoice.balance,
+      render: (invoice) => (
+        <span className={`font-medium ${invoice.balance > 0 ? "text-[var(--error)]" : "text-[var(--green)]"}`}>
+          {formatCurrency(invoice.balance)}
+        </span>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      sortValue: (invoice) => (invoice.balance === 0 ? 0 : 1),
+      render: (invoice) => (
+        <span
+          className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+            invoice.balance === 0
+              ? "bg-[var(--green-soft)] text-[var(--green)]"
+              : "bg-[var(--amber-soft)] text-[var(--amber)]"
+          }`}
+        >
+          {invoice.balance === 0 ? "Paid" : "Unpaid"}
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      header: <span className="sr-only">Actions</span>,
+      align: "right",
+      hideOnMobile: true,
+      render: (invoice) => (
+        <div className="flex justify-end gap-2">
+          <button
+            onClick={() => printInvoice(invoice)}
+            className="rounded-lg p-2 text-[var(--t3)] hover:bg-[var(--primary)]/10 hover:text-[var(--primary)]"
+            title="Print invoice"
+            aria-label={`Print invoice for ${invoice.student_name}`}
+          >
+            <MaterialIcon icon="print" />
+          </button>
+          {invoice.balance > 0 && (
+            <button
+              onClick={() => sendInvoiceSMS(invoice)}
+              className="rounded-lg p-2 text-[var(--t3)] hover:bg-[var(--green-soft)] hover:text-[var(--green)]"
+              title="Send via SMS"
+              aria-label={`Send invoice to ${invoice.student_name}'s parent`}
+            >
+              <MaterialIcon icon="sms" />
+            </button>
+          )}
+        </div>
+      ),
+    },
+  ];
+
   return (
     <>
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-        <Card>
-          <CardBody>
-            <div className="text-2xl font-bold text-[var(--t1)]">{formatCurrency(invoiceStats.totalInvoiced)}</div>
-            <div className="text-sm text-[var(--t3)] mt-1">Total Invoiced</div>
-          </CardBody>
-        </Card>
-        <Card>
-          <CardBody>
-            <div className="text-2xl font-bold text-green-600">{formatCurrency(invoiceStats.totalCollected)}</div>
-            <div className="text-sm text-[var(--t3)] mt-1">Collected</div>
-          </CardBody>
-        </Card>
-        <Card>
-          <CardBody>
-            <div className="text-2xl font-bold text-red-600">{formatCurrency(invoiceStats.totalBalance)}</div>
-            <div className="text-sm text-[var(--t3)] mt-1">Outstanding</div>
-          </CardBody>
-        </Card>
-        <Card>
-          <CardBody>
-            <div className="text-2xl font-bold text-green-600">{invoiceStats.fullyPaid}</div>
-            <div className="text-sm text-[var(--t3)] mt-1">Fully Paid</div>
-          </CardBody>
-        </Card>
-        <Card>
-          <CardBody>
-            <div className="text-2xl font-bold text-yellow-600">{invoiceStats.hasBalance}</div>
-            <div className="text-sm text-[var(--t3)] mt-1">Has Balance</div>
-          </CardBody>
-        </Card>
-      </div>
+      <StatStrip
+        columns={5}
+        className="mb-6"
+        items={[
+          { label: "Total Invoiced", value: formatCurrency(invoiceStats.totalInvoiced) },
+          { label: "Collected", value: formatCurrency(invoiceStats.totalCollected), tone: "positive" },
+          { label: "Outstanding", value: formatCurrency(invoiceStats.totalBalance), tone: "negative" },
+          { label: "Fully Paid", value: invoiceStats.fullyPaid, tone: "positive" },
+          { label: "Has Balance", value: invoiceStats.hasBalance, tone: "warning" },
+        ]}
+      />
 
-      <div className="mb-6">
+      <div className="mb-4">
         {classes.length === 0 ? (
-          <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm text-amber-800">
+          <div className="rounded-xl border border-[var(--amber)]/30 bg-[var(--amber-soft)] px-3 py-2 text-sm text-[var(--t1)]">
             No classes available
           </div>
         ) : (
           <select
             value={invoiceClassFilter}
             onChange={(e) => setInvoiceClassFilter(e.target.value)}
-            className="bg-surface-container-lowest border border-outline-variant rounded-xl py-3 px-4 text-sm sm:w-48"
+            className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-sm sm:w-48"
             aria-label="Filter by class"
           >
             <option value="all">All Classes</option>
@@ -103,74 +171,69 @@ export default function FeeInvoiceList({
         )}
       </div>
 
-      <div className="bg-surface-container-lowest rounded-xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-surface-container-low text-left">
-                <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                  Student
-                </th>
-                <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Class</th>
-                <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Total</th>
-                <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Paid</th>
-                <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                  Balance
-                </th>
-                <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                  Status
-                </th>
-                <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-outline-variant/5">
-              {filteredInvoices.map((invoice) => (
-                <tr key={invoice.student_id} className="hover:bg-surface-bright">
-                  <td className="px-6 py-4">
-                    <div className="font-medium text-on-surface">{invoice.student_name}</div>
-                    <div className="text-xs text-on-surface-variant">{invoice.student_number}</div>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-on-surface-variant">{invoice.class_name}</td>
-                  <td className="px-6 py-4 font-medium">{formatCurrency(invoice.total_amount)}</td>
-                  <td className="px-6 py-4 text-green-600">{formatCurrency(invoice.amount_paid)}</td>
-                  <td className={`px-6 py-4 font-medium ${invoice.balance > 0 ? "text-red-600" : "text-green-600"}`}>
-                    {formatCurrency(invoice.balance)}
-                  </td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={`px-2.5 py-1 rounded-full text-xs font-medium ${invoice.balance === 0 ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800"}`}
-                    >
-                      {invoice.balance === 0 ? "Paid" : "Pending"}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => printInvoice(invoice)}
-                        className="p-2 text-on-surface-variant hover:text-primary rounded-lg hover:bg-primary/10"
-                        title="Print Invoice"
-                      >
-                        <MaterialIcon icon="print" />
-                      </button>
-                      {invoice.balance > 0 && (
-                        <button
-                          onClick={() => sendInvoiceSMS(invoice)}
-                          className="p-2 text-on-surface-variant hover:text-green-700 rounded-lg hover:bg-green-100"
-                          title="Send via SMS"
-                        >
-                          <MaterialIcon icon="sms" />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <DataTable
+        columns={columns}
+        rows={filteredInvoices}
+        getRowId={(invoice) => invoice.student_id}
+        caption="Fee invoices"
+        initialSort={{ key: "student", dir: "asc" }}
+        empty={
+          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-12 text-center">
+            <MaterialIcon className="mb-3 text-4xl text-[var(--t3)]/40">receipt_long</MaterialIcon>
+            <p className="font-semibold text-[var(--t1)]">No invoices</p>
+            <p className="mt-1 text-sm text-[var(--t3)]">
+              {invoiceClassFilter === "all"
+                ? "Invoices appear once students and fees exist."
+                : "No invoices for the selected class."}
+            </p>
+          </div>
+        }
+        footer={
+          <span className="text-[var(--t3)]">
+            {filteredInvoices.length} invoice{filteredInvoices.length === 1 ? "" : "s"} ·{" "}
+            {formatCurrency(filteredInvoices.reduce((sum, invoice) => sum + invoice.balance, 0))} outstanding
+          </span>
+        }
+        renderMobileCard={(invoice) => (
+          <div className="space-y-1.5">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="font-medium">{invoice.student_name}</p>
+                <p className="text-xs text-[var(--t3)]">
+                  {invoice.student_number} · {invoice.class_name}
+                </p>
+              </div>
+              <span
+                className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ${
+                  invoice.balance === 0
+                    ? "bg-[var(--green-soft)] text-[var(--green)]"
+                    : "bg-[var(--amber-soft)] text-[var(--amber)]"
+                }`}
+              >
+                {invoice.balance === 0 ? "Paid" : "Unpaid"}
+              </span>
+            </div>
+            <div className="flex items-center justify-between gap-3 text-sm">
+              <span className="text-[var(--t3)]">
+                Paid {formatCurrency(invoice.amount_paid)} of {formatCurrency(invoice.total_amount)}
+              </span>
+              <span className={`font-bold ${invoice.balance > 0 ? "text-[var(--error)]" : "text-[var(--green)]"}`}>
+                {formatCurrency(invoice.balance)}
+              </span>
+            </div>
+            <div className="flex gap-3 pt-1 text-xs font-semibold">
+              <button onClick={() => printInvoice(invoice)} className="text-[var(--primary)]">
+                Print
+              </button>
+              {invoice.balance > 0 && (
+                <button onClick={() => sendInvoiceSMS(invoice)} className="text-[var(--green)]">
+                  Send SMS
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      />
     </>
   );
 }
