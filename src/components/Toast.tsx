@@ -9,14 +9,23 @@ interface Toast {
   type: ToastType;
   message: string;
   duration?: number;
+  action?: {
+    label: string;
+    onClick: () => void;
+  };
 }
 
 interface ToastContextType {
-  showToast: (message: string, type?: ToastType, duration?: number) => void;
-  success: (message: string) => void;
-  error: (message: string) => void;
-  warning: (message: string) => void;
-  info: (message: string) => void;
+  showToast: (
+    message: string,
+    type?: ToastType,
+    duration?: number,
+    action?: { label: string; onClick: () => void },
+  ) => void;
+  success: (message: string, action?: { label: string; onClick: () => void }) => void;
+  error: (message: string, action?: { label: string; onClick: () => void }) => void;
+  warning: (message: string, action?: { label: string; onClick: () => void }) => void;
+  info: (message: string, action?: { label: string; onClick: () => void }) => void;
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
@@ -29,11 +38,16 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const showToast = useCallback(
-    (message: string, type: ToastType = "info", duration: number = 4000) => {
+    (
+      message: string,
+      type: ToastType = "info",
+      duration: number = 4000,
+      action?: { label: string; onClick: () => void },
+    ) => {
       const id = Date.now().toString() + Math.random().toString(36).substr(2, 9);
-      const toast: Toast = { id, type, message, duration };
+      const toast: Toast = { id, type, message, duration, action };
 
-      setToasts((prev) => [...prev, toast]);
+      setToasts((prev) => [...prev.slice(-2), toast]);
 
       if (duration > 0) {
         setTimeout(() => removeToast(id), duration);
@@ -42,10 +56,22 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     [removeToast],
   );
 
-  const success = useCallback((message: string) => showToast(message, "success"), [showToast]);
-  const error = useCallback((message: string) => showToast(message, "error", 6000), [showToast]);
-  const warning = useCallback((message: string) => showToast(message, "warning"), [showToast]);
-  const info = useCallback((message: string) => showToast(message, "info"), [showToast]);
+  const success = useCallback(
+    (message: string, action?: { label: string; onClick: () => void }) => showToast(message, "success", 4000, action),
+    [showToast],
+  );
+  const error = useCallback(
+    (message: string, action?: { label: string; onClick: () => void }) => showToast(message, "error", 6000, action),
+    [showToast],
+  );
+  const warning = useCallback(
+    (message: string, action?: { label: string; onClick: () => void }) => showToast(message, "warning", 5000, action),
+    [showToast],
+  );
+  const info = useCallback(
+    (message: string, action?: { label: string; onClick: () => void }) => showToast(message, "info", 4000, action),
+    [showToast],
+  );
 
   const contextValue = useMemo(
     () => ({ showToast, success, error, warning, info }),
@@ -60,35 +86,28 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   } as const;
 
   const colors = {
-    success: "bg-emerald-50 border-emerald-200 text-emerald-800",
-    error: "bg-red-50 border-red-200 text-red-800",
-    warning: "bg-amber-50 border-amber-200 text-amber-800",
-    info: "bg-blue-50 border-blue-200 text-blue-800",
+    success:
+      "bg-[var(--surface-container-high,#ffffff)] border-l-4 border-l-[var(--green,#22c55e)] border-[var(--border)] text-[var(--t1)]",
+    error:
+      "bg-[var(--surface-container-high,#ffffff)] border-l-4 border-l-[var(--red,#ef4444)] border-[var(--border)] text-[var(--t1)]",
+    warning:
+      "bg-[var(--surface-container-high,#ffffff)] border-l-4 border-l-[var(--amber,#f59e0b)] border-[var(--border)] text-[var(--t1)]",
+    info: "bg-[var(--surface-container-high,#ffffff)] border-l-4 border-l-[var(--primary,#005ce6)] border-[var(--border)] text-[var(--t1)]",
   };
 
   const iconColors = {
-    success: "text-emerald-500",
-    error: "text-red-500",
-    warning: "text-amber-500",
-    info: "text-blue-500",
+    success: "text-[var(--green,#22c55e)]",
+    error: "text-[var(--red,#ef4444)]",
+    warning: "text-[var(--amber,#f59e0b)]",
+    info: "text-[var(--primary,#005ce6)]",
   };
 
   return (
     <ToastContext.Provider value={contextValue}>
       {children}
 
-      {/* Toast Container
-
-          Two things were wrong here. It sat at z-60, below the Add/Edit Student
-          form's z-140 portal, so save errors rendered behind the dialog. And its
-          mobile geometry -- bottom 10px, horizontally centred -- was identical to
-          the bottom nav's, at a higher z, so every toast painted over
-          Home/Attend/Fees for the four seconds it lived.
-
-          Now on the notification layer, lifted clear of the nav on small screens,
-          and pointer-transparent apart from the toasts themselves. */}
       <div
-        className="fixed bottom-[var(--mobile-nav-clearance)] left-1/2 z-[var(--z-toast)] pointer-events-none flex -translate-x-1/2 flex-col gap-3 px-4 sm:bottom-4 sm:left-auto sm:right-4 sm:translate-x-0 sm:px-0 max-w-[min(96vw,420px)] w-full"
+        className="fixed bottom-[var(--mobile-nav-clearance)] left-1/2 z-[var(--z-toast)] pointer-events-none flex -translate-x-1/2 flex-col gap-2 px-4 sm:bottom-4 sm:left-auto sm:right-4 sm:translate-x-0 sm:px-0 max-w-[min(96vw,420px)] w-full"
         role="status"
         aria-live="polite"
       >
@@ -99,19 +118,33 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               key={toast.id}
               className={`
                 ${colors[toast.type]}
-                border rounded-2xl p-4 shadow-lg
+                border rounded-2xl p-4 shadow-[var(--sh2)]
                 pointer-events-auto
-                flex items-start gap-3
-                animate-slide-up
+                flex items-center gap-3
+                animate-slide-up backdrop-blur-sm
               `}
             >
-              <MaterialIcon icon={iconName} className={`flex-shrink-0 mt-0.5 ${iconColors[toast.type]}`} size={20} />
-              <p className="text-sm font-medium flex-1">{toast.message}</p>
+              <MaterialIcon icon={iconName} className={`flex-shrink-0 ${iconColors[toast.type]}`} size={20} />
+              <p className="text-sm font-medium flex-1 leading-snug">{toast.message}</p>
+              {toast.action && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    toast.action?.onClick();
+                    removeToast(toast.id);
+                  }}
+                  className="px-2.5 py-1 text-xs font-bold rounded-lg bg-[var(--primary)] text-white hover:opacity-90 shrink-0"
+                >
+                  {toast.action.label}
+                </button>
+              )}
               <button
+                type="button"
                 onClick={() => removeToast(toast.id)}
-                className="flex-shrink-0 p-1 tap-44 hover:bg-black/5 rounded-lg transition-colors"
+                className="flex-shrink-0 p-1 tap-44 hover:bg-[var(--surface-container)] rounded-lg transition-colors text-[var(--t4)] hover:text-[var(--t2)]"
+                aria-label="Dismiss notification"
               >
-                <MaterialIcon icon="close" className="opacity-50" size={16} />
+                <MaterialIcon icon="close" size={16} />
               </button>
             </div>
           );

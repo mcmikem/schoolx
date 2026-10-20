@@ -1,18 +1,19 @@
 "use client";
 import dynamic from "next/dynamic";
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import BrandProvider from "@/components/BrandProvider";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { ToastProvider } from "@/components/Toast";
-import { StuckLoadingOverlay } from "@/components/ui/Skeleton";
 import { AuthProvider, useAuth } from "@/lib/auth-context";
-import { AcademicProvider } from "@/lib/academic-context";
-import { NotificationsProvider } from "@/lib/notifications";
 import { setupErrorLogging } from "@/lib/error-logger";
 import { logger } from "@/lib/logger";
 import { ThemeProvider } from "@/lib/theme-context";
 
 const ForcePasswordChangeGate = dynamic(() => import("@/components/ForcePasswordChangeGate"), { ssr: false });
+const StuckLoadingOverlay = dynamic(
+  () => import("@/components/ui/Skeleton").then((module) => module.StuckLoadingOverlay),
+  { ssr: false, loading: () => null },
+);
 
 function FaviconUpdater() {
   const { school } = useAuth();
@@ -217,12 +218,22 @@ function MobileKeyboardHandler() {
 
 function LoadingChecker({ children }: { children: ReactNode }) {
   const { authInitialized, user } = useAuth();
+  const [showStuckLoading, setShowStuckLoading] = useState(false);
+
+  useEffect(() => {
+    if (authInitialized) {
+      setShowStuckLoading(false);
+      return;
+    }
+    const timer = window.setTimeout(() => setShowStuckLoading(true), 12000);
+    return () => window.clearTimeout(timer);
+  }, [authInitialized]);
 
   if (!authInitialized) {
     return (
       <>
         {children}
-        <StuckLoadingOverlay delay={12000} />
+        {showStuckLoading && <StuckLoadingOverlay delay={0} />}
       </>
     );
   }
@@ -242,27 +253,11 @@ export default function Providers({ children }: { children: ReactNode }) {
         <ThemeProvider>
           <ServiceWorkerRegistration>
             <AuthProvider>
-              {/*
-                Academic and notifications live here rather than in the dashboard
-                layout. The parent portal renders the same TopBar, which reads
-                both, so with the providers mounted only under /dashboard every
-                parent-portal page threw "useAcademic must be used within an
-                AcademicProvider" and showed "Something went wrong" instead of
-                the child's attendance, grades and fees.
-
-                Mounted at the root so there is exactly one instance -- two
-                would let the dashboard's own provider hold a different current
-                term from the one everything else reads.
-              */}
-              <AcademicProvider>
-                <NotificationsProvider>
-                  <LoadingChecker>
-                    <MobileKeyboardHandler />
-                    <FaviconUpdater />
-                    <BrandProvider>{children}</BrandProvider>
-                  </LoadingChecker>
-                </NotificationsProvider>
-              </AcademicProvider>
+              <LoadingChecker>
+                <MobileKeyboardHandler />
+                <FaviconUpdater />
+                <BrandProvider>{children}</BrandProvider>
+              </LoadingChecker>
             </AuthProvider>
           </ServiceWorkerRegistration>
         </ThemeProvider>

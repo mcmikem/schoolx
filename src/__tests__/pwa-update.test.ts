@@ -21,10 +21,9 @@ describe("update banner icon font", () => {
     expect(symbolsFace![0]).not.toContain("font-display: swap");
   });
 
-  it("preloads the symbols font so it arrives before first paint", () => {
+  it("does not force every route to download the symbols font", () => {
     const layout = read("src/app/layout.tsx");
-    expect(layout).toContain('href="/fonts/material-symbols-outlined.woff2"');
-    expect(layout).toMatch(/rel="preload"[^>]*material-symbols-outlined/);
+    expect(layout).not.toContain('href="/fonts/material-symbols-outlined.woff2"');
   });
 });
 

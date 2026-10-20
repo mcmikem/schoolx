@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { supabase } from "./supabase";
 import { offlineDB, useOnlineStatus } from "./offline";
-import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
+import { withTimeout, timeoutFallback, isTimeoutResult } from "@/lib/hooks/utils";
 import type { Student, Attendance, Grade, FeePayment, FeeStructure } from "@/types";
 import { logger } from "./logger";
 import { DEMO_STUDENTS } from "./demo-data";
@@ -11,6 +11,8 @@ import { isDemoSchool } from "./demo-utils";
 interface OfflineHookOptions {
   skipCache?: boolean;
 }
+
+const OFFLINE_READ_TIMEOUT_MS = 12000;
 
 export function useOfflineData<T>(
   table: string,
@@ -50,7 +52,8 @@ export function useOfflineData<T>(
         if (isOnline && !skipCache) {
           void (async () => {
             try {
-              const result = await withTimeout(fetcherRef.current(), 30000, [] as T[]);
+              const result = await withTimeout(fetcherRef.current(), OFFLINE_READ_TIMEOUT_MS, null as unknown as T[]);
+              if (result === null) throw new Error(`Loading ${table} took too long`);
               setData(result);
               setIsFromCache(false);
               await offlineDB.cacheFromServer(cacheKey, result as Record<string, unknown>[]);
@@ -75,7 +78,8 @@ export function useOfflineData<T>(
 
     if (isOnline && !skipCache) {
       try {
-        const result = await withTimeout(fetcherRef.current(), 30000, [] as T[]);
+        const result = await withTimeout(fetcherRef.current(), OFFLINE_READ_TIMEOUT_MS, null as unknown as T[]);
+        if (result === null) throw new Error(`Loading ${table} took too long`);
         setData(result);
         setIsFromCache(false);
         await offlineDB.cacheFromServer(cacheKey, result as Record<string, unknown>[]);
@@ -85,6 +89,7 @@ export function useOfflineData<T>(
         const msg =
           e instanceof Error ? e.message : typeof e === "object" && e !== null ? JSON.stringify(e) : "Unknown error";
         logger.error(`Error fetching ${table} from server:`, msg);
+        setError(msg);
       }
     }
 
@@ -238,9 +243,10 @@ export function useOfflineFees(schoolId?: string, options?: OfflineHookOptions &
                   .eq("students.school_id", schoolId)
                   .order("payment_date", { ascending: false })
                   .range(offset, offset + limit - 1),
-                30000,
+                OFFLINE_READ_TIMEOUT_MS,
                 timeoutFallback(),
               );
+              if (isTimeoutResult(payResult)) throw new Error("Loading payments took too long");
               if (payResult.error) throw payResult.error;
               const result = (payResult.data as (FeePayment & { fee_structure?: FeeStructure })[]) || [];
               setData(result);
@@ -270,9 +276,10 @@ export function useOfflineFees(schoolId?: string, options?: OfflineHookOptions &
             .eq("students.school_id", schoolId)
             .order("payment_date", { ascending: false })
             .range(offset, offset + limit - 1),
-          30000,
+          OFFLINE_READ_TIMEOUT_MS,
           timeoutFallback(),
         );
+        if (isTimeoutResult(payResult)) throw new Error("Loading payments took too long");
         if (payResult.error) throw payResult.error;
         const result = (payResult.data as (FeePayment & { fee_structure?: FeeStructure })[]) || [];
         setData(result);
@@ -284,6 +291,7 @@ export function useOfflineFees(schoolId?: string, options?: OfflineHookOptions &
       } catch (e: unknown) {
         const msg = e instanceof Error ? e.message : "Unknown error";
         logger.error("Error fetching fee_payments from server:", msg);
+        setError(msg);
       }
     }
 

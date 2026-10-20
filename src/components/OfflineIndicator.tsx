@@ -103,8 +103,8 @@ export const OfflineIndicator = memo(function OfflineIndicator() {
         // count when changes are waiting, a small icon when offline. The
         // words are one tap away on the sync centre for anyone who wants them.
         position: "fixed",
-        top: "calc(env(safe-area-inset-top, 0px) + 8px)",
-        right: "max(10px, env(safe-area-inset-right, 0px))",
+        top: "calc(var(--topbar-height, 56px) + 8px)",
+        right: "max(16px, env(safe-area-inset-right, 0px))",
         zIndex: "var(--z-toast, 3000)",
         pointerEvents: "none",
         display: "flex",
@@ -130,15 +130,15 @@ export const OfflineIndicator = memo(function OfflineIndicator() {
             alignItems: "center",
             gap: 6,
             height: 34,
-            padding: "0 10px",
+            padding: "0 12px",
             borderRadius: 999,
             fontSize: 12,
             fontWeight: 700,
             textDecoration: "none",
-            boxShadow: "0 2px 10px rgba(0,0,0,0.14)",
-            background: isOnline ? "#fef3c7" : "#fee2e2",
-            color: isOnline ? "#92400e" : "#991b1b",
-            border: `1px solid ${isOnline ? "#fcd34d" : "#fecaca"}`,
+            boxShadow: "var(--sh2, 0 4px 12px rgba(0,0,0,0.12))",
+            background: isOnline ? "var(--amber-soft, #fef3c7)" : "var(--red-soft, #fee2e2)",
+            color: isOnline ? "var(--amber-ink, #92400e)" : "var(--red-ink, #991b1b)",
+            border: `1px solid ${isOnline ? "var(--amber, #f59e0b)" : "var(--red, #f04444)"}`,
           }}
         >
           {syncing ? (
@@ -150,11 +150,7 @@ export const OfflineIndicator = memo(function OfflineIndicator() {
           )}
           {/* The number is the message. "3" beats "3 changes syncing" when the
               teacher's thumb is already on the next pupil. */}
-          {pendingSync > 0 ? (
-            <span aria-hidden="true">{pendingSync}</span>
-          ) : (
-            <span aria-hidden="true">Saved</span>
-          )}
+          {pendingSync > 0 ? <span aria-hidden="true">{pendingSync}</span> : <span aria-hidden="true">Saved</span>}
         </Link>
       )}
 

@@ -3,13 +3,13 @@ import "./globals.css";
 import "./globals-ux.css";
 import "./mobile-responsive.css";
 import "./globals-dark-hex.css";
-import Providers from "./providers";
-import DeferredChrome from "./deferred-chrome";
-import DebugPing from "@/components/DebugPing";
 import Script from "next/script";
-import { logger } from "@/lib/logger";
-import { APP_NAME } from "@/lib/app-name";
 import { AppUpdatePrompt } from "@/components/AppUpdatePrompt";
+import DebugPing from "@/components/DebugPing";
+import { APP_NAME } from "@/lib/app-name";
+import { logger } from "@/lib/logger";
+import DeferredChrome from "./deferred-chrome";
+import Providers from "./providers";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://omuto.org"),
@@ -76,14 +76,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </>
         )}
         <link rel="preload" href="/fonts/dm-sans-latin.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
-        <link rel="preload" href="/fonts/sora-latin.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
-        <link
-          rel="preload"
-          href="/fonts/material-symbols-outlined.woff2"
-          as="font"
-          type="font/woff2"
-          crossOrigin="anonymous"
-        />
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
         <link rel="icon" href="/icons/icon-512x512.png" type="image/png" />
         <Script
