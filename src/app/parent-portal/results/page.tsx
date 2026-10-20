@@ -2,6 +2,7 @@
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { getDivisionColor, getGradeColor } from "@/lib/grading";
 import { supabase } from "@/lib/supabase";
 import { withTimeout, timeoutFallback } from "@/lib/hooks/utils";
 import MaterialIcon from "@/components/MaterialIcon";
@@ -159,29 +160,6 @@ export default function ParentResultsPage() {
     if (selectedTerm !== "all" && r.term !== parseInt(selectedTerm)) return false;
     return true;
   });
-
-  const getGradeColor = (grade: string) => {
-    const colors: Record<string, string> = {
-      D1: "text-green-600",
-      D2: "text-green-500",
-      C3: "text-blue-600",
-      C4: "text-blue-500",
-      C5: "text-yellow-600",
-      C6: "text-yellow-500",
-      P7: "text-orange-500",
-      P8: "text-orange-400",
-      F9: "text-red-500",
-    };
-    return colors[grade] || "text-gray-500";
-  };
-
-  const getDivisionColor = (div: string) => {
-    if (div?.includes("I") && !div?.includes("II")) return "text-green-600";
-    if (div?.includes("II")) return "text-blue-600";
-    if (div?.includes("III")) return "text-yellow-600";
-    if (div?.includes("IV")) return "text-orange-500";
-    return "text-red-500";
-  };
 
   return (
     <ParentPortalShell pageTitle="Results">

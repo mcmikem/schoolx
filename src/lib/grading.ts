@@ -268,7 +268,14 @@ export function getGradeColor(grade: string): string {
 }
 
 export function getDivisionColor(division: string): string {
-  switch (division) {
+  // Report data exists in both forms: "Division I" from the grading engine and
+  // "Division 1" from older/demo rows. Colour both rather than fail to red.
+  const normalized = division
+    .replace(/\b4\b/, "IV")
+    .replace(/\b3\b/, "III")
+    .replace(/\b2\b/, "II")
+    .replace(/\b1\b/, "I");
+  switch (normalized) {
     case "Division I":
       return "text-green-600";
     case "Division II":
