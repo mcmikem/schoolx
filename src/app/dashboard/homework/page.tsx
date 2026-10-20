@@ -235,7 +235,7 @@ export default function HomeworkPage() {
       <div className="p-4 sm:p-6 lg:p-8 space-y-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">Teacher workflow</p>
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-500">Teacher workflow</p>
             <h2 className="mt-1 text-2xl font-bold text-gray-900">Class Tests</h2>
           </div>
           <button
@@ -253,12 +253,10 @@ export default function HomeworkPage() {
         >
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-slate-500">
-                Quick class test summary
-              </p>
+              <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-500">Quick class test summary</p>
               <h3 className="mt-1 text-lg font-semibold text-slate-900">This week at a glance</h3>
             </div>
-            <div className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-emerald-700">
+            <div className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-bold uppercase tracking-[0.14em] text-emerald-700">
               Live
             </div>
           </div>
@@ -269,7 +267,7 @@ export default function HomeworkPage() {
               { label: "Overdue", value: homeworkOverview.overdue },
             ].map((item) => (
               <div key={item.label} className="rounded-2xl border border-slate-100 bg-slate-50 p-3">
-                <div className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">{item.label}</div>
+                <div className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">{item.label}</div>
                 <div className="mt-2 text-lg font-bold text-slate-800">{item.value}</div>
               </div>
             ))}
@@ -370,7 +368,7 @@ export default function HomeworkPage() {
                       <MaterialIcon className="text-lg">menu_book</MaterialIcon>
                     </div>
                     <div>
-                      <p className="text-[10px] font-black uppercase tracking-[0.18em] text-slate-500">
+                      <p className="text-xs font-black uppercase tracking-[0.18em] text-slate-500">
                         {hw.subjects?.name || "Subject"}
                       </p>
                       <p className="text-xs text-slate-500">{hw.classes?.name}</p>

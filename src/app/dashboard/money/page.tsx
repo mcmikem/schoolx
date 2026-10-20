@@ -268,17 +268,17 @@ export default function MoneyPage() {
                   <div className="shrink-0 text-right">
                     <p className="text-[15px] font-bold tabular-nums text-[var(--t1)]">{formatCurrency(e.amount)}</p>
                     <span
-                      className={`mt-1 inline-block rounded-full px-2 py-0.5 text-[10px] font-bold ${STATUS_TONE[e.status]}`}
+                      className={`mt-1 inline-block rounded-full px-2 py-0.5 text-xs font-bold ${STATUS_TONE[e.status]}`}
                     >
                       {e.status}
                     </span>
                   </div>
                 </div>
                 {e.is_petty_cash && (
-                  <p className="mt-2 text-[11px] font-semibold text-[var(--t3)]">Petty cash · needs a voucher</p>
+                  <p className="mt-2 text-xs font-semibold text-[var(--t3)]">Petty cash · needs a voucher</p>
                 )}
                 {e.wht_amount > 0 && (
-                  <p className="mt-1 text-[11px] text-[var(--t3)]">
+                  <p className="mt-1 text-xs text-[var(--t3)]">
                     Withholding tax {formatCurrency(e.wht_amount)} (6%, above UGX 1,000,000)
                   </p>
                 )}
@@ -488,9 +488,9 @@ function Stat({
   const colour = tone === "green" ? "text-[var(--green)]" : tone === "red" ? "text-[var(--red)]" : "text-[var(--navy)]";
   return (
     <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3">
-      <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--t3)]">{label}</p>
+      <p className="text-xs font-bold uppercase tracking-wide text-[var(--t3)]">{label}</p>
       <p className={`mt-1 text-lg font-bold tabular-nums ${colour}`}>{formatCurrency(value)}</p>
-      {hint && <p className="mt-0.5 truncate text-[11px] text-[var(--t3)]">{hint}</p>}
+      {hint && <p className="mt-0.5 truncate text-xs text-[var(--t3)]">{hint}</p>}
     </div>
   );
 }

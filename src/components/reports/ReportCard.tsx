@@ -592,7 +592,7 @@ export default function ReportCard({ report, onCustomize }: ReportCardProps) {
           )}
           <div className="text-xl font-bold tracking-wide">{report.school?.name || "School Name"}</div>
           {schoolMotto && <div className="text-xs italic mt-1 opacity-90">"{schoolMotto}"</div>}
-          {reportHeader && <div className="text-[11px] font-semibold mt-1.5 opacity-95">{reportHeader}</div>}
+          {reportHeader && <div className="text-xs font-semibold mt-1.5 opacity-95">{reportHeader}</div>}
           <div className="text-sm opacity-90 mt-1.5">
             {report.school?.district || ""} District
             {report.school?.uneab_center_number && ` | Center: ${report.school.uneab_center_number}`}

@@ -321,7 +321,7 @@ export default function CustomReportsBuilder() {
                 if (categoryCols.length === 0) return null;
                 return (
                   <div key={category} className="mb-4">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--t3)] mb-2 px-1">
+                    <p className="text-xs font-bold uppercase tracking-wider text-[var(--t3)] mb-2 px-1">
                       {category} Metadata
                     </p>
                     <div className="space-y-2">
@@ -382,7 +382,7 @@ export default function CustomReportsBuilder() {
                       {selectedColumns.map((col) => (
                         <th
                           key={col.id}
-                          className="relative group text-left px-4 py-3 bg-[var(--surface-container)]/80 text-[11px] font-black uppercase tracking-widest text-[var(--t2)] border-y border-[var(--border)] first:border-l first:rounded-tl-2xl last:border-r last:rounded-tr-2xl hover:bg-[var(--surface-container)] transition-colors"
+                          className="relative group text-left px-4 py-3 bg-[var(--surface-container)]/80 text-xs font-black uppercase tracking-widest text-[var(--t2)] border-y border-[var(--border)] first:border-l first:rounded-tl-2xl last:border-r last:rounded-tr-2xl hover:bg-[var(--surface-container)] transition-colors"
                         >
                           <div className="flex items-center justify-between gap-4">
                             <span>{col.label}</span>

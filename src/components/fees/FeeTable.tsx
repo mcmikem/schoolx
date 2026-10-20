@@ -94,7 +94,7 @@ function FeeBreakdownLines({ fees }: { fees: AllocatedFee[] }) {
       {visible.map((fee) => {
         const settled = fee.status === "paid";
         return (
-          <div key={fee.id ?? fee.name} className="text-[11px] leading-tight">
+          <div key={fee.id ?? fee.name} className="text-xs leading-tight">
             <div className="flex items-baseline justify-between gap-2">
               <span
                 className="truncate"
@@ -129,7 +129,7 @@ function FeeBreakdownLines({ fees }: { fees: AllocatedFee[] }) {
         );
       })}
       {hidden > 0 && (
-        <div className="text-[11px]" style={{ color: "var(--t3)" }}>
+        <div className="text-xs" style={{ color: "var(--t3)" }}>
           +{hidden} more fee{hidden === 1 ? "" : "s"}
         </div>
       )}
@@ -257,7 +257,7 @@ function BalanceLedger({ student, recordedByName }: { student: StudentBalance; r
               {p.reference ? ` · ${p.reference}` : ""}
               {p.fee ? ` · ${p.fee}` : ""}
             </span>
-            <span className="block text-[11px] text-[var(--t3)]">by {describeWho(p.recorded_by, recordedByName)}</span>
+            <span className="block text-xs text-[var(--t3)]">by {describeWho(p.recorded_by, recordedByName)}</span>
           </span>
           <span className="shrink-0 font-semibold tabular-nums text-emerald-700">−{formatCurrency(p.amount || 0)}</span>
         </div>
@@ -271,7 +271,7 @@ function BalanceLedger({ student, recordedByName }: { student: StudentBalance; r
               {a.fee ? ` · ${a.fee}` : ""}
               {a.description ? ` · ${a.description}` : ""}
             </span>
-            <span className="block text-[11px] text-[var(--t3)]">by {describeWho(a.recorded_by, recordedByName)}</span>
+            <span className="block text-xs text-[var(--t3)]">by {describeWho(a.recorded_by, recordedByName)}</span>
           </span>
           <span className="shrink-0 font-semibold tabular-nums">{formatCurrency(a.amount || 0)}</span>
         </div>
@@ -436,7 +436,7 @@ export default function FeeTable({
                   />
                 </th>
                 <th
-                  className="px-6 py-3.5 text-[11px] uppercase tracking-[0.12em] font-bold text-[var(--t3)] cursor-pointer select-none hover:text-[var(--t1)]"
+                  className="px-6 py-3.5 text-xs uppercase tracking-[0.12em] font-bold text-[var(--t3)] cursor-pointer select-none hover:text-[var(--t1)]"
                   onClick={() => handleSort("name")}
                 >
                   <span className="flex items-center">
@@ -445,7 +445,7 @@ export default function FeeTable({
                   </span>
                 </th>
                 <th
-                  className="px-6 py-3.5 text-[11px] uppercase tracking-[0.12em] font-bold text-[var(--t3)] cursor-pointer select-none hover:text-[var(--t1)]"
+                  className="px-6 py-3.5 text-xs uppercase tracking-[0.12em] font-bold text-[var(--t3)] cursor-pointer select-none hover:text-[var(--t1)]"
                   onClick={() => handleSort("class_name")}
                 >
                   <span className="flex items-center">
@@ -453,14 +453,12 @@ export default function FeeTable({
                     <SortIcon column="class_name" />
                   </span>
                 </th>
-                <th className="px-6 py-3.5 text-[11px] uppercase tracking-[0.12em] font-bold text-[var(--t3)]">
-                  Progress
-                </th>
-                <th className="px-6 py-3.5 text-[11px] uppercase tracking-[0.12em] font-bold text-[var(--t3)] text-right">
+                <th className="px-6 py-3.5 text-xs uppercase tracking-[0.12em] font-bold text-[var(--t3)]">Progress</th>
+                <th className="px-6 py-3.5 text-xs uppercase tracking-[0.12em] font-bold text-[var(--t3)] text-right">
                   Paid
                 </th>
                 <th
-                  className="px-6 py-3.5 text-[11px] uppercase tracking-[0.12em] font-bold text-[var(--t3)] cursor-pointer select-none hover:text-[var(--t1)] text-right"
+                  className="px-6 py-3.5 text-xs uppercase tracking-[0.12em] font-bold text-[var(--t3)] cursor-pointer select-none hover:text-[var(--t1)] text-right"
                   onClick={() => handleSort("balance")}
                 >
                   <span className="flex items-center justify-end">
@@ -676,7 +674,7 @@ export default function FeeTable({
                   >
                     {formatCurrency(student.balance)}
                   </div>
-                  <div className="text-[11px] text-[var(--t3)] font-medium mt-1 tabular-nums">left to pay</div>
+                  <div className="text-xs text-[var(--t3)] font-medium mt-1 tabular-nums">left to pay</div>
                 </div>
               </div>
 

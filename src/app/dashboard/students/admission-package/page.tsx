@@ -26,7 +26,11 @@ export default function AdmissionPackagePage() {
   const [searchLoading, setSearchLoading] = useState(false);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const printRef = useRef<HTMLDivElement>(null);
-  const [letterConfig, setLetterConfig] = useState({ admissionFee: "150,000", termStart: "Term 1, May 2026", requirements: "2 reams of paper, mathematical sets, and the prescribed school uniform" });
+  const [letterConfig, setLetterConfig] = useState({
+    admissionFee: "150,000",
+    termStart: "Term 1, May 2026",
+    requirements: "2 reams of paper, mathematical sets, and the prescribed school uniform",
+  });
 
   const reactPrint = useReactToPrint({
     contentRef: printRef,
@@ -56,30 +60,32 @@ export default function AdmissionPackagePage() {
         .join(""),
     });
     printWindow.focus();
-    setTimeout(() => { printWindow.print(); printWindow.close(); }, 500);
+    setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 500);
   }, [reactPrint]);
 
-  const loadStudent = useCallback(async (id: string) => {
-    setLoading(true);
-    if (isDemo) {
-      const demoS = DEMO_STUDENTS.find((s) => s.id === id) || DEMO_STUDENTS[0];
-      setStudent({ ...demoS, classes: { name: "P.5", stream: "North" } });
-      setLoading(false);
-      return;
-    }
-    const { data, error } = await supabase
-      .from("students")
-      .select("*, classes(name, stream)")
-      .eq("id", id)
-      .single();
+  const loadStudent = useCallback(
+    async (id: string) => {
+      setLoading(true);
+      if (isDemo) {
+        const demoS = DEMO_STUDENTS.find((s) => s.id === id) || DEMO_STUDENTS[0];
+        setStudent({ ...demoS, classes: { name: "P.5", stream: "North" } });
+        setLoading(false);
+        return;
+      }
+      const { data, error } = await supabase.from("students").select("*, classes(name, stream)").eq("id", id).single();
 
-    if (error) {
-      logger.error("Failed to load student for admission letter", error);
-      setStudent(null);
-    }
-    if (data) setStudent(data);
-    setLoading(false);
-  }, [isDemo]);
+      if (error) {
+        logger.error("Failed to load student for admission letter", error);
+        setStudent(null);
+      }
+      if (data) setStudent(data);
+      setLoading(false);
+    },
+    [isDemo],
+  );
 
   useEffect(() => {
     if (studentId) {
@@ -87,34 +93,41 @@ export default function AdmissionPackagePage() {
     }
   }, [studentId, loadStudent]);
 
-  const handleSearch = useCallback(async (term: string) => {
-    setSearchTerm(term);
-    if (!term.trim()) { setSearchResults([]); return; }
-    if (isDemo) {
-      const filtered = DEMO_STUDENTS.filter(s =>
-        `${s.first_name} ${s.last_name}`.toLowerCase().includes(term.toLowerCase()) ||
-        (s.student_number || "").toLowerCase().includes(term.toLowerCase())
-      );
-      setSearchResults(filtered.slice(0, 5));
-      return;
-    }
-    if (!school?.id) return;
-    setSearchLoading(true);
-    const { data, error } = await supabase
-      .from("students")
-      .select("id, first_name, last_name, student_number, classes(name, stream)")
-      .eq("school_id", school.id)
-      .or(`first_name.ilike.%${term}%,last_name.ilike.%${term}%,student_number.ilike.%${term}%`)
-      .limit(5);
-    if (error) {
-      logger.error("Admission search failed", error);
-      setSearchResults([]);
+  const handleSearch = useCallback(
+    async (term: string) => {
+      setSearchTerm(term);
+      if (!term.trim()) {
+        setSearchResults([]);
+        return;
+      }
+      if (isDemo) {
+        const filtered = DEMO_STUDENTS.filter(
+          (s) =>
+            `${s.first_name} ${s.last_name}`.toLowerCase().includes(term.toLowerCase()) ||
+            (s.student_number || "").toLowerCase().includes(term.toLowerCase()),
+        );
+        setSearchResults(filtered.slice(0, 5));
+        return;
+      }
+      if (!school?.id) return;
+      setSearchLoading(true);
+      const { data, error } = await supabase
+        .from("students")
+        .select("id, first_name, last_name, student_number, classes(name, stream)")
+        .eq("school_id", school.id)
+        .or(`first_name.ilike.%${term}%,last_name.ilike.%${term}%,student_number.ilike.%${term}%`)
+        .limit(5);
+      if (error) {
+        logger.error("Admission search failed", error);
+        setSearchResults([]);
+        setSearchLoading(false);
+        return;
+      }
+      setSearchResults(data || []);
       setSearchLoading(false);
-      return;
-    }
-    setSearchResults(data || []);
-    setSearchLoading(false);
-  }, [isDemo, school?.id]);
+    },
+    [isDemo, school?.id],
+  );
 
   const handleDownloadPdf = async () => {
     if (!student) return;
@@ -152,182 +165,187 @@ export default function AdmissionPackagePage() {
 
   return (
     <PageErrorBoundary>
-    <div className="p-6 max-w-7xl mx-auto space-y-8">
-      <div className="flex justify-between items-end">
-        <div>
-          <div className="flex items-center gap-3 mb-1">
-            <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center text-primary-800">
-              <MaterialIcon icon="history_edu" />
+      <div className="p-6 max-w-7xl mx-auto space-y-8">
+        <div className="flex justify-between items-end">
+          <div>
+            <div className="flex items-center gap-3 mb-1">
+              <div className="w-10 h-10 rounded-xl bg-primary-100 flex items-center justify-center text-primary-800">
+                <MaterialIcon icon="history_edu" />
+              </div>
+              <h1 className="text-3xl font-black text-slate-800 tracking-tight">Admission Package</h1>
             </div>
-            <h1 className="text-3xl font-black text-slate-800 tracking-tight">
-              Admission Package
-            </h1>
+            <p className="text-slate-500 font-medium">Generate official enrollment documents</p>
           </div>
-          <p className="text-slate-500 font-medium">
-            Generate official enrollment documents
-          </p>
+
+          <div className="flex gap-4">
+            <button
+              onClick={handleDownloadPdf}
+              disabled={!student || downloadingPdf}
+              className="flex items-center gap-2 px-6 py-3 bg-white text-primary-800 border border-primary-200 rounded-2xl font-bold hover:bg-primary-50 transition-all disabled:opacity-50"
+            >
+              <MaterialIcon icon="download" />
+              {downloadingPdf ? "Generating..." : "Download PDF"}
+            </button>
+            <button
+              onClick={handlePrint}
+              disabled={!student}
+              className="flex items-center gap-2 px-6 py-3 bg-primary-800 text-white rounded-2xl font-bold shadow-lg shadow-primary-800/20 hover:scale-105 transition-all disabled:opacity-50 disabled:scale-100"
+            >
+              <MaterialIcon icon="print" />
+              Print Admission Package
+            </button>
+          </div>
         </div>
 
-        <div className="flex gap-4">
-          <button
-            onClick={handleDownloadPdf}
-            disabled={!student || downloadingPdf}
-            className="flex items-center gap-2 px-6 py-3 bg-white text-primary-800 border border-primary-200 rounded-2xl font-bold hover:bg-primary-50 transition-all disabled:opacity-50"
-          >
-            <MaterialIcon icon="download" />
-            {downloadingPdf ? "Generating..." : "Download PDF"}
-          </button>
-          <button
-            onClick={handlePrint}
-            disabled={!student}
-            className="flex items-center gap-2 px-6 py-3 bg-primary-800 text-white rounded-2xl font-bold shadow-lg shadow-primary-800/20 hover:scale-105 transition-all disabled:opacity-50 disabled:scale-100"
-          >
-            <MaterialIcon icon="print" />
-            Print Admission Package
-          </button>
-        </div>
+        {!student && (
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-12 text-center">
+            <MaterialIcon icon="search" style={{ fontSize: 48 }} className="text-slate-200 mb-4" />
+            <p className="text-slate-500 font-bold">Search for a student to generate their admission letter.</p>
+            <div className="mt-4 max-w-md mx-auto relative">
+              <input
+                type="text"
+                placeholder="Student Name or Number..."
+                value={searchTerm}
+                onChange={(e) => handleSearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-primary-100"
+              />
+              <MaterialIcon icon="person_search" className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              {searchResults.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-10 overflow-hidden">
+                  {searchResults.map((s: any) => (
+                    <button
+                      key={s.id}
+                      onClick={() => {
+                        loadStudent(s.id);
+                        setSearchResults([]);
+                        setSearchTerm("");
+                      }}
+                      className="w-full text-left px-4 py-3 hover:bg-slate-50 border-b border-slate-100 last:border-0 transition-colors"
+                    >
+                      <p className="font-semibold text-slate-800 text-sm">
+                        {s.first_name} {s.last_name}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {s.student_number}{" "}
+                        {s.classes ? `• ${s.classes.name}${s.classes.stream ? ` ${s.classes.stream}` : ""}` : ""}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {searchLoading && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-10 p-4 text-sm text-slate-500 text-center">
+                  Searching…
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {student && (
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            <div className="lg:col-span-1 space-y-6">
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6">
+                <h3 className="font-bold text-slate-800 mb-4 uppercase tracking-widest text-xs">Student Context</h3>
+                <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl mb-6">
+                  <div className="w-12 h-12 rounded-full bg-primary-800 text-white flex items-center justify-center font-black text-lg">
+                    {student.first_name[0]}
+                    {student.last_name[0]}
+                  </div>
+                  <div>
+                    <p className="font-bold text-slate-800">
+                      {student.first_name} {student.last_name}
+                    </p>
+                    <p className="text-xs font-black uppercase tracking-wider text-slate-400">
+                      {student.student_number || "Draft"}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-500">Academic Year</span>
+                    <span className="text-xs font-bold text-slate-800">{academicYear}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-500">Term</span>
+                    <span className="text-xs font-bold text-slate-800">Term 1</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-slate-500">Assigned Class</span>
+                    <span className="text-xs font-bold text-slate-800">{student.classes?.name || "Unassigned"}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Letter Template Customization */}
+              <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
+                <h3 className="font-bold text-slate-800 mb-3 uppercase tracking-widest text-xs">Customise Letter</h3>
+                <div className="space-y-3">
+                  <div>
+                    <label className="text-xs font-bold uppercase text-slate-500 mb-1 block">Admission Fee (UGX)</label>
+                    <input
+                      type="text"
+                      value={letterConfig.admissionFee}
+                      onChange={(e) => setLetterConfig((p) => ({ ...p, admissionFee: e.target.value }))}
+                      className="input text-sm"
+                      placeholder="150,000"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold uppercase text-slate-500 mb-1 block">Term Start</label>
+                    <input
+                      type="text"
+                      value={letterConfig.termStart}
+                      onChange={(e) => setLetterConfig((p) => ({ ...p, termStart: e.target.value }))}
+                      className="input text-sm"
+                      placeholder="Term 1, May 2026"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold uppercase text-slate-500 mb-1 block">Requirements</label>
+                    <textarea
+                      value={letterConfig.requirements}
+                      onChange={(e) => setLetterConfig((p) => ({ ...p, requirements: e.target.value }))}
+                      className="input text-sm"
+                      rows={3}
+                      placeholder="Items to bring..."
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 bg-amber-50 rounded-[28px] border border-amber-100">
+                <div className="flex items-start gap-3 mt-1">
+                  <MaterialIcon icon="lightbulb" className="text-amber-500" />
+                  <div>
+                    <p className="text-xs font-black uppercase text-amber-700 tracking-wider mb-1">Expert Tip</p>
+                    <p className="text-xs text-amber-800 leading-relaxed">
+                      Ensure the parent's name and contact information are correct before printing, as these are used
+                      for the official salutation.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="lg:col-span-3">
+              <div className="overflow-x-auto bg-slate-100 p-8 rounded-[32px] border border-slate-200 border-dashed min-h-[800px] flex justify-center">
+                <div ref={printRef}>
+                  <AdmissionLetter
+                    student={student}
+                    school={school || { name: "SkoolMate Official Academy" }}
+                    academicYear={academicYear}
+                    admissionFee={letterConfig.admissionFee}
+                    termStart={letterConfig.termStart}
+                    requirements={letterConfig.requirements}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
-
-      {!student && (
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-12 text-center">
-          <MaterialIcon
-            icon="search"
-            style={{ fontSize: 48 }}
-            className="text-slate-200 mb-4"
-          />
-          <p className="text-slate-500 font-bold">
-            Search for a student to generate their admission letter.
-          </p>
-          <div className="mt-4 max-w-md mx-auto relative">
-            <input
-              type="text"
-              placeholder="Student Name or Number..."
-              value={searchTerm}
-              onChange={e => handleSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-primary-100"
-            />
-            <MaterialIcon
-              icon="person_search"
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-            />
-            {searchResults.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-10 overflow-hidden">
-                {searchResults.map((s: any) => (
-                  <button
-                    key={s.id}
-                    onClick={() => { loadStudent(s.id); setSearchResults([]); setSearchTerm(""); }}
-                    className="w-full text-left px-4 py-3 hover:bg-slate-50 border-b border-slate-100 last:border-0 transition-colors"
-                  >
-                    <p className="font-semibold text-slate-800 text-sm">{s.first_name} {s.last_name}</p>
-                    <p className="text-xs text-slate-500">{s.student_number} {s.classes ? `• ${s.classes.name}${s.classes.stream ? ` ${s.classes.stream}` : ""}` : ""}</p>
-                  </button>
-                ))}
-              </div>
-            )}
-            {searchLoading && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg z-10 p-4 text-sm text-slate-500 text-center">Searching…</div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {student && (
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          <div className="lg:col-span-1 space-y-6">
-            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6">
-              <h3 className="font-bold text-slate-800 mb-4 uppercase tracking-widest text-[11px]">
-                Student Context
-              </h3>
-              <div className="flex items-center gap-3 p-3 bg-slate-50 rounded-2xl mb-6">
-                <div className="w-12 h-12 rounded-full bg-primary-800 text-white flex items-center justify-center font-black text-lg">
-                  {student.first_name[0]}
-                  {student.last_name[0]}
-                </div>
-                <div>
-                  <p className="font-bold text-slate-800">
-                    {student.first_name} {student.last_name}
-                  </p>
-                  <p className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                    {student.student_number || "Draft"}
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-slate-500">Academic Year</span>
-                  <span className="text-xs font-bold text-slate-800">
-                    {academicYear}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-slate-500">Term</span>
-                  <span className="text-xs font-bold text-slate-800">
-                    Term 1
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-slate-500">Assigned Class</span>
-                  <span className="text-xs font-bold text-slate-800">
-                    {student.classes?.name || "Unassigned"}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Letter Template Customization */}
-            <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5">
-              <h3 className="font-bold text-slate-800 mb-3 uppercase tracking-widest text-[11px]">Customise Letter</h3>
-              <div className="space-y-3">
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-slate-500 mb-1 block">Admission Fee (UGX)</label>
-                  <input type="text" value={letterConfig.admissionFee} onChange={e => setLetterConfig(p => ({...p, admissionFee: e.target.value}))} className="input text-sm" placeholder="150,000" />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-slate-500 mb-1 block">Term Start</label>
-                  <input type="text" value={letterConfig.termStart} onChange={e => setLetterConfig(p => ({...p, termStart: e.target.value}))} className="input text-sm" placeholder="Term 1, May 2026" />
-                </div>
-                <div>
-                  <label className="text-[10px] font-bold uppercase text-slate-500 mb-1 block">Requirements</label>
-                  <textarea value={letterConfig.requirements} onChange={e => setLetterConfig(p => ({...p, requirements: e.target.value}))} className="input text-sm" rows={3} placeholder="Items to bring..." />
-                </div>
-              </div>
-            </div>
-
-            <div className="p-6 bg-amber-50 rounded-[28px] border border-amber-100">
-              <div className="flex items-start gap-3 mt-1">
-                <MaterialIcon icon="lightbulb" className="text-amber-500" />
-                <div>
-                  <p className="text-[11px] font-black uppercase text-amber-700 tracking-wider mb-1">
-                    Expert Tip
-                  </p>
-                  <p className="text-xs text-amber-800 leading-relaxed">
-                    Ensure the parent's name and contact information are correct
-                    before printing, as these are used for the official
-                    salutation.
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="lg:col-span-3">
-            <div className="overflow-x-auto bg-slate-100 p-8 rounded-[32px] border border-slate-200 border-dashed min-h-[800px] flex justify-center">
-              <div ref={printRef}>
-                <AdmissionLetter
-                  student={student}
-                  school={school || { name: "SkoolMate Official Academy" }}
-                  academicYear={academicYear}
-                  admissionFee={letterConfig.admissionFee}
-                  termStart={letterConfig.termStart}
-                  requirements={letterConfig.requirements}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
     </PageErrorBoundary>
   );
 }

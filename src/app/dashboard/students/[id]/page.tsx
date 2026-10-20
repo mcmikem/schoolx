@@ -219,7 +219,7 @@ function AttendanceRing({ percentage }: { percentage: number }) {
       </svg>
       <div className="-mt-14 text-center">
         <div className="text-lg font-extrabold text-[var(--t1)]">{percentage}%</div>
-        <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--t3)]">Attendance</div>
+        <div className="text-xs font-bold uppercase tracking-wider text-[var(--t3)]">Attendance</div>
       </div>
     </div>
   );
@@ -268,7 +268,7 @@ function AttendanceHeatmap({ records, isDemo }: { records: AttendanceRecord[]; i
           />
         ))}
       </div>
-      <div className="flex items-center gap-3 mt-2 text-[10px] text-[var(--t3)] font-medium">
+      <div className="flex items-center gap-3 mt-2 text-xs text-[var(--t3)] font-medium">
         <span className="flex items-center gap-1">
           <span className="w-2 h-2 rounded-sm bg-emerald-400" /> Present
         </span>
@@ -310,7 +310,7 @@ function FeeProgressBar({ paid, total }: { paid: number; total: number }) {
           style={{ width: `${pct}%` }}
         />
       </div>
-      <div className="flex justify-between mt-1 text-[11px] text-[var(--t3)]">
+      <div className="flex justify-between mt-1 text-xs text-[var(--t3)]">
         <span>Paid: UGX {paid.toLocaleString()}</span>
         <span>Total: UGX {total.toLocaleString()}</span>
       </div>
@@ -364,7 +364,7 @@ function GradeSparkline({ data }: { data: { term: string; average: number }[] })
       </svg>
       <div>
         <div className={`text-lg font-extrabold ${trend ? "text-emerald-600" : "text-red-600"}`}>{lastVal}%</div>
-        <div className="flex items-center gap-0.5 text-[10px] font-bold text-[var(--t3)] uppercase tracking-wider">
+        <div className="flex items-center gap-0.5 text-xs font-bold text-[var(--t3)] uppercase tracking-wider">
           {trend ? (
             <MaterialIcon icon="trending_up" size={12} className="h-3 text-emerald-500" />
           ) : (
@@ -723,7 +723,7 @@ export default function StudentProfilePage() {
                       {student.first_name?.[0] || "?"}
                       {student.last_name?.[0] || "?"}
                     </span>
-                    <span className="text-[11px] font-bold uppercase tracking-[0.2em] text-[var(--navy)] opacity-70">
+                    <span className="text-xs font-bold uppercase tracking-[0.2em] text-[var(--navy)] opacity-70">
                       No photo
                     </span>
                   </div>
@@ -734,9 +734,7 @@ export default function StudentProfilePage() {
                 />
               </div>
               <div className="mt-3 flex items-center justify-between gap-2 px-1">
-                <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-[var(--t3)]">
-                  Student photo
-                </span>
+                <span className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--t3)]">Student photo</span>
                 <span
                   className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold ${statusCfg.bg} ${statusCfg.text} ${statusCfg.border}`}
                 >
@@ -848,7 +846,7 @@ export default function StudentProfilePage() {
                     <MaterialIcon icon={item.icon} size={20} className={item.tone} />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-[11px] font-bold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">
+                    <div className="text-xs font-bold uppercase tracking-[0.16em] text-gray-500 dark:text-gray-400">
                       {item.label}
                     </div>
                     <div className={`mt-0.5 truncate text-base font-bold ${item.tone}`}>{item.value}</div>
@@ -1077,7 +1075,7 @@ export default function StudentProfilePage() {
                             <div className="flex items-center gap-2">
                               <span className="text-sm font-medium">{user.full_name || "Unknown"}</span>
                               {isPrimary && (
-                                <span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-semibold text-blue-700">
+                                <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700">
                                   Primary
                                 </span>
                               )}
@@ -1141,7 +1139,7 @@ export default function StudentProfilePage() {
                               : new Date(msg.created_at).toLocaleString()}
                           </span>
                           <span
-                            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                            className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
                               msg.status === "sent"
                                 ? "bg-green-100 text-green-700"
                                 : msg.status === "delivered"

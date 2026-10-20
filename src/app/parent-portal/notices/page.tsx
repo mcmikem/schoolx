@@ -131,13 +131,13 @@ export default function ParentNoticesPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <p className="font-bold text-[var(--on-surface)]">{n.title}</p>
-                      <span className="text-[10px] text-[var(--on-surface-variant)] shrink-0">
+                      <span className="text-xs text-[var(--on-surface-variant)] shrink-0">
                         {new Date(n.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}
                       </span>
                     </div>
                     <p className="text-sm text-[var(--on-surface-variant)] mt-1 line-clamp-2">{n.content}</p>
                     {n.category && (
-                      <span className="mt-2 inline-block px-2 py-0.5 bg-[var(--surface-container)] rounded-full text-[9px] font-black uppercase tracking-wider text-[var(--on-surface-variant)] capitalize">
+                      <span className="mt-2 inline-block px-2 py-0.5 bg-[var(--surface-container)] rounded-full text-xs font-black uppercase tracking-wider text-[var(--on-surface-variant)] capitalize">
                         {n.category}
                       </span>
                     )}
@@ -161,7 +161,7 @@ export default function ParentNoticesPage() {
                   <MaterialIcon icon="close" />
                 </button>
               </div>
-              <p className="text-[10px] text-[var(--on-surface-variant)]">
+              <p className="text-xs text-[var(--on-surface-variant)]">
                 {new Date(selectedNotice.created_at).toLocaleDateString("en-GB", {
                   weekday: "long",
                   day: "2-digit",

@@ -204,7 +204,7 @@ export default function ParentEventsPage() {
                         style={{ borderColor: "var(--border)" }}
                       >
                         <span className="text-xl font-black leading-none text-[var(--t1)]">{start.getDate()}</span>
-                        <span className="text-[10px] font-bold uppercase text-[var(--t3)] mt-0.5">
+                        <span className="text-xs font-bold uppercase text-[var(--t3)] mt-0.5">
                           {start.toLocaleDateString("en-GB", { month: "short" })}
                         </span>
                       </div>
@@ -213,7 +213,7 @@ export default function ParentEventsPage() {
                         <p className="text-xs text-[var(--t3)] font-medium mt-0.5">{label}</p>
                       </div>
                       <span
-                        className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-[10px] font-black uppercase tracking-wider capitalize ${TYPE_STYLES[ev.event_type] || "bg-slate-100 text-slate-600 border-slate-200"}`}
+                        className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-black uppercase tracking-wider capitalize ${TYPE_STYLES[ev.event_type] || "bg-slate-100 text-slate-600 border-slate-200"}`}
                       >
                         <MaterialIcon icon={TYPE_ICONS[ev.event_type] || "event"} className="text-xs" />
                         {ev.event_type}
@@ -230,7 +230,7 @@ export default function ParentEventsPage() {
                 <div className="grid md:grid-cols-2 gap-3">
                   {groups.map(([month, monthEvents]) => (
                     <div key={month} className="rounded-[22px] bg-white/40 backdrop-blur-md border border-white/60 p-4">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-[var(--t3)] mb-2">
+                      <p className="text-xs font-black uppercase tracking-widest text-[var(--t3)] mb-2">
                         {new Date(month + "-01T00:00:00").toLocaleDateString("en-GB", {
                           month: "long",
                           year: "numeric",
@@ -245,7 +245,7 @@ export default function ParentEventsPage() {
                             className="w-full text-left flex items-center justify-between gap-3 rounded-xl bg-white/60 border border-white/70 px-3 py-2.5"
                           >
                             <span className="text-sm font-semibold text-[var(--t1)] truncate">{ev.title}</span>
-                            <span className="text-[11px] text-[var(--t3)] font-medium shrink-0">
+                            <span className="text-xs text-[var(--t3)] font-medium shrink-0">
                               {new Date(ev.start_date + "T00:00:00").getDate()}
                             </span>
                           </button>
@@ -272,7 +272,7 @@ export default function ParentEventsPage() {
                 </button>
               </div>
               <span
-                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-[10px] font-black uppercase tracking-wider capitalize ${TYPE_STYLES[selectedEvent.event_type] || ""}`}
+                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full border text-xs font-black uppercase tracking-wider capitalize ${TYPE_STYLES[selectedEvent.event_type] || ""}`}
               >
                 <MaterialIcon icon={TYPE_ICONS[selectedEvent.event_type] || "event"} className="text-xs" />
                 {selectedEvent.event_type}

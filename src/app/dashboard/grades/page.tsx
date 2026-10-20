@@ -2082,7 +2082,7 @@ export default function GradesPage() {
                                       paragraph. Both live in the explainer below the
                                       table now.
                                     */}
-                                    <span className="block text-[11px] font-semibold normal-case tracking-normal text-[var(--t3)]">
+                                    <span className="block text-xs font-semibold normal-case tracking-normal text-[var(--t3)]">
                                       /{ASSESSMENT_MAX[type]}
                                     </span>
                                   </th>

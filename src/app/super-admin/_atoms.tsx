@@ -25,7 +25,7 @@ export function Badge({ status }: { status: string }) {
   const s = STATUS_STYLES[status] || STATUS_STYLES.active;
   return (
     <span
-      className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide"
+      className="px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide"
       style={{ background: s.bg, color: s.text }}
     >
       {s.label}
@@ -36,10 +36,7 @@ export function Badge({ status }: { status: string }) {
 export function PlanBadge({ plan }: { plan: string }) {
   const c = PLAN_COLORS[plan] || "#64748b";
   return (
-    <span
-      className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase"
-      style={{ background: `${c}18`, color: c }}
-    >
+    <span className="px-2 py-0.5 rounded-full text-xs font-bold uppercase" style={{ background: `${c}18`, color: c }}>
       {PLAN_LABELS[plan] || plan}
     </span>
   );

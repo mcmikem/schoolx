@@ -176,7 +176,7 @@ function StatusBadge({ status }: { status: string }) {
   const s = STATUS_STYLES[status] || STATUS_STYLES.active;
   return (
     <span
-      className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide"
+      className="px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide"
       style={{ background: s.bg, color: s.text }}
     >
       {s.label}
@@ -212,8 +212,8 @@ function StatCard({
       <div className="text-[22px] font-bold text-[var(--t1)] tracking-tight">
         {typeof value === "number" ? value.toLocaleString() : value}
       </div>
-      <div className="text-[11px] font-medium text-[var(--t3)] mt-0.5">{label}</div>
-      {sub && <div className="text-[10px] text-[var(--t4)] mt-1">{sub}</div>}
+      <div className="text-xs font-medium text-[var(--t3)] mt-0.5">{label}</div>
+      {sub && <div className="text-xs text-[var(--t4)] mt-1">{sub}</div>}
     </div>
   );
 }
@@ -240,7 +240,7 @@ function TabBar({
         <button
           key={t.id}
           onClick={() => onChange(t.id)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-bold transition-colors ${
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-colors ${
             active === t.id
               ? "bg-[var(--primary)] text-white shadow-sm"
               : "border border-[var(--border)] text-[var(--t2)] hover:bg-[var(--bg)]"
@@ -396,7 +396,7 @@ export default function MarketerDashboard() {
           </div>
           <button
             onClick={fetchData}
-            className="px-3 py-1 rounded-lg bg-red-100 text-red-700 text-[11px] font-bold hover:bg-red-200 transition-colors flex-shrink-0"
+            className="px-3 py-1 rounded-lg bg-red-100 text-red-700 text-xs font-bold hover:bg-red-200 transition-colors flex-shrink-0"
           >
             Retry
           </button>
@@ -508,7 +508,7 @@ function OverviewTab({
               onChange={(e) => setSearch(e.target.value)}
               className="w-48 px-3 py-1.5 rounded-xl border border-[var(--border)] bg-[var(--bg)] text-[12px] text-[var(--t1)] placeholder:text-[var(--t4)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30"
             />
-            <span className="text-[11px] text-[var(--t4)]">{filteredCount} schools</span>
+            <span className="text-xs text-[var(--t4)]">{filteredCount} schools</span>
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -543,11 +543,11 @@ function OverviewTab({
                     <tr key={s.id} className="border-b border-[var(--border)] hover:bg-[var(--bg)] transition-colors">
                       <td className="px-4 py-2.5">
                         <div className="font-semibold text-[var(--t1)]">{s.name}</div>
-                        <div className="text-[10px] text-[var(--t4)]">{s.school_code}</div>
+                        <div className="text-xs text-[var(--t4)]">{s.school_code}</div>
                       </td>
                       <td className="px-4 py-2.5 text-[var(--t2)]">{s.district || "—"}</td>
                       <td className="px-4 py-2.5">
-                        <span className="text-[11px] font-semibold capitalize text-[var(--t2)]">
+                        <span className="text-xs font-semibold capitalize text-[var(--t2)]">
                           {s.subscription_plan?.replace(/_/g, " ") || "—"}
                         </span>
                       </td>
@@ -556,7 +556,7 @@ function OverviewTab({
                       </td>
                       <td className="px-4 py-2.5">
                         <span
-                          className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          className={`inline-flex items-center gap-1 text-xs font-bold px-2 py-0.5 rounded-full ${
                             onboarded ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"
                           }`}
                         >
@@ -566,7 +566,7 @@ function OverviewTab({
                           {onboarded ? "Complete" : "Pending"}
                         </span>
                       </td>
-                      <td className="px-4 py-2.5 text-[11px] text-[var(--t3)]">
+                      <td className="px-4 py-2.5 text-xs text-[var(--t3)]">
                         {daysLeft !== null ? (
                           <span className={daysLeft <= 7 ? "text-red-500 font-semibold" : ""}>
                             {daysLeft > 0 ? `${daysLeft}d` : "Expired"}
@@ -601,7 +601,7 @@ function OverviewTab({
                               </span>
                             </a>
                           )}
-                          {!s.phone && !s.email && <span className="text-[var(--t4)] text-[10px]">—</span>}
+                          {!s.phone && !s.email && <span className="text-[var(--t4)] text-xs">—</span>}
                           {onEditSchool && (
                             <button
                               onClick={() => onEditSchool(s)}
@@ -825,14 +825,14 @@ function RegisterTab({
           )}
           {result.success && result.adminPhone && (
             <div className="mt-3 pt-3 border-t border-green-200">
-              <div className="text-[11px] font-semibold mb-1">Admin Login Credentials</div>
-              <div className="text-[11px]">
+              <div className="text-xs font-semibold mb-1">Admin Login Credentials</div>
+              <div className="text-xs">
                 Phone: <span className="font-mono font-bold">{result.adminPhone}</span>
               </div>
-              <div className="text-[11px]">
+              <div className="text-xs">
                 Password: <span className="font-mono font-bold">********</span>
               </div>
-              <p className="text-[10px] mt-1 text-green-600">
+              <p className="text-xs mt-1 text-green-600">
                 Share these credentials with the school admin. They can sign in at /login. The password you set was used
                 during registration and is not stored here.
               </p>
@@ -840,8 +840,8 @@ function RegisterTab({
           )}
           {result.success && result.adminEmail && (
             <div className="mt-3 pt-3 border-t border-green-200">
-              <div className="text-[11px] font-semibold mb-1">Send Login Link via Email</div>
-              <p className="text-[10px] text-[var(--t3)] mb-2">
+              <div className="text-xs font-semibold mb-1">Send Login Link via Email</div>
+              <p className="text-xs text-[var(--t3)] mb-2">
                 A magic link will be sent to {result.adminEmail} so the admin can sign in without a password.
               </p>
               <button
@@ -852,7 +852,7 @@ function RegisterTab({
                 {sendingLink ? "Sending..." : "Send Login Link"}
               </button>
               {linkResult && (
-                <p className={`mt-2 text-[10px] font-medium ${linkResult.ok ? "text-green-600" : "text-red-500"}`}>
+                <p className={`mt-2 text-xs font-medium ${linkResult.ok ? "text-green-600" : "text-red-500"}`}>
                   {linkResult.message}
                 </p>
               )}
@@ -866,40 +866,38 @@ function RegisterTab({
           <h3 className="text-[13px] font-bold text-[var(--t1)] mb-3">School Information</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="sm:col-span-2">
-              <label className="block text-[11px] font-semibold text-[var(--t3)] mb-1">School Name *</label>
+              <label className="block text-xs font-semibold text-[var(--t3)] mb-1">School Name *</label>
               <input
                 value={form.schoolName}
                 onChange={(e) => handleChange("schoolName", e.target.value)}
                 className={`w-full px-3 py-2 rounded-xl border ${fieldErrors.schoolName ? "border-red-400" : "border-[var(--border)]"} bg-[var(--bg)] text-[13px] text-[var(--t1)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30`}
               />
               {fieldErrors.schoolName && (
-                <p className="mt-1 text-[10px] font-medium text-red-500">{fieldErrors.schoolName}</p>
+                <p className="mt-1 text-xs font-medium text-red-500">{fieldErrors.schoolName}</p>
               )}
             </div>
             <div>
-              <label className="block text-[11px] font-semibold text-[var(--t3)] mb-1">District *</label>
+              <label className="block text-xs font-semibold text-[var(--t3)] mb-1">District *</label>
               <input
                 value={form.district}
                 onChange={(e) => handleChange("district", e.target.value)}
                 className={`w-full px-3 py-2 rounded-xl border ${fieldErrors.district ? "border-red-400" : "border-[var(--border)]"} bg-[var(--bg)] text-[13px] text-[var(--t1)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30`}
               />
-              {fieldErrors.district && (
-                <p className="mt-1 text-[10px] font-medium text-red-500">{fieldErrors.district}</p>
-              )}
+              {fieldErrors.district && <p className="mt-1 text-xs font-medium text-red-500">{fieldErrors.district}</p>}
             </div>
             <div>
-              <label className="block text-[11px] font-semibold text-[var(--t3)] mb-1">Subcounty *</label>
+              <label className="block text-xs font-semibold text-[var(--t3)] mb-1">Subcounty *</label>
               <input
                 value={form.subcounty}
                 onChange={(e) => handleChange("subcounty", e.target.value)}
                 className={`w-full px-3 py-2 rounded-xl border ${fieldErrors.subcounty ? "border-red-400" : "border-[var(--border)]"} bg-[var(--bg)] text-[13px] text-[var(--t1)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30`}
               />
               {fieldErrors.subcounty && (
-                <p className="mt-1 text-[10px] font-medium text-red-500">{fieldErrors.subcounty}</p>
+                <p className="mt-1 text-xs font-medium text-red-500">{fieldErrors.subcounty}</p>
               )}
             </div>
             <div>
-              <label className="block text-[11px] font-semibold text-[var(--t3)] mb-1">Parish</label>
+              <label className="block text-xs font-semibold text-[var(--t3)] mb-1">Parish</label>
               <input
                 value={form.parish}
                 onChange={(e) => handleChange("parish", e.target.value)}
@@ -907,7 +905,7 @@ function RegisterTab({
               />
             </div>
             <div>
-              <label className="block text-[11px] font-semibold text-[var(--t3)] mb-1">Village</label>
+              <label className="block text-xs font-semibold text-[var(--t3)] mb-1">Village</label>
               <input
                 value={form.village}
                 onChange={(e) => handleChange("village", e.target.value)}
@@ -915,7 +913,7 @@ function RegisterTab({
               />
             </div>
             <div>
-              <label className="block text-[11px] font-semibold text-[var(--t3)] mb-1">School Type</label>
+              <label className="block text-xs font-semibold text-[var(--t3)] mb-1">School Type</label>
               <select
                 value={form.schoolType}
                 onChange={(e) => handleChange("schoolType", e.target.value)}
@@ -927,7 +925,7 @@ function RegisterTab({
               </select>
             </div>
             <div>
-              <label className="block text-[11px] font-semibold text-[var(--t3)] mb-1">Ownership</label>
+              <label className="block text-xs font-semibold text-[var(--t3)] mb-1">Ownership</label>
               <select
                 value={form.ownership}
                 onChange={(e) => handleChange("ownership", e.target.value)}
@@ -939,7 +937,7 @@ function RegisterTab({
               </select>
             </div>
             <div>
-              <label className="block text-[11px] font-semibold text-[var(--t3)] mb-1">Subscription Plan</label>
+              <label className="block text-xs font-semibold text-[var(--t3)] mb-1">Subscription Plan</label>
               <select
                 value={form.selectedPackage}
                 onChange={(e) => handleChange("selectedPackage", e.target.value)}
@@ -950,7 +948,7 @@ function RegisterTab({
                 <option value="enterprise">Enterprise (UGX 5,500/student/term)</option>
                 <option value="free_trial">Free Trial</option>
               </select>
-              <p className="mt-1.5 text-[11px] font-semibold text-emerald-600">
+              <p className="mt-1.5 text-xs font-semibold text-emerald-600">
                 Your commission: UGX {COMMISSION_RATES[form.selectedPackage]?.amount?.toLocaleString() || 0}
               </p>
             </div>
@@ -963,7 +961,7 @@ function RegisterTab({
           <h3 className="text-[13px] font-bold text-[var(--t1)] mb-3">School Contact (Optional)</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-[11px] font-semibold text-[var(--t3)] mb-1">School Phone</label>
+              <label className="block text-xs font-semibold text-[var(--t3)] mb-1">School Phone</label>
               <input
                 value={form.phone}
                 onChange={(e) => handleChange("phone", e.target.value)}
@@ -972,7 +970,7 @@ function RegisterTab({
               />
             </div>
             <div>
-              <label className="block text-[11px] font-semibold text-[var(--t3)] mb-1">School Email</label>
+              <label className="block text-xs font-semibold text-[var(--t3)] mb-1">School Email</label>
               <input
                 value={form.email}
                 onChange={(e) => handleChange("email", e.target.value)}
@@ -987,7 +985,7 @@ function RegisterTab({
 
         <div>
           <h3 className="text-[13px] font-bold text-[var(--t1)] mb-3">Digitization Service (Optional)</h3>
-          <p className="text-[11px] text-[var(--t3)] mb-3">
+          <p className="text-xs text-[var(--t3)] mb-3">
             Offer to digitize the school&apos;s student data for an additional fee (UGX 10,000 – 50,000).
           </p>
           <div className="flex items-center gap-2 mb-3">
@@ -1005,7 +1003,7 @@ function RegisterTab({
           {form.digitizeData && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-[11px] font-semibold text-[var(--t3)] mb-1">Fee (UGX) *</label>
+                <label className="block text-xs font-semibold text-[var(--t3)] mb-1">Fee (UGX) *</label>
                 <input
                   type="number"
                   min={10000}
@@ -1017,11 +1015,11 @@ function RegisterTab({
                   className={`w-full px-3 py-2 rounded-xl border ${fieldErrors.digitizationFee ? "border-red-400" : "border-[var(--border)]"} bg-[var(--bg)] text-[13px] text-[var(--t1)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30`}
                 />
                 {fieldErrors.digitizationFee && (
-                  <p className="mt-1 text-[10px] font-medium text-red-500">{fieldErrors.digitizationFee}</p>
+                  <p className="mt-1 text-xs font-medium text-red-500">{fieldErrors.digitizationFee}</p>
                 )}
               </div>
               <div>
-                <label className="block text-[11px] font-semibold text-[var(--t3)] mb-1">Notes</label>
+                <label className="block text-xs font-semibold text-[var(--t3)] mb-1">Notes</label>
                 <input
                   value={form.digitizationFeeNotes}
                   onChange={(e) => handleChange("digitizationFeeNotes", e.target.value)}
@@ -1039,18 +1037,18 @@ function RegisterTab({
           <h3 className="text-[13px] font-bold text-[var(--t1)] mb-3">Admin Account</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-[11px] font-semibold text-[var(--t3)] mb-1">Admin Name *</label>
+              <label className="block text-xs font-semibold text-[var(--t3)] mb-1">Admin Name *</label>
               <input
                 value={form.adminName}
                 onChange={(e) => handleChange("adminName", e.target.value)}
                 className={`w-full px-3 py-2 rounded-xl border ${fieldErrors.adminName ? "border-red-400" : "border-[var(--border)]"} bg-[var(--bg)] text-[13px] text-[var(--t1)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30`}
               />
               {fieldErrors.adminName && (
-                <p className="mt-1 text-[10px] font-medium text-red-500">{fieldErrors.adminName}</p>
+                <p className="mt-1 text-xs font-medium text-red-500">{fieldErrors.adminName}</p>
               )}
             </div>
             <div>
-              <label className="block text-[11px] font-semibold text-[var(--t3)] mb-1">Admin Phone *</label>
+              <label className="block text-xs font-semibold text-[var(--t3)] mb-1">Admin Phone *</label>
               <input
                 value={form.adminPhone}
                 onChange={(e) => handleChange("adminPhone", e.target.value)}
@@ -1058,11 +1056,11 @@ function RegisterTab({
                 className={`w-full px-3 py-2 rounded-xl border ${fieldErrors.adminPhone ? "border-red-400" : "border-[var(--border)]"} bg-[var(--bg)] text-[13px] text-[var(--t1)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30`}
               />
               {fieldErrors.adminPhone && (
-                <p className="mt-1 text-[10px] font-medium text-red-500">{fieldErrors.adminPhone}</p>
+                <p className="mt-1 text-xs font-medium text-red-500">{fieldErrors.adminPhone}</p>
               )}
             </div>
             <div className="sm:col-span-2">
-              <label className="block text-[11px] font-semibold text-[var(--t3)] mb-1">
+              <label className="block text-xs font-semibold text-[var(--t3)] mb-1">
                 Password * (min 8 chars, 1 uppercase, 1 number)
               </label>
               <input
@@ -1071,9 +1069,7 @@ function RegisterTab({
                 onChange={(e) => handleChange("password", e.target.value)}
                 className={`w-full px-3 py-2 rounded-xl border ${fieldErrors.password ? "border-red-400" : "border-[var(--border)]"} bg-[var(--bg)] text-[13px] text-[var(--t1)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/30`}
               />
-              {fieldErrors.password && (
-                <p className="mt-1 text-[10px] font-medium text-red-500">{fieldErrors.password}</p>
-              )}
+              {fieldErrors.password && <p className="mt-1 text-xs font-medium text-red-500">{fieldErrors.password}</p>}
             </div>
           </div>
         </div>
@@ -1236,20 +1232,20 @@ function LeadsTab({ onConvertToSchool }: { onConvertToSchool?: (lead: LeadRow) =
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={importing}
-              className="px-3 py-1.5 rounded-xl border border-[var(--border)] text-[var(--t2)] text-[11px] font-bold hover:bg-[var(--bg)] transition-colors disabled:opacity-50"
+              className="px-3 py-1.5 rounded-xl border border-[var(--border)] text-[var(--t2)] text-xs font-bold hover:bg-[var(--bg)] transition-colors disabled:opacity-50"
             >
               {importing ? "Importing..." : "Import CSV"}
             </button>
             <button
               onClick={() => setShowForm(!showForm)}
-              className="px-3 py-1.5 rounded-xl bg-[var(--primary)] text-white text-[11px] font-bold hover:opacity-90 transition-opacity"
+              className="px-3 py-1.5 rounded-xl bg-[var(--primary)] text-white text-xs font-bold hover:opacity-90 transition-opacity"
             >
               {showForm ? "Cancel" : "+ New Lead"}
             </button>
           </div>
         </div>
         {importMsg && (
-          <div className="px-4 py-2 text-[11px] font-medium text-emerald-700 bg-emerald-50 border-b border-emerald-200">
+          <div className="px-4 py-2 text-xs font-medium text-emerald-700 bg-emerald-50 border-b border-emerald-200">
             {importMsg}
           </div>
         )}
@@ -1338,8 +1334,8 @@ function LeadsTab({ onConvertToSchool }: { onConvertToSchool?: (lead: LeadRow) =
                       </td>
                       <td className="px-4 py-2.5">
                         {l.contact_name && <div className="font-medium text-[var(--t2)]">{l.contact_name}</div>}
-                        {l.contact_phone && <div className="text-[10px] text-[var(--t4)]">{l.contact_phone}</div>}
-                        {l.contact_email && <div className="text-[10px] text-[var(--t4)]">{l.contact_email}</div>}
+                        {l.contact_phone && <div className="text-xs text-[var(--t4)]">{l.contact_phone}</div>}
+                        {l.contact_email && <div className="text-xs text-[var(--t4)]">{l.contact_email}</div>}
                         {!l.contact_name && !l.contact_phone && <span className="text-[var(--t4)]">—</span>}
                       </td>
                       <td className="px-4 py-2.5 text-[var(--t2)]">{l.district || "—"}</td>
@@ -1347,7 +1343,7 @@ function LeadsTab({ onConvertToSchool }: { onConvertToSchool?: (lead: LeadRow) =
                         <select
                           value={l.status}
                           onChange={(e) => updateStatus(l.id, e.target.value)}
-                          className="px-2 py-1 rounded-lg text-[10px] font-bold border-0 cursor-pointer"
+                          className="px-2 py-1 rounded-lg text-xs font-bold border-0 cursor-pointer"
                           style={{ background: st.bg, color: st.text }}
                         >
                           {Object.entries(LEAD_STATUS_STYLES).map(([k, v]) => (
@@ -1428,7 +1424,7 @@ function OutreachTab() {
     <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden">
       <div className="px-4 py-3 border-b border-[var(--border)]">
         <h2 className="font-['Sora'] text-[13px] font-bold text-[var(--t1)]">Communication History</h2>
-        <p className="text-[11px] text-[var(--t4)] mt-0.5">
+        <p className="text-xs text-[var(--t4)] mt-0.5">
           Log your calls, emails, SMS, and meetings with school contacts.
         </p>
       </div>
@@ -1462,12 +1458,12 @@ function OutreachTab() {
                   </td>
                   <td className="px-4 py-2.5">
                     {m.recipient_name && <div className="font-medium text-[var(--t1)]">{m.recipient_name}</div>}
-                    {m.recipient_contact && <div className="text-[10px] text-[var(--t4)]">{m.recipient_contact}</div>}
+                    {m.recipient_contact && <div className="text-xs text-[var(--t4)]">{m.recipient_contact}</div>}
                     {!m.recipient_name && <span className="text-[var(--t4)]">—</span>}
                   </td>
                   <td className="px-4 py-2.5">
                     {m.subject && <div className="font-medium text-[var(--t1)]">{m.subject}</div>}
-                    {m.content && <div className="text-[10px] text-[var(--t4)] line-clamp-2">{m.content}</div>}
+                    {m.content && <div className="text-xs text-[var(--t4)] line-clamp-2">{m.content}</div>}
                     {!m.subject && !m.content && <span className="text-[var(--t4)]">—</span>}
                   </td>
                   <td className="px-4 py-2.5 text-[var(--t3)]">{formatDate(m.sent_at)}</td>
@@ -1509,7 +1505,7 @@ function ResourcesTab() {
                 </span>
               </div>
               <h3 className="font-['Sora'] text-[13px] font-bold text-[var(--t1)] mb-1">{r.title}</h3>
-              <p className="text-[11px] text-[var(--t3)] leading-relaxed">{r.desc}</p>
+              <p className="text-xs text-[var(--t3)] leading-relaxed">{r.desc}</p>
             </a>
           ) : (
             <Link
@@ -1523,7 +1519,7 @@ function ResourcesTab() {
                 </span>
               </div>
               <h3 className="font-['Sora'] text-[13px] font-bold text-[var(--t1)] mb-1">{r.title}</h3>
-              <p className="text-[11px] text-[var(--t3)] leading-relaxed">{r.desc}</p>
+              <p className="text-xs text-[var(--t3)] leading-relaxed">{r.desc}</p>
             </Link>
           ),
         )}
@@ -1633,7 +1629,7 @@ function ReferralsTab() {
             <button
               onClick={createReferral}
               disabled={creating}
-              className="px-3 py-1.5 rounded-xl bg-[var(--red-ink)] text-white text-[11px] font-bold hover:opacity-90 transition-opacity disabled:opacity-50"
+              className="px-3 py-1.5 rounded-xl bg-[var(--red-ink)] text-white text-xs font-bold hover:opacity-90 transition-opacity disabled:opacity-50"
             >
               + Generate
             </button>
@@ -1662,7 +1658,7 @@ function ReferralsTab() {
                 referrals.map((r) => (
                   <tr key={r.id} className="border-b border-[var(--border)] hover:bg-[var(--bg)] transition-colors">
                     <td className="px-4 py-2.5">
-                      <code className="px-2 py-0.5 rounded bg-[var(--bg)] font-bold text-[var(--primary)] text-[11px]">
+                      <code className="px-2 py-0.5 rounded bg-[var(--bg)] font-bold text-[var(--primary)] text-xs">
                         {r.code}
                       </code>
                     </td>
@@ -1673,7 +1669,7 @@ function ReferralsTab() {
                     <td className="px-4 py-2.5">
                       <button
                         onClick={() => copyToClipboard(r.code)}
-                        className="px-2.5 py-1 rounded-lg bg-[var(--bg)] text-[var(--t2)] hover:text-[var(--primary)] transition-colors text-[10px] font-bold"
+                        className="px-2.5 py-1 rounded-lg bg-[var(--bg)] text-[var(--t2)] hover:text-[var(--primary)] transition-colors text-xs font-bold"
                       >
                         Copy Link
                       </button>
@@ -1756,13 +1752,13 @@ function EarningsTab({
                         <span className="font-medium text-[var(--t1)]">
                           {EARNING_TYPE_LABELS[e.earning_type] || e.earning_type}
                         </span>
-                        {e.notes && <div className="text-[10px] text-[var(--t4)]">{e.notes}</div>}
+                        {e.notes && <div className="text-xs text-[var(--t4)]">{e.notes}</div>}
                       </td>
                       <td className="px-4 py-2.5 text-[var(--t2)]">{e.schools?.name || "—"}</td>
                       <td className="px-4 py-2.5 font-semibold text-[var(--t1)]">{formatCurrency(e.amount)}</td>
                       <td className="px-4 py-2.5">
                         <span
-                          className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase"
+                          className="px-2 py-0.5 rounded-full text-xs font-bold uppercase"
                           style={{ background: st.bg, color: st.text }}
                         >
                           {e.status}
@@ -1800,7 +1796,7 @@ function EarningsTab({
                     <td className="px-4 py-2.5 font-semibold text-[var(--t1)]">{formatCurrency(p.amount)}</td>
                     <td className="px-4 py-2.5">
                       <span
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${p.status === "paid" ? "bg-green-100 text-green-700" : p.status === "pending" ? "bg-yellow-100 text-yellow-700" : "bg-blue-100 text-blue-700"}`}
+                        className={`px-2 py-0.5 rounded-full text-xs font-bold uppercase ${p.status === "paid" ? "bg-green-100 text-green-700" : p.status === "pending" ? "bg-yellow-100 text-yellow-700" : "bg-blue-100 text-blue-700"}`}
                       >
                         {p.status}
                       </span>
@@ -1864,7 +1860,7 @@ function SettingsTab() {
 
         <form onSubmit={handleSave} className="space-y-4">
           <div>
-            <label className="block text-[11px] font-semibold text-[var(--t3)] mb-1">Full Name</label>
+            <label className="block text-xs font-semibold text-[var(--t3)] mb-1">Full Name</label>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -1873,7 +1869,7 @@ function SettingsTab() {
             />
           </div>
           <div>
-            <label className="block text-[11px] font-semibold text-[var(--t3)] mb-1">Phone</label>
+            <label className="block text-xs font-semibold text-[var(--t3)] mb-1">Phone</label>
             <input
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
@@ -1881,7 +1877,7 @@ function SettingsTab() {
             />
           </div>
           <div>
-            <label className="block text-[11px] font-semibold text-[var(--t3)] mb-1">Email (read-only)</label>
+            <label className="block text-xs font-semibold text-[var(--t3)] mb-1">Email (read-only)</label>
             <input
               value={user?.email || ""}
               disabled
@@ -1889,7 +1885,7 @@ function SettingsTab() {
             />
           </div>
           <div>
-            <label className="block text-[11px] font-semibold text-[var(--t3)] mb-1">Role</label>
+            <label className="block text-xs font-semibold text-[var(--t3)] mb-1">Role</label>
             <input
               value="Field Marketer"
               disabled
@@ -1987,7 +1983,7 @@ function EditSchoolModal({
         )}
         <div className="space-y-3">
           <div>
-            <label className="block text-[11px] font-semibold text-[var(--t3)] mb-1">Phone</label>
+            <label className="block text-xs font-semibold text-[var(--t3)] mb-1">Phone</label>
             <input
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
@@ -1996,7 +1992,7 @@ function EditSchoolModal({
             />
           </div>
           <div>
-            <label className="block text-[11px] font-semibold text-[var(--t3)] mb-1">Email</label>
+            <label className="block text-xs font-semibold text-[var(--t3)] mb-1">Email</label>
             <input
               value={email}
               onChange={(e) => setEmail(e.target.value)}

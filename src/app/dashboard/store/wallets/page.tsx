@@ -189,9 +189,9 @@ export default function StudentWalletsPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="p-6 rounded-[32px] bg-primary-800 text-white shadow-xl shadow-primary-800/20 flex flex-col justify-between min-h-[160px]">
-            <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Total Circulating Balance</p>
+            <p className="text-xs font-black uppercase tracking-widest opacity-60">Total Circulating Balance</p>
             <h2 className="text-3xl font-black">UGX {totalBalance.toLocaleString()}</h2>
-            <div className="flex items-center gap-2 text-[10px] font-bold bg-white/10 w-fit px-3 py-1 rounded-full">
+            <div className="flex items-center gap-2 text-xs font-bold bg-white/10 w-fit px-3 py-1 rounded-full">
               <MaterialIcon icon="trending_up" style={{ fontSize: 14 }} />
               Active across {wallets.length} students
             </div>
@@ -202,7 +202,7 @@ export default function StudentWalletsPage() {
               <MaterialIcon icon="receipt_long" style={{ fontSize: 28 }} />
             </div>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Total Top-ups (MTD)</p>
+              <p className="text-xs font-black uppercase tracking-widest text-slate-400">Total Top-ups (MTD)</p>
               <p className="text-2xl font-black text-slate-800">UGX {monthTopups.toLocaleString()}</p>
             </div>
           </div>
@@ -212,7 +212,7 @@ export default function StudentWalletsPage() {
               <MaterialIcon icon="credit_card_off" style={{ fontSize: 28 }} />
             </div>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Low Balance Warnings</p>
+              <p className="text-xs font-black uppercase tracking-widest text-slate-400">Low Balance Warnings</p>
               <p className="text-2xl font-black text-slate-800">{lowBalanceCount} Students</p>
             </div>
           </div>
@@ -223,16 +223,14 @@ export default function StudentWalletsPage() {
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-slate-50/50">
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Student</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Reg No</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Balance</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                    Daily Limit
-                  </th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                  <th className="px-6 py-4 text-xs font-black uppercase tracking-widest text-slate-400">Student</th>
+                  <th className="px-6 py-4 text-xs font-black uppercase tracking-widest text-slate-400">Reg No</th>
+                  <th className="px-6 py-4 text-xs font-black uppercase tracking-widest text-slate-400">Balance</th>
+                  <th className="px-6 py-4 text-xs font-black uppercase tracking-widest text-slate-400">Daily Limit</th>
+                  <th className="px-6 py-4 text-xs font-black uppercase tracking-widest text-slate-400">
                     Last Activity
                   </th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">
+                  <th className="px-6 py-4 text-xs font-black uppercase tracking-widest text-slate-400 text-right">
                     Actions
                   </th>
                 </tr>
@@ -266,7 +264,7 @@ export default function StudentWalletsPage() {
                           </p>
                         </td>
                         <td className="px-6 py-4">
-                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                          <p className="text-xs font-black uppercase tracking-widest text-slate-400">
                             {student.student_number}
                           </p>
                         </td>
@@ -294,7 +292,7 @@ export default function StudentWalletsPage() {
                         <td className="px-6 py-4 text-right">
                           <button
                             onClick={() => setShowTopup(wallet)}
-                            className="px-4 py-2 bg-slate-800 text-white rounded-xl text-[10px] font-black uppercase tracking-wider hover:scale-105 transition-all shadow-md opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                            className="px-4 py-2 bg-slate-800 text-white rounded-xl text-xs font-black uppercase tracking-wider hover:scale-105 transition-all shadow-md opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
                           >
                             Top Up
                           </button>
@@ -337,7 +335,7 @@ export default function StudentWalletsPage() {
 
                 <div className="space-y-6">
                   <div>
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 block">
+                    <label className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2 block">
                       Amount (UGX)
                     </label>
                     <input
@@ -355,7 +353,7 @@ export default function StudentWalletsPage() {
                       <button
                         key={amount}
                         onClick={() => setTopupAmount(amount.toString())}
-                        className="flex-1 py-2 rounded-xl border border-slate-100 text-[10px] font-bold text-slate-500 hover:border-primary-200 hover:text-primary-800 transition-all"
+                        className="flex-1 py-2 rounded-xl border border-slate-100 text-xs font-bold text-slate-500 hover:border-primary-200 hover:text-primary-800 transition-all"
                       >
                         +{amount / 1000}k
                       </button>
@@ -364,7 +362,7 @@ export default function StudentWalletsPage() {
 
                   <div className="p-4 bg-blue-50 rounded-2xl flex items-start gap-3">
                     <MaterialIcon icon="info" className="text-blue-500 shrink-0" style={{ fontSize: 18 }} />
-                    <p className="text-[11px] text-blue-700 leading-relaxed font-medium">
+                    <p className="text-xs text-blue-700 leading-relaxed font-medium">
                       This balance will be available immediately for canteen and store purchases using the
                       student&apos;s ID card.
                     </p>

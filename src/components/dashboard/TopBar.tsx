@@ -111,7 +111,7 @@ function NotificationsPanel({
     <div className="absolute top-full right-0 mt-2 bg-[var(--surface)] border border-[var(--border)] rounded-[20px] shadow-[var(--sh3)] min-w-[300px] max-w-[min(360px,calc(100vw-2rem))] z-50 overflow-hidden isolate">
       <div className="px-4 py-3 border-b border-[var(--border)] flex items-center justify-between">
         <span className="text-[13px] font-semibold text-[var(--t1)]">Notifications</span>
-        <span className="text-[11px] text-[var(--t3)]">{notifications.length} items</span>
+        <span className="text-xs text-[var(--t3)]">{notifications.length} items</span>
       </div>
       <div className="max-h-[320px] overflow-y-auto">
         {notifications.length === 0 && (
@@ -173,7 +173,7 @@ function NotificationsPanel({
               <div className="flex-1 min-w-0 cursor-pointer">
                 <div className={`text-xs text-[var(--t1)] ${!n.read ? "font-bold" : "font-semibold"}`}>{n.title}</div>
                 <div className="text-xs text-[var(--t3)] mt-0.5 truncate">{n.message}</div>
-                <div className="text-[11px] text-[var(--t4)] mt-1">
+                <div className="text-xs text-[var(--t4)] mt-1">
                   {new Date(n.created_at).toLocaleTimeString("en-US", {
                     hour: "2-digit",
                     minute: "2-digit",
@@ -223,7 +223,7 @@ function UserMenu({ open, onClose, onSignOut }: { open: boolean; onClose: () => 
         <div className="text-[13px] font-bold text-[var(--t1)] truncate" title={schoolName}>
           {schoolName}
         </div>
-        <div className="text-[11px] text-[var(--t3)] truncate">{user?.role?.replace("_", " ") || "User"}</div>
+        <div className="text-xs text-[var(--t3)] truncate">{user?.role?.replace("_", " ") || "User"}</div>
       </div>
       <Link
         href="/dashboard/learn"
@@ -345,7 +345,7 @@ export default function TopBar({ pageTitle, onSignOut }: { pageTitle: string; on
             priority
           />
         ) : (
-          <div className="w-7 h-7 rounded-lg bg-[var(--primary)] flex items-center justify-center text-white text-[11px] font-bold shrink-0">
+          <div className="w-7 h-7 rounded-lg bg-[var(--primary)] flex items-center justify-center text-white text-xs font-bold shrink-0">
             {school?.name?.charAt(0) || "S"}
           </div>
         )}
@@ -353,7 +353,7 @@ export default function TopBar({ pageTitle, onSignOut }: { pageTitle: string; on
           <div className="text-[15px] sm:text-[17px] font-bold text-[var(--t1)] tracking-[-.2px] truncate leading-tight">
             {pageTitle}
           </div>
-          <div className="text-[11px] text-[var(--t3)] truncate leading-tight mt-0.5 hidden sm:block">
+          <div className="text-xs text-[var(--t3)] truncate leading-tight mt-0.5 hidden sm:block">
             {formattedDate}
             {currentTerm ? ` · Term ${currentTerm}` : ""}
           </div>
@@ -403,7 +403,7 @@ export default function TopBar({ pageTitle, onSignOut }: { pageTitle: string; on
           >
             <MaterialIcon icon="notifications" style={{ fontSize: 18, color: "var(--t2)" }} />
             {unreadCount > 0 && (
-              <div className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] rounded-full bg-[var(--red)] text-white text-[10px] font-bold flex items-center justify-center px-1 border-2 border-white shadow-sm">
+              <div className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] rounded-full bg-[var(--red)] text-white text-xs font-bold flex items-center justify-center px-1 border-2 border-white shadow-sm">
                 {unreadCount > 99 ? "99+" : unreadCount}
               </div>
             )}
@@ -438,7 +438,7 @@ export default function TopBar({ pageTitle, onSignOut }: { pageTitle: string; on
             aria-expanded={userMenuOpen}
             aria-haspopup="menu"
           >
-            <div className="w-8 h-8 rounded-full bg-[var(--primary)] flex items-center justify-center text-[11px] font-bold text-[var(--on-primary)] shadow-[0_6px_14px_rgba(0,92,230,0.2)]">
+            <div className="w-8 h-8 rounded-full bg-[var(--primary)] flex items-center justify-center text-xs font-bold text-[var(--on-primary)] shadow-[0_6px_14px_rgba(0,92,230,0.2)]">
               {user?.full_name?.charAt(0) || "U"}
             </div>
             <span className="hidden sm:block min-w-0 text-left">
@@ -447,7 +447,7 @@ export default function TopBar({ pageTitle, onSignOut }: { pageTitle: string; on
               </span>
               {user?.email && (
                 <span
-                  className="hidden lg:block text-[11px] text-[var(--t3)] max-w-[180px] truncate leading-tight mt-px"
+                  className="hidden lg:block text-xs text-[var(--t3)] max-w-[180px] truncate leading-tight mt-px"
                   title={user.email}
                 >
                   {user.email}

@@ -681,7 +681,7 @@ export default function StudentHubPage() {
                           <MaterialIcon size={16}>confirmation_number</MaterialIcon>
                           Generate PLE Numbers
                           {plePendingCount > 0 && (
-                            <span className="ml-auto rounded-full bg-[var(--amber-soft)] px-2 py-0.5 text-[11px] font-bold text-[var(--amber)]">
+                            <span className="ml-auto rounded-full bg-[var(--amber-soft)] px-2 py-0.5 text-xs font-bold text-[var(--amber)]">
                               {plePendingCount}
                             </span>
                           )}

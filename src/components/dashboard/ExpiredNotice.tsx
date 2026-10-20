@@ -107,7 +107,7 @@ export default function ExpiredNotice() {
               </div>
               <div className="text-left flex-1">
                 <span className="text-xs font-bold text-amber-800 block">Omuto School Xperience</span>
-                <span className="text-[10px] text-amber-600">Full school transformation</span>
+                <span className="text-xs text-amber-600">Full school transformation</span>
               </div>
               <MaterialIcon className="text-amber-500" style={{ fontSize: 18 }}>
                 arrow_forward
@@ -126,7 +126,7 @@ export default function ExpiredNotice() {
               </div>
               <div className="text-left flex-1">
                 <span className="text-xs font-bold text-green-800 block">Omuto Essentials</span>
-                <span className="text-[10px] text-green-600">Shop supplies & tools</span>
+                <span className="text-xs text-green-600">Shop supplies & tools</span>
               </div>
               <MaterialIcon className="text-green-600" style={{ fontSize: 18 }}>
                 arrow_forward

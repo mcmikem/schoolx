@@ -198,7 +198,7 @@ export function SchoolDetailSheet({
     <button
       type="button"
       onClick={() => setActiveSection(id)}
-      className={`px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-colors ${activeSection === id ? "bg-[var(--primary)] text-white" : "text-[var(--t2)] hover:bg-[var(--bg)]"}`}
+      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${activeSection === id ? "bg-[var(--primary)] text-white" : "text-[var(--t2)] hover:bg-[var(--bg)]"}`}
     >
       {label}
     </button>
@@ -244,7 +244,7 @@ export function SchoolDetailSheet({
             </div>
             <div className="flex-1 min-w-0">
               <div className="font-['Sora'] text-[13px] font-bold text-[var(--t1)] truncate">{name || school.name}</div>
-              <div className="text-[10px] text-[var(--t3)]">
+              <div className="text-xs text-[var(--t3)]">
                 {school.school_code} · {fmtDate(school.created_at)}
               </div>
             </div>
@@ -268,12 +268,12 @@ export function SchoolDetailSheet({
             {activeSection === "details" && (
               <>
                 <div>
-                  <div className="text-[11px] font-bold text-[var(--t2)] uppercase tracking-wide mb-2.5">
+                  <div className="text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-2.5">
                     School Details
                   </div>
                   <div className="space-y-2.5">
                     <div>
-                      <label className="block text-[10px] text-[var(--t3)] mb-1 font-semibold uppercase tracking-wide">
+                      <label className="block text-xs text-[var(--t3)] mb-1 font-semibold uppercase tracking-wide">
                         Name <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -285,7 +285,7 @@ export function SchoolDetailSheet({
                     </div>
                     <div className="grid grid-cols-2 gap-2.5">
                       <div>
-                        <label className="block text-[10px] text-[var(--t3)] mb-1 font-semibold uppercase tracking-wide">
+                        <label className="block text-xs text-[var(--t3)] mb-1 font-semibold uppercase tracking-wide">
                           District
                         </label>
                         <input
@@ -296,7 +296,7 @@ export function SchoolDetailSheet({
                         />
                       </div>
                       <div>
-                        <label className="block text-[10px] text-[var(--t3)] mb-1 font-semibold uppercase tracking-wide">
+                        <label className="block text-xs text-[var(--t3)] mb-1 font-semibold uppercase tracking-wide">
                           Brand Colour
                         </label>
                         <div className="flex items-center gap-2">
@@ -306,11 +306,11 @@ export function SchoolDetailSheet({
                             onChange={(e) => setColor(e.target.value)}
                             className="w-9 h-9 rounded-lg border border-[var(--border)] cursor-pointer flex-shrink-0"
                           />
-                          <span className="text-[11px] text-[var(--t3)] font-mono">{color}</span>
+                          <span className="text-xs text-[var(--t3)] font-mono">{color}</span>
                         </div>
                       </div>
                       <div>
-                        <label className="block text-[10px] text-[var(--t3)] mb-1 font-semibold uppercase tracking-wide">
+                        <label className="block text-xs text-[var(--t3)] mb-1 font-semibold uppercase tracking-wide">
                           Phone
                         </label>
                         <input
@@ -323,7 +323,7 @@ export function SchoolDetailSheet({
                         />
                       </div>
                       <div>
-                        <label className="block text-[10px] text-[var(--t3)] mb-1 font-semibold uppercase tracking-wide">
+                        <label className="block text-xs text-[var(--t3)] mb-1 font-semibold uppercase tracking-wide">
                           Email
                         </label>
                         <input
@@ -348,7 +348,7 @@ export function SchoolDetailSheet({
                     { label: "Code", value: school.school_code },
                   ].map((row) => (
                     <div key={row.label} className="rounded-xl bg-[var(--bg)] px-3 py-2.5">
-                      <div className="text-[10px] text-[var(--t3)] font-semibold uppercase tracking-wide mb-0.5">
+                      <div className="text-xs text-[var(--t3)] font-semibold uppercase tracking-wide mb-0.5">
                         {row.label}
                       </div>
                       <div className="text-[12px] font-semibold text-[var(--t1)] truncate">{row.value}</div>
@@ -362,7 +362,7 @@ export function SchoolDetailSheet({
             {activeSection === "subscription" && (
               <>
                 <div>
-                  <label className="block text-[11px] font-bold text-[var(--t2)] uppercase tracking-wide mb-2">
+                  <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-2">
                     Subscription Plan
                   </label>
                   <div className="grid grid-cols-3 gap-2">
@@ -378,20 +378,20 @@ export function SchoolDetailSheet({
                         }}
                       >
                         <div
-                          className="text-[11px] font-bold"
+                          className="text-xs font-bold"
                           style={{
                             color: plan === p ? PLAN_COLORS[p] : "var(--t2)",
                           }}
                         >
                           {PLAN_LABELS[p]}
                         </div>
-                        <div className="text-[9px] text-[var(--t3)] mt-0.5">{PLAN_PRICES[p]}</div>
+                        <div className="text-xs text-[var(--t3)] mt-0.5">{PLAN_PRICES[p]}</div>
                       </button>
                     ))}
                   </div>
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-[var(--t2)] uppercase tracking-wide mb-2">
+                  <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-2">
                     Subscription Status
                   </label>
                   <div className="grid grid-cols-3 gap-2">
@@ -403,7 +403,7 @@ export function SchoolDetailSheet({
                             key={st}
                             type="button"
                             onClick={() => setStatus(st)}
-                            className="rounded-xl border-2 px-2 py-2 text-center text-[11px] font-bold transition-all"
+                            className="rounded-xl border-2 px-2 py-2 text-center text-xs font-bold transition-all"
                             style={{
                               borderColor: status === st ? sty.text : "var(--border)",
                               background: status === st ? sty.bg : "var(--bg)",
@@ -418,7 +418,7 @@ export function SchoolDetailSheet({
                   </div>
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold text-[var(--t2)] uppercase tracking-wide mb-2">
+                  <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-2">
                     Feature Access Level
                   </label>
                   <div className="grid grid-cols-2 gap-2">
@@ -427,7 +427,7 @@ export function SchoolDetailSheet({
                         key={fs}
                         type="button"
                         onClick={() => setStage(fs)}
-                        className="rounded-xl border-2 px-3 py-2 text-[11px] font-bold transition-all text-left"
+                        className="rounded-xl border-2 px-3 py-2 text-xs font-bold transition-all text-left"
                         style={{
                           borderColor: stage === fs ? "var(--primary)" : "var(--border)",
                           background: stage === fs ? "var(--primary-soft)" : "var(--bg)",
@@ -443,7 +443,7 @@ export function SchoolDetailSheet({
                   <div className="flex items-center justify-between mb-3">
                     <div>
                       <div className="text-[12px] font-bold text-[#15803d]">Tester School Account</div>
-                      <p className="text-[10px] text-[#4ade80] mt-0.5">
+                      <p className="text-xs text-[#4ade80] mt-0.5">
                         Bypasses subscription checks. Testers get in-app bug report tools.
                       </p>
                     </div>
@@ -484,7 +484,7 @@ export function SchoolDetailSheet({
                 </div>
                 <div className="rounded-xl border border-red-200 bg-red-50 p-4 space-y-2">
                   <div className="text-[12px] font-bold text-red-700">Danger Zone</div>
-                  <p className="text-[11px] text-red-600">
+                  <p className="text-xs text-red-600">
                     Suspending blocks all access. Data is preserved and can be restored.
                   </p>
                   <button
@@ -495,7 +495,7 @@ export function SchoolDetailSheet({
                   >
                     Suspend School
                   </button>
-                  <p className="text-[11px] text-red-600 pt-1">
+                  <p className="text-xs text-red-600 pt-1">
                     Permanent delete removes ALL data — students, fees, grades, staff. Cannot be undone.
                   </p>
                   <button
@@ -514,19 +514,17 @@ export function SchoolDetailSheet({
             {activeSection === "customize" && (
               <div className="space-y-4">
                 <div className="p-3 rounded-xl bg-[var(--primary-soft,#e0f2f1)] border border-[var(--primary)]/20">
-                  <p className="text-[11px] text-[var(--t2)] leading-relaxed">
+                  <p className="text-xs text-[var(--t2)] leading-relaxed">
                     Customization fields appear on <strong>Report Cards</strong> and <strong>Student ID Cards</strong>{" "}
                     for this school. These override the defaults.
                   </p>
                 </div>
 
                 <div>
-                  <div className="text-[11px] font-bold text-[var(--t2)] uppercase tracking-wide mb-3">
-                    School Identity
-                  </div>
+                  <div className="text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-3">School Identity</div>
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-[10px] text-[var(--t3)] mb-1 font-semibold uppercase tracking-wide">
+                      <label className="block text-xs text-[var(--t3)] mb-1 font-semibold uppercase tracking-wide">
                         Physical Address
                       </label>
                       <input
@@ -537,7 +535,7 @@ export function SchoolDetailSheet({
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] text-[var(--t3)] mb-1 font-semibold uppercase tracking-wide">
+                      <label className="block text-xs text-[var(--t3)] mb-1 font-semibold uppercase tracking-wide">
                         School Motto
                       </label>
                       <input
@@ -548,7 +546,7 @@ export function SchoolDetailSheet({
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] text-[var(--t3)] mb-1 font-semibold uppercase tracking-wide">
+                      <label className="block text-xs text-[var(--t3)] mb-1 font-semibold uppercase tracking-wide">
                         Head Teacher / Principal Name
                       </label>
                       <input
@@ -562,12 +560,12 @@ export function SchoolDetailSheet({
                 </div>
 
                 <div>
-                  <div className="text-[11px] font-bold text-[var(--t2)] uppercase tracking-wide mb-3">
+                  <div className="text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-3">
                     Report Card Layout
                   </div>
                   <div className="space-y-3">
                     <div>
-                      <label className="block text-[10px] text-[var(--t3)] mb-1 font-semibold uppercase tracking-wide">
+                      <label className="block text-xs text-[var(--t3)] mb-1 font-semibold uppercase tracking-wide">
                         Report Header Text
                         <span className="ml-1 normal-case text-[var(--t4)]">(appears at top of report card)</span>
                       </label>
@@ -580,7 +578,7 @@ export function SchoolDetailSheet({
                       />
                     </div>
                     <div>
-                      <label className="block text-[10px] text-[var(--t3)] mb-1 font-semibold uppercase tracking-wide">
+                      <label className="block text-xs text-[var(--t3)] mb-1 font-semibold uppercase tracking-wide">
                         Report Footer Text
                         <span className="ml-1 normal-case text-[var(--t4)]">(appears at bottom of report card)</span>
                       </label>
@@ -596,9 +594,7 @@ export function SchoolDetailSheet({
                 </div>
 
                 <div>
-                  <div className="text-[11px] font-bold text-[var(--t2)] uppercase tracking-wide mb-3">
-                    ID Card Style
-                  </div>
+                  <div className="text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-3">ID Card Style</div>
                   <div className="grid grid-cols-3 gap-2">
                     {[
                       {
@@ -635,7 +631,7 @@ export function SchoolDetailSheet({
                         >
                           {style.label}
                         </div>
-                        <div className="text-[10px]" style={{ color: "var(--t3)" }}>
+                        <div className="text-xs" style={{ color: "var(--t3)" }}>
                           {style.desc}
                         </div>
                       </button>
@@ -645,7 +641,7 @@ export function SchoolDetailSheet({
 
                 {/* Preview strip */}
                 <div className="rounded-xl border border-[var(--border)] overflow-hidden">
-                  <div className="px-3 py-2 bg-[var(--bg)] text-[10px] font-bold text-[var(--t3)] uppercase tracking-wide border-b border-[var(--border)]">
+                  <div className="px-3 py-2 bg-[var(--bg)] text-xs font-bold text-[var(--t3)] uppercase tracking-wide border-b border-[var(--border)]">
                     Preview — Report Card Header
                   </div>
                   <div className="p-4 text-center" style={{ borderTop: `3px solid ${color}` }}>
@@ -662,8 +658,8 @@ export function SchoolDetailSheet({
                     <div className="text-[13px] font-bold text-[var(--t1)] whitespace-pre-line">
                       {reportHeader || name}
                     </div>
-                    {motto && <div className="text-[10px] text-[var(--t3)] italic mt-1">"{motto}"</div>}
-                    {address && <div className="text-[10px] text-[var(--t4)] mt-0.5">{address}</div>}
+                    {motto && <div className="text-xs text-[var(--t3)] italic mt-1">"{motto}"</div>}
+                    {address && <div className="text-xs text-[var(--t4)] mt-0.5">{address}</div>}
                   </div>
                 </div>
               </div>

@@ -22,9 +22,7 @@ export default function SchoolColorPicker({
 
   return (
     <div>
-      <label className="block text-sm font-semibold text-[var(--t1)] mb-2">
-        {label}
-      </label>
+      <label className="block text-sm font-semibold text-[var(--t1)] mb-2">{label}</label>
       <div className="flex gap-2 flex-wrap items-center">
         {presets.map((color) => (
           <button
@@ -32,9 +30,7 @@ export default function SchoolColorPicker({
             type="button"
             onClick={() => onChange(color)}
             className={`w-9 h-9 rounded-full border-2 transition-transform hover:scale-110 ${
-              value === color
-                ? "border-[var(--t1)] ring-2 ring-offset-2 ring-[var(--border)]"
-                : "border-transparent"
+              value === color ? "border-[var(--t1)] ring-2 ring-offset-2 ring-[var(--border)]" : "border-transparent"
             }`}
             style={{ backgroundColor: color }}
             aria-label={`Select color ${color}`}
@@ -57,7 +53,7 @@ export default function SchoolColorPicker({
                 onChange={(e) => onChange(e.target.value)}
                 className="w-32 h-32 rounded-lg cursor-pointer border-0 p-0 bg-transparent"
               />
-              <p className="text-[10px] text-[var(--t3)] mt-1 text-center">{value}</p>
+              <p className="text-xs text-[var(--t3)] mt-1 text-center">{value}</p>
             </div>
           )}
         </div>

@@ -1494,7 +1494,7 @@ export default function OnboardingFlow({ onComplete, onDismiss }: { onComplete: 
                           >
                             <MaterialIcon icon={opt.icon} className="text-[22px]" />
                             <span>{opt.label}</span>
-                            <span className="font-normal text-[10px] opacity-70">{opt.desc}</span>
+                            <span className="font-normal text-xs opacity-70">{opt.desc}</span>
                           </button>
                         ))}
                       </div>

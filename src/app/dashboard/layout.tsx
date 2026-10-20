@@ -498,7 +498,7 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
             </Suspense>
           </PageErrorBoundary>
           <footer className="mt-auto px-4 py-3 border-t border-[var(--border)] bg-[var(--surface)] text-center">
-            <p className="text-[11px] text-[var(--t4)]">
+            <p className="text-xs text-[var(--t4)]">
               Developed by <span className="font-semibold text-[var(--t3)]">IMAC Enterprises</span> · Powered by{" "}
               <span className="font-semibold text-[var(--t3)]">Omuto Foundation</span>
             </p>

@@ -148,7 +148,7 @@ function EventCard({ evt, onDelete }: { evt: SchoolEvent; onDelete: () => void }
       title="Click to delete"
     >
       <p className="truncate font-semibold">{evt.title}</p>
-      <p className="mt-1 text-[10px] opacity-80">{slot.label}</p>
+      <p className="mt-1 text-xs opacity-80">{slot.label}</p>
       <div className="mt-1.5 flex -space-x-1">
         {Array.from({ length: avatarCount }, (_, i) => (
           <span key={`${evt.id}-${i}`} className="h-4 w-4 rounded-full border border-white/90 bg-white/80" />
@@ -433,7 +433,7 @@ export default function CalendarPage() {
 
           <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.22em] text-[var(--green)]">School planner</p>
+              <p className="text-xs font-black uppercase tracking-[0.22em] text-[var(--green)]">School planner</p>
               <h1 className="mt-1 font-['Sora'] text-[28px] font-semibold tracking-[-0.035em] leading-tight text-[var(--t1)]">
                 {mode === "week"
                   ? `${new Date(weekColumns[0].dateKey).toLocaleDateString("en-UG", { month: "short", day: "numeric" })} - ${new Date(weekColumns[6].dateKey).toLocaleDateString("en-UG", { month: "short", day: "numeric" })}`
@@ -531,7 +531,7 @@ export default function CalendarPage() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-bold uppercase text-[var(--t2)]">
+                  <div className="grid grid-cols-7 gap-1 text-center text-xs font-bold uppercase text-[var(--t2)]">
                     {weekDays.map((d) => (
                       <div key={d}>{d[0]}</div>
                     ))}
@@ -569,7 +569,7 @@ export default function CalendarPage() {
                 </div>
 
                 <div className="rounded-2xl bg-[#0e8a96] p-4 text-white shadow-lg">
-                  <p className="text-[10px] uppercase tracking-[0.16em] text-white/75">Meeting reminder</p>
+                  <p className="text-xs uppercase tracking-[0.16em] text-white/75">Meeting reminder</p>
                   {featuredEvent ? (
                     <>
                       <h3 className="mt-2 text-[22px] font-semibold tracking-[-0.02em] leading-tight">
@@ -676,9 +676,7 @@ export default function CalendarPage() {
                   <div className="mt-3 space-y-2">
                     {statCards.map((stat) => (
                       <div key={stat.label} className="rounded-xl border border-[var(--border)] bg-white px-3 py-2">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--t2)]">
-                          {stat.label}
-                        </p>
+                        <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--t2)]">{stat.label}</p>
                         <p className="mt-1 text-base font-semibold text-[var(--t1)]">{stat.value}</p>
                         <p className="mt-0.5 truncate text-xs text-[var(--t2)]">{stat.note}</p>
                       </div>
@@ -705,7 +703,7 @@ export default function CalendarPage() {
                 </div>
 
                 <div className="mb-3 flex items-center justify-between">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--t3)]">{timezoneLabel}</p>
+                  <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--t3)]">{timezoneLabel}</p>
                   <p className="text-xs text-[var(--t1)]">Click any event to delete</p>
                 </div>
 
@@ -727,7 +725,7 @@ export default function CalendarPage() {
                             onClick={() => setSelectedDate(dateKey)}
                             className={`rounded-xl border px-2 py-2 text-left transition ${isCurrent ? "border-[var(--border)] bg-[var(--surface-container)]" : "border-[var(--surface-container-high)] bg-white"}`}
                           >
-                            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[var(--t3)]">
+                            <p className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--t3)]">
                               {fullWeekDays[date.getDay()]}
                             </p>
                             <p className="mt-1 text-xl font-semibold text-[var(--t1)]">{date.getDate()}</p>
@@ -739,7 +737,7 @@ export default function CalendarPage() {
                         {scheduleHours.map((hour) => (
                           <div
                             key={`time-${hour}`}
-                            className="absolute left-0 right-0 text-[10px] text-[var(--t2)]"
+                            className="absolute left-0 right-0 text-xs text-[var(--t2)]"
                             style={{ top: `${(hour - 8) * 64}px` }}
                           >
                             {toHourLabel(hour)}
@@ -791,7 +789,7 @@ export default function CalendarPage() {
 
                 {mode === "month" && (
                   <div>
-                    <div className="grid grid-cols-7 gap-2 text-center text-[11px] font-bold uppercase tracking-[0.08em] text-[var(--t2)]">
+                    <div className="grid grid-cols-7 gap-2 text-center text-xs font-bold uppercase tracking-[0.08em] text-[var(--t2)]">
                       {weekDays.map((d) => (
                         <div key={`month-head-${d}`}>{d}</div>
                       ))}
@@ -822,13 +820,13 @@ export default function CalendarPage() {
                               >
                                 {day}
                               </span>
-                              <span className="text-[10px] text-[var(--t4)]">{eventsForDay.length}</span>
+                              <span className="text-xs text-[var(--t4)]">{eventsForDay.length}</span>
                             </div>
                             <div className="mt-2 space-y-1">
                               {eventsForDay.slice(0, 2).map((evt) => (
                                 <div
                                   key={`pill-${evt.id}`}
-                                  className={`truncate rounded px-1.5 py-0.5 text-[10px] ${typeColors[evt.event_type].bg} ${typeColors[evt.event_type].text}`}
+                                  className={`truncate rounded px-1.5 py-0.5 text-xs ${typeColors[evt.event_type].bg} ${typeColors[evt.event_type].text}`}
                                 >
                                   {evt.title}
                                 </div>
@@ -861,7 +859,7 @@ export default function CalendarPage() {
                         >
                           <div className="min-w-0">
                             <p className="truncate text-sm font-semibold text-[var(--t3)]">{evt.title}</p>
-                            <p className="text-[11px] capitalize text-[var(--t1)]">
+                            <p className="text-xs capitalize text-[var(--t1)]">
                               {evt.event_type} • {deriveEventSlot(evt).label}
                             </p>
                           </div>

@@ -77,7 +77,7 @@ const WeeklyCollections = memo(function WeeklyCollections({ payments }: { paymen
         })}
       </div>
 
-      <p className="mt-3 text-[11px] font-medium text-[var(--t3)]">
+      <p className="mt-3 text-xs font-medium text-[var(--t3)]">
         {total > 0 ? (
           <>
             <span className="font-bold text-[var(--t1)]">UGX {total.toLocaleString()}</span> collected Mon–Sun

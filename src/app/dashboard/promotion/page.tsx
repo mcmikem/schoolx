@@ -127,7 +127,7 @@ export default function PromotionPage() {
                 <h2 className="font-semibold text-[var(--on-surface)]">Select Class to Promote From</h2>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
+                    <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
                       From Class
                     </label>
                     <select
@@ -147,7 +147,7 @@ export default function PromotionPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
+                    <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
                       To Class
                     </label>
                     <select
@@ -167,7 +167,7 @@ export default function PromotionPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
+                  <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
                     Promotion Type
                   </label>
                   <div className="flex gap-3">
@@ -222,7 +222,7 @@ export default function PromotionPage() {
                             <p className="text-sm font-semibold text-[var(--on-surface)]">
                               {s.first_name} {s.last_name}
                             </p>
-                            <p className="text-[10px] text-[var(--on-surface-variant)]">{s.student_number}</p>
+                            <p className="text-xs text-[var(--on-surface-variant)]">{s.student_number}</p>
                           </div>
                         </label>
                       ))}
@@ -264,11 +264,11 @@ export default function PromotionPage() {
                         </p>
                         <div className="flex items-center justify-between mt-1">
                           <span
-                            className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${PROMO_COLORS[h.promotion_type]}`}
+                            className={`px-2 py-0.5 rounded-full text-xs font-black uppercase tracking-wider ${PROMO_COLORS[h.promotion_type]}`}
                           >
                             {h.promotion_type}
                           </span>
-                          <span className="text-[10px] text-[var(--on-surface-variant)]">
+                          <span className="text-xs text-[var(--on-surface-variant)]">
                             {new Date(h.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short" })}
                           </span>
                         </div>

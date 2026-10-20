@@ -79,9 +79,7 @@ export default function OSXPage() {
           actions={
             <div className="flex items-center gap-3">
               <div className="flex flex-col items-end mr-2">
-                <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--t4)]">
-                  Partnership Tier
-                </span>
+                <span className="text-xs font-bold uppercase tracking-widest text-[var(--t4)]">Partnership Tier</span>
                 <span className="text-sm font-black text-amber-600 uppercase tracking-tighter italic">
                   ★ {tier} Partner
                 </span>
@@ -110,7 +108,7 @@ export default function OSXPage() {
                   >
                     {step.status === "complete" ? <MaterialIcon icon="check" /> : step.id}
                   </div>
-                  <div className="text-[10px] font-extrabold uppercase tracking-widest text-[var(--primary-900)]/60 text-center">
+                  <div className="text-xs font-extrabold uppercase tracking-widest text-[var(--primary-900)]/60 text-center">
                     {step.name}
                   </div>
                   {idx < STEPS.length - 1 && (
@@ -141,7 +139,7 @@ export default function OSXPage() {
                         <MaterialIcon icon={prog.icon} />
                       </div>
                       <span
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${prog.active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}
+                        className={`px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${prog.active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}
                       >
                         {prog.active ? "Active" : "Inactive"}
                       </span>
@@ -153,7 +151,7 @@ export default function OSXPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="p-1 min-h-0 text-[10px] uppercase font-bold text-[var(--t4)] hover:text-primary"
+                        className="p-1 min-h-0 text-xs uppercase font-bold text-[var(--t4)] hover:text-primary"
                       >
                         Reports ↗
                       </Button>
@@ -196,7 +194,7 @@ export default function OSXPage() {
                     },
                   ].map((metric) => (
                     <div key={metric.label}>
-                      <div className="flex justify-between text-[11px] font-bold mb-1.5 uppercase tracking-wider text-[var(--t3)]">
+                      <div className="flex justify-between text-xs font-bold mb-1.5 uppercase tracking-wider text-[var(--t3)]">
                         <span>{metric.label}</span>
                         <span>{metric.val}%</span>
                       </div>
@@ -247,13 +245,13 @@ export default function OSXPage() {
                         </div>
                         <div>
                           <div className="text-[12px] font-bold text-[var(--t1)]">{svc.name}</div>
-                          <div className="text-[10px] text-[var(--t4)] font-medium">{svc.desc}</div>
+                          <div className="text-xs text-[var(--t4)] font-medium">{svc.desc}</div>
                         </div>
                       </div>
                     </button>
                   ))}
                 </div>
-                <div className="mt-4 p-3 bg-primary-50 rounded-xl border border-primary-100 text-[10px] text-primary-800 font-medium leading-relaxed">
+                <div className="mt-4 p-3 bg-primary-50 rounded-xl border border-primary-100 text-xs text-primary-800 font-medium leading-relaxed">
                   💡 When your school buys SkoolMate services, you are directly funding local youth employment.
                 </div>
                 <Button variant="primary" className="w-full mt-4 text-xs font-black uppercase tracking-widest py-3">

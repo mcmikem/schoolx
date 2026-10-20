@@ -538,7 +538,7 @@ export default function PostOnboardingSetup({ onComplete }: Props) {
           >
             <MaterialIcon icon="tune" className="text-[var(--primary)] text-base" />
             <span>Optional Setup</span>
-            <span className="ml-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--primary)] text-[10px] font-bold text-white">
+            <span className="ml-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--primary)] text-xs font-bold text-white">
               {incompleteSteps.length}
             </span>
           </button>

@@ -167,14 +167,14 @@ export default function RequirementsPage() {
 
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3">
-              <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--t3)]">Cleared</p>
+              <p className="text-xs font-bold uppercase tracking-wide text-[var(--t3)]">Cleared</p>
               <p className="mt-0.5 text-xl font-bold tabular-nums text-[var(--green)]">
                 {cleared}
                 <span className="text-sm font-medium text-[var(--t3)]"> / {progress.length}</span>
               </p>
             </div>
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3">
-              <p className="text-[11px] font-bold uppercase tracking-wide text-[var(--t3)]">Money items</p>
+              <p className="text-xs font-bold uppercase tracking-wide text-[var(--t3)]">Money items</p>
               <p className="mt-0.5 text-xl font-bold tabular-nums text-[var(--t1)]">
                 {formatCurrency(summary.monetaryTotal)}
               </p>
@@ -349,7 +349,7 @@ function PupilCard({
         <span className="min-w-0 truncate text-[15px] font-semibold text-[var(--t1)]">{name}</span>
         <span className="flex shrink-0 items-center gap-2">
           <span
-            className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${
+            className={`rounded-full px-2 py-0.5 text-xs font-bold ${
               isCleared ? "bg-[var(--green-soft)] text-[var(--green)]" : "bg-[var(--amber-soft)] text-[var(--amber)]"
             }`}
           >
@@ -368,7 +368,7 @@ function PupilCard({
               <li key={item.id} className="flex items-center justify-between gap-3">
                 <span className="min-w-0 truncate text-[13px] text-[var(--t2)]">
                   {item.name}
-                  <span className="block text-[11px] text-[var(--t3)]">
+                  <span className="block text-xs text-[var(--t3)]">
                     {item.is_monetary ? `UGX ${formatCurrency(item.amount ?? 0)}` : (item.unit ?? "bring")}
                     {item.is_mandatory ? "" : " · optional"}
                   </span>

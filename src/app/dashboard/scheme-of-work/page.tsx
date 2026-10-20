@@ -242,7 +242,7 @@ export default function SchemeOfWorkPage() {
             >
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--t3)]">Term plan</p>
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--t3)]">Term plan</p>
                   <p className="mt-1 text-sm font-semibold text-[var(--t1)]">
                     {plannedWeekCount} of {weeks.length} weeks planned
                   </p>

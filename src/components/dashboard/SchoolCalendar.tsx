@@ -199,7 +199,7 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
     <div className="card overflow-hidden">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--t3)]">School calendar</p>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--t3)]">School calendar</p>
           <h2 className="mt-2 font-['Sora'] text-xl font-semibold tracking-tight text-[var(--t1)]">
             {viewDate.toLocaleDateString("en-UG", {
               month: "long",
@@ -219,7 +219,7 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
           <button
             type="button"
             onClick={() => setViewDate(new Date())}
-            className="rounded-full bg-[var(--primary-50)] px-3 py-1 text-[10px] font-semibold text-[var(--primary)] hover:bg-[var(--primary-100)]"
+            className="rounded-full bg-[var(--primary-50)] px-3 py-1 text-xs font-semibold text-[var(--primary)] hover:bg-[var(--primary-100)]"
           >
             Today
           </button>
@@ -234,7 +234,7 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
         </div>
       </div>
 
-      <div className="mt-4 grid grid-cols-7 text-center text-[9px] font-bold uppercase tracking-[0.08em] text-[var(--t2)] sm:text-[10px]">
+      <div className="mt-4 grid grid-cols-7 text-center text-xs font-bold uppercase tracking-[0.08em] text-[var(--t2)] sm:text-xs">
         {DAYS_HEADER.map((d) => (
           <div key={d}>{d}</div>
         ))}
@@ -247,7 +247,7 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
               type="button"
               key={cell.iso}
               onClick={() => setSelectedDate(cell.iso === selectedDate ? null : cell.iso)}
-              className={`relative flex items-center justify-center rounded-xl border min-h-[44px] text-center text-[11px] sm:text-xs font-semibold transition-colors ${
+              className={`relative flex items-center justify-center rounded-xl border min-h-[44px] text-center text-xs sm:text-xs font-semibold transition-colors ${
                 cell.iso === selectedDate
                   ? "border-[var(--primary)] bg-[var(--primary)] text-white"
                   : cell.isToday
@@ -272,7 +272,7 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
 
       {selectedDate && eventsOnSelected.length > 0 && (
         <div className="mt-3 space-y-1.5 rounded-[var(--r)] bg-[var(--surface-container-low)] p-3">
-          <p className="text-[10px] font-bold uppercase tracking-[0.15em] text-[var(--t3)]">
+          <p className="text-xs font-bold uppercase tracking-[0.15em] text-[var(--t3)]">
             {new Date(selectedDate).toLocaleDateString("en-UG", {
               weekday: "long",
               day: "numeric",
@@ -285,7 +285,7 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
               className="flex items-center justify-between rounded-[var(--r)] bg-[var(--surface)] px-3 py-2 shadow-[var(--sh1)]"
             >
               <p className="truncate text-sm font-semibold text-[var(--t1)]">{event.title}</p>
-              <span className="shrink-0 rounded-full bg-[var(--primary-50)] px-2 py-0.5 text-[9px] font-semibold uppercase text-[var(--primary)]">
+              <span className="shrink-0 rounded-full bg-[var(--primary-50)] px-2 py-0.5 text-xs font-semibold uppercase text-[var(--primary)]">
                 {event.kind}
               </span>
             </div>
@@ -302,13 +302,13 @@ export default function SchoolCalendar({ schoolId, userId }: { schoolId?: string
               setNewEventDate(selectedDate || todayIso);
             }
           }}
-          className="flex items-center gap-1.5 rounded-full bg-[var(--primary)] px-4 py-2 text-[11px] font-semibold text-white hover:bg-[var(--primary-700)]"
+          className="flex items-center gap-1.5 rounded-full bg-[var(--primary)] px-4 py-2 text-xs font-semibold text-white hover:bg-[var(--primary-700)]"
         >
           <MaterialIcon icon="add" className="text-[14px]" />
           Add event
         </button>
         {!showAddEvent && currentMonthEvents.length > 0 && !selectedDate && (
-          <div className="flex items-center gap-2 text-[10px] text-[var(--t3)]">
+          <div className="flex items-center gap-2 text-xs text-[var(--t3)]">
             <span className="inline-block h-2 w-2 rounded-full bg-[var(--primary)]" />
             {currentMonthEvents.length} event{currentMonthEvents.length > 1 ? "s" : ""} this month
           </div>

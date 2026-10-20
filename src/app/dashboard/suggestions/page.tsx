@@ -247,7 +247,7 @@ export default function SuggestionBoxPage() {
             },
           ].map((item) => (
             <Card key={item.label} className={`rounded-2xl border border-[var(--border)] p-3 ${item.tone}`}>
-              <div className="text-[11px] font-black uppercase tracking-[0.18em] opacity-80">{item.label}</div>
+              <div className="text-xs font-black uppercase tracking-[0.18em] opacity-80">{item.label}</div>
               <div className="mt-1 text-lg font-bold">{item.value}</div>
             </Card>
           ))}

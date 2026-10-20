@@ -178,7 +178,7 @@ export default function ConductManagementPage() {
               <MaterialIcon icon="military_tech" style={{ fontSize: 28 }} />
             </div>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-emerald-700">Total Merits</p>
+              <p className="text-xs font-black uppercase tracking-widest text-emerald-700">Total Merits</p>
               <p className="text-2xl font-black text-emerald-900">{merits}</p>
             </div>
           </div>
@@ -187,7 +187,7 @@ export default function ConductManagementPage() {
               <MaterialIcon icon="gavel" style={{ fontSize: 28 }} />
             </div>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-red-700">Active Demerits</p>
+              <p className="text-xs font-black uppercase tracking-widest text-red-700">Active Demerits</p>
               <p className="text-2xl font-black text-red-900">{demerits}</p>
             </div>
           </div>
@@ -196,7 +196,7 @@ export default function ConductManagementPage() {
               <MaterialIcon icon="emoji_events" style={{ fontSize: 28 }} />
             </div>
             <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-primary-700">Net Points</p>
+              <p className="text-xs font-black uppercase tracking-widest text-primary-700">Net Points</p>
               <p className={`text-2xl font-black ${totalPoints >= 0 ? "text-emerald-800" : "text-red-800"}`}>
                 {totalPoints > 0 ? "+" : ""}
                 {totalPoints}
@@ -246,7 +246,7 @@ export default function ConductManagementPage() {
                 <thead>
                   <tr className="bg-white">
                     {["Date", "Student", "Category", "Description", "Points", ""].map((h) => (
-                      <th key={h} className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                      <th key={h} className="px-6 py-4 text-xs font-black uppercase tracking-widest text-slate-400">
                         {h}
                       </th>
                     ))}
@@ -260,7 +260,7 @@ export default function ConductManagementPage() {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-[10px]">
+                          <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 font-bold text-xs">
                             {record.students?.first_name?.[0]}
                             {record.students?.last_name?.[0]}
                           </div>
@@ -268,13 +268,13 @@ export default function ConductManagementPage() {
                             <p className="text-sm font-bold text-slate-800">
                               {record.students?.first_name} {record.students?.last_name}
                             </p>
-                            <p className="text-[10px] font-bold text-slate-400">{record.students?.classes?.name}</p>
+                            <p className="text-xs font-bold text-slate-400">{record.students?.classes?.name}</p>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
                         <span
-                          className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                          className={`px-2 py-0.5 rounded-full text-xs font-black uppercase tracking-widest ${
                             record.incident_type === "positive"
                               ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
                               : record.incident_type === "negative"

@@ -74,17 +74,14 @@ export default function FeePicker({
   // select. Reporting it back to the parent is left to them deliberately -- a
   // payment that names a fee the bursar never looked at is a claim about money
   // they did not make, so the parent decides when it counts.
-  const autoPicked =
-    !touched && !value && defaultFeeId
-      ? live.find((f) => f.id === defaultFeeId) ?? null
-      : null;
+  const autoPicked = !touched && !value && defaultFeeId ? (live.find((f) => f.id === defaultFeeId) ?? null) : null;
   const selected = value || autoPicked?.id || "";
 
   return (
     <div>
       <label
         htmlFor="fee-picker-select"
-        className="mb-2 block text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--t3)]"
+        className="mb-2 block text-xs font-bold uppercase tracking-[0.12em] text-[var(--t3)]"
       >
         {label}
         {required && <span className="ml-1 text-[var(--red)]">*</span>}
@@ -108,12 +105,12 @@ export default function FeePicker({
         ))}
       </select>
       {!live.length && (
-        <p className="mt-1 text-[11px] text-[var(--red)]">
+        <p className="mt-1 text-xs text-[var(--red)]">
           This class has no fees set up. Add them under Fee Structure first.
         </p>
       )}
       {fees.length > live.length && (
-        <p className="mt-1 text-[11px] text-[var(--t3)]">
+        <p className="mt-1 text-xs text-[var(--t3)]">
           {fees.length - live.length} retired fee line{fees.length - live.length === 1 ? "" : "s"} hidden.
         </p>
       )}

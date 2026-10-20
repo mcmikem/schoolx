@@ -159,7 +159,7 @@ export default function MessagingPaymentsSettings() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {TEMPLATE_KEYS.map(({ kind, label }) => (
                 <div key={kind}>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-[var(--t3)] block mb-1.5">
+                  <label className="text-xs font-black uppercase tracking-widest text-[var(--t3)] block mb-1.5">
                     {label}
                   </label>
                   <input
@@ -189,7 +189,7 @@ export default function MessagingPaymentsSettings() {
         <div className="card-body space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-[var(--t3)] block mb-1.5">
+              <label className="text-xs font-black uppercase tracking-widest text-[var(--t3)] block mb-1.5">
                 MTN MoMo number
               </label>
               <input
@@ -201,7 +201,7 @@ export default function MessagingPaymentsSettings() {
               />
             </div>
             <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-[var(--t3)] block mb-1.5">
+              <label className="text-xs font-black uppercase tracking-widest text-[var(--t3)] block mb-1.5">
                 Airtel Money number
               </label>
               <input
@@ -214,7 +214,7 @@ export default function MessagingPaymentsSettings() {
             </div>
           </div>
           <div>
-            <label className="text-[10px] font-black uppercase tracking-widest text-[var(--t3)] block mb-1.5">
+            <label className="text-xs font-black uppercase tracking-widest text-[var(--t3)] block mb-1.5">
               Instructions for parents
             </label>
             <textarea
@@ -266,7 +266,7 @@ function ChannelOption({
       <div className="flex items-center justify-between gap-2">
         <p className="font-bold text-[var(--t1)]">{title}</p>
         <span
-          className={`text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
+          className={`text-xs font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
             available ? "bg-[var(--green-soft)] text-[var(--green)]" : "bg-[var(--surface-container)] text-[var(--t4)]"
           }`}
         >

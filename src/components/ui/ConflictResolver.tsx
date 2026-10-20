@@ -79,13 +79,13 @@ export function ConflictResolver({
           <p className="mt-1 text-xs text-[var(--t2)]">
             Another device changed this record after your offline edit. Pick the version to keep.
           </p>
-          {reason && <p className="mt-1 break-words text-[11px] text-[var(--t3)]">{reason}</p>}
+          {reason && <p className="mt-1 break-words text-xs text-[var(--t3)]">{reason}</p>}
         </div>
       </header>
 
       <div className="mt-3 grid gap-2 sm:grid-cols-2">
         <div className="rounded-xl border border-[var(--primary)]/30 bg-[var(--primary)]/[0.04] p-3">
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--primary)]">On this device</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--primary)]">On this device</p>
           <dl className="space-y-1.5">
             {shown.map((key) => (
               <div key={key} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-2 text-xs">
@@ -97,7 +97,7 @@ export function ConflictResolver({
         </div>
 
         <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] p-3">
-          <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--t3)]">On the server</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--t3)]">On the server</p>
           <dl className="space-y-1.5">
             {shown.map((key) => (
               <div key={key} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-2 text-xs">
@@ -110,7 +110,7 @@ export function ConflictResolver({
       </div>
 
       {differences.length === 0 && (
-        <p className="mt-2 text-[11px] text-[var(--t3)]">No visible fields differ — the server copy is simply newer.</p>
+        <p className="mt-2 text-xs text-[var(--t3)]">No visible fields differ — the server copy is simply newer.</p>
       )}
 
       <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:justify-end">

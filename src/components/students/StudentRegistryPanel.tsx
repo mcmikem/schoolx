@@ -618,7 +618,7 @@ export default function StudentRegistryPanel({
               )}
               {importSummary?.errors?.length ? (
                 <div className="mt-3 rounded-2xl border border-[var(--border)] bg-[var(--bg)]/80 p-3">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--t3)] mb-2">
+                  <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--t3)] mb-2">
                     Import issues
                   </div>
                   <ul className="space-y-1 text-xs text-[var(--t2)]">
@@ -633,7 +633,7 @@ export default function StudentRegistryPanel({
               ) : null}
               {templatePreviewRows.length > 0 && (
                 <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg)]/70 p-3">
-                  <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--t3)] mb-2">
+                  <div className="text-xs font-semibold uppercase tracking-[0.2em] text-[var(--t3)] mb-2">
                     Parsed preview ({templatePreviewRows.length} row
                     {templatePreviewRows.length === 1 ? "" : "s"})
                   </div>
@@ -644,7 +644,7 @@ export default function StudentRegistryPanel({
                           {Object.keys(templatePreviewRows[0]).map((col) => (
                             <th
                               key={col}
-                              className="px-2 py-1 text-left text-[11px] uppercase tracking-[0.2em] text-[var(--t3)]"
+                              className="px-2 py-1 text-left text-xs uppercase tracking-[0.2em] text-[var(--t3)]"
                             >
                               {col}
                             </th>
@@ -725,7 +725,7 @@ export default function StudentRegistryPanel({
               <MaterialIcon size={16}>filter_list</MaterialIcon>
               Filters
               {popoverFilterCount > 0 && (
-                <span className="ml-0.5 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[var(--primary)] px-1 text-[10px] font-bold text-white">
+                <span className="ml-0.5 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-[var(--primary)] px-1 text-xs font-bold text-white">
                   {popoverFilterCount}
                 </span>
               )}
@@ -1077,7 +1077,7 @@ export default function StudentRegistryPanel({
                                 </div>
                                 {leader ? (
                                   <span
-                                    className="inline-flex items-center rounded-full bg-[var(--navy-soft)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--navy)]"
+                                    className="inline-flex items-center rounded-full bg-[var(--navy-soft)] px-2 py-0.5 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--navy)]"
                                     title={leader}
                                   >
                                     {student.is_class_monitor && !student.prefect_role && !student.student_council_role
@@ -1278,7 +1278,7 @@ export default function StudentRegistryPanel({
                             </span>
                             {leader ? (
                               <span
-                                className="rounded-full bg-[var(--navy-soft)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--navy)]"
+                                className="rounded-full bg-[var(--navy-soft)] px-2 py-0.5 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--navy)]"
                                 title={leader}
                               >
                                 {student.is_class_monitor && !student.prefect_role && !student.student_council_role
@@ -1293,11 +1293,11 @@ export default function StudentRegistryPanel({
                           </div>
                         </Link>
                         <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                          <span className="rounded-full bg-[var(--bg)] px-2.5 py-1 text-[11px] font-semibold text-[var(--t1)]">
+                          <span className="rounded-full bg-[var(--bg)] px-2.5 py-1 text-xs font-semibold text-[var(--t1)]">
                             {resolveClassLabel(student)}
                             {student.boarding_status && student.boarding_status !== "day" && (
                               <span
-                                className="ml-1 rounded px-1.5 py-0.5 text-[9px] font-semibold"
+                                className="ml-1 rounded px-1.5 py-0.5 text-xs font-semibold"
                                 style={{ background: "rgba(155,89,182,0.15)", color: "#0d9488" }}
                               >
                                 {student.boarding_status}
@@ -1305,7 +1305,7 @@ export default function StudentRegistryPanel({
                             )}
                           </span>
                           {house ? (
-                            <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--bg)] px-2.5 py-1 text-[11px] font-semibold text-[var(--t1)]">
+                            <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] bg-[var(--bg)] px-2.5 py-1 text-xs font-semibold text-[var(--t1)]">
                               <span
                                 className="h-2.5 w-2.5 rounded-full"
                                 style={{ backgroundColor: getHouseColor(house) }}
@@ -1319,15 +1319,15 @@ export default function StudentRegistryPanel({
 
                     <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-2 border-t border-[var(--border)] pt-3 text-xs">
                       <div className="min-w-0">
-                        <dt className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--t3)]">Number</dt>
+                        <dt className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--t3)]">Number</dt>
                         <dd className="mt-0.5 truncate font-mono text-[var(--t1)]">{student.student_number || "-"}</dd>
                       </div>
                       <div className="min-w-0">
-                        <dt className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--t3)]">Parent</dt>
+                        <dt className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--t3)]">Parent</dt>
                         <dd className="mt-0.5 truncate text-[var(--t1)]">{student.parent_name || "-"}</dd>
                       </div>
                       <div className="col-span-2 min-w-0">
-                        <dt className="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--t3)]">Phone</dt>
+                        <dt className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--t3)]">Phone</dt>
                         <dd className="mt-0.5 truncate font-mono text-[var(--t1)]">{student.parent_phone || "-"}</dd>
                       </div>
                     </dl>
@@ -1431,7 +1431,7 @@ export default function StudentRegistryPanel({
               <option value="yes">Takes school meals &mdash; charged</option>
               <option value="no">Goes home &mdash; not charged</option>
             </select>
-            <p className="text-[11px] mt-1" style={{ color: "var(--t3)" }}>
+            <p className="text-xs mt-1" style={{ color: "var(--t3)" }}>
               Only pupils who eat here are charged the meals fee.
             </p>
           </div>
@@ -1451,7 +1451,7 @@ export default function StudentRegistryPanel({
               <option value="yes">Just joined &mdash; charge registration</option>
               <option value="no">Already on roll &mdash; no registration</option>
             </select>
-            <p className="text-[11px] mt-1" style={{ color: "var(--t3)" }}>
+            <p className="text-xs mt-1" style={{ color: "var(--t3)" }}>
               Registration is a one-off, charged when a pupil joins &mdash; not every term.
             </p>
           </div>

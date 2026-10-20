@@ -229,15 +229,15 @@ export default function AlumniPage() {
             </div>
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div className="p-3 rounded-xl bg-gray-50">
-                <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--t3)]">Gender</div>
+                <div className="text-xs font-bold uppercase tracking-wider text-[var(--t3)]">Gender</div>
                 <div className="font-semibold mt-0.5">{selectedAlumnus.gender === "M" ? "Male" : "Female"}</div>
               </div>
               <div className="p-3 rounded-xl bg-gray-50">
-                <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--t3)]">Class</div>
+                <div className="text-xs font-bold uppercase tracking-wider text-[var(--t3)]">Class</div>
                 <div className="font-semibold mt-0.5">{selectedAlumnus.classes?.name || "N/A"}</div>
               </div>
               <div className="p-3 rounded-xl bg-gray-50">
-                <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--t3)]">Admission Date</div>
+                <div className="text-xs font-bold uppercase tracking-wider text-[var(--t3)]">Admission Date</div>
                 <div className="font-semibold mt-0.5">
                   {selectedAlumnus.admission_date
                     ? new Date(selectedAlumnus.admission_date).toLocaleDateString()
@@ -245,14 +245,12 @@ export default function AlumniPage() {
                 </div>
               </div>
               <div className="p-3 rounded-xl bg-gray-50">
-                <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--t3)]">Status</div>
+                <div className="text-xs font-bold uppercase tracking-wider text-[var(--t3)]">Status</div>
                 <div className="font-semibold mt-0.5 text-blue-600">Completed</div>
               </div>
             </div>
             <div className="p-3 rounded-xl bg-gray-50">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-[var(--t3)] mb-1">
-                Parent / Guardian
-              </div>
+              <div className="text-xs font-bold uppercase tracking-wider text-[var(--t3)] mb-1">Parent / Guardian</div>
               <div className="text-sm">
                 {selectedAlumnus.parent_name || "N/A"} · {selectedAlumnus.parent_phone || "N/A"}
               </div>

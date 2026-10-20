@@ -335,7 +335,7 @@ function AnimatedDashboard({ isActive }: AnimatedScreenProps) {
             <div className="w-12 text-xs text-slate-500">{row.cls}</div>
             <div className="w-16">
               <span
-                className={`text-[10px] px-2 py-0.5 rounded-full ${
+                className={`text-xs px-2 py-0.5 rounded-full ${
                   row.color === "green" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"
                 }`}
               >
@@ -343,9 +343,7 @@ function AnimatedDashboard({ isActive }: AnimatedScreenProps) {
               </span>
             </div>
             <div className="w-16">
-              <span
-                className={`text-[10px] px-2 py-0.5 rounded ${i < 2 ? "bg-emerald-500" : "bg-amber-500"} text-white`}
-              >
+              <span className={`text-xs px-2 py-0.5 rounded ${i < 2 ? "bg-emerald-500" : "bg-amber-500"} text-white`}>
                 {i < 2 ? "Paid" : "Partial"}
               </span>
             </div>

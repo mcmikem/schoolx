@@ -160,7 +160,7 @@ export default function AssetsPage() {
               </div>
               <div>
                 <p className="text-2xl font-semibold tracking-[-0.03em] text-[var(--on-surface)]">{s.value}</p>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
+                <p className="text-xs font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
                   {s.label}
                 </p>
               </div>
@@ -190,7 +190,7 @@ export default function AssetsPage() {
 
         <div className={cardClassName + " overflow-hidden"}>
           <div className="border-b border-[var(--border)] bg-[var(--surface-container-low)] p-5">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
+            <p className="text-xs font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
               {filtered.length} items
             </p>
           </div>
@@ -210,7 +210,7 @@ export default function AssetsPage() {
                     {["Asset Name", "Category", "Location", "Qty", "Condition"].map((h) => (
                       <th
                         key={h}
-                        className="px-6 py-3 text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]"
+                        className="px-6 py-3 text-xs font-bold uppercase tracking-widest text-[var(--on-surface-variant)]"
                       >
                         {h}
                       </th>
@@ -228,7 +228,7 @@ export default function AssetsPage() {
                       </td>
                       <td className="px-6 py-4">
                         <span
-                          className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${CONDITION_BADGE[a.condition] || "bg-slate-100 text-slate-500"}`}
+                          className={`px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-wider ${CONDITION_BADGE[a.condition] || "bg-slate-100 text-slate-500"}`}
                         >
                           {a.condition}
                         </span>
@@ -256,7 +256,7 @@ export default function AssetsPage() {
                   </button>
                 </div>
                 <div>
-                  <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
+                  <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
                     Asset Name
                   </label>
                   <input
@@ -268,7 +268,7 @@ export default function AssetsPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
+                    <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
                       Category
                     </label>
                     <select
@@ -282,7 +282,7 @@ export default function AssetsPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
+                    <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
                       Quantity
                     </label>
                     <input
@@ -297,7 +297,7 @@ export default function AssetsPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
+                    <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
                       Location
                     </label>
                     <input
@@ -308,7 +308,7 @@ export default function AssetsPage() {
                     />
                   </div>
                   <div>
-                    <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
+                    <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
                       Condition
                     </label>
                     <select
@@ -324,7 +324,7 @@ export default function AssetsPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="mb-2 block text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
+                  <label className="mb-2 block text-xs font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
                     Notes (optional)
                   </label>
                   <textarea

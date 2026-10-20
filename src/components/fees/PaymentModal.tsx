@@ -99,8 +99,7 @@ export default function PaymentModal({
     // The preselected fee is shown but not stored in state, so a blank fee_id
     // still counts as chosen as long as a default is on offer. Only when there
     // is nothing to preselect and nothing picked is this an error.
-    if (!newPayment.fee_id && !defaultFeeId)
-      errs.fee_id = "Choose which fee this payment is for";
+    if (!newPayment.fee_id && !defaultFeeId) errs.fee_id = "Choose which fee this payment is for";
     return errs;
   }, [newPayment, selectedStudent, defaultFeeId]);
   const overpaymentAmount =
@@ -241,8 +240,8 @@ export default function PaymentModal({
           </div>
         </div>
         <div className="flex justify-between mt-1.5">
-          <span className="text-[11px] font-semibold text-[var(--t3)]">Student & Amount</span>
-          <span className="text-[11px] font-semibold text-[var(--t3)]">Payment Details</span>
+          <span className="text-xs font-semibold text-[var(--t3)]">Student & Amount</span>
+          <span className="text-xs font-semibold text-[var(--t3)]">Payment Details</span>
         </div>
       </div>
       <form
@@ -276,7 +275,7 @@ export default function PaymentModal({
             <div>
               <label
                 htmlFor="payment-amount"
-                className="block text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--t3)] mb-2"
+                className="block text-xs font-bold uppercase tracking-[0.12em] text-[var(--t3)] mb-2"
               >
                 Amount (UGX)
               </label>
@@ -402,7 +401,7 @@ export default function PaymentModal({
             <div>
               <label
                 htmlFor="payment-method"
-                className="block text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--t3)] mb-2"
+                className="block text-xs font-bold uppercase tracking-[0.12em] text-[var(--t3)] mb-2"
               >
                 Method
               </label>
@@ -422,7 +421,7 @@ export default function PaymentModal({
             <div>
               <label
                 htmlFor="payment-reference"
-                className="block text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--t3)] mb-2"
+                className="block text-xs font-bold uppercase tracking-[0.12em] text-[var(--t3)] mb-2"
               >
                 Payment Reference
               </label>
@@ -437,7 +436,7 @@ export default function PaymentModal({
             </div>
             {newPayment.payment_method === "in_kind" && (
               <div>
-                <label className="block text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--t3)] mb-2">
+                <label className="block text-xs font-bold uppercase tracking-[0.12em] text-[var(--t3)] mb-2">
                   Description of Goods/Services
                 </label>
                 <textarea
@@ -456,7 +455,7 @@ export default function PaymentModal({
                 <div>
                   <label
                     htmlFor="payment-provider"
-                    className="block text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--t3)] mb-2"
+                    className="block text-xs font-bold uppercase tracking-[0.12em] text-[var(--t3)] mb-2"
                   >
                     MoMo Provider
                   </label>
@@ -477,7 +476,7 @@ export default function PaymentModal({
                 <div>
                   <label
                     htmlFor="payment-transaction"
-                    className="block text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--t3)] mb-2"
+                    className="block text-xs font-bold uppercase tracking-[0.12em] text-[var(--t3)] mb-2"
                   >
                     Transaction ID
                   </label>
@@ -503,7 +502,7 @@ export default function PaymentModal({
               <div>
                 <label
                   htmlFor="payment-payer"
-                  className="block text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--t3)] mb-2"
+                  className="block text-xs font-bold uppercase tracking-[0.12em] text-[var(--t3)] mb-2"
                 >
                   Paid By
                 </label>
@@ -521,13 +520,13 @@ export default function PaymentModal({
                 />
                 {payerSuggestions.length > 1 && (
                   <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                    <span className="text-[11px] text-[var(--t3)]">On file:</span>
+                    <span className="text-xs text-[var(--t3)]">On file:</span>
                     {payerSuggestions.map((name) => (
                       <button
                         key={name}
                         type="button"
                         onClick={() => onPaymentChange({ paid_by: name })}
-                        className={`min-h-9 rounded-full px-2.5 text-[11px] font-semibold transition-colors ${
+                        className={`min-h-9 rounded-full px-2.5 text-xs font-semibold transition-colors ${
                           newPayment.paid_by === name
                             ? "bg-[var(--primary)] text-white"
                             : "bg-[var(--surface-container)] text-[var(--t2)]"
@@ -539,7 +538,7 @@ export default function PaymentModal({
                   </div>
                 )}
                 {payerAutoFilled && payerSuggestions.includes(newPayment.paid_by) && (
-                  <p className="mt-1.5 text-[11px] text-[var(--t3)]">
+                  <p className="mt-1.5 text-xs text-[var(--t3)]">
                     Filled from the parent on file. Edit it if someone else paid.
                   </p>
                 )}
@@ -552,12 +551,12 @@ export default function PaymentModal({
                   onChange={(id) => onFeeChange?.(id)}
                   label="Paying Which Fee"
                 />
-                {errors.fee_id && <p className="mt-1 text-[11px] text-[var(--red)]">{errors.fee_id}</p>}
+                {errors.fee_id && <p className="mt-1 text-xs text-[var(--red)]">{errors.fee_id}</p>}
               </div>
               <div>
                 <label
                   htmlFor="payment-notes"
-                  className="block text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--t3)] mb-2"
+                  className="block text-xs font-bold uppercase tracking-[0.12em] text-[var(--t3)] mb-2"
                 >
                   Notes
                 </label>

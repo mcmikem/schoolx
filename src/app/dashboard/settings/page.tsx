@@ -1304,7 +1304,7 @@ export default function SettingsPage() {
                               <p className="text-xs text-[var(--t3)] mt-1">{module.description}</p>
                             </div>
                             <span
-                              className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-full ${
+                              className={`text-xs font-bold uppercase tracking-wider px-2 py-1 rounded-full ${
                                 isEntitled
                                   ? "bg-[var(--green-soft)] text-[var(--green)]"
                                   : isPending
@@ -1321,7 +1321,7 @@ export default function SettingsPage() {
                               <p className="text-sm font-semibold text-[var(--t1)]">
                                 UGX {Number(module.annual_price_ugx || 0).toLocaleString()} / year
                               </p>
-                              <p className="text-[11px] text-[var(--t3)]">
+                              <p className="text-xs text-[var(--t3)]">
                                 {entitlement?.ends_at
                                   ? `Valid until ${new Date(entitlement.ends_at).toLocaleDateString()}`
                                   : "Annual license"}
@@ -1411,7 +1411,7 @@ export default function SettingsPage() {
                     </Button>
                   </div>
                   <div className="p-6 rounded-2xl border-2 border-[var(--primary)] bg-[var(--primary-soft)] relative">
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-[var(--primary)] text-white text-[10px] font-bold rounded-full uppercase">
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-[var(--primary)] text-white text-xs font-bold rounded-full uppercase">
                       Most Popular
                     </div>
                     <div className="text-sm font-bold text-[var(--primary)] uppercase tracking-wider mb-2">Growth</div>
@@ -1512,7 +1512,7 @@ export default function SettingsPage() {
                     <h3 className="text-lg font-semibold text-[var(--on-surface)]">Payment History</h3>
                     <p className="text-sm text-[var(--t3)]">Recent subscription payments and transactions</p>
                   </div>
-                  {paymentHistory.length > 0 && <span className="text-[11px] text-[var(--t3)]">Last 10 payments</span>}
+                  {paymentHistory.length > 0 && <span className="text-xs text-[var(--t3)]">Last 10 payments</span>}
                 </div>
                 {paymentHistory.length === 0 ? (
                   <div className="text-sm text-[var(--t3)] py-4 text-center">No payment history yet.</div>
@@ -1520,7 +1520,7 @@ export default function SettingsPage() {
                   <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                       <thead>
-                        <tr className="border-b border-[var(--border)] text-[var(--t3)] text-[11px] uppercase tracking-wider">
+                        <tr className="border-b border-[var(--border)] text-[var(--t3)] text-xs uppercase tracking-wider">
                           <th className="text-left py-2 pr-3">Date</th>
                           <th className="text-left py-2 pr-3">Plan</th>
                           <th className="text-left py-2 pr-3">Provider</th>
@@ -1545,7 +1545,7 @@ export default function SettingsPage() {
                             </td>
                             <td className="py-2.5 text-right">
                               <span
-                                className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                                className={`inline-block px-2 py-0.5 rounded-full text-xs font-bold uppercase ${
                                   p.payment_status === "completed"
                                     ? "bg-green-100 text-green-700"
                                     : p.payment_status === "pending"
@@ -1602,7 +1602,7 @@ export default function SettingsPage() {
                     placeholder="e.g. 0772000000"
                     className="input w-full"
                   />
-                  <p className="mt-1 text-[11px] text-[var(--t3)]">
+                  <p className="mt-1 text-xs text-[var(--t3)]">
                     Enter your MTN MoMo or Airtel Money registered number.
                   </p>
                 </div>

@@ -269,7 +269,7 @@ export default function ExamsPage() {
                         });
                         toast.success("Marks autofilled for demo");
                       }}
-                      className="px-3 py-1 bg-blue-soft text-blue-800 rounded-lg text-[10px] font-black uppercase border border-blue-200 hover:bg-blue-100 transition-all"
+                      className="px-3 py-1 bg-blue-soft text-blue-800 rounded-lg text-xs font-black uppercase border border-blue-200 hover:bg-blue-100 transition-all"
                     >
                       Autofill Marks
                     </button>
@@ -280,7 +280,7 @@ export default function ExamsPage() {
                       onClick={() =>
                         router.push(`/dashboard/comments?class=${selectedClass}&subject=${selectedSubject}`)
                       }
-                      className="px-3 py-1 bg-emerald-soft text-emerald-800 rounded-lg text-[10px] font-black uppercase border border-emerald-200 hover:bg-emerald-100 transition-all"
+                      className="px-3 py-1 bg-emerald-soft text-emerald-800 rounded-lg text-xs font-black uppercase border border-emerald-200 hover:bg-emerald-100 transition-all"
                     >
                       Auto-Comment All
                     </button>
@@ -295,7 +295,7 @@ export default function ExamsPage() {
               ) : (
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   <div className="p-3 bg-slate-50 rounded-xl border border-slate-100/50">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1">Class Average</p>
+                    <p className="text-xs font-black text-slate-400 uppercase tracking-wider mb-1">Class Average</p>
                     <p className="text-lg font-black text-slate-800">
                       {(() => {
                         const scores = filteredStudents.map((s) => getStudentTotal(s.id)).filter((t) => t > 0);
@@ -305,11 +305,11 @@ export default function ExamsPage() {
                     </p>
                   </div>
                   <div className="p-3 bg-slate-50 rounded-xl border border-slate-100/50">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1">Performance</p>
+                    <p className="text-xs font-black text-slate-400 uppercase tracking-wider mb-1">Performance</p>
                     <p className="text-lg font-black text-emerald-600">Steady</p>
                   </div>
                   <div className="p-3 bg-slate-50 rounded-xl border border-slate-100/50">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1">Pass Rate</p>
+                    <p className="text-xs font-black text-slate-400 uppercase tracking-wider mb-1">Pass Rate</p>
                     <p className="text-lg font-black text-slate-800">
                       {(() => {
                         const totals = filteredStudents.map((s) => getStudentTotal(s.id)).filter((t) => t > 0);
@@ -320,7 +320,7 @@ export default function ExamsPage() {
                     </p>
                   </div>
                   <div className="p-3 bg-slate-50 rounded-xl border border-slate-100/50">
-                    <p className="text-[9px] font-black text-slate-400 uppercase tracking-wider mb-1">Highest Score</p>
+                    <p className="text-xs font-black text-slate-400 uppercase tracking-wider mb-1">Highest Score</p>
                     <p className="text-lg font-black text-blue-600">
                       {(() => {
                         const totals = filteredStudents.map((s) => getStudentTotal(s.id)).filter((t) => t > 0);
@@ -406,9 +406,7 @@ export default function ExamsPage() {
           <div className="p-3.5 border-b border-[var(--border)]">
             <div className="flex gap-3 flex-wrap items-end">
               <div className="min-w-[150px] flex-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--t3)] mb-1 block">
-                  Class
-                </label>
+                <label className="text-xs font-bold uppercase tracking-wider text-[var(--t3)] mb-1 block">Class</label>
                 {classes.length === 0 ? (
                   <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-xs text-amber-800">
                     No classes - Add classes first
@@ -432,7 +430,7 @@ export default function ExamsPage() {
                 )}
               </div>
               <div className="min-w-[150px] flex-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--t3)] mb-1 block">
+                <label className="text-xs font-bold uppercase tracking-wider text-[var(--t3)] mb-1 block">
                   Subject
                 </label>
                 {subjects.length === 0 ? (
@@ -456,7 +454,7 @@ export default function ExamsPage() {
                 )}
               </div>
               <div className="min-w-[150px] flex-1">
-                <label className="text-[10px] font-bold uppercase tracking-wider text-[var(--t3)] mb-1 block">
+                <label className="text-xs font-bold uppercase tracking-wider text-[var(--t3)] mb-1 block">
                   Exam Type
                 </label>
                 <select

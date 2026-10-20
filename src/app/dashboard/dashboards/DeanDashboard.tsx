@@ -99,7 +99,7 @@ function DeanDashboardContent() {
         dateLabel={todayLabel}
         subtitle={`Dean of Academics · ${school?.name}`}
         rightSection={
-          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[var(--t2)]">
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--t2)]">
             Term {currentTerm} · {academicYear}
           </p>
         }
@@ -114,7 +114,7 @@ function DeanDashboardContent() {
           stats?.presentToday > 0 ? (
             <div className="flex items-center gap-1.5 rounded-full bg-[var(--green)]/10 px-3 py-1">
               <span className="h-1.5 w-1.5 rounded-full bg-[var(--green)]" />
-              <span className="text-[11px] font-bold text-[var(--green)]">{attendanceRate}% attendance today</span>
+              <span className="text-xs font-bold text-[var(--green)]">{attendanceRate}% attendance today</span>
             </div>
           ) : undefined
         }
@@ -165,7 +165,7 @@ function DeanDashboardContent() {
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--amber-soft)] text-[var(--amber)]">
                   <MaterialIcon icon="school" className="text-base" />
                 </div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--t3)]">Subjects</p>
+                <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--t3)]">Subjects</p>
               </div>
               <p className="mt-2 text-2xl font-bold text-[var(--t1)] font-['Sora']">{subjects.length}</p>
               <p className="mt-0.5 text-xs text-[var(--t3)]">Across {classes.length} classes</p>
@@ -197,7 +197,7 @@ function DeanDashboardContent() {
                   className="flex flex-col items-center gap-1 rounded-xl border border-[var(--surface-container-low)] bg-[var(--surface-bright)] py-3 transition-all hover:border-[var(--border)] hover:bg-[var(--primary-50)] hover:shadow-sm active:scale-95"
                 >
                   <span className={`material-symbols-outlined text-lg ${link.color}`}>{link.icon}</span>
-                  <span className="text-[10px] font-bold text-[var(--t3)]">{link.label}</span>
+                  <span className="text-xs font-bold text-[var(--t3)]">{link.label}</span>
                 </Link>
               ))}
             </div>
@@ -224,7 +224,7 @@ function DeanDashboardContent() {
                   >
                     <MaterialIcon icon="school" className="text-[var(--t1)] text-xl" />
                     <p className="mt-1 text-sm font-bold text-[var(--t1)]">{cls.name}</p>
-                    <p className="text-[11px] text-[var(--t3)]">{count} students</p>
+                    <p className="text-xs text-[var(--t3)]">{count} students</p>
                   </Link>
                 );
               })}

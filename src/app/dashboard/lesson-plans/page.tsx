@@ -322,11 +322,11 @@ export default function LessonPlansPage() {
           aria-label="lesson plan overview"
           className="mb-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm md:hidden"
         >
-          <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--t3)]">Current term overview</p>
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--t3)]">Current term overview</p>
           <div className="mt-3 grid grid-cols-3 gap-2">
             {planOverview.map((item) => (
               <div key={item.label} className="rounded-xl bg-[var(--surface-container-low)] p-3">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--t3)]">{item.label}</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-[var(--t3)]">{item.label}</p>
                 <p className="mt-1 text-lg font-bold text-[var(--t1)]">{item.value}</p>
               </div>
             ))}

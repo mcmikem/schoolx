@@ -197,7 +197,7 @@ export default function ParentTimetablePage() {
                 <div key={day} className="rounded-[22px] bg-white/40 backdrop-blur-md border border-white/60 p-4">
                   <div className="flex items-center justify-between pb-3 mb-2 border-b border-white/60">
                     <p className="text-sm font-black text-[var(--t1)]">{DAY_NAMES[day]}</p>
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--t3)]">
+                    <span className="text-xs font-bold uppercase tracking-widest text-[var(--t3)]">
                       {daySlots.length} periods
                     </span>
                   </div>
@@ -211,14 +211,14 @@ export default function ParentTimetablePage() {
                           className="flex items-center gap-3 rounded-2xl bg-white/70 border border-white/70 p-3"
                         >
                           <div className="shrink-0 w-12 text-center">
-                            <p className="text-[10px] font-black text-[var(--primary)]">L{slot.period_number}</p>
-                            <p className="text-[9px] text-[var(--t3)] font-semibold leading-tight">
+                            <p className="text-xs font-black text-[var(--primary)]">L{slot.period_number}</p>
+                            <p className="text-xs text-[var(--t3)] font-semibold leading-tight">
                               {formatTime(slot.start_time)}
                             </p>
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-bold text-[var(--t1)] truncate">{slot.subject_name}</p>
-                            <p className="text-[11px] text-[var(--t3)] font-medium">
+                            <p className="text-xs text-[var(--t3)] font-medium">
                               {slot.room ? `${slot.room} · ` : ""}
                               {formatTime(slot.start_time)} – {formatTime(slot.end_time)}
                             </p>

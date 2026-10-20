@@ -58,7 +58,7 @@ export default function TaskManager({
             </div>
             <Link
               href={task.href}
-              className={`shrink-0 rounded-full px-3.5 py-2 text-[11px] font-bold text-white transition-all hover:opacity-90 ${
+              className={`shrink-0 rounded-full px-3.5 py-2 text-xs font-bold text-white transition-all hover:opacity-90 ${
                 task.priority === "urgent"
                   ? "bg-[var(--red)]"
                   : task.priority === "attention"

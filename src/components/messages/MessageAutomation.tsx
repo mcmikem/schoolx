@@ -92,7 +92,7 @@ export default function MessageAutomation({
                     </div>
                   </div>
                   <div className="pt-4 border-t border-[var(--border)] flex items-center justify-between">
-                    <p className="text-[10px] text-[var(--t3)] italic">
+                    <p className="text-xs text-[var(--t3)] italic">
                       Last run: {trigger.last_run_at ? new Date(trigger.last_run_at).toLocaleDateString() : "Never"}
                     </p>
                     <div className="flex items-center gap-2">
@@ -154,7 +154,7 @@ export default function MessageAutomation({
                             (log.trigger_key ? log.trigger_key.replace(/-/g, " ") : "Automation Rule")}{" "}
                           {log.status === "sent" ? "processed successfully" : "failed"}
                         </p>
-                        <p className="text-[10px] text-[var(--t3)]">
+                        <p className="text-xs text-[var(--t3)]">
                           {new Date(log.sent_at || log.created_at).toLocaleString()}
                         </p>
                       </div>

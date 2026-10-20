@@ -1114,7 +1114,7 @@ export default function AttendancePage() {
             >
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--primary)]">Register</p>
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--primary)]">Register</p>
                   <h2 className="mt-1 text-lg font-bold text-[var(--t1)] font-['Sora']">Mark today&apos;s class</h2>
                 </div>
                 {/*
@@ -1130,7 +1130,7 @@ export default function AttendancePage() {
                     classSelectRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
                     classSelectRef.current?.focus();
                   }}
-                  className="rounded-full bg-[var(--primary-50)] px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-[var(--t1)]"
+                  className="rounded-full bg-[var(--primary-50)] px-2.5 py-1 text-xs font-bold uppercase tracking-[0.1em] text-[var(--t1)]"
                 >
                   {selectedClassName?.name || "Choose class"}
                 </button>
@@ -1208,7 +1208,7 @@ export default function AttendancePage() {
           <div className="bg-surface-container-lowest rounded-[24px] border border-outline-variant p-4">
             <div className="flex flex-col sm:flex-row gap-4">
               <div className="flex-1">
-                <label className="text-[10px] font-black uppercase tracking-[0.14em] text-on-surface-variant mb-2 block">
+                <label className="text-xs font-black uppercase tracking-[0.14em] text-on-surface-variant mb-2 block">
                   Select class
                   {isClassTeacher && !isAdmin && (
                     <span className="ml-2 normal-case font-medium text-primary">(your classes)</span>
@@ -1259,7 +1259,7 @@ export default function AttendancePage() {
               </div>
               <div className="flex items-end gap-2">
                 <div className={bulkMode ? "sm:w-40" : "sm:w-48"}>
-                  <label className="text-[10px] font-black uppercase tracking-[0.14em] text-on-surface-variant mb-2 block">
+                  <label className="text-xs font-black uppercase tracking-[0.14em] text-on-surface-variant mb-2 block">
                     Date
                   </label>
                   <input
@@ -1351,7 +1351,7 @@ export default function AttendancePage() {
                         }`}
                       >
                         Mark All {cfg.label}
-                        <span className="block text-[10px] font-medium opacity-80 normal-case tracking-normal">
+                        <span className="block text-xs font-medium opacity-80 normal-case tracking-normal">
                           {bulkDateFrom} to {bulkDateTo}
                         </span>
                       </button>
@@ -1515,7 +1515,7 @@ export default function AttendancePage() {
                           pathLength={100}
                         />
                       </svg>
-                      <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-[var(--t1)]">
+                      <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-[var(--t1)]">
                         {markedPct}%
                       </span>
                     </div>
@@ -1691,7 +1691,7 @@ export default function AttendancePage() {
               <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] px-3 py-2 text-xs text-[var(--t2)]">
                 <span className="font-semibold text-[var(--t1)]">How to mark:</span>
                 <span className="flex items-center gap-1.5">
-                  <span className="inline-flex h-6 w-10 items-center justify-center rounded-md border border-[var(--border)] bg-[var(--surface)] text-[11px] font-bold">
+                  <span className="inline-flex h-6 w-10 items-center justify-center rounded-md border border-[var(--border)] bg-[var(--surface)] text-xs font-bold">
                     Tap
                   </span>
                   Present
@@ -1880,7 +1880,7 @@ export default function AttendancePage() {
                 >
                   <span className="flex flex-col items-center leading-tight">
                     <span>Save</span>
-                    <span className="text-[11px] font-medium opacity-80">
+                    <span className="text-xs font-medium opacity-80">
                       {effectivePresentCount} present · {absentCount} absent
                       {lateCount > 0 ? ` · ${lateCount} late` : ""}
                       {excusedCount > 0 ? ` · ${excusedCount} excused` : ""}

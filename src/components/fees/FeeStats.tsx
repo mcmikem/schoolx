@@ -93,7 +93,7 @@ function RosterDonut({
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
         <span className="text-2xl font-extrabold tabular-nums text-[var(--t1)]">{stats.collectionRate}%</span>
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-[var(--t3)]">cleared</span>
+        <span className="text-xs font-semibold uppercase tracking-wider text-[var(--t3)]">cleared</span>
       </div>
     </div>
   );
@@ -139,7 +139,7 @@ export default function FeeStats({ stats, paymentsCount, onFilter, activeFilter 
                 >
                   <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${r.dot}`} />
                   <span className="min-w-0">
-                    <span className="block text-[11px] font-semibold uppercase tracking-wider text-[var(--t3)] truncate">
+                    <span className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] truncate">
                       {r.label}
                     </span>
                     <span className="block text-lg font-extrabold tabular-nums text-[var(--t1)] leading-tight">

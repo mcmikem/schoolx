@@ -495,7 +495,7 @@ export default function CanteenPOSPage() {
             </div>
             <div className="min-w-0">
               <h1 className="text-lg sm:text-xl font-black text-slate-800 tracking-tight truncate">Canteen POS</h1>
-              <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest truncate">
+              <p className="text-xs font-black uppercase text-slate-400 tracking-widest truncate">
                 {school?.name || "SkoolMate Canteen"}
               </p>
             </div>
@@ -512,7 +512,7 @@ export default function CanteenPOSPage() {
             >
               <MaterialIcon icon="bolt" style={{ fontSize: 16 }} />
               <span className="hidden sm:inline">QuickSale</span>
-              <kbd className="hidden md:inline rounded bg-white/20 px-1.5 py-0.5 text-[10px] font-bold">F2</kbd>
+              <kbd className="hidden md:inline rounded bg-white/20 px-1.5 py-0.5 text-xs font-bold">F2</kbd>
             </button>
             <Link
               href="/dashboard/store/meal-scan"
@@ -594,21 +594,21 @@ export default function CanteenPOSPage() {
                       </div>
                       <p className="text-sm font-black text-slate-800 leading-tight mb-1 pr-14">{item.name}</p>
                       {variantLabel && (
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">
+                        <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-1">
                           {variantLabel}
                         </p>
                       )}
-                      {item.unit && <p className="text-[10px] font-bold text-slate-400 mb-1">per {item.unit}</p>}
+                      {item.unit && <p className="text-xs font-bold text-slate-400 mb-1">per {item.unit}</p>}
                       <p className="text-xs font-bold text-primary-700">
                         UGX {Number(item.price || 0).toLocaleString()}
                       </p>
 
-                      <div className="absolute top-4 right-4 text-[9px] font-black uppercase text-slate-400 tracking-tighter">
+                      <div className="absolute top-4 right-4 text-xs font-black uppercase text-slate-400 tracking-tighter">
                         Stock: {Number(item.stock || 0) > 0 ? item.stock : "OUT"}
                       </div>
                       {inCartQty > 0 && (
                         <div
-                          className="absolute bottom-3 right-3 rounded-full bg-primary-800 text-white text-[10px] font-black px-2.5 py-1 shadow-md"
+                          className="absolute bottom-3 right-3 rounded-full bg-primary-800 text-white text-xs font-black px-2.5 py-1 shadow-md"
                           aria-hidden="true"
                         >
                           {formatQty(inCartQty)} in cart
@@ -616,7 +616,7 @@ export default function CanteenPOSPage() {
                       )}
                       {outOfStock && Number(item.stock || 0) > 0 && (
                         <div
-                          className="absolute bottom-3 right-3 rounded-full bg-amber-100 text-amber-800 text-[10px] font-black px-2.5 py-1"
+                          className="absolute bottom-3 right-3 rounded-full bg-amber-100 text-amber-800 text-xs font-black px-2.5 py-1"
                           aria-hidden="true"
                         >
                           Max
@@ -638,9 +638,7 @@ export default function CanteenPOSPage() {
           <div className="w-full lg:max-w-[400px] bg-white border-t lg:border-t-0 lg:border-l border-slate-100 flex flex-col shrink-0 max-h-[52vh] lg:max-h-none lg:flex-1 xl:flex-none overflow-y-auto lg:overflow-visible">
             {/* Student Verification */}
             <div className="p-4 sm:p-6 border-b border-slate-100">
-              <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">
-                Customer Identity
-              </h3>
+              <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">Customer Identity</h3>
               {!student ? (
                 <div className="space-y-3">
                   <button
@@ -687,7 +685,7 @@ export default function CanteenPOSPage() {
                       <p className="text-sm font-black truncate">
                         {student.first_name} {student.last_name}
                       </p>
-                      <p className="text-[10px] font-black opacity-60 uppercase tracking-widest">
+                      <p className="text-xs font-black opacity-60 uppercase tracking-widest">
                         {student.student_number}
                       </p>
                     </div>
@@ -702,11 +700,11 @@ export default function CanteenPOSPage() {
                   </div>
                   <div className="mt-4 pt-4 border-t border-white/10 flex justify-between items-end relative z-10">
                     <div>
-                      <p className="text-[9px] font-black uppercase opacity-60 tracking-tighter mb-1">Wallet Balance</p>
+                      <p className="text-xs font-black uppercase opacity-60 tracking-tighter mb-1">Wallet Balance</p>
                       <p className="text-xl font-black">UGX {student.balance.toLocaleString()}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-[9px] font-black bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full uppercase tracking-tighter">
+                      <p className="text-xs font-black bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full uppercase tracking-tighter">
                         Verified
                       </p>
                     </div>
@@ -723,8 +721,8 @@ export default function CanteenPOSPage() {
             {/* Cart Items */}
             <div className="flex-1 flex flex-col overflow-hidden p-4 sm:p-6 gap-4 min-h-0">
               <div className="flex justify-between items-center">
-                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Current Order</h3>
-                <p className="text-[10px] font-bold text-slate-400 italic">{cart.length} lines</p>
+                <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">Current Order</h3>
+                <p className="text-xs font-bold text-slate-400 italic">{cart.length} lines</p>
               </div>
 
               <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar space-y-3 min-h-0">
@@ -746,7 +744,7 @@ export default function CanteenPOSPage() {
                           {item.name}
                           {item.variant ? ` · ${item.variant}` : ""}
                         </p>
-                        <p className="text-[10px] text-slate-400 font-bold tracking-tighter">
+                        <p className="text-xs text-slate-400 font-bold tracking-tighter">
                           UGX {Number(item.price || 0).toLocaleString()}
                         </p>
                         <div className="mt-1.5 flex items-center gap-1.5">
@@ -821,7 +819,7 @@ export default function CanteenPOSPage() {
                   type="button"
                   onClick={() => setPaymentMethod("wallet")}
                   aria-pressed={paymentMethod === "wallet"}
-                  className={`flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 min-h-[44px] touch-manipulation ${paymentMethod === "wallet" ? "bg-primary-800 text-white shadow-md" : "text-slate-500 hover:text-slate-800"}`}
+                  className={`flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 min-h-[44px] touch-manipulation ${paymentMethod === "wallet" ? "bg-primary-800 text-white shadow-md" : "text-slate-500 hover:text-slate-800"}`}
                 >
                   <MaterialIcon icon="account_balance_wallet" style={{ fontSize: 16 }} />
                   Wallet
@@ -830,7 +828,7 @@ export default function CanteenPOSPage() {
                   type="button"
                   onClick={() => setPaymentMethod("cash")}
                   aria-pressed={paymentMethod === "cash"}
-                  className={`flex-1 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 min-h-[44px] touch-manipulation ${paymentMethod === "cash" ? "bg-primary-800 text-white shadow-md" : "text-slate-500 hover:text-slate-800"}`}
+                  className={`flex-1 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-2 min-h-[44px] touch-manipulation ${paymentMethod === "cash" ? "bg-primary-800 text-white shadow-md" : "text-slate-500 hover:text-slate-800"}`}
                 >
                   <MaterialIcon icon="payments" style={{ fontSize: 16 }} />
                   Cash
@@ -841,7 +839,7 @@ export default function CanteenPOSPage() {
                 <div className="space-y-1.5">
                   <label
                     htmlFor="pos-cash-tendered"
-                    className="text-[10px] font-black uppercase tracking-widest text-slate-400"
+                    className="text-xs font-black uppercase tracking-widest text-slate-400"
                   >
                     Cash received (UGX)
                   </label>
@@ -876,7 +874,7 @@ export default function CanteenPOSPage() {
 
               <div className="space-y-2">
                 <div className="flex justify-between items-center px-1">
-                  <p className="text-[11px] font-black uppercase text-slate-400 tracking-widest">Grand Total</p>
+                  <p className="text-xs font-black uppercase text-slate-400 tracking-widest">Grand Total</p>
                   <p className="text-2xl font-black text-slate-800">UGX {total.toLocaleString()}</p>
                 </div>
                 <div className="flex gap-2">
@@ -907,7 +905,7 @@ export default function CanteenPOSPage() {
                   </button>
                 </div>
                 {(cashBlocked || walletBlocked) && (
-                  <p role="alert" className="text-[11px] font-bold text-red-600 text-center">
+                  <p role="alert" className="text-xs font-bold text-red-600 text-center">
                     {cashBlocked ? "Add enough cash to complete this order." : "Top up the wallet or switch to Cash."}
                   </p>
                 )}
@@ -990,7 +988,7 @@ export default function CanteenPOSPage() {
                   <>
                     <label
                       htmlFor="pos-confirm-tendered"
-                      className="block text-[10px] font-black uppercase tracking-widest text-slate-400 pt-1"
+                      className="block text-xs font-black uppercase tracking-widest text-slate-400 pt-1"
                     >
                       Cash received (UGX)
                     </label>

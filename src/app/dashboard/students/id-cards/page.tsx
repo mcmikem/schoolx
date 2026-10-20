@@ -175,7 +175,7 @@ export default function IDCardGenerator() {
                           <p className="text-[13px] font-bold text-slate-800 truncate">
                             {s.first_name} {s.last_name}
                           </p>
-                          <p className="text-[10px] text-slate-400 uppercase tracking-wider">{s.student_number}</p>
+                          <p className="text-xs text-slate-400 uppercase tracking-wider">{s.student_number}</p>
                         </div>
                         <MaterialIcon
                           icon={alreadyAdded ? "check_circle" : "add_circle"}
@@ -203,9 +203,7 @@ export default function IDCardGenerator() {
                         <p className="text-[13px] font-bold text-slate-800 truncate">
                           {s.first_name} {s.last_name}
                         </p>
-                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-wider">
-                          {s.student_number}
-                        </p>
+                        <p className="text-xs text-slate-400 font-black uppercase tracking-wider">{s.student_number}</p>
                       </div>
                       <button
                         onClick={() => removeStudent(s.id)}
@@ -226,10 +224,8 @@ export default function IDCardGenerator() {
           <div className="lg:col-span-3">
             <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-8 min-h-[600px] bg-slate-100/50">
               <div className="mb-8 flex justify-between items-center text-slate-400">
-                <h3 className="font-bold uppercase tracking-widest text-[11px]">Identity Preview</h3>
-                <p className="text-[10px] font-medium italic">
-                  Cards are designed to standard CR80 size (85.6mm x 54mm)
-                </p>
+                <h3 className="font-bold uppercase tracking-widest text-xs">Identity Preview</h3>
+                <p className="text-xs font-medium italic">Cards are designed to standard CR80 size (85.6mm x 54mm)</p>
               </div>
 
               <div

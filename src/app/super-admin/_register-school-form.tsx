@@ -104,7 +104,7 @@ export function RegisterSchoolForm({ onDone }: { onDone: () => void }) {
           { label: "Email", name: "email", tp: "email", placeholder: "admin@school.ug" },
         ].map((f) => (
           <div key={f.name}>
-            <label className="block text-[11px] font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">
+            <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">
               {f.label}
               {f.required && <span className="text-red-500 ml-0.5">*</span>}
             </label>
@@ -121,7 +121,7 @@ export function RegisterSchoolForm({ onDone }: { onDone: () => void }) {
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="block text-[11px] font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">
+          <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">
             School Type <span className="text-red-500">*</span>
           </label>
           <select
@@ -135,7 +135,7 @@ export function RegisterSchoolForm({ onDone }: { onDone: () => void }) {
           </select>
         </div>
         <div>
-          <label className="block text-[11px] font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">
+          <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">
             Ownership <span className="text-red-500">*</span>
           </label>
           <select
@@ -149,7 +149,7 @@ export function RegisterSchoolForm({ onDone }: { onDone: () => void }) {
           </select>
         </div>
         <div>
-          <label className="block text-[11px] font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">
+          <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">
             Subscription Plan
           </label>
           <select
@@ -165,7 +165,7 @@ export function RegisterSchoolForm({ onDone }: { onDone: () => void }) {
           </select>
         </div>
         <div>
-          <label className="block text-[11px] font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">
+          <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">
             Feature Access
           </label>
           <select
@@ -180,7 +180,7 @@ export function RegisterSchoolForm({ onDone }: { onDone: () => void }) {
           </select>
         </div>
         <div>
-          <label className="block text-[11px] font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">
+          <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">
             Trial Duration (days)
           </label>
           <input
@@ -195,7 +195,7 @@ export function RegisterSchoolForm({ onDone }: { onDone: () => void }) {
         </div>
       </div>
       <div>
-        <label className="block text-[11px] font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">
+        <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">
           School Brand Colour
         </label>
         <div className="flex items-center gap-3">
@@ -210,10 +210,10 @@ export function RegisterSchoolForm({ onDone }: { onDone: () => void }) {
       </div>
       <hr className="border-[var(--border)]" />
       <h3 className="font-['Sora'] text-[13px] font-bold text-[var(--t1)]">Admin Account</h3>
-      <p className="text-[11px] text-[var(--t3)] -mt-2">The school admin will use these credentials to sign in.</p>
+      <p className="text-xs text-[var(--t3)] -mt-2">The school admin will use these credentials to sign in.</p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="block text-[11px] font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">
+          <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">
             Admin Name <span className="text-red-500">*</span>
           </label>
           <input
@@ -226,7 +226,7 @@ export function RegisterSchoolForm({ onDone }: { onDone: () => void }) {
           />
         </div>
         <div>
-          <label className="block text-[11px] font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">
+          <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">
             Admin Phone <span className="text-red-500">*</span>
           </label>
           <input
@@ -239,7 +239,7 @@ export function RegisterSchoolForm({ onDone }: { onDone: () => void }) {
           />
         </div>
         <div className="sm:col-span-2">
-          <label className="block text-[11px] font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">
+          <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">
             Password <span className="text-red-500">*</span>
             <span className="font-normal normal-case text-[var(--t4)] ml-1">(min 8 chars, 1 uppercase, 1 number)</span>
           </label>
@@ -255,12 +255,12 @@ export function RegisterSchoolForm({ onDone }: { onDone: () => void }) {
       </div>
       <hr className="border-[var(--border)]" />
       <h3 className="font-['Sora'] text-[13px] font-bold text-[var(--t1)]">Digitization Service (Optional)</h3>
-      <p className="text-[11px] text-[var(--t3)] -mt-2">
+      <p className="text-xs text-[var(--t3)] -mt-2">
         Offer to digitize the school's student data for an additional fee (UGX 10,000 \u2013 50,000).
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="block text-[11px] font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">
+          <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">
             Digitization Fee (UGX)
           </label>
           <input

@@ -245,7 +245,7 @@ export default function DormitoryPage() {
             { label: "Incidents", value: incidents.length, tone: "text-red-700 bg-red-50" },
           ].map((item) => (
             <div key={item.label} className={`rounded-2xl border border-[var(--border)] p-3 ${item.tone}`}>
-              <div className="text-[11px] font-black uppercase tracking-[0.18em] opacity-80">{item.label}</div>
+              <div className="text-xs font-black uppercase tracking-[0.18em] opacity-80">{item.label}</div>
               <div className="mt-1 text-sm font-bold truncate">{item.value as any}</div>
             </div>
           ))}

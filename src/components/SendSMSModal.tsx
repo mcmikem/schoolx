@@ -280,8 +280,8 @@ export function SendSMSModal({ student, isOpen, onClose, onSent }: SendSMSModalP
                   <div className="w-[220px] bg-[var(--t1)] rounded-[24px] p-3 shadow-xl">
                     <div className="w-[16px] h-[16px] bg-[var(--t1)] rounded-full mx-auto mb-3" />
                     <div className="bg-[var(--primary-800)] rounded-xl rounded-tl-none p-2.5 max-w-[180px]">
-                      <p className="text-white text-[11px] leading-relaxed break-words">{message}</p>
-                      <p className="text-[var(--border2)] text-[9px] text-right mt-1">
+                      <p className="text-white text-xs leading-relaxed break-words">{message}</p>
+                      <p className="text-[var(--border2)] text-xs text-right mt-1">
                         {new Date().toLocaleTimeString([], {
                           hour: "2-digit",
                           minute: "2-digit",
@@ -289,7 +289,7 @@ export function SendSMSModal({ student, isOpen, onClose, onSent }: SendSMSModalP
                       </p>
                     </div>
                     <div className="text-center mt-2">
-                      <span className="text-[var(--t2)] text-[9px]">{student.parent_phone}</span>
+                      <span className="text-[var(--t2)] text-xs">{student.parent_phone}</span>
                     </div>
                   </div>
                 </div>

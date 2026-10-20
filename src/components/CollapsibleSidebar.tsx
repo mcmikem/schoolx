@@ -165,7 +165,7 @@ export default function CollapsibleSidebar({ groups, onNavigate, compact = false
 
       {visibleRecentPages.length > 0 && !normalizedQuery && (
         <div className="px-2 pb-2">
-          <div className="text-[10px] uppercase tracking-wider font-bold text-[var(--t4)] mb-1.5">
+          <div className="text-xs uppercase tracking-wider font-bold text-[var(--t4)] mb-1.5">
             Continue where you left off
           </div>
           <div className="space-y-1">
@@ -197,7 +197,7 @@ export default function CollapsibleSidebar({ groups, onNavigate, compact = false
                 onClick={() => toggleGroup(group)}
                 title={group.label}
                 className={cn(
-                  "flex min-h-11 items-center w-full px-3 py-2.5 text-[10px] font-extrabold uppercase tracking-widest transition-colors duration-150 rounded-lg focus-visible:ring-2 focus-visible:ring-[var(--primary)]",
+                  "flex min-h-11 items-center w-full px-3 py-2.5 text-xs font-extrabold uppercase tracking-widest transition-colors duration-150 rounded-lg focus-visible:ring-2 focus-visible:ring-[var(--primary)]",
                   hasActive || isOpen
                     ? "text-[var(--primary)]"
                     : "text-[var(--t4)] hover:text-[var(--t2)] hover:bg-[var(--surface-container-low)]",
@@ -253,7 +253,7 @@ export default function CollapsibleSidebar({ groups, onNavigate, compact = false
                         {item.badge && (
                           <span
                             className={cn(
-                              "text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider",
+                              "text-xs font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider",
                               item.badge === "New"
                                 ? "bg-[var(--green-soft)] text-[var(--green)]"
                                 : "bg-[var(--amber-soft)] text-[var(--amber)]",

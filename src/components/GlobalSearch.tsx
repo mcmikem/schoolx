@@ -534,7 +534,7 @@ export default function GlobalSearch({ trigger }: GlobalSearchProps) {
                 </span>
               </div>
               {recentSearches.length > 0 && (
-                <span className="text-[11px] text-[var(--t4)]">{recentSearches.length} recent</span>
+                <span className="text-xs text-[var(--t4)]">{recentSearches.length} recent</span>
               )}
             </div>
           </div>

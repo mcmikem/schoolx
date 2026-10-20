@@ -100,7 +100,7 @@ export default function ParentAttendancePage() {
                   <MaterialIcon icon={s.icon} className={`text-xl ${s.color}`} />
                 </div>
                 <p className={`text-2xl font-black ${s.color}`}>{s.value}</p>
-                <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
+                <p className="text-xs font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
                   {s.label}
                 </p>
               </CardBody>
@@ -146,11 +146,11 @@ export default function ParentAttendancePage() {
                             year: "numeric",
                           })}
                         </p>
-                        {r.notes && <p className="text-[10px] text-[var(--on-surface-variant)]">{r.notes}</p>}
+                        {r.notes && <p className="text-xs text-[var(--on-surface-variant)]">{r.notes}</p>}
                       </div>
                     </div>
                     <span
-                      className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${STATUS_STYLES[r.status] || "bg-gray-50 text-gray-600 border-gray-200"}`}
+                      className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider border ${STATUS_STYLES[r.status] || "bg-gray-50 text-gray-600 border-gray-200"}`}
                     >
                       {r.status}
                     </span>

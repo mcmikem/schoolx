@@ -365,23 +365,23 @@ export default function AttendanceHistoryPage() {
                       </div>
                       <dl className="mt-3 grid grid-cols-3 gap-2 text-center sm:grid-cols-5">
                         <div className="rounded-lg bg-[var(--surface-container)] px-2 py-2">
-                          <dt className="text-[11px] uppercase tracking-wide text-[var(--t3)]">Present</dt>
+                          <dt className="text-xs uppercase tracking-wide text-[var(--t3)]">Present</dt>
                           <dd className="text-sm font-medium text-green-600">{r.present ?? 0}</dd>
                         </div>
                         <div className="rounded-lg bg-[var(--surface-container)] px-2 py-2">
-                          <dt className="text-[11px] uppercase tracking-wide text-[var(--t3)]">Absent</dt>
+                          <dt className="text-xs uppercase tracking-wide text-[var(--t3)]">Absent</dt>
                           <dd className="text-sm font-medium text-red-600">{r.absent ?? 0}</dd>
                         </div>
                         <div className="rounded-lg bg-[var(--surface-container)] px-2 py-2">
-                          <dt className="text-[11px] uppercase tracking-wide text-[var(--t3)]">Late</dt>
+                          <dt className="text-xs uppercase tracking-wide text-[var(--t3)]">Late</dt>
                           <dd className="text-sm font-medium text-yellow-600">{r.late ?? 0}</dd>
                         </div>
                         <div className="rounded-lg bg-[var(--surface-container)] px-2 py-2">
-                          <dt className="text-[11px] uppercase tracking-wide text-[var(--t3)]">Excused</dt>
+                          <dt className="text-xs uppercase tracking-wide text-[var(--t3)]">Excused</dt>
                           <dd className="text-sm font-medium text-purple-600">{r.excused ?? 0}</dd>
                         </div>
                         <div className="rounded-lg bg-[var(--surface-container)] px-2 py-2">
-                          <dt className="text-[11px] uppercase tracking-wide text-[var(--t3)]">Total</dt>
+                          <dt className="text-xs uppercase tracking-wide text-[var(--t3)]">Total</dt>
                           <dd className="text-sm font-medium text-[var(--t1)]">{r.total ?? 0}</dd>
                         </div>
                       </dl>

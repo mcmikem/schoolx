@@ -138,7 +138,7 @@ export default function FeaturesPage() {
         <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
           <FadeIn>
             <div className="text-center max-w-3xl mx-auto">
-              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-white px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--brand-ink)] shadow-sm">
+              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-white px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-[var(--brand-ink)] shadow-sm">
                 <MaterialIcon icon="travel_explore" className="text-sm" />
                 Everything in one platform
               </span>

@@ -150,10 +150,7 @@ export default function OwlAssistant() {
     measure();
 
     const bar = document.querySelector("[data-page-action-bar]");
-    const observer =
-      typeof ResizeObserver !== "undefined" && bar
-        ? new ResizeObserver(measure)
-        : null;
+    const observer = typeof ResizeObserver !== "undefined" && bar ? new ResizeObserver(measure) : null;
     if (observer && bar) observer.observe(bar);
     window.addEventListener("resize", measure);
 
@@ -523,7 +520,9 @@ export default function OwlAssistant() {
                     <p className="flex items-start gap-2 text-sm font-semibold leading-relaxed text-[var(--on-surface)]">
                       <MaterialIcon icon="check_circle" size={18} className="mt-0.5 shrink-0" />
                       <span>
-                        <span className="block text-[11px] uppercase tracking-wide opacity-70">You will know it worked when</span>
+                        <span className="block text-xs uppercase tracking-wide opacity-70">
+                          You will know it worked when
+                        </span>
                         {step.done}
                       </span>
                     </p>
@@ -664,7 +663,7 @@ export default function OwlAssistant() {
                     {formatMessage(msg.text)}
                   </div>
                   <p
-                    className={`text-[10px] text-[var(--t4,#9ca3af)] mt-0.5 ${msg.role === "user" ? "text-right" : "text-left"}`}
+                    className={`text-xs text-[var(--t4,#9ca3af)] mt-0.5 ${msg.role === "user" ? "text-right" : "text-left"}`}
                   >
                     {msg.time}
                   </p>
@@ -753,7 +752,7 @@ export default function OwlAssistant() {
 
           {/* Footer: honest contact info. WhatsApp first, SMS secondary */}
           <div className="px-3 py-2 bg-[var(--surface-container-low,#f9fafb)] flex items-center justify-between gap-2">
-            <p className="text-[10px] text-[var(--t4,#9ca3af)]">
+            <p className="text-xs text-[var(--t4,#9ca3af)]">
               Need a human?{" "}
               <a
                 href={generateSupportWhatsAppLink(contactCtx)}
@@ -766,7 +765,7 @@ export default function OwlAssistant() {
             </p>
             <a
               href={generateSupportSmsLink(contactCtx)}
-              className="text-[10px] text-[var(--t4,#9ca3af)] underline"
+              className="text-xs text-[var(--t4,#9ca3af)] underline"
               title="SMS support (secondary)"
             >
               SMS instead

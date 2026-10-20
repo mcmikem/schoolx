@@ -85,7 +85,7 @@ export function UserActions({
   };
 
   if (u.role === "super_admin") {
-    return <span className="text-[10px] text-[var(--t4)] italic">Protected</span>;
+    return <span className="text-xs text-[var(--t4)] italic">Protected</span>;
   }
 
   return (
@@ -153,7 +153,7 @@ export function UserActions({
             type="button"
             disabled={busy}
             onClick={() => setConfirm({ open: true, type: "deactivate" })}
-            className="px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-[#fef3c7] text-[var(--amber)] hover:opacity-80 disabled:opacity-40"
+            className="px-2 py-0.5 rounded-lg text-xs font-semibold bg-[#fef3c7] text-[var(--amber)] hover:opacity-80 disabled:opacity-40"
           >
             Deactivate
           </button>
@@ -162,7 +162,7 @@ export function UserActions({
             type="button"
             disabled={busy}
             onClick={() => doUpdate({ is_active: true }, `${u.full_name} reactivated`)}
-            className="px-2 py-0.5 rounded-lg text-[10px] font-semibold bg-[#ccfbf1] text-[#0d9488] hover:opacity-80 disabled:opacity-40"
+            className="px-2 py-0.5 rounded-lg text-xs font-semibold bg-[#ccfbf1] text-[#0d9488] hover:opacity-80 disabled:opacity-40"
           >
             Reactivate
           </button>
@@ -179,7 +179,7 @@ export function UserActions({
           </button>
           {showRoleMenu && (
             <div className="absolute right-0 top-7 z-30 bg-[var(--surface)] border border-[var(--border)] rounded-xl shadow-xl min-w-[160px] py-1">
-              <div className="px-3 py-1.5 text-[10px] font-bold text-[var(--t3)] uppercase tracking-wide border-b border-[var(--border)]">
+              <div className="px-3 py-1.5 text-xs font-bold text-[var(--t3)] uppercase tracking-wide border-b border-[var(--border)]">
                 Change Role
               </div>
               {ALL_ROLES.map((r) => (
@@ -190,7 +190,7 @@ export function UserActions({
                     setShowRoleMenu(false);
                     doUpdate({ role: r }, `Role changed to ${r.replace(/_/g, " ")}`);
                   }}
-                  className={`w-full text-left px-3 py-1.5 text-[11px] font-semibold hover:bg-[var(--bg)] ${u.role === r ? "text-[var(--primary)]" : "text-[var(--t1)]"}`}
+                  className={`w-full text-left px-3 py-1.5 text-xs font-semibold hover:bg-[var(--bg)] ${u.role === r ? "text-[var(--primary)]" : "text-[var(--t1)]"}`}
                 >
                   {r.replace(/_/g, " ")}
                 </button>

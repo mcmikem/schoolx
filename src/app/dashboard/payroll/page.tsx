@@ -400,23 +400,21 @@ export default function PayrollPage() {
             <table className="w-full text-left">
               <thead>
                 <tr className="bg-slate-50/50">
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Staff</th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">
+                  <th className="px-6 py-4 text-xs font-black uppercase tracking-widest text-slate-400">Staff</th>
+                  <th className="px-6 py-4 text-xs font-black uppercase tracking-widest text-slate-400 text-right">
                     Gross (UGX)
                   </th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">
+                  <th className="px-6 py-4 text-xs font-black uppercase tracking-widest text-slate-400 text-center">
                     NSSF
                   </th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">
+                  <th className="px-6 py-4 text-xs font-black uppercase tracking-widest text-slate-400 text-center">
                     PAYE
                   </th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                    Other Ded.
-                  </th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">
+                  <th className="px-6 py-4 text-xs font-black uppercase tracking-widest text-slate-400">Other Ded.</th>
+                  <th className="px-6 py-4 text-xs font-black uppercase tracking-widest text-slate-400 text-right">
                     Net Pay
                   </th>
-                  <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Bank</th>
+                  <th className="px-6 py-4 text-xs font-black uppercase tracking-widest text-slate-400">Bank</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
@@ -451,7 +449,7 @@ export default function PayrollPage() {
                               </div>
                               <div>
                                 <p className="text-xs font-bold text-slate-800">{member.full_name}</p>
-                                <p className="text-[9px] font-medium text-slate-400">{member.role || "Staff"}</p>
+                                <p className="text-xs font-medium text-slate-400">{member.role || "Staff"}</p>
                               </div>
                             </div>
                           </td>
@@ -465,7 +463,7 @@ export default function PayrollPage() {
                                     [member.id]: { ...prev[member.id], grade: e.target.value },
                                   }))
                                 }
-                                className="text-[10px] font-bold text-slate-500 bg-slate-50 border-none outline-none text-right"
+                                className="text-xs font-bold text-slate-500 bg-slate-50 border-none outline-none text-right"
                               >
                                 {GRADES.map((g) => (
                                   <option key={g} value={g}>
@@ -492,12 +490,12 @@ export default function PayrollPage() {
                             </div>
                           </td>
                           <td className="px-6 py-4 text-center">
-                            <span className="text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+                            <span className="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
                               {pay.nssf.toLocaleString()}
                             </span>
                           </td>
                           <td className="px-6 py-4 text-center">
-                            <span className="text-[10px] font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full">
+                            <span className="text-xs font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full">
                               {pay.paye.toLocaleString()}
                             </span>
                           </td>
@@ -520,7 +518,7 @@ export default function PayrollPage() {
                             {pay.net.toLocaleString()}
                           </td>
                           <td className="px-6 py-4">
-                            <p className="text-[10px] text-slate-400 font-mono truncate max-w-[100px]">
+                            <p className="text-xs text-slate-400 font-mono truncate max-w-[100px]">
                               {member.bank_account || "—"}
                             </p>
                           </td>
@@ -532,7 +530,7 @@ export default function PayrollPage() {
               {!loading && staff.length > 0 && (
                 <tfoot className="bg-slate-900 text-white">
                   <tr>
-                    <td className="px-6 py-4 text-[10px] font-black uppercase tracking-wider">School Totals</td>
+                    <td className="px-6 py-4 text-xs font-black uppercase tracking-wider">School Totals</td>
                     <td className="px-6 py-4 text-right font-black text-xs text-blue-300">
                       {totals.gross.toLocaleString()}
                     </td>
@@ -579,25 +577,21 @@ export default function PayrollPage() {
                 <table className="w-full text-left">
                   <thead>
                     <tr className="bg-slate-50/50">
-                      <th className="px-4 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400">
-                        Month
-                      </th>
-                      <th className="px-4 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400 text-right">
+                      <th className="px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-400">Month</th>
+                      <th className="px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-400 text-right">
                         Gross
                       </th>
-                      <th className="px-4 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400 text-right">
+                      <th className="px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-400 text-right">
                         NSSF
                       </th>
-                      <th className="px-4 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400 text-right">
+                      <th className="px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-400 text-right">
                         PAYE
                       </th>
-                      <th className="px-4 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400 text-right">
+                      <th className="px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-400 text-right">
                         Net
                       </th>
-                      <th className="px-4 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400">
-                        Status
-                      </th>
-                      <th className="px-4 py-3 text-[9px] font-black uppercase tracking-widest text-slate-400">Date</th>
+                      <th className="px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-400">Status</th>
+                      <th className="px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-400">Date</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50">
@@ -618,12 +612,12 @@ export default function PayrollPage() {
                         </td>
                         <td className="px-4 py-3">
                           <span
-                            className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${r.status === "paid" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}
+                            className={`text-xs font-bold px-2 py-0.5 rounded-full ${r.status === "paid" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}
                           >
                             {r.status}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-[10px] text-slate-400">
+                        <td className="px-4 py-3 text-xs text-slate-400">
                           {format(new Date(r.created_at), "dd MMM yyyy")}
                         </td>
                       </tr>

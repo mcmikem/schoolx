@@ -59,7 +59,7 @@ export default function SkoolMateLogo({
             SKOOLMATE OS
           </span>
           {size !== "sm" && (
-            <span className="text-[10px] text-[var(--t3)] font-medium tracking-wider uppercase leading-tight">
+            <span className="text-xs text-[var(--t3)] font-medium tracking-wider uppercase leading-tight">
               Your Digital School Partner
             </span>
           )}

@@ -90,7 +90,7 @@ export default function BlogPage() {
         <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
           <FadeIn>
             <div className="text-center max-w-3xl mx-auto">
-              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-white px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--t1)] shadow-sm">
+              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-white px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-[var(--t1)] shadow-sm">
                 <MaterialIcon icon="rss_feed" className="text-sm" />
                 Blog
               </span>
@@ -110,11 +110,11 @@ export default function BlogPage() {
               <FadeIn key={post.title} delay={i * 80}>
                 <article className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-all h-full flex flex-col">
                   <div className="flex items-center gap-2 mb-3">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-[var(--primary)]">
+                    <span className="text-xs font-bold uppercase tracking-widest text-[var(--primary)]">
                       {post.category}
                     </span>
-                    <span className="text-[10px] text-slate-400">&middot;</span>
-                    <span className="text-[10px] text-slate-400">{post.date}</span>
+                    <span className="text-xs text-slate-400">&middot;</span>
+                    <span className="text-xs text-slate-400">{post.date}</span>
                   </div>
                   <h2 className="font-['Sora'] text-lg font-semibold text-slate-900 leading-snug">{post.title}</h2>
                   <p className="mt-3 text-sm leading-6 text-slate-600 flex-1">{post.excerpt}</p>

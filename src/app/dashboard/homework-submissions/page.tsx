@@ -206,7 +206,7 @@ export default function HomeworkSubmissionsPage() {
                         className="rounded-xl bg-[var(--surface-container-low)] px-2 py-2 text-center"
                       >
                         <p className={`text-lg font-bold leading-none ${item.tone}`}>{item.value}</p>
-                        <p className="mt-1 text-[10px] font-semibold text-[var(--t3)]">{item.label}</p>
+                        <p className="mt-1 text-xs font-semibold text-[var(--t3)]">{item.label}</p>
                       </div>
                     ))}
                   </div>

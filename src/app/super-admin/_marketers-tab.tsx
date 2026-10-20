@@ -200,19 +200,19 @@ export function MarketersTab() {
       {/* Performance summary */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
-          <div className="text-[11px] font-medium text-[var(--t3)]">Total Marketers</div>
+          <div className="text-xs font-medium text-[var(--t3)]">Total Marketers</div>
           <div className="text-[22px] font-bold text-[var(--t1)] mt-1">{marketers.length}</div>
         </div>
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
-          <div className="text-[11px] font-medium text-[var(--t3)]">Total Earnings (All)</div>
+          <div className="text-xs font-medium text-[var(--t3)]">Total Earnings (All)</div>
           <div className="text-[22px] font-bold text-[var(--t1)] mt-1">UGX {totalEarnings.toLocaleString()}</div>
         </div>
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
-          <div className="text-[11px] font-medium text-[var(--t3)]">Pending Payouts</div>
+          <div className="text-xs font-medium text-[var(--t3)]">Pending Payouts</div>
           <div className="text-[22px] font-bold text-amber-600 mt-1">UGX {totalPending.toLocaleString()}</div>
         </div>
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4">
-          <div className="text-[11px] font-medium text-[var(--t3)]">Avg Earnings / Marketer</div>
+          <div className="text-xs font-medium text-[var(--t3)]">Avg Earnings / Marketer</div>
           <div className="text-[22px] font-bold text-[var(--t1)] mt-1">UGX {avgPerMarketer.toLocaleString()}</div>
         </div>
       </div>
@@ -234,7 +234,7 @@ export function MarketersTab() {
                 setContactMethod("email");
                 setPhone("");
               }}
-              className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
                 contactMethod === "email"
                   ? "bg-[var(--primary)] text-white"
                   : "bg-[var(--bg)] text-[var(--t3)] border border-[var(--border)]"
@@ -248,7 +248,7 @@ export function MarketersTab() {
                 setContactMethod("phone");
                 setEmail("");
               }}
-              className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-colors ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
                 contactMethod === "phone"
                   ? "bg-[var(--primary)] text-white"
                   : "bg-[var(--bg)] text-[var(--t3)] border border-[var(--border)]"
@@ -261,7 +261,7 @@ export function MarketersTab() {
         <form onSubmit={createMarketer} className="flex items-end gap-3">
           {contactMethod === "email" ? (
             <div className="flex-1">
-              <label className="block text-[11px] font-semibold text-[var(--t3)] mb-1">Email *</label>
+              <label className="block text-xs font-semibold text-[var(--t3)] mb-1">Email *</label>
               <input
                 type="email"
                 value={email}
@@ -273,7 +273,7 @@ export function MarketersTab() {
             </div>
           ) : (
             <div className="flex-1">
-              <label className="block text-[11px] font-semibold text-[var(--t3)] mb-1">Phone *</label>
+              <label className="block text-xs font-semibold text-[var(--t3)] mb-1">Phone *</label>
               <input
                 type="tel"
                 inputMode="tel"
@@ -286,7 +286,7 @@ export function MarketersTab() {
             </div>
           )}
           <div className="flex-1">
-            <label className="block text-[11px] font-semibold text-[var(--t3)] mb-1">Full Name</label>
+            <label className="block text-xs font-semibold text-[var(--t3)] mb-1">Full Name</label>
             <input
               type="text"
               value={fullName}
@@ -315,17 +315,15 @@ export function MarketersTab() {
           </div>
         )}
         {contactMethod === "phone" && (
-          <p className="mt-2 text-[11px] text-[var(--t4)]">
+          <p className="mt-2 text-xs text-[var(--t4)]">
             Default password: <code className="font-bold text-[var(--t2)]">{DEFAULT_MARKETER_PASSWORD}</code>
           </p>
         )}
         {contactMethod === "email" && emailConfigured && (
-          <p className="mt-2 text-[11px] text-[var(--t4)]">Login link will be sent to the marketer's email.</p>
+          <p className="mt-2 text-xs text-[var(--t4)]">Login link will be sent to the marketer's email.</p>
         )}
         {!emailConfigured && (
-          <p className="mt-2 text-[11px] text-amber-600">
-            Email not configured. Only phone-based onboarding is available.
-          </p>
+          <p className="mt-2 text-xs text-amber-600">Email not configured. Only phone-based onboarding is available.</p>
         )}
       </div>
 
@@ -371,13 +369,13 @@ export function MarketersTab() {
                       </td>
                       <td className="px-4 py-2.5">
                         <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${m.is_active ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"}`}
+                          className={`px-2 py-0.5 rounded-full text-xs font-bold uppercase ${m.is_active ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"}`}
                         >
                           {m.is_active ? "Active" : "Inactive"}
                         </span>
                       </td>
                       <td className="px-4 py-2.5">
-                        <span className="text-[11px] text-[var(--primary)] font-semibold">
+                        <span className="text-xs text-[var(--primary)] font-semibold">
                           {expandedId === m.id ? "▲" : "▼"} Details
                         </span>
                       </td>
@@ -412,7 +410,7 @@ export function MarketersTab() {
               <select
                 value={earningForm.earning_type}
                 onChange={(e) => setEarningForm((f) => ({ ...f, earning_type: e.target.value }))}
-                className="px-2 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[11px]"
+                className="px-2 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-xs"
               >
                 <option value="onboarding_bonus">Onboarding Bonus</option>
                 <option value="subscription_commission">Subscription</option>
@@ -425,12 +423,12 @@ export function MarketersTab() {
                 value={earningForm.amount}
                 onChange={(e) => setEarningForm((f) => ({ ...f, amount: e.target.value }))}
                 placeholder="Amount"
-                className="w-24 px-2 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[11px]"
+                className="w-24 px-2 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-xs"
               />
               <select
                 value={earningForm.school_id}
                 onChange={(e) => setEarningForm((f) => ({ ...f, school_id: e.target.value }))}
-                className="px-2 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[11px] max-w-[160px]"
+                className="px-2 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-xs max-w-[160px]"
               >
                 <option value="">No school</option>
                 {schoolsList.slice(0, 50).map((s) => (
@@ -444,20 +442,20 @@ export function MarketersTab() {
                 value={earningForm.notes}
                 onChange={(e) => setEarningForm((f) => ({ ...f, notes: e.target.value }))}
                 placeholder="Notes"
-                className="w-32 px-2 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[11px]"
+                className="w-32 px-2 py-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-xs"
               />
               <button
                 onClick={() => addEarning(expandedId)}
-                className="px-3 py-1.5 rounded-lg bg-[var(--primary)] text-white text-[11px] font-bold hover:opacity-90"
+                className="px-3 py-1.5 rounded-lg bg-[var(--primary)] text-white text-xs font-bold hover:opacity-90"
               >
                 Add
               </button>
             </div>
             <div className="overflow-x-auto">
               {earningsMap[expandedId].data.length === 0 ? (
-                <p className="text-[11px] text-[var(--t4)] py-2">No earnings recorded</p>
+                <p className="text-xs text-[var(--t4)] py-2">No earnings recorded</p>
               ) : (
-                <table className="w-full text-[11px]">
+                <table className="w-full text-xs">
                   <thead>
                     <tr className="border-b border-[var(--border)]">
                       <th className="text-left px-3 py-1.5 font-semibold text-[var(--t3)]">Type</th>
@@ -475,7 +473,7 @@ export function MarketersTab() {
                         </td>
                         <td className="px-3 py-1.5">
                           <span
-                            className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase ${e.status === "paid" ? "bg-green-100 text-green-700" : e.status === "pending" ? "bg-yellow-100 text-yellow-700" : e.status === "approved" ? "bg-blue-100 text-blue-700" : "bg-red-100 text-red-600"}`}
+                            className={`px-1.5 py-0.5 rounded text-xs font-bold uppercase ${e.status === "paid" ? "bg-green-100 text-green-700" : e.status === "pending" ? "bg-yellow-100 text-yellow-700" : e.status === "approved" ? "bg-blue-100 text-blue-700" : "bg-red-100 text-red-600"}`}
                           >
                             {e.status}
                           </span>

@@ -60,7 +60,7 @@ export default function CollapsibleSection({
         <div className="flex items-center gap-2 min-w-0">
           <h3 className="text-[13px] font-bold text-[var(--t1)] truncate">{title}</h3>
           {badge != null && (
-            <span className="shrink-0 rounded-full bg-[var(--primary-50)] px-2 py-0.5 text-[10px] font-bold text-[var(--primary)]">
+            <span className="shrink-0 rounded-full bg-[var(--primary-50)] px-2 py-0.5 text-xs font-bold text-[var(--primary)]">
               {badge}
             </span>
           )}

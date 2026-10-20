@@ -183,7 +183,7 @@ export default function StudentLookupPage() {
                     {["Student", "Adm. No", "Class", "Parent", "Fee Balance", "Actions"].map((h) => (
                       <th
                         key={h}
-                        className="px-5 py-3 text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]"
+                        className="px-5 py-3 text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)]"
                       >
                         {h}
                       </th>
@@ -255,7 +255,7 @@ export default function StudentLookupPage() {
               <div>
                 <label
                   htmlFor="student-lookup-message"
-                  className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2"
+                  className="text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2"
                 >
                   Message
                 </label>
@@ -267,7 +267,7 @@ export default function StudentLookupPage() {
                   placeholder="Type your message..."
                   className="w-full px-4 py-3 bg-[var(--surface-container)] border border-[var(--border)] rounded-2xl text-sm outline-none resize-none"
                 />
-                <p className="text-[10px] text-[var(--on-surface-variant)] mt-1">{message.length} characters</p>
+                <p className="text-xs text-[var(--on-surface-variant)] mt-1">{message.length} characters</p>
               </div>
               <div className="flex gap-3">
                 <Button variant="ghost" onClick={() => setShowModal(false)} className="flex-1">

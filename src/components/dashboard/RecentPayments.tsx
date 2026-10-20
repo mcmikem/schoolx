@@ -65,14 +65,14 @@ export default function RecentPayments({
                   <p className="text-xs font-bold text-[var(--t1)] truncate">
                     {student ? `${student.first_name} ${student.last_name}` : "Unknown"}
                   </p>
-                  <p className="text-[10px] text-[var(--t3)]">
+                  <p className="text-xs text-[var(--t3)]">
                     {new Date(p.payment_date).toLocaleDateString("en-UG", {
                       day: "numeric",
                       month: "short",
                     })}
                   </p>
                 </div>
-                <span className={`rounded-full px-2 py-0.5 text-[9px] font-bold ${methodColor}`}>
+                <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${methodColor}`}>
                   {method === "mobile_money" ? "Mobile" : method}
                 </span>
                 <p className="text-sm font-bold text-[var(--green)]">

@@ -235,7 +235,7 @@ export default function WorkflowsBuilder() {
               Create rules to eliminate manual work. Workflows run automatically on every matching event.
             </p>
             {isDemo && (
-              <p className="text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1 mt-2 inline-block">
+              <p className="text-xs font-bold text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1 mt-2 inline-block">
                 Demo — workflows shown for preview. Sign in to a real account to save your own.
               </p>
             )}
@@ -389,7 +389,7 @@ export default function WorkflowsBuilder() {
                       <button
                         onClick={() => toggleStatus(wf)}
                         title={wf.status === "active" ? "Pause" : "Activate"}
-                        className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest border transition-colors ${wf.status === "active" ? "bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-amber-100 hover:text-amber-700 hover:border-amber-200" : "bg-[var(--surface-container)] text-[var(--t3)] border-[var(--border)] hover:bg-emerald-100 hover:text-emerald-700 hover:border-emerald-200"}`}
+                        className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-widest border transition-colors ${wf.status === "active" ? "bg-emerald-100 text-emerald-700 border-emerald-200 hover:bg-amber-100 hover:text-amber-700 hover:border-amber-200" : "bg-[var(--surface-container)] text-[var(--t3)] border-[var(--border)] hover:bg-emerald-100 hover:text-emerald-700 hover:border-emerald-200"}`}
                       >
                         {wf.status}
                       </button>

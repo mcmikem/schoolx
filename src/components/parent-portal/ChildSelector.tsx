@@ -19,7 +19,7 @@ function ChipAvatar({ child }: { child: ParentPortalChild }) {
     );
   }
   return (
-    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--surface-container-low)] text-[10px] font-bold text-[var(--on-surface-variant)]">
+    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--surface-container-low)] text-xs font-bold text-[var(--on-surface-variant)]">
       {child.first_name?.[0]}
     </span>
   );

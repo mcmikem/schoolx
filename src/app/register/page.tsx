@@ -393,7 +393,7 @@ function RegisterPageContent() {
           </div>
           <div className="mb-8">
             <div className="mb-4">
-              <div className="inline-flex items-center gap-2 rounded-full border border-[var(--navy)]/10 bg-[var(--navy-soft)] px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--navy)]">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[var(--navy)]/10 bg-[var(--navy-soft)] px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-[var(--navy)]">
                 <MaterialIcon icon="school" className="text-sm" />
                 Register your school
               </div>
@@ -473,7 +473,7 @@ function RegisterPageContent() {
                 />
               ))}
             </div>
-            <p className="mt-4 text-center text-[10px] font-bold uppercase tracking-widest text-[var(--t3)]">
+            <p className="mt-4 text-center text-xs font-bold uppercase tracking-widest text-[var(--t3)]">
               {step === 1
                 ? "Step 1 of 3 — Your School"
                 : step === 2
@@ -849,34 +849,28 @@ function RegisterPageContent() {
                       </div>
                       <div>
                         <p className="text-sm font-bold text-[var(--t1)]">Your school so far</p>
-                        <p className="text-[11px] text-slate-500">You've already set up:</p>
+                        <p className="text-xs text-slate-500">You've already set up:</p>
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
                       <div>
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                          School
-                        </span>
+                        <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">School</span>
                         <p className="font-semibold text-slate-900 truncate">{form.schoolName || "—"}</p>
                       </div>
                       <div>
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Type</span>
+                        <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Type</span>
                         <p className="text-slate-700 capitalize">{form.schoolType}</p>
                       </div>
                       <div>
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Plan</span>
+                        <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Plan</span>
                         <p className="text-slate-700 capitalize">{form.selectedPackage}</p>
                       </div>
                       <div>
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                          Ownership
-                        </span>
+                        <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Ownership</span>
                         <p className="text-slate-700 capitalize">{form.ownership.replace(/_/g, " ")}</p>
                       </div>
                       <div className="col-span-2">
-                        <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                          Location
-                        </span>
+                        <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">Location</span>
                         <p className="text-slate-700 truncate">
                           {form.district || "—"}
                           {form.subcounty ? `, ${form.subcounty}` : ""}

@@ -186,14 +186,14 @@ export default function ParentMessagesPage() {
                   >
                     <div className="flex justify-between items-start gap-4 mb-1">
                       <div>
-                        <p className="text-[10px] font-black uppercase tracking-wider text-[var(--on-surface-variant)]">
+                        <p className="text-xs font-black uppercase tracking-wider text-[var(--on-surface-variant)]">
                           {message.sender_role === "parent" ? "You" : "School Administration"}
                         </p>
                         {message.subject && (
                           <p className="font-bold text-sm text-[var(--on-surface)]">{message.subject}</p>
                         )}
                       </div>
-                      <p className="text-[10px] text-[var(--on-surface-variant)] whitespace-nowrap">
+                      <p className="text-xs text-[var(--on-surface-variant)] whitespace-nowrap">
                         {new Date(message.created_at).toLocaleDateString("en-GB", {
                           day: "2-digit",
                           month: "short",
@@ -232,7 +232,7 @@ export default function ParentMessagesPage() {
                 </button>
               </div>
               <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2">
+                <label className="text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2">
                   Subject
                 </label>
                 <input
@@ -244,7 +244,7 @@ export default function ParentMessagesPage() {
                 />
               </div>
               <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2">
+                <label className="text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2">
                   Message
                 </label>
                 <textarea

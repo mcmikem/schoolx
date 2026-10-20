@@ -118,7 +118,7 @@ const TeamPreview = memo(function TeamPreview({ schoolId }: { schoolId?: string 
             return (
               <div key={`${m.user_name}-${m.created_at}`} role="listitem" className="flex items-center gap-3 py-3">
                 <span
-                  className="w-9 h-9 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0"
+                  className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
                   style={{ background: bg, color: fg }}
                   aria-hidden="true"
                 >
@@ -126,11 +126,11 @@ const TeamPreview = memo(function TeamPreview({ schoolId }: { schoolId?: string 
                 </span>
                 <span className="flex-1 min-w-0">
                   <span className="block text-[13px] font-bold text-[var(--t1)] truncate">{m.user_name}</span>
-                  <span className="block text-[11px] text-[var(--t3)] truncate mt-0.5">
+                  <span className="block text-xs text-[var(--t3)] truncate mt-0.5">
                     {m.description || `${m.action} in ${m.module}`}
                   </span>
                 </span>
-                <span className="flex-shrink-0 text-[11px] font-semibold text-[var(--t4)] whitespace-nowrap">
+                <span className="flex-shrink-0 text-xs font-semibold text-[var(--t4)] whitespace-nowrap">
                   {timeAgo(m.created_at)}
                 </span>
               </div>

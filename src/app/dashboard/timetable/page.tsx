@@ -296,12 +296,12 @@ function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }
                           <div className="flex items-start gap-2 flex-wrap">
                             <span className="text-sm font-medium text-[var(--t1)] leading-tight">{ev.title}</span>
                             {isToday && (
-                              <span className="px-1.5 py-0.5 bg-[var(--primary)] text-white text-[9px] font-bold rounded uppercase tracking-wide">
+                              <span className="px-1.5 py-0.5 bg-[var(--primary)] text-white text-xs font-bold rounded uppercase tracking-wide">
                                 Today
                               </span>
                             )}
                             {ev._builtin && (
-                              <span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-[9px] rounded uppercase tracking-wide">
+                              <span className="px-1.5 py-0.5 bg-gray-100 text-gray-500 text-xs rounded uppercase tracking-wide">
                                 Uganda Govt
                               </span>
                             )}
@@ -318,7 +318,7 @@ function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }
                                 ` – ${new Date(ev.end_date + "T00:00:00").toLocaleDateString("en-UG", { day: "numeric", month: "short" })}`}
                             </span>
                             <span
-                              className="px-1.5 py-0.5 text-[9px] font-medium rounded capitalize"
+                              className="px-1.5 py-0.5 text-xs font-medium rounded capitalize"
                               style={{ background: color + "20", color }}
                             >
                               {ev.event_type}
@@ -928,7 +928,7 @@ export default function TimetablePage() {
             { label: "Staff", value: teachers.length.toString(), tone: "text-amber-600" },
           ].map((item) => (
             <div key={item.label} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
-              <div className="text-[11px] uppercase tracking-[0.18em] text-[var(--t3)] font-black">{item.label}</div>
+              <div className="text-xs uppercase tracking-[0.18em] text-[var(--t3)] font-black">{item.label}</div>
               <div className={`mt-1 text-lg font-bold ${item.tone}`}>{item.value}</div>
             </div>
           ))}
@@ -948,7 +948,7 @@ export default function TimetablePage() {
             aria-label="timetable overview"
             className="mb-4 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 shadow-sm md:hidden"
           >
-            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--t3)]">Day overview</p>
+            <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--t3)]">Day overview</p>
             <div className="mt-2 flex items-end justify-between gap-3">
               <div className="min-w-0">
                 <h2 className="truncate text-lg font-bold text-[var(--t1)]">
@@ -960,7 +960,7 @@ export default function TimetablePage() {
                 <p className="text-lg font-bold leading-none text-[var(--primary)]">
                   {scheduledLessons}/{dayLessonSlots.length}
                 </p>
-                <p className="mt-1 text-[9px] font-bold uppercase tracking-wider text-[var(--t3)]">Lessons</p>
+                <p className="mt-1 text-xs font-bold uppercase tracking-wider text-[var(--t3)]">Lessons</p>
               </div>
             </div>
           </div>
@@ -1036,9 +1036,9 @@ export default function TimetablePage() {
                           key={slot.id}
                           className="flex items-center gap-3 rounded-xl bg-[var(--surface-container-low)] px-3 py-2.5"
                         >
-                          <span className="w-14 shrink-0 text-[11px] font-medium text-[var(--t4)]">{time}</span>
+                          <span className="w-14 shrink-0 text-xs font-medium text-[var(--t4)]">{time}</span>
                           <span className="h-px flex-1 bg-[var(--border)]" />
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--t4)]">
+                          <span className="text-xs font-bold uppercase tracking-wider text-[var(--t4)]">
                             {slot.name}
                           </span>
                         </div>
@@ -1047,14 +1047,14 @@ export default function TimetablePage() {
 
                     return (
                       <div key={slot.id} className="flex items-stretch gap-3">
-                        <div className="flex w-14 shrink-0 flex-col justify-center text-[10px] font-medium leading-4 text-[var(--t4)]">
+                        <div className="flex w-14 shrink-0 flex-col justify-center text-xs font-medium leading-4 text-[var(--t4)]">
                           <span>{slot.start_time?.slice(0, 5)}</span>
                           <span>{slot.end_time?.slice(0, 5)}</span>
                         </div>
                         {entry ? (
                           <div className="flex min-w-0 flex-1 items-center justify-between gap-3 rounded-xl border border-[var(--primary)]/20 bg-[var(--primary)]/10 p-3">
                             <div className="min-w-0">
-                              <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--primary)]">
+                              <p className="text-xs font-bold uppercase tracking-wider text-[var(--primary)]">
                                 {entry.subjects?.code || "SUB"} · {slot.name}
                               </p>
                               <p className="mt-1 truncate text-sm font-semibold text-[var(--t1)]">

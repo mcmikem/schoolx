@@ -82,7 +82,7 @@ function Figure({
 }) {
   return (
     <div className="min-w-0">
-      <p className="truncate text-[11px] font-bold uppercase tracking-wide text-[var(--t3)]">{label}</p>
+      <p className="truncate text-xs font-bold uppercase tracking-wide text-[var(--t3)]">{label}</p>
       {loading ? (
         <div className="mt-1.5 h-5 w-20 animate-pulse rounded bg-[var(--surface-container-high)]" />
       ) : (
@@ -90,7 +90,7 @@ function Figure({
           UGX {formatCompactCurrency(value)}
         </p>
       )}
-      {hint && <p className="truncate text-[11px] text-[var(--t3)]">{hint}</p>}
+      {hint && <p className="truncate text-xs text-[var(--t3)]">{hint}</p>}
     </div>
   );
 }

@@ -88,10 +88,10 @@ export default function BatchReportsPage() {
 
         {/* Config */}
         <div className={cardClassName + " p-8"}>
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-6">Batch Configuration</p>
+          <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-6">Batch Configuration</p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
+              <label className="text-xs font-black uppercase tracking-widest text-slate-400 block mb-2">
                 Academic Year
               </label>
               <input
@@ -101,9 +101,7 @@ export default function BatchReportsPage() {
               />
             </div>
             <div>
-              <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
-                Class
-              </label>
+              <label className="text-xs font-black uppercase tracking-widest text-slate-400 block mb-2">Class</label>
               <div className="flex gap-3">
                 <select
                   value={selectedClass}
@@ -144,7 +142,7 @@ export default function BatchReportsPage() {
                   onChange={toggleAll}
                   className="w-4 h-4 rounded accent-slate-800 cursor-pointer"
                 />
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                <p className="text-xs font-black uppercase tracking-widest text-slate-400">
                   {students.length} Students Found
                 </p>
               </div>
@@ -173,12 +171,12 @@ export default function BatchReportsPage() {
                     <p className="text-sm font-bold text-slate-800">
                       {student.first_name} {student.last_name}
                     </p>
-                    <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                    <p className="text-xs font-black uppercase text-slate-400 tracking-wider">
                       {student.student_number}
                     </p>
                   </div>
                   <div className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 transition-opacity">
-                    <span className="px-3 py-1 bg-slate-800 text-white text-[9px] font-black uppercase tracking-widest rounded-full">
+                    <span className="px-3 py-1 bg-slate-800 text-white text-xs font-black uppercase tracking-widest rounded-full">
                       Preview
                     </span>
                   </div>

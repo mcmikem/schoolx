@@ -292,11 +292,11 @@ export default function PerformanceDNAPage() {
                       onClick={() => handleSelectStudent(s)}
                       className="w-full text-left px-4 py-2.5 hover:bg-slate-50 text-xs font-semibold text-slate-700 border-b border-slate-100 last:border-0 flex items-center gap-2"
                     >
-                      <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-[10px] font-black text-indigo-700 flex-shrink-0">
+                      <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center text-xs font-black text-indigo-700 flex-shrink-0">
                         {s.first_name?.[0]}
                       </div>
                       {s.first_name} {s.last_name}
-                      <span className="ml-auto text-[10px] text-slate-400">{s.student_number}</span>
+                      <span className="ml-auto text-xs text-slate-400">{s.student_number}</span>
                     </button>
                   ))}
                 </div>
@@ -413,15 +413,15 @@ export default function PerformanceDNAPage() {
                 </ResponsiveContainer>
                 <div className="grid grid-cols-2 gap-4 w-full mt-4">
                   <div className="text-center">
-                    <p className="text-[9px] font-black text-slate-400 uppercase">Academic Avg</p>
+                    <p className="text-xs font-black text-slate-400 uppercase">Academic Avg</p>
                     <p className="text-lg font-black text-slate-800">{dnaData.academic}%</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-[9px] font-black text-slate-400 uppercase">Attendance</p>
+                    <p className="text-xs font-black text-slate-400 uppercase">Attendance</p>
                     <p className="text-lg font-black text-slate-800">{dnaData.attendance}%</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-[9px] font-black text-slate-400 uppercase">Conduct</p>
+                    <p className="text-xs font-black text-slate-400 uppercase">Conduct</p>
                     <p
                       className={`text-lg font-black ${dnaData.conduct >= 80 ? "text-emerald-500" : dnaData.conduct >= 60 ? "text-amber-500" : "text-red-500"}`}
                     >
@@ -429,7 +429,7 @@ export default function PerformanceDNAPage() {
                     </p>
                   </div>
                   <div className="text-center">
-                    <p className="text-[9px] font-black text-slate-400 uppercase">Punctuality</p>
+                    <p className="text-xs font-black text-slate-400 uppercase">Punctuality</p>
                     <p className="text-lg font-black text-slate-800">{dnaData.punctuality}%</p>
                   </div>
                 </div>
@@ -444,11 +444,11 @@ export default function PerformanceDNAPage() {
                   <div className="flex gap-4">
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-indigo-500" />
-                      <span className="text-[10px] font-bold text-slate-500">Grades</span>
+                      <span className="text-xs font-bold text-slate-500">Grades</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                      <span className="text-[10px] font-bold text-slate-500">Attendance</span>
+                      <span className="text-xs font-bold text-slate-500">Attendance</span>
                     </div>
                   </div>
                 </div>
@@ -511,7 +511,7 @@ export default function PerformanceDNAPage() {
                     className="absolute -right-4 -top-4 text-white/10"
                     style={{ fontSize: 90 }}
                   />
-                  <h4 className="text-[10px] font-black uppercase text-white/40 tracking-widest mb-2 relative z-10">
+                  <h4 className="text-xs font-black uppercase text-white/40 tracking-widest mb-2 relative z-10">
                     Summary
                   </h4>
                   <div className="space-y-1.5 relative z-10">
@@ -536,7 +536,7 @@ export default function PerformanceDNAPage() {
                 </div>
 
                 <div className={cardClassName + " p-6 border-indigo-100 bg-indigo-50/30"}>
-                  <h4 className="text-[10px] font-black uppercase text-indigo-400 tracking-widest mb-3">
+                  <h4 className="text-xs font-black uppercase text-indigo-400 tracking-widest mb-3">
                     Wellness Overview
                   </h4>
                   <div className="space-y-3">

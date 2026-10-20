@@ -1982,11 +1982,11 @@ function DirectoryTab({
                       className="rounded-lg bg-white/20 p-0.5 object-contain"
                     />
                   ) : (
-                    <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center font-extrabold text-[11px]">
+                    <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center font-extrabold text-xs">
                       {(school?.name || "S").charAt(0).toUpperCase()}
                     </div>
                   )}
-                  <div className="text-[9px] leading-tight text-center font-semibold break-words">
+                  <div className="text-xs leading-tight text-center font-semibold break-words">
                     {school?.name || "School"}
                   </div>
                   <div
@@ -2009,7 +2009,7 @@ function DirectoryTab({
                         .join("") || "S"
                     )}
                   </div>
-                  <div className="text-[10px] tracking-[0.06em] font-semibold">
+                  <div className="text-xs tracking-[0.06em] font-semibold">
                     {`SM-${idCardPreviewStaff.id.slice(0, 8).toUpperCase()}`}
                   </div>
                 </div>
@@ -2019,7 +2019,7 @@ function DirectoryTab({
                       {school?.name || "School"}
                     </span>
                     <span
-                      className="text-[9px] px-2 py-1 rounded-full font-bold shrink-0"
+                      className="text-xs px-2 py-1 rounded-full font-bold shrink-0"
                       style={{
                         backgroundColor: `${staffCardAccent}33`,
                         color: staffCardPrimary,
@@ -2032,7 +2032,7 @@ function DirectoryTab({
                     {idCardPreviewStaff.full_name}
                   </div>
                   <div
-                    className="inline-flex w-fit text-[10px] uppercase tracking-[0.03em] font-bold rounded-full px-2 py-1 border mb-2"
+                    className="inline-flex w-fit text-xs uppercase tracking-[0.03em] font-bold rounded-full px-2 py-1 border mb-2"
                     style={{
                       backgroundColor: `${staffCardAccent}22`,
                       color: staffCardPrimary,
@@ -2041,17 +2041,17 @@ function DirectoryTab({
                   >
                     {formatRoleLabel(idCardPreviewStaff.role)}
                   </div>
-                  <div className="text-[11px] text-[var(--t2)] truncate">Phone: {idCardPreviewStaff.phone}</div>
-                  <div className="text-[11px] text-[var(--t2)]">
+                  <div className="text-xs text-[var(--t2)] truncate">Phone: {idCardPreviewStaff.phone}</div>
+                  <div className="text-xs text-[var(--t2)]">
                     Status: {idCardPreviewStaff.is_active ? "Active" : "Inactive"}
                   </div>
                   {idCardPreviewStaff.email ? (
-                    <div className="text-[11px] text-[var(--t2)] truncate">Email: {idCardPreviewStaff.email}</div>
+                    <div className="text-xs text-[var(--t2)] truncate">Email: {idCardPreviewStaff.email}</div>
                   ) : null}
                   {idCardPreviewStaff.subject ? (
-                    <div className="text-[11px] text-[var(--t2)] truncate">Subjects: {idCardPreviewStaff.subject}</div>
+                    <div className="text-xs text-[var(--t2)] truncate">Subjects: {idCardPreviewStaff.subject}</div>
                   ) : null}
-                  <div className="mt-auto pt-2.5 border-t border-dashed border-[var(--border2)] flex items-end justify-between text-[9px] text-[#64748b] uppercase tracking-[0.04em] gap-2">
+                  <div className="mt-auto pt-2.5 border-t border-dashed border-[var(--border2)] flex items-end justify-between text-xs text-[#64748b] uppercase tracking-[0.04em] gap-2">
                     <div>
                       <div>Issued {new Date().toLocaleDateString()}</div>
                       <div>{`SM-${idCardPreviewStaff.id.slice(0, 8).toUpperCase()}`}</div>

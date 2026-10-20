@@ -214,7 +214,7 @@ export default function StaffPerformancePage() {
             <div key={item.label} className={`rounded-2xl border border-[var(--border)] p-4 ${item.color}`}>
               <div className="flex items-center gap-2 mb-1">
                 <MaterialIcon icon={item.icon as any} size={18} />
-                <span className="text-[11px] font-black uppercase tracking-[0.18em] opacity-80">{item.label}</span>
+                <span className="text-xs font-black uppercase tracking-[0.18em] opacity-80">{item.label}</span>
               </div>
               <div className="text-xl font-bold">{item.value}</div>
             </div>

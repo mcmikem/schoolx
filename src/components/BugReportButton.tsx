@@ -73,7 +73,7 @@ export function BugReportModal({ open, onClose }: { open: boolean; onClose: () =
 
         <div className="space-y-3">
           <div>
-            <label className="block text-[11px] font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">Title</label>
+            <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">Title</label>
             <input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -82,7 +82,7 @@ export function BugReportModal({ open, onClose }: { open: boolean; onClose: () =
             />
           </div>
           <div>
-            <label className="block text-[11px] font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">
+            <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">
               Description
             </label>
             <textarea
@@ -94,8 +94,8 @@ export function BugReportModal({ open, onClose }: { open: boolean; onClose: () =
             />
           </div>
           <div className="rounded-xl bg-[var(--bg)] border border-[var(--border)] p-3">
-            <div className="text-[10px] text-[var(--t3)] font-semibold uppercase tracking-wide mb-1">Auto-attached</div>
-            <div className="text-[11px] text-[var(--t2)] space-y-0.5">
+            <div className="text-xs text-[var(--t3)] font-semibold uppercase tracking-wide mb-1">Auto-attached</div>
+            <div className="text-xs text-[var(--t2)] space-y-0.5">
               <div>School: {school.name}</div>
               <div>
                 User: {user.full_name} ({user.role})

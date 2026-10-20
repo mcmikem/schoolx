@@ -8,9 +8,7 @@ import { Button, Input } from "@/components/ui";
 import { RingSpinner } from "@/components/loaders";
 
 function MaterialIcon({ icon, className }: { icon: string; className?: string }) {
-  return (
-    <span className={`material-symbols-outlined ${className || ""}`}>{icon}</span>
-  );
+  return <span className={`material-symbols-outlined ${className || ""}`}>{icon}</span>;
 }
 
 export default function ResetPasswordPage() {
@@ -29,7 +27,9 @@ export default function ResetPasswordPage() {
 
     // Supabase sends the recovery token in the URL hash.
     // onAuthStateChange fires PASSWORD_RECOVERY when the hash is present.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
       if (event === "PASSWORD_RECOVERY") {
         setReady(true);
         if (expiredTimer) {
@@ -107,16 +107,14 @@ export default function ResetPasswordPage() {
           </div>
 
           <div className="mb-8">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--navy)]/10 bg-[var(--navy-soft)] px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--navy)] mb-4">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--navy)]/10 bg-[var(--navy-soft)] px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-[var(--navy)] mb-4">
               <MaterialIcon icon="lock_reset" className="text-sm" />
               Reset password
             </div>
             <h1 className="font-['Sora'] text-[30px] font-semibold tracking-[-0.03em] text-[#102341] mb-2">
               Set a new password
             </h1>
-            <p className="text-[15px] leading-6 text-[#53657f]">
-              Choose a strong password for your SkoolMate account.
-            </p>
+            <p className="text-[15px] leading-6 text-[#53657f]">Choose a strong password for your SkoolMate account.</p>
           </div>
 
           <div className="card-premium p-8 md:p-10 shadow-[0_32px_64px_rgba(15,23,42,0.1)]">
@@ -130,11 +128,7 @@ export default function ResetPasswordPage() {
                   Your password has been changed. Sign in with your phone number and new password.
                 </p>
                 <div className="mt-6">
-                  <Button
-                    variant="primary"
-                    className="w-full"
-                    onClick={() => router.push("/login")}
-                  >
+                  <Button variant="primary" className="w-full" onClick={() => router.push("/login")}>
                     Go to sign in
                   </Button>
                 </div>
@@ -191,15 +185,24 @@ export default function ResetPasswordPage() {
                 />
                 <ul className="text-xs text-[var(--t3)] space-y-1 list-inside">
                   <li className={`flex items-center gap-1.5 ${password.length >= 8 ? "text-[var(--green)]" : ""}`}>
-                    <MaterialIcon icon={password.length >= 8 ? "check_circle" : "radio_button_unchecked"} className="text-[14px]" />
+                    <MaterialIcon
+                      icon={password.length >= 8 ? "check_circle" : "radio_button_unchecked"}
+                      className="text-[14px]"
+                    />
                     At least 8 characters
                   </li>
                   <li className={`flex items-center gap-1.5 ${/[A-Z]/.test(password) ? "text-[var(--green)]" : ""}`}>
-                    <MaterialIcon icon={/[A-Z]/.test(password) ? "check_circle" : "radio_button_unchecked"} className="text-[14px]" />
+                    <MaterialIcon
+                      icon={/[A-Z]/.test(password) ? "check_circle" : "radio_button_unchecked"}
+                      className="text-[14px]"
+                    />
                     One uppercase letter
                   </li>
                   <li className={`flex items-center gap-1.5 ${/[0-9]/.test(password) ? "text-[var(--green)]" : ""}`}>
-                    <MaterialIcon icon={/[0-9]/.test(password) ? "check_circle" : "radio_button_unchecked"} className="text-[14px]" />
+                    <MaterialIcon
+                      icon={/[0-9]/.test(password) ? "check_circle" : "radio_button_unchecked"}
+                      className="text-[14px]"
+                    />
                     One number
                   </li>
                 </ul>

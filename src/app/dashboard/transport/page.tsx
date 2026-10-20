@@ -179,7 +179,7 @@ export default function TransportPage() {
               </div>
               <div>
                 <p className="text-lg font-bold text-[var(--t1)]">{s.value}</p>
-                <p className="text-[10px] font-medium text-[var(--t3)] uppercase tracking-wider">{s.label}</p>
+                <p className="text-xs font-medium text-[var(--t3)] uppercase tracking-wider">{s.label}</p>
               </div>
             </div>
           ))}
@@ -206,7 +206,7 @@ export default function TransportPage() {
                 <thead>
                   <tr className="border-b border-[var(--border)]">
                     {["Route", "Vehicle", "Driver", "Students", "Monthly Fee", ""].map((h) => (
-                      <th key={h} className="px-4 py-2 text-[10px] font-bold uppercase tracking-wider text-[var(--t3)]">
+                      <th key={h} className="px-4 py-2 text-xs font-bold uppercase tracking-wider text-[var(--t3)]">
                         {h}
                       </th>
                     ))}
@@ -219,7 +219,7 @@ export default function TransportPage() {
                       <td className="px-4 py-3 text-[var(--t2)]">{r.vehicle_number || "—"}</td>
                       <td className="px-4 py-3">
                         <span className="text-[var(--t2)]">{r.driver_name || "—"}</span>
-                        {r.driver_phone && <span className="text-[10px] text-[var(--t3)] ml-2">{r.driver_phone}</span>}
+                        {r.driver_phone && <span className="text-xs text-[var(--t3)] ml-2">{r.driver_phone}</span>}
                       </td>
                       <td className="px-4 py-3 font-medium text-[var(--t1)]">{r._student_count || 0}</td>
                       <td className="px-4 py-3 text-[var(--t2)]">

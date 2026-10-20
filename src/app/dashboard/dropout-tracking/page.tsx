@@ -299,7 +299,7 @@ export default function DropoutTrackingPage() {
                 </div>
                 <div>
                   <p className="text-2xl font-black text-[var(--on-surface)]">{s.value}</p>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]">
+                  <p className="text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)]">
                     {s.label}
                   </p>
                 </div>
@@ -344,7 +344,7 @@ export default function DropoutTrackingPage() {
                     </div>
                     <div className="flex items-center gap-3">
                       <span
-                        className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${s.riskLevel === "likely_dropout" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}
+                        className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider ${s.riskLevel === "likely_dropout" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}
                       >
                         {s.riskLevel === "likely_dropout" ? "Likely Dropout" : "At Risk"}
                       </span>
@@ -398,7 +398,7 @@ export default function DropoutTrackingPage() {
                       <p className="font-bold text-sm text-[var(--on-surface)]">{l.student_name}</p>
                       <p className="text-xs text-[var(--on-surface-variant)]">{l.reason}</p>
                       {l.action_taken && <p className="text-xs text-[var(--primary)] mt-1">Action: {l.action_taken}</p>}
-                      <p className="text-[10px] text-[var(--on-surface-variant)] mt-1">
+                      <p className="text-xs text-[var(--on-surface-variant)] mt-1">
                         {new Date(l.logged_at).toLocaleDateString("en-GB", {
                           day: "2-digit",
                           month: "short",
@@ -435,7 +435,7 @@ export default function DropoutTrackingPage() {
               <div>
                 <label
                   htmlFor="dropout-intervention-reason"
-                  className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2"
+                  className="text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2"
                 >
                   Reason for Absence
                 </label>
@@ -451,7 +451,7 @@ export default function DropoutTrackingPage() {
               <div>
                 <label
                   htmlFor="dropout-intervention-action"
-                  className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2"
+                  className="text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2"
                 >
                   Action Taken
                 </label>
@@ -493,7 +493,7 @@ export default function DropoutTrackingPage() {
               <div>
                 <label
                   htmlFor="dropout-reason"
-                  className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2"
+                  className="text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2"
                 >
                   Reason for Dropout
                 </label>

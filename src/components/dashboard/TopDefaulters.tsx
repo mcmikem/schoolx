@@ -69,7 +69,7 @@ export default function TopDefaulters({
                 <p className="text-sm font-bold text-[var(--t1)] truncate">
                   {student.first_name} {student.last_name}
                 </p>
-                <p className="text-[10px] text-[var(--t3)]">
+                <p className="text-xs text-[var(--t3)]">
                   {student.parent_name} · {student.class_name || ""}
                 </p>
               </div>

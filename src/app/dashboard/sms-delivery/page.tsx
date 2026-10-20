@@ -234,7 +234,9 @@ export default function SmsDeliveryPage() {
                       <MaterialIcon icon="percent" className="text-blue-600" size={20} />
                     </div>
                     <div>
-                      <div className={`text-2xl font-bold ${parseFloat(deliveryRate) < 90 ? "text-red-600" : "text-green-600"}`}>
+                      <div
+                        className={`text-2xl font-bold ${parseFloat(deliveryRate) < 90 ? "text-red-600" : "text-green-600"}`}
+                      >
                         {deliveryRate}%
                       </div>
                       <div className="text-xs font-medium text-[var(--t3)]">Delivery Rate (30d)</div>
@@ -252,17 +254,17 @@ export default function SmsDeliveryPage() {
                     <div>
                       <MaterialIcon icon="check_circle" size={18} className="text-green-500 mx-auto" />
                       <div className="text-lg font-bold text-[var(--t1)] mt-1">{sentCount}</div>
-                      <div className="text-[10px] text-[var(--t3)]">Sent</div>
+                      <div className="text-xs text-[var(--t3)]">Sent</div>
                     </div>
                     <div>
                       <MaterialIcon icon="cancel" size={18} className="text-red-500 mx-auto" />
                       <div className="text-lg font-bold text-[var(--t1)] mt-1">{failedCount}</div>
-                      <div className="text-[10px] text-[var(--t3)]">Failed</div>
+                      <div className="text-xs text-[var(--t3)]">Failed</div>
                     </div>
                     <div>
                       <MaterialIcon icon="pending" size={18} className="text-amber-500 mx-auto" />
                       <div className="text-lg font-bold text-[var(--t1)] mt-1">{pendingCount}</div>
-                      <div className="text-[10px] text-[var(--t3)]">Pending</div>
+                      <div className="text-xs text-[var(--t3)]">Pending</div>
                     </div>
                   </div>
                 </CardBody>
@@ -278,13 +280,21 @@ export default function SmsDeliveryPage() {
                       {automationStats.map((stat) => (
                         <div key={stat.type} className="flex items-center justify-between text-xs">
                           <div className="flex items-center gap-2 min-w-0">
-                            <MaterialIcon icon={stat.type === "manual" ? "edit" : "smart_toy"} size={14} className="text-[var(--t3)] shrink-0" />
-                            <span className="truncate text-[var(--t1)] font-medium capitalize">{stat.type.replace(/_/g, " ")}</span>
+                            <MaterialIcon
+                              icon={stat.type === "manual" ? "edit" : "smart_toy"}
+                              size={14}
+                              className="text-[var(--t3)] shrink-0"
+                            />
+                            <span className="truncate text-[var(--t1)] font-medium capitalize">
+                              {stat.type.replace(/_/g, " ")}
+                            </span>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
                             <span className="text-green-600 font-mono">{stat.sent}</span>
                             <span className="text-[var(--t3)]">/</span>
-                            <span className={stat.failed > 0 ? "text-red-600 font-mono" : "text-[var(--t3)] font-mono"}>{stat.failed}</span>
+                            <span className={stat.failed > 0 ? "text-red-600 font-mono" : "text-[var(--t3)] font-mono"}>
+                              {stat.failed}
+                            </span>
                           </div>
                         </div>
                       ))}
@@ -326,7 +336,7 @@ export default function SmsDeliveryPage() {
               <CardBody>
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm font-semibold text-[var(--t1)]">Recent Activity</h3>
-                  <span className="text-[11px] text-[var(--t3)] font-mono">{recentRecords.length} records</span>
+                  <span className="text-xs text-[var(--t3)] font-mono">{recentRecords.length} records</span>
                 </div>
                 {recentRecords.length === 0 ? (
                   <div className="text-sm text-[var(--t3)] py-6 text-center">No SMS activity found</div>
@@ -344,11 +354,15 @@ export default function SmsDeliveryPage() {
                       </thead>
                       <tbody>
                         {recentRecords.map((record) => (
-                          <tr key={record.id} className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--surface-container)] transition-colors">
-                            <td className="py-2.5 px-4 font-mono text-[var(--t1)]">
-                              {record.parent_phone || "—"}
-                            </td>
-                            <td className="py-2.5 px-4 text-[var(--t2)] max-w-[200px] truncate" title={record.message || ""}>
+                          <tr
+                            key={record.id}
+                            className="border-b border-[var(--border)] last:border-0 hover:bg-[var(--surface-container)] transition-colors"
+                          >
+                            <td className="py-2.5 px-4 font-mono text-[var(--t1)]">{record.parent_phone || "—"}</td>
+                            <td
+                              className="py-2.5 px-4 text-[var(--t2)] max-w-[200px] truncate"
+                              title={record.message || ""}
+                            >
                               {truncateMessage(record.message)}
                             </td>
                             <td className="py-2.5 px-4 capitalize text-[var(--t3)]">

@@ -21,7 +21,7 @@ export function GradeStatusBadge({ status }: { status?: string | null }) {
   return (
     <span
       className={cn(
-        "mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-black",
+        "mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-black",
         STYLES[key] ?? "bg-surface-container text-on-surface-variant",
       )}
     >

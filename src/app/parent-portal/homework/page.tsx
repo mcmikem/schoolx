@@ -120,15 +120,13 @@ export default function ParentHomeworkPage() {
           <Card>
             <CardBody className="text-center">
               <p className="text-4xl font-black text-[var(--on-surface)]">{stats.total}</p>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)] mt-1">
-                Total
-              </p>
+              <p className="text-xs font-bold uppercase tracking-widest text-[var(--on-surface-variant)] mt-1">Total</p>
             </CardBody>
           </Card>
           <Card>
             <CardBody className="text-center">
               <p className="text-4xl font-black text-emerald-600">{stats.completed}</p>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)] mt-1">
+              <p className="text-xs font-bold uppercase tracking-widest text-[var(--on-surface-variant)] mt-1">
                 Completed
               </p>
             </CardBody>
@@ -136,7 +134,7 @@ export default function ParentHomeworkPage() {
           <Card>
             <CardBody className="text-center">
               <p className="text-4xl font-black text-red-600">{stats.overdue}</p>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)] mt-1">
+              <p className="text-xs font-bold uppercase tracking-widest text-[var(--on-surface-variant)] mt-1">
                 Overdue
               </p>
             </CardBody>
@@ -146,7 +144,7 @@ export default function ParentHomeworkPage() {
         <Card>
           <CardBody>
             <div className="flex items-center gap-3 flex-wrap">
-              <span className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]">
+              <span className="text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)]">
                 Subject:
               </span>
               {["all", ...subjects].map((sub) => (
@@ -162,7 +160,7 @@ export default function ParentHomeworkPage() {
                   {sub === "all" ? "All Subjects" : sub}
                 </button>
               ))}
-              <span className="ml-4 text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]">
+              <span className="ml-4 text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)]">
                 Status:
               </span>
               {["all", "pending", "submitted", "graded", "late"].map((st) => (
@@ -209,12 +207,12 @@ export default function ParentHomeworkPage() {
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[var(--surface-container-low)] border border-[var(--border)] text-[10px] font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[var(--surface-container-low)] border border-[var(--border)] text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">
                             <MaterialIcon icon="book" className="text-[14px]" />
                             {hw.subject_name}
                           </span>
                           {hw.class_name && (
-                            <span className="text-[10px] text-[var(--on-surface-variant)]">{hw.class_name}</span>
+                            <span className="text-xs text-[var(--on-surface-variant)]">{hw.class_name}</span>
                           )}
                         </div>
                         <h3 className="text-base font-bold text-[var(--on-surface)] mt-1">{hw.title}</h3>
@@ -224,14 +222,14 @@ export default function ParentHomeworkPage() {
                       </div>
                       <div className="flex flex-col items-end gap-2 shrink-0">
                         <span
-                          className={`inline-flex px-2.5 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider ${
+                          className={`inline-flex px-2.5 py-0.5 rounded-full border text-xs font-bold uppercase tracking-wider ${
                             statusInfo?.color || "bg-gray-50 text-gray-700 border-gray-200"
                           }`}
                         >
                           {statusInfo?.label || "Unknown"}
                         </span>
                         <span
-                          className={`text-[10px] font-semibold ${
+                          className={`text-xs font-semibold ${
                             dueInfo.urgent ? "text-red-600" : "text-[var(--on-surface-variant)]"
                           }`}
                         >
@@ -247,11 +245,11 @@ export default function ParentHomeworkPage() {
                     </div>
 
                     <div className="flex items-center gap-4 mt-3 pt-3 border-t border-[var(--border)]">
-                      <div className="text-[11px] text-[var(--on-surface-variant)]">
+                      <div className="text-xs text-[var(--on-surface-variant)]">
                         Marks: <span className="font-bold text-[var(--on-surface)]">{hw.marks}</span>
                       </div>
                       {hw.submission?.marks != null && (
-                        <div className="text-[11px] text-[var(--on-surface-variant)]">
+                        <div className="text-xs text-[var(--on-surface-variant)]">
                           Score:{" "}
                           <span className="font-bold text-emerald-600">
                             {hw.submission.marks}/{hw.marks}
@@ -259,7 +257,7 @@ export default function ParentHomeworkPage() {
                         </div>
                       )}
                       {hw.submission?.submitted_at && (
-                        <div className="text-[11px] text-[var(--on-surface-variant)]">
+                        <div className="text-xs text-[var(--on-surface-variant)]">
                           Submitted:{" "}
                           <span className="font-medium text-[var(--on-surface)]">
                             {new Date(hw.submission.submitted_at).toLocaleDateString("en-UG", {
@@ -277,7 +275,7 @@ export default function ParentHomeworkPage() {
                       <div className="mt-3 p-3 rounded-xl bg-[var(--surface-container-low)] border border-[var(--border)]">
                         <div className="flex items-center gap-1.5 mb-1">
                           <MaterialIcon icon="feedback" className="text-[14px] text-[var(--primary)]" />
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">
+                          <span className="text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">
                             Teacher Feedback
                           </span>
                         </div>

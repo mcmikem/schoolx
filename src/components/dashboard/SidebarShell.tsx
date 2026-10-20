@@ -53,7 +53,7 @@ function SyncStatus() {
   const { isOnline, pendingCount, isSyncing } = useSyncStatus();
 
   return (
-    <div className="flex items-center gap-[7px] text-[11px] font-medium text-[var(--green)]">
+    <div className="flex items-center gap-[7px] text-xs font-medium text-[var(--green)]">
       <div
         className="w-[7px] h-[7px] rounded-full"
         style={{
@@ -63,7 +63,7 @@ function SyncStatus() {
       />
       {isOnline ? (isSyncing ? "Syncing..." : "System Active") : "Offline"}
       {pendingCount > 0 && (
-        <span className="ml-auto text-[10px] text-[var(--amber)] font-[DM Mono]">{pendingCount} pending</span>
+        <span className="ml-auto text-xs text-[var(--amber)] font-[DM Mono]">{pendingCount} pending</span>
       )}
     </div>
   );
@@ -154,7 +154,7 @@ export default function SidebarShell({ onNavigate }: { onNavigate?: () => void }
               <div className="text-[14px] font-bold text-white tracking-[-.15px] leading-tight truncate">
                 {schoolName}
               </div>
-              <div className="text-[11px] text-white/55 mt-0.5 flex items-center gap-1.5">
+              <div className="text-xs text-white/55 mt-0.5 flex items-center gap-1.5">
                 <span className="inline-block w-[5px] h-[5px] rounded-full bg-[var(--green)] flex-shrink-0" />
                 {user?.role?.replace("_", " ") || "User"}
                 {currentTerm ? ` · Term ${currentTerm}` : ""}
@@ -197,7 +197,7 @@ export default function SidebarShell({ onNavigate }: { onNavigate?: () => void }
         <div className="px-3 pb-1">
           <div className="rounded-2xl p-4 text-white bg-[#0e2a1e] shadow-[0_16px_32px_rgba(14,42,30,0.35)]">
             <p className="text-[13px] font-bold tracking-tight">Bring your team aboard</p>
-            <p className="text-[11px] text-white/70 mt-1 leading-snug">
+            <p className="text-xs text-white/70 mt-1 leading-snug">
               Invite teachers and bursars to run the school together.
             </p>
             <Link

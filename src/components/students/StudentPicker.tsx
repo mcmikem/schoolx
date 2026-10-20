@@ -121,7 +121,7 @@ export default function StudentPicker({
   return (
     <div ref={boxRef} className="relative">
       <label
-        className="block text-[11px] font-bold uppercase tracking-[0.12em] text-[var(--t3)] mb-2"
+        className="block text-xs font-bold uppercase tracking-[0.12em] text-[var(--t3)] mb-2"
         htmlFor="student-picker-input"
       >
         {label}
@@ -198,7 +198,7 @@ export default function StudentPicker({
                   >
                     <span className="min-w-0 flex-1 truncate text-[var(--t1)]">{student.name}</span>
                     {student.class_name && (
-                      <span className="shrink-0 text-[11px] text-[var(--t3)]">{student.class_name}</span>
+                      <span className="shrink-0 text-xs text-[var(--t3)]">{student.class_name}</span>
                     )}
                     {detail && <span className="shrink-0 text-xs font-semibold text-[var(--t3)]">{detail}</span>}
                   </button>

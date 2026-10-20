@@ -114,7 +114,7 @@ export default function CaseStudiesPage() {
         <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
           <FadeIn>
             <div className="text-center max-w-3xl mx-auto">
-              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-white px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--t1)] shadow-sm">
+              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-white px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-[var(--t1)] shadow-sm">
                 <MaterialIcon icon="stars" className="text-sm" />
                 Use cases
               </span>
@@ -147,7 +147,7 @@ export default function CaseStudiesPage() {
                     <p className="text-sm leading-6 text-slate-600 italic">&ldquo;{cs.quote}&rdquo;</p>
                   </blockquote>
                   <div className="mt-4 pt-4 border-t border-slate-100">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">
+                    <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">
                       What it looks like
                     </p>
                     <ul className="space-y-1.5">

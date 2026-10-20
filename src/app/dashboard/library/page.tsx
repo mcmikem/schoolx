@@ -216,7 +216,7 @@ export default function LibraryPage() {
               </div>
               <div>
                 <p className="text-2xl font-black text-slate-800">{s.value}</p>
-                <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">{s.label}</p>
+                <p className="text-xs font-black uppercase tracking-widest text-slate-400">{s.label}</p>
               </div>
             </div>
           ))}
@@ -260,11 +260,11 @@ export default function LibraryPage() {
                   className="bg-white p-6 rounded-3xl border border-slate-100 hover:shadow-xl transition-all group relative overflow-hidden"
                 >
                   <div className="flex justify-between items-start mb-4">
-                    <span className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-[10px] font-black uppercase tracking-wider">
+                    <span className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-black uppercase tracking-wider">
                       {book.category}
                     </span>
                     <span
-                      className={`text-[10px] font-black ${book.available_copies === 0 ? "text-red-500" : "text-emerald-600"}`}
+                      className={`text-xs font-black ${book.available_copies === 0 ? "text-red-500" : "text-emerald-600"}`}
                     >
                       {book.available_copies === 0 ? "OUT OF STOCK" : `${book.available_copies} AVAILABLE`}
                     </span>
@@ -339,7 +339,7 @@ export default function LibraryPage() {
               <div className="space-y-5">
                 {(["title", "author", "isbn"] as const).map((f) => (
                   <div key={f}>
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-slate-400 block mb-2">
                       {f}
                     </label>
                     <input
@@ -352,7 +352,7 @@ export default function LibraryPage() {
                 ))}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-slate-400 block mb-2">
                       Category
                     </label>
                     <select
@@ -366,7 +366,7 @@ export default function LibraryPage() {
                     </select>
                   </div>
                   <div>
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-slate-400 block mb-2">
                       Total Copies
                     </label>
                     <input

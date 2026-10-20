@@ -104,7 +104,7 @@ export default function ParentAcademicsPage() {
           <Card>
             <CardBody className="text-center bg-[var(--portal-surface-tint)]">
               <p className={`text-4xl font-black ${gradeColor(avgScore)}`}>{avgScore}%</p>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)] mt-1">
+              <p className="text-xs font-bold uppercase tracking-widest text-[var(--on-surface-variant)] mt-1">
                 Average Score
               </p>
             </CardBody>
@@ -112,7 +112,7 @@ export default function ParentAcademicsPage() {
           <Card>
             <CardBody className="text-center bg-[var(--portal-surface-tint)]">
               <p className="text-4xl font-black text-[var(--on-surface)]">{filtered.length}</p>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)] mt-1">
+              <p className="text-xs font-bold uppercase tracking-widest text-[var(--on-surface-variant)] mt-1">
                 Subjects Recorded
               </p>
             </CardBody>
@@ -122,7 +122,7 @@ export default function ParentAcademicsPage() {
         <Card>
           <CardBody>
             <div className="flex items-center gap-3 flex-wrap">
-              <span className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]">
+              <span className="text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)]">
                 Filter by Term:
               </span>
               {["all", ...terms].map((term) => (
@@ -154,7 +154,7 @@ export default function ParentAcademicsPage() {
                     </p>
                   </div>
                   <span
-                    className={`inline-flex px-3 py-1 rounded-full border text-[10px] font-black uppercase tracking-wider ${
+                    className={`inline-flex px-3 py-1 rounded-full border text-xs font-black uppercase tracking-wider ${
                       PERFORMANCE_STYLES[reportCard.performanceBand]
                     }`}
                   >
@@ -164,7 +164,7 @@ export default function ParentAcademicsPage() {
 
                 <div className="grid grid-cols-3 gap-3">
                   <div className="rounded-[18px] bg-[var(--surface-container-low)] p-3 border border-[var(--border)]">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]">
+                    <p className="text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)]">
                       Average
                     </p>
                     <p className={`text-2xl font-black ${gradeColor(reportCard.averagePercent)}`}>
@@ -172,7 +172,7 @@ export default function ParentAcademicsPage() {
                     </p>
                   </div>
                   <div className="rounded-[18px] bg-[var(--surface-container-low)] p-3 border border-[var(--border)]">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]">
+                    <p className="text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)]">
                       Exam
                     </p>
                     <p className="text-sm font-bold text-[var(--on-surface)]">
@@ -180,7 +180,7 @@ export default function ParentAcademicsPage() {
                     </p>
                   </div>
                   <div className="rounded-[18px] bg-[var(--surface-container-low)] p-3 border border-[var(--border)]">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]">
+                    <p className="text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)]">
                       Top Subject
                     </p>
                     <p className="text-sm font-bold text-[var(--on-surface)]">{reportCard.strongestSubject}</p>
@@ -224,7 +224,7 @@ export default function ParentAcademicsPage() {
                       <div className="flex items-start justify-between mb-2">
                         <div>
                           <p className="font-bold text-[var(--on-surface)]">{grade.subject_name}</p>
-                          <p className="text-[10px] text-[var(--on-surface-variant)]">
+                          <p className="text-xs text-[var(--on-surface-variant)]">
                             {grade.exam_type} · {grade.term}
                           </p>
                         </div>

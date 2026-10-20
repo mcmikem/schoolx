@@ -39,12 +39,8 @@ export default function TeacherPerformancePage() {
   const [teachers, setTeachers] = useState<any[]>([]);
   const [stats, setStats] = useState<TeacherStats[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedTeacher, setSelectedTeacher] = useState<TeacherStats | null>(
-    null,
-  );
-  const [metric, setMetric] = useState<
-    "lessonPlans" | "syllabus" | "grades" | "attendance"
-  >("lessonPlans");
+  const [selectedTeacher, setSelectedTeacher] = useState<TeacherStats | null>(null);
+  const [metric, setMetric] = useState<"lessonPlans" | "syllabus" | "grades" | "attendance">("lessonPlans");
 
   const loadData = useCallback(async () => {
     if (!school?.id) {
@@ -66,14 +62,7 @@ export default function TeacherPerformancePage() {
         .from("users")
         .select("id, full_name, role")
         .eq("school_id", school.id)
-        .in("role", [
-          "teacher",
-          "subject_teacher",
-          "head_teacher",
-          "dean_of_studies",
-          "deputy_headteacher",
-          "deputy",
-        ]);
+        .in("role", ["teacher", "subject_teacher", "head_teacher", "dean_of_studies", "deputy_headteacher", "deputy"]);
 
       if (staffError) throw staffError;
 
@@ -108,10 +97,7 @@ export default function TeacherPerformancePage() {
               .eq("academic_year", academicYear)
           : Promise.resolve({ data: [] }),
         classIds.length > 0
-          ? supabase
-              .from("attendance")
-              .select("recorded_by, id")
-              .in("class_id", classIds)
+          ? supabase.from("attendance").select("recorded_by, id").in("class_id", classIds)
           : Promise.resolve({ data: [] }),
         supabase
           .from("topic_coverage")
@@ -124,8 +110,7 @@ export default function TeacherPerformancePage() {
       const lessonPlanCounts: Record<string, number> = {};
       lessonPlans?.forEach((plan: any) => {
         if (!plan.teacher_id) return;
-        lessonPlanCounts[plan.teacher_id] =
-          (lessonPlanCounts[plan.teacher_id] || 0) + 1;
+        lessonPlanCounts[plan.teacher_id] = (lessonPlanCounts[plan.teacher_id] || 0) + 1;
       });
 
       const gradesByTeacher: Record<string, { count: number; totalScore: number }> = {};
@@ -141,8 +126,7 @@ export default function TeacherPerformancePage() {
       const attendanceCounts: Record<string, number> = {};
       attendanceData?.forEach((entry: any) => {
         if (!entry.recorded_by) return;
-        attendanceCounts[entry.recorded_by] =
-          (attendanceCounts[entry.recorded_by] || 0) + 1;
+        attendanceCounts[entry.recorded_by] = (attendanceCounts[entry.recorded_by] || 0) + 1;
       });
 
       const syllabusMap: Record<string, { total: number; covered: number }> = {};
@@ -179,13 +163,10 @@ export default function TeacherPerformancePage() {
 
       const teacherStats: TeacherStats[] = teacherList.map((teacher: any) => {
         const gradesInfo = gradesByTeacher[teacher.id] || { count: 0, totalScore: 0 };
-        const avgScore =
-          gradesInfo.count > 0 ? gradesInfo.totalScore / gradesInfo.count : 0;
+        const avgScore = gradesInfo.count > 0 ? gradesInfo.totalScore / gradesInfo.count : 0;
         const syllabusInfo = syllabusMap[teacher.id];
         const coverage =
-          syllabusInfo && syllabusInfo.total > 0
-            ? Math.round((syllabusInfo.covered / syllabusInfo.total) * 100)
-            : 0;
+          syllabusInfo && syllabusInfo.total > 0 ? Math.round((syllabusInfo.covered / syllabusInfo.total) * 100) : 0;
         const assignmentInfo = assignmentMap.get(teacher.id) || {
           subjects: [],
           classes: [],
@@ -261,9 +242,7 @@ export default function TeacherPerformancePage() {
     const top3Ids = new Set(top10.slice(0, 3).map((entry) => entry.teacherId));
     return top10.map((entry) => ({
       ...entry,
-      badges: top3Ids.has(entry.teacherId)
-        ? Array.from(new Set(["top", ...entry.badges]))
-        : entry.badges,
+      badges: top3Ids.has(entry.teacherId) ? Array.from(new Set(["top", ...entry.badges])) : entry.badges,
     }));
   }, [stats, metric, getBadges]);
 
@@ -292,13 +271,13 @@ export default function TeacherPerformancePage() {
   if (loading) {
     return (
       <div className="content space-y-6">
-        <PageHeader
-          title="Teacher Performance"
-          subtitle="Track teacher activity and rewards"
-        />
+        <PageHeader title="Teacher Performance" subtitle="Track teacher activity and rewards" />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 animate-pulse space-y-2">
+            <div
+              key={i}
+              className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 animate-pulse space-y-2"
+            >
               <div className="h-3 bg-[var(--surface-container)] rounded w-20" />
               <div className="h-7 bg-[var(--surface-container)] rounded w-16" />
               <div className="h-3 bg-[var(--surface-container)] rounded w-24" />
@@ -311,222 +290,173 @@ export default function TeacherPerformancePage() {
 
   return (
     <PageErrorBoundary>
-    <div className="content space-y-6">
-      <PageHeader
-        title="Teacher Performance"
-        subtitle="Track teacher activity, syllabus coverage, and reward high performers"
-      />
+      <div className="content space-y-6">
+        <PageHeader
+          title="Teacher Performance"
+          subtitle="Track teacher activity, syllabus coverage, and reward high performers"
+        />
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        {[
-          { label: "Teachers", value: stats.length, tone: "text-slate-700 bg-slate-50" },
-          { label: "Lesson plans", value: stats.reduce((a, b) => a + b.lessonPlansCount, 0), tone: "text-blue-700 bg-blue-50" },
-          { label: "Grades entered", value: stats.reduce((a, b) => a + b.gradesEntered, 0), tone: "text-emerald-700 bg-emerald-50" },
-          { label: "Attendance", value: stats.reduce((a, b) => a + b.attendanceMarked, 0), tone: "text-amber-700 bg-amber-50" },
-        ].map((item) => (
-          <div key={item.label} className={`rounded-2xl border border-[var(--border)] p-3 ${item.tone}`}>
-            <div className="text-[11px] font-black uppercase tracking-[0.18em] opacity-80">{item.label}</div>
-            <div className="mt-1 text-lg font-bold">{item.value}</div>
-          </div>
-        ))}
-      </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {[
+            { label: "Teachers", value: stats.length, tone: "text-slate-700 bg-slate-50" },
+            {
+              label: "Lesson plans",
+              value: stats.reduce((a, b) => a + b.lessonPlansCount, 0),
+              tone: "text-blue-700 bg-blue-50",
+            },
+            {
+              label: "Grades entered",
+              value: stats.reduce((a, b) => a + b.gradesEntered, 0),
+              tone: "text-emerald-700 bg-emerald-50",
+            },
+            {
+              label: "Attendance",
+              value: stats.reduce((a, b) => a + b.attendanceMarked, 0),
+              tone: "text-amber-700 bg-amber-50",
+            },
+          ].map((item) => (
+            <div key={item.label} className={`rounded-2xl border border-[var(--border)] p-3 ${item.tone}`}>
+              <div className="text-xs font-black uppercase tracking-[0.18em] opacity-80">{item.label}</div>
+              <div className="mt-1 text-lg font-bold">{item.value}</div>
+            </div>
+          ))}
+        </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        {(["lessonPlans", "syllabus", "grades", "attendance"] as const).map(
-          (m) => (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          {(["lessonPlans", "syllabus", "grades", "attendance"] as const).map((m) => (
             <button
               key={m}
               onClick={() => setMetric(m)}
               className={`p-3 sm:p-4 rounded-xl text-left transition-all ${
-                metric === m
-                  ? "bg-[var(--primary)] text-white"
-                  : "bg-surface-container-low hover:bg-surface-container"
+                metric === m ? "bg-[var(--primary)] text-white" : "bg-surface-container-low hover:bg-surface-container"
               }`}
             >
-              <div
-                className={`text-xs font-medium mb-1 ${metric === m ? "text-white/70" : "text-on-surface-variant"}`}
-              >
+              <div className={`text-xs font-medium mb-1 ${metric === m ? "text-white/70" : "text-on-surface-variant"}`}>
                 {getMetricLabel(m)}
               </div>
               <div className="text-2xl font-bold">
                 {m === "lessonPlans"
                   ? stats.reduce((a, b) => a + b.lessonPlansCount, 0)
                   : m === "syllabus"
-                    ? Math.round(
-                        stats.reduce((a, b) => a + b.syllabusCoverage, 0) /
-                          stats.length,
-                      ) + "%"
+                    ? Math.round(stats.reduce((a, b) => a + b.syllabusCoverage, 0) / stats.length) + "%"
                     : m === "grades"
                       ? stats.reduce((a, b) => a + b.gradesEntered, 0)
                       : stats.reduce((a, b) => a + b.attendanceMarked, 0)}
               </div>
             </button>
-          ),
-        )}
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-        <div className="lg:col-span-2">
-          <Card>
-            <CardHeader>
-              <h3 className="font-semibold text-on-surface">
-                Leaderboard - {getMetricLabel(metric)}
-              </h3>
-            </CardHeader>
-            <CardBody className="p-0">
-              <div className="divide-y divide-outline-variant/10">
-                {leaderboard.map((entry) => (
-                  <button
-                    key={entry.teacherId}
-                    onClick={() =>
-                      setSelectedTeacher(
-                        stats.find((s) => s.teacherId === entry.teacherId) ||
-                          null,
-                      )
-                    }
-                    className="w-full p-4 flex items-center gap-4 hover:bg-surface-bright transition-colors text-left"
-                  >
-                    <span className="text-2xl w-10">
-                      {getRankEmoji(entry.rank)}
-                    </span>
-                    <div className="flex-1">
-                      <div className="font-semibold text-on-surface">
-                        {entry.name}
-                      </div>
-                      <div className="text-sm text-on-surface-variant">
-                        {entry.badges.includes("prolific") && "📚 Prolific"}
-                        {entry.badges.includes("completes") && " ✅ Complete"}
-                        {entry.badges.includes("graded") && " 📝 Graded"}
-                      </div>
-                    </div>
-                    <div className="text-xl font-bold text-[var(--primary)]">
-                      {entry.score}
-                    </div>
-                  </button>
-                ))}
-                {leaderboard.length === 0 && (
-                  <div className="p-8 text-center text-on-surface-variant">
-                    No teacher data available
-                  </div>
-                )}
-              </div>
-            </CardBody>
-          </Card>
+          ))}
         </div>
 
-        <div>
-          <Card>
-            <CardHeader>
-              <h3 className="font-semibold text-on-surface">Quick Stats</h3>
-            </CardHeader>
-            <CardBody className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-on-surface-variant">Total Teachers</span>
-                <span className="font-bold text-on-surface">
-                  {stats.length}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-on-surface-variant">
-                  Avg Lesson Plans
-                </span>
-                <span className="font-bold text-on-surface">
-                  {stats.length > 0
-                    ? Math.round(
-                        stats.reduce((a, b) => a + b.lessonPlansCount, 0) /
-                          stats.length,
-                      )
-                    : 0}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-on-surface-variant">
-                  Avg Syllabus Cover
-                </span>
-                <span className="font-bold text-on-surface">
-                  {stats.length > 0
-                    ? Math.round(
-                        stats.reduce((a, b) => a + b.syllabusCoverage, 0) /
-                          stats.length,
-                      )
-                    : 0}
-                  %
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-on-surface-variant">
-                  Total Grades Entered
-                </span>
-                <span className="font-bold text-on-surface">
-                  {stats.reduce((a, b) => a + b.gradesEntered, 0)}
-                </span>
-              </div>
-            </CardBody>
-          </Card>
-
-          {selectedTeacher && (
-            <Card className="mt-4">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+          <div className="lg:col-span-2">
+            <Card>
               <CardHeader>
-                <div className="flex justify-between items-center">
-                  <h3 className="font-semibold text-on-surface">
-                    Teacher Details
-                  </h3>
-                  <button
-                    onClick={() => setSelectedTeacher(null)}
-                    className="text-on-surface-variant hover:text-on-surface"
-                  >
-                    <MaterialIcon icon="close" />
-                  </button>
-                </div>
+                <h3 className="font-semibold text-on-surface">Leaderboard - {getMetricLabel(metric)}</h3>
               </CardHeader>
-              <CardBody className="space-y-3">
-                <div className="text-lg font-semibold text-on-surface">
-                  {selectedTeacher.teacherName}
-                </div>
-                <div className="text-sm text-on-surface-variant">
-                  {selectedTeacher.subjects.join(", ") ||
-                    "No subjects assigned"}
-                </div>
-                <div className="grid grid-cols-2 gap-2 mt-4">
-                  <div className="bg-surface-container p-3 rounded-lg text-center">
-                    <div className="text-xs text-on-surface-variant">
-                      Lesson Plans
-                    </div>
-                    <div className="text-xl font-bold text-primary">
-                      {selectedTeacher.lessonPlansCount}
-                    </div>
-                  </div>
-                  <div className="bg-surface-container p-3 rounded-lg text-center">
-                    <div className="text-xs text-on-surface-variant">
-                      Syllabus %
-                    </div>
-                    <div className="text-xl font-bold text-primary">
-                      {selectedTeacher.syllabusCoverage}%
-                    </div>
-                  </div>
-                  <div className="bg-surface-container p-3 rounded-lg text-center">
-                    <div className="text-xs text-on-surface-variant">
-                      Grades
-                    </div>
-                    <div className="text-xl font-bold text-primary">
-                      {selectedTeacher.gradesEntered}
-                    </div>
-                  </div>
-                  <div className="bg-surface-container p-3 rounded-lg text-center">
-                    <div className="text-xs text-on-surface-variant">
-                      Attendance
-                    </div>
-                    <div className="text-xl font-bold text-primary">
-                      {selectedTeacher.attendanceMarked}
-                    </div>
-                  </div>
+              <CardBody className="p-0">
+                <div className="divide-y divide-outline-variant/10">
+                  {leaderboard.map((entry) => (
+                    <button
+                      key={entry.teacherId}
+                      onClick={() => setSelectedTeacher(stats.find((s) => s.teacherId === entry.teacherId) || null)}
+                      className="w-full p-4 flex items-center gap-4 hover:bg-surface-bright transition-colors text-left"
+                    >
+                      <span className="text-2xl w-10">{getRankEmoji(entry.rank)}</span>
+                      <div className="flex-1">
+                        <div className="font-semibold text-on-surface">{entry.name}</div>
+                        <div className="text-sm text-on-surface-variant">
+                          {entry.badges.includes("prolific") && "📚 Prolific"}
+                          {entry.badges.includes("completes") && " ✅ Complete"}
+                          {entry.badges.includes("graded") && " 📝 Graded"}
+                        </div>
+                      </div>
+                      <div className="text-xl font-bold text-[var(--primary)]">{entry.score}</div>
+                    </button>
+                  ))}
+                  {leaderboard.length === 0 && (
+                    <div className="p-8 text-center text-on-surface-variant">No teacher data available</div>
+                  )}
                 </div>
               </CardBody>
             </Card>
-          )}
+          </div>
+
+          <div>
+            <Card>
+              <CardHeader>
+                <h3 className="font-semibold text-on-surface">Quick Stats</h3>
+              </CardHeader>
+              <CardBody className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-on-surface-variant">Total Teachers</span>
+                  <span className="font-bold text-on-surface">{stats.length}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-on-surface-variant">Avg Lesson Plans</span>
+                  <span className="font-bold text-on-surface">
+                    {stats.length > 0
+                      ? Math.round(stats.reduce((a, b) => a + b.lessonPlansCount, 0) / stats.length)
+                      : 0}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-on-surface-variant">Avg Syllabus Cover</span>
+                  <span className="font-bold text-on-surface">
+                    {stats.length > 0
+                      ? Math.round(stats.reduce((a, b) => a + b.syllabusCoverage, 0) / stats.length)
+                      : 0}
+                    %
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-on-surface-variant">Total Grades Entered</span>
+                  <span className="font-bold text-on-surface">{stats.reduce((a, b) => a + b.gradesEntered, 0)}</span>
+                </div>
+              </CardBody>
+            </Card>
+
+            {selectedTeacher && (
+              <Card className="mt-4">
+                <CardHeader>
+                  <div className="flex justify-between items-center">
+                    <h3 className="font-semibold text-on-surface">Teacher Details</h3>
+                    <button
+                      onClick={() => setSelectedTeacher(null)}
+                      className="text-on-surface-variant hover:text-on-surface"
+                    >
+                      <MaterialIcon icon="close" />
+                    </button>
+                  </div>
+                </CardHeader>
+                <CardBody className="space-y-3">
+                  <div className="text-lg font-semibold text-on-surface">{selectedTeacher.teacherName}</div>
+                  <div className="text-sm text-on-surface-variant">
+                    {selectedTeacher.subjects.join(", ") || "No subjects assigned"}
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 mt-4">
+                    <div className="bg-surface-container p-3 rounded-lg text-center">
+                      <div className="text-xs text-on-surface-variant">Lesson Plans</div>
+                      <div className="text-xl font-bold text-primary">{selectedTeacher.lessonPlansCount}</div>
+                    </div>
+                    <div className="bg-surface-container p-3 rounded-lg text-center">
+                      <div className="text-xs text-on-surface-variant">Syllabus %</div>
+                      <div className="text-xl font-bold text-primary">{selectedTeacher.syllabusCoverage}%</div>
+                    </div>
+                    <div className="bg-surface-container p-3 rounded-lg text-center">
+                      <div className="text-xs text-on-surface-variant">Grades</div>
+                      <div className="text-xl font-bold text-primary">{selectedTeacher.gradesEntered}</div>
+                    </div>
+                    <div className="bg-surface-container p-3 rounded-lg text-center">
+                      <div className="text-xs text-on-surface-variant">Attendance</div>
+                      <div className="text-xl font-bold text-primary">{selectedTeacher.attendanceMarked}</div>
+                    </div>
+                  </div>
+                </CardBody>
+              </Card>
+            )}
+          </div>
         </div>
       </div>
-    </div>
     </PageErrorBoundary>
   );
 }

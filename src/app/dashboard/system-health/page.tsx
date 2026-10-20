@@ -379,11 +379,11 @@ export default function SystemHealthPage() {
                         </div>
                         <div className="flex items-center gap-3 shrink-0">
                           <span
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${statusBadgeClass(run.status)}`}
+                            className={`px-2 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider ${statusBadgeClass(run.status)}`}
                           >
                             {run.status}
                           </span>
-                          <span className="text-[11px] text-[var(--t3)] font-mono">
+                          <span className="text-xs text-[var(--t3)] font-mono">
                             {new Date(run.sent_at).toLocaleDateString("en-GB", {
                               day: "2-digit",
                               month: "short",

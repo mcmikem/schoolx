@@ -335,7 +335,7 @@ export default function ImportPage() {
       header: "Status",
       render: (row) =>
         row.isValid ? (
-          <span className="inline-flex items-center gap-1 rounded-lg border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700">
+          <span className="inline-flex items-center gap-1 rounded-lg border border-emerald-100 bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-700">
             <MaterialIcon icon="check_circle" className="text-sm" /> Ready
           </span>
         ) : (
@@ -343,7 +343,7 @@ export default function ImportPage() {
             {row.errors.map((err, errIdx) => (
               <span
                 key={errIdx}
-                className="rounded border border-[var(--red)]/20 bg-[var(--red-soft)] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[var(--red)]"
+                className="rounded border border-[var(--red)]/20 bg-[var(--red-soft)] px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-[var(--red)]"
               >
                 {err}
               </span>

@@ -87,7 +87,7 @@ function RoleDashboardHeader({
         }}
       />
       <div className="relative">
-        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[var(--primary)]">{eyebrow}</p>
+        <p className="text-xs font-black uppercase tracking-[0.2em] text-[var(--primary)]">{eyebrow}</p>
         <h1 className="mt-1 font-headline text-xl sm:text-2xl font-bold tracking-tight text-[var(--t1)]">
           {greeting}, {name}
         </h1>
@@ -118,7 +118,7 @@ function RoleActionCard({
       className="flex flex-col rounded-[18px] border border-[var(--border)] bg-[var(--surface)] p-4 transition-colors hover:bg-[var(--surface-container-low)] active:scale-[0.99]"
     >
       <div className="flex items-center justify-between gap-2">
-        <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-[var(--t4)]">{eyebrow}</span>
+        <span className="text-xs font-bold uppercase tracking-[0.14em] text-[var(--t4)]">{eyebrow}</span>
         <span className="material-symbols-outlined text-[var(--primary)]">{icon}</span>
       </div>
       <p className="mt-2 text-base font-bold text-[var(--t1)]">{title}</p>

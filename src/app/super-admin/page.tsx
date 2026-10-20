@@ -445,7 +445,7 @@ export default function SuperAdminPage() {
                         </div>
                         <div className="min-w-0">
                           <div className="text-[12px] font-semibold text-[var(--t1)] truncate">{a.title}</div>
-                          <div className="text-[10px] text-[var(--t3)] truncate">{a.sub}</div>
+                          <div className="text-xs text-[var(--t3)] truncate">{a.sub}</div>
                         </div>
                       </div>
                     ))}
@@ -459,7 +459,7 @@ export default function SuperAdminPage() {
                     <div className="font-['Sora'] text-[13px] font-bold text-[var(--t1)]">Recent Schools</div>
                     <button
                       onClick={() => setTab("schools")}
-                      className="text-[11px] text-[var(--navy)] font-semibold hover:underline flex items-center gap-1"
+                      className="text-xs text-[var(--navy)] font-semibold hover:underline flex items-center gap-1"
                     >
                       View all <MaterialIcon icon="arrow_forward" style={{ fontSize: 12 }} />
                     </button>
@@ -483,7 +483,7 @@ export default function SuperAdminPage() {
                             className="w-full flex items-center gap-3 px-5 py-3 hover:bg-[var(--bg)] transition-colors text-left group"
                           >
                             <div
-                              className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 text-white text-[11px] font-bold overflow-hidden"
+                              className="w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 text-white text-xs font-bold overflow-hidden"
                               style={{
                                 background: s.primary_color || "var(--navy)",
                               }}
@@ -505,7 +505,7 @@ export default function SuperAdminPage() {
                                   </span>
                                 )}
                               </div>
-                              <div className="text-[10px] text-[var(--t3)]">
+                              <div className="text-xs text-[var(--t3)]">
                                 {s.district} \u00b7 {s.school_type}
                                 {s.student_count ? ` \u00b7 ${s.student_count.toLocaleString()} students` : ""}
                               </div>
@@ -514,9 +514,7 @@ export default function SuperAdminPage() {
                               <Badge status={s.subscription_status} />
                               <PlanBadge plan={s.subscription_plan} />
                             </div>
-                            <div className="text-[10px] text-[var(--t4)] flex-shrink-0 ml-1">
-                              {timeSince(s.created_at)}
-                            </div>
+                            <div className="text-xs text-[var(--t4)] flex-shrink-0 ml-1">{timeSince(s.created_at)}</div>
                           </button>
                         ))}
                   </div>
@@ -531,10 +529,7 @@ export default function SuperAdminPage() {
                       {planBreakdown.map(({ plan, count }) => (
                         <div key={plan}>
                           <div className="flex items-center justify-between mb-1">
-                            <span
-                              className="text-[11px] font-semibold"
-                              style={{ color: PLAN_COLORS[plan] || "#64748b" }}
-                            >
+                            <span className="text-xs font-semibold" style={{ color: PLAN_COLORS[plan] || "#64748b" }}>
                               {PLAN_LABELS[plan] || plan}
                             </span>
                             <span className="text-[12px] font-bold text-[var(--t1)]">{count}</span>
@@ -644,7 +639,7 @@ export default function SuperAdminPage() {
                       </div>
                       <div>
                         <div className="font-['Sora'] text-[13px] font-bold text-[var(--t1)]">{a.label}</div>
-                        <div className="text-[11px] text-[var(--t3)] mt-0.5">{a.desc}</div>
+                        <div className="text-xs text-[var(--t3)] mt-0.5">{a.desc}</div>
                       </div>
                     </button>
                   ))}
@@ -735,7 +730,7 @@ export default function SuperAdminPage() {
                           {["School", "District", "Plan", "Status", "Students", "Joined", "Actions"].map((h) => (
                             <th
                               key={h}
-                              className={`px-4 py-3 text-[10px] font-bold text-[var(--t3)] uppercase tracking-wide ${h === "Students" ? "text-right" : h === "Actions" ? "text-center" : "text-left"}`}
+                              className={`px-4 py-3 text-xs font-bold text-[var(--t3)] uppercase tracking-wide ${h === "Students" ? "text-right" : h === "Actions" ? "text-center" : "text-left"}`}
                             >
                               {h}
                             </th>
@@ -748,7 +743,7 @@ export default function SuperAdminPage() {
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-2.5">
                                 <div
-                                  className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-[10px] font-bold flex-shrink-0 overflow-hidden"
+                                  className="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold flex-shrink-0 overflow-hidden"
                                   style={{
                                     background: s.primary_color || "var(--navy)",
                                   }}
@@ -763,12 +758,12 @@ export default function SuperAdminPage() {
                                   <div className="text-[12px] font-semibold text-[var(--t1)] truncate max-w-[160px]">
                                     {s.name}
                                   </div>
-                                  <div className="text-[10px] text-[var(--t3)]">
+                                  <div className="text-xs text-[var(--t3)]">
                                     {s.school_code} \u00b7 {s.school_type}
                                   </div>
                                 </div>
                                 {s.is_tester && (
-                                  <span className="ml-1.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-[#f0fdf4] text-[#15803d] border border-[#bbf7d0]">
+                                  <span className="ml-1.5 px-1.5 py-0.5 rounded text-xs font-bold bg-[#f0fdf4] text-[#15803d] border border-[#bbf7d0]">
                                     TESTER
                                   </span>
                                 )}
@@ -784,7 +779,7 @@ export default function SuperAdminPage() {
                             <td className="px-4 py-3 text-right text-[12px] font-semibold text-[var(--t1)]">
                               {s.student_count?.toLocaleString() ?? "\u2014"}
                             </td>
-                            <td className="px-4 py-3 text-[11px] text-[var(--t3)]">{fmtDate(s.created_at)}</td>
+                            <td className="px-4 py-3 text-xs text-[var(--t3)]">{fmtDate(s.created_at)}</td>
                             <td className="px-4 py-3">
                               <div className="flex items-center justify-center gap-1">
                                 <button
@@ -891,7 +886,7 @@ export default function SuperAdminPage() {
                           {["User", "Role", "School", "Joined", "Status", "Actions"].map((h) => (
                             <th
                               key={h}
-                              className={`px-4 py-3 text-[10px] font-bold text-[var(--t3)] uppercase tracking-wide ${h === "Status" || h === "Actions" ? "text-center" : "text-left"}`}
+                              className={`px-4 py-3 text-xs font-bold text-[var(--t3)] uppercase tracking-wide ${h === "Status" || h === "Actions" ? "text-center" : "text-left"}`}
                             >
                               {h}
                             </th>
@@ -909,7 +904,7 @@ export default function SuperAdminPage() {
                               <td className="px-4 py-3">
                                 <div className="flex items-center gap-2.5">
                                   <div
-                                    className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-white text-[10px] font-bold"
+                                    className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-white text-xs font-bold"
                                     style={{ background: rc }}
                                   >
                                     {u.full_name?.slice(0, 1).toUpperCase() || "?"}
@@ -918,13 +913,13 @@ export default function SuperAdminPage() {
                                     <div className="text-[12px] font-semibold text-[var(--t1)]">
                                       {u.full_name || "\u2014"}
                                     </div>
-                                    <div className="text-[10px] text-[var(--t3)]">{u.phone}</div>
+                                    <div className="text-xs text-[var(--t3)]">{u.phone}</div>
                                   </div>
                                 </div>
                               </td>
                               <td className="px-4 py-3">
                                 <span
-                                  className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase"
+                                  className="px-2 py-0.5 rounded-full text-xs font-bold uppercase"
                                   style={{ background: `${rc}18`, color: rc }}
                                 >
                                   {u.role.replace(/_/g, " ")}
@@ -933,14 +928,14 @@ export default function SuperAdminPage() {
                               <td className="px-4 py-3 text-[12px] text-[var(--t2)] max-w-[160px] truncate">
                                 {u.school_name || "\u2014"}
                               </td>
-                              <td className="px-4 py-3 text-[11px] text-[var(--t3)]">{fmtDate(u.created_at)}</td>
+                              <td className="px-4 py-3 text-xs text-[var(--t3)]">{fmtDate(u.created_at)}</td>
                               <td className="px-4 py-3 text-center">
                                 {u.is_active ? (
-                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#ccfbf1] text-[#0d9488]">
+                                  <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-[#ccfbf1] text-[#0d9488]">
                                     Active
                                   </span>
                                 ) : (
-                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#f1f5f9] text-[#64748b]">
+                                  <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-[#f1f5f9] text-[#64748b]">
                                     Inactive
                                   </span>
                                 )}
@@ -1043,7 +1038,7 @@ export default function SuperAdminPage() {
                           <span className="font-['Sora'] text-[13px] font-bold text-[var(--t1)] truncate">
                             {req.school_name}
                           </span>
-                          <span className="text-[10px] text-[var(--t3)]">{req.school_code}</span>
+                          <span className="text-xs text-[var(--t3)]">{req.school_code}</span>
                         </div>
                         <p className="text-[12px] text-[var(--t2)] mt-0.5">
                           Requesting <strong>{req.module_name}</strong>
@@ -1076,7 +1071,7 @@ export default function SuperAdminPage() {
                               toast.error("Failed to approve module");
                             }
                           }}
-                          className="px-3 py-1.5 rounded-xl bg-emerald-500 text-white text-[11px] font-bold hover:bg-emerald-600 transition-colors"
+                          className="px-3 py-1.5 rounded-xl bg-emerald-500 text-white text-xs font-bold hover:bg-emerald-600 transition-colors"
                         >
                           Approve
                         </button>
@@ -1105,7 +1100,7 @@ export default function SuperAdminPage() {
                               toast.error("Failed to reject request");
                             }
                           }}
-                          className="px-3 py-1.5 rounded-xl border border-red-200 text-red-600 text-[11px] font-bold hover:bg-red-50 transition-colors"
+                          className="px-3 py-1.5 rounded-xl border border-red-200 text-red-600 text-xs font-bold hover:bg-red-50 transition-colors"
                         >
                           Reject
                         </button>
@@ -1168,7 +1163,7 @@ export default function SuperAdminPage() {
                     </div>
                     <div className="flex-1">
                       <div className="text-[13px] font-semibold text-[var(--t1)]">{item.label}</div>
-                      <div className="text-[11px] text-[var(--t3)]">{item.desc}</div>
+                      <div className="text-xs text-[var(--t3)]">{item.desc}</div>
                     </div>
                     <Toggle
                       value={settings[item.key]}
@@ -1194,7 +1189,7 @@ export default function SuperAdminPage() {
                   },
                 ].map((f) => (
                   <div key={f.key}>
-                    <label className="block text-[11px] font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">
+                    <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">
                       {f.label}
                     </label>
                     <input
@@ -1207,7 +1202,7 @@ export default function SuperAdminPage() {
                   </div>
                 ))}
                 <div>
-                  <label className="block text-[11px] font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">
+                  <label className="block text-xs font-bold text-[var(--t2)] uppercase tracking-wide mb-1.5">
                     Default Trial Duration (days)
                   </label>
                   <input

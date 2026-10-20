@@ -260,7 +260,7 @@ export default function HealthPage() {
               </div>
               <div>
                 <p className="text-2xl font-black text-slate-800">{s.value}</p>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{s.label}</p>
+                <p className="text-xs font-black uppercase tracking-widest text-slate-400">{s.label}</p>
               </div>
             </div>
           ))}
@@ -276,14 +276,14 @@ export default function HealthPage() {
             { label: "Records", value: records.length, tone: "text-slate-700 bg-slate-50" },
           ].map((item) => (
             <div key={item.label} className={`rounded-2xl border border-slate-100 p-3 ${item.tone}`}>
-              <div className="text-[11px] font-black uppercase tracking-[0.18em] opacity-80">{item.label}</div>
+              <div className="text-xs font-black uppercase tracking-[0.18em] opacity-80">{item.label}</div>
               <div className="mt-1 text-lg font-bold">{item.value}</div>
             </div>
           ))}
         </div>
         <div className={cardClassName + " overflow-hidden"}>
           <div className="p-5 border-b border-slate-50 bg-slate-50/50">
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Sick Bay Records</p>
+            <p className="text-xs font-black uppercase tracking-widest text-slate-400">Sick Bay Records</p>
           </div>
           {loading ? (
             <div className="p-8 text-center text-slate-400 font-medium">Loading records…</div>
@@ -298,27 +298,13 @@ export default function HealthPage() {
               <table className="w-full text-left">
                 <thead>
                   <tr className="border-b border-slate-50">
-                    <th className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                      Student
-                    </th>
-                    <th className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                      Condition
-                    </th>
-                    <th className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                      Severity
-                    </th>
-                    <th className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                      Treatment
-                    </th>
-                    <th className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                      Admitted
-                    </th>
-                    <th className="px-6 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">
-                      Actions
-                    </th>
+                    <th className="px-6 py-3 text-xs font-black uppercase tracking-widest text-slate-400">Student</th>
+                    <th className="px-6 py-3 text-xs font-black uppercase tracking-widest text-slate-400">Condition</th>
+                    <th className="px-6 py-3 text-xs font-black uppercase tracking-widest text-slate-400">Severity</th>
+                    <th className="px-6 py-3 text-xs font-black uppercase tracking-widest text-slate-400">Treatment</th>
+                    <th className="px-6 py-3 text-xs font-black uppercase tracking-widest text-slate-400">Status</th>
+                    <th className="px-6 py-3 text-xs font-black uppercase tracking-widest text-slate-400">Admitted</th>
+                    <th className="px-6 py-3 text-xs font-black uppercase tracking-widest text-slate-400">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
@@ -328,7 +314,7 @@ export default function HealthPage() {
                       <td className="px-6 py-4 text-sm text-slate-600">{r.condition}</td>
                       <td className="px-6 py-4">
                         <div
-                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${SEVERITY_STYLES[r.severity].bg} ${SEVERITY_STYLES[r.severity].text}`}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-wider ${SEVERITY_STYLES[r.severity].bg} ${SEVERITY_STYLES[r.severity].text}`}
                         >
                           <div className={`w-1.5 h-1.5 rounded-full ${SEVERITY_STYLES[r.severity].dot}`} />
                           {r.severity}
@@ -337,7 +323,7 @@ export default function HealthPage() {
                       <td className="px-6 py-4 text-xs text-slate-500 max-w-[200px] truncate">{r.treatment}</td>
                       <td className="px-6 py-4">
                         <span
-                          className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${STATUS_BADGE[r.status]}`}
+                          className={`px-2.5 py-1 rounded-full text-xs font-black uppercase tracking-wider ${STATUS_BADGE[r.status]}`}
                         >
                           {r.status}
                         </span>
@@ -357,14 +343,14 @@ export default function HealthPage() {
                               <button
                                 onClick={() => dischargeStudent(r.id, false)}
                                 disabled={discharging === r.id}
-                                className="px-3 py-1.5 text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 rounded-xl hover:bg-emerald-100 transition-colors disabled:opacity-50"
+                                className="px-3 py-1.5 text-xs font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 rounded-xl hover:bg-emerald-100 transition-colors disabled:opacity-50"
                               >
                                 Discharge
                               </button>
                               <button
                                 onClick={() => dischargeStudent(r.id, true)}
                                 disabled={discharging === r.id}
-                                className="px-3 py-1.5 text-[10px] font-black uppercase tracking-wider bg-red-50 text-red-700 rounded-xl hover:bg-red-100 transition-colors disabled:opacity-50"
+                                className="px-3 py-1.5 text-xs font-black uppercase tracking-wider bg-red-50 text-red-700 rounded-xl hover:bg-red-100 transition-colors disabled:opacity-50"
                               >
                                 Refer
                               </button>
@@ -416,7 +402,7 @@ export default function HealthPage() {
               <div className="space-y-5">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-slate-400 block mb-2">
                       Condition
                     </label>
                     <input
@@ -426,7 +412,7 @@ export default function HealthPage() {
                     />
                   </div>
                   <div>
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-slate-400 block mb-2">
                       Severity
                     </label>
                     <select
@@ -441,7 +427,7 @@ export default function HealthPage() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
+                  <label className="text-xs font-black uppercase tracking-widest text-slate-400 block mb-2">
                     Status
                   </label>
                   <select
@@ -455,7 +441,7 @@ export default function HealthPage() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
+                  <label className="text-xs font-black uppercase tracking-widest text-slate-400 block mb-2">
                     Treatment
                   </label>
                   <textarea
@@ -510,7 +496,7 @@ export default function HealthPage() {
 
                 <div className="space-y-5">
                   <div className="relative">
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-slate-400 block mb-2">
                       Student
                     </label>
                     <input
@@ -540,7 +526,7 @@ export default function HealthPage() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
+                      <label className="text-xs font-black uppercase tracking-widest text-slate-400 block mb-2">
                         Condition
                       </label>
                       <input
@@ -551,7 +537,7 @@ export default function HealthPage() {
                       />
                     </div>
                     <div>
-                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
+                      <label className="text-xs font-black uppercase tracking-widest text-slate-400 block mb-2">
                         Severity
                       </label>
                       <select
@@ -567,7 +553,7 @@ export default function HealthPage() {
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 block mb-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-slate-400 block mb-2">
                       Treatment Given
                     </label>
                     <textarea

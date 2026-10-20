@@ -230,9 +230,7 @@ export default function SyllabusTrackerPage() {
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[var(--t3)]">
-                    Syllabus overview
-                  </p>
+                  <p className="text-xs font-black uppercase tracking-[0.18em] text-[var(--t3)]">Syllabus overview</p>
                   <h2 className="mt-1 truncate text-base font-semibold text-[var(--t1)]">
                     {subjects.find((subject) => subject.id === selectedSubject)?.name || "Selected subject"}
                     {selectedClass
@@ -251,7 +249,7 @@ export default function SyllabusTrackerPage() {
                   { label: "Completed", value: completedTopicCount },
                 ].map((item) => (
                   <div key={item.label} className="rounded-xl bg-[var(--surface-container-low)] p-2.5">
-                    <p className="text-[10px] font-bold uppercase tracking-wider text-[var(--t3)]">{item.label}</p>
+                    <p className="text-xs font-bold uppercase tracking-wider text-[var(--t3)]">{item.label}</p>
                     <p className="mt-1 text-lg font-bold text-[var(--t1)]">{item.value}</p>
                   </div>
                 ))}

@@ -1825,12 +1825,12 @@ export default function FinanceHubPage() {
               { label: "Outstanding", value: partition.totalBalance, tone: "text-[var(--red)]" },
             ].map((cell, i) => (
               <div key={cell.label} className="px-4 sm:px-5 py-4">
-                <div className="text-[10px] font-black uppercase tracking-[0.2em] text-[var(--t3)]">{cell.label}</div>
+                <div className="text-xs font-black uppercase tracking-[0.2em] text-[var(--t3)]">{cell.label}</div>
                 <div className={`mt-1.5 text-xl sm:text-2xl font-extrabold tabular-nums leading-none ${cell.tone}`}>
                   {formatCurrency(cell.value)}
                 </div>
                 {i === 0 && partition.billed < partition.roster && (
-                  <div className="mt-1.5 text-[11px] text-[var(--t3)] tabular-nums">
+                  <div className="mt-1.5 text-xs text-[var(--t3)] tabular-nums">
                     {partition.billed} of {partition.roster} pupils billed
                   </div>
                 )}
@@ -1839,10 +1839,10 @@ export default function FinanceHubPage() {
           </div>
           <div className="px-4 sm:px-5 py-3 bg-[var(--surface-container-low)] border-t border-[var(--border)]">
             <div className="flex items-center justify-between gap-3 mb-2">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[var(--t2)]">
+              <span className="text-xs font-bold uppercase tracking-wider text-[var(--t2)]">
                 {partition.realizationRate}% collected
               </span>
-              <span className="text-[11px] text-[var(--t3)] tabular-nums">
+              <span className="text-xs text-[var(--t3)] tabular-nums">
                 {partition.cleared} cleared · {partition.partial + partition.owing} still owing
               </span>
             </div>
@@ -1908,7 +1908,7 @@ export default function FinanceHubPage() {
             >
               {t.label}
               {t.id === "claims" && pendingClaims.length > 0 && (
-                <span className="min-w-5 h-5 px-1.5 rounded-full bg-[var(--primary)] text-white text-[11px] font-bold flex items-center justify-center">
+                <span className="min-w-5 h-5 px-1.5 rounded-full bg-[var(--primary)] text-white text-xs font-bold flex items-center justify-center">
                   {pendingClaims.length}
                 </span>
               )}
@@ -2072,7 +2072,7 @@ export default function FinanceHubPage() {
                   */}
                   <div className="sticky top-0 z-10 -mx-1 px-1 py-2 bg-[var(--bg)]/95">
                     <div className="flex flex-wrap items-center gap-x-5 gap-y-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 shadow-sm text-sm">
-                      <span className="text-[var(--t3)] text-[11px] font-black uppercase tracking-[0.16em]">
+                      <span className="text-[var(--t3)] text-xs font-black uppercase tracking-[0.16em]">
                         {filteredBalances.length === studentBalances.length ? "Showing" : "Filtered to"}
                       </span>
                       <span className="text-[var(--t2)]">
@@ -2104,14 +2104,14 @@ export default function FinanceHubPage() {
                   */}
                   <div className="mt-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
                     <div className="flex items-center justify-between gap-3 mb-2.5">
-                      <span className="text-[11px] font-black uppercase tracking-[0.16em] text-[var(--t3)]">
+                      <span className="text-xs font-black uppercase tracking-[0.16em] text-[var(--t3)]">
                         Who owes what
                       </span>
                       {bandFilter && (
                         <button
                           type="button"
                           onClick={() => setBandFilter(null)}
-                          className="text-[11px] font-bold text-[var(--primary)] hover:underline"
+                          className="text-xs font-bold text-[var(--primary)] hover:underline"
                         >
                           Clear band
                         </button>
@@ -2141,13 +2141,13 @@ export default function FinanceHubPage() {
                                 className="absolute inset-x-0 bottom-0 h-1 bg-[var(--red)]"
                                 style={{ width: `${band.widthPct}%` }}
                               />
-                              <span className="block text-[11px] font-bold uppercase tracking-wider text-[var(--t3)]">
+                              <span className="block text-xs font-bold uppercase tracking-wider text-[var(--t3)]">
                                 {band.label}
                               </span>
                               <span className="mt-1 block text-lg font-extrabold tabular-nums leading-none text-[var(--t1)]">
                                 {band.count}
                               </span>
-                              <span className="mt-0.5 block text-[11px] tabular-nums text-[var(--t3)]">
+                              <span className="mt-0.5 block text-xs tabular-nums text-[var(--t3)]">
                                 {formatCurrency(band.total)}
                               </span>
                             </button>

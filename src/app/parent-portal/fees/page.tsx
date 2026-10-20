@@ -510,7 +510,7 @@ export default function ParentFeesPage() {
                   {feeGroups.map((group) => (
                     <div key={group.key} className="space-y-2">
                       <div className="flex items-baseline justify-between gap-3">
-                        <p className="text-[11px] font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
+                        <p className="text-xs font-bold uppercase tracking-widest text-[var(--on-surface-variant)]">
                           {group.label}
                         </p>
                         <p className="text-xs font-semibold tabular-nums text-[var(--on-surface-variant)]">
@@ -525,7 +525,7 @@ export default function ParentFeesPage() {
                           <div className="min-w-0">
                             <p className="truncate text-sm font-bold text-[var(--on-surface)]">{fee.name}</p>
                             {fee.due_date && (
-                              <p className="text-[10px] text-[var(--on-surface-variant)]">
+                              <p className="text-xs text-[var(--on-surface-variant)]">
                                 Due{" "}
                                 {new Date(fee.due_date).toLocaleDateString("en-GB", {
                                   day: "2-digit",
@@ -576,12 +576,12 @@ export default function ParentFeesPage() {
                           <p className="font-bold text-sm text-emerald-600">
                             UGX {Number(payment.amount_paid).toLocaleString()}
                           </p>
-                          <p className="text-[10px] text-[var(--on-surface-variant)]">
+                          <p className="text-xs text-[var(--on-surface-variant)]">
                             {payment.fee_structure?.name || "Payment"} · {payment.payment_method || "Recorded"}
                           </p>
                         </div>
                         <div className="text-right">
-                          <p className="text-[10px] text-[var(--on-surface-variant)]">
+                          <p className="text-xs text-[var(--on-surface-variant)]">
                             {new Date(payment.payment_date).toLocaleDateString("en-GB", {
                               day: "2-digit",
                               month: "short",
@@ -589,7 +589,7 @@ export default function ParentFeesPage() {
                             })}
                           </p>
                           {payment.payment_reference && (
-                            <p className="text-[10px] font-mono text-[var(--on-surface-variant)]">
+                            <p className="text-xs font-mono text-[var(--on-surface-variant)]">
                               {payment.payment_reference}
                             </p>
                           )}
@@ -632,24 +632,24 @@ export default function ParentFeesPage() {
                           <p className="font-bold text-sm text-[var(--on-surface)]">
                             UGX {Number(transaction.amount).toLocaleString()}
                           </p>
-                          <p className="text-[10px] text-[var(--on-surface-variant)]">
+                          <p className="text-xs text-[var(--on-surface-variant)]">
                             {transaction.description || "Wallet entry"}
                           </p>
                           {transaction.reference && (
-                            <p className="text-[10px] font-mono text-[var(--on-surface-variant)]">
+                            <p className="text-xs font-mono text-[var(--on-surface-variant)]">
                               {transaction.reference}
                             </p>
                           )}
                         </div>
                         <div className="text-right space-y-1">
                           <span
-                            className={`inline-flex px-2 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                            className={`inline-flex px-2 py-1 rounded-full text-xs font-black uppercase tracking-wider border ${
                               WALLET_BADGE_STYLES[transaction.type]
                             }`}
                           >
                             {transaction.type}
                           </span>
-                          <p className="text-[10px] text-[var(--on-surface-variant)]">
+                          <p className="text-xs text-[var(--on-surface-variant)]">
                             {new Date(transaction.created_at).toLocaleDateString("en-GB", {
                               day: "2-digit",
                               month: "short",
@@ -686,7 +686,7 @@ export default function ParentFeesPage() {
               </div>
 
               <div>
-                <label className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2">
+                <label className="text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2">
                   Amount (UGX)
                 </label>
                 <input
@@ -704,7 +704,7 @@ export default function ParentFeesPage() {
                   <button
                     key={amount}
                     onClick={() => setTopupAmount(amount.toString())}
-                    className="rounded-xl border border-[var(--border)] py-2 text-[10px] font-black text-[var(--on-surface-variant)] hover:border-[var(--primary)] hover:text-[var(--primary)]"
+                    className="rounded-xl border border-[var(--border)] py-2 text-xs font-black text-[var(--on-surface-variant)] hover:border-[var(--primary)] hover:text-[var(--primary)]"
                   >
                     {amount.toLocaleString()}
                   </button>
@@ -744,7 +744,7 @@ export default function ParentFeesPage() {
               {payStep === "form" ? (
                 <>
                   <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface-container-low)] p-4 space-y-3">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-[var(--t3)]">
+                    <p className="text-xs font-black uppercase tracking-widest text-[var(--t3)]">
                       Send your payment to
                     </p>
                     {payDetails.momo ? (
@@ -792,7 +792,7 @@ export default function ParentFeesPage() {
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2">
                       Amount you paid (UGX)
                     </label>
                     <input
@@ -805,7 +805,7 @@ export default function ParentFeesPage() {
                     />
                     {stats.balance > 0 && (
                       <div className="mt-3 rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] p-3">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]">
+                        <p className="text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)]">
                           Can&apos;t clear UGX {stats.balance.toLocaleString()} at once? Split it
                         </p>
                         <div className="mt-2 grid grid-cols-3 gap-2">
@@ -827,12 +827,12 @@ export default function ParentFeesPage() {
                                 <span className="block text-sm font-bold tabular-nums">
                                   {n} × {part.toLocaleString()}
                                 </span>
-                                <span className="block text-[10px] opacity-70">per payment</span>
+                                <span className="block text-xs opacity-70">per payment</span>
                               </button>
                             );
                           })}
                         </div>
-                        <p className="mt-2 text-[11px] text-[var(--t3)]">
+                        <p className="mt-2 text-xs text-[var(--t3)]">
                           Tap a split to fill the amount, then pay it the same way each time.
                         </p>
                       </div>
@@ -840,7 +840,7 @@ export default function ParentFeesPage() {
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2">
                       How did you pay?
                     </label>
                     <select
@@ -858,7 +858,7 @@ export default function ParentFeesPage() {
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2">
                       Reference (optional)
                     </label>
                     <input
@@ -868,13 +868,13 @@ export default function ParentFeesPage() {
                       placeholder="Momo/Airtel confirmation code"
                       className="input w-full"
                     />
-                    <p className="text-[11px] text-[var(--t3)] mt-1.5">
+                    <p className="text-xs text-[var(--t3)] mt-1.5">
                       If you have one, add the code from your Momo/Airtel receipt so the school can match it quickly.
                     </p>
                   </div>
 
                   <div>
-                    <label className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2">
+                    <label className="text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)] block mb-2">
                       Note (optional)
                     </label>
                     <input
@@ -898,12 +898,12 @@ export default function ParentFeesPage() {
                       : "I've paid — send to school"}
                   </Button>
 
-                  <p className="text-[11px] text-[var(--t3)] text-center leading-relaxed">
+                  <p className="text-xs text-[var(--t3)] text-center leading-relaxed">
                     Your balance updates once the school confirms they received the money.
                   </p>
 
                   <div className="rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface-container-low)] p-3">
-                    <p className="text-[11px] text-[var(--t3)] flex items-start gap-2">
+                    <p className="text-xs text-[var(--t3)] flex items-start gap-2">
                       <MaterialIcon icon="schedule" className="text-sm shrink-0" />
                       <span>
                         <span className="font-bold text-[var(--t2)]">Coming soon:</span> paying straight from this

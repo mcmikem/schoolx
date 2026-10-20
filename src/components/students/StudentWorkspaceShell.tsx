@@ -83,7 +83,7 @@ export default function StudentWorkspaceShell({
         {stats.map((s) => (
           <div key={s.label} className="card p-4">
             <div className="flex items-center justify-between gap-2">
-              <div className="text-[11px] font-bold uppercase tracking-widest text-[var(--t3)]">{s.label}</div>
+              <div className="text-xs font-bold uppercase tracking-widest text-[var(--t3)]">{s.label}</div>
               <span className="w-7 h-7 rounded-lg bg-[var(--surface-container-low)] flex items-center justify-center shrink-0">
                 <MaterialIcon style={{ fontSize: 15, color: s.color }}>{s.icon}</MaterialIcon>
               </span>
@@ -121,7 +121,7 @@ export default function StudentWorkspaceShell({
                     {tab.label}
                     {count > 0 && (
                       <span
-                        className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${isActive ? "bg-[var(--primary)] text-white" : "bg-[var(--surface-container)] text-[var(--t3)]"}`}
+                        className={`rounded-full px-1.5 py-0.5 text-xs font-bold ${isActive ? "bg-[var(--primary)] text-white" : "bg-[var(--surface-container)] text-[var(--t3)]"}`}
                       >
                         {count}
                       </span>
@@ -132,7 +132,7 @@ export default function StudentWorkspaceShell({
             </div>
           </div>
           {showTabsOverflowHint && (
-            <div className="sm:hidden px-2 pb-2 text-[11px] text-[var(--t3)] flex items-center gap-1">
+            <div className="sm:hidden px-2 pb-2 text-xs text-[var(--t3)] flex items-center gap-1">
               <MaterialIcon icon="swipe" size={14} />
               Swipe left or right to see all tabs
             </div>

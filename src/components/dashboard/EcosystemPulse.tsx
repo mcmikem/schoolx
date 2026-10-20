@@ -10,10 +10,7 @@ interface EcosystemPulseProps {
 }
 
 export default function EcosystemPulse({ payments, smsStats, loading }: EcosystemPulseProps) {
-  const activities = useMemo(
-    () => buildEcosystemActivities({ payments, smsStats }),
-    [payments, smsStats],
-  );
+  const activities = useMemo(() => buildEcosystemActivities({ payments, smsStats }), [payments, smsStats]);
 
   const formatActivityTime = (value: string) => {
     if (!value || value === "Today" || value === "Recent") return value || "Recent";
@@ -33,7 +30,7 @@ export default function EcosystemPulse({ payments, smsStats, loading }: Ecosyste
           <div className="w-2 h-2 rounded-full bg-[var(--green)] animate-pulse" />
           <h3 className="text-sm font-bold text-[var(--t1)] font-heading">Recent Activity</h3>
         </div>
-        <span className="text-[10px] font-bold text-[var(--t3)] uppercase tracking-wider">Live Feed</span>
+        <span className="text-xs font-bold text-[var(--t3)] uppercase tracking-wider">Live Feed</span>
       </div>
 
       <div className="flex-1 overflow-y-auto pr-2 no-scrollbar flex flex-col gap-4">
@@ -64,26 +61,28 @@ export default function EcosystemPulse({ payments, smsStats, loading }: Ecosyste
               </div>
             </div>
           </div>
-        ) : activities.map((act) => (
-          <div key={act.id} className="flex gap-4 group">
-            <div className="flex flex-col items-center">
-              <div 
-                className="w-10 h-10 rounded-xl flex items-center justify-center border border-white/20 transition-all group-hover:scale-110 shadow-sm"
-                style={{ backgroundColor: `${act.color}15`, color: act.color }}
-              >
-                <MaterialIcon icon={act.icon} style={{ fontSize: 20 }} />
+        ) : (
+          activities.map((act) => (
+            <div key={act.id} className="flex gap-4 group">
+              <div className="flex flex-col items-center">
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center border border-white/20 transition-all group-hover:scale-110 shadow-sm"
+                  style={{ backgroundColor: `${act.color}15`, color: act.color }}
+                >
+                  <MaterialIcon icon={act.icon} style={{ fontSize: 20 }} />
+                </div>
+                <div className="w-[1px] flex-1 bg-[var(--border)] my-1 border-dotted" />
               </div>
-              <div className="w-[1px] flex-1 bg-[var(--border)] my-1 border-dotted" />
-            </div>
-            <div className="flex-1 pb-4 border-b border-[var(--bg)] last:border-none">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-bold text-[var(--t1)]">{act.title}</span>
-                <span className="text-[10px] font-medium text-[var(--t4)]">{formatActivityTime(act.time)}</span>
+              <div className="flex-1 pb-4 border-b border-[var(--bg)] last:border-none">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-bold text-[var(--t1)]">{act.title}</span>
+                  <span className="text-xs font-medium text-[var(--t4)]">{formatActivityTime(act.time)}</span>
+                </div>
+                <p className="text-xs text-[var(--t3)] mt-1 line-clamp-2">{act.detail}</p>
               </div>
-              <p className="text-[11px] text-[var(--t3)] mt-1 line-clamp-2">{act.detail}</p>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );

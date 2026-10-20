@@ -67,14 +67,14 @@ const StatCard = memo(function StatCard({
             {loading ? "..." : value}
           </div>
           {trend && (
-            <div className="flex items-center gap-1 mt-2 text-[11px] font-medium text-white/80">
+            <div className="flex items-center gap-1 mt-2 text-xs font-medium text-white/80">
               <MaterialIcon icon={trendIcon} style={{ fontSize: 13 }} />
               <span>
                 {trend.value}% {trend.label}
               </span>
             </div>
           )}
-          {subValue && !trend && <div className="text-[11px] font-medium mt-2 text-white/70">{subValue}</div>}
+          {subValue && !trend && <div className="text-xs font-medium mt-2 text-white/70">{subValue}</div>}
         </div>
       </div>
     );
@@ -106,7 +106,7 @@ const StatCard = memo(function StatCard({
       <div className="mt-2 min-h-[16px]">
         {trend && !loading ? (
           <p
-            className="flex items-center gap-1 text-[11px] font-medium"
+            className="flex items-center gap-1 text-xs font-medium"
             style={{
               color:
                 trend.direction === "up" ? "var(--green)" : trend.direction === "down" ? "var(--red)" : "var(--t3)",

@@ -18,7 +18,7 @@ function FieldHint({ tip }: { tip: string }) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="w-4 h-4 rounded-full bg-[var(--navy-soft)] text-[var(--navy)] flex items-center justify-center text-[9px] font-black leading-none border border-[var(--border)] hover:bg-[var(--navy)] hover:text-white transition-colors"
+        className="w-4 h-4 rounded-full bg-[var(--navy-soft)] text-[var(--navy)] flex items-center justify-center text-xs font-black leading-none border border-[var(--border)] hover:bg-[var(--navy)] hover:text-white transition-colors"
         aria-label="Help"
         title={tip}
       >
@@ -30,7 +30,7 @@ function FieldHint({ tip }: { tip: string }) {
           <button
             type="button"
             onClick={() => setOpen(false)}
-            className="mt-2 block text-[11px] font-semibold text-[var(--primary)] hover:underline"
+            className="mt-2 block text-xs font-semibold text-[var(--primary)] hover:underline"
           >
             Got it
           </button>
@@ -334,10 +334,7 @@ export default function StudentDetailPanel({
     () => JSON.stringify(newStudent) !== JSON.stringify(INITIAL_NEW_STUDENT),
     [newStudent],
   );
-  const editFormDirty = useMemo(
-    () => JSON.stringify(editForm) !== JSON.stringify(initialEditForm),
-    [editForm],
-  );
+  const editFormDirty = useMemo(() => JSON.stringify(editForm) !== JSON.stringify(initialEditForm), [editForm]);
   const formDirty = mode === "add" ? newStudentDirty : editFormDirty;
   const [discardPromptOpen, setDiscardPromptOpen] = useState(false);
 
@@ -387,8 +384,7 @@ export default function StudentDetailPanel({
         opening_balance: student.opening_balance?.toString() || "0",
         boarding_status: (student.boarding_status || "day") as "day" | "boarding" | "weekly",
         takes_meals: student.takes_meals === true ? "yes" : student.takes_meals === false ? "no" : "",
-        is_new_admission:
-          student.is_new_admission === true ? "yes" : student.is_new_admission === false ? "no" : "",
+        is_new_admission: student.is_new_admission === true ? "yes" : student.is_new_admission === false ? "no" : "",
         house_id: student.house_id || "",
         previous_school: student.previous_school || "",
         district_origin: student.district_origin || "",
@@ -629,13 +625,7 @@ export default function StudentDetailPanel({
             last_name: String(formData.last_name || ""),
             date_of_birth: String(formData.date_of_birth || ""),
           }),
-    [
-      isEdit,
-      existingStudents,
-      formData.first_name,
-      formData.last_name,
-      formData.date_of_birth,
-    ],
+    [isEdit, existingStudents, formData.first_name, formData.last_name, formData.date_of_birth],
   );
   const duplicateWarningOpen = duplicateCandidates.length > 0 && !duplicateAcknowledged;
   const handleFormChange = (updates: Record<string, any>) =>
@@ -714,739 +704,123 @@ export default function StudentDetailPanel({
         variant="danger"
       />
       {createPortal(
-    <div className="fixed inset-0 z-[140] overflow-y-auto" onClick={requestClose}>
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
-      <div className="relative min-h-full flex items-start sm:items-center justify-center p-4">
-        <div
-          ref={addStudentModalRef}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby={modalTitleId}
-          aria-describedby={modalDescriptionId}
-          className="bg-[var(--surface)] rounded-2xl w-full max-w-3xl max-h-[92vh] overflow-y-auto my-2 shadow-2xl"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="sticky top-0 bg-[var(--surface)] border-b border-[var(--border)] p-4 flex items-center justify-between">
-            <div>
-              <h2
-                id={modalTitleId}
-                style={{
-                  fontFamily: "Sora",
-                  fontSize: 16,
-                  fontWeight: 700,
-                }}
-              >
-                {isEdit ? "Edit Student" : "Add New Student"}
-              </h2>
-              <p id={modalDescriptionId} className="mt-1 text-xs text-[var(--t3)]">
-                {minimal
-                  ? "Quick registration — only essential fields shown. Switch to full form for all options."
-                  : "Start with the basics. Open extra details only when you need profile, house, or leadership fields."}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Close student form"
-              style={{
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                padding: 4,
-              }}
+        <div className="fixed inset-0 z-[140] overflow-y-auto" onClick={requestClose}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
+          <div className="relative min-h-full flex items-start sm:items-center justify-center p-4">
+            <div
+              ref={addStudentModalRef}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby={modalTitleId}
+              aria-describedby={modalDescriptionId}
+              className="bg-[var(--surface)] rounded-2xl w-full max-w-3xl max-h-[92vh] overflow-y-auto my-2 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
             >
-              <MaterialIcon style={{ fontSize: 18, color: "var(--t3)" }}>close</MaterialIcon>
-            </button>
-          </div>
-          <form onSubmit={isEdit ? handleUpdateStudent : handleCreateStudent} className="space-y-5 p-4 sm:p-5">
-            {!minimal && (
-              <StudentPhotoField
-                photoUrl={photoUrl}
-                firstName={fName}
-                lastName={lName}
-                gender={gen}
-                uploading={uploadingPhoto}
-                title={isEdit ? "Student Photo" : undefined}
-                size={isEdit ? 80 : undefined}
-                onUpload={async (file) => {
-                  try {
-                    setUploadingPhoto(true);
-                    await handleStudentPhotoUpload(file, isEdit ? "edit" : "new");
-                    toast.success(isEdit ? "Student photo updated" : "Passport photo added");
-                  } catch (error: unknown) {
-                    toast.error(getErrorMessage(error, "Failed to upload photo"));
-                  } finally {
-                    setUploadingPhoto(false);
-                  }
-                }}
-              />
-            )}
-            <FormSection
-              title="Student basics"
-              description="These are the minimum details needed to place the learner in the registry."
-            >
-              {duplicateWarningOpen && (
-                <div
-                  className="mb-4"
-                  role="alert"
-                  style={{
-                    border: "1px solid var(--amber)",
-                    background: "var(--amber-soft)",
-                    borderRadius: 10,
-                    padding: "12px 14px",
-                  }}
-                >
-                  <div
-                    className="flex items-start gap-2"
-                    style={{ fontSize: 12, fontWeight: 700, color: "var(--t1)" }}
-                  >
-                    <MaterialIcon style={{ fontSize: 18, color: "var(--amber)" }}>warning</MaterialIcon>
-                    <span>
-                      {duplicateCandidates.length === 1
-                        ? "This looks like a pupil already on the roll"
-                        : `This looks like ${duplicateCandidates.length} pupils already on the roll`}
-                    </span>
-                  </div>
-                  <ul style={{ margin: "8px 0 0", paddingLeft: 18, fontSize: 12, color: "var(--t2)" }}>
-                    {duplicateCandidates.slice(0, 4).map((c) => (
-                      <li key={c.id}>
-                        {c.student_number || "—"} · {c.first_name} {c.last_name}
-                        {c.date_of_birth ? ` · born ${c.date_of_birth}` : ""}
-                      </li>
-                    ))}
-                    {duplicateCandidates.length > 4 && (
-                      <li>…and {duplicateCandidates.length - 4} more</li>
-                    )}
-                  </ul>
-                  <div className="flex gap-2 mt-3">
-                    <button
-                      type="button"
-                      onClick={() => setDuplicateAcknowledged(true)}
-                      className="btn btn-secondary btn-sm"
-                    >
-                      Add anyway
-                    </button>
-                  </div>
-                </div>
-              )}
-              <ResponsiveFieldGrid className="mb-4">
+              <div className="sticky top-0 bg-[var(--surface)] border-b border-[var(--border)] p-4 flex items-center justify-between">
                 <div>
-                  <label
-                    htmlFor="student-first-name"
+                  <h2
+                    id={modalTitleId}
                     style={{
-                      fontSize: 11,
+                      fontFamily: "Sora",
+                      fontSize: 16,
                       fontWeight: 700,
-                      letterSpacing: ".5px",
-                      textTransform: "uppercase",
-                      color: "var(--t3)",
-                      marginBottom: 6,
-                      display: "block",
                     }}
                   >
-                    First Name
-                  </label>
-                  <input
-                    id="student-first-name"
-                    ref={isEdit ? undefined : addStudentFirstInputRef}
-                    type="text"
-                    value={fName}
-                    onChange={(e) => setFName(e.target.value)}
-                    className="input"
-                    required
-                    maxLength={100}
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="student-last-name"
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: ".5px",
-                      textTransform: "uppercase",
-                      color: "var(--t3)",
-                      marginBottom: 6,
-                      display: "block",
-                    }}
-                  >
-                    Last Name
-                  </label>
-                  <input
-                    id="student-last-name"
-                    type="text"
-                    value={lName}
-                    onChange={(e) => setLName(e.target.value)}
-                    className="input"
-                    required
-                    maxLength={100}
-                  />
-                </div>
-              </ResponsiveFieldGrid>
-              <ResponsiveFieldGrid className="mb-4">
-                <div>
-                  <label
-                    htmlFor="student-gender"
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: ".5px",
-                      textTransform: "uppercase",
-                      color: "var(--t3)",
-                      marginBottom: 6,
-                      display: "block",
-                    }}
-                  >
-                    Gender
-                  </label>
-                  <select
-                    id="student-gender"
-                    name="gender"
-                    value={gen}
-                    onChange={(e) => setGender(e.target.value as "M" | "F")}
-                    className="input"
-                  >
-                    <option value="M">Male</option>
-                    <option value="F">Female</option>
-                  </select>
-                </div>
-                {!minimal && (
-                  <div>
-                    <label
-                      htmlFor="student-dob"
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        letterSpacing: ".5px",
-                        textTransform: "uppercase",
-                        color: "var(--t3)",
-                        marginBottom: 6,
-                        display: "block",
-                      }}
-                    >
-                      Date of Birth
-                    </label>
-                    <input
-                      id="student-dob"
-                      name="date_of_birth"
-                      type="date"
-                      autoComplete="bday"
-                      value={dob}
-                      onChange={(e) => setDob(e.target.value)}
-                      className="input"
-                    />
-                  </div>
-                )}
-              </ResponsiveFieldGrid>
-              <div className="mb-4">
-                <label
-                  htmlFor="student-class-id"
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    letterSpacing: ".5px",
-                    textTransform: "uppercase",
-                    color: "var(--t3)",
-                    marginBottom: 6,
-                    display: "block",
-                  }}
-                >
-                  Class
-                </label>
-                {classes.length === 0 ? (
-                  <div
-                    style={{
-                      background: "var(--amber-soft)",
-                      border: "1px solid var(--amber)",
-                      borderRadius: 12,
-                      padding: 16,
-                    }}
-                  >
-                    <p
-                      style={{
-                        color: "var(--t1)",
-                        fontSize: 14,
-                        fontWeight: 600,
-                      }}
-                    >
-                      No classes found
-                    </p>
-                    <p
-                      style={{
-                        color: "var(--amber)",
-                        fontSize: 12,
-                        marginTop: 4,
-                      }}
-                    >
-                      Contact support if this persists.
-                    </p>
-                  </div>
-                ) : (
-                  <select
-                    id="student-class-id"
-                    name="class_id"
-                    value={cId}
-                    onChange={(e) => setClassId(e.target.value)}
-                    className="input"
-                    required
-                  >
-                    <option value="">Select class</option>
-                    {classes.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              </div>
-              {!isEdit && !minimal && (
-                <div className="mb-4">
-                  <label htmlFor="student-number"
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: ".5px",
-                      textTransform: "uppercase",
-                      color: "var(--t3)",
-                      marginBottom: 6,
-                      display: "block",
-                    }}
-                  >
-                    Admission / Student Number{" "}
-                    <span
-                      style={{
-                        fontWeight: 400,
-                        fontSize: 10,
-                        color: "var(--t4)",
-                      }}
-                    >
-                      (optional — auto-generated if blank)
-                    </span>
-                  </label>
-                  <input
-                    id="student-number"
-                    name="student_number"
-                    type="text"
-                    value={newStudent.student_number}
-                    onChange={(e) =>
-                      handleNewStudentChange({
-                        student_number: e.target.value,
-                      })
-                    }
-                    className="input"
-                    placeholder="e.g., 2026-001 or leave blank for auto"
-                    maxLength={20}
-                    autoComplete="off"
-                  />
-                </div>
-              )}
-              {!isEdit &&
-                !minimal &&
-                newStudent.class_id &&
-                classes.find((c) => c.id === newStudent.class_id)?.name?.startsWith("P.7") && (
-                  <div>
-                    <label htmlFor="student-ple-index"
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        letterSpacing: ".5px",
-                        textTransform: "uppercase",
-                        color: "var(--t3)",
-                        marginBottom: 6,
-                        display: "block",
-                      }}
-                    >
-                      PLE Index Number
-                      <span
-                        style={{
-                          fontWeight: 400,
-                          fontSize: 10,
-                          color: "var(--t4)",
-                          marginLeft: 4,
-                        }}
-                      >
-                        (Uganda UNEB format e.g. U0001/2026)
-                      </span>
-                    </label>
-                    <input
-                      id="student-ple-index"
-                      name="ple_index_number"
-                      type="text"
-                      value={newStudent.ple_index_number}
-                      onChange={(e) =>
-                        handleNewStudentChange({
-                          ple_index_number: e.target.value,
-                        })
-                      }
-                      className="input"
-                      placeholder="U0001/2026"
-                      maxLength={20}
-                      autoComplete="off"
-                    />
-                  </div>
-                )}
-            </FormSection>
-
-            <FormSection
-              title="Parent contact"
-              description="Keep this short and accurate so SMS and fee reminders reach the right person."
-            >
-              <div style={{ marginBottom: 16 }}>
-                <label htmlFor="parent-name"
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    letterSpacing: ".5px",
-                    textTransform: "uppercase",
-                    color: "var(--t3)",
-                    marginBottom: 6,
-                    display: "block",
-                  }}
-                >
-                  Parent Name
-                </label>
-                <input
-                  id="parent-name"
-                  name="parent_name"
-                  type="text"
-                  value={pName}
-                  onChange={(e) => setPName(e.target.value)}
-                  className="input"
-                  required
-                  maxLength={200}
-                  autoComplete="name"
-                />
-              </div>
-              <ResponsiveFieldGrid>
-                <div>
-                  <label htmlFor="parent-phone"
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: ".5px",
-                      textTransform: "uppercase",
-                      color: "var(--t3)",
-                      marginBottom: 6,
-                      display: "block",
-                    }}
-                  >
-                    Parent Phone
-                  </label>
-                  <input
-                    id="parent-phone"
-                    name="parent_phone"
-                    type="tel"
-                    inputMode="tel"
-                    placeholder="0700000000"
-                    value={pPhone}
-                    onChange={(e) => setPPhone(e.target.value)}
-                    className="input"
-                    required
-                    maxLength={15}
-                    autoComplete="tel"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="parent-phone2"
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: ".5px",
-                      textTransform: "uppercase",
-                      color: "var(--t3)",
-                      marginBottom: 6,
-                      display: "block",
-                    }}
-                  >
-                    Alt. Phone
-                  </label>
-                  <input
-                    id="parent-phone2"
-                    name="parent_phone2"
-                    type="tel"
-                    inputMode="tel"
-                    placeholder="0700000000"
-                    value={pPhone2}
-                    onChange={(e) => setPPhone2(e.target.value)}
-                    className="input"
-                    maxLength={15}
-                    autoComplete="tel"
-                  />
-                </div>
-              </ResponsiveFieldGrid>
-            </FormSection>
-
-            <FormSection title="Health and fees" description="Only the fields commonly needed at admission stay here.">
-              <ResponsiveFieldGrid className="mb-4">
-                <div>
-                  <label htmlFor="blood-type"
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: ".5px",
-                      textTransform: "uppercase",
-                      color: "var(--t3)",
-                      marginBottom: 6,
-                      display: "block",
-                    }}
-                  >
-                    Blood Type
-                  </label>
-                  <select
-                    id="blood-type"
-                    name="blood_type"
-                    value={isEdit ? editForm.blood_type : newStudent.blood_type || ""}
-                    onChange={(e) =>
-                      isEdit
-                        ? setEditForm((p) => ({ ...p, blood_type: e.target.value }))
-                        : handleNewStudentChange({ blood_type: e.target.value })
-                    }
-                    className="input"
-                  >
-                    <option value="">Unknown</option>
-                    {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((bt) => (
-                      <option key={bt} value={bt}>
-                        {bt}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      letterSpacing: ".5px",
-                      textTransform: "uppercase",
-                      color: "var(--t3)",
-                      marginBottom: 6,
-                      display: "block",
-                    }}
-                  >
-                    NIN (National ID Number)
-                  </label>
-                  <input
-                    id="student-nin"
-                    type="text"
-                    aria-label="NIN (National ID Number)"
-                    value={formData.nin || ""}
-                    onChange={(e) => handleFormChange({ nin: e.target.value })}
-                    className="input"
-                    placeholder="e.g., CFN123456789 or leave blank"
-                    maxLength={20}
-                  />
-                </div>
-              </ResponsiveFieldGrid>
-              <div style={{ marginBottom: 20 }}>
-                <label
-                  htmlFor="opening-balance"
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    letterSpacing: ".5px",
-                    textTransform: "uppercase",
-                    color: "var(--t3)",
-                    marginBottom: 6,
-                    display: "block",
-                  }}
-                >
-                  Opening Balance (Previous Debt/Credit)
-                  {!isEdit && (
-                    <FieldHint tip="Enter fees owed from a previous term. Use 0 if this is a new student with no debt. Positive = owes money, negative = paid in advance." />
-                  )}
-                </label>
-                <div style={{ position: "relative" }}>
-                  <span
-                    style={{
-                      position: "absolute",
-                      left: 12,
-                      top: "50%",
-                      transform: "translateY(-50%)",
-                      fontSize: 14,
-                      color: "var(--t3)",
-                    }}
-                  >
-                    UGX
-                  </span>
-                  <input
-                    id="opening-balance"
-                    type="number"
-                    inputMode="numeric"
-                    aria-label="Opening Balance (Previous Debt/Credit) in Ugandan shillings"
-                    value={ob}
-                    onChange={(e) => setOb(e.target.value)}
-                    className="input"
-                    step="1"
-                    style={{ paddingLeft: 45 }}
-                  />
-                </div>
-                {!isEdit && (
-                  <p
-                    style={{
-                      fontSize: 10,
-                      color: "var(--t3)",
-                      marginTop: 4,
-                    }}
-                  >
-                    Positive for debt (arrears), negative for credit/advance.
+                    {isEdit ? "Edit Student" : "Add New Student"}
+                  </h2>
+                  <p id={modalDescriptionId} className="mt-1 text-xs text-[var(--t3)]">
+                    {minimal
+                      ? "Quick registration — only essential fields shown. Switch to full form for all options."
+                      : "Start with the basics. Open extra details only when you need profile, house, or leadership fields."}
                   </p>
-                )}
-              </div>
-            </FormSection>
-            {!selectedClassExists && (
-              <div
-                style={{
-                  marginBottom: 16,
-                  borderRadius: 12,
-                  padding: 12,
-                  background: "var(--amber-soft)",
-                  border: "1px solid var(--amber)",
-                  color: "var(--t1)",
-                  fontSize: 12,
-                }}
-              >
-                The assigned class is no longer available. Please choose a different class before saving.
-              </div>
-            )}
-            <details className="rounded-2xl border border-[var(--border)] bg-[var(--bg)]/40 p-4 sm:p-5" open={isEdit}>
-              <summary className="cursor-pointer list-none">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <div className="text-sm font-semibold text-[var(--t1)]">Additional details</div>
-                    <p className="mt-1 text-xs leading-5 text-[var(--t3)]">
-                      Optional profile fields for houses, home origin, boarding, and student leadership.
-                    </p>
-                  </div>
-                  <span className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--t3)]">Expand</span>
                 </div>
-              </summary>
-              <div className="mt-4">
-                <ResponsiveFieldGrid className="mb-3">
-                  <div>
-                    <label
-                      htmlFor="boarding-status"
+                <button
+                  type="button"
+                  onClick={onClose}
+                  aria-label="Close student form"
+                  style={{
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    padding: 4,
+                  }}
+                >
+                  <MaterialIcon style={{ fontSize: 18, color: "var(--t3)" }}>close</MaterialIcon>
+                </button>
+              </div>
+              <form onSubmit={isEdit ? handleUpdateStudent : handleCreateStudent} className="space-y-5 p-4 sm:p-5">
+                {!minimal && (
+                  <StudentPhotoField
+                    photoUrl={photoUrl}
+                    firstName={fName}
+                    lastName={lName}
+                    gender={gen}
+                    uploading={uploadingPhoto}
+                    title={isEdit ? "Student Photo" : undefined}
+                    size={isEdit ? 80 : undefined}
+                    onUpload={async (file) => {
+                      try {
+                        setUploadingPhoto(true);
+                        await handleStudentPhotoUpload(file, isEdit ? "edit" : "new");
+                        toast.success(isEdit ? "Student photo updated" : "Passport photo added");
+                      } catch (error: unknown) {
+                        toast.error(getErrorMessage(error, "Failed to upload photo"));
+                      } finally {
+                        setUploadingPhoto(false);
+                      }
+                    }}
+                  />
+                )}
+                <FormSection
+                  title="Student basics"
+                  description="These are the minimum details needed to place the learner in the registry."
+                >
+                  {duplicateWarningOpen && (
+                    <div
+                      className="mb-4"
+                      role="alert"
                       style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        letterSpacing: ".5px",
-                        textTransform: "uppercase",
-                        color: "var(--t3)",
-                        marginBottom: 6,
-                        display: "block",
+                        border: "1px solid var(--amber)",
+                        background: "var(--amber-soft)",
+                        borderRadius: 10,
+                        padding: "12px 14px",
                       }}
                     >
-                      Boarding Status
-                      <FieldHint tip="Day Scholar = student goes home daily after school. Boarding = student sleeps in the school dormitory every night. Weekly = boarder who goes home on weekends." />
-                    </label>
-                    <select
-                      id="boarding-status"
-                      name="boarding_status"
-                      value={formData.boarding_status}
-                      onChange={(e) =>
-                        handleFormChange({
-                          boarding_status: e.target.value as "day" | "boarding" | "weekly",
-                        })
-                      }
-                      className="input"
-                    >
-                      <option value="day">Day Scholar</option>
-                      <option value="boarding">Boarding</option>
-                      <option value="weekly">Weekly Boarder</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="takes-meals"
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 700,
-                        color: "var(--t3)",
-                        marginBottom: 6,
-                        display: "block",
-                      }}
-                    >
-                      School Meals
-                      <FieldHint tip="Only pupils who eat at school are charged the meals fee. Anyone who goes home to eat should be set to No, or their bill keeps carrying a meal they never receive." />
-                    </label>
-                    <select
-                      id="takes-meals"
-                      name="takes_meals"
-                      value={formData.takes_meals}
-                      onChange={(e) =>
-                        handleFormChange({
-                          takes_meals: e.target.value as "" | "yes" | "no",
-                        })
-                      }
-                      className="input"
-                    >
-                      <option value="">Not decided yet</option>
-                      <option value="yes">Takes school meals</option>
-                      <option value="no">Goes home to eat</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="is-new-admission"
-                      style={{
-                        fontSize: 12,
-                        fontWeight: 700,
-                        color: "var(--t3)",
-                        marginBottom: 6,
-                        display: "block",
-                      }}
-                    >
-                      New Admission
-                      <FieldHint tip="Set to Yes only for a pupil joining for the first time. That is what charges the admission/registration fee and the uniform. A pupil already on roll already owns their uniform, so charging them again puts money on a bill that cannot be collected." />
-                    </label>
-                    <select
-                      id="is-new-admission"
-                      name="is_new_admission"
-                      value={formData.is_new_admission}
-                      onChange={(e) =>
-                        handleFormChange({
-                          is_new_admission: e.target.value as "" | "yes" | "no",
-                        })
-                      }
-                      className="input"
-                    >
-                      <option value="">Not decided yet</option>
-                      <option value="yes">Just joined — charge admission + uniform</option>
-                      <option value="no">Already on roll — no admission fee</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="previous-school"
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        letterSpacing: ".5px",
-                        textTransform: "uppercase",
-                        color: "var(--t3)",
-                        marginBottom: 6,
-                        display: "block",
-                      }}
-                    >
-                      Previous School
-                    </label>
-                    <input
-                      id="previous-school"
-                      name="previous_school"
-                      type="text"
-                      value={formData.previous_school}
-                      onChange={(e) =>
-                        handleFormChange({
-                          previous_school: e.target.value,
-                        })
-                      }
-                      className="input"
-                      placeholder="e.g., St. Peter's PS"
-                    />
-                  </div>
-                </ResponsiveFieldGrid>
-                {houses.length > 0 && (
-                  <ResponsiveFieldGrid className="mb-3">
+                      <div
+                        className="flex items-start gap-2"
+                        style={{ fontSize: 12, fontWeight: 700, color: "var(--t1)" }}
+                      >
+                        <MaterialIcon style={{ fontSize: 18, color: "var(--amber)" }}>warning</MaterialIcon>
+                        <span>
+                          {duplicateCandidates.length === 1
+                            ? "This looks like a pupil already on the roll"
+                            : `This looks like ${duplicateCandidates.length} pupils already on the roll`}
+                        </span>
+                      </div>
+                      <ul style={{ margin: "8px 0 0", paddingLeft: 18, fontSize: 12, color: "var(--t2)" }}>
+                        {duplicateCandidates.slice(0, 4).map((c) => (
+                          <li key={c.id}>
+                            {c.student_number || "—"} · {c.first_name} {c.last_name}
+                            {c.date_of_birth ? ` · born ${c.date_of_birth}` : ""}
+                          </li>
+                        ))}
+                        {duplicateCandidates.length > 4 && <li>…and {duplicateCandidates.length - 4} more</li>}
+                      </ul>
+                      <div className="flex gap-2 mt-3">
+                        <button
+                          type="button"
+                          onClick={() => setDuplicateAcknowledged(true)}
+                          className="btn btn-secondary btn-sm"
+                        >
+                          Add anyway
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  <ResponsiveFieldGrid className="mb-4">
                     <div>
-                      <label htmlFor="house-id"
+                      <label
+                        htmlFor="student-first-name"
                         style={{
                           fontSize: 11,
                           fontWeight: 700,
@@ -1457,29 +831,22 @@ export default function StudentDetailPanel({
                           display: "block",
                         }}
                       >
-                        House
+                        First Name
                       </label>
-                      <select
-                        id="house-id"
-                        name="house_id"
-                        value={formData.house_id}
-                        onChange={(e) =>
-                          handleFormChange({
-                            house_id: e.target.value,
-                          })
-                        }
+                      <input
+                        id="student-first-name"
+                        ref={isEdit ? undefined : addStudentFirstInputRef}
+                        type="text"
+                        value={fName}
+                        onChange={(e) => setFName(e.target.value)}
                         className="input"
-                      >
-                        <option value="">No house</option>
-                        {houses.map((h) => (
-                          <option key={h.id} value={h.id}>
-                            {h.name}
-                          </option>
-                        ))}
-                      </select>
+                        required
+                        maxLength={100}
+                      />
                     </div>
                     <div>
-                      <label htmlFor="games-house"
+                      <label
+                        htmlFor="student-last-name"
                         style={{
                           fontSize: 11,
                           fontWeight: 700,
@@ -1490,33 +857,77 @@ export default function StudentDetailPanel({
                           display: "block",
                         }}
                       >
-                        Games House
+                        Last Name
                       </label>
-                      <select
-                        id="games-house"
-                        name="games_house"
-                        value={formData.games_house}
-                        onChange={(e) =>
-                          handleFormChange({
-                            games_house: e.target.value,
-                          })
-                        }
+                      <input
+                        id="student-last-name"
+                        type="text"
+                        value={lName}
+                        onChange={(e) => setLName(e.target.value)}
                         className="input"
-                      >
-                        <option value="">Same as house</option>
-                        {houses.map((h) => (
-                          <option key={h.id} value={h.id}>
-                            {h.name}
-                          </option>
-                        ))}
-                      </select>
+                        required
+                        maxLength={100}
+                      />
                     </div>
                   </ResponsiveFieldGrid>
-                )}
-                <ResponsiveFieldGrid className="mb-3">
-                  <div>
+                  <ResponsiveFieldGrid className="mb-4">
+                    <div>
+                      <label
+                        htmlFor="student-gender"
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          letterSpacing: ".5px",
+                          textTransform: "uppercase",
+                          color: "var(--t3)",
+                          marginBottom: 6,
+                          display: "block",
+                        }}
+                      >
+                        Gender
+                      </label>
+                      <select
+                        id="student-gender"
+                        name="gender"
+                        value={gen}
+                        onChange={(e) => setGender(e.target.value as "M" | "F")}
+                        className="input"
+                      >
+                        <option value="M">Male</option>
+                        <option value="F">Female</option>
+                      </select>
+                    </div>
+                    {!minimal && (
+                      <div>
+                        <label
+                          htmlFor="student-dob"
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            letterSpacing: ".5px",
+                            textTransform: "uppercase",
+                            color: "var(--t3)",
+                            marginBottom: 6,
+                            display: "block",
+                          }}
+                        >
+                          Date of Birth
+                        </label>
+                        <input
+                          id="student-dob"
+                          name="date_of_birth"
+                          type="date"
+                          autoComplete="bday"
+                          value={dob}
+                          onChange={(e) => setDob(e.target.value)}
+                          className="input"
+                        />
+                      </div>
+                    )}
+                  </ResponsiveFieldGrid>
+                  <div className="mb-4">
                     <label
-                      htmlFor="district-origin"
+                      htmlFor="student-class-id"
                       style={{
                         fontSize: 11,
                         fontWeight: 700,
@@ -1527,273 +938,864 @@ export default function StudentDetailPanel({
                         display: "block",
                       }}
                     >
-                      District of Origin
-                      <FieldHint tip="The student's home district. Used for UNEB registration and government reports. Example: Kampala, Wakiso, Gulu, Mbale." />
+                      Class
                     </label>
-                    <input
-                      id="district-origin"
-                      name="district_origin"
-                      type="text"
-                      value={formData.district_origin}
-                      list="district-origin-options"
-                      onChange={(e) =>
-                        handleFormChange({
-                          district_origin: e.target.value,
-                          sub_county: "",
-                          parish: "",
-                        })
-                      }
-                      className="input"
-                      placeholder="e.g., Kampala"
-                      maxLength={100}
-                      autoComplete="address-level2"
-                    />
+                    {classes.length === 0 ? (
+                      <div
+                        style={{
+                          background: "var(--amber-soft)",
+                          border: "1px solid var(--amber)",
+                          borderRadius: 12,
+                          padding: 16,
+                        }}
+                      >
+                        <p
+                          style={{
+                            color: "var(--t1)",
+                            fontSize: 14,
+                            fontWeight: 600,
+                          }}
+                        >
+                          No classes found
+                        </p>
+                        <p
+                          style={{
+                            color: "var(--amber)",
+                            fontSize: 12,
+                            marginTop: 4,
+                          }}
+                        >
+                          Contact support if this persists.
+                        </p>
+                      </div>
+                    ) : (
+                      <select
+                        id="student-class-id"
+                        name="class_id"
+                        value={cId}
+                        onChange={(e) => setClassId(e.target.value)}
+                        className="input"
+                        required
+                      >
+                        <option value="">Select class</option>
+                        {classes.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.name}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                   </div>
-                  <div>
-                    <label
-                      htmlFor="sub-county"
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        letterSpacing: ".5px",
-                        textTransform: "uppercase",
-                        color: "var(--t3)",
-                        marginBottom: 6,
-                        display: "block",
-                      }}
-                    >
-                      Sub-County
-                    </label>
-                    <input
-                      id="sub-county"
-                      name="sub_county"
-                      type="text"
-                      value={formData.sub_county}
-                      list="sub-county-options"
-                      onChange={(e) =>
-                        handleFormChange({
-                          sub_county: e.target.value,
-                          parish: "",
-                        })
-                      }
-                      className="input"
-                      placeholder={subcountyOptions.length > 0 ? "Pick or type your sub-county" : "Type sub-county"}
-                      maxLength={100}
-                      autoComplete="address-level3"
-                    />
-                  </div>
-                </ResponsiveFieldGrid>
-                <ResponsiveFieldGrid className="mb-3">
-                  <div>
-                    <label
-                      htmlFor="parish"
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        letterSpacing: ".5px",
-                        textTransform: "uppercase",
-                        color: "var(--t3)",
-                        marginBottom: 6,
-                        display: "block",
-                      }}
-                    >
-                      Parish
-                    </label>
-                    <input
-                      id="parish"
-                      name="parish"
-                      type="text"
-                      value={formData.parish}
-                      list="parish-options"
-                      onChange={(e) =>
-                        handleFormChange({
-                          parish: e.target.value,
-                        })
-                      }
-                      className="input"
-                      placeholder={parishOptions.length > 0 ? "Pick or type your parish" : "Type parish"}
-                      maxLength={100}
-                      autoComplete="address-level4"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="village"
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        letterSpacing: ".5px",
-                        textTransform: "uppercase",
-                        color: "var(--t3)",
-                        marginBottom: 6,
-                        display: "block",
-                      }}
-                    >
-                      Village
-                    </label>
-                    <input
-                      id="village"
-                      name="village"
-                      type="text"
-                      value={formData.village}
-                      onChange={(e) =>
-                        handleFormChange({
-                          village: e.target.value,
-                        })
-                      }
-                      className="input"
-                      maxLength={100}
-                      autoComplete="address-line2"
-                    />
-                  </div>
-                </ResponsiveFieldGrid>
-                <datalist id="district-origin-options">
-                  {districtOptions.map((district) => (
-                    <option key={district} value={district} />
-                  ))}
-                </datalist>
-                <datalist id="sub-county-options">
-                  {subcountyOptions.map((subcounty) => (
-                    <option key={subcounty} value={subcounty} />
-                  ))}
-                </datalist>
-                <datalist id="parish-options">
-                  {parishOptions.map((parish) => (
-                    <option key={parish} value={parish} />
-                  ))}
-                </datalist>
-                <p className="text-[11px] text-[var(--t3)] mb-3">
-                  Suggestions come from Uganda district data. You can still type any value manually.
-                </p>
-                <ResponsiveFieldGrid>
-                  <div>
-                    <label
-                      htmlFor="leadership-role"
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        letterSpacing: ".5px",
-                        textTransform: "uppercase",
-                        color: "var(--t3)",
-                        marginBottom: 6,
-                        display: "block",
-                      }}
-                    >
-                      Leadership Position
-                    </label>
-                    <select
-                      id="leadership-role"
-                      name="leadership_role"
-                      value={formData.prefect_role || formData.student_council_role || ""}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        if (
-                          [
-                            "head_boy",
-                            "head_girl",
-                            "sports_prefect",
-                            "dining_prefect",
-                            "library_prefect",
-                            "health_prefect",
-                          ].includes(val)
-                        ) {
-                          handleFormChange({
-                            prefect_role: val,
-                            student_council_role: "",
-                          });
-                        } else if (["president", "vice_president", "secretary", "treasurer"].includes(val)) {
-                          handleFormChange({
-                            student_council_role: val,
-                            prefect_role: "",
-                          });
-                        } else {
-                          handleFormChange({
-                            prefect_role: "",
-                            student_council_role: "",
-                          });
-                        }
-                      }}
-                      className="input"
-                    >
-                      <option value="">None</option>
-                      <optgroup label="Prefects">
-                        <option value="head_boy">Head Boy</option>
-                        <option value="head_girl">Head Girl</option>
-                        <option value="sports_prefect">Sports Prefect</option>
-                        <option value="dining_prefect">Dining Prefect</option>
-                        <option value="library_prefect">Library Prefect</option>
-                        <option value="health_prefect">Health Prefect</option>
-                      </optgroup>
-                      <optgroup label="Student Council">
-                        <option value="president">President</option>
-                        <option value="vice_president">Vice President</option>
-                        <option value="secretary">Secretary</option>
-                        <option value="treasurer">Treasurer</option>
-                      </optgroup>
-                    </select>
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="class-monitor"
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        letterSpacing: ".5px",
-                        textTransform: "uppercase",
-                        color: "var(--t3)",
-                        marginBottom: 6,
-                        display: "block",
-                      }}
-                    >
-                      Class Monitor
-                    </label>
-                    <div className="flex items-center gap-2 mt-2">
+                  {!isEdit && !minimal && (
+                    <div className="mb-4">
+                      <label
+                        htmlFor="student-number"
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          letterSpacing: ".5px",
+                          textTransform: "uppercase",
+                          color: "var(--t3)",
+                          marginBottom: 6,
+                          display: "block",
+                        }}
+                      >
+                        Admission / Student Number{" "}
+                        <span
+                          style={{
+                            fontWeight: 400,
+                            fontSize: 10,
+                            color: "var(--t4)",
+                          }}
+                        >
+                          (optional — auto-generated if blank)
+                        </span>
+                      </label>
                       <input
-                        id="class-monitor"
-                        name="is_class_monitor"
-                        type="checkbox"
-                        checked={formData.is_class_monitor}
+                        id="student-number"
+                        name="student_number"
+                        type="text"
+                        value={newStudent.student_number}
                         onChange={(e) =>
-                          handleFormChange({
-                            is_class_monitor: e.target.checked,
+                          handleNewStudentChange({
+                            student_number: e.target.value,
                           })
                         }
-                        className="w-5 h-5 rounded"
+                        className="input"
+                        placeholder="e.g., 2026-001 or leave blank for auto"
+                        maxLength={20}
+                        autoComplete="off"
                       />
-                      <span className="text-sm">Yes, this student is a class monitor</span>
                     </div>
-                  </div>
-                </ResponsiveFieldGrid>
-              </div>
-            </details>
-            <div className="sticky bottom-0 -mx-4 mt-2 border-t border-[var(--border)] bg-[var(--surface)]/95 px-4 py-3 backdrop-blur sm:-mx-5 sm:px-5">
-              {(fName || lName || cId) && (
-                <p className="text-xs text-[var(--t3)] mb-2 truncate" aria-live="polite">
-                  {[fName, lName].filter(Boolean).join(" ") || "New student"}
-                  {cId ? ` · ${classes.find((c) => c.id === cId)?.name || "Class selected"}` : ""}
-                  {pName ? ` · ${pName}` : ""}
-                </p>
-              )}
-              <div style={{ display: "flex", gap: 10 }}>
-                <Button type="button" variant="ghost" onClick={requestClose} style={{ flex: 1, minHeight: 48 }}>
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  variant="primary"
-                  disabled={saving}
-                  loading={saving}
-                  style={{ flex: 2, minHeight: 48 }}
+                  )}
+                  {!isEdit &&
+                    !minimal &&
+                    newStudent.class_id &&
+                    classes.find((c) => c.id === newStudent.class_id)?.name?.startsWith("P.7") && (
+                      <div>
+                        <label
+                          htmlFor="student-ple-index"
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            letterSpacing: ".5px",
+                            textTransform: "uppercase",
+                            color: "var(--t3)",
+                            marginBottom: 6,
+                            display: "block",
+                          }}
+                        >
+                          PLE Index Number
+                          <span
+                            style={{
+                              fontWeight: 400,
+                              fontSize: 10,
+                              color: "var(--t4)",
+                              marginLeft: 4,
+                            }}
+                          >
+                            (Uganda UNEB format e.g. U0001/2026)
+                          </span>
+                        </label>
+                        <input
+                          id="student-ple-index"
+                          name="ple_index_number"
+                          type="text"
+                          value={newStudent.ple_index_number}
+                          onChange={(e) =>
+                            handleNewStudentChange({
+                              ple_index_number: e.target.value,
+                            })
+                          }
+                          className="input"
+                          placeholder="U0001/2026"
+                          maxLength={20}
+                          autoComplete="off"
+                        />
+                      </div>
+                    )}
+                </FormSection>
+
+                <FormSection
+                  title="Parent contact"
+                  description="Keep this short and accurate so SMS and fee reminders reach the right person."
                 >
-                  {saving ? (isEdit ? "Updating..." : "Adding...") : isEdit ? "Update Student" : "Add Student"}
-                </Button>
-              </div>
+                  <div style={{ marginBottom: 16 }}>
+                    <label
+                      htmlFor="parent-name"
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        letterSpacing: ".5px",
+                        textTransform: "uppercase",
+                        color: "var(--t3)",
+                        marginBottom: 6,
+                        display: "block",
+                      }}
+                    >
+                      Parent Name
+                    </label>
+                    <input
+                      id="parent-name"
+                      name="parent_name"
+                      type="text"
+                      value={pName}
+                      onChange={(e) => setPName(e.target.value)}
+                      className="input"
+                      required
+                      maxLength={200}
+                      autoComplete="name"
+                    />
+                  </div>
+                  <ResponsiveFieldGrid>
+                    <div>
+                      <label
+                        htmlFor="parent-phone"
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          letterSpacing: ".5px",
+                          textTransform: "uppercase",
+                          color: "var(--t3)",
+                          marginBottom: 6,
+                          display: "block",
+                        }}
+                      >
+                        Parent Phone
+                      </label>
+                      <input
+                        id="parent-phone"
+                        name="parent_phone"
+                        type="tel"
+                        inputMode="tel"
+                        placeholder="0700000000"
+                        value={pPhone}
+                        onChange={(e) => setPPhone(e.target.value)}
+                        className="input"
+                        required
+                        maxLength={15}
+                        autoComplete="tel"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="parent-phone2"
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          letterSpacing: ".5px",
+                          textTransform: "uppercase",
+                          color: "var(--t3)",
+                          marginBottom: 6,
+                          display: "block",
+                        }}
+                      >
+                        Alt. Phone
+                      </label>
+                      <input
+                        id="parent-phone2"
+                        name="parent_phone2"
+                        type="tel"
+                        inputMode="tel"
+                        placeholder="0700000000"
+                        value={pPhone2}
+                        onChange={(e) => setPPhone2(e.target.value)}
+                        className="input"
+                        maxLength={15}
+                        autoComplete="tel"
+                      />
+                    </div>
+                  </ResponsiveFieldGrid>
+                </FormSection>
+
+                <FormSection
+                  title="Health and fees"
+                  description="Only the fields commonly needed at admission stay here."
+                >
+                  <ResponsiveFieldGrid className="mb-4">
+                    <div>
+                      <label
+                        htmlFor="blood-type"
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          letterSpacing: ".5px",
+                          textTransform: "uppercase",
+                          color: "var(--t3)",
+                          marginBottom: 6,
+                          display: "block",
+                        }}
+                      >
+                        Blood Type
+                      </label>
+                      <select
+                        id="blood-type"
+                        name="blood_type"
+                        value={isEdit ? editForm.blood_type : newStudent.blood_type || ""}
+                        onChange={(e) =>
+                          isEdit
+                            ? setEditForm((p) => ({ ...p, blood_type: e.target.value }))
+                            : handleNewStudentChange({ blood_type: e.target.value })
+                        }
+                        className="input"
+                      >
+                        <option value="">Unknown</option>
+                        {["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"].map((bt) => (
+                          <option key={bt} value={bt}>
+                            {bt}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 700,
+                          letterSpacing: ".5px",
+                          textTransform: "uppercase",
+                          color: "var(--t3)",
+                          marginBottom: 6,
+                          display: "block",
+                        }}
+                      >
+                        NIN (National ID Number)
+                      </label>
+                      <input
+                        id="student-nin"
+                        type="text"
+                        aria-label="NIN (National ID Number)"
+                        value={formData.nin || ""}
+                        onChange={(e) => handleFormChange({ nin: e.target.value })}
+                        className="input"
+                        placeholder="e.g., CFN123456789 or leave blank"
+                        maxLength={20}
+                      />
+                    </div>
+                  </ResponsiveFieldGrid>
+                  <div style={{ marginBottom: 20 }}>
+                    <label
+                      htmlFor="opening-balance"
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 700,
+                        letterSpacing: ".5px",
+                        textTransform: "uppercase",
+                        color: "var(--t3)",
+                        marginBottom: 6,
+                        display: "block",
+                      }}
+                    >
+                      Opening Balance (Previous Debt/Credit)
+                      {!isEdit && (
+                        <FieldHint tip="Enter fees owed from a previous term. Use 0 if this is a new student with no debt. Positive = owes money, negative = paid in advance." />
+                      )}
+                    </label>
+                    <div style={{ position: "relative" }}>
+                      <span
+                        style={{
+                          position: "absolute",
+                          left: 12,
+                          top: "50%",
+                          transform: "translateY(-50%)",
+                          fontSize: 14,
+                          color: "var(--t3)",
+                        }}
+                      >
+                        UGX
+                      </span>
+                      <input
+                        id="opening-balance"
+                        type="number"
+                        inputMode="numeric"
+                        aria-label="Opening Balance (Previous Debt/Credit) in Ugandan shillings"
+                        value={ob}
+                        onChange={(e) => setOb(e.target.value)}
+                        className="input"
+                        step="1"
+                        style={{ paddingLeft: 45 }}
+                      />
+                    </div>
+                    {!isEdit && (
+                      <p
+                        style={{
+                          fontSize: 10,
+                          color: "var(--t3)",
+                          marginTop: 4,
+                        }}
+                      >
+                        Positive for debt (arrears), negative for credit/advance.
+                      </p>
+                    )}
+                  </div>
+                </FormSection>
+                {!selectedClassExists && (
+                  <div
+                    style={{
+                      marginBottom: 16,
+                      borderRadius: 12,
+                      padding: 12,
+                      background: "var(--amber-soft)",
+                      border: "1px solid var(--amber)",
+                      color: "var(--t1)",
+                      fontSize: 12,
+                    }}
+                  >
+                    The assigned class is no longer available. Please choose a different class before saving.
+                  </div>
+                )}
+                <details
+                  className="rounded-2xl border border-[var(--border)] bg-[var(--bg)]/40 p-4 sm:p-5"
+                  open={isEdit}
+                >
+                  <summary className="cursor-pointer list-none">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-sm font-semibold text-[var(--t1)]">Additional details</div>
+                        <p className="mt-1 text-xs leading-5 text-[var(--t3)]">
+                          Optional profile fields for houses, home origin, boarding, and student leadership.
+                        </p>
+                      </div>
+                      <span className="text-xs font-semibold uppercase tracking-[0.08em] text-[var(--t3)]">Expand</span>
+                    </div>
+                  </summary>
+                  <div className="mt-4">
+                    <ResponsiveFieldGrid className="mb-3">
+                      <div>
+                        <label
+                          htmlFor="boarding-status"
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            letterSpacing: ".5px",
+                            textTransform: "uppercase",
+                            color: "var(--t3)",
+                            marginBottom: 6,
+                            display: "block",
+                          }}
+                        >
+                          Boarding Status
+                          <FieldHint tip="Day Scholar = student goes home daily after school. Boarding = student sleeps in the school dormitory every night. Weekly = boarder who goes home on weekends." />
+                        </label>
+                        <select
+                          id="boarding-status"
+                          name="boarding_status"
+                          value={formData.boarding_status}
+                          onChange={(e) =>
+                            handleFormChange({
+                              boarding_status: e.target.value as "day" | "boarding" | "weekly",
+                            })
+                          }
+                          className="input"
+                        >
+                          <option value="day">Day Scholar</option>
+                          <option value="boarding">Boarding</option>
+                          <option value="weekly">Weekly Boarder</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="takes-meals"
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 700,
+                            color: "var(--t3)",
+                            marginBottom: 6,
+                            display: "block",
+                          }}
+                        >
+                          School Meals
+                          <FieldHint tip="Only pupils who eat at school are charged the meals fee. Anyone who goes home to eat should be set to No, or their bill keeps carrying a meal they never receive." />
+                        </label>
+                        <select
+                          id="takes-meals"
+                          name="takes_meals"
+                          value={formData.takes_meals}
+                          onChange={(e) =>
+                            handleFormChange({
+                              takes_meals: e.target.value as "" | "yes" | "no",
+                            })
+                          }
+                          className="input"
+                        >
+                          <option value="">Not decided yet</option>
+                          <option value="yes">Takes school meals</option>
+                          <option value="no">Goes home to eat</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="is-new-admission"
+                          style={{
+                            fontSize: 12,
+                            fontWeight: 700,
+                            color: "var(--t3)",
+                            marginBottom: 6,
+                            display: "block",
+                          }}
+                        >
+                          New Admission
+                          <FieldHint tip="Set to Yes only for a pupil joining for the first time. That is what charges the admission/registration fee and the uniform. A pupil already on roll already owns their uniform, so charging them again puts money on a bill that cannot be collected." />
+                        </label>
+                        <select
+                          id="is-new-admission"
+                          name="is_new_admission"
+                          value={formData.is_new_admission}
+                          onChange={(e) =>
+                            handleFormChange({
+                              is_new_admission: e.target.value as "" | "yes" | "no",
+                            })
+                          }
+                          className="input"
+                        >
+                          <option value="">Not decided yet</option>
+                          <option value="yes">Just joined — charge admission + uniform</option>
+                          <option value="no">Already on roll — no admission fee</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="previous-school"
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            letterSpacing: ".5px",
+                            textTransform: "uppercase",
+                            color: "var(--t3)",
+                            marginBottom: 6,
+                            display: "block",
+                          }}
+                        >
+                          Previous School
+                        </label>
+                        <input
+                          id="previous-school"
+                          name="previous_school"
+                          type="text"
+                          value={formData.previous_school}
+                          onChange={(e) =>
+                            handleFormChange({
+                              previous_school: e.target.value,
+                            })
+                          }
+                          className="input"
+                          placeholder="e.g., St. Peter's PS"
+                        />
+                      </div>
+                    </ResponsiveFieldGrid>
+                    {houses.length > 0 && (
+                      <ResponsiveFieldGrid className="mb-3">
+                        <div>
+                          <label
+                            htmlFor="house-id"
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 700,
+                              letterSpacing: ".5px",
+                              textTransform: "uppercase",
+                              color: "var(--t3)",
+                              marginBottom: 6,
+                              display: "block",
+                            }}
+                          >
+                            House
+                          </label>
+                          <select
+                            id="house-id"
+                            name="house_id"
+                            value={formData.house_id}
+                            onChange={(e) =>
+                              handleFormChange({
+                                house_id: e.target.value,
+                              })
+                            }
+                            className="input"
+                          >
+                            <option value="">No house</option>
+                            {houses.map((h) => (
+                              <option key={h.id} value={h.id}>
+                                {h.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label
+                            htmlFor="games-house"
+                            style={{
+                              fontSize: 11,
+                              fontWeight: 700,
+                              letterSpacing: ".5px",
+                              textTransform: "uppercase",
+                              color: "var(--t3)",
+                              marginBottom: 6,
+                              display: "block",
+                            }}
+                          >
+                            Games House
+                          </label>
+                          <select
+                            id="games-house"
+                            name="games_house"
+                            value={formData.games_house}
+                            onChange={(e) =>
+                              handleFormChange({
+                                games_house: e.target.value,
+                              })
+                            }
+                            className="input"
+                          >
+                            <option value="">Same as house</option>
+                            {houses.map((h) => (
+                              <option key={h.id} value={h.id}>
+                                {h.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </ResponsiveFieldGrid>
+                    )}
+                    <ResponsiveFieldGrid className="mb-3">
+                      <div>
+                        <label
+                          htmlFor="district-origin"
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            letterSpacing: ".5px",
+                            textTransform: "uppercase",
+                            color: "var(--t3)",
+                            marginBottom: 6,
+                            display: "block",
+                          }}
+                        >
+                          District of Origin
+                          <FieldHint tip="The student's home district. Used for UNEB registration and government reports. Example: Kampala, Wakiso, Gulu, Mbale." />
+                        </label>
+                        <input
+                          id="district-origin"
+                          name="district_origin"
+                          type="text"
+                          value={formData.district_origin}
+                          list="district-origin-options"
+                          onChange={(e) =>
+                            handleFormChange({
+                              district_origin: e.target.value,
+                              sub_county: "",
+                              parish: "",
+                            })
+                          }
+                          className="input"
+                          placeholder="e.g., Kampala"
+                          maxLength={100}
+                          autoComplete="address-level2"
+                        />
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="sub-county"
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            letterSpacing: ".5px",
+                            textTransform: "uppercase",
+                            color: "var(--t3)",
+                            marginBottom: 6,
+                            display: "block",
+                          }}
+                        >
+                          Sub-County
+                        </label>
+                        <input
+                          id="sub-county"
+                          name="sub_county"
+                          type="text"
+                          value={formData.sub_county}
+                          list="sub-county-options"
+                          onChange={(e) =>
+                            handleFormChange({
+                              sub_county: e.target.value,
+                              parish: "",
+                            })
+                          }
+                          className="input"
+                          placeholder={subcountyOptions.length > 0 ? "Pick or type your sub-county" : "Type sub-county"}
+                          maxLength={100}
+                          autoComplete="address-level3"
+                        />
+                      </div>
+                    </ResponsiveFieldGrid>
+                    <ResponsiveFieldGrid className="mb-3">
+                      <div>
+                        <label
+                          htmlFor="parish"
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            letterSpacing: ".5px",
+                            textTransform: "uppercase",
+                            color: "var(--t3)",
+                            marginBottom: 6,
+                            display: "block",
+                          }}
+                        >
+                          Parish
+                        </label>
+                        <input
+                          id="parish"
+                          name="parish"
+                          type="text"
+                          value={formData.parish}
+                          list="parish-options"
+                          onChange={(e) =>
+                            handleFormChange({
+                              parish: e.target.value,
+                            })
+                          }
+                          className="input"
+                          placeholder={parishOptions.length > 0 ? "Pick or type your parish" : "Type parish"}
+                          maxLength={100}
+                          autoComplete="address-level4"
+                        />
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="village"
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            letterSpacing: ".5px",
+                            textTransform: "uppercase",
+                            color: "var(--t3)",
+                            marginBottom: 6,
+                            display: "block",
+                          }}
+                        >
+                          Village
+                        </label>
+                        <input
+                          id="village"
+                          name="village"
+                          type="text"
+                          value={formData.village}
+                          onChange={(e) =>
+                            handleFormChange({
+                              village: e.target.value,
+                            })
+                          }
+                          className="input"
+                          maxLength={100}
+                          autoComplete="address-line2"
+                        />
+                      </div>
+                    </ResponsiveFieldGrid>
+                    <datalist id="district-origin-options">
+                      {districtOptions.map((district) => (
+                        <option key={district} value={district} />
+                      ))}
+                    </datalist>
+                    <datalist id="sub-county-options">
+                      {subcountyOptions.map((subcounty) => (
+                        <option key={subcounty} value={subcounty} />
+                      ))}
+                    </datalist>
+                    <datalist id="parish-options">
+                      {parishOptions.map((parish) => (
+                        <option key={parish} value={parish} />
+                      ))}
+                    </datalist>
+                    <p className="text-xs text-[var(--t3)] mb-3">
+                      Suggestions come from Uganda district data. You can still type any value manually.
+                    </p>
+                    <ResponsiveFieldGrid>
+                      <div>
+                        <label
+                          htmlFor="leadership-role"
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            letterSpacing: ".5px",
+                            textTransform: "uppercase",
+                            color: "var(--t3)",
+                            marginBottom: 6,
+                            display: "block",
+                          }}
+                        >
+                          Leadership Position
+                        </label>
+                        <select
+                          id="leadership-role"
+                          name="leadership_role"
+                          value={formData.prefect_role || formData.student_council_role || ""}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (
+                              [
+                                "head_boy",
+                                "head_girl",
+                                "sports_prefect",
+                                "dining_prefect",
+                                "library_prefect",
+                                "health_prefect",
+                              ].includes(val)
+                            ) {
+                              handleFormChange({
+                                prefect_role: val,
+                                student_council_role: "",
+                              });
+                            } else if (["president", "vice_president", "secretary", "treasurer"].includes(val)) {
+                              handleFormChange({
+                                student_council_role: val,
+                                prefect_role: "",
+                              });
+                            } else {
+                              handleFormChange({
+                                prefect_role: "",
+                                student_council_role: "",
+                              });
+                            }
+                          }}
+                          className="input"
+                        >
+                          <option value="">None</option>
+                          <optgroup label="Prefects">
+                            <option value="head_boy">Head Boy</option>
+                            <option value="head_girl">Head Girl</option>
+                            <option value="sports_prefect">Sports Prefect</option>
+                            <option value="dining_prefect">Dining Prefect</option>
+                            <option value="library_prefect">Library Prefect</option>
+                            <option value="health_prefect">Health Prefect</option>
+                          </optgroup>
+                          <optgroup label="Student Council">
+                            <option value="president">President</option>
+                            <option value="vice_president">Vice President</option>
+                            <option value="secretary">Secretary</option>
+                            <option value="treasurer">Treasurer</option>
+                          </optgroup>
+                        </select>
+                      </div>
+                      <div>
+                        <label
+                          htmlFor="class-monitor"
+                          style={{
+                            fontSize: 11,
+                            fontWeight: 700,
+                            letterSpacing: ".5px",
+                            textTransform: "uppercase",
+                            color: "var(--t3)",
+                            marginBottom: 6,
+                            display: "block",
+                          }}
+                        >
+                          Class Monitor
+                        </label>
+                        <div className="flex items-center gap-2 mt-2">
+                          <input
+                            id="class-monitor"
+                            name="is_class_monitor"
+                            type="checkbox"
+                            checked={formData.is_class_monitor}
+                            onChange={(e) =>
+                              handleFormChange({
+                                is_class_monitor: e.target.checked,
+                              })
+                            }
+                            className="w-5 h-5 rounded"
+                          />
+                          <span className="text-sm">Yes, this student is a class monitor</span>
+                        </div>
+                      </div>
+                    </ResponsiveFieldGrid>
+                  </div>
+                </details>
+                <div className="sticky bottom-0 -mx-4 mt-2 border-t border-[var(--border)] bg-[var(--surface)]/95 px-4 py-3 backdrop-blur sm:-mx-5 sm:px-5">
+                  {(fName || lName || cId) && (
+                    <p className="text-xs text-[var(--t3)] mb-2 truncate" aria-live="polite">
+                      {[fName, lName].filter(Boolean).join(" ") || "New student"}
+                      {cId ? ` · ${classes.find((c) => c.id === cId)?.name || "Class selected"}` : ""}
+                      {pName ? ` · ${pName}` : ""}
+                    </p>
+                  )}
+                  <div style={{ display: "flex", gap: 10 }}>
+                    <Button type="button" variant="ghost" onClick={requestClose} style={{ flex: 1, minHeight: 48 }}>
+                      Cancel
+                    </Button>
+                    <Button
+                      type="submit"
+                      variant="primary"
+                      disabled={saving}
+                      loading={saving}
+                      style={{ flex: 2, minHeight: 48 }}
+                    >
+                      {saving ? (isEdit ? "Updating..." : "Adding...") : isEdit ? "Update Student" : "Add Student"}
+                    </Button>
+                  </div>
+                </div>
+              </form>
             </div>
-          </form>
-        </div>
-      </div>
-    </div>,
-    document.body,
+          </div>
+        </div>,
+        document.body,
       )}
     </>
   );

@@ -139,7 +139,7 @@ export default function BursarReceiptPanel({
       ) : (
         <>
           <div
-            className="mt-5 hidden grid-cols-[minmax(0,1fr)_100px_110px] gap-3 border-b border-[var(--border)] pb-2 text-[10px] font-semibold uppercase tracking-wider text-[var(--t3)] sm:grid"
+            className="mt-5 hidden grid-cols-[minmax(0,1fr)_100px_110px] gap-3 border-b border-[var(--border)] pb-2 text-xs font-semibold uppercase tracking-wider text-[var(--t3)] sm:grid"
             aria-hidden="true"
           >
             <span>Student / reference</span>
@@ -162,11 +162,11 @@ export default function BursarReceiptPanel({
                       year: "numeric",
                     })}
                   </p>
-                  <p className="mt-1 break-all text-[11px] text-[var(--t3)]">
+                  <p className="mt-1 break-all text-xs text-[var(--t3)]">
                     {payment.payment_reference || "No reference recorded"}
                   </p>
                 </div>
-                <span className="col-start-1 row-start-2 w-fit rounded-md bg-[var(--surface-container-low)] px-2 py-1 text-[10px] font-semibold text-[var(--t2)] sm:col-start-auto sm:row-start-auto">
+                <span className="col-start-1 row-start-2 w-fit rounded-md bg-[var(--surface-container-low)] px-2 py-1 text-xs font-semibold text-[var(--t2)] sm:col-start-auto sm:row-start-auto">
                   {payment.payment_method ? paymentMethodLabel(payment.payment_method) : "Not specified"}
                 </span>
                 <p className="col-start-2 row-start-1 text-right text-xs font-bold tabular-nums text-[var(--green)] sm:col-start-auto sm:row-start-auto sm:text-sm">

@@ -25,7 +25,7 @@ export function SchoolReadinessGuide({ items, title = "School Readiness" }: Scho
       <div className="flex items-center gap-2 mb-3">
         <span className="material-symbols-outlined text-[var(--amber)] text-lg">fact_check</span>
         <span className="text-xs font-bold uppercase tracking-[0.16em] text-[var(--amber)]">{title}</span>
-        <span className="ml-auto rounded-full bg-[var(--amber)] px-2 py-0.5 text-[10px] font-bold text-white">
+        <span className="ml-auto rounded-full bg-[var(--amber)] px-2 py-0.5 text-xs font-bold text-white">
           {missing} item{missing > 1 ? "s" : ""}
         </span>
       </div>
@@ -48,12 +48,12 @@ export function SchoolReadinessGuide({ items, title = "School Readiness" }: Scho
             </span>
             <div className="flex-1 min-w-0">
               <p className="text-xs font-semibold text-[var(--t1)]">{item.label}</p>
-              <p className="text-[11px] text-[var(--t3)] truncate">{item.detail}</p>
+              <p className="text-xs text-[var(--t3)] truncate">{item.detail}</p>
             </div>
             {item.status !== "ok" && (
               <Link
                 href={item.link}
-                className="shrink-0 rounded-lg bg-[var(--t1)] px-3 py-1.5 text-[10px] font-bold text-white hover:opacity-90"
+                className="shrink-0 rounded-lg bg-[var(--t1)] px-3 py-1.5 text-xs font-bold text-white hover:opacity-90"
               >
                 Fix
               </Link>
@@ -93,11 +93,11 @@ export function TeacherQuickGuide() {
             href={action.href}
             className="rounded-xl bg-white border border-[var(--border)] p-3 hover:bg-[var(--primary-50)] transition-colors text-center"
           >
-            <div className="w-6 h-6 rounded-full bg-[var(--t1)] text-white text-[10px] font-bold flex items-center justify-center mx-auto mb-1">
+            <div className="w-6 h-6 rounded-full bg-[var(--t1)] text-white text-xs font-bold flex items-center justify-center mx-auto mb-1">
               {action.step}
             </div>
             <span className="material-symbols-outlined text-[var(--t1)] text-xl">{action.icon}</span>
-            <p className="text-[10px] font-bold text-[var(--t1)] mt-1">{action.label}</p>
+            <p className="text-xs font-bold text-[var(--t1)] mt-1">{action.label}</p>
           </Link>
         ))}
       </div>

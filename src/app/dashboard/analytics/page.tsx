@@ -111,7 +111,7 @@ export default function AnalyticsPage() {
           actions={
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
               <div className="px-4 py-2 bg-green-500/10 border border-green-500/20 rounded-xl min-w-[120px]">
-                <p className="text-[10px] text-green font-bold uppercase tracking-wider">Health Score</p>
+                <p className="text-xs text-green font-bold uppercase tracking-wider">Health Score</p>
                 <p className="text-xl font-bold text-[var(--on-surface)]" aria-live="polite">
                   {displayData.stats.healthScore ?? "—"}
                   {displayData.stats.healthScore != null ? "%" : ""}
@@ -144,7 +144,7 @@ export default function AnalyticsPage() {
           <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-6 mb-8">
             <Card className="!bg-surface-container-low/40">
               <CardBody className="space-y-2">
-                <p className="text-[10px] text-[var(--on-surface-variant)] font-bold uppercase tracking-widest">
+                <p className="text-xs text-[var(--on-surface-variant)] font-bold uppercase tracking-widest">
                   Total Students
                 </p>
                 <p className="text-2xl sm:text-3xl font-bold text-[var(--on-surface)]" aria-live="polite">
@@ -158,7 +158,7 @@ export default function AnalyticsPage() {
             </Card>
             <Card className="!bg-surface-container-low/40">
               <CardBody className="space-y-2">
-                <p className="text-[10px] text-[var(--on-surface-variant)] font-bold uppercase tracking-widest">
+                <p className="text-xs text-[var(--on-surface-variant)] font-bold uppercase tracking-widest">
                   Fee Collection
                 </p>
                 <p className="text-2xl sm:text-3xl font-bold text-[var(--on-surface)]">
@@ -183,7 +183,7 @@ export default function AnalyticsPage() {
             </Card>
             <Card className="!bg-surface-container-low/40">
               <CardBody className="space-y-2">
-                <p className="text-[10px] text-[var(--on-surface-variant)] font-bold uppercase tracking-widest">
+                <p className="text-xs text-[var(--on-surface-variant)] font-bold uppercase tracking-widest">
                   Avg. Grade
                 </p>
                 <p className="text-2xl sm:text-3xl font-bold text-[var(--on-surface)]">
@@ -194,7 +194,7 @@ export default function AnalyticsPage() {
             </Card>
             <Card className="!bg-surface-container-low/40">
               <CardBody className="space-y-2">
-                <p className="text-[10px] text-[var(--on-surface-variant)] font-bold uppercase tracking-widest">
+                <p className="text-xs text-[var(--on-surface-variant)] font-bold uppercase tracking-widest">
                   Avg. Attendance
                 </p>
                 <p className="text-2xl sm:text-3xl font-bold text-[var(--on-surface)]">
@@ -205,7 +205,7 @@ export default function AnalyticsPage() {
             </Card>
             <Card className="!bg-surface-container-low/40 col-span-2 md:col-span-1">
               <CardBody className="space-y-2">
-                <p className="text-[10px] text-[var(--on-surface-variant)] font-bold uppercase tracking-widest">
+                <p className="text-xs text-[var(--on-surface-variant)] font-bold uppercase tracking-widest">
                   Projected Revenue
                 </p>
                 <p
@@ -214,7 +214,7 @@ export default function AnalyticsPage() {
                 >
                   UGX {Number(displayData.stats.projectedRevenue || 0).toLocaleString()}
                 </p>
-                <p className="text-[10px] text-[var(--primary)] font-bold uppercase">Term Total</p>
+                <p className="text-xs text-[var(--primary)] font-bold uppercase">Term Total</p>
               </CardBody>
             </Card>
           </div>
@@ -321,7 +321,7 @@ export default function AnalyticsPage() {
                     <div className="w-1.5 h-6 bg-[var(--error)] rounded-full" />
                     At-Risk Students
                   </h2>
-                  <span className="px-2 py-1 bg-red-500/10 text-red text-[10px] font-bold rounded uppercase tracking-wider">
+                  <span className="px-2 py-1 bg-red-500/10 text-red text-xs font-bold rounded uppercase tracking-wider">
                     High Priority
                   </span>
                 </div>
@@ -333,7 +333,7 @@ export default function AnalyticsPage() {
                     >
                       <div>
                         <p className="text-sm font-bold text-[var(--on-surface)]">{s.full_name}</p>
-                        <p className="text-[10px] text-[var(--on-surface-variant)] uppercase tracking-wide">
+                        <p className="text-xs text-[var(--on-surface-variant)] uppercase tracking-wide">
                           {s.class_name} · {s.risk_reason.replace("_", " ")}
                         </p>
                       </div>
@@ -344,7 +344,7 @@ export default function AnalyticsPage() {
                           Att: {Math.round(s.attendance_rate)}%
                         </p>
                         <p
-                          className={`text-[10px] font-medium ${s.avg_score < 50 ? "text-red" : "text-[var(--on-surface-variant)]"}`}
+                          className={`text-xs font-medium ${s.avg_score < 50 ? "text-red" : "text-[var(--on-surface-variant)]"}`}
                         >
                           Avg: {Math.round(s.avg_score)}%
                         </p>

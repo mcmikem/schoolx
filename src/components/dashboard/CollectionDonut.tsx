@@ -65,7 +65,7 @@ const CollectionDonut = memo(function CollectionDonut({
             >
               {rate}%
             </span>
-            <span className="text-[10px] font-semibold text-[var(--t3)] mt-1 uppercase tracking-wider">Collected</span>
+            <span className="text-xs font-semibold text-[var(--t3)] mt-1 uppercase tracking-wider">Collected</span>
           </div>
         </div>
 

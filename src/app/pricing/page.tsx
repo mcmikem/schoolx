@@ -64,7 +64,7 @@ export default function PricingPage() {
         <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
           <FadeIn>
             <div className="text-center max-w-3xl mx-auto">
-              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-white px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--brand-ink)] shadow-sm">
+              <span className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-white px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-[var(--brand-ink)] shadow-sm">
                 <MaterialIcon icon="payments" className="text-sm" />
                 Simple, transparent pricing
               </span>
@@ -101,12 +101,12 @@ export default function PricingPage() {
                   <div className="flex items-center justify-between">
                     <p className="text-lg font-semibold text-slate-950">{plan.name}</p>
                     {plan.featured && (
-                      <span className="rounded-full bg-[var(--brand-ink)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-white">
+                      <span className="rounded-full bg-[var(--brand-ink)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-white">
                         Most chosen
                       </span>
                     )}
                     {(plan as any).promoBadge && (
-                      <span className="rounded-full bg-red-500 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-white ml-2">
+                      <span className="rounded-full bg-red-500 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-white ml-2">
                         {(plan as any).promoBadge}
                       </span>
                     )}

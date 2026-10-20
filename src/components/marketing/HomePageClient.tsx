@@ -310,7 +310,7 @@ export default function HomePage() {
             <div className="grid gap-14 pt-12 lg:grid-cols-[1.02fr_0.98fr] lg:items-center lg:pt-20">
               <div className="max-w-2xl">
                 <div className="mb-6 flex animate-fade-in">
-                  <div className="px-4 py-1.5 rounded-full bg-[var(--navy-soft)] border border-[var(--navy)]/10 text-[var(--navy)] text-[10px] uppercase font-bold tracking-widest flex items-center gap-2">
+                  <div className="px-4 py-1.5 rounded-full bg-[var(--navy-soft)] border border-[var(--navy)]/10 text-[var(--navy)] text-xs uppercase font-bold tracking-widest flex items-center gap-2">
                     <MaterialIcon icon="school" className="text-sm" />
                     Built for real school operations — attendance, fees, reports
                   </div>
@@ -359,10 +359,7 @@ export default function HomePage() {
 
                 <div className="mt-8 flex flex-wrap gap-x-5 gap-y-2">
                   {trustBadges.map((badge) => (
-                    <div
-                      key={badge.label}
-                      className="flex items-center gap-1.5 text-[11px] font-medium text-[var(--t3)]"
-                    >
+                    <div key={badge.label} className="flex items-center gap-1.5 text-xs font-medium text-[var(--t3)]">
                       <MaterialIcon icon={badge.icon} className="text-[14px] text-[var(--green)]" />
                       {badge.label}
                     </div>
@@ -375,9 +372,7 @@ export default function HomePage() {
                   className="floating-note pointer-events-none absolute right-0 top-0 z-20 w-52 rounded-[28px] border border-white/70 bg-white/88 p-4 shadow-[0_24px_60px_rgba(15,23,42,0.14)] backdrop-blur xl:block hidden"
                   aria-hidden="true"
                 >
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400">
-                    Today at a glance
-                  </p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Today at a glance</p>
                   <div className="mt-4 space-y-3">
                     {[
                       ["Attendance filed", "12 classes by 8:05 AM"],
@@ -401,7 +396,7 @@ export default function HomePage() {
                   className="floating-callout pointer-events-none absolute bottom-5 left-3 z-20 rounded-[24px] border border-[var(--brand-border)] bg-white/92 px-4 py-3 shadow-[0_22px_55px_rgba(15,23,42,0.12)] backdrop-blur md:block hidden"
                   aria-hidden="true"
                 >
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-[var(--primary)]">
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--primary)]">
                     From registers to reports
                   </p>
                   <p className="mt-1 text-sm font-semibold text-[var(--t1)]">One flow, one view, one calmer morning.</p>
@@ -470,7 +465,7 @@ export default function HomePage() {
           <div className="relative mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <FadeIn>
               <div className="text-center mb-4">
-                <span className="inline-flex items-center gap-2 rounded-full border border-[var(--brand-ink)]/10 bg-white px-4 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[var(--brand-ink)] shadow-sm">
+                <span className="inline-flex items-center gap-2 rounded-full border border-[var(--brand-ink)]/10 bg-white px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-[var(--brand-ink)] shadow-sm">
                   <MaterialIcon icon="travel_explore" className="text-sm" />
                   See it for yourself
                 </span>
@@ -817,12 +812,12 @@ export default function HomePage() {
                         {plan.name}
                       </p>
                       {plan.featured && (
-                        <span className="rounded-full bg-[var(--brand-ink)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-white">
+                        <span className="rounded-full bg-[var(--brand-ink)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-white">
                           Most chosen
                         </span>
                       )}
                       {(plan as any).promoBadge && (
-                        <span className="rounded-full bg-red-500 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-white ml-2">
+                        <span className="rounded-full bg-red-500 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-white ml-2">
                           {(plan as any).promoBadge}
                         </span>
                       )}

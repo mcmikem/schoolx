@@ -591,7 +591,7 @@ export default function BulkImport({ onComplete, createStudent, houses = [] }: B
                                 type="button"
                                 title="Quick set to Male"
                                 onClick={() => handleSetGender(originalIndex, "M")}
-                                className="px-1.5 py-0.5 text-[11px] font-bold bg-blue-100 hover:bg-blue-200 text-blue-800 rounded transition-colors"
+                                className="px-1.5 py-0.5 text-xs font-bold bg-blue-100 hover:bg-blue-200 text-blue-800 rounded transition-colors"
                               >
                                 +M
                               </button>
@@ -599,7 +599,7 @@ export default function BulkImport({ onComplete, createStudent, houses = [] }: B
                                 type="button"
                                 title="Quick set to Female"
                                 onClick={() => handleSetGender(originalIndex, "F")}
-                                className="px-1.5 py-0.5 text-[11px] font-bold bg-pink-100 hover:bg-pink-200 text-pink-800 rounded transition-colors"
+                                className="px-1.5 py-0.5 text-xs font-bold bg-pink-100 hover:bg-pink-200 text-pink-800 rounded transition-colors"
                               >
                                 +F
                               </button>
@@ -615,14 +615,14 @@ export default function BulkImport({ onComplete, createStudent, houses = [] }: B
                               {row.errors.map((err, errIdx) => (
                                 <span
                                   key={errIdx}
-                                  className="px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider bg-red-100 text-red-700 border border-red-200"
+                                  className="px-2 py-0.5 rounded text-xs uppercase font-bold tracking-wider bg-red-100 text-red-700 border border-red-200"
                                 >
                                   {err}
                                 </span>
                               ))}
                             </div>
                           ) : (
-                            <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
+                            <span className="text-xs uppercase font-bold tracking-wider text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
                               Ready
                             </span>
                           )}

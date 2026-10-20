@@ -180,13 +180,13 @@ export default function ParentCanteenPage() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1 min-w-0">
                         <h3 className="text-base font-bold text-[var(--on-surface)]">{item.name}</h3>
-                        <span className="inline-flex items-center px-2 py-0.5 mt-1 rounded-full bg-[var(--surface-container-low)] border border-[var(--border)] text-[10px] font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">
+                        <span className="inline-flex items-center px-2 py-0.5 mt-1 rounded-full bg-[var(--surface-container-low)] border border-[var(--border)] text-xs font-bold uppercase tracking-wider text-[var(--on-surface-variant)]">
                           {item.category}
                         </span>
                       </div>
                       <div className="text-right shrink-0">
                         <p className="text-lg font-black text-[var(--primary)]">UGX {item.price.toLocaleString()}</p>
-                        <p className="text-[10px] text-[var(--on-surface-variant)] mt-0.5">
+                        <p className="text-xs text-[var(--on-surface-variant)] mt-0.5">
                           Stock: {item.stock} {item.unit}
                         </p>
                       </div>
@@ -241,7 +241,7 @@ export default function ParentCanteenPage() {
                   <div key={c.item.id} className="flex items-center justify-between py-2">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-[var(--on-surface)]">{c.item.name}</p>
-                      <p className="text-[11px] text-[var(--on-surface-variant)]">
+                      <p className="text-xs text-[var(--on-surface-variant)]">
                         UGX {c.item.price.toLocaleString()} x {c.quantity}
                       </p>
                     </div>

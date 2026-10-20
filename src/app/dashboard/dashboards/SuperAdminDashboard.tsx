@@ -396,7 +396,7 @@ function SuperAdminDashboardContent() {
           <div className="flex items-center gap-2 mb-3">
             <MaterialIcon icon="warning" style={{ fontSize: 16, color: "var(--amber)" }} />
             <span className="text-[13px] font-bold text-[var(--t1)]">Needs Attention</span>
-            <span className="ml-1 px-2 py-0.5 rounded-full bg-[var(--amber-soft)] text-[var(--amber)] text-[11px] font-bold">
+            <span className="ml-1 px-2 py-0.5 rounded-full bg-[var(--amber-soft)] text-[var(--amber)] text-xs font-bold">
               {alerts.length}
             </span>
           </div>
@@ -418,7 +418,7 @@ function SuperAdminDashboardContent() {
                 </div>
                 <div className="min-w-0">
                   <div className="text-[13px] font-semibold text-[var(--t1)] truncate">{a.label}</div>
-                  <div className="text-[11px] text-[var(--t3)] truncate">{a.sub}</div>
+                  <div className="text-xs text-[var(--t3)] truncate">{a.sub}</div>
                 </div>
               </Link>
             ))}
@@ -433,7 +433,7 @@ function SuperAdminDashboardContent() {
           <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border)]">
             <div>
               <div className="font-['Sora'] text-[14px] font-bold text-[var(--t1)]">Recent Schools</div>
-              <div className="text-[11px] text-[var(--t3)] mt-0.5">Latest registrations on the platform</div>
+              <div className="text-xs text-[var(--t3)] mt-0.5">Latest registrations on the platform</div>
             </div>
             <Link
               href="/dashboard/schools"
@@ -483,14 +483,14 @@ function SuperAdminDashboardContent() {
                         <div className="text-[13px] font-semibold text-[var(--t1)] truncate group-hover:text-[var(--navy)]">
                           {s.name}
                         </div>
-                        <div className="text-[11px] text-[var(--t3)]">
+                        <div className="text-xs text-[var(--t3)]">
                           {s.district} · {s.school_type}
                           {s.student_count ? ` · ${s.student_count} students` : ""}
                         </div>
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         <span
-                          className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide"
+                          className="px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wide"
                           style={{
                             background: badge.bg,
                             color: badge.text,
@@ -499,7 +499,7 @@ function SuperAdminDashboardContent() {
                           {badge.label}
                         </span>
                         <span
-                          className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase"
+                          className="px-2 py-0.5 rounded-full text-xs font-bold uppercase"
                           style={{
                             background: `color-mix(in srgb, ${PLAN_COLORS[s.subscription_plan] || "var(--slate-ink)"} 10%, transparent)`,
                             color: PLAN_COLORS[s.subscription_plan] || "var(--slate-ink)",
@@ -508,7 +508,7 @@ function SuperAdminDashboardContent() {
                           {PLAN_LABELS[s.subscription_plan] || s.subscription_plan}
                         </span>
                       </div>
-                      <div className="text-[11px] text-[var(--t4)] flex-shrink-0 ml-1">{timeSince(s.created_at)}</div>
+                      <div className="text-xs text-[var(--t4)] flex-shrink-0 ml-1">{timeSince(s.created_at)}</div>
                     </Link>
                   );
                 })}

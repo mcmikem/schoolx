@@ -127,7 +127,7 @@ export function AppActivityTab() {
                   {summary.topPages.slice(0, 8).map((p: any, i: number) => (
                     <div key={i} className="flex items-center justify-between">
                       <span className="text-[12px] text-[var(--t2)] truncate mr-2 max-w-[250px]">{p.name}</span>
-                      <span className="text-[11px] font-semibold text-[var(--t3)]">{p.count}</span>
+                      <span className="text-xs font-semibold text-[var(--t3)]">{p.count}</span>
                     </div>
                   ))}
                 </div>
@@ -143,7 +143,7 @@ export function AppActivityTab() {
                   {summary.topFeatures.slice(0, 8).map((f: any, i: number) => (
                     <div key={i} className="flex items-center justify-between">
                       <span className="text-[12px] text-[var(--t2)] truncate mr-2 max-w-[250px]">{f.name}</span>
-                      <span className="text-[11px] font-semibold text-[var(--t3)]">{f.count}</span>
+                      <span className="text-xs font-semibold text-[var(--t3)]">{f.count}</span>
                     </div>
                   ))}
                 </div>
@@ -288,7 +288,7 @@ export function AppActivityTab() {
                           </td>
                           <td className="px-4 py-2">
                             <span
-                              className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                              className={`px-2 py-0.5 rounded-full text-xs font-bold uppercase ${
                                 ev.event_type === "error"
                                   ? "bg-red-100 text-red-700"
                                   : ev.event_type === "page_view"

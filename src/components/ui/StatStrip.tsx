@@ -46,7 +46,7 @@ export function StatStrip({ items, columns = 4, className = "", ariaLive = "off"
           key={item.label}
           className="min-w-0 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 shadow-[var(--sh1)]"
         >
-          <dt className="text-[11px] font-semibold uppercase tracking-wide text-[var(--t3)]">{item.label}</dt>
+          <dt className="text-xs font-semibold uppercase tracking-wide text-[var(--t3)]">{item.label}</dt>
           <dd
             className={cn(
               "mt-1 truncate text-2xl font-bold tabular-nums leading-tight",
@@ -56,7 +56,7 @@ export function StatStrip({ items, columns = 4, className = "", ariaLive = "off"
           >
             {item.value}
           </dd>
-          {item.hint && <p className="mt-0.5 truncate text-[11px] text-[var(--t3)]">{item.hint}</p>}
+          {item.hint && <p className="mt-0.5 truncate text-xs text-[var(--t3)]">{item.hint}</p>}
         </div>
       ))}
     </dl>

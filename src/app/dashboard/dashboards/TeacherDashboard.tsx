@@ -278,7 +278,7 @@ export function TeacherDashboardContent() {
         rightSection={
           <div className="rounded-full bg-[var(--t1)] px-4 py-2 text-center">
             <p className="text-xl font-bold text-white leading-none">{myClasses.length}</p>
-            <p className="text-[9px] font-bold uppercase tracking-[0.1em] text-white/70">Classes</p>
+            <p className="text-xs font-bold uppercase tracking-[0.1em] text-white/70">Classes</p>
           </div>
         }
         bottomCenter={
@@ -290,7 +290,7 @@ export function TeacherDashboardContent() {
           stats?.totalStudents > 0 ? (
             <div className="flex items-center gap-1.5 rounded-full bg-[var(--primary-50)] px-3 py-1">
               <span className="h-1.5 w-1.5 rounded-full bg-[var(--t1)]" />
-              <span className="text-[11px] font-bold text-[var(--t1)]">{stats.totalStudents} students</span>
+              <span className="text-xs font-bold text-[var(--t1)]">{stats.totalStudents} students</span>
             </div>
           ) : undefined
         }
@@ -323,7 +323,7 @@ export function TeacherDashboardContent() {
                 icon={allClassesMarked ? "check_circle" : "how_to_reg"}
                 className={`text-lg ${allClassesMarked ? "text-[var(--green)]" : markedCount !== null && markedCount > 0 ? "text-amber-600" : "text-[var(--red)]"}`}
               />
-              <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--t3)]">Attendance</span>
+              <span className="text-xs font-bold uppercase tracking-[0.1em] text-[var(--t3)]">Attendance</span>
             </div>
             <p
               className={`mt-1 text-lg font-bold ${allClassesMarked ? "text-[var(--green)]" : markedCount !== null && markedCount > 0 ? "text-amber-700" : "text-[var(--red)]"}`}
@@ -336,7 +336,7 @@ export function TeacherDashboardContent() {
                     ? "Pending"
                     : `${markedCount} of ${myClasses.length} marked`}
             </p>
-            <p className="text-[10px] text-[var(--t3)] mt-0.5">
+            <p className="text-xs text-[var(--t3)] mt-0.5">
               {markedCount === null
                 ? "Checking registers…"
                 : allClassesMarked
@@ -362,10 +362,10 @@ export function TeacherDashboardContent() {
           <div className="rounded-2xl border border-[var(--surface-container-low)] bg-white p-4">
             <div className="flex items-center gap-2">
               <MaterialIcon icon="assignment" className="text-lg text-[var(--t1)]" />
-              <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-[var(--t3)]">Tasks</span>
+              <span className="text-xs font-bold uppercase tracking-[0.1em] text-[var(--t3)]">Tasks</span>
             </div>
             <p className="mt-1 text-lg font-bold text-[var(--t1)]">{tasks.length}</p>
-            <p className="text-[10px] text-[var(--t3)] mt-0.5">
+            <p className="text-xs text-[var(--t3)] mt-0.5">
               {tasks.length === 1 ? "Pending item" : tasks.length > 0 ? "Pending items" : "All clear"}
             </p>
           </div>
@@ -429,7 +429,7 @@ export function TeacherDashboardContent() {
                         >
                           <div className="flex items-start justify-between gap-3">
                             <h3 className="min-w-0 break-words text-base font-bold text-[var(--t1)]">{cls.name}</h3>
-                            <span className="rounded-full bg-[var(--primary-50)] px-2 py-1 text-[9px] font-bold uppercase tracking-[0.1em] text-[var(--t1)]">
+                            <span className="rounded-full bg-[var(--primary-50)] px-2 py-1 text-xs font-bold uppercase tracking-[0.1em] text-[var(--t1)]">
                               {count} {count === 1 ? "student" : "students"}
                             </span>
                           </div>
@@ -473,7 +473,7 @@ export function TeacherDashboardContent() {
                 </div>
                 <div>
                   <h2 className="text-sm font-bold text-[var(--t1)] font-['Sora']">Today's Schedule</h2>
-                  <p className="text-[11px] text-[var(--t3)]">{todayLabel}</p>
+                  <p className="text-xs text-[var(--t3)]">{todayLabel}</p>
                 </div>
               </div>
               <Link
@@ -516,13 +516,13 @@ export function TeacherDashboardContent() {
                           {slot.classes?.name || "Class"}
                           {slot.subjects?.name ? ` · ${slot.subjects.name}` : ""}
                         </p>
-                        <p className="text-[10px] text-[var(--t3)]">
+                        <p className="text-xs text-[var(--t3)]">
                           {slot.start_time && slot.end_time ? `${slot.start_time}–${slot.end_time}` : ""}
                           {slot.room ? ` · ${slot.room}` : ""}
                         </p>
                       </div>
                       {isNow && (
-                        <span className="shrink-0 rounded-full bg-[var(--t1)] px-2 py-0.5 text-[9px] font-bold uppercase tracking-[0.1em] text-white">
+                        <span className="shrink-0 rounded-full bg-[var(--t1)] px-2 py-0.5 text-xs font-bold uppercase tracking-[0.1em] text-white">
                           Now
                         </span>
                       )}

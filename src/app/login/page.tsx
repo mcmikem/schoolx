@@ -395,7 +395,7 @@ export default function LoginPage() {
             <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
               <div className="flex items-center justify-between mb-1.5">
                 <p className="font-medium">Demo Accounts (1-Tap Fill)</p>
-                <span className="text-[11px] text-amber-700">skoolmate123</span>
+                <span className="text-xs text-amber-700">skoolmate123</span>
               </div>
               <div className="grid grid-cols-2 gap-1.5 mb-2">
                 {[
@@ -416,7 +416,7 @@ export default function LoginPage() {
                     className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-white/80 hover:bg-white border border-amber-300 text-left transition-colors shadow-xs"
                   >
                     <span className="font-medium text-slate-800">{acc.label}</span>
-                    <span className="font-mono text-[10px] text-amber-700">...{acc.phone.slice(-3)}</span>
+                    <span className="font-mono text-xs text-amber-700">...{acc.phone.slice(-3)}</span>
                   </button>
                 ))}
               </div>

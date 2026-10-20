@@ -130,7 +130,7 @@ export default function InventoryPage() {
                           <div>
                             <p className="font-semibold text-[var(--on-surface)]">{asset.name}</p>
                             {asset.is_consumable && (
-                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--navy-soft)] text-[var(--navy)] font-bold uppercase tracking-wider">
+                              <span className="text-xs px-1.5 py-0.5 rounded bg-[var(--navy-soft)] text-[var(--navy)] font-bold uppercase tracking-wider">
                                 Consumable
                               </span>
                             )}
@@ -210,14 +210,12 @@ export default function InventoryPage() {
                     </div>
                     <div className="flex-1">
                       <p className="text-sm font-semibold text-[var(--on-surface)]">{tx.asset?.name || "Item"}</p>
-                      <p className="text-[10px] text-[var(--t4)] uppercase tracking-widest">
+                      <p className="text-xs text-[var(--t4)] uppercase tracking-widest">
                         {tx.transaction_type} · {tx.quantity} units
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="text-[10px] text-[var(--t4)]">
-                        {new Date(tx.transaction_date).toLocaleDateString()}
-                      </p>
+                      <p className="text-xs text-[var(--t4)]">{new Date(tx.transaction_date).toLocaleDateString()}</p>
                     </div>
                   </div>
                 ))}

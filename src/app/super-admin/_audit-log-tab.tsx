@@ -58,7 +58,7 @@ export function AuditLogTab() {
             </option>
           ))}
         </select>
-        <span className="text-[11px] text-[var(--t4)]">{logs.length} entries</span>
+        <span className="text-xs text-[var(--t4)]">{logs.length} entries</span>
       </div>
 
       {loading ? (
@@ -101,7 +101,7 @@ export function AuditLogTab() {
                     </td>
                     <td className="px-4 py-2.5">
                       <span
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                        className={`px-2 py-0.5 rounded-full text-xs font-bold uppercase ${
                           log.action === "delete"
                             ? "bg-red-100 text-red-700"
                             : log.action === "create"

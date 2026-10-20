@@ -193,7 +193,7 @@ export default function ParentResultsPage() {
         <Card>
           <CardBody>
             <div className="flex items-center gap-3 flex-wrap">
-              <span className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]">
+              <span className="text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)]">
                 Academic Year:
               </span>
               {["all", ...years].map((yr) => (
@@ -209,7 +209,7 @@ export default function ParentResultsPage() {
                   {yr === "all" ? "All" : yr}
                 </button>
               ))}
-              <span className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)] ml-4">
+              <span className="text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)] ml-4">
                 Term:
               </span>
               {["all", "1", "2", "3"].map((t) => (
@@ -323,7 +323,7 @@ export default function ParentResultsPage() {
                           >
                             {avgScore}%
                           </span>
-                          <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--t3)] mt-1">
+                          <span className="text-xs font-bold uppercase tracking-widest text-[var(--t3)] mt-1">
                             Average
                           </span>
                         </div>
@@ -331,13 +331,13 @@ export default function ParentResultsPage() {
 
                       <div className="grid flex-1 grid-cols-3 gap-3">
                         <div className="rounded-[18px] bg-white/50 border border-white/70 p-3">
-                          <p className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]">
+                          <p className="text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)]">
                             Subjects
                           </p>
                           <p className="text-2xl font-black text-[var(--on-surface)]">{subjects.length}</p>
                         </div>
                         <div className="rounded-[18px] bg-white/50 border border-white/70 p-3">
-                          <p className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]">
+                          <p className="text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)]">
                             Best 4
                           </p>
                           <p className="text-2xl font-black text-[var(--on-surface)]">
@@ -349,7 +349,7 @@ export default function ParentResultsPage() {
                           </p>
                         </div>
                         <div className="rounded-[18px] bg-white/50 border border-white/70 p-3">
-                          <p className="text-[10px] font-black uppercase tracking-widest text-[var(--on-surface-variant)]">
+                          <p className="text-xs font-black uppercase tracking-widest text-[var(--on-surface-variant)]">
                             Attendance
                           </p>
                           <p className="text-2xl font-black text-[var(--on-surface)]">

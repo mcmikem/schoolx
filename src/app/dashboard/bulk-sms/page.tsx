@@ -419,7 +419,7 @@ export default function SMSCenterPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Templates Panel */}
           <div className="space-y-4">
-            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-2">Message Templates</p>
+            <p className="text-xs font-black uppercase tracking-widest text-slate-400 px-2">Message Templates</p>
             {TEMPLATES.map((t) => (
               <button
                 key={t.id}
@@ -438,7 +438,7 @@ export default function SMSCenterPage() {
                 <div className="min-w-0">
                   <p className="font-bold text-sm truncate">{t.label}</p>
                   <p
-                    className={`text-[10px] font-bold uppercase tracking-widest ${activeTemplate.id === t.id ? "opacity-50" : "text-slate-400"}`}
+                    className={`text-xs font-bold uppercase tracking-widest ${activeTemplate.id === t.id ? "opacity-50" : "text-slate-400"}`}
                   >
                     {t.category}
                   </p>
@@ -453,9 +453,7 @@ export default function SMSCenterPage() {
             <Card>
               <CardBody className="p-6 space-y-5">
                 <div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">
-                    Target Audience
-                  </p>
+                  <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-4">Target Audience</p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     {SEGMENT_OPTIONS.map((opt) => (
                       <button
@@ -477,7 +475,7 @@ export default function SMSCenterPage() {
                         <div className="min-w-0">
                           <p className="font-bold text-xs truncate">{opt.label}</p>
                           <p
-                            className={`text-[9px] font-semibold uppercase tracking-wider ${
+                            className={`text-xs font-semibold uppercase tracking-wider ${
                               segment === opt.value ? "opacity-50" : "text-slate-400"
                             }`}
                           >
@@ -492,7 +490,7 @@ export default function SMSCenterPage() {
                 {/* Segment-specific options */}
                 {segment === "class" && (
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Select Class</p>
+                    <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Select Class</p>
                     <select
                       value={selectedClass}
                       onChange={(e) => setSelectedClass(e.target.value)}
@@ -510,7 +508,7 @@ export default function SMSCenterPage() {
 
                 {segment === "balance" && (
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
+                    <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">
                       Minimum Outstanding Balance (UGX)
                     </p>
                     <input
@@ -528,16 +526,14 @@ export default function SMSCenterPage() {
 
                 {segment === "student" && (
                   <div ref={studentSearchRef} className="relative">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">
-                      Search Student
-                    </p>
+                    <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Search Student</p>
                     {selectedStudent ? (
                       <div className="flex items-center gap-3 px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl">
                         <div className="flex-1 min-w-0">
                           <p className="font-bold text-sm text-slate-800 truncate">
                             {selectedStudent.first_name} {selectedStudent.last_name}
                           </p>
-                          <p className="text-[10px] text-slate-500 font-mono">{selectedStudent.student_number}</p>
+                          <p className="text-xs text-slate-500 font-mono">{selectedStudent.student_number}</p>
                         </div>
                         <button
                           onClick={() => {
@@ -580,7 +576,7 @@ export default function SMSCenterPage() {
                                   <p className="font-bold text-sm text-slate-800 truncate">
                                     {s.first_name} {s.last_name}
                                   </p>
-                                  <p className="text-[10px] text-slate-500 font-mono">{s.student_number}</p>
+                                  <p className="text-xs text-slate-500 font-mono">{s.student_number}</p>
                                 </div>
                               </button>
                             ))}
@@ -609,9 +605,9 @@ export default function SMSCenterPage() {
             <Card>
               <CardBody className="p-6 space-y-4">
                 <div className="flex justify-between items-center">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Message Body</p>
+                  <p className="text-xs font-black uppercase tracking-widest text-slate-400">Message Body</p>
                   <div className="flex items-center gap-3">
-                    <span className={`text-[10px] font-bold ${charCount > 160 ? "text-amber-500" : "text-slate-400"}`}>
+                    <span className={`text-xs font-bold ${charCount > 160 ? "text-amber-500" : "text-slate-400"}`}>
                       {charCount} chars &middot; {smsCount} SMS
                     </span>
                   </div>
@@ -623,7 +619,7 @@ export default function SMSCenterPage() {
                   className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-4 focus:ring-slate-100 transition-all text-sm font-medium text-slate-800 resize-none"
                   placeholder="Type your message here..."
                 />
-                <p className="text-[10px] text-slate-400 italic">
+                <p className="text-xs text-slate-400 italic">
                   Variables: {"{student_name}"}, {"{date}"}, {"{amount}"}, {"{school_name}"}
                 </p>
 
@@ -648,7 +644,7 @@ export default function SMSCenterPage() {
               <Card>
                 <CardBody className="p-0 overflow-hidden">
                   <div className="p-4 border-b border-slate-50 bg-slate-50/50">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Recent Activity</p>
+                    <p className="text-xs font-black uppercase tracking-widest text-slate-400">Recent Activity</p>
                   </div>
                   <div className="divide-y divide-slate-50">
                     {logs.slice(0, 8).map((log) => (
@@ -658,9 +654,9 @@ export default function SMSCenterPage() {
                         />
                         <div className="min-w-0 flex-1">
                           <p className="text-xs font-bold text-slate-800 truncate">{log.message}</p>
-                          <p className="text-[10px] text-slate-400 font-mono">{log.parent_phone}</p>
+                          <p className="text-xs text-slate-400 font-mono">{log.parent_phone}</p>
                         </div>
-                        <p className="text-[10px] text-slate-400 shrink-0">
+                        <p className="text-xs text-slate-400 shrink-0">
                           {format(new Date(log.sent_at), "MMM dd HH:mm")}
                         </p>
                       </div>
