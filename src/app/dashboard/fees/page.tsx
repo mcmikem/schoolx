@@ -18,7 +18,6 @@ import { useToast } from "@/components/Toast";
 import { FilterBar } from "@/components/ui/FilterBar";
 import { Button } from "@/components/ui/index";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Tabs } from "@/components/ui/Tabs";
 import { useAcademic } from "@/lib/academic-context";
 import { APP_NAME } from "@/lib/app-name";
 import { useAuth } from "@/lib/auth-context";
@@ -107,6 +106,21 @@ type PaymentClaimRow = {
 };
 
 type FinanceTab = "balances" | "payment-plans" | "invoices" | "cashbook" | "claims";
+
+/**
+ * The single tab row. Balances/Payments/Structure all live under the
+ * `balances` FinanceTab; the first three entries select that tab and a
+ * sub-view, the rest select a tab of their own.
+ */
+const FINANCE_TABS = [
+  { id: "balances" as const, label: "Balances" },
+  { id: "payments" as const, label: "Payments" },
+  { id: "structure" as const, label: "Fee Structure" },
+  { id: "payment-plans" as const, label: "Payment Plans" },
+  { id: "invoices" as const, label: "Invoices" },
+  { id: "cashbook" as const, label: "Daily Money Log" },
+  { id: "claims" as const, label: "Payment Claims" },
+];
 
 const MAX_FINANCE_AMOUNT = 100_000_000;
 
@@ -321,6 +335,7 @@ export default function FinanceHubPage() {
   const [searchTerm, setSearchTerm] = useState(() => urlFilters.get("q") || "");
   const [saving, setSaving] = useState(false);
   const [sendingReminders, setSendingReminders] = useState(false);
+  const [showHeaderMenu, setShowHeaderMenu] = useState(false);
   // Seeded from ?tab=structure so other screens (the bursar dashboard's "set
   // fees" prompt) can link straight to the fee list instead of Balances.
   const [balanceSubTab, setBalanceSubTab] = useState(() =>
@@ -1783,37 +1798,64 @@ export default function FinanceHubPage() {
           subtitle={`Term ${currentTerm}, ${academicYear}`}
           variant="premium"
           actions={
-            <div className="flex items-center gap-3 flex-wrap justify-start lg:justify-end">
+            <div className="flex items-center gap-2 justify-start lg:justify-end">
               <Button variant="primary" size="sm" onClick={openPaymentModal}>
                 <MaterialIcon icon="payments" />
                 Add Payment
               </Button>
-              <Button variant="secondary" size="sm" onClick={() => setShowAdjustmentModal(true)}>
-                <MaterialIcon icon="tune" />
-                Scholarship/Discount
-              </Button>
-              <Button variant="secondary" size="sm" onClick={() => setShowCreatePlan(true)}>
-                <MaterialIcon icon="event_note" />
-                Payment Plans
-              </Button>
-              <Button variant="secondary" size="sm" onClick={() => setShowFeeImport(true)}>
-                <MaterialIcon icon="upload_file" />
-                Bulk Import
-              </Button>
-              <Button variant="secondary" size="sm" onClick={() => setShowMobileImport(true)}>
-                <MaterialIcon icon="smartphone" />
-                MoMo Import
-              </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => setShowFeeModal(true)}
-                className="shadow-md shadow-navy/20"
-                id="set-new-fees"
-              >
-                <MaterialIcon icon="add" />
-                Set New Fees
-              </Button>
+              {/* Six free-standing buttons pushed "Add Payment" off the
+                  first screenful and made every action look equally urgent.
+                  One primary, the rest behind a menu. */}
+              <div className="relative">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setShowHeaderMenu((v) => !v)}
+                  aria-expanded={showHeaderMenu}
+                  aria-haspopup="menu"
+                  aria-label="More fee actions"
+                >
+                  <MaterialIcon icon="more_horiz" />
+                  More
+                </Button>
+                {showHeaderMenu && (
+                  <>
+                    <button
+                      type="button"
+                      className="fixed inset-0 z-10 cursor-default"
+                      aria-label="Close menu"
+                      onClick={() => setShowHeaderMenu(false)}
+                    />
+                    <div
+                      role="menu"
+                      className="absolute right-0 z-20 mt-1 w-60 rounded-xl border border-outline-variant bg-surface-container-lowest p-1.5 shadow-lg"
+                    >
+                      {[
+                        { label: "Scholarship/Discount", icon: "tune", run: () => setShowAdjustmentModal(true) },
+                        { label: "Payment Plans", icon: "event_note", run: () => setShowCreatePlan(true) },
+                        { label: "Bulk Import", icon: "upload_file", run: () => setShowFeeImport(true) },
+                        { label: "MoMo Import", icon: "smartphone", run: () => setShowMobileImport(true) },
+                        { label: "Set New Fees", icon: "add", run: () => setShowFeeModal(true), id: "set-new-fees" },
+                      ].map((item) => (
+                        <button
+                          key={item.label}
+                          id={item.id}
+                          role="menuitem"
+                          type="button"
+                          onClick={() => {
+                            setShowHeaderMenu(false);
+                            item.run();
+                          }}
+                          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2.5 min-h-[44px] text-left text-sm font-medium text-on-surface hover:bg-surface-container"
+                        >
+                          <MaterialIcon icon={item.icon} className="text-[18px] text-on-surface-variant" />
+                          {item.label}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
           }
         />
@@ -1899,31 +1941,46 @@ export default function FinanceHubPage() {
           ]}
         />
 
-        <div className="flex gap-1 p-1 bg-[var(--surface-container-low)] rounded-xl mb-6 overflow-x-auto">
-          {[
-            { id: "balances" as const, label: "Student Balances" },
-            { id: "payment-plans" as const, label: "Payment Plans" },
-            { id: "invoices" as const, label: "Invoices" },
-            { id: "cashbook" as const, label: "Daily Money Log" },
-            { id: "claims" as const, label: "Payment Claims" },
-          ].map((t) => (
-            <button
-              key={t.id}
-              onClick={() => setTab(t.id)}
-              className={`shrink-0 px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap inline-flex items-center gap-1.5 ${
-                tab === t.id
-                  ? "bg-[var(--surface)] text-[var(--t1)] shadow-sm"
-                  : "text-[var(--t3)] hover:text-[var(--t2)]"
-              }`}
-            >
-              {t.label}
-              {t.id === "claims" && pendingClaims.length > 0 && (
-                <span className="min-w-5 h-5 px-1.5 rounded-full bg-[var(--primary)] text-white text-xs font-bold flex items-center justify-center">
-                  {pendingClaims.length}
-                </span>
-              )}
-            </button>
-          ))}
+        {/*
+          One tab row. Balances, Payments and Fee Structure used to be a second
+          tab bar nested inside the first, so the screen had two "where am I"
+          indicators and the list sat three quarters of a way down the page.
+        */}
+        <div className="flex gap-1 p-1 bg-[var(--surface-container-low)] rounded-xl mb-5 overflow-x-auto">
+          {FINANCE_TABS.map((t) => {
+            const active =
+              t.id === "balances"
+                ? tab === "balances" && balanceSubTab === "balances"
+                : t.id === "payments"
+                  ? tab === "balances" && balanceSubTab === "payments"
+                  : t.id === "structure"
+                    ? tab === "balances" && balanceSubTab === "structure"
+                    : tab === t.id;
+            return (
+              <button
+                key={t.id}
+                onClick={() => {
+                  if (t.id === "balances" || t.id === "payments" || t.id === "structure") {
+                    setTab("balances");
+                    setBalanceSubTab(t.id);
+                  } else {
+                    setTab(t.id as FinanceTab);
+                  }
+                }}
+                aria-current={active ? "page" : undefined}
+                className={`shrink-0 px-4 py-2 text-sm font-medium rounded-lg transition-all whitespace-nowrap inline-flex items-center gap-1.5 ${
+                  active ? "bg-[var(--surface)] text-[var(--t1)] shadow-sm" : "text-[var(--t3)] hover:text-[var(--t2)]"
+                }`}
+              >
+                {t.label}
+                {t.id === "claims" && pendingClaims.length > 0 && (
+                  <span className="min-w-5 h-5 px-1.5 rounded-full bg-[var(--primary)] text-white text-xs font-bold flex items-center justify-center">
+                    {pendingClaims.length}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {tab === "balances" && (
@@ -1939,6 +1996,7 @@ export default function FinanceHubPage() {
                 )
               }
               activeFilter={statusFilter === "written_off" ? "all" : statusFilter}
+              onSetFees={() => setShowFeeModal(true)}
             />
 
             <div className="dashboard-toolbar mb-6">
@@ -2046,21 +2104,6 @@ export default function FinanceHubPage() {
                 </button>
               </div>
             )}
-
-            <Tabs
-              tabs={[
-                { id: "balances", label: "Balances" },
-                { id: "payments", label: "Payments" },
-                { id: "structure", label: "Fee Structure" },
-              ]}
-              activeTab={balanceSubTab}
-              onChange={(id) => {
-                // Just switch the tab. This used to also open the Add Fee
-                // modal, which buried the fee list the bursar came to inspect.
-                setBalanceSubTab(id);
-              }}
-              className="mb-6"
-            />
 
             {balanceSubTab === "balances" &&
               (filteredBalances.length === 0 ? (

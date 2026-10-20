@@ -92,4 +92,18 @@ describe("fees tracker redesign", () => {
     expect(stats).toContain('onFilter?.("unbilled")');
     expect(stats).toContain("pupils cleared");
   });
+
+  it("keeps one tab row instead of a tab bar inside a tab bar", () => {
+    // Balances/Payments/Structure were a second tab bar nested under the
+    // Finance tabs, so the list sat behind two "where am I" rows.
+    const page = read("src/app/dashboard/fees/page.tsx");
+    expect(page).toContain("FINANCE_TABS");
+    expect(page).not.toMatch(/<Tabs\s/);
+  });
+
+  it("keeps one primary action and hides the rest behind a menu", () => {
+    const page = read("src/app/dashboard/fees/page.tsx");
+    expect(page).toContain('aria-label="More fee actions"');
+    expect(page).toContain('role="menuitem"');
+  });
 });

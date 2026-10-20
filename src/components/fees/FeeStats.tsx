@@ -10,6 +10,7 @@ interface FeeStatsProps {
   paymentsCount: number;
   onFilter?: (status: FeeStatusFilter) => void;
   activeFilter?: FeeStatusFilter;
+  onSetFees?: () => void;
 }
 
 /**
@@ -101,7 +102,7 @@ function RosterDonut({
   );
 }
 
-export default function FeeStats({ stats, paymentsCount, onFilter, activeFilter = "all" }: FeeStatsProps) {
+export default function FeeStats({ stats, paymentsCount, onFilter, activeFilter = "all", onSetFees }: FeeStatsProps) {
   const rows: Array<{ key: FeeStatusFilter; label: string; count: number; dot: string }> = [
     { key: "paid", label: "Cleared", count: stats.cleared, dot: "bg-[var(--green)]" },
     { key: "partial", label: "Part paid", count: stats.partial, dot: "bg-[var(--amber)]" },
@@ -181,17 +182,14 @@ export default function FeeStats({ stats, paymentsCount, onFilter, activeFilter 
             <MaterialIcon icon="visibility" className="text-[16px]" />
             Show {stats.unbilled === 1 ? "pupil" : "pupils"}
           </button>
-          <a
-            href="/dashboard/fees/?tab=balances"
+          <button
+            type="button"
+            onClick={() => onSetFees?.()}
             className="inline-flex items-center gap-1.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 min-h-[44px] text-xs font-bold text-[var(--primary)] hover:bg-[var(--surface-container-low)]"
-            onClick={(e) => {
-              e.preventDefault();
-              document.getElementById("set-new-fees")?.click();
-            }}
           >
             <MaterialIcon icon="add" className="text-[16px]" />
             Set fees
-          </a>
+          </button>
         </div>
       )}
 
