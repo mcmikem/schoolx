@@ -155,11 +155,11 @@ export default function UNEBAnalysisPage() {
   }, [results]);
 
   const getDivisionColor = (division: string) => {
-    if (division === "Division I") return "bg-[var(--green-soft)] text-[var(--green)]";
-    if (division === "Division II") return "bg-[var(--navy-soft)] text-[var(--navy)]";
-    if (division === "Division III") return "bg-[var(--amber-soft)] text-[var(--amber)]";
-    if (division === "Division IV") return "bg-yellow-100 text-amber-600";
-    return "bg-[var(--red-soft)] text-[var(--red)]";
+    if (division === "Division I") return "bg-[var(--green-soft)] text-[var(--green-ink)]";
+    if (division === "Division II") return "bg-[var(--navy-soft)] text-[var(--blue-ink)]";
+    if (division === "Division III") return "bg-[var(--amber-soft)] text-[var(--amber-ink)]";
+    if (division === "Division IV") return "bg-yellow-100 text-yellow-700";
+    return "bg-[var(--red-soft)] text-[var(--red-ink)]";
   };
 
   const tabs = [

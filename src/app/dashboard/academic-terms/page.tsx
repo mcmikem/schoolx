@@ -4,7 +4,7 @@ import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { supabase } from "@/lib/supabase";
-import { useOfflineAcademicTerms } from '@/lib/offline-hooks';
+import { useOfflineAcademicTerms } from "@/lib/offline-hooks";
 import { useToast } from "@/components/Toast";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -29,12 +29,7 @@ interface AcademicTerm {
 export default function AcademicTermsPage() {
   const { school, user } = useAuth();
   const toast = useToast();
-  const {
-    data: terms = [],
-    loading,
-    error: termsError,
-    refetch: refetchTerms,
-  } = useOfflineAcademicTerms(school?.id);
+  const { data: terms = [], loading, error: termsError, refetch: refetchTerms } = useOfflineAcademicTerms(school?.id);
   const [showModal, setShowModal] = useState(false);
   const [editingTerm, setEditingTerm] = useState<AcademicTerm | null>(null);
   const canManageTerms = user?.role === "headmaster";
@@ -48,13 +43,14 @@ export default function AcademicTermsPage() {
     academic_year: new Date().getFullYear().toString(),
     is_active: true,
   });
-  const termValidationError = !formData.name.trim() || !formData.code.trim()
-    ? "Add both term name and code to continue."
-    : !formData.start_date || !formData.end_date
-      ? "Select both start and end dates."
-      : formData.end_date < formData.start_date
-        ? "End date cannot be earlier than the start date."
-        : "";
+  const termValidationError =
+    !formData.name.trim() || !formData.code.trim()
+      ? "Add both term name and code to continue."
+      : !formData.start_date || !formData.end_date
+        ? "Select both start and end dates."
+        : formData.end_date < formData.start_date
+          ? "End date cannot be earlier than the start date."
+          : "";
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
   const [generateConfirmOpen, setGenerateConfirmOpen] = useState(false);
@@ -77,10 +73,7 @@ export default function AcademicTermsPage() {
     };
 
     if (editingTerm) {
-      const { error } = await supabase
-        .from("academic_terms")
-        .update(payload)
-        .eq("id", editingTerm.id);
+      const { error } = await supabase.from("academic_terms").update(payload).eq("id", editingTerm.id);
 
       if (error) {
         toast.error(getErrorMessage(error, "Failed to update term"));
@@ -90,12 +83,8 @@ export default function AcademicTermsPage() {
         refetchTerms();
       }
     } else {
-      const { withTimeout, timeoutFallback } = await import('@/lib/hooks/utils');
-      const termResult = await withTimeout(
-        supabase.from("academic_terms").insert(payload),
-        15000,
-        timeoutFallback()
-      );
+      const { withTimeout, timeoutFallback } = await import("@/lib/hooks/utils");
+      const termResult = await withTimeout(supabase.from("academic_terms").insert(payload), 15000, timeoutFallback());
       const error = termResult?.error;
 
       if (error) {
@@ -124,14 +113,11 @@ export default function AcademicTermsPage() {
   const deleteTerm = async (termId: string) => {
     if (!canManageTerms) return;
     setPendingAction(() => async () => {
-      const { withTimeout, timeoutFallback } = await import('@/lib/hooks/utils');
+      const { withTimeout, timeoutFallback } = await import("@/lib/hooks/utils");
       const termDelResult = await withTimeout(
-        supabase
-          .from("academic_terms")
-          .delete()
-          .eq("id", termId),
+        supabase.from("academic_terms").delete().eq("id", termId),
         15000,
-        timeoutFallback()
+        timeoutFallback(),
       );
       const error = termDelResult?.error;
       if (error) {
@@ -173,18 +159,14 @@ export default function AcademicTermsPage() {
       is_current: false,
     }));
 
-    const { withTimeout, timeoutFallback } = await import('@/lib/hooks/utils');
-    const result = await withTimeout(
-      supabase.from("academic_terms").insert(terms),
-      15000,
-      timeoutFallback()
-    );
+    const { withTimeout, timeoutFallback } = await import("@/lib/hooks/utils");
+    const result = await withTimeout(supabase.from("academic_terms").insert(terms), 15000, timeoutFallback());
     const error = result?.error;
     setGenerating(false);
     if (error) {
       toast.error(getErrorMessage(error, "Failed to generate terms"));
     } else {
-      toast.success(`${terms.length} Uganda term${terms.length !== 1 ? 's' : ''} created for ${selectedYear}`);
+      toast.success(`${terms.length} Uganda term${terms.length !== 1 ? "s" : ""} created for ${selectedYear}`);
       refetchTerms();
     }
   };
@@ -233,315 +215,262 @@ export default function AcademicTermsPage() {
     {} as Record<string, AcademicTerm[]>,
   );
 
-  const generateMessage = existingTermsCount > 0
-    ? `Academic year ${selectedYear} already has ${existingTermsCount} term(s). Generating will create duplicates. Are you sure you want to continue?`
-    : `This will create standard Uganda term dates (Term 1, 2, 3) for ${selectedYear}. The terms will be set as inactive — you can mark the current term manually after generation.`;
+  const generateMessage =
+    existingTermsCount > 0
+      ? `Academic year ${selectedYear} already has ${existingTermsCount} term(s). Generating will create duplicates. Are you sure you want to continue?`
+      : `This will create standard Uganda term dates (Term 1, 2, 3) for ${selectedYear}. The terms will be set as inactive — you can mark the current term manually after generation.`;
 
   return (
     <PageErrorBoundary>
-    <>
-      <PageHeader
-        title="Academic Terms"
-        subtitle="Manage school terms and semesters"
-        actions={
-          canManageTerms ? (
+      <>
+        <PageHeader
+          title="Academic Terms"
+          subtitle="Manage school terms and semesters"
+          actions={
+            canManageTerms ? (
+              <div className="flex items-center gap-2">
+                <Select
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(e.target.value)}
+                  options={yearOptions}
+                  className="w-36"
+                />
+                <Button
+                  onClick={handleGenerateUgandaCalendar}
+                  icon={<MaterialIcon icon="auto_fix_high" />}
+                  variant="secondary"
+                  loading={generating}
+                >
+                  Generate Uganda Term Calendar
+                </Button>
+                <Button onClick={() => openModal()} icon={<MaterialIcon icon="add" />}>
+                  Add Term
+                </Button>
+              </div>
+            ) : undefined
+          }
+        />
+
+        {!canManageTerms && (
+          <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            Uganda term dates are preloaded. Only the headteacher can tweak the school calendar from this page.
+          </div>
+        )}
+
+        {loading ? (
+          <div className="flex items-center justify-center p-8">
+            <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : terms.length === 0 ? (
+          <div className="text-center py-12">
+            <MaterialIcon icon="calendar_today" className="text-5xl text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-700">No terms configured</h3>
+            <p className="text-gray-500 mt-1 mb-4">Add your first academic term to get started</p>
+            {canManageTerms && (
+              <div className="flex items-center justify-center gap-3">
+                <Select
+                  value={selectedYear}
+                  onChange={(e) => setSelectedYear(e.target.value)}
+                  options={yearOptions}
+                  className="w-40"
+                />
+                <Button
+                  onClick={handleGenerateUgandaCalendar}
+                  icon={<MaterialIcon icon="auto_fix_high" />}
+                  loading={generating}
+                >
+                  Generate Uganda Term Calendar
+                </Button>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {(Object.entries(groupedTerms) as [string, AcademicTerm[]][]).map(([year, yearTerms]) => (
+              <div key={year} className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                  <h3 className="font-semibold text-gray-900">Academic Year {year}</h3>
+                </div>
+                <div className="divide-y divide-gray-100">
+                  {yearTerms.map((term) => (
+                    <div key={term.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
+                      <div className="flex items-center gap-4">
+                        <div
+                          className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold ${
+                            term.is_current ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
+                          }`}
+                        >
+                          T{term.term_number}
+                        </div>
+                        <div>
+                          <div className="font-medium text-gray-900">{term.name}</div>
+                          <div className="text-sm text-gray-500">
+                            {new Date(term.start_date).toLocaleDateString()} -{" "}
+                            {new Date(term.end_date).toLocaleDateString()}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {term.is_current && <Badge variant="success">Current</Badge>}
+                        {!term.is_active && <Badge variant="default">Inactive</Badge>}
+                        <button
+                          onClick={() => !term.is_current && setCurrentTerm(term.id)}
+                          className={`p-2 rounded-lg ${term.is_current || !canManageTerms ? "text-gray-300 cursor-not-allowed" : "text-blue-700 hover:bg-blue-50"}`}
+                          disabled={term.is_current || !canManageTerms}
+                          title="Set as current term"
+                        >
+                          <MaterialIcon icon="star" />
+                        </button>
+                        <button
+                          onClick={() => openModal(term)}
+                          className={`p-2 rounded-lg ${canManageTerms ? "text-gray-600 hover:bg-gray-100" : "text-gray-300 cursor-not-allowed"}`}
+                          disabled={!canManageTerms}
+                        >
+                          <MaterialIcon icon="edit" />
+                        </button>
+                        <button
+                          onClick={() => deleteTerm(term.id)}
+                          className={`p-2 rounded-lg ${canManageTerms ? "text-red-700 hover:bg-red-50" : "text-gray-300 cursor-not-allowed"}`}
+                          disabled={!canManageTerms}
+                        >
+                          <MaterialIcon icon="delete" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <Modal
+          isOpen={showModal}
+          onClose={() => setShowModal(false)}
+          title={editingTerm ? "Edit Term" : "Add Term"}
+          size="lg"
+        >
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  placeholder="e.g., Term 1"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Code</label>
+                <input
+                  type="text"
+                  value={formData.code}
+                  onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  placeholder="e.g., T1"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
+                <input
+                  type="date"
+                  value={formData.start_date}
+                  onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
+                <input
+                  type="date"
+                  value={formData.end_date}
+                  onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Term Number</label>
+                <select
+                  value={formData.term_number}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      term_number: parseInt(e.target.value),
+                    })
+                  }
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                >
+                  {[1, 2, 3, 4].map((n) => (
+                    <option key={n} value={n}>
+                      Term {n}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Academic Year</label>
+                <input
+                  type="text"
+                  value={formData.academic_year}
+                  onChange={(e) => setFormData({ ...formData, academic_year: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  placeholder="2024"
+                />
+              </div>
+            </div>
             <div className="flex items-center gap-2">
-              <Select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(e.target.value)}
-                options={yearOptions}
-                className="w-36"
+              <input
+                type="checkbox"
+                id="is_active"
+                checked={formData.is_active}
+                onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                className="w-4 h-4 text-blue-600 rounded"
               />
-              <Button
-                onClick={handleGenerateUgandaCalendar}
-                icon={<MaterialIcon icon="auto_fix_high" />}
-                variant="secondary"
-                loading={generating}
-              >
-                Generate Uganda Term Calendar
+              <label htmlFor="is_active" className="text-sm text-gray-700">
+                Active
+              </label>
+            </div>
+            <div className="flex justify-end gap-3 pt-4">
+              <Button variant="secondary" onClick={() => setShowModal(false)}>
+                Cancel
               </Button>
-              <Button
-                onClick={() => openModal()}
-                icon={<MaterialIcon icon="add" />}
-              >
-                Add Term
+              <Button onClick={handleSubmit} disabled={Boolean(termValidationError)}>
+                {editingTerm ? "Update" : "Create"}
               </Button>
             </div>
-          ) : undefined
-        }
-      />
-
-      {!canManageTerms && (
-        <div className="mb-4 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          Uganda term dates are preloaded. Only the headteacher can tweak the school calendar from this page.
-        </div>
-      )}
-
-      {loading ? (
-        <div className="flex items-center justify-center p-8">
-          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-        </div>
-      ) : terms.length === 0 ? (
-        <div className="text-center py-12">
-          <MaterialIcon
-            icon="calendar_today"
-            className="text-5xl text-gray-300 mx-auto mb-4"
-          />
-          <h3 className="text-lg font-medium text-gray-700">
-            No terms configured
-          </h3>
-          <p className="text-gray-500 mt-1 mb-4">
-            Add your first academic term to get started
-          </p>
-          {canManageTerms && (
-            <div className="flex items-center justify-center gap-3">
-              <Select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(e.target.value)}
-                options={yearOptions}
-                className="w-40"
-              />
-              <Button
-                onClick={handleGenerateUgandaCalendar}
-                icon={<MaterialIcon icon="auto_fix_high" />}
-                loading={generating}
-              >
-                Generate Uganda Term Calendar
-              </Button>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {(Object.entries(groupedTerms) as [string, AcademicTerm[]][]).map(([year, yearTerms]) => (
-            <div
-              key={year}
-              className="bg-white rounded-2xl border border-gray-200 overflow-hidden"
-            >
-              <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
-                <h3 className="font-semibold text-gray-900">
-                  Academic Year {year}
-                </h3>
-              </div>
-              <div className="divide-y divide-gray-100">
-                {yearTerms.map((term) => (
-                  <div
-                    key={term.id}
-                    className="p-4 flex items-center justify-between hover:bg-gray-50"
-                  >
-                    <div className="flex items-center gap-4">
-                      <div
-                        className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold ${
-                          term.is_current
-                            ? "bg-green-100 text-green-700"
-                            : "bg-gray-100 text-gray-600"
-                        }`}
-                      >
-                        T{term.term_number}
-                      </div>
-                      <div>
-                        <div className="font-medium text-gray-900">
-                          {term.name}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {new Date(term.start_date).toLocaleDateString()} -{" "}
-                          {new Date(term.end_date).toLocaleDateString()}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {term.is_current && (
-                        <Badge variant="success">Current</Badge>
-                      )}
-                      {!term.is_active && (
-                        <Badge variant="default">Inactive</Badge>
-                      )}
-                      <button
-                        onClick={() =>
-                          !term.is_current && setCurrentTerm(term.id)
-                        }
-                        className={`p-2 rounded-lg ${term.is_current || !canManageTerms ? "text-gray-300 cursor-not-allowed" : "text-blue-600 hover:bg-blue-50"}`}
-                        disabled={term.is_current || !canManageTerms}
-                        title="Set as current term"
-                      >
-                        <MaterialIcon icon="star" />
-                      </button>
-                      <button
-                        onClick={() => openModal(term)}
-                        className={`p-2 rounded-lg ${canManageTerms ? "text-gray-600 hover:bg-gray-100" : "text-gray-300 cursor-not-allowed"}`}
-                        disabled={!canManageTerms}
-                      >
-                        <MaterialIcon icon="edit" />
-                      </button>
-                      <button
-                        onClick={() => deleteTerm(term.id)}
-                        className={`p-2 rounded-lg ${canManageTerms ? "text-red-600 hover:bg-red-50" : "text-gray-300 cursor-not-allowed"}`}
-                        disabled={!canManageTerms}
-                      >
-                        <MaterialIcon icon="delete" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <Modal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        title={editingTerm ? "Edit Term" : "Add Term"}
-        size="lg"
-      >
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Name
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) =>
-                  setFormData({ ...formData, name: e.target.value })
-                }
-                className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                placeholder="e.g., Term 1"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Code
-              </label>
-              <input
-                type="text"
-                value={formData.code}
-                onChange={(e) =>
-                  setFormData({ ...formData, code: e.target.value })
-                }
-                className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                placeholder="e.g., T1"
-              />
-            </div>
+            {termValidationError && <p className="text-sm text-[var(--t3)]">{termValidationError}</p>}
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Start Date
-              </label>
-              <input
-                type="date"
-                value={formData.start_date}
-                onChange={(e) =>
-                  setFormData({ ...formData, start_date: e.target.value })
-                }
-                className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                End Date
-              </label>
-              <input
-                type="date"
-                value={formData.end_date}
-                onChange={(e) =>
-                  setFormData({ ...formData, end_date: e.target.value })
-                }
-                className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Term Number
-              </label>
-              <select
-                value={formData.term_number}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    term_number: parseInt(e.target.value),
-                  })
-                }
-                className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-              >
-                {[1, 2, 3, 4].map((n) => (
-                  <option key={n} value={n}>
-                    Term {n}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Academic Year
-              </label>
-              <input
-                type="text"
-                value={formData.academic_year}
-                onChange={(e) =>
-                  setFormData({ ...formData, academic_year: e.target.value })
-                }
-                className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                placeholder="2024"
-              />
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="is_active"
-              checked={formData.is_active}
-              onChange={(e) =>
-                setFormData({ ...formData, is_active: e.target.checked })
-              }
-              className="w-4 h-4 text-blue-600 rounded"
-            />
-            <label htmlFor="is_active" className="text-sm text-gray-700">
-              Active
-            </label>
-          </div>
-          <div className="flex justify-end gap-3 pt-4">
-            <Button variant="secondary" onClick={() => setShowModal(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSubmit} disabled={Boolean(termValidationError)}>
-              {editingTerm ? "Update" : "Create"}
-            </Button>
-          </div>
-          {termValidationError && (
-            <p className="text-sm text-[var(--t3)]">{termValidationError}</p>
-          )}
-        </div>
-      </Modal>
+        </Modal>
 
-      <ConfirmDialog
-        isOpen={confirmOpen}
-        onClose={() => setConfirmOpen(false)}
-        onConfirm={() => {
-          setConfirmOpen(false);
-          pendingAction?.();
-        }}
-        title="Delete Term"
-        message="Delete this term?"
-        variant="danger"
-      />
+        <ConfirmDialog
+          isOpen={confirmOpen}
+          onClose={() => setConfirmOpen(false)}
+          onConfirm={() => {
+            setConfirmOpen(false);
+            pendingAction?.();
+          }}
+          title="Delete Term"
+          message="Delete this term?"
+          variant="danger"
+        />
 
-      <ConfirmDialog
-        isOpen={generateConfirmOpen}
-        onClose={() => setGenerateConfirmOpen(false)}
-        onConfirm={confirmGenerateUgandaCalendar}
-        title="Generate Uganda Term Calendar"
-        message={generateMessage}
-        variant={existingTermsCount > 0 ? "warning" : "info"}
-        confirmLabel="Generate"
-        loading={generating}
-      />
-    </>
+        <ConfirmDialog
+          isOpen={generateConfirmOpen}
+          onClose={() => setGenerateConfirmOpen(false)}
+          onConfirm={confirmGenerateUgandaCalendar}
+          title="Generate Uganda Term Calendar"
+          message={generateMessage}
+          variant={existingTermsCount > 0 ? "warning" : "info"}
+          confirmLabel="Generate"
+          loading={generating}
+        />
+      </>
     </PageErrorBoundary>
   );
 }

@@ -276,9 +276,9 @@ export default function ConductManagementPage() {
                         <span
                           className={`px-2 py-0.5 rounded-full text-xs font-black uppercase tracking-widest ${
                             record.incident_type === "positive"
-                              ? "bg-emerald-50 text-emerald-600 border border-emerald-100"
+                              ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
                               : record.incident_type === "negative"
-                                ? "bg-red-50 text-red-600 border border-red-100"
+                                ? "bg-red-50 text-red-700 border border-red-100"
                                 : "bg-slate-50 text-slate-600 border border-slate-100"
                           }`}
                         >

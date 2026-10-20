@@ -114,7 +114,7 @@ export function TeachingAssignmentsEditor({ classes, subjects, value, onChange }
                 type="button"
                 onClick={() => removeRow(index)}
                 aria-label={`Remove teaching row ${index + 1}`}
-                className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-[var(--t3)] hover:text-red-600 hover:bg-red-50 shrink-0"
+                className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-lg text-[var(--t3)] hover:text-red-700 hover:bg-red-50 shrink-0"
               >
                 <MaterialIcon icon="close" />
               </button>

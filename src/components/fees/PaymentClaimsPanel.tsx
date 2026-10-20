@@ -96,8 +96,8 @@ export default function PaymentClaimsPanel({
               <div
                 className={`flex items-start gap-2 rounded-xl px-3 py-2 text-xs ${
                   claim.match.confidence === "high"
-                    ? "bg-[var(--red-soft)] text-[var(--red)]"
-                    : "bg-[var(--amber-soft)] text-[var(--amber)]"
+                    ? "bg-[var(--red-soft)] text-[var(--red-ink)]"
+                    : "bg-[var(--amber-soft)] text-[var(--amber-ink)]"
                 }`}
               >
                 <MaterialIcon icon="warning" className="text-base shrink-0" />

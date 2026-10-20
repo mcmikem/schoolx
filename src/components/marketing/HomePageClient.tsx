@@ -310,7 +310,7 @@ export default function HomePage() {
             <div className="grid gap-14 pt-12 lg:grid-cols-[1.02fr_0.98fr] lg:items-center lg:pt-20">
               <div className="max-w-2xl">
                 <div className="mb-6 flex animate-fade-in">
-                  <div className="px-4 py-1.5 rounded-full bg-[var(--navy-soft)] border border-[var(--navy)]/10 text-[var(--navy)] text-xs uppercase font-bold tracking-widest flex items-center gap-2">
+                  <div className="px-4 py-1.5 rounded-full bg-[var(--navy-soft)] border border-[var(--navy)]/10 text-[var(--blue-ink)] text-xs uppercase font-bold tracking-widest flex items-center gap-2">
                     <MaterialIcon icon="school" className="text-sm" />
                     Built for real school operations — attendance, fees, reports
                   </div>

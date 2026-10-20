@@ -3,9 +3,9 @@
 import { cn } from "@/lib/utils";
 
 const STYLES: Record<string, string> = {
-  draft: "bg-[var(--amber-soft)] text-[var(--amber)]",
+  draft: "bg-[var(--amber-soft)] text-[var(--amber-ink)]",
   submitted: "bg-blue-50 text-blue-700",
-  approved: "bg-[var(--green-soft)] text-[var(--green)]",
+  approved: "bg-[var(--green-soft)] text-[var(--green-ink)]",
 };
 
 const LABELS: Record<string, string> = {

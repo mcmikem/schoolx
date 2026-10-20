@@ -283,7 +283,7 @@ export default function CommentsPage() {
                               </span>
                               <button
                                 onClick={() => regenerateComment(student.id)}
-                                className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
+                                className="p-1.5 text-gray-400 hover:text-blue-700 hover:bg-blue-50 rounded-lg"
                                 title="Regenerate"
                               >
                                 <MaterialIcon icon="refresh" style={{ fontSize: 16 }} />
@@ -339,7 +339,7 @@ export default function CommentsPage() {
                             </div>
                             <button
                               onClick={() => regenerateComment(studentId)}
-                              className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg shrink-0"
+                              className="p-2 text-gray-400 hover:text-blue-700 hover:bg-blue-50 rounded-lg shrink-0"
                               title="Regenerate"
                             >
                               <MaterialIcon icon="refresh" />

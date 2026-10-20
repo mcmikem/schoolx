@@ -372,7 +372,7 @@ export default function SuperAdminPage() {
             <button
               onClick={handleSignOut}
               title="Sign out"
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:bg-red-50 hover:border-red-200 text-[var(--t2)] hover:text-red-600 text-[12px] font-semibold transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:bg-red-50 hover:border-red-200 text-[var(--t2)] hover:text-red-700 text-[12px] font-semibold transition-colors"
             >
               <MaterialIcon icon="logout" style={{ fontSize: 16 }} />
               Sign Out
@@ -439,7 +439,7 @@ export default function SuperAdminPage() {
                       >
                         <div
                           className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                          style={{ background: `${a.color}18`, color: a.color }}
+                          style={{ background: `color-mix(in srgb, ${a.color} 9%, transparent)`, color: a.color }}
                         >
                           <MaterialIcon icon={a.icon} style={{ fontSize: 14 }} />
                         </div>
@@ -1100,7 +1100,7 @@ export default function SuperAdminPage() {
                               toast.error("Failed to reject request");
                             }
                           }}
-                          className="px-3 py-1.5 rounded-xl border border-red-200 text-red-600 text-xs font-bold hover:bg-red-50 transition-colors"
+                          className="px-3 py-1.5 rounded-xl border border-red-200 text-red-700 text-xs font-bold hover:bg-red-50 transition-colors"
                         >
                           Reject
                         </button>

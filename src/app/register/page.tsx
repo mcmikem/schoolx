@@ -393,7 +393,7 @@ function RegisterPageContent() {
           </div>
           <div className="mb-8">
             <div className="mb-4">
-              <div className="inline-flex items-center gap-2 rounded-full border border-[var(--navy)]/10 bg-[var(--navy-soft)] px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-[var(--navy)]">
+              <div className="inline-flex items-center gap-2 rounded-full border border-[var(--navy)]/10 bg-[var(--navy-soft)] px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-[var(--blue-ink)]">
                 <MaterialIcon icon="school" className="text-sm" />
                 Register your school
               </div>
@@ -836,7 +836,7 @@ function RegisterPageContent() {
               {step === 3 && (
                 <div className="space-y-5">
                   {googleRegisterMode && (
-                    <div className="rounded-xl border border-[var(--navy)]/15 bg-[var(--navy-soft)] p-3 text-sm text-[var(--navy)]">
+                    <div className="rounded-xl border border-[var(--navy)]/15 bg-[var(--navy-soft)] p-3 text-sm text-[var(--blue-ink)]">
                       Google account linked. Complete these details to create your school workspace.
                     </div>
                   )}

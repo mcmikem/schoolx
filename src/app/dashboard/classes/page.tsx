@@ -542,7 +542,7 @@ export default function ClassesPage() {
                               </button>
                               <button
                                 onClick={() => handleDeleteConfirm(cls)}
-                                className="p-1.5 rounded-lg hover:bg-red-50 transition-colors text-[var(--on-surface-variant)] hover:text-red-600"
+                                className="p-1.5 rounded-lg hover:bg-red-50 transition-colors text-[var(--on-surface-variant)] hover:text-red-700"
                                 title="Delete class"
                               >
                                 <MaterialIcon icon="delete" style={{ fontSize: 16 }} />

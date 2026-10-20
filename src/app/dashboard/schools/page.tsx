@@ -899,12 +899,12 @@ export default function SchoolsPage() {
                   <span
                     className={`px-2 py-0.5 rounded-full text-xs font-medium ml-2 shrink-0 ${
                       school.subscription_status === "active"
-                        ? "bg-[var(--green-soft)] text-[var(--green)]"
+                        ? "bg-[var(--green-soft)] text-[var(--green-ink)]"
                         : school.subscription_status === "trial"
-                          ? "bg-[var(--amber-soft)] text-[var(--amber)]"
+                          ? "bg-[var(--amber-soft)] text-[var(--amber-ink)]"
                           : school.subscription_status === "suspended"
                             ? "bg-gray-100 text-gray-600"
-                            : "bg-[var(--red-soft)] text-[var(--red)]"
+                            : "bg-[var(--red-soft)] text-[var(--red-ink)]"
                     }`}
                   >
                     {school.subscription_status}
@@ -1043,7 +1043,7 @@ export default function SchoolsPage() {
                   </Button>
                   <button
                     onClick={() => setShowSuspendModal(true)}
-                    className="text-sm px-4 py-2 rounded-xl border font-medium text-red-600 border-red-200 hover:bg-red-50"
+                    className="text-sm px-4 py-2 rounded-xl border font-medium text-red-700 border-red-200 hover:bg-red-50"
                   >
                     <MaterialIcon icon="block" />{" "}
                     {selectedSchool.subscription_status === "suspended" ? "Reactivate" : "Suspend"}
@@ -1128,7 +1128,7 @@ export default function SchoolsPage() {
                             </span>
                             <button
                               onClick={() => handleToggleUserStatus(u.id, u.is_active)}
-                              className={`px-2 py-0.5 rounded-full text-xs font-medium ${u.is_active ? "bg-red-50 text-red-600 hover:bg-red-100" : "bg-green-50 text-green-600 hover:bg-green-100"}`}
+                              className={`px-2 py-0.5 rounded-full text-xs font-medium ${u.is_active ? "bg-red-50 text-red-700 hover:bg-red-100" : "bg-green-50 text-green-700 hover:bg-green-100"}`}
                             >
                               {u.is_active ? "Active" : "Inactive"}
                             </button>

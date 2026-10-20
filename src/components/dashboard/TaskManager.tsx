@@ -32,11 +32,11 @@ export default function TaskManager({
       {tasks.map((task) => {
         const colors = {
           urgent: {
-            badge: "bg-[var(--red-soft)] text-[var(--red)]",
+            badge: "bg-[var(--red-soft)] text-[var(--red-ink)]",
             border: "border-l-[var(--red)]",
           },
           attention: {
-            badge: "bg-[var(--amber-soft)] text-[var(--amber)]",
+            badge: "bg-[var(--amber-soft)] text-[var(--amber-ink)]",
             border: "border-l-[var(--amber)]",
           },
           normal: {

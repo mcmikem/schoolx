@@ -1889,11 +1889,11 @@ export default function ReportCardsPage() {
                             <td className="col-span-2 md:px-4 md:py-4">
                               <span className="mb-1 block text-xs text-[var(--t3)] md:hidden">Fee balance</span>
                               {report.feeBalance > 0 ? (
-                                <span className="text-xs font-semibold text-red-600 bg-red-50 px-2 py-1 rounded-full">
+                                <span className="text-xs font-semibold text-red-700 bg-red-50 px-2 py-1 rounded-full">
                                   {report.feeBalance.toLocaleString()} UGX
                                 </span>
                               ) : (
-                                <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded-full">
+                                <span className="text-xs font-semibold text-green-700 bg-green-50 px-2 py-1 rounded-full">
                                   Clear
                                 </span>
                               )}

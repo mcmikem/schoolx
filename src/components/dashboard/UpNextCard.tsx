@@ -45,7 +45,7 @@ const UpNextCard = memo(function UpNextCard({ task }: { task: UpNextTask | null 
       ) : (
         <div className="flex items-center gap-3 py-1">
           <span
-            className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-[var(--green-soft)] text-[var(--green)]"
+            className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-[var(--green-soft)] text-[var(--green-ink)]"
             aria-hidden="true"
           >
             <MaterialIcon icon="check_circle" style={{ fontSize: 20 }} />

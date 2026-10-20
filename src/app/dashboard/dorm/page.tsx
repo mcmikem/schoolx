@@ -396,8 +396,8 @@ export default function DormitoryPage() {
                             <span
                               className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                                 incident.incident_type === "health"
-                                  ? "bg-[var(--red-soft)] text-[var(--red)]"
-                                  : "bg-[var(--amber-soft)] text-[var(--amber)]"
+                                  ? "bg-[var(--red-soft)] text-[var(--red-ink)]"
+                                  : "bg-[var(--amber-soft)] text-[var(--amber-ink)]"
                               }`}
                             >
                               {incident.incident_type}
@@ -439,8 +439,8 @@ export default function DormitoryPage() {
                           <span
                             className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                               incident.incident_type === "health"
-                                ? "bg-[var(--red-soft)] text-[var(--red)]"
-                                : "bg-[var(--amber-soft)] text-[var(--amber)]"
+                                ? "bg-[var(--red-soft)] text-[var(--red-ink)]"
+                                : "bg-[var(--amber-soft)] text-[var(--amber-ink)]"
                             }`}
                           >
                             {incident.incident_type}

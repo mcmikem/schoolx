@@ -1306,10 +1306,10 @@ export default function SettingsPage() {
                             <span
                               className={`text-xs font-bold uppercase tracking-wider px-2 py-1 rounded-full ${
                                 isEntitled
-                                  ? "bg-[var(--green-soft)] text-[var(--green)]"
+                                  ? "bg-[var(--green-soft)] text-[var(--green-ink)]"
                                   : isPending
                                     ? "bg-blue-100 text-blue-700"
-                                    : "bg-[var(--amber-soft)] text-[var(--amber)]"
+                                    : "bg-[var(--amber-soft)] text-[var(--amber-ink)]"
                               }`}
                             >
                               {isEntitled ? "Active" : isPending ? "Pending Approval" : "Locked"}
@@ -1375,7 +1375,7 @@ export default function SettingsPage() {
                       })()}
                     </p>
                   </div>
-                  <div className="px-4 py-2 bg-[var(--green-soft)] text-[var(--green)] rounded-full text-sm font-semibold">
+                  <div className="px-4 py-2 bg-[var(--green-soft)] text-[var(--green-ink)] rounded-full text-sm font-semibold">
                     {school?.subscription_plan
                       ? `${school.subscription_plan.toUpperCase()} PLAN`
                       : school?.is_tester

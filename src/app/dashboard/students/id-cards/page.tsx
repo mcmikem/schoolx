@@ -207,7 +207,7 @@ export default function IDCardGenerator() {
                       </div>
                       <button
                         onClick={() => removeStudent(s.id)}
-                        className="p-1.5 rounded-lg text-red-400 hover:bg-red-50 transition-all"
+                        className="p-1.5 rounded-lg text-red-700 hover:bg-red-50 transition-all"
                       >
                         <MaterialIcon icon="close" style={{ fontSize: 16 }} />
                       </button>

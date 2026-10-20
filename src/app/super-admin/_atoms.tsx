@@ -61,7 +61,10 @@ export function StatCard({
       <div className="stat-inner">
         <div className="stat-meta">
           <div className="stat-label">{label}</div>
-          <div className="stat-icon-box" style={{ background: `${color}18`, color }}>
+          {/* color-mix, not a hex alpha suffix: callers pass var(--navy) and
+              friends as well as hex, and "var(--navy)18" is silently invalid
+              CSS -- the icon box renders with no tint at all. */}
+          <div className="stat-icon-box" style={{ background: `color-mix(in srgb, ${color} 9%, transparent)`, color }}>
             <MaterialIcon icon={icon} style={{ fontSize: 20 }} />
           </div>
         </div>

@@ -31,7 +31,7 @@ export default function ContactActions({ phone, name }: ContactActionsProps) {
           target="_blank"
           rel="noopener noreferrer"
           aria-label={name ? `WhatsApp ${name}` : "WhatsApp this contact"}
-          className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] px-2 py-1 text-xs font-semibold text-[var(--green)] hover:bg-[var(--green-soft)]"
+          className="inline-flex items-center gap-1 rounded-lg border border-[var(--border)] px-2 py-1 text-xs font-semibold text-[var(--green-ink)] hover:bg-[var(--green-soft)]"
         >
           <MaterialIcon icon="chat" size={14} />
           WhatsApp

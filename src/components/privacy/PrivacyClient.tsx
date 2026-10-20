@@ -212,7 +212,7 @@ export default function PrivacyPage() {
           {!showDeleteConfirm ? (
             <button
               onClick={() => setShowDeleteConfirm(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-red-300 dark:border-red-800 text-red-600 dark:text-red-400 text-sm font-semibold hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-red-300 dark:border-red-800 text-red-700 dark:text-red-700 text-sm font-semibold hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
             >
               <MaterialIcon icon="warning" className="text-lg" />
               Request Deletion

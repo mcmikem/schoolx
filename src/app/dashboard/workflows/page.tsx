@@ -39,7 +39,7 @@ const TRIGGERS = [
     color: "text-emerald-500",
     bg: "bg-emerald-50",
   },
-  { id: "grade_published", label: "Exam Grades Published", icon: "school", color: "text-blue-500", bg: "bg-blue-50" },
+  { id: "grade_published", label: "Exam Grades Published", icon: "school", color: "text-blue-700", bg: "bg-blue-50" },
 ];
 
 const ACTIONS = [
@@ -235,7 +235,7 @@ export default function WorkflowsBuilder() {
               Create rules to eliminate manual work. Workflows run automatically on every matching event.
             </p>
             {isDemo && (
-              <p className="text-xs font-bold text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1 mt-2 inline-block">
+              <p className="text-xs font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-1 mt-2 inline-block">
                 Demo — workflows shown for preview. Sign in to a real account to save your own.
               </p>
             )}

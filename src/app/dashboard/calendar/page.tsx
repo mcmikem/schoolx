@@ -47,11 +47,11 @@ const fullWeekDays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "F
 const scheduleHours = Array.from({ length: 10 }, (_, i) => i + 8);
 
 const typeColors: Record<SchoolEvent["event_type"], { bg: string; text: string; border: string }> = {
-  exam: { bg: "bg-[var(--red-soft)]", text: "text-[var(--red)]", border: "border-[var(--red-soft)]" },
+  exam: { bg: "bg-[var(--red-soft)]", text: "text-[var(--red-ink)]", border: "border-[var(--red-soft)]" },
   meeting: { bg: "bg-[var(--primary-50)]", text: "text-[var(--primary-900)]", border: "border-[var(--primary-100)]" },
-  holiday: { bg: "bg-[var(--green-soft)]", text: "text-[var(--green)]", border: "border-[var(--green-soft)]" },
+  holiday: { bg: "bg-[var(--green-soft)]", text: "text-[var(--green-ink)]", border: "border-[var(--green-soft)]" },
   academic: { bg: "bg-purple-50", text: "text-purple-700", border: "border-purple-200" },
-  event: { bg: "bg-[var(--amber-soft)]", text: "text-[var(--amber)]", border: "border-[var(--amber-soft)]" },
+  event: { bg: "bg-[var(--amber-soft)]", text: "text-[var(--amber-ink)]", border: "border-[var(--amber-soft)]" },
 };
 
 const categoryByType: Record<SchoolEvent["event_type"], EventCategory> = {

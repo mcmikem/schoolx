@@ -312,7 +312,7 @@ export default function BudgetPage() {
                   UGX {surplus.toLocaleString()}
                 </div>
                 {surplus < 0 && (
-                  <span className="inline-block mt-1 px-2 py-0.5 text-xs rounded-full bg-[var(--red-soft)] text-[var(--red)]">
+                  <span className="inline-block mt-1 px-2 py-0.5 text-xs rounded-full bg-[var(--red-soft)] text-[var(--red-ink)]">
                     DEFICIT
                   </span>
                 )}

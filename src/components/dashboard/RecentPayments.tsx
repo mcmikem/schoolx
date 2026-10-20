@@ -31,7 +31,7 @@ export default function RecentPayments({
           </h2>
           <MaterialIcon icon={isOpen ? "expand_less" : "expand_more"} className="text-[var(--t3)] text-lg" />
         </div>
-        <span className="text-xs font-bold text-[var(--green)] bg-[var(--green-soft)] px-2 py-0.5 rounded-full">
+        <span className="text-xs font-bold text-[var(--green-ink)] bg-[var(--green-soft)] px-2 py-0.5 rounded-full">
           +UGX {formatCompactCurrency(thisMonthTotal)}
         </span>
       </button>
@@ -44,7 +44,7 @@ export default function RecentPayments({
             const method = p.payment_method || "Cash";
             const methodColor =
               method === "Cash"
-                ? "bg-[var(--green-soft)] text-[var(--green)]"
+                ? "bg-[var(--green-soft)] text-[var(--green-ink)]"
                 : method === "Mobile Money" || method === "mobile_money"
                   ? "bg-[var(--primary-50)] text-[var(--primary)]"
                   : "bg-[var(--primary-50)] text-[var(--navy)]";

@@ -212,7 +212,7 @@ export function UserActions({
           disabled={busy}
           title="Delete user"
           onClick={() => setConfirm({ open: true, type: "delete" })}
-          className="p-1 rounded-lg text-red-400 hover:bg-red-50 transition-colors disabled:opacity-40"
+          className="p-1 rounded-lg text-red-700 hover:bg-red-50 transition-colors disabled:opacity-40"
         >
           <MaterialIcon icon="delete" style={{ fontSize: 14 }} />
         </button>

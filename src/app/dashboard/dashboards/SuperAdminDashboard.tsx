@@ -396,7 +396,7 @@ function SuperAdminDashboardContent() {
           <div className="flex items-center gap-2 mb-3">
             <MaterialIcon icon="warning" style={{ fontSize: 16, color: "var(--amber)" }} />
             <span className="text-[13px] font-bold text-[var(--t1)]">Needs Attention</span>
-            <span className="ml-1 px-2 py-0.5 rounded-full bg-[var(--amber-soft)] text-[var(--amber)] text-xs font-bold">
+            <span className="ml-1 px-2 py-0.5 rounded-full bg-[var(--amber-soft)] text-[var(--amber-ink)] text-xs font-bold">
               {alerts.length}
             </span>
           </div>

@@ -198,7 +198,7 @@ export default function StudentWalletsPage() {
           </div>
 
           <div className="p-6 rounded-[32px] bg-white border border-slate-100 flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
               <MaterialIcon icon="receipt_long" style={{ fontSize: 28 }} />
             </div>
             <div>
@@ -208,7 +208,7 @@ export default function StudentWalletsPage() {
           </div>
 
           <div className="p-6 rounded-[32px] bg-white border border-slate-100 flex items-center gap-4">
-            <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center">
+            <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center">
               <MaterialIcon icon="credit_card_off" style={{ fontSize: 28 }} />
             </div>
             <div>

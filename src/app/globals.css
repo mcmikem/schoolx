@@ -145,15 +145,18 @@ button {
 
   /* Badge foregrounds.
      The hues above are tuned for headings and icons. On a tinted badge
-     background they fall below contrast in light mode — #f59e0b on
+     background they fall below contrast in light mode - #f59e0b on
      --amber-soft is 2.3:1. These are the darkened badge text colours, and they
-     flip with the theme so the same badge stays readable on dark too. */
+     flip with the theme so the same badge stays readable on dark too.
+     Ratios are measured, not assumed: every ink below clears WCAG AA (4.5:1)
+     against its own soft background, small text included. */
   --violet: #7c3aed;
   --violet-soft: #f3e8ff;
-  --blue-ink: #1d4ed8;
-  --amber-ink: #b45309;
-  --red-ink: #dc2626;
-  --green-ink: #059669;
+  --blue-ink: #1d4ed8;   /* 5.63:1 on --navy-soft */
+  --amber-ink: #8a4508;  /* 6.38:1 on --amber-soft; #b45309 measured 4.48, short */
+  --red-ink: #a51d1d;    /* 4.96:1 on --red-soft; #dc2626 measured 3.19 */
+  --green-ink: #065f46;  /* 6.86:1 on --green-soft; #059669 measured 3.36 */
+  --violet-ink: #5b21b6; /* 7.61:1 on --violet-soft */
   --slate-ink: #64748b;
 
   /* Material-3 role aliases.
@@ -520,6 +523,7 @@ button {
   --amber-ink: #ffb84d;
   --red-ink: #ff9494;
   --green-ink: #6ee7b7;
+  --violet-ink: #c4b5fd;
   --slate-ink: #9aa5b4;
 
   --primary: #8ab0f0;

@@ -267,7 +267,9 @@ function ChannelOption({
         <p className="font-bold text-[var(--t1)]">{title}</p>
         <span
           className={`text-xs font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
-            available ? "bg-[var(--green-soft)] text-[var(--green)]" : "bg-[var(--surface-container)] text-[var(--t4)]"
+            available
+              ? "bg-[var(--green-soft)] text-[var(--green-ink)]"
+              : "bg-[var(--surface-container)] text-[var(--t4)]"
           }`}
         >
           {available ? "Ready" : "Not set up"}

@@ -1347,7 +1347,7 @@ export default function AttendancePage() {
                               ? "bg-error/10 text-error border-2 border-error/30 hover:bg-error/20"
                               : s === "late"
                                 ? "bg-tertiary/10 text-tertiary border-2 border-tertiary/30 hover:bg-tertiary/20"
-                                : "bg-[var(--violet-soft)] text-[var(--violet)] border-2 border-[var(--violet)]/30 hover:opacity-90"
+                                : "bg-[var(--violet-soft)] text-[var(--violet-ink)] border-2 border-[var(--violet)]/30 hover:opacity-90"
                         }`}
                       >
                         Mark All {cfg.label}

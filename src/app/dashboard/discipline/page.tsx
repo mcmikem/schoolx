@@ -296,7 +296,7 @@ export default function DisciplinePage() {
                 <div>
                   <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Student</label>
                   {students.length === 0 ? (
-                    <div className="bg-[var(--amber-soft)] border border-[var(--amber)] rounded-xl px-3 py-2 text-sm text-[var(--amber)]">
+                    <div className="bg-[var(--amber-soft)] border border-[var(--amber)] rounded-xl px-3 py-2 text-sm text-[var(--amber-ink)]">
                       No students available
                     </div>
                   ) : (
@@ -451,11 +451,11 @@ export default function DisciplinePage() {
                 <div className="flex-1">
                   <div className="flex items-center gap-3 mb-3">
                     <span
-                      className={`px-3 py-1 rounded-lg text-xs font-medium ${record.resolved ? "bg-[var(--green-soft)] text-[var(--green)]" : "bg-[var(--amber-soft)] text-[var(--amber)]"}`}
+                      className={`px-3 py-1 rounded-lg text-xs font-medium ${record.resolved ? "bg-[var(--green-soft)] text-[var(--green-ink)]" : "bg-[var(--amber-soft)] text-[var(--amber-ink)]"}`}
                     >
                       {record.resolved ? "Resolved" : "Pending"}
                     </span>
-                    <span className="px-3 py-1 rounded-lg text-xs font-medium bg-[var(--navy-soft)] text-[var(--navy)]">
+                    <span className="px-3 py-1 rounded-lg text-xs font-medium bg-[var(--navy-soft)] text-[var(--blue-ink)]">
                       {record.incident_type}
                     </span>
                   </div>

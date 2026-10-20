@@ -107,7 +107,7 @@ export default function ResetPasswordPage() {
           </div>
 
           <div className="mb-8">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--navy)]/10 bg-[var(--navy-soft)] px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-[var(--navy)] mb-4">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[var(--navy)]/10 bg-[var(--navy-soft)] px-4 py-1.5 text-xs font-bold uppercase tracking-widest text-[var(--blue-ink)] mb-4">
               <MaterialIcon icon="lock_reset" className="text-sm" />
               Reset password
             </div>

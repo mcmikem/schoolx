@@ -524,7 +524,7 @@ export default function CanteenPOSPage() {
             </Link>
             <div className="text-right hidden md:flex items-center gap-4">
               {!isOnline && (
-                <div className="flex items-center gap-2 text-amber-500 bg-amber-50 px-3 py-1.5 rounded-full border border-amber-100 animate-pulse">
+                <div className="flex items-center gap-2 text-amber-700 bg-amber-50 px-3 py-1.5 rounded-full border border-amber-100 animate-pulse">
                   <MaterialIcon icon="wifi_off" style={{ fontSize: 16 }} />
                   <span className="text-xs font-bold uppercase tracking-wider">Offline Mode</span>
                 </div>
@@ -704,7 +704,7 @@ export default function CanteenPOSPage() {
                       <p className="text-xl font-black">UGX {student.balance.toLocaleString()}</p>
                     </div>
                     <div className="text-right">
-                      <p className="text-xs font-black bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full uppercase tracking-tighter">
+                      <p className="text-xs font-black bg-emerald-500/20 text-emerald-700 px-2 py-0.5 rounded-full uppercase tracking-tighter">
                         Verified
                       </p>
                     </div>
@@ -1025,7 +1025,7 @@ export default function CanteenPOSPage() {
               {confirmError && (
                 <p
                   role="alert"
-                  className="text-sm font-bold text-red-600 rounded-xl bg-red-50 border border-red-100 px-3 py-2"
+                  className="text-sm font-bold text-red-700 rounded-xl bg-red-50 border border-red-100 px-3 py-2"
                 >
                   {confirmError}
                 </p>

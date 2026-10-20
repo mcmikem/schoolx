@@ -270,7 +270,7 @@ export default function PayrollPage() {
                 <span className="font-semibold text-slate-700">UGX {totals.gross.toLocaleString()}</span> &bull; Net:{" "}
                 <span className="font-semibold text-slate-700">UGX {totals.net.toLocaleString()}</span>
               </p>
-              <p className="text-xs text-amber-600 bg-amber-50 rounded-xl p-3 mt-3">
+              <p className="text-xs text-amber-700 bg-amber-50 rounded-xl p-3 mt-3">
                 This will calculate PAYE tax and create payroll records for all staff. The records will appear in
                 Payroll History.
               </p>
@@ -490,12 +490,12 @@ export default function PayrollPage() {
                             </div>
                           </td>
                           <td className="px-6 py-4 text-center">
-                            <span className="text-xs font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
+                            <span className="text-xs font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
                               {pay.nssf.toLocaleString()}
                             </span>
                           </td>
                           <td className="px-6 py-4 text-center">
-                            <span className="text-xs font-bold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full">
+                            <span className="text-xs font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full">
                               {pay.paye.toLocaleString()}
                             </span>
                           </td>

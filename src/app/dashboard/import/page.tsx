@@ -343,7 +343,7 @@ export default function ImportPage() {
             {row.errors.map((err, errIdx) => (
               <span
                 key={errIdx}
-                className="rounded border border-[var(--red)]/20 bg-[var(--red-soft)] px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-[var(--red)]"
+                className="rounded border border-[var(--red)]/20 bg-[var(--red-soft)] px-2 py-0.5 text-xs font-bold uppercase tracking-wide text-[var(--red-ink)]"
               >
                 {err}
               </span>

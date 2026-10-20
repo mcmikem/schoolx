@@ -140,7 +140,7 @@ function DeanDashboardContent() {
             <div className="group rounded-2xl bg-white border border-[var(--surface-container-low)] p-4 transition-all hover:shadow-md hover:-translate-y-0.5">
               <div className="flex items-center gap-2">
                 <div
-                  className={`flex h-8 w-8 items-center justify-center rounded-lg ${stats?.presentToday > 0 && attendanceRate >= 80 ? "bg-[var(--green-soft)] text-[var(--green)]" : "bg-[var(--red-soft)] text-[var(--red)]"}`}
+                  className={`flex h-8 w-8 items-center justify-center rounded-lg ${stats?.presentToday > 0 && attendanceRate >= 80 ? "bg-[var(--green-soft)] text-[var(--green-ink)]" : "bg-[var(--red-soft)] text-[var(--red-ink)]"}`}
                 >
                   <MaterialIcon icon="how_to_reg" className="text-base" />
                 </div>
@@ -162,7 +162,7 @@ function DeanDashboardContent() {
 
             <div className="group rounded-2xl bg-white border border-[var(--surface-container-low)] p-4 transition-all hover:shadow-md hover:-translate-y-0.5">
               <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--amber-soft)] text-[var(--amber)]">
+                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--amber-soft)] text-[var(--amber-ink)]">
                   <MaterialIcon icon="school" className="text-base" />
                 </div>
                 <p className="text-xs font-bold uppercase tracking-[0.12em] text-[var(--t3)]">Subjects</p>

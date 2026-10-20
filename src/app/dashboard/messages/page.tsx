@@ -1309,7 +1309,7 @@ export default function CommunicationHubPage() {
                           </span>
                           {notice.priority !== "normal" && (
                             <span
-                              className={`px-3 py-1 rounded-lg text-xs font-medium ${notice.priority === "high" ? "bg-red-100 text-red-600" : "bg-amber-100 text-amber-600"}`}
+                              className={`px-3 py-1 rounded-lg text-xs font-medium ${notice.priority === "high" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}
                             >
                               {notice.priority} priority
                             </span>
@@ -1342,7 +1342,7 @@ export default function CommunicationHubPage() {
                             </button>
                             <button
                               onClick={() => deleteNotice(notice.id)}
-                              className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                              className="p-2 text-gray-400 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
                             >
                               <MaterialIcon className="text-lg">delete</MaterialIcon>
                             </button>

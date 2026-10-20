@@ -220,10 +220,10 @@ interface BadgeProps {
 
 export function Badge({ children, variant = "default" }: BadgeProps) {
   const variants = {
-    success: "bg-[var(--green-soft)] text-[var(--green)]",
-    warning: "bg-[var(--amber-soft)] text-[var(--amber)]",
-    error: "bg-[var(--red-soft)] text-[var(--red)]",
-    info: "bg-[var(--navy-soft)] text-[var(--navy)]",
+    success: "bg-[var(--green-soft)] text-[var(--green-ink)]",
+    warning: "bg-[var(--amber-soft)] text-[var(--amber-ink)]",
+    error: "bg-[var(--red-soft)] text-[var(--red-ink)]",
+    info: "bg-[var(--navy-soft)] text-[var(--blue-ink)]",
     default: "bg-[var(--surface-container)] text-[var(--on-surface-variant)]",
   };
 

@@ -82,99 +82,99 @@ export default function EarlyWarningsPage() {
     // telling them anything had gone wrong.
     try {
       const studentIds = students.map((s) => s.id);
-    const allWarnings: Warning[] = [];
+      const allWarnings: Warning[] = [];
 
-    // Batch fetch all grades for all students
-    const { data: allGrades } = await supabase
-      .from("grades")
-      .select("*, subjects(name)")
-      .in("student_id", studentIds)
-      .eq("term", currentTerm)
-      .eq("academic_year", academicYear);
+      // Batch fetch all grades for all students
+      const { data: allGrades } = await supabase
+        .from("grades")
+        .select("*, subjects(name)")
+        .in("student_id", studentIds)
+        .eq("term", currentTerm)
+        .eq("academic_year", academicYear);
 
-    // Batch fetch all attendance
-    const { data: allAttendance } = await supabase
-      .from("attendance")
-      .select("student_id, status")
-      .in("student_id", studentIds);
+      // Batch fetch all attendance
+      const { data: allAttendance } = await supabase
+        .from("attendance")
+        .select("student_id, status")
+        .in("student_id", studentIds);
 
-    // Batch fetch all payments
-    const { data: allPayments } = await supabase
-      .from("fee_payments")
-      .select("student_id, amount_paid")
-      .in("student_id", studentIds);
+      // Batch fetch all payments
+      const { data: allPayments } = await supabase
+        .from("fee_payments")
+        .select("student_id, amount_paid")
+        .in("student_id", studentIds);
 
-    // Process data in memory (fast)
-    for (const student of students) {
-      // Grades analysis
-      const studentGrades = allGrades?.filter((g) => g.student_id === student.id) || [];
-      if (studentGrades.length > 0) {
-        const subjectScores: Record<string, number[]> = {};
-        studentGrades.forEach((g) => {
-          const subject = g.subjects?.name || "Unknown";
-          if (!subjectScores[subject]) subjectScores[subject] = [];
-          subjectScores[subject].push(Number(g.score));
-        });
+      // Process data in memory (fast)
+      for (const student of students) {
+        // Grades analysis
+        const studentGrades = allGrades?.filter((g) => g.student_id === student.id) || [];
+        if (studentGrades.length > 0) {
+          const subjectScores: Record<string, number[]> = {};
+          studentGrades.forEach((g) => {
+            const subject = g.subjects?.name || "Unknown";
+            if (!subjectScores[subject]) subjectScores[subject] = [];
+            subjectScores[subject].push(Number(g.score));
+          });
 
-        let weakSubjects = 0;
-        Object.entries(subjectScores).forEach(([subject, scores]) => {
-          const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
-          if (avg < thresholds.grade) {
-            weakSubjects++;
+          let weakSubjects = 0;
+          Object.entries(subjectScores).forEach(([subject, scores]) => {
+            const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+            if (avg < thresholds.grade) {
+              weakSubjects++;
+            }
+          });
+
+          if (weakSubjects >= 2) {
+            allWarnings.push({
+              student_id: student.id,
+              student_name: `${student.first_name} ${student.last_name}`,
+              student_number: student.student_number || "",
+              class_name: student.classes?.name || "",
+              warning_type: "Academic Performance",
+              details: `Below 50% in ${weakSubjects} subjects`,
+              severity: weakSubjects >= 3 ? "high" : "medium",
+            });
           }
-        });
+        }
 
-        if (weakSubjects >= 2) {
-          allWarnings.push({
-            student_id: student.id,
-            student_name: `${student.first_name} ${student.last_name}`,
-            student_number: student.student_number || "",
-            class_name: student.classes?.name || "",
-            warning_type: "Academic Performance",
-            details: `Below 50% in ${weakSubjects} subjects`,
-            severity: weakSubjects >= 3 ? "high" : "medium",
-          });
+        // Attendance analysis
+        const studentAttendance = allAttendance?.filter((a) => a.student_id === student.id) || [];
+        if (studentAttendance.length > 0) {
+          const present = studentAttendance.filter((a) => a.status === "present").length;
+          const rate = (present / studentAttendance.length) * 100;
+
+          if (rate < thresholds.attendance) {
+            allWarnings.push({
+              student_id: student.id,
+              student_name: `${student.first_name} ${student.last_name}`,
+              student_number: student.student_number || "",
+              class_name: student.classes?.name || "",
+              warning_type: "Attendance",
+              details: `Attendance rate: ${Math.round(rate)}%`,
+              severity: rate < 60 ? "high" : "medium",
+            });
+          }
+        }
+
+        // Fee analysis
+        const studentPayments = allPayments?.filter((p) => p.student_id === student.id) || [];
+        if (studentPayments.length > 0) {
+          const totalPaid = studentPayments.reduce((sum, p) => sum + Number(p.amount_paid), 0);
+          if (totalPaid < thresholds.fee) {
+            allWarnings.push({
+              student_id: student.id,
+              student_name: `${student.first_name} ${student.last_name}`,
+              student_number: student.student_number || "",
+              class_name: student.classes?.name || "",
+              warning_type: "Fee Payment",
+              details: `Low fee payments: UGX ${totalPaid.toLocaleString()}`,
+              severity: totalPaid === 0 ? "high" : "medium",
+            });
+          }
         }
       }
 
-      // Attendance analysis
-      const studentAttendance = allAttendance?.filter((a) => a.student_id === student.id) || [];
-      if (studentAttendance.length > 0) {
-        const present = studentAttendance.filter((a) => a.status === "present").length;
-        const rate = (present / studentAttendance.length) * 100;
-
-        if (rate < thresholds.attendance) {
-          allWarnings.push({
-            student_id: student.id,
-            student_name: `${student.first_name} ${student.last_name}`,
-            student_number: student.student_number || "",
-            class_name: student.classes?.name || "",
-            warning_type: "Attendance",
-            details: `Attendance rate: ${Math.round(rate)}%`,
-            severity: rate < 60 ? "high" : "medium",
-          });
-        }
-      }
-
-      // Fee analysis
-      const studentPayments = allPayments?.filter((p) => p.student_id === student.id) || [];
-      if (studentPayments.length > 0) {
-        const totalPaid = studentPayments.reduce((sum, p) => sum + Number(p.amount_paid), 0);
-        if (totalPaid < thresholds.fee) {
-          allWarnings.push({
-            student_id: student.id,
-            student_name: `${student.first_name} ${student.last_name}`,
-            student_number: student.student_number || "",
-            class_name: student.classes?.name || "",
-            warning_type: "Fee Payment",
-            details: `Low fee payments: UGX ${totalPaid.toLocaleString()}`,
-            severity: totalPaid === 0 ? "high" : "medium",
-          });
-        }
-      }
-    }
-
-    setWarnings(allWarnings);
+      setWarnings(allWarnings);
     } catch (err) {
       logger.error("Failed to load early warnings:", err);
       setWarnings([]);
@@ -262,11 +262,11 @@ export default function EarlyWarningsPage() {
   const getSeverityBadge = (severity: string) => {
     switch (severity) {
       case "high":
-        return "bg-[var(--red-soft)] text-[var(--red)]";
+        return "bg-[var(--red-soft)] text-[var(--red-ink)]";
       case "medium":
-        return "bg-[var(--amber-soft)] text-[var(--amber)]";
+        return "bg-[var(--amber-soft)] text-[var(--amber-ink)]";
       default:
-        return "bg-[var(--navy-soft)] text-[var(--navy)]";
+        return "bg-[var(--navy-soft)] text-[var(--blue-ink)]";
     }
   };
 

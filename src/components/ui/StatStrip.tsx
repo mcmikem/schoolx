@@ -29,8 +29,8 @@ const columnClass: Record<2 | 3 | 4 | 5, string> = {
 
 const toneClass: Record<StatTone, string> = {
   default: "text-[var(--t1)]",
-  positive: "text-[var(--green)]",
-  warning: "text-[var(--amber)]",
+  positive: "text-[var(--green-ink)]",
+  warning: "text-[var(--amber-ink)]",
   negative: "text-[var(--error)]",
   info: "text-[var(--primary)]",
 };

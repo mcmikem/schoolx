@@ -296,7 +296,7 @@ export default function StudentEnrollmentsPage() {
                       </select>
                       <button
                         onClick={() => deleteEnrollment(enrollment.id)}
-                        className="p-1 text-red-600 hover:bg-red-50 rounded"
+                        className="p-1 text-red-700 hover:bg-red-50 rounded"
                       >
                         <MaterialIcon icon="delete" />
                       </button>

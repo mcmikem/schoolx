@@ -310,14 +310,14 @@ export default function FeeTermsPage() {
                 <div className="flex gap-2 pt-3 border-t border-gray-100">
                   <button
                     onClick={() => setShowInstallments(showInstallments === term.id ? null : term.id)}
-                    className="flex-1 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg"
+                    className="flex-1 py-2 text-sm text-blue-700 hover:bg-blue-50 rounded-lg"
                   >
                     {showInstallments === term.id ? "Hide" : "View"} Installments
                   </button>
                   <button onClick={() => openModal(term)} className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg">
                     <MaterialIcon icon="edit" />
                   </button>
-                  <button onClick={() => deleteTerm(term.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg">
+                  <button onClick={() => deleteTerm(term.id)} className="p-2 text-red-700 hover:bg-red-50 rounded-lg">
                     <MaterialIcon icon="delete" />
                   </button>
                 </div>
@@ -458,7 +458,7 @@ export default function FeeTermsPage() {
                       <button
                         type="button"
                         onClick={() => removeInstallment(i)}
-                        className="text-red-500 hover:bg-red-50 p-1 rounded"
+                        className="text-red-700 hover:bg-red-50 p-1 rounded"
                       >
                         <MaterialIcon icon="close" className="text-lg" />
                       </button>

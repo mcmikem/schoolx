@@ -350,7 +350,9 @@ function PupilCard({
         <span className="flex shrink-0 items-center gap-2">
           <span
             className={`rounded-full px-2 py-0.5 text-xs font-bold ${
-              isCleared ? "bg-[var(--green-soft)] text-[var(--green)]" : "bg-[var(--amber-soft)] text-[var(--amber)]"
+              isCleared
+                ? "bg-[var(--green-soft)] text-[var(--green-ink)]"
+                : "bg-[var(--amber-soft)] text-[var(--amber-ink)]"
             }`}
           >
             {done}/{total}
@@ -378,7 +380,7 @@ function PupilCard({
                   disabled={!item.is_mandatory && settled}
                   className={`min-h-[44px] shrink-0 rounded-xl px-4 text-[13px] font-semibold ${
                     settled
-                      ? "bg-[var(--green-soft)] text-[var(--green)]"
+                      ? "bg-[var(--green-soft)] text-[var(--green-ink)]"
                       : "border border-[var(--border)] text-[var(--t2)]"
                   } ${!item.is_mandatory && settled ? "opacity-60" : ""}`}
                 >

@@ -62,9 +62,9 @@ export function ConfirmDialog({
   if (!isOpen) return null;
 
   const variantStyles = {
-    danger: "text-[var(--red)] bg-[var(--red-soft)]",
-    warning: "text-[var(--amber)] bg-[var(--amber-soft)]",
-    info: "text-[var(--navy)] bg-[var(--navy-soft)]",
+    danger: "text-[var(--red-ink)] bg-[var(--red-soft)]",
+    warning: "text-[var(--amber-ink)] bg-[var(--amber-soft)]",
+    info: "text-[var(--blue-ink)] bg-[var(--navy-soft)]",
   };
 
   const iconMap = {

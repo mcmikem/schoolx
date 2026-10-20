@@ -116,7 +116,7 @@ export default function MessageAutomation({
               onClick={onOpenCreateRule}
               className="border-2 border-dashed border-[var(--border)] hover:border-blue-300 hover:bg-blue-50/50 rounded-2xl p-8 flex flex-col items-center justify-center gap-4 transition-all group"
             >
-              <div className="w-12 h-12 rounded-full bg-[var(--surface-container)] flex items-center justify-center text-[var(--t3)] group-hover:text-blue-500 group-hover:bg-blue-100 transition-all">
+              <div className="w-12 h-12 rounded-full bg-[var(--surface-container)] flex items-center justify-center text-[var(--t3)] group-hover:text-blue-700 group-hover:bg-blue-100 transition-all">
                 <MaterialIcon>add</MaterialIcon>
               </div>
               <p className="text-sm font-medium text-[var(--t3)] group-hover:text-[var(--t2)]">New Automation Rule</p>

@@ -681,7 +681,7 @@ export default function StudentHubPage() {
                           <MaterialIcon size={16}>confirmation_number</MaterialIcon>
                           Generate PLE Numbers
                           {plePendingCount > 0 && (
-                            <span className="ml-auto rounded-full bg-[var(--amber-soft)] px-2 py-0.5 text-xs font-bold text-[var(--amber)]">
+                            <span className="ml-auto rounded-full bg-[var(--amber-soft)] px-2 py-0.5 text-xs font-bold text-[var(--amber-ink)]">
                               {plePendingCount}
                             </span>
                           )}
@@ -705,15 +705,17 @@ export default function StudentHubPage() {
           }
         >
           <div className="flex flex-wrap items-center gap-2">
-            <span className="dashboard-pill bg-[var(--navy-soft)] text-[var(--navy)]">{academicYear}</span>
-            <span className="dashboard-pill bg-[var(--amber-soft)] text-[var(--amber)]">Term {currentTerm || "–"}</span>
+            <span className="dashboard-pill bg-[var(--navy-soft)] text-[var(--blue-ink)]">{academicYear}</span>
+            <span className="dashboard-pill bg-[var(--amber-soft)] text-[var(--amber-ink)]">
+              Term {currentTerm || "–"}
+            </span>
             {dropouts.atRiskCount > 0 && (
-              <span className="dashboard-pill bg-[var(--red-soft)] text-[var(--red)]">
+              <span className="dashboard-pill bg-[var(--red-soft)] text-[var(--red-ink)]">
                 {dropouts.atRiskCount} at risk
               </span>
             )}
             {isConstrainedNetwork && (
-              <span className="dashboard-pill bg-[var(--amber-soft)] text-[var(--amber)]">Data saver mode</span>
+              <span className="dashboard-pill bg-[var(--amber-soft)] text-[var(--amber-ink)]">Data saver mode</span>
             )}
             <div className="ml-auto flex flex-wrap items-center gap-2">
               <Link

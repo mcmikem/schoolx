@@ -1476,7 +1476,7 @@ function DirectoryTab({
                       </button>
                       <div className="my-1 border-t border-[var(--border)]" />
                       <button
-                        className="flex w-full items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
+                        className="flex w-full items-center gap-2 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
                         onClick={() => {
                           closeMenu();
                           handleDeleteStaff(member.id);
@@ -2305,7 +2305,7 @@ function ReviewsTab({
                 </div>
 
                 <div className="mt-6 pt-4 border-t border-[var(--border)] flex items-center justify-between">
-                  <span className="text-xs px-2 py-1 rounded-full bg-[var(--green-soft)] text-[var(--green)] font-medium capitalize">
+                  <span className="text-xs px-2 py-1 rounded-full bg-[var(--green-soft)] text-[var(--green-ink)] font-medium capitalize">
                     {review.status}
                   </span>
                 </div>
@@ -2548,22 +2548,22 @@ function LeaveTab({
     const styles: Record<string, { bg: string; text: string; label: string }> = {
       pending: {
         bg: "bg-[var(--amber-soft)]",
-        text: "text-[var(--amber)]",
+        text: "text-[var(--amber-ink)]",
         label: "Pending",
       },
       dos_approved: {
         bg: "bg-[var(--navy-soft)]",
-        text: "text-[var(--navy)]",
+        text: "text-[var(--blue-ink)]",
         label: "DOS Approved",
       },
       approved: {
         bg: "bg-[var(--green-soft)]",
-        text: "text-[var(--green)]",
+        text: "text-[var(--green-ink)]",
         label: "HM Approved",
       },
       rejected: {
         bg: "bg-[var(--red-soft)]",
-        text: "text-[var(--red)]",
+        text: "text-[var(--red-ink)]",
         label: "Rejected",
       },
     };
@@ -2773,7 +2773,7 @@ function LeaveTab({
                       variant="ghost"
                       onClick={() => handleApproval(req.id, "rejected")}
                       disabled={processing === req.id}
-                      className="text-[var(--red)] border-[var(--red)]/30 hover:bg-[var(--red-soft)]"
+                      className="text-[var(--red-ink)] border-[var(--red)]/30 hover:bg-[var(--red-soft)]"
                     >
                       <MaterialIcon icon="close" className="text-sm" />
                       Reject

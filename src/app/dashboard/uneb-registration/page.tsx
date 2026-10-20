@@ -39,9 +39,7 @@ export default function UNEBRegistrationPage() {
   const [loading, setLoading] = useState(true);
   const [showRegister, setShowRegister] = useState(false);
   const [showExport, setShowExport] = useState(false);
-  const [selectedExam, setSelectedExam] = useState<"PLE" | "UCE" | "UACE">(
-    "UCE",
-  );
+  const [selectedExam, setSelectedExam] = useState<"PLE" | "UCE" | "UACE">("UCE");
   const [selectedClass, setSelectedClass] = useState("");
   const [students, setStudents] = useState<any[]>([]);
   const [registering, setRegistering] = useState(false);
@@ -98,18 +96,12 @@ export default function UNEBRegistrationPage() {
         academic_year: new Date().getFullYear().toString(),
       }));
 
-      const { withTimeout, timeoutFallback } = await import('@/lib/hooks/utils');
-      const unebResult = await withTimeout(
-        supabase.from("uneb_candidates").insert(records),
-        15000,
-        timeoutFallback()
-      );
+      const { withTimeout, timeoutFallback } = await import("@/lib/hooks/utils");
+      const unebResult = await withTimeout(supabase.from("uneb_candidates").insert(records), 15000, timeoutFallback());
       const error = unebResult?.error;
       if (error) throw error;
 
-      toast.success(
-        `${students.length} candidates registered for ${selectedExam}`,
-      );
+      toast.success(`${students.length} candidates registered for ${selectedExam}`);
       setShowRegister(false);
       fetchCandidates();
     } catch (err: any) {
@@ -119,18 +111,12 @@ export default function UNEBRegistrationPage() {
     }
   };
 
-  const updateStatus = async (
-    id: string,
-    status: "registered" | "confirmed",
-  ) => {
-    const { withTimeout, timeoutFallback } = await import('@/lib/hooks/utils');
+  const updateStatus = async (id: string, status: "registered" | "confirmed") => {
+    const { withTimeout, timeoutFallback } = await import("@/lib/hooks/utils");
     const updateResult = await withTimeout(
-      supabase
-        .from("uneb_candidates")
-        .update({ registration_status: status })
-        .eq("id", id),
+      supabase.from("uneb_candidates").update({ registration_status: status }).eq("id", id),
       15000,
-      timeoutFallback()
+      timeoutFallback(),
     );
     const error = updateResult?.error;
     if (!error) {
@@ -144,15 +130,9 @@ export default function UNEBRegistrationPage() {
     return c.registration_status === activeTab;
   });
 
-  const pendingCount = candidates.filter(
-    (c) => c.registration_status === "pending",
-  ).length;
-  const registeredCount = candidates.filter(
-    (c) => c.registration_status === "registered",
-  ).length;
-  const confirmedCount = candidates.filter(
-    (c) => c.registration_status === "confirmed",
-  ).length;
+  const pendingCount = candidates.filter((c) => c.registration_status === "pending").length;
+  const registeredCount = candidates.filter((c) => c.registration_status === "registered").length;
+  const confirmedCount = candidates.filter((c) => c.registration_status === "confirmed").length;
 
   const tabs = [
     { id: "all", label: "All", count: candidates.length },
@@ -162,26 +142,14 @@ export default function UNEBRegistrationPage() {
   ];
 
   const exportUNEBFormat = async () => {
-    const all_candidates = candidates.filter(
-      (c) => c.registration_status !== "pending",
-    );
+    const all_candidates = candidates.filter((c) => c.registration_status !== "pending");
     if (all_candidates.length === 0) {
       toast.error("No registered candidates to export");
       return;
     }
 
     // Create CSV in UNEB format
-    const headers = [
-      "S/N",
-      "Index No.",
-      "Name",
-      "Sex",
-      "Date of Birth",
-      "School",
-      "Centre No.",
-      "Fee Paid",
-      "Amount",
-    ];
+    const headers = ["S/N", "Index No.", "Name", "Sex", "Date of Birth", "School", "Centre No.", "Fee Paid", "Amount"];
     const rows = all_candidates.map((c, i) => [
       i + 1,
       c.index_number || "PENDING",
@@ -206,246 +174,184 @@ export default function UNEBRegistrationPage() {
 
   return (
     <PageErrorBoundary>
-    <div className="p-4 sm:p-6 lg:p-8 space-y-6">
-      <PageHeader
-        title="UNEB Registration"
-        subtitle="Register candidates for PLE, UCE & UACE exams"
-        actions={
-          <div className="flex gap-2">
-            <Button
-              variant="secondary"
-              onClick={exportUNEBFormat}
-              icon={<MaterialIcon icon="download" />}
-            >
-              Export CSV
-            </Button>
-            <Button
-              onClick={() => setShowRegister(true)}
-              icon={<MaterialIcon icon="add" />}
-            >
-              Register Candidates
-            </Button>
-          </div>
-        }
-      />
-
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="p-4 text-center">
-          <div className="text-3xl font-bold text-amber-600">
-            {pendingCount}
-          </div>
-          <div className="text-sm text-[var(--t3)]">Pending</div>
-        </Card>
-        <Card className="p-4 text-center">
-          <div className="text-3xl font-bold text-blue-600">
-            {registeredCount}
-          </div>
-          <div className="text-sm text-[var(--t3)]">Registered</div>
-        </Card>
-        <Card className="p-4 text-center">
-          <div className="text-3xl font-bold text-green-600">
-            {confirmedCount}
-          </div>
-          <div className="text-sm text-[var(--t3)]">Confirmed</div>
-        </Card>
-      </div>
-
-      <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
-
-      <Card>
-        <CardHeader>
-          <CardTitle>All Candidates</CardTitle>
-        </CardHeader>
-        <CardBody className="p-0">
-          {loading ? (
-            <TableSkeleton rows={5} />
-          ) : filteredCandidates.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-[var(--surface-container-low)]">
-                  <tr>
-                    <th className="text-left p-3 text-sm font-semibold text-[var(--t1)]">
-                      Student
-                    </th>
-                    <th className="text-left p-3 text-sm font-semibold text-[var(--t1)]">
-                      Class
-                    </th>
-                    <th className="text-left p-3 text-sm font-semibold text-[var(--t1)]">
-                      Exam
-                    </th>
-                    <th className="text-left p-3 text-sm font-semibold text-[var(--t1)]">
-                      Index #
-                    </th>
-                    <th className="text-left p-3 text-sm font-semibold text-[var(--t1)]">
-                      Status
-                    </th>
-                    <th className="text-left p-3 text-sm font-semibold text-[var(--t1)]">
-                      Fees
-                    </th>
-                    <th className="text-left p-3 text-sm font-semibold text-[var(--t1)]">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredCandidates.map((candidate) => (
-                    <tr
-                      key={candidate.id}
-                      className="border-t border-[var(--border)]"
-                    >
-                      <td className="p-3">
-                        {candidate.students?.first_name}{" "}
-                        {candidate.students?.last_name}
-                      </td>
-                      <td className="p-3">
-                        {candidate.students?.classes?.name}
-                      </td>
-                      <td className="p-3">
-                        <span className="px-2 py-1 rounded-lg text-xs font-medium bg-[var(--navy-soft)] text-[var(--navy)]">
-                          {candidate.exam_type}
-                        </span>
-                      </td>
-                      <td className="p-3">{candidate.index_number || "-"}</td>
-                      <td className="p-3">
-                        <span
-                          className={`px-2 py-1 rounded-lg text-xs font-medium ${
-                            candidate.registration_status === "confirmed"
-                              ? "bg-[var(--green-soft)] text-[var(--green)]"
-                              : candidate.registration_status === "registered"
-                                ? "bg-[var(--navy-soft)] text-[var(--navy)]"
-                                : "bg-[var(--amber-soft)] text-[var(--amber)]"
-                          }`}
-                        >
-                          {candidate.registration_status}
-                        </span>
-                      </td>
-                      <td className="p-3">
-                        {candidate.fees_paid ? (
-                          <span className="text-green-600">✓ Paid</span>
-                        ) : (
-                          <span className="text-red-600">✗ Unpaid</span>
-                        )}
-                      </td>
-                      <td className="p-3">
-                        <div className="flex gap-2">
-                          {candidate.registration_status === "pending" && (
-                            <Button
-                              size="sm"
-                              onClick={() =>
-                                updateStatus(candidate.id, "registered")
-                              }
-                            >
-                              Register
-                            </Button>
-                          )}
-                          {candidate.registration_status === "registered" && (
-                            <Button
-                              size="sm"
-                              onClick={() =>
-                                updateStatus(candidate.id, "confirmed")
-                              }
-                            >
-                              Confirm
-                            </Button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <EmptyState
-              icon="group"
-              title="No candidates registered"
-              description="Register students for UNEB exams."
-            />
-          )}
-        </CardBody>
-      </Card>
-
-      {showRegister && (
-        <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
-          <Card className="w-full max-w-md p-6 max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
-            <h2 className="text-xl font-bold mb-4 text-[var(--t1)]">
-              Register Candidates
-            </h2>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1 text-[var(--t1)]">
-                  Exam Type
-                </label>
-                <select
-                  value={selectedExam}
-                  onChange={(e) =>
-                    setSelectedExam(e.target.value as "PLE" | "UCE" | "UACE")
-                  }
-                  className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--t1)]"
-                >
-                  <option value="PLE">PLE (Primary Leaving Exam)</option>
-                  <option value="UCE">
-                    UCE (Uganda Certificate of Education)
-                  </option>
-                  <option value="UACE">
-                    UACE (Uganda Advanced Certificate of Education)
-                  </option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium mb-1 text-[var(--t1)]">
-                  Select Class
-                </label>
-                <select
-                  value={selectedClass}
-                  onChange={(e) => {
-                    setSelectedClass(e.target.value);
-                    fetchClassStudents();
-                  }}
-                  className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--t1)]"
-                >
-                  <option value="">Select class...</option>
-                  <option value="p7">Primary 7</option>
-                  <option value="s4">Senior 4</option>
-                  <option value="s6">Senior 6</option>
-                </select>
-              </div>
-
-              {students.length > 0 && (
-                <div>
-                  <p className="text-sm text-[var(--t3)] mb-2">
-                    {students.length} students will be registered for{" "}
-                    {selectedExam}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <div className="flex gap-3 mt-6">
-              <Button
-                variant="secondary"
-                className="flex-1"
-                onClick={() => setShowRegister(false)}
-              >
-                Cancel
+      <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+        <PageHeader
+          title="UNEB Registration"
+          subtitle="Register candidates for PLE, UCE & UACE exams"
+          actions={
+            <div className="flex gap-2">
+              <Button variant="secondary" onClick={exportUNEBFormat} icon={<MaterialIcon icon="download" />}>
+                Export CSV
               </Button>
-              <Button
-                className="flex-1"
-                onClick={registerCandidates}
-                disabled={registering || !students.length}
-                loading={registering}
-              >
-                {students.length > 0
-                  ? `Register ${students.length} Students`
-                  : "Select a class"}
+              <Button onClick={() => setShowRegister(true)} icon={<MaterialIcon icon="add" />}>
+                Register Candidates
               </Button>
             </div>
+          }
+        />
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <Card className="p-4 text-center">
+            <div className="text-3xl font-bold text-amber-600">{pendingCount}</div>
+            <div className="text-sm text-[var(--t3)]">Pending</div>
+          </Card>
+          <Card className="p-4 text-center">
+            <div className="text-3xl font-bold text-blue-600">{registeredCount}</div>
+            <div className="text-sm text-[var(--t3)]">Registered</div>
+          </Card>
+          <Card className="p-4 text-center">
+            <div className="text-3xl font-bold text-green-600">{confirmedCount}</div>
+            <div className="text-sm text-[var(--t3)]">Confirmed</div>
           </Card>
         </div>
-      )}
-    </div>
+
+        <Tabs tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
+
+        <Card>
+          <CardHeader>
+            <CardTitle>All Candidates</CardTitle>
+          </CardHeader>
+          <CardBody className="p-0">
+            {loading ? (
+              <TableSkeleton rows={5} />
+            ) : filteredCandidates.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-[var(--surface-container-low)]">
+                    <tr>
+                      <th className="text-left p-3 text-sm font-semibold text-[var(--t1)]">Student</th>
+                      <th className="text-left p-3 text-sm font-semibold text-[var(--t1)]">Class</th>
+                      <th className="text-left p-3 text-sm font-semibold text-[var(--t1)]">Exam</th>
+                      <th className="text-left p-3 text-sm font-semibold text-[var(--t1)]">Index #</th>
+                      <th className="text-left p-3 text-sm font-semibold text-[var(--t1)]">Status</th>
+                      <th className="text-left p-3 text-sm font-semibold text-[var(--t1)]">Fees</th>
+                      <th className="text-left p-3 text-sm font-semibold text-[var(--t1)]">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredCandidates.map((candidate) => (
+                      <tr key={candidate.id} className="border-t border-[var(--border)]">
+                        <td className="p-3">
+                          {candidate.students?.first_name} {candidate.students?.last_name}
+                        </td>
+                        <td className="p-3">{candidate.students?.classes?.name}</td>
+                        <td className="p-3">
+                          <span className="px-2 py-1 rounded-lg text-xs font-medium bg-[var(--navy-soft)] text-[var(--blue-ink)]">
+                            {candidate.exam_type}
+                          </span>
+                        </td>
+                        <td className="p-3">{candidate.index_number || "-"}</td>
+                        <td className="p-3">
+                          <span
+                            className={`px-2 py-1 rounded-lg text-xs font-medium ${
+                              candidate.registration_status === "confirmed"
+                                ? "bg-[var(--green-soft)] text-[var(--green-ink)]"
+                                : candidate.registration_status === "registered"
+                                  ? "bg-[var(--navy-soft)] text-[var(--blue-ink)]"
+                                  : "bg-[var(--amber-soft)] text-[var(--amber-ink)]"
+                            }`}
+                          >
+                            {candidate.registration_status}
+                          </span>
+                        </td>
+                        <td className="p-3">
+                          {candidate.fees_paid ? (
+                            <span className="text-green-600">✓ Paid</span>
+                          ) : (
+                            <span className="text-red-600">✗ Unpaid</span>
+                          )}
+                        </td>
+                        <td className="p-3">
+                          <div className="flex gap-2">
+                            {candidate.registration_status === "pending" && (
+                              <Button size="sm" onClick={() => updateStatus(candidate.id, "registered")}>
+                                Register
+                              </Button>
+                            )}
+                            {candidate.registration_status === "registered" && (
+                              <Button size="sm" onClick={() => updateStatus(candidate.id, "confirmed")}>
+                                Confirm
+                              </Button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <EmptyState
+                icon="group"
+                title="No candidates registered"
+                description="Register students for UNEB exams."
+              />
+            )}
+          </CardBody>
+        </Card>
+
+        {showRegister && (
+          <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 p-3 sm:p-4 overflow-y-auto">
+            <Card className="w-full max-w-md p-6 max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
+              <h2 className="text-xl font-bold mb-4 text-[var(--t1)]">Register Candidates</h2>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-[var(--t1)]">Exam Type</label>
+                  <select
+                    value={selectedExam}
+                    onChange={(e) => setSelectedExam(e.target.value as "PLE" | "UCE" | "UACE")}
+                    className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--t1)]"
+                  >
+                    <option value="PLE">PLE (Primary Leaving Exam)</option>
+                    <option value="UCE">UCE (Uganda Certificate of Education)</option>
+                    <option value="UACE">UACE (Uganda Advanced Certificate of Education)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1 text-[var(--t1)]">Select Class</label>
+                  <select
+                    value={selectedClass}
+                    onChange={(e) => {
+                      setSelectedClass(e.target.value);
+                      fetchClassStudents();
+                    }}
+                    className="w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--t1)]"
+                  >
+                    <option value="">Select class...</option>
+                    <option value="p7">Primary 7</option>
+                    <option value="s4">Senior 4</option>
+                    <option value="s6">Senior 6</option>
+                  </select>
+                </div>
+
+                {students.length > 0 && (
+                  <div>
+                    <p className="text-sm text-[var(--t3)] mb-2">
+                      {students.length} students will be registered for {selectedExam}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-3 mt-6">
+                <Button variant="secondary" className="flex-1" onClick={() => setShowRegister(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  className="flex-1"
+                  onClick={registerCandidates}
+                  disabled={registering || !students.length}
+                  loading={registering}
+                >
+                  {students.length > 0 ? `Register ${students.length} Students` : "Select a class"}
+                </Button>
+              </div>
+            </Card>
+          </div>
+        )}
+      </div>
     </PageErrorBoundary>
   );
 }

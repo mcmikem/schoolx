@@ -128,7 +128,7 @@ export default function StudentPromotionPanel({
                 <h4 className="text-sm font-semibold text-green-700 mb-2">Promoted Students</h4>
                 <div className="max-h-40 overflow-y-auto space-y-1">
                   {autoPromoteResult.results.promoted.map((result: any, index: number) => (
-                    <div key={index} className="text-sm text-green-600 bg-green-50 px-3 py-1.5 rounded-lg">
+                    <div key={index} className="text-sm text-green-700 bg-green-50 px-3 py-1.5 rounded-lg">
                       {result.name}: {result.fromClass} &rarr; {result.toClass}
                     </div>
                   ))}
@@ -140,7 +140,7 @@ export default function StudentPromotionPanel({
                 <h4 className="text-sm font-semibold text-yellow-700 mb-2">Retained Students</h4>
                 <div className="max-h-40 overflow-y-auto space-y-1">
                   {autoPromoteResult.results.retained.map((result: any, index: number) => (
-                    <div key={index} className="text-sm text-yellow-600 bg-yellow-50 px-3 py-1.5 rounded-lg">
+                    <div key={index} className="text-sm text-yellow-700 bg-yellow-50 px-3 py-1.5 rounded-lg">
                       {result.name}: {result.reason}
                     </div>
                   ))}

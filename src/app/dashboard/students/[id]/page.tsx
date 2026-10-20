@@ -297,8 +297,8 @@ function FeeProgressBar({ paid, total }: { paid: number; total: number }) {
         <span
           className={`text-xs font-bold px-2 py-0.5 rounded-full ${
             isPaid
-              ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400"
-              : "bg-red-50 text-red-600 dark:bg-red-900/30 dark:text-red-400"
+              ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-700"
+              : "bg-red-50 text-red-700 dark:bg-red-900/30 dark:text-red-700"
           }`}
         >
           {pct.toFixed(0)}%

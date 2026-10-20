@@ -252,7 +252,7 @@ export default function NoticesPage() {
                       {notice.type || notice.category || "General"}
                     </span>
                     {notice.priority === "high" && (
-                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-600">
+                      <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-red-50 text-red-700">
                         Urgent
                       </span>
                     )}

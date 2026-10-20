@@ -1332,11 +1332,11 @@ export default function GradesPage() {
   const prevWorkflowActions = getPrevGradeWorkflowStatusActions(submissionStatus, user?.role);
   const statusTone =
     submissionStatus === "published"
-      ? "bg-[var(--green-soft)] text-[var(--green)]"
+      ? "bg-[var(--green-soft)] text-[var(--green-ink)]"
       : submissionStatus === "approved"
-        ? "bg-[var(--navy-soft)] text-[var(--navy)]"
+        ? "bg-[var(--navy-soft)] text-[var(--blue-ink)]"
         : submissionStatus === "submitted"
-          ? "bg-[var(--amber-soft)] text-[var(--amber)]"
+          ? "bg-[var(--amber-soft)] text-[var(--amber-ink)]"
           : "bg-[var(--surface-container)] text-[var(--t2)]";
 
   const [confirmLockCA, setConfirmLockCA] = useState(false);
@@ -1751,7 +1751,7 @@ export default function GradesPage() {
             )}
 
             {caLocked && (
-              <div className="flex items-center gap-2 px-4 py-2 bg-[var(--red-soft)] border border-[var(--red)]/20 rounded-xl text-sm font-medium text-[var(--red)]">
+              <div className="flex items-center gap-2 px-4 py-2 bg-[var(--red-soft)] border border-[var(--red)]/20 rounded-xl text-sm font-medium text-[var(--red-ink)]">
                 <MaterialIcon icon="lock" className="text-lg" />
                 CA marks are locked for this subject/class. Contact DOS to unlock.
               </div>
@@ -1853,10 +1853,10 @@ export default function GradesPage() {
                       ? f === "all"
                         ? "bg-primary text-on-primary"
                         : f === "draft"
-                          ? "bg-[var(--amber-soft)] text-[var(--amber)] border border-[var(--amber)]/30"
+                          ? "bg-[var(--amber-soft)] text-[var(--amber-ink)] border border-[var(--amber)]/30"
                           : f === "submitted"
                             ? "bg-blue-50 text-blue-700 border border-blue-200"
-                            : "bg-[var(--green-soft)] text-[var(--green)] border border-[var(--green)]/30"
+                            : "bg-[var(--green-soft)] text-[var(--green-ink)] border border-[var(--green)]/30"
                       : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high"
                   }`}
                 >
@@ -2619,7 +2619,7 @@ export default function GradesPage() {
                             idx === mobileStudentIndex
                               ? "bg-primary text-on-primary"
                               : graded
-                                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-700"
                                 : "bg-surface-container text-on-surface-variant"
                           }`}
                         >

@@ -25,9 +25,9 @@ interface MobileMoneyImportModalProps {
 }
 
 const STATUS_STYLES: Record<string, string> = {
-  matched: "bg-[var(--green-soft)] text-[var(--green)]",
-  unmatched: "bg-[var(--amber-soft)] text-[var(--amber)]",
-  invalid: "bg-[var(--red-soft)] text-[var(--red)]",
+  matched: "bg-[var(--green-soft)] text-[var(--green-ink)]",
+  unmatched: "bg-[var(--amber-soft)] text-[var(--amber-ink)]",
+  invalid: "bg-[var(--red-soft)] text-[var(--red-ink)]",
 };
 
 export default function MobileMoneyImportModal({
@@ -194,7 +194,7 @@ export default function MobileMoneyImportModal({
       {step === "preview" && (
         <div className="space-y-4">
           <div className="flex flex-wrap items-center gap-2 text-sm">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--green-soft)] px-3 py-1 font-medium text-[var(--green)]">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--green-soft)] px-3 py-1 font-medium text-[var(--green-ink)]">
               <MaterialIcon icon="check_circle" />
               {matched} matched
             </span>

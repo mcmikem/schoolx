@@ -105,7 +105,7 @@ export default function WorkloadPage() {
   const getRatingStyle = (rating: TeacherWorkload["rating"]) => {
     switch (rating) {
       case "Light":
-        return { bg: "bg-[var(--green-soft)]", text: "text-[var(--green)]", bar: "bg-green-500" };
+        return { bg: "bg-[var(--green-soft)]", text: "text-[var(--green-ink)]", bar: "bg-green-500" };
       case "Normal":
         return { bg: "bg-[#fff8e1]", text: "text-[#b8860b]", bar: "bg-yellow-500" };
       case "Heavy":

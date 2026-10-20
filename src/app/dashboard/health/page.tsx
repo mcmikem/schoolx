@@ -361,7 +361,7 @@ export default function HealthPage() {
                               <button
                                 onClick={() => openEdit(r)}
                                 title="Edit record"
-                                className="p-1.5 hover:bg-blue-50 rounded-xl text-slate-300 hover:text-blue-500 transition-colors"
+                                className="p-1.5 hover:bg-blue-50 rounded-xl text-slate-300 hover:text-blue-700 transition-colors"
                               >
                                 <MaterialIcon icon="edit" style={{ fontSize: 16 }} />
                               </button>
@@ -369,7 +369,7 @@ export default function HealthPage() {
                                 onClick={() => deleteRecord(r.id)}
                                 disabled={deletingHealthId === r.id}
                                 title="Delete record"
-                                className="p-1.5 hover:bg-red-50 rounded-xl text-slate-300 hover:text-red-500 disabled:opacity-50 transition-colors"
+                                className="p-1.5 hover:bg-red-50 rounded-xl text-slate-300 hover:text-red-700 disabled:opacity-50 transition-colors"
                               >
                                 <MaterialIcon
                                   icon={deletingHealthId === r.id ? "hourglass_empty" : "delete"}

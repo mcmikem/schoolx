@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/Toast";
 import { supabase } from "@/lib/supabase";
-import { useOfflineStudentsBasic, useOfflineFeeStructure } from '@/lib/offline-hooks';
+import { useOfflineStudentsBasic, useOfflineFeeStructure } from "@/lib/offline-hooks";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
@@ -111,9 +111,7 @@ export default function TermEndPage() {
   const toast = useToast();
   const [steps, setSteps] = useState<TermEndStep[]>(DEFAULT_STEPS);
   const [currentTerm, setCurrentTerm] = useState("1");
-  const [academicYear, setAcademicYear] = useState(
-    new Date().getFullYear().toString(),
-  );
+  const [academicYear, setAcademicYear] = useState(new Date().getFullYear().toString());
   const [nextTerm, setNextTerm] = useState("2");
   const [running, setRunning] = useState(false);
   const [currentStepIndex, setCurrentStepIndex] = useState(-1);
@@ -132,12 +130,13 @@ export default function TermEndPage() {
   const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
   const [checklistLoading, setChecklistLoading] = useState(false);
 
-  const {
-    data: studentsBasic = [],
-    loading: studentsLoading,
-  } = useOfflineStudentsBasic(school?.id, "active", { skipCache: isDemo });
+  const { data: studentsBasic = [], loading: studentsLoading } = useOfflineStudentsBasic(school?.id, "active", {
+    skipCache: isDemo,
+  });
 
-  const { data: feeStructureForClone = [] } = useOfflineFeeStructure(school?.id, parseInt(currentTerm), { skipCache: isDemo });
+  const { data: feeStructureForClone = [] } = useOfflineFeeStructure(school?.id, parseInt(currentTerm), {
+    skipCache: isDemo,
+  });
 
   useEffect(() => {
     setStudentStats((prev) => ({ ...prev, total: studentsBasic.length }));
@@ -186,10 +185,7 @@ export default function TermEndPage() {
         paymentCount = pCount || 0;
       }
 
-      const { data: classRows } = await supabase
-        .from("classes")
-        .select("id")
-        .eq("school_id", school.id);
+      const { data: classRows } = await supabase.from("classes").select("id").eq("school_id", school.id);
       const classIdList = (classRows || []).map((c: any) => c.id);
 
       let attendanceCount = 0;
@@ -268,14 +264,8 @@ export default function TermEndPage() {
     if (school?.id) fetchChecklist();
   }, [fetchChecklist, school?.id]);
 
-  const updateStep = (
-    key: string,
-    status: TermEndStep["status"],
-    details?: string,
-  ) => {
-    setSteps((prev) =>
-      prev.map((s) => (s.key === key ? { ...s, status, details } : s)),
-    );
+  const updateStep = (key: string, status: TermEndStep["status"], details?: string) => {
+    setSteps((prev) => prev.map((s) => (s.key === key ? { ...s, status, details } : s)));
   };
 
   const runStep = async (stepKey: string, fn: () => Promise<string>) => {
@@ -330,8 +320,7 @@ export default function TermEndPage() {
 
         case "send_notifications":
           success = await runStep(step.key, async () => {
-            const { sendReportCardReady } =
-              await import("@/lib/sms-automation");
+            const { sendReportCardReady } = await import("@/lib/sms-automation");
             const result = await sendReportCardReady({
               schoolId: school.id,
               term: parseInt(currentTerm),
@@ -406,7 +395,9 @@ export default function TermEndPage() {
     setProcessSteps(processingSteps);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       const token = session?.access_token || "";
       const response = await fetch("/api/term-end/", {
         method: "POST",
@@ -434,7 +425,9 @@ export default function TermEndPage() {
         label: s.step.replace(/_/g, " ").replace(/\b\w/g, (c: string) => c.toUpperCase()),
         status: s.status === "completed" ? "done" : s.status === "failed" ? "error" : "pending",
         detail: s.details
-          ? Object.entries(s.details).map(([k, v]: any) => `${k}: ${v}`).join(", ")
+          ? Object.entries(s.details)
+              .map(([k, v]: any) => `${k}: ${v}`)
+              .join(", ")
           : s.error,
       }));
 
@@ -478,11 +471,13 @@ export default function TermEndPage() {
       }
     } catch (err: any) {
       toast.error(`Processing failed: ${err.message}`);
-      setProcessSteps(prev => prev.map(s => ({
-        ...s,
-        status: s.status === "running" ? "error" : s.status,
-        detail: s.status === "running" ? err.message : s.detail,
-      })));
+      setProcessSteps((prev) =>
+        prev.map((s) => ({
+          ...s,
+          status: s.status === "running" ? "error" : s.status,
+          detail: s.status === "running" ? err.message : s.detail,
+        })),
+      );
       setProcessResults({
         studentsPromoted: 0,
         recordsArchived: 0,
@@ -500,391 +495,373 @@ export default function TermEndPage() {
 
   return (
     <PageErrorBoundary>
-    <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
-      <PageHeader
-        title="End-of-Term Workflow"
-        subtitle="One-click process to close the term and prepare for the next"
-        actions={
-          <Button
-            onClick={() => setShowConfirm(true)}
-            variant="primary"
-            size="lg"
-            icon={<MaterialIcon icon="play_circle" />}
-            disabled={running || processing}
-            className="min-w-[220px]"
-          >
-            Run Term-End Processing
-          </Button>
-        }
-      />
-
-      <ConfirmDialog
-        isOpen={showConfirm}
-        onClose={() => setShowConfirm(false)}
-        onConfirm={handleAPITermEnd}
-        title="Run Term-End Processing?"
-        message="This will archive data, promote students, and generate final reports. This action cannot be undone."
-        confirmLabel="Run Processing"
-        variant="warning"
-        loading={processing}
-      />
-
-      <Modal
-        isOpen={processing || showResults}
-        onClose={() => { if (!processing) setShowResults(false); }}
-        title={processing ? "Processing Term End..." : "Processing Results"}
-        size="md"
-        showClose={!processing}
-      >
-        <div className="space-y-4 min-h-[200px]">
-          {processSteps.map((step) => (
-            <div key={step.key} className="flex items-center gap-3">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-                step.status === "done"
-                  ? "bg-green-100 text-green-600"
-                  : step.status === "running"
-                    ? "bg-blue-100 text-blue-600 animate-pulse"
-                    : step.status === "error"
-                      ? "bg-red-100 text-red-600"
-                      : "bg-gray-100 text-gray-400"
-              }`}>
-                {step.status === "done" ? (
-                  <MaterialIcon icon="check" className="text-sm" />
-                ) : step.status === "running" ? (
-                  <MaterialIcon icon="hourglass_top" className="text-sm animate-spin" />
-                ) : step.status === "error" ? (
-                  <MaterialIcon icon="error" className="text-sm" />
-                ) : (
-                  <MaterialIcon icon="radio_button_unchecked" className="text-sm" />
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className={`text-sm font-medium ${step.status === "error" ? "text-red-700" : "text-gray-900"}`}>
-                  {step.label}
-                </p>
-                {step.detail && (
-                  <p className="text-xs text-gray-400 mt-0.5 truncate">{step.detail}</p>
-                )}
-              </div>
-              <Badge variant={
-                step.status === "done" ? "success" :
-                step.status === "running" ? "info" :
-                step.status === "error" ? "error" : "default"
-              }>
-                {step.status === "done" ? "Done" :
-                 step.status === "running" ? "Running..." :
-                 step.status === "error" ? "Failed" : "Pending"}
-              </Badge>
-            </div>
-          ))}
-        </div>
-
-        {!processing && showResults && processResults && (
-          <>
-            <div className="border-t border-[var(--border)] mt-6 pt-6">
-              <h4 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                <MaterialIcon icon="summarize" className="text-base" />
-                Summary
-              </h4>
-              <div className="grid grid-cols-3 gap-3">
-                <div className="text-center p-3 bg-green-50 rounded-xl border border-green-100">
-                  <div className="text-2xl font-bold text-green-700 font-heading">
-                    {processResults.studentsPromoted}
-                  </div>
-                  <div className="text-xs text-green-600 mt-0.5 font-medium">
-                    Students Promoted
-                  </div>
-                </div>
-                <div className="text-center p-3 bg-blue-50 rounded-xl border border-blue-100">
-                  <div className="text-2xl font-bold text-blue-700 font-heading">
-                    {processResults.recordsArchived}
-                  </div>
-                  <div className="text-xs text-blue-600 mt-0.5 font-medium">
-                    Records Archived
-                  </div>
-                </div>
-                <div className="text-center p-3 bg-purple-50 rounded-xl border border-purple-100">
-                  <div className="text-2xl font-bold text-purple-700 font-heading">
-                    {processResults.reportsGenerated}
-                  </div>
-                  <div className="text-xs text-purple-600 mt-0.5 font-medium">
-                    Reports Generated
-                  </div>
-                </div>
-              </div>
-              {processResults.errors.length > 0 && (
-                <div className="mt-4 p-3 bg-red-50 rounded-xl border border-red-100">
-                  <p className="text-sm font-semibold text-red-800 flex items-center gap-1.5">
-                    <MaterialIcon icon="error_outline" className="text-base" />
-                    Errors ({processResults.errors.length})
-                  </p>
-                  <ul className="mt-2 space-y-1">
-                    {processResults.errors.map((err, i) => (
-                      <li key={i} className="text-xs text-red-600 flex items-start gap-1.5">
-                        <span className="mt-0.5 w-1 h-1 rounded-full bg-red-400 shrink-0" />
-                        {err}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {processResults.errors.length === 0 && (
-                <div className="mt-4 p-3 bg-green-50 rounded-xl border border-green-100 flex items-center gap-2">
-                  <MaterialIcon icon="check_circle" className="text-green-600 text-lg" />
-                  <p className="text-sm font-medium text-green-800">
-                    All steps completed successfully
-                  </p>
-                </div>
-              )}
-            </div>
-            <div className="flex justify-end mt-6">
-              <Button variant="secondary" onClick={() => setShowResults(false)}>
-                Close
-              </Button>
-            </div>
-          </>
-        )}
-      </Modal>
-
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MaterialIcon icon="checklist" className="text-lg" />
-            Term-End Checklist
-          </CardTitle>
-        </CardHeader>
-        <CardBody>
-          {checklistLoading ? (
-            <div className="flex items-center gap-2 text-sm text-gray-400">
-              <MaterialIcon icon="hourglass_top" className="animate-spin text-base" />
-              Checking prerequisites...
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {checklist.map((item) => (
-                <div key={item.key} className="flex items-center gap-3">
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
-                    item.status === "pass"
-                      ? "bg-green-100 text-green-600"
-                      : item.status === "warn"
-                        ? "bg-amber-100 text-amber-600"
-                        : "bg-red-100 text-red-600"
-                  }`}>
-                    <MaterialIcon icon={
-                      item.status === "pass" ? "check_circle" :
-                      item.status === "warn" ? "warning" : "cancel"
-                    } className="text-lg" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">{item.label}</p>
-                    <p className="text-xs text-gray-400">
-                      {item.count.toLocaleString()} of {item.expected.toLocaleString()} records
-                      {item.status === "warn" && " — incomplete"}
-                    </p>
-                  </div>
-                  <Badge variant={
-                    item.status === "pass" ? "success" :
-                    item.status === "warn" ? "warning" : "error"
-                  }>
-                    {item.status === "pass" ? "Ready" :
-                     item.status === "warn" ? "Partial" : "Missing"}
-                  </Badge>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardBody>
-      </Card>
-
-      <Card className="mb-6">
-        <CardBody>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label className="label">Current Term</label>
-              <select
-                value={currentTerm}
-                onChange={(e) => setCurrentTerm(e.target.value)}
-                className="input"
-                disabled={running}
-              >
-                <option value="1">Term 1</option>
-                <option value="2">Term 2</option>
-                <option value="3">Term 3</option>
-              </select>
-            </div>
-            <div>
-              <label className="label">Academic Year</label>
-              <input
-                type="text"
-                value={academicYear}
-                onChange={(e) => setAcademicYear(e.target.value)}
-                className="input"
-                disabled={running}
-              />
-            </div>
-            <div>
-              <label className="label">Next Term</label>
-              <select
-                value={nextTerm}
-                onChange={(e) => setNextTerm(e.target.value)}
-                className="input"
-                disabled={running}
-              >
-                <option value="1">Term 1</option>
-                <option value="2">Term 2</option>
-                <option value="3">Term 3</option>
-              </select>
-            </div>
-          </div>
-          <div className="flex justify-end mt-4">
+      <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
+        <PageHeader
+          title="End-of-Term Workflow"
+          subtitle="One-click process to close the term and prepare for the next"
+          actions={
             <Button
-              onClick={handleRunAll}
+              onClick={() => setShowConfirm(true)}
+              variant="primary"
+              size="lg"
+              icon={<MaterialIcon icon="play_circle" />}
               disabled={running || processing}
-              variant="secondary"
-              className="min-w-[200px]"
+              className="min-w-[220px]"
             >
-              {running ? (
-                <>
-                  <MaterialIcon icon="hourglass_top" className="animate-spin" />{" "}
-                  Processing...
-                </>
-              ) : (
-                <>
-                  <MaterialIcon icon="play_circle" /> Run Full Workflow
-                </>
-              )}
+              Run Term-End Processing
             </Button>
-          </div>
-        </CardBody>
-      </Card>
+          }
+        />
 
-      {running && (
-        <div className="mb-6">
-          <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
-            <span>
-              Step {currentStepIndex + 1} of {totalSteps}
-            </span>
-            <span>
-              {Math.round((completedSteps / totalSteps) * 100)}% complete
-            </span>
-          </div>
-          <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
-            <div
-              className="bg-blue-600 h-full rounded-full transition-all duration-500"
-              style={{ width: `${(completedSteps / totalSteps) * 100}%` }}
-            />
-          </div>
-        </div>
-      )}
+        <ConfirmDialog
+          isOpen={showConfirm}
+          onClose={() => setShowConfirm(false)}
+          onConfirm={handleAPITermEnd}
+          title="Run Term-End Processing?"
+          message="This will archive data, promote students, and generate final reports. This action cannot be undone."
+          confirmLabel="Run Processing"
+          variant="warning"
+          loading={processing}
+        />
 
-      <div className="space-y-3">
-        {steps.map((step, index) => (
-          <Card
-            key={step.key}
-            className={`transition-all ${step.status === "running" ? "ring-2 ring-blue-500" : ""} ${step.status === "error" ? "ring-2 ring-red-500" : ""}`}
-          >
-            <CardBody>
-              <div className="flex items-center gap-4">
+        <Modal
+          isOpen={processing || showResults}
+          onClose={() => {
+            if (!processing) setShowResults(false);
+          }}
+          title={processing ? "Processing Term End..." : "Processing Results"}
+          size="md"
+          showClose={!processing}
+        >
+          <div className="space-y-4 min-h-[200px]">
+            {processSteps.map((step) => (
+              <div key={step.key} className="flex items-center gap-3">
                 <div
-                  className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+                  className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
                     step.status === "done"
-                      ? "bg-green-100 text-green-600"
+                      ? "bg-green-100 text-green-700"
                       : step.status === "running"
-                        ? "bg-blue-100 text-blue-600"
+                        ? "bg-blue-100 text-blue-700 animate-pulse"
                         : step.status === "error"
-                          ? "bg-red-100 text-red-600"
+                          ? "bg-red-100 text-red-700"
                           : "bg-gray-100 text-gray-400"
                   }`}
                 >
                   {step.status === "done" ? (
-                    <MaterialIcon icon="check" />
+                    <MaterialIcon icon="check" className="text-sm" />
                   ) : step.status === "running" ? (
-                    <MaterialIcon
-                      icon="hourglass_top"
-                      className="animate-spin"
-                    />
+                    <MaterialIcon icon="hourglass_top" className="text-sm animate-spin" />
                   ) : step.status === "error" ? (
-                    <MaterialIcon icon="error" />
+                    <MaterialIcon icon="error" className="text-sm" />
                   ) : (
-                    <span className="text-sm font-bold">{index + 1}</span>
+                    <MaterialIcon icon="radio_button_unchecked" className="text-sm" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-gray-900">
-                      {step.title}
-                    </h3>
-                    <span
-                      className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                        step.status === "done"
+                  <p className={`text-sm font-medium ${step.status === "error" ? "text-red-700" : "text-gray-900"}`}>
+                    {step.label}
+                  </p>
+                  {step.detail && <p className="text-xs text-gray-400 mt-0.5 truncate">{step.detail}</p>}
+                </div>
+                <Badge
+                  variant={
+                    step.status === "done"
+                      ? "success"
+                      : step.status === "running"
+                        ? "info"
+                        : step.status === "error"
+                          ? "error"
+                          : "default"
+                  }
+                >
+                  {step.status === "done"
+                    ? "Done"
+                    : step.status === "running"
+                      ? "Running..."
+                      : step.status === "error"
+                        ? "Failed"
+                        : "Pending"}
+                </Badge>
+              </div>
+            ))}
+          </div>
+
+          {!processing && showResults && processResults && (
+            <>
+              <div className="border-t border-[var(--border)] mt-6 pt-6">
+                <h4 className="text-sm font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <MaterialIcon icon="summarize" className="text-base" />
+                  Summary
+                </h4>
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="text-center p-3 bg-green-50 rounded-xl border border-green-100">
+                    <div className="text-2xl font-bold text-green-700 font-heading">
+                      {processResults.studentsPromoted}
+                    </div>
+                    <div className="text-xs text-green-600 mt-0.5 font-medium">Students Promoted</div>
+                  </div>
+                  <div className="text-center p-3 bg-blue-50 rounded-xl border border-blue-100">
+                    <div className="text-2xl font-bold text-blue-700 font-heading">
+                      {processResults.recordsArchived}
+                    </div>
+                    <div className="text-xs text-blue-600 mt-0.5 font-medium">Records Archived</div>
+                  </div>
+                  <div className="text-center p-3 bg-purple-50 rounded-xl border border-purple-100">
+                    <div className="text-2xl font-bold text-purple-700 font-heading">
+                      {processResults.reportsGenerated}
+                    </div>
+                    <div className="text-xs text-purple-600 mt-0.5 font-medium">Reports Generated</div>
+                  </div>
+                </div>
+                {processResults.errors.length > 0 && (
+                  <div className="mt-4 p-3 bg-red-50 rounded-xl border border-red-100">
+                    <p className="text-sm font-semibold text-red-800 flex items-center gap-1.5">
+                      <MaterialIcon icon="error_outline" className="text-base" />
+                      Errors ({processResults.errors.length})
+                    </p>
+                    <ul className="mt-2 space-y-1">
+                      {processResults.errors.map((err, i) => (
+                        <li key={i} className="text-xs text-red-600 flex items-start gap-1.5">
+                          <span className="mt-0.5 w-1 h-1 rounded-full bg-red-400 shrink-0" />
+                          {err}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {processResults.errors.length === 0 && (
+                  <div className="mt-4 p-3 bg-green-50 rounded-xl border border-green-100 flex items-center gap-2">
+                    <MaterialIcon icon="check_circle" className="text-green-600 text-lg" />
+                    <p className="text-sm font-medium text-green-800">All steps completed successfully</p>
+                  </div>
+                )}
+              </div>
+              <div className="flex justify-end mt-6">
+                <Button variant="secondary" onClick={() => setShowResults(false)}>
+                  Close
+                </Button>
+              </div>
+            </>
+          )}
+        </Modal>
+
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <MaterialIcon icon="checklist" className="text-lg" />
+              Term-End Checklist
+            </CardTitle>
+          </CardHeader>
+          <CardBody>
+            {checklistLoading ? (
+              <div className="flex items-center gap-2 text-sm text-gray-400">
+                <MaterialIcon icon="hourglass_top" className="animate-spin text-base" />
+                Checking prerequisites...
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {checklist.map((item) => (
+                  <div key={item.key} className="flex items-center gap-3">
+                    <div
+                      className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
+                        item.status === "pass"
                           ? "bg-green-100 text-green-700"
-                          : step.status === "running"
-                            ? "bg-blue-100 text-blue-700"
-                            : step.status === "error"
-                              ? "bg-red-100 text-red-700"
-                              : "bg-gray-100 text-gray-500"
+                          : item.status === "warn"
+                            ? "bg-amber-100 text-amber-700"
+                            : "bg-red-100 text-red-700"
                       }`}
                     >
-                      {step.status === "pending"
-                        ? "Pending"
-                        : step.status === "running"
-                          ? "Running..."
-                          : step.status === "done"
-                            ? "Done"
-                            : "Error"}
-                    </span>
+                      <MaterialIcon
+                        icon={item.status === "pass" ? "check_circle" : item.status === "warn" ? "warning" : "cancel"}
+                        className="text-lg"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-gray-900">{item.label}</p>
+                      <p className="text-xs text-gray-400">
+                        {item.count.toLocaleString()} of {item.expected.toLocaleString()} records
+                        {item.status === "warn" && " — incomplete"}
+                      </p>
+                    </div>
+                    <Badge variant={item.status === "pass" ? "success" : item.status === "warn" ? "warning" : "error"}>
+                      {item.status === "pass" ? "Ready" : item.status === "warn" ? "Partial" : "Missing"}
+                    </Badge>
                   </div>
-                  <p className="text-sm text-gray-500">{step.description}</p>
-                  {step.details && (
-                    <p className="text-xs text-gray-400 mt-1">{step.details}</p>
-                  )}
+                ))}
+              </div>
+            )}
+          </CardBody>
+        </Card>
+
+        <Card className="mb-6">
+          <CardBody>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="label">Current Term</label>
+                <select
+                  value={currentTerm}
+                  onChange={(e) => setCurrentTerm(e.target.value)}
+                  className="input"
+                  disabled={running}
+                >
+                  <option value="1">Term 1</option>
+                  <option value="2">Term 2</option>
+                  <option value="3">Term 3</option>
+                </select>
+              </div>
+              <div>
+                <label className="label">Academic Year</label>
+                <input
+                  type="text"
+                  value={academicYear}
+                  onChange={(e) => setAcademicYear(e.target.value)}
+                  className="input"
+                  disabled={running}
+                />
+              </div>
+              <div>
+                <label className="label">Next Term</label>
+                <select
+                  value={nextTerm}
+                  onChange={(e) => setNextTerm(e.target.value)}
+                  className="input"
+                  disabled={running}
+                >
+                  <option value="1">Term 1</option>
+                  <option value="2">Term 2</option>
+                  <option value="3">Term 3</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex justify-end mt-4">
+              <Button
+                onClick={handleRunAll}
+                disabled={running || processing}
+                variant="secondary"
+                className="min-w-[200px]"
+              >
+                {running ? (
+                  <>
+                    <MaterialIcon icon="hourglass_top" className="animate-spin" /> Processing...
+                  </>
+                ) : (
+                  <>
+                    <MaterialIcon icon="play_circle" /> Run Full Workflow
+                  </>
+                )}
+              </Button>
+            </div>
+          </CardBody>
+        </Card>
+
+        {running && (
+          <div className="mb-6">
+            <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
+              <span>
+                Step {currentStepIndex + 1} of {totalSteps}
+              </span>
+              <span>{Math.round((completedSteps / totalSteps) * 100)}% complete</span>
+            </div>
+            <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+              <div
+                className="bg-blue-600 h-full rounded-full transition-all duration-500"
+                style={{ width: `${(completedSteps / totalSteps) * 100}%` }}
+              />
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-3">
+          {steps.map((step, index) => (
+            <Card
+              key={step.key}
+              className={`transition-all ${step.status === "running" ? "ring-2 ring-blue-500" : ""} ${step.status === "error" ? "ring-2 ring-red-500" : ""}`}
+            >
+              <CardBody>
+                <div className="flex items-center gap-4">
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+                      step.status === "done"
+                        ? "bg-green-100 text-green-700"
+                        : step.status === "running"
+                          ? "bg-blue-100 text-blue-700"
+                          : step.status === "error"
+                            ? "bg-red-100 text-red-700"
+                            : "bg-gray-100 text-gray-400"
+                    }`}
+                  >
+                    {step.status === "done" ? (
+                      <MaterialIcon icon="check" />
+                    ) : step.status === "running" ? (
+                      <MaterialIcon icon="hourglass_top" className="animate-spin" />
+                    ) : step.status === "error" ? (
+                      <MaterialIcon icon="error" />
+                    ) : (
+                      <span className="text-sm font-bold">{index + 1}</span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold text-gray-900">{step.title}</h3>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                          step.status === "done"
+                            ? "bg-green-100 text-green-700"
+                            : step.status === "running"
+                              ? "bg-blue-100 text-blue-700"
+                              : step.status === "error"
+                                ? "bg-red-100 text-red-700"
+                                : "bg-gray-100 text-gray-500"
+                        }`}
+                      >
+                        {step.status === "pending"
+                          ? "Pending"
+                          : step.status === "running"
+                            ? "Running..."
+                            : step.status === "done"
+                              ? "Done"
+                              : "Error"}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-500">{step.description}</p>
+                    {step.details && <p className="text-xs text-gray-400 mt-1">{step.details}</p>}
+                  </div>
+                </div>
+              </CardBody>
+            </Card>
+          ))}
+        </div>
+
+        {completedSteps === totalSteps && (
+          <Card className="mt-6 border-green-200 bg-green-50">
+            <CardBody>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                  <MaterialIcon icon="check_circle" className="text-green-600" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-green-900">Term End Complete</h3>
+                  <p className="text-sm text-green-700">All steps completed successfully</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-3 gap-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-700">{studentStats.total}</div>
+                  <div className="text-xs text-green-600">Total Students</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-700">{studentStats.eligible}</div>
+                  <div className="text-xs text-blue-600">Promoted</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-amber-700">{studentStats.heldBack}</div>
+                  <div className="text-xs text-amber-600">Held Back</div>
                 </div>
               </div>
             </CardBody>
           </Card>
-        ))}
+        )}
       </div>
-
-      {completedSteps === totalSteps && (
-        <Card className="mt-6 border-green-200 bg-green-50">
-          <CardBody>
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                <MaterialIcon icon="check_circle" className="text-green-600" />
-              </div>
-              <div>
-                <h3 className="font-semibold text-green-900">
-                  Term End Complete
-                </h3>
-                <p className="text-sm text-green-700">
-                  All steps completed successfully
-                </p>
-              </div>
-            </div>
-            <div className="grid grid-cols-3 gap-4">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-700">
-                  {studentStats.total}
-                </div>
-                <div className="text-xs text-green-600">Total Students</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-blue-700">
-                  {studentStats.eligible}
-                </div>
-                <div className="text-xs text-blue-600">Promoted</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-bold text-amber-700">
-                  {studentStats.heldBack}
-                </div>
-                <div className="text-xs text-amber-600">Held Back</div>
-              </div>
-            </div>
-          </CardBody>
-        </Card>
-      )}
-    </div>
     </PageErrorBoundary>
   );
 }

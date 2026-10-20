@@ -141,7 +141,7 @@ export default function UserManager({
                     <div>
                       <div className="font-medium text-[var(--on-surface)]">{u.full_name}</div>
                       <div className="flex items-center gap-2 mt-2">
-                        <span className="px-2 py-1 rounded-lg text-xs font-medium bg-[var(--green-soft)] text-[var(--green)]">
+                        <span className="px-2 py-1 rounded-lg text-xs font-medium bg-[var(--green-soft)] text-[var(--green-ink)]">
                           {u.role === "dos"
                             ? "Director of Studies"
                             : u.role === "school_admin"
@@ -151,7 +151,7 @@ export default function UserManager({
                                 : u.role.charAt(0).toUpperCase() + u.role.slice(1)}
                         </span>
                         <span
-                          className={`px-2 py-1 rounded-lg text-xs font-medium ${u.is_active ? "bg-[var(--green-soft)] text-[var(--green)]" : "bg-[var(--red-soft)] text-[var(--red)]"}`}
+                          className={`px-2 py-1 rounded-lg text-xs font-medium ${u.is_active ? "bg-[var(--green-soft)] text-[var(--green-ink)]" : "bg-[var(--red-soft)] text-[var(--red-ink)]"}`}
                         >
                           {u.is_active ? "Active" : "Inactive"}
                         </span>

@@ -51,50 +51,32 @@ export default function FeeInvoiceList({
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         <Card>
           <CardBody>
-            <div className="text-2xl font-bold text-[var(--t1)]">
-              {formatCurrency(invoiceStats.totalInvoiced)}
-            </div>
-            <div className="text-sm text-[var(--t3)] mt-1">
-              Total Invoiced
-            </div>
+            <div className="text-2xl font-bold text-[var(--t1)]">{formatCurrency(invoiceStats.totalInvoiced)}</div>
+            <div className="text-sm text-[var(--t3)] mt-1">Total Invoiced</div>
           </CardBody>
         </Card>
         <Card>
           <CardBody>
-            <div className="text-2xl font-bold text-green-600">
-              {formatCurrency(invoiceStats.totalCollected)}
-            </div>
+            <div className="text-2xl font-bold text-green-600">{formatCurrency(invoiceStats.totalCollected)}</div>
             <div className="text-sm text-[var(--t3)] mt-1">Collected</div>
           </CardBody>
         </Card>
         <Card>
           <CardBody>
-            <div className="text-2xl font-bold text-red-600">
-              {formatCurrency(invoiceStats.totalBalance)}
-            </div>
-            <div className="text-sm text-[var(--t3)] mt-1">
-              Outstanding
-            </div>
+            <div className="text-2xl font-bold text-red-600">{formatCurrency(invoiceStats.totalBalance)}</div>
+            <div className="text-sm text-[var(--t3)] mt-1">Outstanding</div>
           </CardBody>
         </Card>
         <Card>
           <CardBody>
-            <div className="text-2xl font-bold text-green-600">
-              {invoiceStats.fullyPaid}
-            </div>
-            <div className="text-sm text-[var(--t3)] mt-1">
-              Fully Paid
-            </div>
+            <div className="text-2xl font-bold text-green-600">{invoiceStats.fullyPaid}</div>
+            <div className="text-sm text-[var(--t3)] mt-1">Fully Paid</div>
           </CardBody>
         </Card>
         <Card>
           <CardBody>
-            <div className="text-2xl font-bold text-yellow-600">
-              {invoiceStats.hasBalance}
-            </div>
-            <div className="text-sm text-[var(--t3)] mt-1">
-              Has Balance
-            </div>
+            <div className="text-2xl font-bold text-yellow-600">{invoiceStats.hasBalance}</div>
+            <div className="text-sm text-[var(--t3)] mt-1">Has Balance</div>
           </CardBody>
         </Card>
       </div>
@@ -129,15 +111,9 @@ export default function FeeInvoiceList({
                 <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
                   Student
                 </th>
-                <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                  Class
-                </th>
-                <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                  Total
-                </th>
-                <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
-                  Paid
-                </th>
+                <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Class</th>
+                <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Total</th>
+                <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">Paid</th>
                 <th className="px-6 py-4 text-xs uppercase tracking-widest font-bold text-on-surface-variant">
                   Balance
                 </th>
@@ -151,30 +127,15 @@ export default function FeeInvoiceList({
             </thead>
             <tbody className="divide-y divide-outline-variant/5">
               {filteredInvoices.map((invoice) => (
-                <tr
-                  key={invoice.student_id}
-                  className="hover:bg-surface-bright"
-                >
+                <tr key={invoice.student_id} className="hover:bg-surface-bright">
                   <td className="px-6 py-4">
-                    <div className="font-medium text-on-surface">
-                      {invoice.student_name}
-                    </div>
-                    <div className="text-xs text-on-surface-variant">
-                      {invoice.student_number}
-                    </div>
+                    <div className="font-medium text-on-surface">{invoice.student_name}</div>
+                    <div className="text-xs text-on-surface-variant">{invoice.student_number}</div>
                   </td>
-                  <td className="px-6 py-4 text-sm text-on-surface-variant">
-                    {invoice.class_name}
-                  </td>
-                  <td className="px-6 py-4 font-medium">
-                    {formatCurrency(invoice.total_amount)}
-                  </td>
-                  <td className="px-6 py-4 text-green-600">
-                    {formatCurrency(invoice.amount_paid)}
-                  </td>
-                  <td
-                    className={`px-6 py-4 font-medium ${invoice.balance > 0 ? "text-red-600" : "text-green-600"}`}
-                  >
+                  <td className="px-6 py-4 text-sm text-on-surface-variant">{invoice.class_name}</td>
+                  <td className="px-6 py-4 font-medium">{formatCurrency(invoice.total_amount)}</td>
+                  <td className="px-6 py-4 text-green-600">{formatCurrency(invoice.amount_paid)}</td>
+                  <td className={`px-6 py-4 font-medium ${invoice.balance > 0 ? "text-red-600" : "text-green-600"}`}>
                     {formatCurrency(invoice.balance)}
                   </td>
                   <td className="px-6 py-4">
@@ -196,7 +157,7 @@ export default function FeeInvoiceList({
                       {invoice.balance > 0 && (
                         <button
                           onClick={() => sendInvoiceSMS(invoice)}
-                          className="p-2 text-on-surface-variant hover:text-green-600 rounded-lg hover:bg-green-100"
+                          className="p-2 text-on-surface-variant hover:text-green-700 rounded-lg hover:bg-green-100"
                           title="Send via SMS"
                         >
                           <MaterialIcon icon="sms" />

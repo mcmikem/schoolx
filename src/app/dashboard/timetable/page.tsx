@@ -335,7 +335,7 @@ function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }
                             </button>
                             <button
                               onClick={() => setPendingDeleteEventId(ev.id)}
-                              className="p-1 hover:bg-red-50 rounded text-[var(--t3)] hover:text-red-500"
+                              className="p-1 hover:bg-red-50 rounded text-[var(--t3)] hover:text-red-700"
                             >
                               <MaterialIcon icon="delete" className="text-sm" />
                             </button>
@@ -987,7 +987,7 @@ export default function TimetablePage() {
           <Card className="overflow-hidden">
             <div className="flex items-center justify-between px-4 pt-4 pb-2 gap-3 flex-wrap">
               {classes.length === 0 ? (
-                <div className="px-4 py-2 bg-[var(--amber-soft)] text-[var(--amber)] text-sm rounded-xl border border-[var(--amber)]/20">
+                <div className="px-4 py-2 bg-[var(--amber-soft)] text-[var(--amber-ink)] text-sm rounded-xl border border-[var(--amber)]/20">
                   No classes available
                 </div>
               ) : (
@@ -1068,7 +1068,7 @@ export default function TimetablePage() {
                             {canEditTimetable && (
                               <button
                                 onClick={() => setPendingDeleteEntryId(entry.id)}
-                                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-red-600 hover:bg-red-50"
+                                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-red-700 hover:bg-red-50"
                                 title="Remove entry"
                                 aria-label={`Remove ${entry.subjects?.name || "lesson"}`}
                               >
@@ -1153,7 +1153,7 @@ export default function TimetablePage() {
                                             type="button"
                                             onClick={() => setPendingDeleteEntryId(entry.id)}
                                             aria-label="Remove timetable entry"
-                                            className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 p-1 hover:bg-red-100 rounded text-red-500 transition-all"
+                                            className="opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 p-1 hover:bg-red-100 rounded text-red-700 transition-all"
                                             title="Remove entry"
                                           >
                                             <MaterialIcon icon="delete" className="text-sm" />

@@ -222,12 +222,12 @@ export default function HomeworkPage() {
     const isDueToday = dueDate.getTime() === today.getTime();
 
     if (isOverdue) {
-      return <span className="px-2 py-1 rounded-lg text-xs font-medium bg-red-100 text-red-600">Overdue</span>;
+      return <span className="px-2 py-1 rounded-lg text-xs font-medium bg-red-100 text-red-700">Overdue</span>;
     }
     if (isDueToday) {
       return <span className="px-2 py-1 rounded-lg text-xs font-medium bg-amber-100 text-amber-700">Due today</span>;
     }
-    return <span className="px-2 py-1 rounded-lg text-xs font-medium bg-green-100 text-green-600">Active</span>;
+    return <span className="px-2 py-1 rounded-lg text-xs font-medium bg-green-100 text-green-700">Active</span>;
   };
 
   return (
@@ -364,7 +364,7 @@ export default function HomeworkPage() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
                       <MaterialIcon className="text-lg">menu_book</MaterialIcon>
                     </div>
                     <div>
@@ -408,7 +408,7 @@ export default function HomeworkPage() {
                 <button
                   onClick={() => handleDeleteHomework(hw.id)}
                   disabled={deletingId === hw.id}
-                  className="mt-4 inline-flex items-center gap-2 rounded-lg border border-red-100 bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-600 disabled:opacity-50"
+                  className="mt-4 inline-flex items-center gap-2 rounded-lg border border-red-100 bg-red-50 px-2.5 py-1.5 text-xs font-semibold text-red-700 disabled:opacity-50"
                   title="Delete class test"
                 >
                   <MaterialIcon className="text-sm">{deletingId === hw.id ? "hourglass_empty" : "delete"}</MaterialIcon>

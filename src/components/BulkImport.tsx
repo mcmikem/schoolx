@@ -622,7 +622,7 @@ export default function BulkImport({ onComplete, createStudent, houses = [] }: B
                               ))}
                             </div>
                           ) : (
-                            <span className="text-xs uppercase font-bold tracking-wider text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
+                            <span className="text-xs uppercase font-bold tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
                               Ready
                             </span>
                           )}

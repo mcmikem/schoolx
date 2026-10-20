@@ -369,7 +369,7 @@ export function MarketersTab() {
                       </td>
                       <td className="px-4 py-2.5">
                         <span
-                          className={`px-2 py-0.5 rounded-full text-xs font-bold uppercase ${m.is_active ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"}`}
+                          className={`px-2 py-0.5 rounded-full text-xs font-bold uppercase ${m.is_active ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
                         >
                           {m.is_active ? "Active" : "Inactive"}
                         </span>
@@ -473,7 +473,7 @@ export function MarketersTab() {
                         </td>
                         <td className="px-3 py-1.5">
                           <span
-                            className={`px-1.5 py-0.5 rounded text-xs font-bold uppercase ${e.status === "paid" ? "bg-green-100 text-green-700" : e.status === "pending" ? "bg-yellow-100 text-yellow-700" : e.status === "approved" ? "bg-blue-100 text-blue-700" : "bg-red-100 text-red-600"}`}
+                            className={`px-1.5 py-0.5 rounded text-xs font-bold uppercase ${e.status === "paid" ? "bg-green-100 text-green-700" : e.status === "pending" ? "bg-yellow-100 text-yellow-700" : e.status === "approved" ? "bg-blue-100 text-blue-700" : "bg-red-100 text-red-700"}`}
                           >
                             {e.status}
                           </span>

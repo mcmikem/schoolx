@@ -537,7 +537,7 @@ export default function StudentRegistryPanel({
             </div>
           )}
           {lowBandwidthMode && (
-            <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-[var(--amber-soft)] px-3 py-1 text-xs font-semibold text-[var(--amber)]">
+            <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-[var(--amber-soft)] px-3 py-1 text-xs font-semibold text-[var(--amber-ink)]">
               <MaterialIcon icon="network_check" className="text-sm" />
               Data saver on — photos hidden
               <button
@@ -1077,7 +1077,7 @@ export default function StudentRegistryPanel({
                                 </div>
                                 {leader ? (
                                   <span
-                                    className="inline-flex items-center rounded-full bg-[var(--navy-soft)] px-2 py-0.5 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--navy)]"
+                                    className="inline-flex items-center rounded-full bg-[var(--navy-soft)] px-2 py-0.5 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--blue-ink)]"
                                     title={leader}
                                   >
                                     {student.is_class_monitor && !student.prefect_role && !student.student_council_role
@@ -1278,7 +1278,7 @@ export default function StudentRegistryPanel({
                             </span>
                             {leader ? (
                               <span
-                                className="rounded-full bg-[var(--navy-soft)] px-2 py-0.5 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--navy)]"
+                                className="rounded-full bg-[var(--navy-soft)] px-2 py-0.5 text-xs font-semibold uppercase tracking-[0.08em] text-[var(--blue-ink)]"
                                 title={leader}
                               >
                                 {student.is_class_monitor && !student.prefect_role && !student.student_council_role

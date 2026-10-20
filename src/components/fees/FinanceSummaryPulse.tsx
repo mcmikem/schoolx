@@ -22,19 +22,19 @@ export default function FinanceSummaryPulse({
       label: "Expected",
       value: formatValue(totalExpected),
       icon: "account_balance_wallet",
-      tint: "bg-[var(--navy-soft)] text-[var(--navy)]",
+      tint: "bg-[var(--navy-soft)] text-[var(--blue-ink)]",
     },
     {
       label: "Collected",
       value: formatValue(totalPaid),
       icon: "payments",
-      tint: "bg-[var(--green-soft)] text-[var(--green)]",
+      tint: "bg-[var(--green-soft)] text-[var(--green-ink)]",
     },
     {
       label: "Outstanding",
       value: formatValue(totalBalance),
       icon: "pending_actions",
-      tint: "bg-[var(--amber-soft)] text-[var(--amber)]",
+      tint: "bg-[var(--amber-soft)] text-[var(--amber-ink)]",
     },
   ];
 

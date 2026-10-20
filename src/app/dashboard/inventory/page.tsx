@@ -130,7 +130,7 @@ export default function InventoryPage() {
                           <div>
                             <p className="font-semibold text-[var(--on-surface)]">{asset.name}</p>
                             {asset.is_consumable && (
-                              <span className="text-xs px-1.5 py-0.5 rounded bg-[var(--navy-soft)] text-[var(--navy)] font-bold uppercase tracking-wider">
+                              <span className="text-xs px-1.5 py-0.5 rounded bg-[var(--navy-soft)] text-[var(--blue-ink)] font-bold uppercase tracking-wider">
                                 Consumable
                               </span>
                             )}
@@ -140,7 +140,7 @@ export default function InventoryPage() {
                           <div
                             className={`inline-block px-3 py-1 rounded-lg font-bold ${
                               asset.is_consumable && asset.current_stock <= asset.min_stock_level
-                                ? "bg-[var(--red-soft)] text-[var(--red)]"
+                                ? "bg-[var(--red-soft)] text-[var(--red-ink)]"
                                 : "bg-[var(--surface-container)] text-[var(--on-surface)]"
                             }`}
                           >
@@ -158,7 +158,7 @@ export default function InventoryPage() {
                                 setTransactionType("in");
                                 setShowTransactionModal(true);
                               }}
-                              className="p-2 bg-[var(--green-soft)] text-[var(--green)] hover:opacity-80 rounded-lg transition-colors"
+                              className="p-2 bg-[var(--green-soft)] text-[var(--green-ink)] hover:opacity-80 rounded-lg transition-colors"
                               title="Add Stock"
                             >
                               <MaterialIcon icon="add" />
@@ -169,7 +169,7 @@ export default function InventoryPage() {
                                 setTransactionType("out");
                                 setShowTransactionModal(true);
                               }}
-                              className="p-2 bg-[var(--red-soft)] text-[var(--red)] hover:opacity-80 rounded-lg transition-colors"
+                              className="p-2 bg-[var(--red-soft)] text-[var(--red-ink)] hover:opacity-80 rounded-lg transition-colors"
                               title="Issue/Use"
                             >
                               <MaterialIcon icon="remove" />
@@ -201,7 +201,7 @@ export default function InventoryPage() {
                     className="flex items-center gap-4 p-3 rounded-xl bg-[var(--surface-container)] border border-[var(--border)]"
                   >
                     <div
-                      className={`p-2 rounded-lg ${tx.transaction_type === "in" ? "bg-[var(--green-soft)] text-[var(--green)]" : "bg-[var(--red-soft)] text-[var(--red)]"}`}
+                      className={`p-2 rounded-lg ${tx.transaction_type === "in" ? "bg-[var(--green-soft)] text-[var(--green-ink)]" : "bg-[var(--red-soft)] text-[var(--red-ink)]"}`}
                     >
                       <MaterialIcon
                         icon={tx.transaction_type === "in" ? "arrow_downward" : "arrow_upward"}

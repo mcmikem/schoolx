@@ -28,9 +28,9 @@ import UnebQuarantinePanel from "@/components/fees/UnebQuarantinePanel";
 type Tab = "position" | "expenses" | "income";
 
 const STATUS_TONE: Record<ExpenseStatus, string> = {
-  pending: "bg-[var(--amber-soft)] text-[var(--amber)]",
+  pending: "bg-[var(--amber-soft)] text-[var(--amber-ink)]",
   approved: "bg-blue-50 text-blue-700",
-  paid: "bg-[var(--green-soft)] text-[var(--green)]",
+  paid: "bg-[var(--green-soft)] text-[var(--green-ink)]",
   rejected: "bg-red-50 text-red-700",
 };
 

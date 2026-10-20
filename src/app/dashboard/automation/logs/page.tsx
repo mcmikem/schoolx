@@ -41,30 +41,136 @@ const AUTOMATION_TYPES: AutomationType[] = [
 ];
 
 const COLOR_MAP: Record<string, { bg: string; text: string; icon: string; border: string; btn: string }> = {
-  amber: { bg: "bg-amber-50", text: "text-amber-800", icon: "text-amber-600", border: "border-amber-200", btn: "bg-amber-600 hover:bg-amber-700" },
-  red: { bg: "bg-red-50", text: "text-red-800", icon: "text-red-600", border: "border-red-200", btn: "bg-red-600 hover:bg-red-700" },
-  green: { bg: "bg-green-50", text: "text-green-800", icon: "text-green-600", border: "border-green-200", btn: "bg-green-600 hover:bg-green-700" },
-  blue: { bg: "bg-blue-50", text: "text-blue-800", icon: "text-blue-600", border: "border-blue-200", btn: "bg-blue-600 hover:bg-blue-700" },
-  purple: { bg: "bg-purple-50", text: "text-purple-800", icon: "text-purple-600", border: "border-purple-200", btn: "bg-purple-600 hover:bg-purple-700" },
-  cyan: { bg: "bg-cyan-50", text: "text-cyan-800", icon: "text-cyan-600", border: "border-cyan-200", btn: "bg-cyan-600 hover:bg-cyan-700" },
-  orange: { bg: "bg-orange-50", text: "text-orange-800", icon: "text-orange-600", border: "border-orange-200", btn: "bg-orange-600 hover:bg-orange-700" },
+  amber: {
+    bg: "bg-amber-50",
+    text: "text-amber-800",
+    icon: "text-amber-700",
+    border: "border-amber-200",
+    btn: "bg-amber-600 hover:bg-amber-700",
+  },
+  red: {
+    bg: "bg-red-50",
+    text: "text-red-800",
+    icon: "text-red-700",
+    border: "border-red-200",
+    btn: "bg-red-600 hover:bg-red-700",
+  },
+  green: {
+    bg: "bg-green-50",
+    text: "text-green-800",
+    icon: "text-green-700",
+    border: "border-green-200",
+    btn: "bg-green-600 hover:bg-green-700",
+  },
+  blue: {
+    bg: "bg-blue-50",
+    text: "text-blue-800",
+    icon: "text-blue-700",
+    border: "border-blue-200",
+    btn: "bg-blue-600 hover:bg-blue-700",
+  },
+  purple: {
+    bg: "bg-purple-50",
+    text: "text-purple-800",
+    icon: "text-purple-700",
+    border: "border-purple-200",
+    btn: "bg-purple-600 hover:bg-purple-700",
+  },
+  cyan: {
+    bg: "bg-cyan-50",
+    text: "text-cyan-800",
+    icon: "text-cyan-600",
+    border: "border-cyan-200",
+    btn: "bg-cyan-600 hover:bg-cyan-700",
+  },
+  orange: {
+    bg: "bg-orange-50",
+    text: "text-orange-800",
+    icon: "text-orange-700",
+    border: "border-orange-200",
+    btn: "bg-orange-600 hover:bg-orange-700",
+  },
 };
 
 const DEMO_SYSTEM_LOGS: LogEntry[] = [
-  { id: "sys-1", studentId: "", studentName: "", parentPhone: "", message: "Term 1 grades finalized. Reports generated for 320 students.", status: "sent", timestamp: new Date(Date.now() - 3600000).toISOString(), automationType: "term_end", recordsProcessed: 320 },
-  { id: "sys-2", studentId: "", studentName: "", parentPhone: "", message: "Payroll processed for 45 staff members. Total: UGX 28,450,000", status: "sent", timestamp: new Date(Date.now() - 7200000).toISOString(), automationType: "auto_payroll", recordsProcessed: 45 },
-  { id: "sys-3", studentId: "", studentName: "", parentPhone: "", message: "Promotion review completed for 280 students. 12 flagged for retention.", status: "sent", timestamp: new Date(Date.now() - 86400000).toISOString(), automationType: "auto_promotion", recordsProcessed: 280 },
-  { id: "sys-4", studentId: "", studentName: "", parentPhone: "", message: "Term-End Processing failed: academic_terms table missing current term flag.", status: "failed", timestamp: new Date(Date.now() - 172800000).toISOString(), automationType: "term_end", recordsProcessed: 0 },
-  { id: "sys-5", studentId: "", studentName: "", parentPhone: "", message: "Auto Payroll: NSSF computation error for staff ID ST-042", status: "failed", timestamp: new Date(Date.now() - 259200000).toISOString(), automationType: "auto_payroll", recordsProcessed: 0 },
-  { id: "sys-6", studentId: "", studentName: "", parentPhone: "", message: "Auto Promotion: 268 students promoted to next class", status: "sent", timestamp: new Date(Date.now() - 345600000).toISOString(), automationType: "auto_promotion", recordsProcessed: 268 },
+  {
+    id: "sys-1",
+    studentId: "",
+    studentName: "",
+    parentPhone: "",
+    message: "Term 1 grades finalized. Reports generated for 320 students.",
+    status: "sent",
+    timestamp: new Date(Date.now() - 3600000).toISOString(),
+    automationType: "term_end",
+    recordsProcessed: 320,
+  },
+  {
+    id: "sys-2",
+    studentId: "",
+    studentName: "",
+    parentPhone: "",
+    message: "Payroll processed for 45 staff members. Total: UGX 28,450,000",
+    status: "sent",
+    timestamp: new Date(Date.now() - 7200000).toISOString(),
+    automationType: "auto_payroll",
+    recordsProcessed: 45,
+  },
+  {
+    id: "sys-3",
+    studentId: "",
+    studentName: "",
+    parentPhone: "",
+    message: "Promotion review completed for 280 students. 12 flagged for retention.",
+    status: "sent",
+    timestamp: new Date(Date.now() - 86400000).toISOString(),
+    automationType: "auto_promotion",
+    recordsProcessed: 280,
+  },
+  {
+    id: "sys-4",
+    studentId: "",
+    studentName: "",
+    parentPhone: "",
+    message: "Term-End Processing failed: academic_terms table missing current term flag.",
+    status: "failed",
+    timestamp: new Date(Date.now() - 172800000).toISOString(),
+    automationType: "term_end",
+    recordsProcessed: 0,
+  },
+  {
+    id: "sys-5",
+    studentId: "",
+    studentName: "",
+    parentPhone: "",
+    message: "Auto Payroll: NSSF computation error for staff ID ST-042",
+    status: "failed",
+    timestamp: new Date(Date.now() - 259200000).toISOString(),
+    automationType: "auto_payroll",
+    recordsProcessed: 0,
+  },
+  {
+    id: "sys-6",
+    studentId: "",
+    studentName: "",
+    parentPhone: "",
+    message: "Auto Promotion: 268 students promoted to next class",
+    status: "sent",
+    timestamp: new Date(Date.now() - 345600000).toISOString(),
+    automationType: "auto_promotion",
+    recordsProcessed: 268,
+  },
 ];
 
 function getStatusBadgeVariant(status: string): "success" | "error" | "warning" | "info" {
   switch (status) {
-    case "sent": return "success";
-    case "failed": return "error";
-    case "running": return "warning";
-    default: return "info";
+    case "sent":
+      return "success";
+    case "failed":
+      return "error";
+    case "running":
+      return "warning";
+    default:
+      return "info";
   }
 }
 
@@ -91,10 +197,13 @@ export default function AutomationLogsPage() {
 
     const mappedSms: LogEntry[] = smsLogs.map((l) => ({
       ...l,
-      automationType: l.message.includes("fee") ? "fee_overdue"
-        : l.message.includes("absent") ? "absentee_alert"
-        : l.message.includes("payment") || l.message.includes("receipt") ? "payment_confirmation"
-        : "report_card_ready",
+      automationType: l.message.includes("fee")
+        ? "fee_overdue"
+        : l.message.includes("absent")
+          ? "absentee_alert"
+          : l.message.includes("payment") || l.message.includes("receipt")
+            ? "payment_confirmation"
+            : "report_card_ready",
       recordsProcessed: 1,
     }));
 
@@ -253,7 +362,11 @@ export default function AutomationLogsPage() {
         </div>
 
         {/* Automation Type Cards with Run Now */}
-        <PageSection title="Automation Triggers" description="Run or view status of each automation type" className="mb-6">
+        <PageSection
+          title="Automation Triggers"
+          description="Run or view status of each automation type"
+          className="mb-6"
+        >
           <div className="grid gap-3">
             {AUTOMATION_TYPES.map((auto) => {
               const colors = COLOR_MAP[auto.color];
@@ -269,13 +382,17 @@ export default function AutomationLogsPage() {
                         <div className="flex items-center justify-between gap-4">
                           <div>
                             <h3 className="font-semibold text-gray-900 text-sm">{auto.title}</h3>
-                            <span className={`text-xs ${auto.group === "system" ? "text-purple-500" : "text-blue-500"}`}>
+                            <span
+                              className={`text-xs ${auto.group === "system" ? "text-purple-500" : "text-blue-500"}`}
+                            >
                               {auto.group === "system" ? "System Automation" : "SMS Automation"}
                             </span>
                           </div>
                           <div className="flex items-center gap-2">
                             {isEnabled && (
-                              <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">Enabled</span>
+                              <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-medium">
+                                Enabled
+                              </span>
                             )}
                             <Button
                               onClick={() => handleRun(auto.key)}
@@ -284,9 +401,13 @@ export default function AutomationLogsPage() {
                               className={`text-white ${colors.btn}`}
                             >
                               {running === auto.key ? (
-                                <><MaterialIcon icon="hourglass_empty" className="animate-spin" /> Running</>
+                                <>
+                                  <MaterialIcon icon="hourglass_empty" className="animate-spin" /> Running
+                                </>
                               ) : (
-                                <><MaterialIcon icon="play_arrow" /> Run Now</>
+                                <>
+                                  <MaterialIcon icon="play_arrow" /> Run Now
+                                </>
                               )}
                             </Button>
                           </div>
@@ -304,7 +425,16 @@ export default function AutomationLogsPage() {
         <PageSection title="Automation Run History" description="Filterable log of all automation executions">
           <div className="flex flex-wrap gap-2 mb-4">
             <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
-              {["all", "fee_overdue", "absentee_alert", "payment_confirmation", "report_card_ready", "term_end", "auto_payroll", "auto_promotion"].map((f) => (
+              {[
+                "all",
+                "fee_overdue",
+                "absentee_alert",
+                "payment_confirmation",
+                "report_card_ready",
+                "term_end",
+                "auto_payroll",
+                "auto_promotion",
+              ].map((f) => (
                 <button
                   key={f}
                   onClick={() => setFilter(f)}
@@ -389,13 +519,9 @@ export default function AutomationLogsPage() {
                             {log.status === "sent" ? "Success" : log.status === "demo" ? "Demo" : log.status}
                           </Badge>
                         </td>
-                        <td className="py-3 pr-4 text-gray-600 text-sm max-w-md truncate">
-                          {log.message}
-                        </td>
+                        <td className="py-3 pr-4 text-gray-600 text-sm max-w-md truncate">{log.message}</td>
                         <td className="py-3 pr-4 text-right">
-                          <span className="text-sm font-semibold text-gray-900">
-                            {log.recordsProcessed ?? "-"}
-                          </span>
+                          <span className="text-sm font-semibold text-gray-900">{log.recordsProcessed ?? "-"}</span>
                         </td>
                       </tr>
                     );

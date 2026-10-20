@@ -44,7 +44,7 @@ export default function TopDefaulters({
           </h2>
           <MaterialIcon icon={isOpen ? "expand_less" : "expand_more"} className="text-[var(--t3)] text-lg" />
         </div>
-        <span className="text-xs font-bold text-[var(--red)] bg-[var(--red-soft)] px-2 py-0.5 rounded-full">
+        <span className="text-xs font-bold text-[var(--red-ink)] bg-[var(--red-soft)] px-2 py-0.5 rounded-full">
           UGX {formatCompactCurrency(totalBalance)}
         </span>
       </button>
@@ -59,7 +59,7 @@ export default function TopDefaulters({
               className="flex flex-wrap items-center gap-3 rounded-[18px] bg-[var(--surface-container-low)] border border-[var(--border)] px-3 py-2.5"
             >
               <div
-                className="h-9 w-9 rounded-full bg-[var(--red-soft)] flex items-center justify-center text-sm font-bold text-[var(--red)] shrink-0"
+                className="h-9 w-9 rounded-full bg-[var(--red-soft)] flex items-center justify-center text-sm font-bold text-[var(--red-ink)] shrink-0"
                 aria-hidden="true"
               >
                 {student.first_name?.[0] || ""}

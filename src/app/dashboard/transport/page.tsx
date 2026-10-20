@@ -229,7 +229,7 @@ export default function TransportPage() {
                         <button
                           onClick={() => deleteRoute(r.id, r._student_count || 0)}
                           disabled={deletingId === r.id}
-                          className="p-1.5 hover:bg-red-50 rounded-lg text-[var(--t3)] hover:text-red-500 disabled:opacity-50 transition-colors"
+                          className="p-1.5 hover:bg-red-50 rounded-lg text-[var(--t3)] hover:text-red-700 disabled:opacity-50 transition-colors"
                           title="Delete route"
                         >
                           <MaterialIcon

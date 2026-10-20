@@ -538,7 +538,7 @@ export default function ExamsPage() {
                                         : "Needs urgent review on core concepts.";
                                   toast.info(`${student.first_name}: ${advice}`);
                                 }}
-                                className="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center opacity-0 group-hover/student:opacity-100 transition-all hover:bg-amber-100"
+                                className="w-7 h-7 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center opacity-0 group-hover/student:opacity-100 transition-all hover:bg-amber-100"
                                 title="Generate AI Advice"
                               >
                                 <MaterialIcon icon="tips_and_updates" style={{ fontSize: 16 }} />

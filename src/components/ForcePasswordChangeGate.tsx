@@ -145,7 +145,7 @@ export default function ForcePasswordChangeGate() {
 
           {error && (
             <p
-              className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-300"
+              className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950 dark:text-red-700"
               role="alert"
             >
               {error}

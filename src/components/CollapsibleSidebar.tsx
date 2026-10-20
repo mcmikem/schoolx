@@ -255,8 +255,8 @@ export default function CollapsibleSidebar({ groups, onNavigate, compact = false
                             className={cn(
                               "text-xs font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider",
                               item.badge === "New"
-                                ? "bg-[var(--green-soft)] text-[var(--green)]"
-                                : "bg-[var(--amber-soft)] text-[var(--amber)]",
+                                ? "bg-[var(--green-soft)] text-[var(--green-ink)]"
+                                : "bg-[var(--amber-soft)] text-[var(--amber-ink)]",
                             )}
                           >
                             {item.badge}
