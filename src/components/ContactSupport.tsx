@@ -94,7 +94,7 @@ export default function ContactSupport({
         href={waUrl}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-2 rounded-xl bg-[#25D366] px-4 py-2 text-sm font-medium text-white hover:bg-[#20BD5A] transition-colors"
+        className="inline-flex items-center gap-2 rounded-xl bg-[var(--brand-whatsapp)] px-4 py-2 text-sm font-medium text-white hover:bg-[#20BD5A] transition-colors"
       >
         <MaterialIcon icon="chat" />
         {label || "Chat on WhatsApp"}
@@ -104,21 +104,19 @@ export default function ContactSupport({
 
   if (variant === "banner") {
     return (
-      <div className="rounded-xl bg-[#F0FFF4] border border-[#25D366]/30 p-4 flex items-start gap-3">
-        <div className="text-[#25D366] mt-0.5">
+      <div className="rounded-xl bg-[#F0FFF4] border border-[var(--brand-whatsapp)]/30 p-4 flex items-start gap-3">
+        <div className="text-[var(--brand-whatsapp)] mt-0.5">
           <MaterialIcon icon="support_agent" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-[var(--t1)]">
-            {message || "Need help?"}
-          </p>
+          <p className="text-sm font-medium text-[var(--t1)]">{message || "Need help?"}</p>
           <p className="text-xs text-[var(--t3)] mt-1">
             Contact us on{" "}
             <a
               href={waUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[#25D366] font-medium hover:underline"
+              className="text-[var(--brand-whatsapp)] font-medium hover:underline"
             >
               WhatsApp ({phone})
             </a>
@@ -134,7 +132,7 @@ export default function ContactSupport({
       href={waUrl}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center gap-1.5 text-sm text-[#25D366] hover:underline font-medium"
+      className="inline-flex items-center gap-1.5 text-sm text-[var(--brand-whatsapp)] hover:underline font-medium"
     >
       <MaterialIcon icon="chat" className="text-base" />
       {label || `Contact support on WhatsApp (${phone})`}

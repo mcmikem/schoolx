@@ -21,14 +21,14 @@ export default function BrochurePage() {
         .cover .badge { border: 1px solid rgba(255,255,255,0.3); border-radius: 100px; padding: 8pt 24pt; font-size: 10pt; letter-spacing: 2pt; text-transform: uppercase; }
         .section { padding: 40pt 48pt; }
         .section h2 { font-size: 22pt; color: #001f3f; margin: 0 0 16pt; font-weight: 700; }
-        .section h3 { font-size: 14pt; color: #005ce6; margin: 20pt 0 8pt; font-weight: 600; }
+        .section h3 { font-size: 14pt; color: var(--navy-mid); margin: 20pt 0 8pt; font-weight: 600; }
         .section p { font-size: 10.5pt; line-height: 1.6; color: #333; margin: 0 0 10pt; }
         .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20pt; margin: 16pt 0; }
         .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16pt; margin: 16pt 0; }
         .card { border: 1px solid #e0e7ef; border-radius: 8pt; padding: 16pt; background: #f8faff; }
         .card h4 { font-size: 11pt; color: #001f3f; margin: 0 0 6pt; }
         .card p { font-size: 9pt; color: #555; line-height: 1.5; margin: 0; }
-        .highlight { background: #e8f4ed; border-left: 4pt solid #2e9448; padding: 12pt 16pt; border-radius: 4pt; margin: 16pt 0; }
+        .highlight { background: #e8f4ed; border-left: 4pt solid var(--brand-green); padding: 12pt 16pt; border-radius: 4pt; margin: 16pt 0; }
         .highlight p { margin: 0; font-size: 10pt; color: #1a5a30; }
         .pricing-table { width: 100%; border-collapse: collapse; margin: 16pt 0; font-size: 9.5pt; }
         .pricing-table th { background: #001f3f; color: white; padding: 10pt 12pt; text-align: left; font-weight: 600; }

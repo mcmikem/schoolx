@@ -115,7 +115,7 @@ export default function DemoPage() {
                     },
                   ].map((item) => (
                     <div key={item.title} className="flex items-start gap-4">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#eaf4ed] text-[#2E9448] flex-shrink-0">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--brand-green-soft)] text-[var(--brand-green)] flex-shrink-0">
                         <MaterialIcon icon={item.icon} className="text-[20px]" />
                       </div>
                       <div>

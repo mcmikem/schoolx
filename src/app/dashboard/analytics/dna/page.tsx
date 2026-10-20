@@ -406,7 +406,10 @@ export default function PerformanceDNAPage() {
                 <ResponsiveContainer width="100%" height={300}>
                   <RadarChart cx="50%" cy="50%" outerRadius="80%" data={radarData!}>
                     <PolarGrid stroke="#e2e8f0" />
-                    <PolarAngleAxis dataKey="subject" tick={{ fontSize: 10, fontWeight: 800, fill: "#64748b" }} />
+                    <PolarAngleAxis
+                      dataKey="subject"
+                      tick={{ fontSize: 10, fontWeight: 800, fill: "var(--slate-ink)" }}
+                    />
                     <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
                     <Radar name="Student" dataKey="A" stroke="#6366f1" fill="#6366f1" fillOpacity={0.5} />
                   </RadarChart>

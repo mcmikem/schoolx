@@ -46,7 +46,7 @@ const featureGroups = [
   {
     title: "Exams, Grades & Reports",
     icon: "fact_check",
-    color: "bg-purple-50 text-[#7c3aed]",
+    color: "bg-purple-50 text-[var(--violet)]",
     features: [
       "CA, mid-term & end-of-term exam entry",
       "Automated grade calculation",
@@ -70,7 +70,7 @@ const featureGroups = [
   {
     title: "Communication & SMS",
     icon: "sms",
-    color: "bg-teal-50 text-[#0d9488]",
+    color: "bg-teal-50 text-[var(--secondary-600)]",
     features: [
       "Bulk SMS to parents & staff",
       "Fee reminder automation",

@@ -96,8 +96,8 @@ async function parseApiResponse(response: Response): Promise<Record<string, unkn
 
 const PLANS: Record<string, { monthly: number; annual: number; perStudent: number; label: string; color: string }> = {
   starter: { monthly: 350_000, annual: 3_800_000, perStudent: 50_000, label: "Starter", color: "#3b82f6" },
-  growth: { monthly: 550_000, annual: 6_000_000, perStudent: 65_000, label: "Growth", color: "#0d9488" },
-  enterprise: { monthly: 850_000, annual: 9_500_000, perStudent: 80_000, label: "Enterprise", color: "#f59e0b" },
+  growth: { monthly: 550_000, annual: 6_000_000, perStudent: 65_000, label: "Growth", color: "var(--secondary-600)" },
+  enterprise: { monthly: 850_000, annual: 9_500_000, perStudent: 80_000, label: "Enterprise", color: "var(--amber)" },
 };
 
 const LEGACY_PLAN_MAP: Record<string, string> = {

@@ -34,7 +34,7 @@ export function Badge({ status }: { status: string }) {
 }
 
 export function PlanBadge({ plan }: { plan: string }) {
-  const c = PLAN_COLORS[plan] || "#64748b";
+  const c = PLAN_COLORS[plan] || "var(--slate-ink)";
   return (
     <span className="px-2 py-0.5 rounded-full text-xs font-bold uppercase" style={{ background: `${c}18`, color: c }}>
       {PLAN_LABELS[plan] || plan}

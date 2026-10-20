@@ -443,7 +443,7 @@ export function SchoolDetailSheet({
                   <div className="flex items-center justify-between mb-3">
                     <div>
                       <div className="text-[12px] font-bold text-[#15803d]">Tester School Account</div>
-                      <p className="text-xs text-[#4ade80] mt-0.5">
+                      <p className="text-xs text-[var(--brand-green)] mt-0.5">
                         Bypasses subscription checks. Testers get in-app bug report tools.
                       </p>
                     </div>
@@ -468,7 +468,7 @@ export function SchoolDetailSheet({
                       type="button"
                       disabled={saving}
                       onClick={extendTrial}
-                      className="px-4 py-2 rounded-lg bg-[#f59e0b] text-white text-[12px] font-bold hover:bg-[#d97706] transition-colors disabled:opacity-60"
+                      className="px-4 py-2 rounded-lg bg-[var(--amber)] text-white text-[12px] font-bold hover:bg-[var(--brand-accent)] transition-colors disabled:opacity-60"
                     >
                       Extend
                     </button>
@@ -476,7 +476,7 @@ export function SchoolDetailSheet({
                       type="button"
                       disabled={saving}
                       onClick={activate}
-                      className="px-4 py-2 rounded-lg bg-[#0d9488] text-white text-[12px] font-bold hover:opacity-90 transition-opacity disabled:opacity-60"
+                      className="px-4 py-2 rounded-lg bg-[var(--secondary-600)] text-white text-[12px] font-bold hover:opacity-90 transition-opacity disabled:opacity-60"
                     >
                       Activate
                     </button>

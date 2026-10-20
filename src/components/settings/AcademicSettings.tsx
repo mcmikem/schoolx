@@ -250,7 +250,7 @@ export default function AcademicSettings() {
                     min={0}
                     max={100}
                   />
-                  <span className="text-sm text-[#64748b]">%</span>
+                  <span className="text-sm text-[var(--slate-ink)]">%</span>
                 </div>
               ))}
             </div>

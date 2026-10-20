@@ -55,7 +55,7 @@ export const PWAInstallPrompt = memo(function PWAInstallPrompt() {
     <div className="fixed bottom-[160px] left-4 right-4 z-[9940] sm:bottom-24 sm:left-auto sm:right-6 sm:max-w-sm">
       <div className="rounded-2xl border border-slate-200 bg-white/95 backdrop-blur shadow-[0_12px_40px_rgba(15,23,42,0.12)] p-4">
         <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-[#eaf4ed] text-[#2E9448]">
+          <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-[var(--brand-green-soft)] text-[var(--brand-green)]">
             <span className="material-symbols-outlined text-[22px]">install_mobile</span>
           </div>
           <div className="flex-1 min-w-0">

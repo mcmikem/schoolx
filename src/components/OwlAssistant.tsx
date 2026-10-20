@@ -625,7 +625,7 @@ export default function OwlAssistant() {
               href={generateSupportWhatsAppLink(contactCtx)}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1 px-2.5 py-1.5 bg-[#25D366] hover:bg-[#20b858] rounded-full text-white text-xs font-semibold transition-colors shrink-0"
+              className="flex items-center gap-1 px-2.5 py-1.5 bg-[var(--brand-whatsapp)] hover:bg-[#20b858] rounded-full text-white text-xs font-semibold transition-colors shrink-0"
               title="WhatsApp Support Team"
               onClick={(e) => e.stopPropagation()}
             >

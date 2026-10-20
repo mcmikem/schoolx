@@ -107,13 +107,18 @@ export function AppActivityTab() {
               icon="insights"
               color="var(--navy)"
             />
-            <StatCard label="Page Views" value={summary.pageViews.toLocaleString()} icon="visibility" color="#0d9488" />
+            <StatCard
+              label="Page Views"
+              value={summary.pageViews.toLocaleString()}
+              icon="visibility"
+              color="var(--secondary-600)"
+            />
             <StatCard label="Errors" value={summary.errors.toLocaleString()} icon="bug_report" color="#dc2626" />
             <StatCard
               label="Unique Schools"
               value={summary.uniqueSchools.toLocaleString()}
               icon="school"
-              color="#7c3aed"
+              color="var(--violet)"
             />
           </div>
 
@@ -247,13 +252,13 @@ export function AppActivityTab() {
                   label="Page Views"
                   value={usageEvents.filter((e: any) => e.event_type === "page_view").length.toLocaleString()}
                   icon="visibility"
-                  color="#0d9488"
+                  color="var(--secondary-600)"
                 />
                 <StatCard
                   label="Feature Uses"
                   value={usageEvents.filter((e: any) => e.event_type === "feature_use").length.toLocaleString()}
                   icon="touch_app"
-                  color="#7c3aed"
+                  color="var(--violet)"
                 />
                 <StatCard
                   label="Errors"

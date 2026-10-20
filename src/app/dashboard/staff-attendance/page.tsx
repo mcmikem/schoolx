@@ -156,7 +156,7 @@ export default function StaffAttendancePage() {
     {
       status: "late",
       label: "Late",
-      color: "bg-[#fff7ed] text-[#b86e00] border-[#b86e00]",
+      color: "bg-[var(--portal-warning-soft-2)] text-[#b86e00] border-[#b86e00]",
       active: false,
     },
     {

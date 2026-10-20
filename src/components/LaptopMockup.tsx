@@ -30,14 +30,14 @@ function DashboardScreen({ isActive }: AnimatedScreenProps) {
   const stats = [
     { icon: "how_to_reg", label: "Present Today", value: "782", sub: "out of 847", color: "#10b981" },
     { icon: "payments", label: "Fees Collected", value: "18.4M", sub: "UGX this term", color: "#001F3F" },
-    { icon: "warning", label: "Pending Fees", value: "127", sub: "students", color: "#d97706" },
-    { icon: "sms", label: "SMS Today", value: "426", sub: "97% delivered", color: "#0d9488" },
+    { icon: "warning", label: "Pending Fees", value: "127", sub: "students", color: "var(--brand-accent)" },
+    { icon: "sms", label: "SMS Today", value: "426", sub: "97% delivered", color: "var(--secondary-600)" },
   ];
 
   const attendance = [
     { cls: "S.4", pct: 88, color: "#001F3F" },
     { cls: "S.3", pct: 91, color: "#10b981" },
-    { cls: "S.2", pct: 76, color: "#d97706" },
+    { cls: "S.2", pct: 76, color: "var(--brand-accent)" },
     { cls: "S.1", pct: 85, color: "#001F3F" },
     { cls: "P.7", pct: 95, color: "#10b981" },
   ];

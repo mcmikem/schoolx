@@ -39,17 +39,17 @@ const UGANDA_PUBLIC_HOLIDAYS_2026 = [
 
 // ── Uganda 2026 School Term Dates ────────────────────────────────────────────
 const UGANDA_TERM_DATES_2026 = [
-  { date: "2026-01-13", name: "Term 1 Opens", type: "academic", color: "#0d9488" },
-  { date: "2026-02-14", name: "Term 1 Midterm Break Starts", type: "holiday", color: "#f59e0b" },
-  { date: "2026-02-16", name: "Term 1 Midterm Break Ends", type: "holiday", color: "#f59e0b" },
+  { date: "2026-01-13", name: "Term 1 Opens", type: "academic", color: "var(--secondary-600)" },
+  { date: "2026-02-14", name: "Term 1 Midterm Break Starts", type: "holiday", color: "var(--amber)" },
+  { date: "2026-02-16", name: "Term 1 Midterm Break Ends", type: "holiday", color: "var(--amber)" },
   { date: "2026-04-03", name: "Term 1 Closes (EOT)", type: "academic", color: "#ef4444" },
-  { date: "2026-05-11", name: "Term 2 Opens", type: "academic", color: "#0d9488" },
-  { date: "2026-06-26", name: "Term 2 Midterm Break Starts", type: "holiday", color: "#f59e0b" },
-  { date: "2026-06-28", name: "Term 2 Midterm Break Ends", type: "holiday", color: "#f59e0b" },
+  { date: "2026-05-11", name: "Term 2 Opens", type: "academic", color: "var(--secondary-600)" },
+  { date: "2026-06-26", name: "Term 2 Midterm Break Starts", type: "holiday", color: "var(--amber)" },
+  { date: "2026-06-28", name: "Term 2 Midterm Break Ends", type: "holiday", color: "var(--amber)" },
   { date: "2026-08-14", name: "Term 2 Closes (EOT)", type: "academic", color: "#ef4444" },
-  { date: "2026-09-07", name: "Term 3 Opens", type: "academic", color: "#0d9488" },
-  { date: "2026-10-19", name: "Term 3 Midterm Break Starts", type: "holiday", color: "#f59e0b" },
-  { date: "2026-10-21", name: "Term 3 Midterm Break Ends", type: "holiday", color: "#f59e0b" },
+  { date: "2026-09-07", name: "Term 3 Opens", type: "academic", color: "var(--secondary-600)" },
+  { date: "2026-10-19", name: "Term 3 Midterm Break Starts", type: "holiday", color: "var(--amber)" },
+  { date: "2026-10-21", name: "Term 3 Midterm Break Ends", type: "holiday", color: "var(--amber)" },
   { date: "2026-12-05", name: "Term 3 Closes (EOT)", type: "academic", color: "#ef4444" },
 ];
 
@@ -111,7 +111,7 @@ const EVENT_COLORS: Record<string, string> = {
   academic: "#6366f1",
   exam: "#ef4444",
   meeting: "#3b82f6",
-  event: "#f59e0b",
+  event: "var(--amber)",
 };
 
 function TermCalendar({ schoolId, userId }: { schoolId: string; userId: string }) {

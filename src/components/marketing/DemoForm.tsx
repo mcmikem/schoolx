@@ -47,8 +47,8 @@ export function DemoForm() {
 
   if (status === "success") {
     return (
-      <div className="rounded-[24px] bg-[#eaf4ed] p-6 text-center">
-        <MaterialIcon icon="check_circle" className="text-[#2E9448] text-4xl mx-auto" />
+      <div className="rounded-[24px] bg-[var(--brand-green-soft)] p-6 text-center">
+        <MaterialIcon icon="check_circle" className="text-[var(--brand-green)] text-4xl mx-auto" />
         <h3 className="mt-3 text-lg font-semibold text-slate-900">Demo requested!</h3>
         <p className="mt-2 text-sm text-slate-600">We&apos;ll reach out shortly to schedule your demo.</p>
       </div>
@@ -102,7 +102,9 @@ export function DemoForm() {
         </select>
       </div>
 
-      {status === "error" && <div className="rounded-[16px] bg-[#fac5c5] p-4 text-sm text-[#b91c1c]">{errorMsg}</div>}
+      {status === "error" && (
+        <div className="rounded-[16px] bg-[var(--red-soft)] p-4 text-sm text-[#b91c1c]">{errorMsg}</div>
+      )}
 
       <button
         type="submit"

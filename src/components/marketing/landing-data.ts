@@ -223,7 +223,7 @@ export const tabContent: Record<
     ],
     bars: [
       { name: "S.1", value: 78, color: "bg-[#17325F]" },
-      { name: "S.2", value: 84, color: "bg-[#2E9448]" },
+      { name: "S.2", value: 84, color: "bg-[var(--brand-green)]" },
       { name: "S.3", value: 71, color: "bg-[#B86B0C]" },
       { name: "S.4", value: 88, color: "bg-[#17325F]" },
     ],
@@ -270,10 +270,10 @@ export const tabContent: Record<
       ["Late", "12", "arrived after 8:00 AM"],
     ],
     bars: [
-      { name: "P.7", value: 92, color: "bg-[#2E9448]" },
+      { name: "P.7", value: 92, color: "bg-[var(--brand-green)]" },
       { name: "S.1", value: 85, color: "bg-[#17325F]" },
       { name: "S.2", value: 78, color: "bg-[#B86B0C]" },
-      { name: "S.4", value: 95, color: "bg-[#2E9448]" },
+      { name: "S.4", value: 95, color: "bg-[var(--brand-green)]" },
     ],
   },
   3: {
@@ -284,7 +284,7 @@ export const tabContent: Record<
     ],
     bars: [
       { name: "S.1", value: 78, color: "bg-[#17325F]" },
-      { name: "S.2", value: 84, color: "bg-[#2E9448]" },
+      { name: "S.2", value: 84, color: "bg-[var(--brand-green)]" },
       { name: "S.3", value: 71, color: "bg-[#B86B0C]" },
       { name: "S.4", value: 88, color: "bg-[#17325F]" },
     ],
@@ -345,7 +345,7 @@ export const ROLES = [
     key: "Head Teacher",
     icon: "manage_accounts",
     color: "#001F3F",
-    bg: "#eef4ff",
+    bg: "var(--primary-50)",
     quote: "I see every class, every fee, every decision from one screen.",
     tasks: [
       { icon: "how_to_reg", label: "Check who is absent before assembly starts" },
@@ -372,7 +372,7 @@ export const ROLES = [
   {
     key: "Class Teacher",
     icon: "school",
-    color: "#7c3aed",
+    color: "var(--violet)",
     bg: "#f5f3ff",
     quote: "Attendance in 2 minutes. Marks entered once. Done.",
     tasks: [
@@ -414,7 +414,7 @@ export const DAY_STEPS = [
     title: "Admin reviews the morning",
     what: "The head teacher checks the dashboard: which classes are fully present, who flagged absence, what needs action today.",
     result: "Any class with high absence gets flagged automatically. Follow-up happens before lessons start.",
-    color: "#0d9488",
+    color: "var(--secondary-600)",
   },
   {
     time: "10:00 AM",
@@ -422,7 +422,7 @@ export const DAY_STEPS = [
     title: "Exam marks are entered",
     what: "Subject teachers enter CA and mid-term marks. The system calculates grades and checks for missing entries.",
     result: "Grades appear instantly. No end-of-term scramble. The dean of studies sees completion in real time.",
-    color: "#7c3aed",
+    color: "var(--violet)",
   },
   {
     time: "2:00 PM",
@@ -430,7 +430,7 @@ export const DAY_STEPS = [
     title: "Fee payment recorded",
     what: "A parent walks in and pays. The bursar records it in seconds. MoMo payments sync automatically.",
     result: "The parent gets an SMS receipt. The fee balance updates instantly. No manual ledger.",
-    color: "#d97706",
+    color: "var(--brand-accent)",
   },
   {
     time: "4:00 PM",

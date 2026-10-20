@@ -1057,7 +1057,7 @@ function DirectoryTab({
           .id-card {
             width: 360px;
             height: 228px;
-            background: #ffffff;
+            background: var(--surface);
             border-radius: 18px;
             overflow: hidden;
             box-shadow: 0 14px 34px rgba(15, 23, 42, 0.18);
@@ -1189,7 +1189,7 @@ function DirectoryTab({
             border-top: 1px dashed #cbd5e1;
             padding-top: 8px;
             font-size: 9px;
-            color: #64748b;
+            color: var(--slate-ink);
             text-transform: uppercase;
             letter-spacing: .04em;
           }
@@ -2051,7 +2051,7 @@ function DirectoryTab({
                   {idCardPreviewStaff.subject ? (
                     <div className="text-xs text-[var(--t2)] truncate">Subjects: {idCardPreviewStaff.subject}</div>
                   ) : null}
-                  <div className="mt-auto pt-2.5 border-t border-dashed border-[var(--border2)] flex items-end justify-between text-xs text-[#64748b] uppercase tracking-[0.04em] gap-2">
+                  <div className="mt-auto pt-2.5 border-t border-dashed border-[var(--border2)] flex items-end justify-between text-xs text-[var(--slate-ink)] uppercase tracking-[0.04em] gap-2">
                     <div>
                       <div>Issued {new Date().toLocaleDateString()}</div>
                       <div>{`SM-${idCardPreviewStaff.id.slice(0, 8).toUpperCase()}`}</div>

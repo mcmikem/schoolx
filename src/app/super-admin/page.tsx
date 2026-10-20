@@ -407,21 +407,21 @@ export default function SuperAdminPage() {
                   value={dataLoading ? "\u2026" : stats.totalStudents.toLocaleString()}
                   sub="Across all schools"
                   icon="groups"
-                  color="#0d9488"
+                  color="var(--secondary-600)"
                 />
                 <StatCard
                   label="System Users"
                   value={dataLoading ? "\u2026" : stats.totalUsers.toLocaleString()}
                   sub="Staff + admin accounts"
                   icon="manage_accounts"
-                  color="#7c3aed"
+                  color="var(--violet)"
                 />
                 <StatCard
                   label="New This Month"
                   value={dataLoading ? "\u2026" : stats.newThisMonth}
                   sub="School registrations"
                   icon="add_business"
-                  color="#f59e0b"
+                  color="var(--amber)"
                 />
               </div>
 
@@ -529,7 +529,10 @@ export default function SuperAdminPage() {
                       {planBreakdown.map(({ plan, count }) => (
                         <div key={plan}>
                           <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs font-semibold" style={{ color: PLAN_COLORS[plan] || "#64748b" }}>
+                            <span
+                              className="text-xs font-semibold"
+                              style={{ color: PLAN_COLORS[plan] || "var(--slate-ink)" }}
+                            >
                               {PLAN_LABELS[plan] || plan}
                             </span>
                             <span className="text-[12px] font-bold text-[var(--t1)]">{count}</span>
@@ -539,7 +542,7 @@ export default function SuperAdminPage() {
                               className="h-full rounded-full transition-all duration-700"
                               style={{
                                 width: `${Math.round((count / maxPlan) * 100)}%`,
-                                background: PLAN_COLORS[plan] || "#64748b",
+                                background: PLAN_COLORS[plan] || "var(--slate-ink)",
                               }}
                             />
                           </div>
@@ -554,14 +557,14 @@ export default function SuperAdminPage() {
                         {
                           label: "Active",
                           value: stats.activeSchools,
-                          color: "#0d9488",
-                          bg: "#ccfbf1",
+                          color: "var(--secondary-600)",
+                          bg: "var(--secondary-100)",
                           icon: "check_circle",
                         },
                         {
                           label: "On Trial",
                           value: stats.trialSchools,
-                          color: "#1d4ed8",
+                          color: "var(--blue-ink)",
                           bg: "#dbeafe",
                           icon: "schedule",
                         },
@@ -607,7 +610,7 @@ export default function SuperAdminPage() {
                       label: "Manage Users",
                       desc: "All staff & admin accounts",
                       icon: "manage_accounts",
-                      color: "#7c3aed",
+                      color: "var(--violet)",
                       action: () => setTab("users"),
                     },
                     {
@@ -804,7 +807,7 @@ export default function SuperAdminPage() {
                                     type="button"
                                     title="Reactivate"
                                     onClick={() => reactivateSchool(s)}
-                                    className="p-1.5 rounded-lg hover:bg-[#ccfbf1] text-[#0d9488] transition-colors"
+                                    className="p-1.5 rounded-lg hover:bg-[var(--secondary-100)] text-[var(--secondary-600)] transition-colors"
                                   >
                                     <MaterialIcon icon="check_circle" style={{ fontSize: 15 }} />
                                   </button>
@@ -895,7 +898,7 @@ export default function SuperAdminPage() {
                       </thead>
                       <tbody className="divide-y divide-[var(--border)]">
                         {filteredUsers.map((u) => {
-                          const rc = ROLE_COLORS[u.role] || "#64748b";
+                          const rc = ROLE_COLORS[u.role] || "var(--slate-ink)";
                           return (
                             <tr
                               key={u.id}
@@ -931,11 +934,11 @@ export default function SuperAdminPage() {
                               <td className="px-4 py-3 text-xs text-[var(--t3)]">{fmtDate(u.created_at)}</td>
                               <td className="px-4 py-3 text-center">
                                 {u.is_active ? (
-                                  <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-[#ccfbf1] text-[#0d9488]">
+                                  <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-[var(--secondary-100)] text-[var(--secondary-600)]">
                                     Active
                                   </span>
                                 ) : (
-                                  <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-[#f1f5f9] text-[#64748b]">
+                                  <span className="px-2 py-0.5 rounded-full text-xs font-bold bg-[#f1f5f9] text-[var(--slate-ink)]">
                                     Inactive
                                   </span>
                                 )}
@@ -1131,7 +1134,7 @@ export default function SuperAdminPage() {
                     label: "Demo Mode",
                     desc: "Allow demo accounts for sales demos",
                     icon: "science",
-                    color: "#7c3aed",
+                    color: "var(--violet)",
                   },
                   {
                     key: "sms_enabled" as const,
@@ -1145,7 +1148,7 @@ export default function SuperAdminPage() {
                     label: "Mobile Money Payments",
                     desc: "Enable fee collection via MoMo / Airtel",
                     icon: "payments",
-                    color: "#0d9488",
+                    color: "var(--secondary-600)",
                   },
                 ].map((item, idx, arr) => (
                   <div

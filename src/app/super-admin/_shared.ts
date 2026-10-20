@@ -69,10 +69,10 @@ export type Tab =
 
 export const PLAN_COLORS: Record<string, string> = {
   starter: "#3b82f6",
-  growth: "#0d9488",
-  enterprise: "#f59e0b",
-  lifetime: "#7c3aed",
-  free_trial: "#64748b",
+  growth: "var(--secondary-600)",
+  enterprise: "var(--amber)",
+  lifetime: "var(--violet)",
+  free_trial: "var(--slate-ink)",
 };
 
 export const PLAN_LABELS: Record<string, string> = {
@@ -92,12 +92,12 @@ export const PLAN_PRICES: Record<string, string> = {
 };
 
 export const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
-  active: { bg: "#ccfbf1", text: "#0d9488", label: "Active" },
-  trial: { bg: "#dbeafe", text: "#1d4ed8", label: "Trial" },
+  active: { bg: "var(--secondary-100)", text: "var(--secondary-600)", label: "Active" },
+  trial: { bg: "#dbeafe", text: "var(--blue-ink)", label: "Trial" },
   expired: { bg: "#fee2e2", text: "#dc2626", label: "Expired" },
   past_due: { bg: "#fef3c7", text: "#b45309", label: "Past Due" },
   suspended: { bg: "#fef3c7", text: "#b45309", label: "Suspended" },
-  canceled: { bg: "#f1f5f9", text: "#64748b", label: "Canceled" },
+  canceled: { bg: "#f1f5f9", text: "var(--slate-ink)", label: "Canceled" },
   unpaid: { bg: "#fef3c7", text: "#b45309", label: "Unpaid" },
 };
 
@@ -109,17 +109,17 @@ export const FEATURE_STAGE_LABELS: Record<FeatureStage, string> = {
 };
 
 export const ROLE_COLORS: Record<string, string> = {
-  super_admin: "#7c3aed",
-  school_admin: "#0d9488",
-  admin: "#0d9488",
+  super_admin: "var(--violet)",
+  school_admin: "var(--secondary-600)",
+  admin: "var(--secondary-600)",
   headmaster: "#0369a1",
   bursar: "#b45309",
   teacher: "#16a34a",
   dean_of_studies: "#c026d3",
-  secretary: "#64748b",
+  secretary: "var(--slate-ink)",
   dorm_master: "#0891b2",
-  parent: "#f59e0b",
-  student: "#64748b",
+  parent: "var(--amber)",
+  student: "var(--slate-ink)",
   marketer: "#ec4899",
 };
 

@@ -474,8 +474,8 @@ export default function StudentRegistryPanel({
   };
 
   const getHouseColor = (house: HouseMeta | null) => {
-    if (!house?.color) return "#64748b";
-    return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(house.color) ? house.color : "#64748b";
+    if (!house?.color) return "var(--slate-ink)";
+    return /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(house.color) ? house.color : "var(--slate-ink)";
   };
 
   const shouldForceShowQuickImport =
@@ -498,7 +498,7 @@ export default function StudentRegistryPanel({
       case "present":
         return "#16a34a";
       case "sick":
-        return "#f97316";
+        return "var(--accent)";
       case "late":
         return "#eab308";
       case "excused":
@@ -1115,7 +1115,7 @@ export default function StudentRegistryPanel({
                                   fontSize: 9,
                                   padding: "1px 5px",
                                   background: "rgba(155,89,182,0.15)",
-                                  color: "#0d9488",
+                                  color: "var(--secondary-600)",
                                   borderRadius: 8,
                                   fontWeight: 600,
                                 }}

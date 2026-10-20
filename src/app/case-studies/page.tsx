@@ -135,7 +135,7 @@ export default function CaseStudiesPage() {
               <FadeIn key={cs.school} delay={i * 100}>
                 <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm hover:shadow-md transition-all h-full flex flex-col">
                   <div className="flex items-center gap-3 mb-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#eaf4ed] text-[#2E9448]">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[var(--brand-green-soft)] text-[var(--brand-green)]">
                       <MaterialIcon icon={cs.icon} className="text-[20px]" />
                     </div>
                     <div>

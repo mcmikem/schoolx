@@ -364,7 +364,7 @@ export function MarketersTab() {
                       <td className="px-4 py-2.5 font-semibold text-[var(--t1)]">
                         {em ? `UGX ${em.summary.total.toLocaleString()}` : "—"}
                       </td>
-                      <td className="px-4 py-2.5 text-[#d97706] font-semibold">
+                      <td className="px-4 py-2.5 text-[var(--brand-accent)] font-semibold">
                         {em ? `UGX ${em.summary.pending.toLocaleString()}` : "—"}
                       </td>
                       <td className="px-4 py-2.5">
@@ -394,11 +394,11 @@ export function MarketersTab() {
                 {earningsMap[expandedId].summary.total.toLocaleString()}
               </div>
               <div className="text-[12px]">
-                <span className="font-semibold text-[#d97706]">Pending:</span> UGX{" "}
+                <span className="font-semibold text-[var(--brand-accent)]">Pending:</span> UGX{" "}
                 {earningsMap[expandedId].summary.pending.toLocaleString()}
               </div>
               <div className="text-[12px]">
-                <span className="font-semibold text-[#0d9488]">Paid:</span> UGX{" "}
+                <span className="font-semibold text-[var(--secondary-600)]">Paid:</span> UGX{" "}
                 {earningsMap[expandedId].summary.paid.toLocaleString()}
               </div>
               <div className="text-[12px]">

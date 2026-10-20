@@ -162,7 +162,7 @@ export function UserActions({
             type="button"
             disabled={busy}
             onClick={() => doUpdate({ is_active: true }, `${u.full_name} reactivated`)}
-            className="px-2 py-0.5 rounded-lg text-xs font-semibold bg-[#ccfbf1] text-[#0d9488] hover:opacity-80 disabled:opacity-40"
+            className="px-2 py-0.5 rounded-lg text-xs font-semibold bg-[var(--secondary-100)] text-[var(--secondary-600)] hover:opacity-80 disabled:opacity-40"
           >
             Reactivate
           </button>

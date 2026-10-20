@@ -1651,7 +1651,7 @@ export default function SettingsPage() {
                     href={paymentWhatsAppLink}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 rounded-xl bg-[#25D366] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#20BD5A] transition-colors"
+                    className="inline-flex items-center gap-2 rounded-xl bg-[var(--brand-whatsapp)] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#20BD5A] transition-colors"
                   >
                     <MaterialIcon icon="chat" />
                     Pay via WhatsApp

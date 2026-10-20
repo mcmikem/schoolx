@@ -1713,7 +1713,7 @@ export default function ReportCardsPage() {
 
         {generated && hasMissingMarks && (
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-5 flex items-center gap-3">
-            <MaterialIcon icon="warning" className="text-amber-600" style={{ color: "#d97706" }} />
+            <MaterialIcon icon="warning" className="text-amber-600" style={{ color: "var(--brand-accent)" }} />
             <div>
               <div className="font-semibold text-amber-800">Incomplete Data Detected</div>
               <div className="text-sm text-amber-700">

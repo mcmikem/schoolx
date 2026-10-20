@@ -6,7 +6,7 @@ import React from "react";
    SkoolMate OS — Animated Owl Loader (Brand-Accurate)
    Colors match the SchoolMate logo exactly:
    • Navy  #0b1c39  (primary)
-   • White #ffffff  (secondary)
+   • White var(--surface)  (secondary)
    • Gold  #c8a857  (accent)
    Pure vector, no external images. Works offline.
    ──────────────────────────────────────────────────────────────── */
@@ -48,7 +48,7 @@ export function OwlLoader({
               <stop offset="100%" stopColor="#0b1c39" />
             </linearGradient>
             <linearGradient id="owlBelly" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#ffffff" />
+              <stop offset="0%" stopColor="var(--surface)" />
               <stop offset="100%" stopColor="#f5f7fa" />
             </linearGradient>
             <linearGradient id="bookCover" x1="0" y1="0" x2="1" y2="1">
@@ -66,7 +66,7 @@ export function OwlLoader({
           {/* Book (behind owl) */}
           <g className="animate-book-bounce">
             <rect x="38" y="78" width="44" height="14" rx="3" fill="url(#bookCover)" filter="url(#softShadow)" />
-            <rect x="40" y="80" width="40" height="10" rx="2" fill="#ffffff" opacity="0.25" />
+            <rect x="40" y="80" width="40" height="10" rx="2" fill="var(--surface)" opacity="0.25" />
             <line x1="60" y1="80" x2="60" y2="90" stroke="#0b1c39" strokeWidth="1.5" opacity="0.4" />
           </g>
 
@@ -83,16 +83,16 @@ export function OwlLoader({
           {/* Eyes container */}
           <g className="animate-owl-blink">
             {/* Left eye */}
-            <circle cx="46" cy="50" r="14" fill="#ffffff" />
+            <circle cx="46" cy="50" r="14" fill="var(--surface)" />
             <circle cx="46" cy="50" r="14" fill="none" stroke="#0b1c39" strokeWidth="2" />
             <circle cx="48" cy="50" r="7" fill="#0b1c39" className="animate-pupil-left" />
-            <circle cx="50" cy="48" r="2.5" fill="#ffffff" />
+            <circle cx="50" cy="48" r="2.5" fill="var(--surface)" />
 
             {/* Right eye */}
-            <circle cx="74" cy="50" r="14" fill="#ffffff" />
+            <circle cx="74" cy="50" r="14" fill="var(--surface)" />
             <circle cx="74" cy="50" r="14" fill="none" stroke="#0b1c39" strokeWidth="2" />
             <circle cx="72" cy="50" r="7" fill="#0b1c39" className="animate-pupil-right" />
-            <circle cx="74" cy="48" r="2.5" fill="#ffffff" />
+            <circle cx="74" cy="48" r="2.5" fill="var(--surface)" />
           </g>
 
           {/* Beak */}

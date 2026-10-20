@@ -84,7 +84,7 @@ export default function ContactPage() {
             <div className="space-y-5">
               <FadeIn>
                 <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#eaf4ed] text-[#2E9448]">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--brand-green-soft)] text-[var(--brand-green)]">
                     <MaterialIcon icon="mail" className="text-[24px]" />
                   </div>
                   <h3 className="mt-4 text-lg font-semibold text-slate-900">Email</h3>
@@ -97,7 +97,7 @@ export default function ContactPage() {
 
               <FadeIn delay={100}>
                 <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#eaf4ed] text-[#2E9448]">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--brand-green-soft)] text-[var(--brand-green)]">
                     <MaterialIcon icon="phone" className="text-[24px]" />
                   </div>
                   <h3 className="mt-4 text-lg font-semibold text-slate-900">Phone</h3>
@@ -110,7 +110,7 @@ export default function ContactPage() {
 
               <FadeIn delay={200}>
                 <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#25D366]/10 text-[#25D366]">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--brand-whatsapp)]/10 text-[var(--brand-whatsapp)]">
                     <MaterialIcon icon="chat" className="text-[24px]" />
                   </div>
                   <h3 className="mt-4 text-lg font-semibold text-slate-900">WhatsApp</h3>
@@ -128,7 +128,7 @@ export default function ContactPage() {
 
               <FadeIn delay={300}>
                 <div className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#eaf4ed] text-[#2E9448]">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--brand-green-soft)] text-[var(--brand-green)]">
                     <MaterialIcon icon="location_on" className="text-[24px]" />
                   </div>
                   <h3 className="mt-4 text-lg font-semibold text-slate-900">Location</h3>

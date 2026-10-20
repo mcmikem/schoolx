@@ -144,7 +144,7 @@ export default function AboutPage() {
         </section>
 
         {/* Mission */}
-        <section className="bg-[#0d1930] py-16 text-white lg:py-24">
+        <section className="bg-[var(--brand-navy-deep)] py-16 text-white lg:py-24">
           <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
             <FadeIn>
               <div className="max-w-3xl mx-auto text-center">

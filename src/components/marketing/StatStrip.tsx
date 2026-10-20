@@ -23,7 +23,7 @@ export function StatStrip() {
       value: hoursC.display,
       suffix: " hrs",
       label: "Admin time saved every week",
-      color: "#f59e0b",
+      color: "var(--amber)",
     },
     {
       ref: deliveryC.ref,
@@ -39,7 +39,7 @@ export function StatStrip() {
       value: minutesC.display,
       suffix: " min",
       label: "Setup to first class recorded",
-      color: "#a78bfa",
+      color: "var(--violet)",
     },
   ];
 
@@ -48,18 +48,12 @@ export function StatStrip() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-2 gap-y-10 gap-x-6 lg:grid-cols-4">
           {stats.map((s) => (
-            <div
-              key={s.label}
-              ref={s.ref}
-              className="flex flex-col items-center text-center"
-            >
+            <div key={s.label} ref={s.ref} className="flex flex-col items-center text-center">
               <div
                 className="flex h-12 w-12 items-center justify-center rounded-2xl mb-4"
                 style={{ background: `${s.color}22`, color: s.color }}
               >
-                <span className="material-symbols-outlined text-[24px]">
-                  {s.icon}
-                </span>
+                <span className="material-symbols-outlined text-[24px]">{s.icon}</span>
               </div>
               <p className="font-['Sora'] text-4xl font-bold text-white tracking-tight">
                 {s.value}
