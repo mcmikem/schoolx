@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "targets": {
+    "/dashboard/sync-center": {
+      "targetKind": "existing-ui",
+      "projectId": "450043c7-e09e-4fbc-a8dd-7f8b2b3fdd20",
+      "baselineDraftId": "0f7da876-03e1-42db-93f6-a57b2a959049",
+      "activeDraftId": "0f7da876-03e1-42db-93f6-a57b2a959049",
+      "designSystemPath": ".superdesign/design-system.md",
+      "referenceIds": ["public-SkoolMate-logos-SchoolMate-logo-official.svg"],
+      "brandAssets": {
+        "logo": {
+          "assetKey": "public-SkoolMate-logos-SchoolMate-logo-official.svg",
+          "url": "https://vgbujcuwptvheqijyjbe.supabase.co/storage/v1/object/public/hmac-uploads/projects/450043c7-e09e-4fbc-a8dd-7f8b2b3fdd20/brand-assets/public-SkoolMate-logos-SchoolMate-logo-official.svg/SchoolMate_logo_official.svg",
+          "sourcePath": "public/SkoolMate logos/SchoolMate logo official.svg"
+        }
+      },
+      "contextFiles": [
+        ".superdesign/design-system.md",
+        "src/app/dashboard/sync-center/page.tsx",
+        "src/app/dashboard/sync-center/loading.tsx",
+        "src/app/dashboard/layout.tsx",
+        "src/app/dashboard/loading.tsx",
+        "src/app/layout.tsx",
+        "src/components/dashboard/SidebarShell.tsx",
+        "src/components/dashboard/TopBar.tsx",
+        "src/components/dashboard/MobileBottomNav.tsx",
+        "src/components/OfflineIndicator.tsx",
+        "src/components/ui/PageHeader.tsx",
+        "src/components/ui/Card.tsx",
+        "src/components/ui/index.tsx",
+        "src/components/ui/Breadcrumbs.tsx",
+        "src/components/MaterialIcon.tsx",
+        "src/components/BrandProvider.tsx",
+        "src/lib/offline.ts",
+        "public/sw.js",
+        "tailwind.config.js"
+      ],
+      "fingerprints": {
+        ".superdesign/design-system.md": "9259e3a4b0344ac83b0cfc8ce0fb1f4b998fae6f11c451b200deea4d06ed74ec",
+        "src/app/dashboard/sync-center/page.tsx": "9591ffff90336edd7fbd6ee86367162b43eff3937683b9302b02e898d190bb30",
+        "src/app/dashboard/sync-center/loading.tsx": "f091fda3a0392715285ba869fc23a8197a15055262b92c01587159b269d4f3b3",
+        "src/app/dashboard/layout.tsx": "835d21f5970d8eb3232ac4e2266095611343ed11f1804966fdbffaebfab640db",
+        "src/app/dashboard/loading.tsx": "f091fda3a0392715285ba869fc23a8197a15055262b92c01587159b269d4f3b3",
+        "src/app/layout.tsx": "e1ef17ba58729b46daf9353cb7f4021b987ff09a0074c280cb3e694794660f55",
+        "src/components/dashboard/SidebarShell.tsx": "0470135a8e6c28e2ac1b25a0e633abfdb29ceceb94a323e171c25306da5b1613",
+        "src/components/dashboard/TopBar.tsx": "5673c179e5f08f24700930e2105ae9778a6b2dbd4c19c19c4989b11b3e4b51f1",
+        "src/components/dashboard/MobileBottomNav.tsx": "3a07d5763dc1ff6aaff10aaca71094d3512a4871869aab526b2477dac51e874b",
+        "src/components/OfflineIndicator.tsx": "155855d745987f3fb0065563482207a3ec91ae40ced8533b51e73922537d750c",
+        "src/components/ui/PageHeader.tsx": "bc2d96c61695ec2e4e832f70fc4030e80abbbc8afdc68458275bc1cf628ac0a4",
+        "src/components/ui/Card.tsx": "953958c00e66ed05666e86c34030fd9569b259bd84fe657b16cbe35a923321d2",
+        "src/components/ui/index.tsx": "e3ebf17eb391e41776f38cbbc57e9d6caf7de87c2d9ef23045129fd3cfa7470b",
+        "src/components/ui/Breadcrumbs.tsx": "c934788be6ab7a55830f490ec282f6bd8fe8f73e0186063b6492d51c1130996d",
+        "src/components/MaterialIcon.tsx": "535d641bbac2945a9242a06c660205ca2708bb5b2e0070762564d14f820a38ff",
+        "src/components/BrandProvider.tsx": "81305b1f30c97da9e7ba66289b259c2b41a688136d92d69b9c1469321d3b95f0",
+        "src/lib/offline.ts": "fdc9e0f360353de72f5a60e4c6edc3b1f4767a3eea2d7d76e1e9985a486f4f8d",
+        "public/sw.js": "f7068226a8213588931ff1ac5998e0008baa96c1c136edb30708b40cb6a147a1",
+        "tailwind.config.js": "c37f85521f65776f09f47d5cc2d9b43768feb42a13b14a1df681a3e133e51cef"
+      },
+      "components": [
+        {
+          "name": "DashboardSidebar",
+          "id": "3dd7c469-cd45-4459-a6cf-b8c00b5d5561",
+          "sourcePath": "src/components/dashboard/SidebarShell.tsx",
+          "logoAssetKey": "public-SkoolMate-logos-SchoolMate-logo-official.svg"
+        },
+        {
+          "name": "ConnectionStatus",
+          "id": "a389428f-c7ba-4649-b131-ff457a75cd5e",
+          "sourcePath": "src/components/OfflineIndicator.tsx"
+        }
+      ],
+      "drafts": {
+        "0f7da876-03e1-42db-93f6-a57b2a959049": {
+          "title": "Offline-first SkoolMate Sync Center",
+          "visualDirection": "SkoolMate blue/teal mobile-first offline status and queue",
+          "parentDraftId": null,
+          "currentVersion": 2
+        }
+      },
+      "updatedAt": "2026-10-15T00:00:00.000Z"
+    }
+  }
+}

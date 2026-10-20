@@ -341,7 +341,7 @@ function SuperAdminDashboardContent() {
         </div>
         <button
           onClick={fetchData}
-          className="ml-auto p-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--bg)] text-[var(--t3)] transition-colors"
+          className="tap-44 ml-auto p-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--bg)] text-[var(--t3)] transition-colors"
           title="Refresh"
         >
           <MaterialIcon icon="refresh" style={{ fontSize: 18 }} />

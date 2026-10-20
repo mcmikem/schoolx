@@ -8,6 +8,27 @@ test.describe("Critical app flows", () => {
     ).toBeVisible({ timeout: 10000 });
   });
 
+  test("landing page sign-in and trial calls-to-action navigate", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto("/");
+    await page.getByRole("navigation").getByRole("link", { name: /^sign in$/i }).click();
+    await expect(page).toHaveURL(/\/login/);
+    await expect(page.getByRole("button", { name: /^sign in$/i })).toBeVisible();
+
+    await page.goto("/");
+    await page.getByRole("link", { name: /start 30-day free trial/i }).click();
+    await expect(page).toHaveURL(/\/register/);
+    await expect(page.locator("input").first()).toBeVisible();
+  });
+
+  test("mobile landing page trial call-to-action navigates", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+    await page.locator(".fixed.bottom-0").getByRole("link", { name: /^start free trial$/i }).click();
+    await expect(page).toHaveURL(/\/register/);
+    await expect(page.locator("input").first()).toBeVisible();
+  });
+
   test("login page loads", async ({ page }) => {
     await page.goto("/login");
     await expect(page.getByRole("button", { name: /^sign in$/i })).toBeVisible({

@@ -158,7 +158,7 @@ function NotificationsPanel({
                   if (n.link) notifRouter.push(n.link);
                 }
               }}
-              className={`w-full text-left flex gap-3 px-4 py-3.5 border-b border-[var(--border)] hover:bg-[var(--surface-container-low)] transition-colors cursor-pointer ${!n.read ? "bg-[var(--on-primary)]" : ""}`}
+              className={`w-full text-left flex gap-3 px-4 py-3.5 border-b border-[var(--border)] hover:bg-[var(--surface-container-low)] transition-colors cursor-pointer ${!n.read ? "bg-[var(--primary)]/10 font-medium" : ""}`}
               onClick={() => {
                 if (!n.read) onDismiss(n.id);
                 if (n.link) notifRouter.push(n.link);
@@ -166,16 +166,14 @@ function NotificationsPanel({
             >
               <div
                 className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                style={{ background: `${color}20` }}
+                style={{ background: `color-mix(in srgb, ${color} 18%, transparent)` }}
               >
-                <MaterialIcon icon={icon} style={{ fontSize: 15, color: color }} />
+                <MaterialIcon icon={icon} style={{ fontSize: 16, color: color }} />
               </div>
               <div className="flex-1 min-w-0 cursor-pointer">
-                <div className={`text-[12px] text-[var(--t1)] ${!n.read ? "font-bold" : "font-semibold"}`}>
-                  {n.title}
-                </div>
-                <div className="text-[11px] text-[var(--t3)] mt-0.5 truncate">{n.message}</div>
-                <div className="text-[10px] text-[var(--t4)] mt-1">
+                <div className={`text-xs text-[var(--t1)] ${!n.read ? "font-bold" : "font-semibold"}`}>{n.title}</div>
+                <div className="text-xs text-[var(--t3)] mt-0.5 truncate">{n.message}</div>
+                <div className="text-[11px] text-[var(--t4)] mt-1">
                   {new Date(n.created_at).toLocaleTimeString("en-US", {
                     hour: "2-digit",
                     minute: "2-digit",
@@ -188,7 +186,7 @@ function NotificationsPanel({
                     e.stopPropagation();
                     onDismiss(n.id);
                   }}
-                  className="text-[var(--t4)] hover:text-[var(--t2)] transition-colors self-start mt-1"
+                  className="text-[var(--t4)] hover:text-[var(--t2)] transition-colors self-start mt-1 p-1"
                   aria-label="Mark as read"
                 >
                   <MaterialIcon icon="check" style={{ fontSize: 14 }} />
@@ -204,7 +202,7 @@ function NotificationsPanel({
             notifications.forEach((n) => !n.read && onDismiss(n.id));
             onClose();
           }}
-          className="w-full block px-4 py-[10px] text-center text-[12px] text-[var(--primary)] font-medium border-t border-[var(--border)] bg-[var(--surface-container-low)] transition-colors no-underline hover:bg-[var(--bg)]"
+          className="w-full block px-4 py-[10px] text-center text-xs text-[var(--primary)] font-medium border-t border-[var(--border)] bg-[var(--surface-container-low)] transition-colors no-underline hover:bg-[var(--bg)]"
         >
           Mark all as read
         </button>
@@ -227,6 +225,14 @@ function UserMenu({ open, onClose, onSignOut }: { open: boolean; onClose: () => 
         </div>
         <div className="text-[11px] text-[var(--t3)] truncate">{user?.role?.replace("_", " ") || "User"}</div>
       </div>
+      <Link
+        href="/dashboard/learn"
+        onClick={onClose}
+        className="flex min-h-12 items-center gap-2 px-4 py-3 text-base text-[var(--t2)] no-underline hover:bg-[var(--bg)]"
+      >
+        <MaterialIcon icon="help_outline" size={20} />
+        Help: learn step by step
+      </Link>
       {canOpenSettingsPage(user?.role) && (
         <Link
           href="/dashboard/settings"
@@ -370,15 +376,18 @@ export default function TopBar({ pageTitle, onSignOut }: { pageTitle: string; on
       </button>
 
       {/* Right actions */}
-      <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+      <div className="flex items-center gap-1 sm:gap-2 shrink-0">
         {/* Sync status indicator */}
         <div
-          className="icon-btn-circle bg-[var(--surface)] shrink-0"
-          title={isOnline ? "Connected" : "Offline"}
+          className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--surface-container-low)] border border-[var(--border)] shrink-0 text-xs font-semibold"
+          title={isOnline ? "Connected & Synchronized" : "Offline — Changes saved locally"}
           role="status"
           aria-label={isOnline ? "Connected" : "Offline"}
         >
-          <div className={`w-3 h-3 rounded-full ${isOnline ? "bg-green-500" : "bg-red-500"}`} />
+          <span className={`w-2 h-2 rounded-full ${isOnline ? "bg-emerald-500 animate-pulse" : "bg-amber-500"}`} />
+          <span className="hidden xl:inline text-xs text-[var(--t3)] font-medium">
+            {isOnline ? "Online" : "Offline"}
+          </span>
         </div>
 
         <div ref={notifPanelRef} className="notif-panel relative">

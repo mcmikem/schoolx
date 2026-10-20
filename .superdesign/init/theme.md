@@ -1,0 +1,3248 @@
+# Theme and responsive system
+
+## Compact tokens
+
+- Primary: `#005ce6`; navy: `#0045ad`; teal: `#43b3a3`; amber: `#f59e0b`; error: `#f04444`.
+- Light surfaces: background `#f5f8fe`, surface `#ffffff`; text `#171717`, secondary text `#5b6576`.
+- Dark theme uses `[data-theme="dark"]`; primary `#8ab0f0`, background `#0f1419`, surface `#1a2129`.
+- Fonts: DM Sans body, Sora headlines. Icon set: self-hosted Material Symbols Outlined via `MaterialIcon`.
+- Radius: `16px`, `24px`, `32px`; shadows `--sh1` through `--sh3`; motion duration `200ms`.
+- Shell: sidebar `264px`, collapsed rail `74px`, topbar `56px`, max width `1400px`.
+- Mobile controls use minimum `44px` targets and safe-area spacing for bottom navigation.
+
+## Tailwind config
+
+## `tailwind.config.js`
+
+```js
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/app/**/*.{js,jsx,tsx,mdx}',
+  ],
+  darkMode: ['selector', '[data-theme="dark"]'],
+  theme: {
+    extend: {
+      colors: {
+        primary: {
+          DEFAULT: 'var(--primary)',
+          50: 'var(--primary-50)',
+          100: 'var(--primary-100)',
+          200: 'var(--primary-200)',
+          300: 'var(--primary-300)',
+          400: 'var(--primary-400)',
+          500: 'var(--primary-500)',
+          600: 'var(--primary-600)',
+          700: 'var(--primary-700)',
+          800: 'var(--primary-800)',
+          900: 'var(--primary-900)',
+        },
+        surface: {
+          DEFAULT: 'var(--surface)',
+          brightest: 'var(--surface-brightest)',
+          bright: 'var(--surface-bright)',
+          dim: 'var(--surface-dim)',
+          container: 'var(--surface-container)',
+          'container-high': 'var(--surface-container-high)',
+          'container-highest': 'var(--surface-container-highest)',
+          'container-low': 'var(--surface-container-low)',
+          'container-lowest': 'var(--surface-container-lowest)',
+          lowest: 'var(--surface-lowest)',
+        },
+        onSurface: {
+          DEFAULT: 'var(--on-surface)',
+          variant: 'var(--on-surface-variant)',
+        },
+        outline: {
+          DEFAULT: 'var(--outline)',
+          variant: 'var(--outline-variant)',
+        },
+        background: 'var(--background)',
+        'on-background': 'var(--on-background)',
+        'on-surface-variant': 'var(--on-surface-variant)',
+        'on-primary': 'var(--on-primary)',
+        'on-secondary': 'var(--on-secondary)',
+        error: 'var(--error)',
+        // Material-3 roles, aliased onto the soft/ink token family in
+        // globals.css. See the "Material-3 role aliases" block there.
+        secondary: {
+          DEFAULT: 'var(--secondary)',
+          container: 'var(--secondary-container)',
+        },
+        'on-secondary-container': 'var(--on-secondary-container)',
+        tertiary: {
+          DEFAULT: 'var(--tertiary)',
+          container: 'var(--tertiary-container)',
+        },
+        'on-tertiary-container': 'var(--on-tertiary-container)',
+        'error-container': 'var(--error-container)',
+        'on-error-container': 'var(--on-error-container)',
+        green: {
+          DEFAULT: 'var(--green)',
+          soft: 'var(--green-soft)',
+        },
+        amber: {
+          DEFAULT: 'var(--amber)',
+          soft: 'var(--amber-soft)',
+        },
+        red: 'var(--red)',
+        blue: {
+          DEFAULT: 'var(--blue)',
+          soft: 'var(--blue-soft)',
+        },
+      },
+      backgroundColor: {
+        surface: {
+          DEFAULT: 'var(--surface)',
+          brightest: 'var(--surface-brightest)',
+          bright: 'var(--surface-bright)',
+          dim: 'var(--surface-dim)',
+          container: 'var(--surface-container)',
+          'container-low': 'var(--surface-container-low)',
+          'container-lowest': 'var(--surface-container-lowest)',
+          lowest: 'var(--surface-lowest)',
+        },
+      },
+      borderColor: {
+        DEFAULT: 'var(--border)',
+        outline: 'var(--outline)',
+        'outline-variant': 'var(--outline-variant)',
+      },
+      textColor: {
+        // These must keep their object shape. A bare string here replaces the
+        // whole scale inherited from `colors`, which silently killed
+        // text-primary-600/700/800 and text-on-surface (65 call sites).
+        onSurface: {
+          DEFAULT: 'var(--on-surface)',
+          variant: 'var(--on-surface-variant)',
+        },
+        'on-surface': 'var(--on-surface)',
+        'on-surface-variant': 'var(--on-surface-variant)',
+        primary: {
+          DEFAULT: 'var(--primary)',
+          50: 'var(--primary-50)',
+          100: 'var(--primary-100)',
+          200: 'var(--primary-200)',
+          300: 'var(--primary-300)',
+          400: 'var(--primary-400)',
+          500: 'var(--primary-500)',
+          600: 'var(--primary-600)',
+          700: 'var(--primary-700)',
+          800: 'var(--primary-800)',
+          900: 'var(--primary-900)',
+        },
+      },
+      fontFamily: {
+        headline: ['Sora', 'sans-serif'],
+        heading: ['Sora', 'sans-serif'],
+        body: ['DM Sans', 'system-ui', '-apple-system', 'sans-serif'],
+        label: ['DM Sans', 'sans-serif'],
+        sans: ['DM Sans', 'system-ui', '-apple-system', 'sans-serif'],
+      },
+      spacing: {
+        '18': '4.5rem',
+      },
+      boxShadow: {
+        'xl': '0 10px 40px -4px rgba(0, 32, 69, 0.06)',
+        '2xl': '0 24px 48px -12px rgba(0, 32, 69, 0.06)',
+        'primary': '0 8px 16px -4px rgba(0, 32, 69, 0.1)',
+      },
+    },
+  },
+  plugins: [],
+}
+```
+
+## Global theme and component CSS
+
+## `src/app/globals.css`
+
+```css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Self-hosted fonts (no runtime dependency on fonts.googleapis.com — critical for low-bandwidth
+   and offline-first environments). Variable woff2 for latin + latin-ext. */
+@font-face {
+  font-family: "DM Sans";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 1000;
+  src: url("/fonts/dm-sans-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "DM Sans";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 1000;
+  src: url("/fonts/dm-sans-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: "Sora";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 1000;
+  src: url("/fonts/sora-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Sora";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 1000;
+  src: url("/fonts/sora-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+/* Material Symbols Outlined — self-hosted subset (only the icon ligatures
+   used in the app). Built by scripts/build/material-symbols-subset.py.
+   Removes the runtime fonts.googleapis.com dependency that left every icon
+   blank until the CDN font arrived on slow/offline connections. */
+@font-face {
+  font-family: "Material Symbols Outlined";
+  font-style: normal;
+  /* `block`, not `swap`: while this font is still arriving over a slow link
+     every icon would otherwise render its ligature name ("system_update_alt")
+     as giant fallback text. Block keeps the glyph invisible for the short
+     block period instead of flashing readable garbage. */
+  font-display: block;
+  font-weight: 300 700;
+  src: url("/fonts/material-symbols-outlined.woff2") format("woff2");
+}
+
+.material-symbols-outlined {
+  font-family: "Material Symbols Outlined";
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  /* The self-hosted subset keeps BOTH 'liga' and 'rlig' GSUB features.
+     `font-feature-settings` replaces the feature set, so enabling both here
+     guarantees icon-name ligatures substitute on every browser. */
+  -webkit-font-feature-settings: "liga", "rlig";
+  font-feature-settings: "liga", "rlig";
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Note: Removed global scroll-behavior: smooth as it conflicts with Next.js router transitions */
+
+html {
+  @apply font-sans;
+  -webkit-text-size-adjust: 100%;
+  scroll-behavior: auto;
+}
+
+:target {
+  scroll-margin-top: 72px;
+}
+
+html,
+body {
+  /* `100vh` is the height with Android's URL bar *hidden*. On a budget handset
+     that makes the document taller than what the teacher can see, so the bottom
+     of the page sits behind the browser chrome. `100dvh` tracks the bar as it
+     collapses; the `vh` line stays first so WebViews without `dvh` still get a
+     usable height. */
+  height: 100vh;
+  height: 100dvh;
+  min-height: 100%;
+}
+
+body {
+  background: var(--background);
+  color: var(--on-background);
+  margin: 0;
+}
+
+#__next {
+  min-height: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  line-height: 1;
+}
+
+:focus-visible {
+  outline: 2px solid var(--navy);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(0, 92, 230, 0.18);
+}
+
+/* -- TOKENS ----------------------------------------------- */
+:root {
+  /* Core design system palette */
+  --navy: #0045ad;
+  --navy-mid: #005ce6;
+  --navy-soft: #d9e7fb;
+
+  --green: #43b3a3;
+  --green-soft: #dff7f3;
+
+  --amber: #f59e0b;
+  --amber-soft: #fff1cf;
+
+  --red: #f04444;
+  --red-soft: #fac5c5;
+
+  /* Badge foregrounds.
+     The hues above are tuned for headings and icons. On a tinted badge
+     background they fall below contrast in light mode — #f59e0b on
+     --amber-soft is 2.3:1. These are the darkened badge text colours, and they
+     flip with the theme so the same badge stays readable on dark too. */
+  --violet: #7c3aed;
+  --violet-soft: #f3e8ff;
+  --blue-ink: #1d4ed8;
+  --amber-ink: #b45309;
+  --red-ink: #dc2626;
+  --green-ink: #059669;
+  --slate-ink: #64748b;
+
+  /* Material-3 role aliases.
+     Call sites (the attendance register, PageGuidance, the fee modals and the
+     grade badges) were written against M3 role names that never had a variable
+     behind them, so those utilities emitted no CSS at all and the elements fell
+     back to inherited colour. These alias the M3 roles onto the soft/ink family
+     that already exists and already flips with the theme, so one definition
+     here covers both light and dark. */
+  --tertiary: var(--amber);
+  --tertiary-container: var(--amber-soft);
+  --on-tertiary-container: var(--amber-ink);
+  --error-container: var(--red-soft);
+  --on-error-container: var(--red-ink);
+  --secondary-container: var(--green-soft);
+  --on-secondary-container: var(--green-ink);
+  --blue: var(--navy);
+  --blue-soft: var(--navy-soft);
+
+  /* Light Theme - Surface & Background */
+  --sidebar-width: 264px;
+  --sidebar-collapsed-width: 74px;
+  --logo-size: 36px;
+  --shell-max-width: 1400px;
+  --topbar-height: 56px;
+
+  /* Stacking scale.
+     The app had 186 z-index declarations across 17 arbitrary values with no
+     ordering between them, and the notification layer had ended up stranded
+     underneath the dialog layer: the toast sat at z-60 while the Add/Edit
+     Student form portal is z-140, so every save error for the most-used form
+     in the app rendered behind its own backdrop. The offline pill at z-45 sat
+     below the z-50 bottom nav, so the one signal that matters most on a 2G
+     connection was never visible or tappable.
+     Notification is the top *transient* layer, so it belongs above dialogs and
+     assistants. Only a mandatory wall outranks it. New overlays should use
+     these variables rather than inventing another number. */
+  --z-nav: 50; /* bottom nav, sticky action bars */
+  --z-overlay: 1000; /* dialogs, drawers, sheets */
+  --z-assistant: 2000; /* Owl FAB/panel, bug report */
+  --z-toast: 3000; /* toasts, offline/queue indicator */
+  --z-wall: 9000; /* mandatory walls, e.g. forced password change */
+
+  /* Height of the mobile bottom nav plus its own inset, so bottom-anchored
+     transient UI can clear it instead of landing on top of it. */
+  --mobile-nav-clearance: calc(84px + env(safe-area-inset-bottom, 0px));
+
+  --bg: #f5f8fe;
+  --surface: #ffffff;
+  --border: #d9e7fb;
+  --border2: #b0ccf7;
+
+  /* Text Colors (Depth Slate) */
+  --t1: #171717;
+  --t2: #313131;
+  --t3: #5b6576;
+  --t4: #7b8698;
+
+  /* New color palette: Liquid Glass Education SaaS Theme */
+  --primary: #005ce6;
+  --primary-50: #eef4ff;
+  --primary-100: #d9e7fb;
+  --primary-200: #b0ccf7;
+  --primary-300: #7ca8f2;
+  --primary-400: #4b86ef;
+  --primary-500: #005ce6;
+  --primary-600: #004fc6;
+  --primary-700: #0045ad;
+  --primary-800: #00398d;
+  --primary-900: #0f295c;
+  --secondary: #0045ad;
+  --secondary-50: #f0fdfa;
+  --secondary-100: #ccfbf1;
+  --secondary-200: #99f6e4;
+  --secondary-300: #5eead4;
+  --secondary-400: #2dd4bf;
+  --secondary-500: #14b8a6;
+  --secondary-600: #0d9488;
+  --secondary-700: #0f766e;
+  --secondary-800: #115e59;
+  --secondary-900: #134e4a;
+
+  --accent: #f97316; /* CTA Orange */
+
+  --on-primary: #ffffff;
+  --on-secondary: #ffffff;
+
+  --surface-brightest: #ffffff;
+  --surface-bright: #f9fbff;
+  --surface-dim: #d9e3f4;
+  --surface-container: #edf3fd;
+  --surface-container-high: #e5edf9;
+  --surface-container-highest: #dce6f6;
+  --surface-container-low: #f4f7fd;
+  --surface-container-lowest: #ffffff;
+  --surface-lowest: #ffffff;
+
+  --on-surface: #171717;
+  --on-surface-variant: #4c5a70;
+  --outline: #9caecc;
+  --outline-variant: #d9e7fb;
+  --background: #f5f8fe;
+  --on-background: #171717;
+  --error: #f04444;
+
+  /* Spacing & Effects (Soft UI) */
+  --r: 16px;
+  --r2: 24px;
+  --r3: 32px;
+
+  /* Mobile Spacing Tokens */
+  --ms: 16px;
+  --mm: 24px;
+  --ml: 32px;
+
+  --sh1: 0 2px 10px rgba(0, 69, 173, 0.06);
+  --sh2: 0 12px 30px rgba(0, 69, 173, 0.08);
+  --sh3: 0 24px 54px rgba(0, 69, 173, 0.12);
+
+  --ease: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  --dur: 200ms;
+
+  /* (Retired gradient tokens removed — all call sites now use flat colors.) */
+}
+
+.glass-premium {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  border: 1px solid rgba(217, 231, 251, 0.85);
+  box-shadow: 0 16px 38px -18px rgba(0, 69, 173, 0.2);
+}
+
+/* Base X Motif Pattern — flat edition: the grid lines and color glows were
+   layered gradients. The motif now reads as a flat tint; the kente stripe
+   (hard-stop colors, real identity — not a wash) stays untouched below. */
+.bg-motif {
+  background-color: #f5f8fe;
+  background-image: none;
+}
+
+.bg-motif-fade {
+  background: none;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* No `forwards`/`both` fill here or on pageEnter below: a retained fill
+   keeps the final keyframe's transform/filter on the element forever, and any
+   non-none transform/filter makes it a containing block for position:fixed
+   descendants — every inline dialog then renders against the document instead
+   of the viewport and users must scroll to find it. The end state
+   (opacity 1, no transform) is the natural state anyway, so releasing the
+   fill is visually identical. */
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out;
+}
+
+/* One-time swipe teaching nudge: the first register row slides right and
+   back once, showing the gesture instead of describing it. Applied via a
+   session-gated class, never replayed until the next session. */
+@keyframes swipe-peek {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  35% {
+    transform: translateX(52px);
+  }
+  70% {
+    transform: translateX(0);
+  }
+}
+
+@media (max-width: 640px) {
+  .content {
+    padding: var(--ms) !important;
+  }
+  .stat-grid {
+    gap: var(--ms) !important;
+  }
+  .ph-title {
+    font-size: 1.5rem !important;
+  }
+
+  /* Keep custom popups visible on small screens.
+
+     The z-index arm used to require the literal substring "z-50", so only the
+     82 dialogs written as `z-50` got this. Six more -- GoLiveGate and the
+     password gate, the update notice, the bug reporter and the onboarding
+     wizard -- carry `z-[90]`/`z-[9995]`/`z-[9997]`/`z-[9999]`/`z-[10000]` and
+     were left sizing themselves with 100vh, putting their Save/Cancel row
+     under the Android browser bar where it cannot be tapped. Matching any
+     bracket form plus the one plain value actually in use covers all 88
+     overlays while still excluding the z-10/z-20/z-40 content layers. */
+  div[class*="fixed inset-0"]:is([class*="z-["], [class*="z-50"])[class*="items-center"][class*="justify-center"] {
+    align-items: flex-start !important;
+    overflow-y: auto !important;
+    padding-top: 0.75rem !important;
+    padding-bottom: 0.75rem !important;
+  }
+
+  div[class*="fixed inset-0"]:is([class*="z-["], [class*="z-50"])[class*="items-center"][class*="justify-center"] > div:not([class*="absolute inset-0"]) {
+    max-height: calc(100vh - 1.5rem) !important;
+    /* Same Android problem as html/body: with `100vh` alone a modal can be
+       taller than the screen, putting its Save/Cancel buttons under the browser
+       bar where they cannot be tapped. This one declaration covers all 58
+       call sites that size themselves with calc(100vh …). */
+    max-height: calc(100dvh - 1.5rem) !important;
+    margin-top: auto;
+    margin-bottom: auto;
+  }
+}
+
+.tap-effect {
+  transition: transform 0.1s ease;
+}
+
+.tap-effect:active {
+  transform: scale(0.97);
+}
+
+/* Parent portal semantic tokens — aliased to core where possible to reduce drift
+   WCAG AA: --portal-muted darkened to 4.5:1 on white, --portal-ink-soft tuned likewise */
+:root {
+  --portal-ink: var(--t1);
+  --portal-ink-soft: #5a6d89;
+  --portal-muted: #60748f;
+  --portal-muted-strong: #5a6e8c;
+  --portal-border: var(--border);
+  --portal-border-strong: var(--border2);
+  --portal-surface: var(--surface-bright);
+  --portal-surface-alt: var(--surface-container-lowest);
+  --portal-surface-tint: var(--surface-container-low);
+  --portal-surface-blue: var(--primary-50);
+  --portal-surface-blue-2: var(--primary-100);
+  --portal-surface-gray: var(--surface-container-lowest);
+  --portal-surface-gray-2: var(--surface-bright);
+  --portal-surface-gray-3: var(--surface-container);
+  --portal-success: var(--green);
+  --portal-success-soft: var(--green-soft);
+  --portal-success-soft-2: #d7ebe5;
+  --portal-success-faint: #f3fbf8;
+  --portal-success-border: #d7efe3;
+  --portal-danger: var(--red);
+  --portal-danger-soft: var(--red-soft);
+  --portal-danger-border: #f4d2c5;
+  --portal-warning: var(--amber);
+  --portal-warning-soft: var(--amber-soft);
+  --portal-warning-soft-2: #fff7ed;
+  --portal-warning-border: #fce4c0;
+  --portal-primary: var(--primary);
+  --portal-primary-deep: var(--primary-600);
+}
+
+[data-theme="dark"] {
+  --portal-ink: #e8ecf1;
+  --portal-ink-soft: #a8b4c0;
+  --portal-muted: #8a97a8;
+  --portal-muted-strong: #9aa8bb;
+  --portal-border: #2d3640;
+  --portal-border-strong: #3d4a58;
+  --portal-surface: #1a2129;
+  --portal-surface-alt: #141a20;
+  --portal-surface-tint: #16233a;
+  --portal-surface-blue: #1d3050;
+  --portal-surface-blue-2: #243c60;
+  --portal-surface-gray: #1e2630;
+  --portal-surface-gray-2: #1d2530;
+  --portal-surface-gray-3: #2b3442;
+  --portal-success: #7fe0d2;
+  --portal-success-soft: #0d2c29;
+  --portal-success-soft-2: #113a35;
+  --portal-success-faint: #0e2421;
+  --portal-success-border: #1a463d;
+  --portal-danger: #ff7a7a;
+  --portal-danger-soft: #331a1a;
+  --portal-danger-border: #4a2222;
+  --portal-warning: #ffb84d;
+  --portal-warning-soft: #33260f;
+  --portal-warning-soft-2: #3a2a10;
+  --portal-warning-border: #4a3413;
+  --portal-primary: #8ab0f0;
+  --portal-primary-deep: #7ca8f2;
+}
+
+/* Marketing / landing page tokens — brand navy + green identity (surfaces aliased to core) */
+:root {
+  --brand-ink: var(--t1);
+  --brand-navy: #0f1f3d;
+  --brand-navy-deep: #0d1930;
+  --brand-green: #2e9448;
+  --brand-green-soft: #eaf4ed;
+  --brand-green-soft-2: #dff3e5;
+  --brand-border: var(--border);
+  --brand-surface: var(--surface-bright);
+  --brand-surface-tint: var(--primary-50);
+  --brand-surface-blue: var(--surface-bright);
+  --brand-surface-blue-soft: var(--primary-100);
+  --brand-surface-muted: var(--surface-container-low);
+  --brand-surface-cool: var(--surface-container);
+  --brand-whatsapp: #25d366;
+  --brand-accent: #d97706;
+}
+
+[data-theme="dark"] {
+  --brand-ink: #e8ecf1;
+  --brand-navy: #1a2437;
+  --brand-navy-deep: #141b2a;
+  --brand-green: #4ade80;
+  --brand-green-soft: #0d2c1a;
+  --brand-green-soft-2: #113322;
+  --brand-border: #2d3640;
+  --brand-surface: #1a2129;
+  --brand-surface-tint: #1d2530;
+  --brand-surface-blue: #161e29;
+  --brand-surface-blue-soft: #24304a;
+  --brand-surface-muted: #1e2630;
+  --brand-surface-cool: #1c242e;
+  --brand-whatsapp: #4ade80;
+  --brand-accent: #fbbf24;
+}
+
+/* Dark Theme */
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #0f1419;
+  --surface: #1a2129;
+  --border: #2d3640;
+  --border2: #3d4a58;
+
+  --t1: #e8ecf1;
+  --t2: #9aa5b4;
+  --t3: #7f8a9b;
+  --t4: #8a94a6;
+
+  /* Brand palette (lightened for dark backgrounds) */
+  --navy: #9db9f2;
+  --navy-mid: #7ca8f2;
+  --navy-soft: #122a4a;
+
+  --green: #7fe0d2;
+  --green-soft: #0d2c29;
+
+  --amber: #ffb84d;
+  --amber-soft: #33260f;
+
+  --red: #ff7a7a;
+  --red-soft: #331a1a;
+
+  --violet: #a78bfa;
+  --violet-soft: #2a1f47;
+  --blue-ink: #93c5fd;
+  --amber-ink: #ffb84d;
+  --red-ink: #ff9494;
+  --green-ink: #6ee7b7;
+  --slate-ink: #9aa5b4;
+
+  --primary: #8ab0f0;
+  --primary-50: #16233a;
+  --primary-100: #1d3050;
+  --primary-200: #27426e;
+  --primary-300: #34568f;
+  --primary-400: #4b6fae;
+  --primary-500: #8ab0f0;
+  --primary-600: #9dbbf3;
+  --primary-700: #b3caf6;
+  --primary-800: #c9d9f9;
+  --primary-900: #e6edfd;
+  --on-primary: #0b1420;
+
+  --secondary: #5eead4;
+  --secondary-50: #0e2e2b;
+  --secondary-100: #11423e;
+  --secondary-200: #155e57;
+  --secondary-300: #1b7a70;
+  --secondary-400: #2dd4bf;
+  --secondary-500: #5eead4;
+  --secondary-600: #6ff1dc;
+  --secondary-700: #8ff5e6;
+  --secondary-800: #b7f9f0;
+  --secondary-900: #e2fdf8;
+  --on-secondary: #031712;
+
+  --accent: #fb923c;
+
+  /* Surfaces */
+  --surface-brightest: #202832;
+  --surface-bright: #1d242e;
+  --surface-dim: #141a21;
+  --surface-container: #232c36;
+  --surface-container-high: #28323d;
+  --surface-container-highest: #2d3844;
+  --surface-container-low: #1e262f;
+  --surface-container-lowest: #171d24;
+  --surface-lowest: #0f1419;
+
+  --on-surface: #e6ecf3;
+  --on-surface-variant: #9aa8bb;
+  --outline: #45556b;
+  --outline-variant: #2b3748;
+  --background: #0f1419;
+  --on-background: #e6ecf3;
+  --error: #ff7a7a;
+
+  /* Shadows */
+  --sh1: 0 2px 10px rgba(0, 0, 0, 0.4);
+  --sh2: 0 12px 30px rgba(0, 0, 0, 0.45);
+  --sh3: 0 24px 54px rgba(0, 0, 0, 0.55);
+
+  /* Dark Mode Premium Overrides */
+  .glass-premium {
+    background: rgba(15, 20, 25, 0.7) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4) !important;
+  }
+
+  .bg-motif {
+    background-color: #0f1419 !important;
+    background-image: none !important;
+  }
+
+  .card-premium {
+    background: rgba(26, 33, 41, 0.88);
+  }
+
+  .glass-surface {
+    background: rgba(26, 33, 41, 0.5);
+    border-color: rgba(255, 255, 255, 0.12);
+  }
+
+  .sidebar {
+    background: rgba(26, 33, 41, 0.95);
+  }
+}
+
+/* Dark mode: remap hardcoded light-mode Tailwind utilities.
+   Scoped to screen so print documents (report cards, ID cards,
+   admission letters) keep their white backgrounds on paper. */
+@media screen {
+  [data-theme="dark"] .bg-white {
+    background-color: var(--surface);
+  }
+  [data-theme="dark"] .bg-white\/80 {
+    background-color: rgba(26, 33, 41, 0.8);
+  }
+  [data-theme="dark"] .bg-white\/85 {
+    background-color: rgba(26, 33, 41, 0.85);
+  }
+  [data-theme="dark"] .bg-white\/90 {
+    background-color: rgba(26, 33, 41, 0.9);
+  }
+  [data-theme="dark"] .bg-white\/95 {
+    background-color: rgba(26, 33, 41, 0.95);
+  }
+  [data-theme="dark"] .bg-slate-50,
+  [data-theme="dark"] .bg-gray-50 {
+    background-color: var(--surface-container-low);
+  }
+  [data-theme="dark"] .bg-slate-100,
+  [data-theme="dark"] .bg-gray-100 {
+    background-color: var(--surface-container);
+  }
+  [data-theme="dark"] .bg-slate-200,
+  [data-theme="dark"] .bg-gray-200 {
+    background-color: var(--surface-container-high);
+  }
+
+  [data-theme="dark"] .text-slate-950,
+  [data-theme="dark"] .text-slate-900,
+  [data-theme="dark"] .text-slate-800,
+  [data-theme="dark"] .text-gray-900,
+  [data-theme="dark"] .text-gray-800 {
+    color: var(--t1);
+  }
+  [data-theme="dark"] .text-slate-700,
+  [data-theme="dark"] .text-slate-600,
+  [data-theme="dark"] .text-gray-700,
+  [data-theme="dark"] .text-gray-600 {
+    color: var(--t2);
+  }
+  [data-theme="dark"] .text-slate-500,
+  [data-theme="dark"] .text-gray-500 {
+    color: var(--t3);
+  }
+  [data-theme="dark"] .text-slate-400,
+  [data-theme="dark"] .text-gray-400 {
+    color: var(--t3);
+  }
+
+  [data-theme="dark"] .border-slate-100,
+  [data-theme="dark"] .border-slate-200,
+  [data-theme="dark"] .border-gray-100,
+  [data-theme="dark"] .border-gray-200 {
+    border-color: var(--border);
+  }
+  [data-theme="dark"] .border-slate-300,
+  [data-theme="dark"] .border-slate-400,
+  [data-theme="dark"] .border-gray-300,
+  [data-theme="dark"] .border-gray-400 {
+    border-color: var(--border2);
+  }
+  [data-theme="dark"] .border-white\/20,
+  [data-theme="dark"] .border-white\/40,
+  [data-theme="dark"] .border-white\/50,
+  [data-theme="dark"] .border-white\/60,
+  [data-theme="dark"] .border-white\/70 {
+    border-color: rgba(255, 255, 255, 0.1);
+  }
+
+  [data-theme="dark"] .divide-slate-50 > :not([hidden]) ~ :not([hidden]),
+  [data-theme="dark"] .divide-slate-100 > :not([hidden]) ~ :not([hidden]),
+  [data-theme="dark"] .divide-slate-200 > :not([hidden]) ~ :not([hidden]),
+  [data-theme="dark"] .divide-gray-100 > :not([hidden]) ~ :not([hidden]),
+  [data-theme="dark"] .divide-gray-200 > :not([hidden]) ~ :not([hidden]) {
+    border-color: var(--border);
+  }
+
+  [data-theme="dark"] .ring-slate-100,
+  [data-theme="dark"] .ring-slate-200,
+  [data-theme="dark"] .ring-gray-100,
+  [data-theme="dark"] .ring-gray-200 {
+    --tw-ring-color: var(--border2);
+  }
+
+  [data-theme="dark"] .hover\:bg-slate-50:hover,
+  [data-theme="dark"] .hover\:bg-gray-50:hover {
+    background-color: var(--surface-container-low);
+  }
+  [data-theme="dark"] .hover\:bg-slate-100:hover,
+  [data-theme="dark"] .hover\:bg-gray-100:hover {
+    background-color: var(--surface-container);
+  }
+  [data-theme="dark"] .hover\:bg-slate-200:hover,
+  [data-theme="dark"] .hover\:bg-gray-200:hover {
+    background-color: var(--surface-container-high);
+  }
+
+  [data-theme="dark"] .hover\:text-slate-900:hover,
+  [data-theme="dark"] .hover\:text-slate-950:hover,
+  [data-theme="dark"] .hover\:text-gray-900:hover {
+    color: var(--t1);
+  }
+  [data-theme="dark"] .hover\:text-slate-700:hover,
+  [data-theme="dark"] .hover\:text-slate-600:hover,
+  [data-theme="dark"] .hover\:text-gray-700:hover,
+  [data-theme="dark"] .hover\:text-gray-600:hover {
+    color: var(--t2);
+  }
+
+  /* Dead remap removed with the last inline page gradient: with no
+     bg-[linear-gradient...] utilities left in markup, this rule only
+     reintroduced a gradient in dark mode. */
+
+  /* Native form controls, autofill, placeholders */
+  [data-theme="dark"] input[type="checkbox"],
+  [data-theme="dark"] input[type="radio"] {
+    accent-color: var(--primary);
+  }
+  [data-theme="dark"] input::placeholder,
+  [data-theme="dark"] textarea::placeholder {
+    color: var(--t4);
+    opacity: 1;
+  }
+  [data-theme="dark"] option {
+    background-color: var(--surface);
+    color: var(--on-surface);
+  }
+  [data-theme="dark"] input:-webkit-autofill,
+  [data-theme="dark"] textarea:-webkit-autofill,
+  [data-theme="dark"] select:-webkit-autofill {
+    -webkit-text-fill-color: var(--on-surface);
+    -webkit-box-shadow: 0 0 0 1000px var(--surface) inset;
+    caret-color: var(--on-surface);
+  }
+
+  /* ── Extended dark-mode transfer ─────────────────────────────
+     Hardcoded Tailwind tints, dark chips and accent text that don't
+     have dark: variants get remapped here so pages keep readable
+     contrast when the theme flips. */
+
+  /* Remaining white opacities */
+  [data-theme="dark"] .bg-white\/30 { background-color: rgba(26, 33, 41, 0.3); }
+  [data-theme="dark"] .bg-white\/40 { background-color: rgba(26, 33, 41, 0.4); }
+  [data-theme="dark"] .bg-white\/50 { background-color: rgba(26, 33, 41, 0.5); }
+  [data-theme="dark"] .bg-white\/60 { background-color: rgba(26, 33, 41, 0.6); }
+  [data-theme="dark"] .bg-white\/70 { background-color: rgba(26, 33, 41, 0.7); }
+
+  /* Dark chips/labels that read as near-black blocks on dark surfaces */
+  [data-theme="dark"] .bg-slate-700,
+  [data-theme="dark"] .bg-gray-700 { background-color: var(--surface-container-highest); }
+  [data-theme="dark"] .bg-slate-800,
+  [data-theme="dark"] .bg-gray-800 { background-color: var(--surface-container-high); }
+  [data-theme="dark"] .bg-slate-900,
+  [data-theme="dark"] .bg-gray-900 { background-color: var(--surface-container); }
+  [data-theme="dark"] .hover\:bg-slate-700:hover,
+  [data-theme="dark"] .hover\:bg-gray-700:hover { background-color: var(--surface-container-highest); }
+  [data-theme="dark"] .hover\:bg-slate-800:hover,
+  [data-theme="dark"] .hover\:bg-gray-800:hover { background-color: var(--surface-container-high); }
+  [data-theme="dark"] .hover\:bg-slate-900:hover,
+  [data-theme="dark"] .hover\:bg-gray-900:hover { background-color: var(--surface-container); }
+
+  [data-theme="dark"] .text-black { color: var(--t1); }
+  [data-theme="dark"] .hover\:text-black:hover { color: var(--t1); }
+  [data-theme="dark"] .hover\:bg-white:hover { background-color: var(--surface-container-low); }
+
+  /* 50-shade tinted backgrounds */
+  [data-theme="dark"] .bg-emerald-50,
+  [data-theme="dark"] .bg-green-50 { background-color: #0d2c29; }
+  [data-theme="dark"] .bg-teal-50 { background-color: #0e2e2b; }
+  [data-theme="dark"] .bg-red-50,
+  [data-theme="dark"] .bg-rose-50,
+  [data-theme="dark"] .bg-pink-50 { background-color: #331a1a; }
+  [data-theme="dark"] .bg-amber-50,
+  [data-theme="dark"] .bg-yellow-50,
+  [data-theme="dark"] .bg-orange-50 { background-color: #33260f; }
+  [data-theme="dark"] .bg-blue-50,
+  [data-theme="dark"] .bg-sky-50,
+  [data-theme="dark"] .bg-cyan-50,
+  [data-theme="dark"] .bg-indigo-50,
+  [data-theme="dark"] .bg-violet-50 { background-color: #16233a; }
+  [data-theme="dark"] .bg-purple-50,
+  [data-theme="dark"] .bg-fuchsia-50 { background-color: #241a33; }
+  [data-theme="dark"] .bg-lime-50 { background-color: #1b2e12; }
+
+  /* 100-shade tinted backgrounds */
+  [data-theme="dark"] .bg-emerald-100,
+  [data-theme="dark"] .bg-green-100 { background-color: #0f3d38; }
+  [data-theme="dark"] .bg-teal-100 { background-color: #0f453f; }
+  [data-theme="dark"] .bg-red-100,
+  [data-theme="dark"] .bg-rose-100,
+  [data-theme="dark"] .bg-pink-100 { background-color: #4a2222; }
+  [data-theme="dark"] .bg-amber-100,
+  [data-theme="dark"] .bg-yellow-100,
+  [data-theme="dark"] .bg-orange-100 { background-color: #4a3413; }
+  [data-theme="dark"] .bg-blue-100,
+  [data-theme="dark"] .bg-sky-100,
+  [data-theme="dark"] .bg-cyan-100,
+  [data-theme="dark"] .bg-indigo-100,
+  [data-theme="dark"] .bg-violet-100 { background-color: #1d3050; }
+  [data-theme="dark"] .bg-purple-100,
+  [data-theme="dark"] .bg-fuchsia-100 { background-color: #33244a; }
+  [data-theme="dark"] .bg-lime-100 { background-color: #243d18; }
+
+  /* 200-shade tinted backgrounds & borders */
+  [data-theme="dark"] .bg-emerald-200,
+  [data-theme="dark"] .bg-green-200,
+  [data-theme="dark"] .border-emerald-200,
+  [data-theme="dark"] .border-green-200 { background-color: #143b37; border-color: #1a463d; }
+  [data-theme="dark"] .bg-teal-200,
+  [data-theme="dark"] .border-teal-200 { background-color: #14403a; border-color: #1a4a44; }
+  [data-theme="dark"] .bg-red-200,
+  [data-theme="dark"] .bg-rose-200,
+  [data-theme="dark"] .bg-pink-200,
+  [data-theme="dark"] .border-red-200,
+  [data-theme="dark"] .border-rose-200,
+  [data-theme="dark"] .border-pink-200 { background-color: #46201f; border-color: #5a2a2a; }
+  [data-theme="dark"] .bg-amber-200,
+  [data-theme="dark"] .bg-yellow-200,
+  [data-theme="dark"] .bg-orange-200,
+  [data-theme="dark"] .border-amber-200,
+  [data-theme="dark"] .border-yellow-200,
+  [data-theme="dark"] .border-orange-200 { background-color: #463116; border-color: #5a4116; }
+  [data-theme="dark"] .bg-blue-200,
+  [data-theme="dark"] .bg-sky-200,
+  [data-theme="dark"] .bg-cyan-200,
+  [data-theme="dark"] .bg-indigo-200,
+  [data-theme="dark"] .bg-violet-200,
+  [data-theme="dark"] .border-blue-200,
+  [data-theme="dark"] .border-sky-200,
+  [data-theme="dark"] .border-cyan-200,
+  [data-theme="dark"] .border-indigo-200,
+  [data-theme="dark"] .border-violet-200 { background-color: #1c2c4a; border-color: #27426e; }
+  [data-theme="dark"] .bg-purple-200,
+  [data-theme="dark"] .bg-fuchsia-200,
+  [data-theme="dark"] .border-purple-200,
+  [data-theme="dark"] .border-fuchsia-200 { background-color: #33214a; border-color: #452f5c; }
+
+  /* Accent text (600+) -> light accents for dark backgrounds */
+  [data-theme="dark"] .text-emerald-600, [data-theme="dark"] .text-emerald-700,
+  [data-theme="dark"] .text-emerald-800, [data-theme="dark"] .text-emerald-900,
+  [data-theme="dark"] .text-green-600, [data-theme="dark"] .text-green-700,
+  [data-theme="dark"] .text-green-800, [data-theme="dark"] .text-green-900 { color: #6ee7b7; }
+  [data-theme="dark"] .text-teal-600, [data-theme="dark"] .text-teal-700,
+  [data-theme="dark"] .text-teal-800 { color: #5eead4; }
+  [data-theme="dark"] .text-red-600, [data-theme="dark"] .text-red-700,
+  [data-theme="dark"] .text-red-800, [data-theme="dark"] .text-red-900,
+  [data-theme="dark"] .text-rose-600, [data-theme="dark"] .text-rose-700,
+  [data-theme="dark"] .text-rose-800,
+  [data-theme="dark"] .text-pink-600, [data-theme="dark"] .text-pink-700 { color: #fda4af; }
+  [data-theme="dark"] .text-amber-600, [data-theme="dark"] .text-amber-700,
+  [data-theme="dark"] .text-amber-800,
+  [data-theme="dark"] .text-yellow-600, [data-theme="dark"] .text-yellow-700,
+  [data-theme="dark"] .text-yellow-800,
+  [data-theme="dark"] .text-orange-600, [data-theme="dark"] .text-orange-700,
+  [data-theme="dark"] .text-orange-800 { color: #fcd34d; }
+  [data-theme="dark"] .text-blue-600, [data-theme="dark"] .text-blue-700,
+  [data-theme="dark"] .text-blue-800, [data-theme="dark"] .text-blue-900,
+  [data-theme="dark"] .text-indigo-600, [data-theme="dark"] .text-indigo-700,
+  [data-theme="dark"] .text-indigo-800,
+  [data-theme="dark"] .text-violet-600, [data-theme="dark"] .text-violet-700,
+  [data-theme="dark"] .text-violet-800,
+  [data-theme="dark"] .text-sky-600, [data-theme="dark"] .text-sky-700,
+  [data-theme="dark"] .text-cyan-600, [data-theme="dark"] .text-cyan-700 { color: #93c5fd; }
+  [data-theme="dark"] .text-purple-600, [data-theme="dark"] .text-purple-700,
+  [data-theme="dark"] .text-fuchsia-600, [data-theme="dark"] .text-fuchsia-700 { color: #d8b4fe; }
+  [data-theme="dark"] .text-lime-600, [data-theme="dark"] .text-lime-700 { color: #bef264; }
+
+  /* Solid-filled primary/navy elements flip to light fills on dark, so white
+     text on them becomes unreadable. Key the text off --on-primary (dark in
+     dark mode) for every bg-primary / bg-[var(--primary)] / bg-[var(--navy)]
+     solid fill paired with white text. */
+  [data-theme="dark"] [class*="bg-primary"][class*="text-white"],
+  [data-theme="dark"] [class*="bg-[var(--primary)]"][class*="text-white"],
+  [data-theme="dark"] [class*="bg-[var(--navy)]"][class*="text-white"] {
+    color: var(--on-primary);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.4) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+}
+
+[data-theme="dark"] .shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.05) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+}
+
+/* ── Skeleton Shimmer Wave ── */
+@keyframes shimmer-wave {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.animate-shimmer-wave {
+  animation: shimmer-wave 1.6s ease-in-out infinite;
+}
+
+.skeleton {
+  display: block;
+  border-radius: 0.5rem;
+  background-color: var(--surface-container, #e2e8f0);
+  animation: skeleton-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse {
+  50% { opacity: 0.45; }
+}
+
+/* ── Owl Loader Animations ── */
+@keyframes owl-float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+@keyframes owl-shadow {
+  0%, 100% { transform: scaleX(1); opacity: 0.12; }
+  50% { transform: scaleX(0.85); opacity: 0.08; }
+}
+@keyframes owl-blink {
+  0%, 45%, 55%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(0.1); }
+}
+@keyframes wing-left {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-8deg); }
+}
+@keyframes wing-right {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(8deg); }
+}
+@keyframes book-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+@keyframes cap-wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-3deg); }
+  75% { transform: rotate(3deg); }
+}
+@keyframes typing-dot {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30% { transform: translateY(-6px); opacity: 1; }
+}
+@keyframes pupil-look {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(-1px, 0); }
+  75% { transform: translate(1px, 0); }
+}
+
+.animate-owl-float {
+  animation: owl-float 3s ease-in-out infinite;
+}
+.animate-owl-shadow {
+  transform-origin: center;
+  animation: owl-shadow 3s ease-in-out infinite;
+}
+.animate-owl-blink {
+  transform-origin: center 50px;
+  animation: owl-blink 4s ease-in-out infinite;
+}
+.animate-wing-left {
+  transform-origin: 30px 64px;
+  animation: wing-left 2.5s ease-in-out infinite;
+}
+.animate-wing-right {
+  transform-origin: 90px 64px;
+  animation: wing-right 2.5s ease-in-out infinite;
+}
+.animate-book-bounce {
+  animation: book-bounce 2s ease-in-out infinite;
+}
+.animate-cap-wiggle {
+  transform-origin: 60px 13px;
+  animation: cap-wiggle 3s ease-in-out infinite;
+}
+.animate-typing-dot {
+  animation: typing-dot 1.2s ease-in-out infinite;
+}
+.animate-pupil-left {
+  animation: pupil-look 5s ease-in-out infinite;
+}
+.animate-pupil-right {
+  animation: pupil-look 5s ease-in-out infinite reverse;
+}
+
+/* Page Atmospheric Transitions — view-transition aware.
+   No `forwards` fill: see the note on .animate-fade-in above. Retaining
+   pageEnter's translateY(0)/blur(0) on <main> turned the whole main column
+   into a containing block for fixed descendants, throwing every inline
+   dialog (fee restore prompt, settings payment modal, …) mid-page. */
+main#main-content {
+  view-transition-name: main-content;
+  animation: pageEnter 0.5s var(--ease);
+}
+@supports (view-transition-name: root) {
+  ::view-transition-old(main-content) { animation: 180ms cubic-bezier(0.4,0,0.2,1) both fade-out; }
+  ::view-transition-new(main-content) { animation: 240ms cubic-bezier(0.4,0,0.2,1) both fade-in; }
+  @keyframes fade-in { from { opacity:0; transform: translateY(4px); } to { opacity:1; transform:translateY(0);} }
+  @keyframes fade-out { from { opacity:1 } to { opacity:0 } }
+}
+
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+/* Premium Table UX — background-only transition to avoid jank on large lists */
+table tr {
+  transition: background-color 0.15s var(--ease);
+}
+
+.table-hover-premium tr:hover {
+  background: var(--surface-container-low) !important;
+}
+
+@layer base {
+  * {
+    @apply box-border;
+    overflow-wrap: break-word;
+  }
+
+  html {
+    @apply font-sans;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--t1);
+    @apply antialiased min-h-screen w-full;
+    font-family:
+      "DM Sans",
+      system-ui,
+      -apple-system,
+      sans-serif;
+  }
+
+  ::-webkit-scrollbar {
+    @apply w-1 h-1;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--border2);
+    @apply rounded-full;
+  }
+
+  *:focus-visible {
+    outline: 2px solid var(--navy);
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /* -- LEGACY CLASS SHIMS (To be refactored into components) -- */
+  .content {
+    @apply p-4 sm:p-6 flex flex-col gap-6 max-w-[1400px] mx-auto w-full;
+  }
+
+  .page-header {
+    @apply flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4 mb-2;
+  }
+
+  .ph-title {
+    @apply font-extrabold text-[var(--t1)] tracking-tight leading-none;
+    font-family: "Sora", sans-serif;
+    font-size: clamp(1.125rem, 2.5vw, 1.5rem);
+    text-wrap: balance;
+    /* `anywhere` breaks a word at any character to satisfy min-content, which
+       shredded titles mid-word inside narrow columns ("To 2 S ist 1be r f(E)").
+       `break-word` only breaks when a single word genuinely cannot fit, so
+       titles wrap at spaces as a reader expects. */
+    overflow-wrap: break-word;
+    word-break: normal;
+  }
+
+  .ph-sub {
+    @apply text-xs sm:text-sm text-[var(--t3)] mt-1.5 font-medium max-w-full;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .ph-actions {
+    @apply flex flex-wrap items-center gap-3;
+  }
+
+  .story-card {
+    @apply transition-shadow duration-200;
+  }
+  .story-card:hover {
+    @apply shadow-md;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-[14px] text-[13px] font-semibold cursor-pointer border-none transition-all duration-[var(--dur)] ease-[var(--ease)] tracking-tight whitespace-nowrap active:scale-[0.98];
+    font-family: "DM Sans", sans-serif;
+  }
+
+  .btn-primary {
+    @apply bg-[var(--primary)] text-[var(--on-primary)] shadow-[var(--sh1)] hover:bg-[var(--primary-600)] active:bg-[var(--primary-700)];
+  }
+
+  .btn-secondary {
+    @apply bg-[var(--surface)] text-[var(--t2)] border border-[var(--border)] shadow-none hover:bg-[var(--surface-container-low)] hover:text-[var(--t1)];
+  }
+
+  .btn-sm {
+    @apply px-3 py-2 text-xs rounded-[10px];
+  }
+
+  .btn-ghost {
+    @apply bg-[var(--surface)] text-[var(--t2)] border border-[var(--border)] shadow-none hover:bg-[var(--surface-container-low)] hover:border-[var(--border2)] hover:text-[var(--t1)];
+  }
+
+  .btn-green {
+    @apply bg-[#0f766e] text-white shadow-[0_1px_4px_rgba(13,148,136,0.25)] hover:shadow-[0_3px_10px_rgba(13,148,136,0.3)] hover:bg-[#115e59];
+  }
+
+  /* Donezo-inspired pill CTA + card header action (e.g. + New, + Add Member).
+     Uses brand tokens — no hardcoded greens. */
+  .btn-pill {
+    @apply inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full text-[13px] font-semibold cursor-pointer transition-all duration-[var(--dur)] ease-[var(--ease)] tracking-tight whitespace-nowrap active:scale-[0.98];
+    font-family: "DM Sans", sans-serif;
+  }
+
+  .card-action-pill {
+    @apply inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-[11px] font-bold border border-[var(--border)] bg-[var(--surface)] text-[var(--t2)] transition-all hover:bg-[var(--surface-container-low)] hover:border-[var(--border2)] hover:text-[var(--t1)] active:scale-[0.97] cursor-pointer whitespace-nowrap;
+    font-family: "DM Sans", sans-serif;
+    text-decoration: none;
+  }
+
+  /* Circular icon button (topbar mail/bell/theme) + kbd hint for search */
+  .icon-btn-circle {
+    @apply w-10 h-10 rounded-full border border-[var(--border)] bg-[var(--surface)] flex items-center justify-center cursor-pointer relative transition-colors hover:bg-[var(--surface-container-low)];
+  }
+
+  .search-kbd {
+    @apply hidden sm:inline-flex items-center justify-center px-1.5 py-0.5 rounded-md text-[10px] font-bold text-[var(--t4)] bg-[var(--surface-container-low)] border border-[var(--border)] ml-auto flex-shrink-0;
+    font-family: "DM Sans", sans-serif;
+  }
+
+  /* Sidebar section label + count badge (MENU / GENERAL grouping) */
+  .sidebar-section-label {
+    @apply text-[10px] uppercase tracking-widest font-extrabold text-[var(--t4)] px-3 pt-4 pb-1.5;
+    font-family: "DM Sans", sans-serif;
+  }
+
+  .sidebar-count-badge {
+    @apply ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[var(--t1)] text-white uppercase tracking-wider flex-shrink-0;
+    font-family: "DM Mono", monospace;
+  }
+
+  /* Stat card external-link arrow (Donezo ↗ affordance) */
+  .stat-link-arrow {
+    @apply w-8 h-8 rounded-full border border-[var(--border)] flex items-center justify-center text-[var(--t3)] transition-all hover:bg-[var(--t1)] hover:text-white hover:border-[var(--t1)] flex-shrink-0;
+    text-decoration: none;
+  }
+
+  /* Panel header row (Donezo card titles + action, e.g. Project / + New) */
+  .panel-head {
+    @apply flex items-center justify-between gap-2 mb-4;
+  }
+  .panel-title {
+    @apply font-bold text-[15px] text-[var(--t1)] tracking-tight;
+    font-family: "Sora", sans-serif;
+  }
+
+  /* Weekly bars (Donezo Project Analytics treatment: pill bars, striped empties) */
+  .weekbar-col {
+    @apply flex-1 flex flex-col justify-end items-center gap-1.5 min-w-0 h-full;
+  }
+  .weekbar {
+    @apply w-full rounded-full transition-all duration-300;
+    max-width: 44px;
+    min-height: 12px;
+  }
+  .weekbar-solid {
+    background: var(--primary-600);
+  }
+  .weekbar-max {
+    background: var(--green);
+  }
+  .weekbar-empty {
+    background: repeating-linear-gradient(
+      -45deg,
+      var(--surface-container-high) 0 4px,
+      var(--surface-container-low) 4px 8px
+    );
+    border: 1px solid var(--border);
+  }
+  .weekbar-day {
+    @apply text-[10px] font-bold uppercase text-[var(--t4)];
+  }
+  .weekbar-val {
+    @apply text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[var(--green-soft)] text-[var(--green)] whitespace-nowrap h-5 flex items-center;
+    font-family: "DM Sans", sans-serif;
+  }
+
+  /* Donut legend (Donezo Project Progress dots) */
+  .donut-legend {
+    @apply flex items-center justify-center gap-4 mt-3 flex-wrap;
+  }
+  .donut-legend-item {
+    @apply inline-flex items-center gap-1.5 text-[11px] font-semibold text-[var(--t3)];
+  }
+  .donut-dot {
+    @apply w-2.5 h-2.5 rounded-full flex-shrink-0;
+  }
+
+  .card {
+    @apply bg-[var(--surface)] border border-[var(--border)] rounded-[22px] shadow-[var(--sh1)] overflow-hidden;
+    @apply px-4 py-4 sm:px-5 sm:py-5;
+  }
+
+  .card-header {
+    @apply flex items-center justify-between px-4 py-3 sm:px-5 sm:py-4 border-b border-[var(--border)] bg-[var(--surface-bright)];
+  }
+
+  .card-title {
+    @apply font-bold text-sm text-[var(--t1)] tracking-tight;
+    font-family: "Sora", sans-serif;
+  }
+
+  .card-body {
+    @apply px-4 py-4 sm:px-5 sm:py-4;
+  }
+
+  .card-sub {
+    @apply text-[12px] text-[var(--t3)] font-medium mt-0.5;
+  }
+
+  .stat-grid {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-2;
+    container-type: inline-size;
+    align-items: start;
+  }
+
+  .stat-card {
+    @apply relative bg-[var(--surface)] border border-[var(--border)] rounded-2xl overflow-hidden flex flex-col transition-all duration-200 ease-out cursor-default;
+    @apply px-4 py-3 sm:px-5 sm:py-4;
+    box-shadow:
+      0 1px 3px rgba(15, 23, 42, 0.06),
+      0 4px 12px rgba(15, 23, 42, 0.04);
+  }
+
+  .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 4px 16px rgba(15, 23, 42, 0.1),
+      0 12px 32px rgba(15, 23, 42, 0.07);
+    @apply border-[var(--border2)];
+  }
+
+  .stat-accent {
+    @apply absolute top-0 left-0 w-full;
+    height: 3px;
+  }
+
+  .stat-inner {
+    @apply p-5 flex-1 flex flex-col;
+  }
+
+  .stat-meta {
+    @apply flex items-center justify-between mb-3;
+  }
+
+  .stat-label {
+    @apply text-[11px] font-bold uppercase tracking-widest text-[var(--t3)];
+  }
+
+  .stat-icon-box {
+    @apply w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0;
+  }
+
+  .stat-val {
+    @apply text-[28px] font-extrabold tracking-tight leading-none;
+    font-family: "Sora", sans-serif;
+  }
+
+  .stat-footer {
+    @apply px-5 py-3 bg-[var(--bg)] border-t border-[var(--border)] flex items-center justify-between mt-auto;
+  }
+
+  .stat-foot-label {
+    @apply text-[12px] text-[var(--t3)] font-medium;
+  }
+
+  .stat-foot-val {
+    @apply text-[12px] font-bold uppercase tracking-wider;
+  }
+
+  .list-row {
+    @apply flex items-center gap-3 px-5 py-3 border-b border-[var(--bg)] cursor-pointer transition-colors duration-[var(--dur)] ease-[var(--ease)] last:border-none hover:bg-[var(--bg)];
+  }
+
+  .badge {
+    @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold tracking-wider uppercase;
+    font-family: "DM Mono", monospace;
+  }
+
+  .badge-green {
+    @apply bg-[var(--green-soft)] text-[var(--green)];
+  }
+  .badge-red {
+    @apply bg-[var(--red-soft)] text-[var(--red)];
+  }
+  .badge-navy {
+    @apply bg-[var(--navy-soft)] text-[var(--navy)];
+  }
+  .badge-amber {
+    @apply bg-[var(--amber-soft)] text-[var(--amber)];
+  }
+
+  .main-grid {
+    @apply grid grid-cols-1 lg:grid-cols-12 gap-6;
+  }
+
+  .main-col {
+    @apply lg:col-span-8 flex flex-col gap-6;
+  }
+
+  .main-col:last-child {
+    @apply lg:col-span-4;
+  }
+
+  .qa-grid {
+    @apply grid grid-cols-2 gap-3;
+  }
+
+  .qa-item {
+    @apply flex flex-col items-center justify-center p-4 rounded-[20px] border border-[var(--border)] bg-[var(--surface)] transition-all hover:bg-[var(--surface-container-low)] hover:border-[var(--border2)] active:scale-[0.98];
+    text-decoration: none;
+  }
+
+  .qa-icon {
+    @apply w-10 h-10 rounded-[14px] flex items-center justify-center border mb-2 border-transparent;
+  }
+
+  .qa-label {
+    @apply text-[11px] font-bold text-[var(--t2)] text-center;
+  }
+
+  /* -- UTILITIES -- */
+
+  /* Quick Actions Bar - Large top-of-dashboard buttons */
+  .quick-actions-bar {
+    @apply grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6;
+  }
+  .qa-large {
+    @apply flex flex-col items-center justify-center gap-2 p-4 sm:p-5 rounded-[22px] border border-[var(--border)] bg-[var(--surface)] transition-all hover:bg-[var(--surface-container-low)] hover:border-[var(--border2)] hover:shadow-[var(--sh2)] active:scale-[0.98] cursor-pointer;
+    text-decoration: none;
+    min-height: 88px;
+  }
+  .qa-large-icon {
+    @apply w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center;
+  }
+  .qa-large-label {
+    @apply text-[12px] sm:text-[13px] font-bold text-[var(--t1)] text-center tracking-tight;
+  }
+
+  /* Today's Overview Section */
+  .today-overview {
+    @apply mb-6;
+  }
+  .today-overview-header {
+    @apply flex items-center gap-2 mb-3;
+    font-family: "Sora", sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--t1);
+  }
+  .today-overview-badge {
+    @apply ml-auto inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-bold;
+    background: var(--navy-soft);
+    color: var(--navy);
+  }
+  .today-overview-grid {
+    @apply grid grid-cols-1 sm:grid-cols-3 gap-3;
+  }
+  .today-overview-card {
+    @apply flex items-center gap-3 p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] transition-all hover:bg-[var(--bg)] active:scale-[0.98];
+  }
+  .today-overview-card-icon {
+    @apply w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0;
+  }
+  .today-overview-card-body {
+    @apply flex-1 min-w-0;
+  }
+  .today-overview-card-value {
+    @apply text-xl font-extrabold text-[var(--t1)] tracking-tight leading-none;
+    font-family: "Sora", sans-serif;
+  }
+  .today-overview-card-label {
+    @apply text-[11px] text-[var(--t3)] font-medium mt-1 truncate;
+  }
+  .today-overview-card-link {
+    @apply flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-[var(--t4)] transition-colors hover:bg-[var(--bg)] hover:text-[var(--t2)];
+    text-decoration: none;
+  }
+
+  /* Focus Items Grid (replaces grid-cols-1 md:grid-cols-3) */
+  .focus-grid {
+    @apply grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6;
+    container-type: inline-size;
+  }
+  @container (max-width: 320px) {
+    .stat-val { font-size: 22px !important; }
+    .focus-grid { grid-template-columns: 1fr !important; }
+  }
+
+  /* -- UTILITIES -- */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    @apply hidden;
+  }
+
+  .glass-card {
+    @apply bg-white/10 dark:bg-black/20 backdrop-blur-xl border border-white/20 dark:border-white/5;
+  }
+
+  .glass-premium {
+    @apply bg-white/70 dark:bg-black/40 backdrop-blur-md border border-white/40 dark:border-white/10 shadow-[var(--sh2)];
+  }
+
+  .card-gradient-teal {
+    background: #0f766e;
+    color: white !important;
+  }
+  .card-gradient-navy {
+    background: #005ce6;
+    color: white !important;
+  }
+  .card-gradient-amber {
+    background: #b45309;
+    color: white !important;
+  }
+
+  /* -- DASHBOARD MICRO-LAYOUTS -- */
+
+  /* Attendance Rows */
+  .att-row {
+    @apply flex items-center gap-4 px-5 py-3.5 border-b border-[var(--bg)] last:border-none hover:bg-[var(--bg)] transition-colors;
+  }
+  .att-pill {
+    @apply flex-shrink-0 w-12 h-8 rounded-lg flex items-center justify-center text-[10px] font-extrabold tracking-wider;
+  }
+  .att-info {
+    @apply flex-1 min-w-0;
+  }
+  .att-name {
+    @apply text-[13px] font-bold text-[var(--t1)] truncate;
+  }
+  .att-meta {
+    @apply text-[12px] text-[var(--t3)] font-medium mt-0.5;
+  }
+  .att-bar-col {
+    @apply hidden sm:block w-24 flex-shrink-0;
+  }
+  .att-bar-bg {
+    @apply h-1.5 bg-[var(--bg)] rounded-full overflow-hidden;
+  }
+  .att-bar-fill {
+    @apply h-full rounded-full transition-all duration-500;
+  }
+  .att-pct {
+    @apply text-right w-10 text-[11px] font-bold text-[var(--t2)];
+  }
+
+  /* Recent Activity Rows */
+  .activity-row {
+    @apply flex gap-4 px-5 py-4 border-b border-[var(--bg)] last:border-none hover:bg-[var(--bg)] transition-colors;
+  }
+  .act-dot-col {
+    @apply flex-shrink-0 flex flex-col items-center pt-1.5;
+  }
+  .act-dot {
+    @apply w-2 h-2 rounded-full;
+  }
+  .act-body {
+    @apply flex-1 min-w-0;
+  }
+  .act-title {
+    @apply text-[13px] font-semibold text-[var(--t1)] leading-snug;
+  }
+  .act-sub {
+    @apply text-[11px] text-[var(--t3)] font-medium mt-1;
+  }
+  .act-time {
+    @apply flex-shrink-0 text-[12px] text-[var(--t4)] font-bold uppercase tracking-wider pt-0.5;
+  }
+
+  /* Alert Boxes */
+  .alert-box {
+    @apply flex items-center gap-4 p-4 rounded-2xl mb-3 transition-all active:scale-[0.98] border border-transparent;
+    text-decoration: none;
+  }
+  .alert-box.red {
+    @apply bg-[var(--red-soft)] border-[rgba(192,57,43,0.1)];
+  }
+  .alert-box.amb {
+    @apply bg-[var(--amber-soft)] border-[rgba(184,107,12,0.1)];
+  }
+  .alert-box.navy {
+    @apply bg-[var(--navy-soft)] border-[rgba(23,50,95,0.1)];
+  }
+  .alert-box.green {
+    @apply bg-[var(--green-soft)] border-[rgba(46,148,72,0.1)];
+  }
+
+  .ab-icon {
+    @apply flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center;
+  }
+  .ab-body {
+    @apply flex-1 min-w-0;
+  }
+  .ab-title {
+    @apply text-[13px] font-bold text-[var(--t1)] truncate;
+  }
+  .ab-sub {
+    @apply text-[11px] text-[var(--t2)] font-medium mt-0.5;
+  }
+
+  /* Term Rows */
+  .term-row {
+    @apply flex items-center justify-between px-4 py-3.5 border-b border-[var(--bg)] last:border-none hover:bg-[var(--bg)] transition-colors;
+  }
+  .term-row-label {
+    @apply flex items-center gap-2.5 text-[12px] font-semibold text-[var(--t2)];
+  }
+  .term-row-val {
+    @apply text-[12px] font-bold text-[var(--t1)];
+  }
+
+  /* Warning/At Risk Rows */
+  .warn-row {
+    @apply flex items-center gap-4 px-5 py-4 border-b border-[var(--bg)] last:border-none hover:bg-[var(--bg)] transition-colors;
+    text-decoration: none;
+  }
+  .warn-av {
+    @apply flex-shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-[11px] font-bold text-white;
+  }
+  .warn-info {
+    @apply flex-1 min-w-0;
+  }
+  .warn-name {
+    @apply text-[13px] font-bold text-[var(--t1)] truncate;
+  }
+  .warn-detail {
+    @apply text-[10px] text-[var(--red)] font-semibold mt-0.5 uppercase tracking-wider;
+  }
+
+  /* Mobile Navigation */
+  .mobile-bottom-nav {
+    @apply fixed left-1/2 -translate-x-1/2 bg-[var(--surface)] border border-[var(--border)] flex items-stretch justify-around z-50 sm:hidden;
+    bottom: max(10px, env(safe-area-inset-bottom));
+    width: min(96vw, 520px);
+    min-height: 64px;
+    border-radius: 20px;
+    padding: 6px 8px calc(8px + env(safe-area-inset-bottom));
+    padding-top: 8px;
+    overflow: visible;
+    box-shadow: var(--sh1);
+  }
+
+  .mobile-nav-item {
+    @apply relative flex flex-col items-center justify-center gap-0.5 text-[var(--t4)] transition-all flex-1 max-w-[80px] py-2.5 px-1;
+    text-decoration: none;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+    min-width: 0;
+    min-height: 52px;
+    border-radius: 18px;
+  }
+
+  /* Minimum comfortable touch target.
+     Icon controls are often deliberately small — a 20px close button inside a
+     toast, a clear-field "x" — but a fingertip needs roughly 44px. This grows
+     the hit area to 44px without changing the element's visual size or the
+     layout around it, so it can be dropped onto any small control.
+     Uses ::before, which nothing interactive in this app uses. */
+  .tap-44 {
+    position: relative;
+  }
+  .tap-44::before {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+  }
+  .mobile-nav-item:active {
+    transform: scale(0.9);
+    background: var(--bg);
+  }
+  .mobile-nav-item.active {
+    @apply text-[var(--on-primary)] bg-[var(--primary)];
+  }
+  .mobile-nav-item.active .mobile-nav-dot {
+    @apply bg-[var(--on-primary)];
+  }
+  [data-theme="dark"] .mobile-nav-item.active {
+    color: var(--on-primary);
+  }
+  [data-theme="dark"] .mobile-nav-item.active .mobile-nav-dot {
+    background-color: var(--on-primary);
+  }
+  .mobile-nav-dot {
+    @apply absolute bottom-1.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-white;
+  }
+  [data-theme="dark"] .mobile-nav-dot {
+    background-color: currentColor;
+  }
+
+  /* Target the label explicitly. A blanket `.mobile-nav-item span` also matched
+     the MaterialIcon ligature span and the active dot, which are sized in
+     pixels and must not inherit text styles — that clipped the icon glyphs into
+     "how_to_re..." stubs. */
+  .mobile-nav-label {
+    @apply text-[10px] font-bold uppercase tracking-wider truncate w-full text-center;
+  }
+
+  /* -- BOTTOM SHEET ANIMATION -- */
+  @keyframes slideUpBottomSheet {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+  .animate-slideUpBottomSheet {
+    animation: slideUpBottomSheet 0.3s ease-out;
+  }
+
+  /* -- FORM INPUTS -- */
+  .label {
+    @apply block text-sm font-medium text-[var(--on-surface)] mb-2;
+  }
+
+  .input {
+    @apply w-full px-4 py-3 rounded-[16px] border border-[var(--border)] bg-[var(--surface-container-lowest)] text-[var(--on-surface)] text-base shadow-none focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] transition-colors;
+  }
+
+  /* -- LEGACY MODAL SHELL --
+     These four classes are still used by ~12 dialogs across schools,
+     exam-timetable and exams. They lost their stylesheet in 7b7b7b9b while
+     the markup stayed, which left those dialogs rendering as unpositioned
+     inline divs. Kept in sync with <Modal>'s geometry (dvh, safe-area,
+     same z-index band) so both shells behave identically. Migrate call sites
+     to <Modal>; this block is the floor, not the target. */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 100;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 20px;
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
+  }
+  .modal {
+    background: var(--surface);
+    border-radius: var(--r2, 24px);
+    width: 100%;
+    max-width: 480px;
+    max-height: calc(100vh - 1.5rem);
+    max-height: calc(100dvh - 1.5rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    box-shadow: var(--sh3, 0 8px 32px rgb(0 0 0 / 0.18));
+  }
+  .modal-header {
+    @apply px-5 py-4 border-b border-[var(--border)];
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .modal-body {
+    @apply p-5;
+  }
+  .modal-footer {
+    @apply px-5 py-4 border-t border-[var(--border)];
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  @media (max-width: 640px) {
+    .modal-overlay {
+      padding: 8px;
+      padding-bottom: max(8px, env(safe-area-inset-bottom));
+    }
+    .modal {
+      max-width: 100%;
+      max-height: calc(100dvh - 1rem);
+    }
+    .modal-header,
+    .modal-body {
+      padding: 12px;
+    }
+    .modal-footer {
+      padding: 12px;
+      flex-direction: column-reverse;
+      gap: 8px;
+    }
+    .modal-footer .btn,
+    .modal-footer > button {
+      width: 100%;
+    }
+  }
+
+  .input::placeholder,
+  .input:empty {
+    color: var(--t3, #9ca3af);
+  }
+
+  .input option[value=""] {
+    color: var(--t3, #9ca3af);
+  }
+
+  /* -- PROGRESS RING -- */
+  .ring-svg {
+    transform: rotate(-90deg);
+  }
+  .ring-track {
+    fill: none;
+    stroke: var(--border, #e5e7eb);
+    stroke-width: 4;
+  }
+  .ring-fill {
+    fill: none;
+    stroke-width: 4;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.6s ease;
+  }
+
+  /* -- TABLE UTILITIES -- */
+  .tbl-wrap {
+    @apply overflow-x-auto;
+    max-width: 100%;
+  }
+  .table-wrapper {
+    @apply overflow-x-auto;
+    max-width: 100%;
+  }
+  .dashboard-table-wrap {
+    @apply overflow-x-auto;
+  }
+  .table-responsive th,
+  .tbl th,
+  .dashboard-table-wrap thead th {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+  }
+  .table-responsive {
+    @apply w-full;
+  }
+  .table-responsive table {
+    @apply w-full border-collapse;
+  }
+  .table-responsive th {
+    @apply px-4 py-3 text-xs font-bold text-[var(--t3)] uppercase tracking-wider text-left border-b border-[var(--border)] bg-[var(--surface-container-low)];
+  }
+  .table-responsive td {
+    @apply px-4 py-3 text-sm text-[var(--on-surface-variant)] border-b border-[var(--bg)];
+  }
+  .table-responsive tr:hover td {
+    @apply bg-[var(--surface-container-low)];
+  }
+  .tbl {
+    @apply w-full border-collapse;
+  }
+  .tbl th {
+    @apply px-4 py-3 text-xs font-bold text-[var(--t3)] uppercase tracking-wider text-left border-b border-[var(--border)] bg-[var(--surface-container-low)];
+  }
+  .tbl td {
+    @apply px-4 py-3 text-sm text-[var(--on-surface-variant)] border-b border-[var(--bg)];
+  }
+
+  /* -- MOBILE CONTAINER -- */
+  .mobile-container {
+    @apply w-full mx-auto;
+    max-width: var(--shell-max-width);
+  }
+
+  /* -- MAIN CONTENT OVERFLOW FIX -- */
+  .main-content {
+    overflow-x: clip;
+    overflow-y: auto;
+  }
+
+  /* -- LAYOUT SAFETY & OVERLAP FIXES -- */
+  .line-clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .min-w-0 {
+    min-width: 0;
+  }
+  .truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* Grid/Flex containment fix */
+  .contain-layout {
+    contain: layout;
+  }
+}
+
+/* -- CUSTOM ANIMATIONS -------------------------------------- */
+@keyframes pulse-soft {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(0.95);
+  }
+}
+
+@keyframes float-gentle {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s infinite ease-in-out;
+}
+
+.animate-float-gentle {
+  animation: float-gentle 3s infinite ease-in-out;
+}
+
+/* -- DASHBOARD LAYOUT - SIDEBAR & RESPONSIVE STYLES ------- */
+/*  Previously injected as a JSX <style> block on every render.  */
+/*  Moved here so it is cached by the browser and not duplicated. */
+
+@keyframes blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.nav-item:hover {
+  background: var(--bg);
+  color: var(--t1);
+}
+.nav-item {
+  min-height: 44px;
+}
+
+.topbar {
+  background: rgba(255, 255, 255, 0.92);
+  /* min-height, not height: mobile-responsive.css pads the top of this bar by
+     env(safe-area-inset-top) now that the viewport opts into viewportFit
+     "cover". A fixed height plus box-sizing:border-box would leave a 56px bar
+     with ~47px of padding and a 9px content box on a notched phone. */
+  min-height: var(--topbar-height);
+  position: relative;
+  backdrop-filter: blur(16px);
+}
+.topbar::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    var(--primary) 0%,
+    rgba(0, 92, 230, 0.25) 50%,
+    transparent 90%
+  );
+  opacity: 0.28;
+  pointer-events: none;
+}
+
+[data-theme="dark"] .topbar {
+  background: var(--surface);
+}
+
+.sidebar {
+  transition:
+    transform 220ms var(--ease),
+    opacity 220ms var(--ease);
+  background: rgba(255, 255, 255, 0.95);
+  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(16px);
+}
+
+.dashboard-shell {
+  position: relative;
+}
+
+.dashboard-shell::before {
+  display: none;
+}
+
+.dashboard-breadcrumbs {
+  background: var(--surface);
+}
+
+/* Sidebar: slides in/out on all screen sizes
+   z-layer: 40 (sidebar), 41 (overlay), 50 (modal), 60 (toast) — prevents stacking war */
+.sidebar {
+  display: flex !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  bottom: 0 !important;
+  width: var(--sidebar-width) !important;
+  z-index: 40 !important;
+  transform: translateX(-105%);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease, visibility 0.25s;
+}
+.sidebar.open {
+  transform: translateX(0);
+  pointer-events: auto;
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Desktop and tablet landscape: compact rail overlays content, no backdrop overlay */
+@media (min-width: 1024px) {
+  .sidebar {
+    transform: translateX(0) !important;
+    pointer-events: auto !important;
+    opacity: 1 !important;
+    transition: width 220ms var(--ease), box-shadow 220ms var(--ease);
+  }
+  .sidebar.desktop-rail {
+    width: var(--sidebar-collapsed-width) !important;
+    min-width: var(--sidebar-collapsed-width) !important;
+  }
+  .sidebar.desktop-rail.rail-expanded {
+    width: var(--sidebar-width) !important;
+    min-width: var(--sidebar-width) !important;
+    box-shadow: 0 20px 40px rgba(2, 24, 43, 0.14);
+  }
+  .sidebar:not(.open) + .sidebar-overlay {
+    display: none !important;
+  }
+  .main-content {
+    margin-left: var(--sidebar-collapsed-width) !important;
+    width: calc(100% - var(--sidebar-collapsed-width)) !important;
+  }
+  .sidebar-close-btn {
+    display: flex !important;
+  }
+}
+
+/* Tablet / mobile: sidebar covers with overlay */
+@media (max-width: 1023px) {
+  .sidebar-overlay {
+    display: none !important;
+  }
+  .sidebar-overlay.visible {
+    display: block !important;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 18, 41, 0.28);
+    backdrop-filter: blur(6px);
+    z-index: 39;
+  }
+  .nav-item {
+    padding: 12px 14px !important;
+    min-height: 48px;
+  }
+  .main-content {
+    margin-left: 0 !important;
+    padding: 0 10px !important;
+    width: 100% !important;
+    padding-bottom: 120px !important;
+  }
+  .topbar {
+    padding: 0 12px !important;
+    gap: 8px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .topbar {
+    padding: 0 12px !important;
+    gap: 4px !important;
+  }
+  .main-content {
+    padding: 0 12px !important;
+  }
+}
+
+/* -- TYPOGRAPHY - Sora for headings, Lato for body -------- */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.font-headline,
+.font-heading {
+  font-family: "Sora", sans-serif;
+}
+
+/* -- PREMIUM UPGRADES 2026 ------------------------------- */
+
+.card-premium {
+  @apply bg-white/[0.88] backdrop-blur-md border border-[var(--border)] rounded-[var(--r2)] shadow-[var(--sh2)] overflow-hidden transition-all duration-300;
+  @apply px-4 py-4 sm:px-8 sm:py-8 md:px-10 md:py-10;
+}
+
+.card-premium:hover {
+  @apply shadow-[var(--sh3)] -translate-y-1;
+}
+
+.text-premium {
+  background: linear-gradient(135deg, var(--navy) 0%, var(--green) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  @apply font-bold;
+}
+
+/* African-Inspired Motif (Kente Border) */
+.motif-kente-border {
+  position: relative;
+}
+
+.motif-kente-border::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background-image: linear-gradient(
+    90deg,
+    var(--amber) 0%,
+    var(--amber) 25%,
+    var(--navy) 25%,
+    var(--navy) 50%,
+    var(--green) 50%,
+    var(--green) 75%,
+    var(--red) 75%,
+    var(--red) 100%
+  );
+  background-size: 40px 100%;
+  opacity: 0.6;
+}
+
+.glass-surface {
+  @apply bg-white/40 backdrop-blur-sm border border-white/20 rounded-2xl;
+}
+
+.portal-glass {
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.62) 100%);
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow:
+    0 18px 40px -22px rgba(0, 69, 173, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+}
+
+[data-theme="dark"] .portal-glass {
+  background: linear-gradient(150deg, rgba(26, 33, 41, 0.8) 0%, rgba(20, 27, 35, 0.55) 100%);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 18px 40px -22px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* ── LIQUID GLASS (Parent Portal) ────────────────────────────
+   Atmospheric frosted-background layer + translucent card
+   surfaces. Scoped to .parent-portal-shell so the rest of the
+   app keeps its opaque card treatment. */
+.parent-portal-shell {
+  position: relative;
+}
+
+.parent-portal-shell .parent-portal-atmosphere {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.parent-portal-shell .parent-portal-atmosphere::before,
+.parent-portal-shell .parent-portal-atmosphere::after {
+  content: "";
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(70px);
+  opacity: 0.55;
+}
+
+.parent-portal-shell .parent-portal-atmosphere::before {
+  width: 480px;
+  height: 480px;
+  top: -140px;
+  right: -120px;
+  background: radial-gradient(circle, rgba(0, 92, 230, 0.28), transparent 62%);
+}
+
+.parent-portal-shell .parent-portal-atmosphere::after {
+  width: 520px;
+  height: 520px;
+  bottom: -180px;
+  left: -160px;
+  background: radial-gradient(circle, rgba(20, 184, 166, 0.24), transparent 62%);
+}
+
+.parent-portal-shell .content-layer {
+  position: relative;
+  z-index: 1;
+}
+
+.parent-portal-shell .card {
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0.62) 100%);
+  backdrop-filter: blur(16px) saturate(150%);
+  -webkit-backdrop-filter: blur(16px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.72);
+  box-shadow:
+    0 18px 40px -22px rgba(0, 69, 173, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.92);
+  border-radius: 26px;
+}
+
+.parent-portal-shell .card:hover:not(.no-hover) {
+  box-shadow:
+    0 26px 56px -24px rgba(0, 69, 173, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+.parent-portal-shell .card-header {
+  background: rgba(255, 255, 255, 0.42);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-bottom-color: rgba(255, 255, 255, 0.6);
+}
+
+[data-theme="dark"] .parent-portal-shell .card {
+  background: linear-gradient(150deg, rgba(26, 33, 41, 0.8) 0%, rgba(20, 27, 35, 0.55) 100%);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow:
+    0 18px 40px -22px rgba(0, 0, 0, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="dark"] .parent-portal-shell .card:hover:not(.no-hover) {
+  box-shadow:
+    0 26px 56px -24px rgba(0, 0, 0, 0.7),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+[data-theme="dark"] .parent-portal-shell .card-header {
+  background: rgba(15, 20, 25, 0.4);
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .parent-portal-shell .parent-portal-atmosphere::before,
+  .parent-portal-shell .parent-portal-atmosphere::after {
+    display: none;
+  }
+}
+
+/* Old browsers (Chrome <76) have no backdrop-filter. Give them near-opaque,
+   flat surfaces instead of invisible-blur washouts. */
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass-premium,
+  .glass-card,
+  .glass-surface,
+  .portal-glass,
+  .parent-portal-shell .card {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .portal-glass,
+  .parent-portal-shell .card {
+    background: linear-gradient(150deg, rgba(255, 255, 255, 0.97) 0%, rgba(255, 255, 255, 0.95) 100%);
+  }
+
+  [data-theme="dark"] .portal-glass,
+  [data-theme="dark"] .parent-portal-shell .card {
+    background: linear-gradient(150deg, rgba(26, 33, 41, 0.98) 0%, rgba(20, 27, 35, 0.98) 100%);
+  }
+
+  .parent-portal-shell .card-header {
+    background: rgba(255, 255, 255, 0.88);
+  }
+
+  [data-theme="dark"] .parent-portal-shell .card-header {
+    background: rgba(15, 20, 25, 0.88);
+  }
+}
+
+/* Low-end devices: a JS tag on <html> (deviceMemory/hardwareConcurrency <=
+   low thresholds) disables the heavy blur paint work so 2GB-RAM phones stay
+   scroll-friendly. Visuals drop to flat gradients — no degradation of data.
+   The pageEnter full-page blur is killed outright here: a 0.5s whole-screen
+   blur on a Mali GPU is the difference between loading and an ANR. */
+.lite main#main-content {
+  animation: none;
+}
+
+.lite .backdrop-blur-sm,
+.lite .backdrop-blur-md,
+.lite .backdrop-blur-lg,
+.lite .backdrop-blur-xl {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+.lite .parent-portal-atmosphere::before,
+.lite .parent-portal-atmosphere::after {
+  display: none;
+}
+
+.lite .portal-glass,
+.lite .parent-portal-shell .card,
+.lite .card-premium,
+.lite .glass-premium,
+.lite .glass-card,
+.lite .glass-surface,
+.lite .topbar,
+.lite .sidebar,
+.lite .mobile-bottom-nav,
+.lite .sidebar-overlay.visible {
+  backdrop-filter: blur(6px) saturate(120%) !important;
+  -webkit-backdrop-filter: blur(6px) saturate(120%) !important;
+}
+@media (prefers-reduced-transparency: reduce) {
+  .glass-premium, .portal-glass, .parent-portal-shell .card { backdrop-filter: blur(4px) saturate(100%) !important; }
+}
+
+.lite .portal-glass,
+.lite .parent-portal-shell .card {
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.97) 0%, rgba(255, 255, 255, 0.95) 100%);
+}
+
+[data-theme="dark"] .lite .portal-glass,
+[data-theme="dark"] .lite .parent-portal-shell .card {
+  background: linear-gradient(150deg, rgba(26, 33, 41, 0.98) 0%, rgba(20, 27, 35, 0.98) 100%);
+}
+
+.lite .parent-portal-shell .card-header {
+  background: rgba(255, 255, 255, 0.88);
+}
+
+[data-theme="dark"] .lite .parent-portal-shell .card-header {
+  background: rgba(15, 20, 25, 0.88);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+.inner-shadow {
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.stat-pulse {
+  @apply relative;
+}
+
+.stat-pulse::before {
+  content: "";
+  @apply absolute -inset-1 bg-[var(--primary)] opacity-0 rounded-full animate-pulse;
+}
+
+.btn-navy {
+  @apply bg-[var(--navy)] text-white shadow-[var(--sh1)] transition-all active:scale-[0.98];
+}
+
+.btn-navy:hover {
+  @apply brightness-110 shadow-[var(--sh2)];
+}
+
+.dashboard-surface {
+  @apply bg-[var(--surface)] border border-[var(--border)] rounded-[var(--r2)] shadow-[var(--sh2)];
+}
+
+.dashboard-toolbar {
+  @apply bg-[var(--surface)] border border-[var(--border)] rounded-[18px] p-4 sm:p-5 shadow-[var(--sh1)];
+}
+
+.dashboard-soft-grid {
+  @apply grid gap-4 sm:grid-cols-2 xl:grid-cols-4;
+}
+
+.dashboard-kpi-card {
+  @apply bg-[var(--surface)] border border-[var(--border)] rounded-[18px] p-4 sm:p-5 shadow-[var(--sh1)] transition-all duration-200;
+}
+
+.dashboard-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--sh3);
+}
+
+.dashboard-note-card {
+  @apply rounded-[18px] border border-[var(--border)] bg-[var(--surface-container-low)] p-4;
+}
+
+.dashboard-table-wrap {
+  @apply overflow-hidden rounded-[18px] border border-[var(--border)] bg-[var(--surface)];
+}
+
+.dashboard-pill {
+  @apply inline-flex items-center rounded-full px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em];
+}
+
+/* ── SIDEBAR BRAND HEADER ─────────────────────────────────────
+   Dark navy header area at top of sidebar. School identity is
+   presented on the brand gradient, not generic white surface.
+───────────────────────────────────────────────────────────── */
+.sidebar-brand-header {
+  background: linear-gradient(145deg, #0045ad 0%, #005ce6 72%, #1d74ef 100%);
+  padding: 16px 16px 14px;
+  position: relative;
+  flex-shrink: 0;
+}
+.sidebar-brand-header::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background-image: linear-gradient(
+    90deg,
+    #fac5c5 0%,
+    #fac5c5 25%,
+    #dff7f3 25%,
+    #dff7f3 50%,
+    #b0ccf7 50%,
+    #b0ccf7 75%,
+    #ffffff 75%,
+    #ffffff 100%
+  );
+  background-size: 32px 100%;
+  opacity: 0.65;
+}
+
+[data-theme="dark"] .sidebar-brand-header {
+  background: linear-gradient(145deg, #000a14 0%, #001428 55%, #001f3d 100%);
+}
+
+/* Ensure minimum 44px touch targets for mobile accessibility */
+@media (max-width: 768px) {
+  button,
+  a,
+  input[type="button"],
+  input[type="submit"],
+  [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* ── MOTION + LITE-MODE GUARDS ────────────────────────────────────
+   The page-enter blur/slide and glass backdrop-blur look premium on
+   desktops but jank on low-end phones and burn battery. Honor
+   prefers-reduced-motion everywhere, and drop the expensive effects
+   entirely when the lite-mode bootstrap (layout head script) flags the
+   device (html.lite: <=3GB RAM, <=4 cores, or Save-Data). */
+@media (prefers-reduced-motion: reduce) {
+  main#main-content {
+    animation: none;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+html.lite main#main-content {
+  animation: none;
+}
+
+html.lite .glass-premium {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: var(--surface);
+  box-shadow: var(--sh1);
+}
+
+html.lite .bg-motif {
+  background-image: none;
+}
+
+/* ── LITE MODE: 2GB RAM / 3G ANDROID TARGET ──────────────────────
+   html.lite is set before first paint by the head bootstrap when the
+   device reports <=3GB RAM, <=4 cores, Save-Data, or reduced-data.
+   Every rule here removes work that is invisible to the user but
+   expensive on low-end mobile GPUs and 3G radios. */
+html.lite .backdrop-blur,
+html.lite .backdrop-blur-sm,
+html.lite .backdrop-blur-md,
+html.lite .backdrop-blur-lg,
+html.lite .backdrop-blur-xl,
+html.lite .backdrop-blur-2xl {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Infinite animations force a repaint every frame — the single biggest
+   battery/CPU tax on a 2GB phone. Static states are visually equivalent. */
+html.lite .animate-pulse,
+html.lite .animate-bounce,
+html.lite .animate-spin,
+html.lite .animate-ping,
+html.lite .animate-bounce-slow,
+html.lite .animate-float,
+html.lite .animate-fade-in,
+html.lite .animate-shimmer-wave,
+html.lite .animate-owl-float,
+html.lite .animate-owl-shadow,
+html.lite .animate-owl-blink,
+html.lite .animate-wing-left,
+html.lite .animate-wing-right,
+html.lite .animate-book-bounce,
+html.lite .animate-cap-wiggle,
+html.lite .animate-typing-dot,
+html.lite .animate-pupil-left,
+html.lite .animate-pupil-right,
+html.lite .shimmer,
+html.lite .animate-slideUpBottomSheet,
+html.lite [style*="blink"] {
+  animation: none !important;
+}
+
+/* Skeletons still read as "loading" without the shimmer sweep. */
+html.lite .skeleton,
+html.lite .animate-pulse {
+  opacity: 0.7;
+}
+
+/* Flatten nested shadows on dense lists — each shadowed layer is its own
+   compositing pass on a weak GPU. */
+html.lite .card,
+html.lite .stat-card,
+html.lite .qa-large,
+html.lite .qa-item,
+html.lite .list-row,
+html.lite .today-overview-card,
+html.lite .alert-box,
+html.lite .warn-row,
+html.lite .att-row,
+html.lite .activity-row,
+html.lite .term-row,
+html.lite .mobile-bottom-nav,
+html.lite .icon-btn-circle {
+  box-shadow: none;
+}
+
+/* Long-press selection and tap highlight stay; kill only the 300ms
+   synthetic click delay on older WebView builds. */
+html.lite button,
+html.lite a,
+html.lite [role="button"] {
+  touch-action: manipulation;
+}
+
+
+/* ── SMALL-PHONE TYPE FLOOR ─────────────────────────────────────────
+   The UI uses 9/10/11px text for compact labels. On a 320px-wide
+   Android those sizes are genuinely unreadable — the target device for
+   this app is a low-end 2GB handset, not a desktop.
+
+   Rather than rewrite 700+ call sites (and risk reflowing every card and
+   table), raise the floor only where it is needed. Desktops and tablets
+   keep the existing compact labels; phones get a legible minimum. */
+@media (max-width: 400px) {
+  .text-\[9px\],
+  .text-\[10px\],
+  .text-\[11px\] {
+    font-size: 12px !important;
+  }
+
+  /* Icon glyphs must not grow with the text floor or they stop lining up
+     with their labels. The material-symbols font already sizes to 1em, so
+     pin it back to a fixed metric. */
+  .material-symbols-outlined {
+    font-size: 20px !important;
+  }
+
+  /* Stat values compress to fit narrow columns; keep them readable. */
+  .stat-val {
+    font-size: 22px !important;
+  }
+
+  /* Bottom-nav labels are fixed-width chrome, not body copy. Bumping them to
+     12px overflowed the item width and truncated every label, which is worse
+     than small text: "HO..." and "HO..." are indistinguishable. Keep them
+     compact and let them breathe. */
+  .mobile-nav-label {
+    /* 9.5px rather than 10: "Messages" is eight uppercase glyphs wide and sits
+       right on the 54px-per-item boundary at 320px, where the wider M/S/G
+       overflowed into an ellipsis. Dropping half a pixel gives the longest
+       label room without changing the wording. */
+    font-size: 9.5px !important;
+    letter-spacing: 0;
+  }
+
+  /* Reclaim the horizontal padding so the longest label ("Students") fits a
+     320px bar with five items instead of ellipsising to "STUDEN…". */
+  .mobile-nav-item {
+    padding-left: 2px;
+    padding-right: 2px;
+    max-width: none;
+  }
+}
+
+/* ── Flat + tight visual direction ─────────────────────────────────────
+   No gradients, small radii. Circles (avatars, dots, photos) and pills
+   (chips, badges) are functional shapes and keep rounded-full; everything
+   else tightens to 6–10px. Unlayered on purpose: plain author rules beat
+   Tailwind's layered utilities at equal specificity, so one block retunes
+   ~2,000 call sites without touching markup. */
+.rounded-lg { border-radius: 6px; }
+.rounded-xl { border-radius: 8px; }
+.rounded-2xl { border-radius: 8px; }
+.rounded-3xl { border-radius: 10px; }
+[class*="rounded-[14px]"],
+[class*="rounded-[15px]"],
+[class*="rounded-[16px]"],
+[class*="rounded-[18px]"],
+[class*="rounded-[20px]"],
+[class*="rounded-[22px]"],
+[class*="rounded-[24px]"],
+[class*="rounded-[26px]"],
+[class*="rounded-[28px]"],
+[class*="rounded-[30px]"],
+[class*="rounded-[32px]"],
+[class*="rounded-[34px]"],
+[class*="rounded-[36px]"],
+[class*="rounded-[40px]"],
+[class*="rounded-[2.5rem]"],
+[class*="rounded-[4mm]"] { border-radius: 8px; }
+
+body:has([aria-modal="true"]) [data-owl-assistant] {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+@media (max-width: 639px) {
+  body:has([data-page-action-bar]) button[data-owl-assistant] {
+    bottom: calc(176px + env(safe-area-inset-bottom, 0px));
+  }
+}
+```
+
+## `src/app/globals-ux.css`
+
+```css
+/* 
+ * Global styles for UX improvements 
+ * - Touch-friendly targets (min 44px)
+ * - Focus states for accessibility
+ * - Transitions
+ */
+
+/* Touch-friendly interactive controls — explicit tap targets only */
+.tap-target {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Focus visible states — single source of truth lives in globals.css (:focus-visible
+   with outline + ring). Kept here only as a no-op anchor to avoid drift. */
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --border: #000;
+    --on-surface: #000;
+    --surface: #fff;
+  }
+}
+
+/* Smooth transitions on interactive UI only */
+a,
+button,
+input,
+select,
+textarea,
+[role="button"],
+.card,
+.stat-card,
+.mobile-nav-item,
+.nav-item {
+  transition-property:
+    background-color, border-color, color, fill, stroke, opacity, box-shadow,
+    transform;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Better scrolling */
+/* Note: scroll-behavior: smooth is also set in globals.css — one source of truth */
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--surface-container, #f1f5f9);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--on-surface-variant, #94a3b8);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--on-surface, #475569);
+}
+
+/* Print styles — hide app chrome so report cards / ID cards print clean */
+@media print {
+  .no-print,
+  .topbar,
+  .sidebar,
+  .sidebar-overlay,
+  .mobile-bottom-nav,
+  .dashboard-breadcrumbs,
+  footer {
+    display: none !important;
+  }
+  main#main-content {
+    animation: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+  body {
+    background: #fff !important;
+  }
+}
+
+/* Reduced motion — also kill the page-enter blur/translate */
+@media (prefers-reduced-motion: reduce) {
+  main#main-content {
+    animation: none !important;
+  }
+}
+```
+
+## `src/app/mobile-responsive.css`
+
+```css
+/* ============================================
+   MOBILE RESPONSIVE STYLES
+   ============================================ */
+
+:root {
+  --safe-area-inset: env(safe-area-inset-bottom, 0px);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  overflow-x: clip;
+  width: 100%;
+  max-width: 100%;
+}
+
+/* Tablet (768px-1024px) */
+@media (max-width: 1024px) {
+  .grid.grid-cols-5,
+  .grid.grid-cols-6 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .grid.grid-cols-4,
+  .grid.grid-cols-5,
+  .grid.grid-cols-6 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .content,
+  .page-content,
+  .main-content {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  main {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .blur-3xl {
+    display: none;
+  }
+}
+
+/* Phone (<640px) */
+@media (max-width: 640px) {
+  /* Collapse wide grids to a single column -- but only where the component did
+     not ask for a specific phone layout. This file is unlayered and
+     .grid.grid-cols-N is (0,2,0), so a bare rule here outranks Tailwind's
+     .grid-cols-N (0,1,0) *and* its sm:/md:/lg: variants, which silently
+     flattened every "grid-cols-4 sm:grid-cols-7" in the app to one column on
+     a phone -- including the printed report card. Tailwind keeps the variant
+     prefix in the class attribute, so :not([class*="sm:grid-cols-"]) is
+     enough to let a component opt out. */
+  .grid.grid-cols-3:not([class*="sm:grid-cols-"]):not([class*="md:grid-cols-"]):not([class*="lg:grid-cols-"]),
+  .grid.grid-cols-4:not([class*="sm:grid-cols-"]):not([class*="md:grid-cols-"]):not([class*="lg:grid-cols-"]),
+  .grid.grid-cols-5:not([class*="sm:grid-cols-"]):not([class*="md:grid-cols-"]):not([class*="lg:grid-cols-"]),
+  .grid.grid-cols-6:not([class*="sm:grid-cols-"]):not([class*="md:grid-cols-"]):not([class*="lg:grid-cols-"]) {
+    grid-template-columns: 1fr;
+  }
+
+  .grid.grid-cols-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .content,
+  .page-content,
+  .main-content {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  main {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .card,
+  .stat-card {
+    margin-left: 0;
+    margin-right: 0;
+    width: 100%;
+    border-radius: 0.75rem;
+  }
+
+  .blur-3xl {
+    display: none;
+  }
+
+  .page-section {
+    padding: 1rem 0;
+  }
+}
+
+/* Display helpers */
+.hidden-mobile {
+  display: none;
+}
+
+@media (min-width: 768px) {
+  .hidden-mobile {
+    display: block;
+  }
+}
+
+@media (max-width: 767px) {
+  .hidden-desktop {
+    display: none;
+  }
+}
+
+/* Safe-area padding for fixed bars so iOS/Android notches never overlap content */
+@supports (padding: max(0px)) {
+  .topbar {
+    padding-top: max(env(safe-area-inset-top), 0px);
+  }
+
+  .sidebar {
+    padding-top: env(safe-area-inset-top);
+  }
+}
+
+/* Reserve space above the floating bottom nav so content is never hidden behind it */
+@media (max-width: 640px) {
+  main {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 96px);
+  }
+}
+
+/* Minimum touch targets on coarse-pointer (mobile) devices */
+@media (pointer: coarse) {
+  .mobile-nav-item {
+    min-height: 52px;
+  }
+
+  .mobile-nav-fab {
+    min-width: 50px;
+    min-height: 50px;
+  }
+
+  .tap-target {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+```
+
+## Theme provider
+
+## `src/lib/theme-context.tsx`
+
+```tsx
+"use client";
+import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+
+type Theme = "light" | "dark";
+
+const STORAGE_KEY = "skoolmate-theme";
+
+interface ThemeContextType {
+  theme: Theme;
+  toggleTheme: () => void;
+  setTheme: (theme: Theme) => void;
+}
+
+// Mirrors the inline bootstrap script in src/app/layout.tsx so the initial
+// React state matches what was painted before hydration (no flicker).
+function getInitialTheme(): Theme {
+  if (typeof window === "undefined") return "light";
+  const fromWindow = (window as unknown as { __skoolmateTheme?: Theme }).__skoolmateTheme;
+  if (fromWindow === "dark" || fromWindow === "light") return fromWindow;
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored === "dark" || stored === "light") return stored;
+  } catch {
+    // ignore storage access failures (private mode, blocked storage)
+  }
+  if (window.matchMedia?.("(prefers-color-scheme: dark)").matches) return "dark";
+  return "light";
+}
+
+const ThemeContext = createContext<ThemeContextType>({
+  theme: "light",
+  toggleTheme: () => {},
+  setTheme: () => {},
+});
+
+export function ThemeProvider({ children }: { children: ReactNode }) {
+  const [theme, setThemeState] = useState<Theme>(getInitialTheme);
+
+  // Gate the value until after mount so the server-rendered (light) markup
+  // hydrates without a mismatch; the real theme takes over on first paint.
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const applyTheme = (t: Theme) => {
+    document.documentElement.setAttribute("data-theme", t);
+    // Sync PWA theme-color meta for mobile browser chrome
+    try {
+      const meta = document.querySelector('meta[name="theme-color"]');
+      if (meta) meta.setAttribute("content", t === "dark" ? "#0f1419" : "#001F3F");
+    } catch {}
+  };
+
+  const setTheme = (t: Theme) => {
+    setThemeState(t);
+    try {
+      localStorage.setItem(STORAGE_KEY, t);
+    } catch {
+      // ignore storage write failures
+    }
+    if (typeof document !== "undefined") {
+      applyTheme(t);
+    }
+  };
+
+  const toggleTheme = () => {
+    setTheme(theme === "light" ? "dark" : "light");
+  };
+
+  const value: ThemeContextType = mounted
+    ? { theme, toggleTheme, setTheme }
+    : { theme: "light", toggleTheme: () => {}, setTheme: () => {} };
+
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
+}
+
+export function useTheme() {
+  return useContext(ThemeContext);
+}
+```
+
+## `src/components/BrandProvider.tsx`
+
+```tsx
+"use client";
+import { ReactNode, useEffect } from "react";
+import { useAuth } from "@/lib/auth-context";
+import { useTheme } from "@/lib/theme-context";
+
+/**
+ * Build a real tint ramp from a brand hex color. Low shades blend toward
+ * white (tinted surfaces stay light, text on them stays readable), the
+ * middle holds the brand, high shades deepen toward black.
+ */
+export function generateMonochromePalette(base: string) {
+  return {
+    "--primary-50": mixToward(base, "#ffffff", 0.93),
+    "--primary-100": mixToward(base, "#ffffff", 0.82),
+    "--primary-200": mixToward(base, "#ffffff", 0.62),
+    "--primary-300": mixToward(base, "#ffffff", 0.42),
+    "--primary-400": mixToward(base, "#ffffff", 0.22),
+    "--primary-500": base,
+    "--primary-600": base,
+    "--primary-700": mixToward(base, "#000000", 0.15),
+    "--primary-800": mixToward(base, "#000000", 0.3),
+    "--primary-900": mixToward(base, "#000000", 0.45),
+  } as Record<string, string>;
+}
+
+/** Blend a hex color toward a target hex by `amount` (0..1). */
+export function mixToward(hex: string, target: string, amount: number): string {
+  const parse = (h: string): [number, number, number] => {
+    const full = h.replace("#", "");
+    const six =
+      full.length === 3
+        ? full
+            .split("")
+            .map((c) => c + c)
+            .join("")
+        : full;
+    return [parseInt(six.slice(0, 2), 16), parseInt(six.slice(2, 4), 16), parseInt(six.slice(4, 6), 16)];
+  };
+  const [r, g, b] = parse(hex);
+  const [tr, tg, tb] = parse(target);
+  const mix = (c: number, t: number) => Math.round(c + (t - c) * amount);
+  const toHex = (n: number) => n.toString(16).padStart(2, "0");
+  return `#${toHex(mix(r, tr))}${toHex(mix(g, tg))}${toHex(mix(b, tb))}`;
+}
+
+export default function BrandProvider({ children }: { children: ReactNode }) {
+  const { school } = useAuth();
+  const { theme } = useTheme();
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const isDark = theme === "dark";
+    const base = school?.primary_color || "#005ce6";
+    const accent = school?.accent_color || "#f97316";
+    // In dark mode the brand color is lightened so solid fills and text stay
+    // readable against dark surfaces (the inline var otherwise pins the light
+    // value and the stylesheet token can never apply).
+    const primary = isDark ? mixToward(base, "#ffffff", 0.55) : base;
+    const accentColor = isDark ? mixToward(accent, "#ffffff", 0.45) : accent;
+
+    root.style.setProperty("--primary", primary);
+    root.style.setProperty("--accent", accentColor);
+    root.style.setProperty("--on-primary", isDark ? "#0b1420" : "#ffffff");
+    root.style.setProperty("--on-secondary", isDark ? "#031712" : "#ffffff");
+
+    const palette = generateMonochromePalette(primary);
+    for (const [varName, value] of Object.entries(palette)) {
+      root.style.setProperty(varName, value);
+    }
+
+    const accentPalette = generateMonochromePalette(accentColor);
+    for (const [varName, value] of Object.entries(accentPalette)) {
+      root.style.setProperty(varName.replace("--primary", "--accent"), value);
+    }
+
+    root.style.setProperty("--primary-soft", `${primary}1A`);
+    root.style.setProperty("--primary-dim", `${primary}66`);
+    root.style.setProperty("--primary-glass", `${primary}33`);
+    root.style.setProperty("--accent-soft", `${accentColor}1A`);
+    root.style.setProperty("--accent-dim", `${accentColor}66`);
+    root.style.setProperty("--accent-glass", `${accentColor}33`);
+  }, [school?.primary_color, school?.accent_color, theme]);
+
+  return <>{children}</>;
+}
+```

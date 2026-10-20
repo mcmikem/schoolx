@@ -1,9 +1,8 @@
 "use client";
-import React from "react";
 import Link from "next/link";
-import * as Sentry from "@sentry/nextjs";
-import { logger } from "@/lib/logger";
+import React from "react";
 import MaterialIcon from "@/components/MaterialIcon";
+import { logger } from "@/lib/logger";
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -27,7 +26,9 @@ export default class ErrorBoundary extends React.Component<ErrorBoundaryProps, E
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     logger.error("Error caught by boundary:", error, errorInfo);
-    Sentry.captureException(error);
+    void import("@sentry/nextjs")
+      .then((Sentry) => Sentry.captureException(error))
+      .catch((reportingError) => logger.warn("Could not send error report:", reportingError));
   }
 
   handleReset = () => {

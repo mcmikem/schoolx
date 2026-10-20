@@ -394,7 +394,14 @@ export default function CalendarPage() {
       );
       if (res?.error) throw res.error;
       setShowModal(false);
-      setNewEvent({ title: "", description: "", event_type: "event", audience: "school" as "personal" | "school" | "parents", start_date: "", end_date: "" });
+      setNewEvent({
+        title: "",
+        description: "",
+        event_type: "event",
+        audience: "school" as "personal" | "school" | "parents",
+        start_date: "",
+        end_date: "",
+      });
       toast.success("Event added");
       refetchEvents();
     } catch (err) {
@@ -510,14 +517,14 @@ export default function CalendarPage() {
                       <button
                         type="button"
                         onClick={goPrev}
-                        className="rounded-full p-1 hover:bg-[var(--surface-container)]"
+                        className="tap-44 rounded-full p-1 hover:bg-[var(--surface-container)]"
                       >
                         <MaterialIcon icon="chevron_left" className="text-[18px]" />
                       </button>
                       <button
                         type="button"
                         onClick={goNext}
-                        className="rounded-full p-1 hover:bg-[var(--surface-container)]"
+                        className="tap-44 rounded-full p-1 hover:bg-[var(--surface-container)]"
                       >
                         <MaterialIcon icon="chevron_right" className="text-[18px]" />
                       </button>

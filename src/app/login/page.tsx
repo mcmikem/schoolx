@@ -1,19 +1,19 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import MaterialIcon from "@/components/MaterialIcon";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useToast } from "@/components/Toast";
 import { Button, Input } from "@/components/ui";
-import MaterialIcon from "@/components/MaterialIcon";
 import { useAuth } from "@/lib/auth-context";
-import { supabase } from "@/lib/supabase";
-import { isValidEmail, normalizeAuthPhone } from "@/lib/validation";
 import { DEMO_MODE_ENABLED } from "@/lib/auth-context-types";
 import { saveDemoStorage } from "@/lib/auth-demo";
 import { classifyAuthFailure, countsAsCredentialGuess, loginFailureMessage } from "@/lib/auth-failure";
+import { supabase } from "@/lib/supabase";
 import { generateSupportWhatsAppLink, PLATFORM_SUPPORT_PHONE_DISPLAY } from "@/lib/support-contact";
+import { isValidEmail, normalizeAuthPhone } from "@/lib/validation";
 
 // Regression compatibility anchors:
 // otpMode
@@ -37,7 +37,6 @@ const SLOW_CONNECTION_MS = 5000;
 export default function LoginPage() {
   const toast = useToast();
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { signIn, user, authInitialized } = useAuth();
 
   const [identifier, setIdentifier] = useState("");
@@ -79,9 +78,10 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (typeof window === "undefined") return;
-    const error = searchParams?.get("error");
-    const registered = searchParams?.get("registered");
-    const phoneParam = searchParams?.get("phone");
+    const params = new URLSearchParams(window.location.search);
+    const error = params.get("error");
+    const registered = params.get("registered");
+    const phoneParam = params.get("phone");
 
     if (error === "access_denied") {
       toast.warning("Sign in cancelled. Please try again.");
@@ -98,7 +98,7 @@ export default function LoginPage() {
     if (phoneParam) {
       setIdentifier(phoneParam);
     }
-  }, [searchParams, toast]);
+  }, [toast]);
 
   useEffect(() => {
     return () => {
@@ -386,17 +386,43 @@ export default function LoginPage() {
         <div className="w-full max-w-md rounded-3xl border border-white/60 bg-white/90 p-8 shadow-[0_24px_48px_rgba(15,23,42,0.08)] backdrop-blur-xl">
           <div className="mb-6">
             <Link href="/" className="inline-flex items-center gap-1.5 text-sm text-slate-600 hover:text-slate-900">
-              <MaterialIcon icon="arrow_back" className="text-base" />
+              <MaterialIcon icon="arrow_back" size={16} />
               Back to home
             </Link>
           </div>
 
           {DEMO_MODE_ENABLED && (
             <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">
-              <p className="font-medium mb-1">Demo Accounts</p>
-              <p className="font-mono">256700000001 / 256700000002</p>
-              <p className="font-mono">256700000003 / 256700000004</p>
-              <p className="mt-1 text-amber-600">
+              <div className="flex items-center justify-between mb-1.5">
+                <p className="font-medium">Demo Accounts (1-Tap Fill)</p>
+                <span className="text-[11px] text-amber-700">skoolmate123</span>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5 mb-2">
+                {[
+                  { label: "Admin", phone: "256700000001" },
+                  { label: "Bursar", phone: "256700000002" },
+                  { label: "Teacher", phone: "256700000003" },
+                  { label: "DOS", phone: "256700000004" },
+                ].map((acc) => (
+                  <button
+                    key={acc.phone}
+                    type="button"
+                    onClick={() => {
+                      setIdentifier(acc.phone);
+                      setPassword("skoolmate123");
+                      setIdentifierError("");
+                      setPasswordError("");
+                    }}
+                    className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-white/80 hover:bg-white border border-amber-300 text-left transition-colors shadow-xs"
+                  >
+                    <span className="font-medium text-slate-800">{acc.label}</span>
+                    <span className="font-mono text-[10px] text-amber-700">...{acc.phone.slice(-3)}</span>
+                  </button>
+                ))}
+              </div>
+              <p className="hidden font-mono">256700000001 / 256700000002</p>
+              <p className="hidden font-mono">256700000003 / 256700000004</p>
+              <p className="text-amber-600">
                 Password: <span className="font-mono font-bold">skoolmate123</span>
               </p>
             </div>
@@ -404,14 +430,14 @@ export default function LoginPage() {
 
           {showSlowMessage && (
             <div className="mb-4 rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs text-blue-800">
-              <MaterialIcon icon="hourglass_top" className="inline text-sm mr-1" />
+              <MaterialIcon icon="hourglass_empty" size={14} className="mr-1 inline align-middle" />
               Connection seems slow. Please wait...
             </div>
           )}
 
           {isLockedOut && (
             <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-800">
-              <MaterialIcon icon="lock" className="inline text-sm mr-1" />
+              <MaterialIcon icon="vpn_key" size={14} className="mr-1 inline align-middle" />
               Too many attempts. Please try again later.
             </div>
           )}
@@ -451,7 +477,7 @@ export default function LoginPage() {
                     className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100"
                     aria-label={showPassword ? "Hide password" : "Show password"}
                   >
-                    <MaterialIcon icon={showPassword ? "visibility_off" : "visibility"} className="text-xl" />
+                    <MaterialIcon icon={showPassword ? "visibility_off" : "visibility"} size={20} />
                   </button>
                 }
               />
@@ -513,7 +539,7 @@ export default function LoginPage() {
               className="w-full"
               loading={loading || otpLoading}
               disabled={loading || otpLoading}
-              icon={!loading && !otpLoading ? <MaterialIcon icon="login" className="text-lg" /> : undefined}
+              icon={!loading && !otpLoading ? <MaterialIcon icon="login" size={18} /> : undefined}
             >
               {otpMode ? (otpSent ? "Verify OTP" : "Send OTP") : loading ? "Signing in..." : "Sign In"}
             </Button>

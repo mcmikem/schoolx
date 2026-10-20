@@ -59,6 +59,25 @@ export default function BulkImport({ onComplete, createStudent, houses = [] }: B
     skipped: number;
     failed: number;
   } | null>(null);
+  const [previewFilter, setPreviewFilter] = useState<"all" | "ready" | "errors">("all");
+  const [showAllRows, setShowAllRows] = useState(false);
+
+  const handleSetGender = (index: number, gender: "M" | "F") => {
+    setValidatedRows((prev) => {
+      const next = [...prev];
+      const target = next[index];
+      if (!target) return prev;
+      const updatedData = { ...target.data, gender };
+      const remainingErrors = target.errors.filter((e) => !e.toLowerCase().includes("gender"));
+      next[index] = {
+        ...target,
+        data: updatedData,
+        isValid: remainingErrors.length === 0,
+        errors: remainingErrors,
+      };
+      return next;
+    });
+  };
 
   const parseCSV = (text: string): ValidatedStudentRow[] => {
     const rows = parseDelimitedText(text);
@@ -471,118 +490,185 @@ export default function BulkImport({ onComplete, createStudent, houses = [] }: B
         </div>
       )}
 
-      {step === "preview" && (
-        <div className="animate-fade-in">
-          <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center mb-6">
-            <div>
-              <h3 className="text-lg font-bold text-[var(--t1)] flex items-center gap-2">Data Validation Preview</h3>
-              <p className="text-sm text-[var(--t3)] mt-1">
-                Found <strong className="text-[var(--t1)]">{validatedRows.length}</strong> total rows.{" "}
-                <span className="text-emerald-600 font-bold">
-                  {validatedRows.filter((r) => r.isValid).length} ready
-                </span>
-                ,{" "}
-                <span className="text-red-600 font-bold">{validatedRows.filter((r) => !r.isValid).length} invalid</span>
-                .
-              </p>
-            </div>
-            <button
-              onClick={() => {
-                setStep("upload");
-                setValidatedRows([]);
-              }}
-              className="px-4 py-2 text-sm font-medium text-[var(--t2)] bg-[var(--surface-container)] hover:bg-[var(--border)] rounded-lg transition-colors border border-[var(--border)] shadow-sm"
-            >
-              Cancel & Upload New File
-            </button>
-          </div>
+      {step === "preview" &&
+        (() => {
+          const readyRows = validatedRows.filter((r) => r.isValid);
+          const invalidRows = validatedRows.filter((r) => !r.isValid);
+          const displayed = validatedRows
+            .map((row, originalIndex) => ({ row, originalIndex }))
+            .filter(({ row }) => {
+              if (previewFilter === "ready") return row.isValid;
+              if (previewFilter === "errors") return !row.isValid;
+              return true;
+            });
+          const rowsToRender = showAllRows ? displayed : displayed.slice(0, 50);
 
-          <div
-            className="border border-[var(--border)] rounded-xl overflow-hidden mb-6 shadow-sm"
-            style={{ maxHeight: 400, overflowY: "auto" }}
-          >
-            <table className="w-full text-sm text-left whitespace-nowrap">
-              <thead className="bg-[var(--surface-container-low)] sticky top-0 z-10 shadow-sm">
-                <tr>
-                  <th className="px-4 py-3 font-semibold text-[var(--t2)] w-12 text-center">Status</th>
-                  <th className="px-4 py-3 font-semibold text-[var(--t2)]">Name</th>
-                  <th className="px-4 py-3 font-semibold text-[var(--t2)]">Gender</th>
-                  <th className="px-4 py-3 font-semibold text-[var(--t2)]">Parent Phone</th>
-                  <th className="px-4 py-3 font-semibold text-[var(--t2)]">Errors</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-[var(--border)] bg-white">
-                {validatedRows.slice(0, 50).map((row, i) => (
-                  <tr key={i} className={row.isValid ? "hover:bg-slate-50" : "bg-red-50/50"}>
-                    <td className="px-4 py-3 text-center">
-                      <span
-                        className={`material-symbols-outlined text-[18px] ${row.isValid ? "text-emerald-500" : "text-red-500"}`}
-                      >
-                        {row.isValid ? "check_circle" : "error"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 font-medium text-[var(--t1)]">
-                      {row.data.first_name} {row.data.last_name || <span className="text-red-400 italic">Empty</span>}
-                    </td>
-                    <td className="px-4 py-3 text-[var(--t2)]">
-                      {row.data.gender || <span className="text-red-400 italic">Empty</span>}
-                    </td>
-                    <td className="px-4 py-3 text-[var(--t2)] font-mono text-xs">
-                      {row.data.parent_phone || <span className="text-[var(--t4)] italic">None</span>}
-                    </td>
-                    <td className="px-4 py-3">
-                      {row.errors.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
-                          {row.errors.map((err, errIdx) => (
-                            <span
-                              key={errIdx}
-                              className="px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider bg-red-100 text-red-700 border border-red-200"
-                            >
-                              {err}
+          return (
+            <div className="animate-fade-in">
+              <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center mb-6">
+                <div>
+                  <h3 className="text-lg font-bold text-[var(--t1)] flex items-center gap-2">
+                    Data Validation Preview
+                  </h3>
+                  <p className="text-sm text-[var(--t3)] mt-1">
+                    Found <strong className="text-[var(--t1)]">{validatedRows.length}</strong> total rows.{" "}
+                    <span className="text-emerald-600 font-bold">{readyRows.length} ready</span>,{" "}
+                    <span className="text-red-600 font-bold">{invalidRows.length} invalid</span>.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStep("upload");
+                    setValidatedRows([]);
+                  }}
+                  className="px-4 py-2 text-sm font-medium text-[var(--t2)] bg-[var(--surface-container)] hover:bg-[var(--border)] rounded-lg transition-colors border border-[var(--border)] shadow-sm"
+                >
+                  Cancel & Upload New File
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-xs font-semibold text-[var(--t3)] uppercase tracking-wider">Filter View:</span>
+                <button
+                  type="button"
+                  onClick={() => setPreviewFilter("all")}
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${previewFilter === "all" ? "bg-[var(--primary)] text-white" : "bg-[var(--surface-container)] text-[var(--t2)]"}`}
+                >
+                  All ({validatedRows.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewFilter("ready")}
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${previewFilter === "ready" ? "bg-emerald-600 text-white" : "bg-emerald-50 text-emerald-800"}`}
+                >
+                  Ready ({readyRows.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewFilter("errors")}
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${previewFilter === "errors" ? "bg-red-600 text-white" : "bg-red-50 text-red-800"}`}
+                >
+                  Errors ({invalidRows.length})
+                </button>
+              </div>
+
+              <div
+                className="border border-[var(--border)] rounded-xl overflow-hidden mb-6 shadow-sm"
+                style={{ maxHeight: 400, overflowY: "auto" }}
+              >
+                <table className="w-full text-sm text-left whitespace-nowrap">
+                  <thead className="bg-[var(--surface-container-low)] sticky top-0 z-10 shadow-sm">
+                    <tr>
+                      <th className="px-4 py-3 font-semibold text-[var(--t2)] w-12 text-center">Status</th>
+                      <th className="px-4 py-3 font-semibold text-[var(--t2)]">Name</th>
+                      <th className="px-4 py-3 font-semibold text-[var(--t2)]">Gender</th>
+                      <th className="px-4 py-3 font-semibold text-[var(--t2)]">Parent Phone</th>
+                      <th className="px-4 py-3 font-semibold text-[var(--t2)]">Errors</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--border)] bg-white">
+                    {rowsToRender.map(({ row, originalIndex }) => (
+                      <tr key={originalIndex} className={row.isValid ? "hover:bg-slate-50" : "bg-red-50/50"}>
+                        <td className="px-4 py-3 text-center">
+                          <span
+                            className={`material-symbols-outlined text-[18px] ${row.isValid ? "text-emerald-500" : "text-red-500"}`}
+                          >
+                            {row.isValid ? "check_circle" : "error"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 font-medium text-[var(--t1)]">
+                          {row.data.first_name}{" "}
+                          {row.data.last_name || <span className="text-red-400 italic">Empty</span>}
+                        </td>
+                        <td className="px-4 py-3 text-[var(--t2)]">
+                          {row.data.gender ? (
+                            <span>{row.data.gender}</span>
+                          ) : (
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-red-400 italic text-xs">Empty</span>
+                              <button
+                                type="button"
+                                title="Quick set to Male"
+                                onClick={() => handleSetGender(originalIndex, "M")}
+                                className="px-1.5 py-0.5 text-[11px] font-bold bg-blue-100 hover:bg-blue-200 text-blue-800 rounded transition-colors"
+                              >
+                                +M
+                              </button>
+                              <button
+                                type="button"
+                                title="Quick set to Female"
+                                onClick={() => handleSetGender(originalIndex, "F")}
+                                className="px-1.5 py-0.5 text-[11px] font-bold bg-pink-100 hover:bg-pink-200 text-pink-800 rounded transition-colors"
+                              >
+                                +F
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-4 py-3 text-[var(--t2)] font-mono text-xs">
+                          {row.data.parent_phone || <span className="text-[var(--t4)] italic">None</span>}
+                        </td>
+                        <td className="px-4 py-3">
+                          {row.errors.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {row.errors.map((err, errIdx) => (
+                                <span
+                                  key={errIdx}
+                                  className="px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider bg-red-100 text-red-700 border border-red-200"
+                                >
+                                  {err}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
+                              Ready
                             </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
-                          Ready
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-                {validatedRows.length > 50 && (
-                  <tr>
-                    <td
-                      colSpan={5}
-                      className="px-4 py-4 text-center text-[var(--t3)] italic bg-[var(--surface-container-low)]"
-                    >
-                      ... plus {validatedRows.length - 50} more rows
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                    {!showAllRows && displayed.length > 50 && (
+                      <tr>
+                        <td
+                          colSpan={5}
+                          className="px-4 py-3 text-center text-[var(--t3)] bg-[var(--surface-container-low)]"
+                        >
+                          <button
+                            type="button"
+                            onClick={() => setShowAllRows(true)}
+                            className="text-xs font-semibold text-[var(--primary)] hover:underline"
+                          >
+                            Showing 50 of {displayed.length} rows. Click to view all {displayed.length} rows.
+                          </button>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
 
-          <div className="bg-blue-50 border border-blue-100 text-blue-800 rounded-xl p-4 mb-6 text-sm flex gap-3">
-            <span className="material-symbols-outlined text-blue-500 shrink-0">info</span>
-            <p>
-              Only valid records will be imported.{" "}
-              <strong className="font-bold">{validatedRows.filter((r) => !r.isValid).length} invalid rows</strong> will
-              be skipped entirely.
-            </p>
-          </div>
+              <div className="bg-blue-50 border border-blue-100 text-blue-800 rounded-xl p-4 mb-6 text-sm flex gap-3">
+                <span className="material-symbols-outlined text-blue-500 shrink-0">info</span>
+                <p>
+                  Only valid records will be imported.{" "}
+                  <strong className="font-bold">{validatedRows.filter((r) => !r.isValid).length} invalid rows</strong>{" "}
+                  will be skipped entirely.
+                </p>
+              </div>
 
-          <button
-            onClick={handleImport}
-            disabled={validatedRows.filter((r) => r.isValid).length === 0}
-            className="w-full flex justify-center items-center gap-2 px-4 py-3.5 bg-[var(--primary)] text-white font-bold rounded-xl shadow-[var(--sh2)] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-          >
-            <span className="material-symbols-outlined">cloud_upload</span>
-            Import {validatedRows.filter((r) => r.isValid).length} Valid Students
-          </button>
-        </div>
-      )}
+              <button
+                onClick={handleImport}
+                disabled={validatedRows.filter((r) => r.isValid).length === 0}
+                className="w-full flex justify-center items-center gap-2 px-4 py-3.5 bg-[var(--primary)] text-white font-bold rounded-xl shadow-[var(--sh2)] hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                <span className="material-symbols-outlined">cloud_upload</span>
+                Import {readyRows.length} Valid Students
+              </button>
+            </div>
+          );
+        })()}
 
       {step === "importing" && (
         <div style={{ textAlign: "center", padding: 40 }}>

@@ -62,7 +62,8 @@ describe("every role dashboard has exactly one page h1", () => {
       case "pageheader":
         // PageHeader owns the h1, so the greeting must step down.
         expect(hasPageHeader).toBe(true);
-        expect(heroDemoted).toBe(true);
+        if (hasHero) expect(heroDemoted).toBe(true);
+        expect(hasH1).toBe(false);
         break;
       case "roleheader":
         // RoleDashboardHeader renders <h1>{greeting}, {name}</h1>

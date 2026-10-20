@@ -10,7 +10,9 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useToast } from "@/components/Toast";
+import { AcademicProvider } from "@/lib/academic-context";
 import { useAuth } from "@/lib/auth-context";
+import { NotificationsProvider } from "@/lib/notifications";
 
 const OnboardingFlow = dynamic(() => import("@/components/onboarding/OnboardingFlow"), {
   ssr: false,
@@ -27,15 +29,15 @@ const PWAInstallPrompt = dynamic(() => import("@/components/PWAInstallPrompt").t
 });
 
 import { usePathname, useRouter } from "next/navigation";
+import { ReactQueryProvider } from "@/app/providers/ReactQueryProvider";
 import { getPageTitle, useAccessControl } from "@/components/dashboard/AccessControlGuard";
 import MaterialIcon from "@/components/MaterialIcon";
-import { readDemoStorage } from "@/lib/auth-demo";
 import { Breadcrumbs } from "@/components/ui/Breadcrumbs";
 import { MinimalLoadingScreen, StuckLoadingOverlay, TopLoadingBar } from "@/components/ui/Skeleton";
 import { SidebarProvider, useSidebar } from "@/contexts/SidebarContext";
+import { readDemoStorage } from "@/lib/auth-demo";
 import { useSchoolColors } from "@/lib/useSchoolColors";
 import { useSessionTimeout } from "@/lib/useSessionTimeout";
-import { ReactQueryProvider } from "@/app/providers/ReactQueryProvider";
 
 const OwlAssistant = dynamic(() => import("@/components/OwlAssistant"), { ssr: false });
 // CommandPalette removed — GlobalSearch is now the single search system (see src/components/GlobalSearch.tsx)
@@ -530,13 +532,13 @@ function SidebarOverlay() {
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   return (
     <ReactQueryProvider>
-      {/*
-        AcademicProvider and NotificationsProvider moved to the root providers
-        so the parent portal, which renders the same TopBar, has them too.
-      */}
-      <SidebarProvider>
-        <DashboardContent>{children}</DashboardContent>
-      </SidebarProvider>
+      <AcademicProvider>
+        <NotificationsProvider>
+          <SidebarProvider>
+            <DashboardContent>{children}</DashboardContent>
+          </SidebarProvider>
+        </NotificationsProvider>
+      </AcademicProvider>
     </ReactQueryProvider>
   );
 }

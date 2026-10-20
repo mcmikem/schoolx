@@ -17,6 +17,8 @@ export interface DataColumn<T> {
   hideOnMobile?: boolean;
   className?: string;
   headerClassName?: string;
+  /** Keep column pinned to the left edge when table scrolls horizontally */
+  pinned?: boolean;
 }
 
 interface DataTableProps<T> {
@@ -78,7 +80,8 @@ export function DataTable<T>({
     if (!column.sortValue) return;
     setSort((current) => {
       if (current?.key !== column.key) return { key: column.key, dir: "asc" };
-      return { key: column.key, dir: current.dir === "asc" ? "desc" : "asc" };
+      if (current.dir === "asc") return { key: column.key, dir: "desc" };
+      return null;
     });
   };
 
@@ -102,7 +105,7 @@ export function DataTable<T>({
         <table className="hidden w-full border-collapse text-sm sm:table">
           {caption && <caption className="sr-only">{caption}</caption>}
           <thead className="sticky top-0 z-10 bg-[var(--surface)]">
-            <tr className="border-b border-[var(--border)] text-[11px] uppercase tracking-wide text-[var(--t3)]">
+            <tr className="border-b border-[var(--border)] text-xs uppercase tracking-wide text-[var(--t3)]">
               {columns.map((column) => {
                 const active = sort?.key === column.key;
                 return (
@@ -112,6 +115,7 @@ export function DataTable<T>({
                     aria-sort={active ? (sort!.dir === "asc" ? "ascending" : "descending") : undefined}
                     className={cn(
                       "whitespace-nowrap px-3 py-3 font-semibold",
+                      column.pinned && "sticky left-0 z-20 bg-[var(--surface)] shadow-[2px_0_4px_rgba(0,0,0,0.06)]",
                       alignClass[column.align ?? "left"],
                       column.headerClassName,
                     )}
@@ -164,6 +168,7 @@ export function DataTable<T>({
                     key={column.key}
                     className={cn(
                       "px-3 py-3 align-middle text-[var(--t1)]",
+                      column.pinned && "sticky left-0 z-10 bg-[var(--surface)] shadow-[2px_0_4px_rgba(0,0,0,0.06)]",
                       alignClass[column.align ?? "left"],
                       column.className,
                     )}

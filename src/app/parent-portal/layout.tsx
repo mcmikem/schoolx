@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { APP_NAME } from "@/lib/app-name";
 import { ParentPortalProvider } from "@/components/parent-portal/ParentPortalProvider";
 import { AcademicProvider } from "@/lib/academic-context";
+import { APP_NAME } from "@/lib/app-name";
+import { NotificationsProvider } from "@/lib/notifications";
 
 export const metadata: Metadata = {
   title: `Parent Portal | ${APP_NAME}`,
@@ -28,7 +29,9 @@ export default function ParentPortalLayout({ children }: { children: React.React
         "Something went wrong" instead of the child's attendance, grades or fees.
       */}
       <AcademicProvider>
-        <ParentPortalProvider>{children}</ParentPortalProvider>
+        <NotificationsProvider>
+          <ParentPortalProvider>{children}</ParentPortalProvider>
+        </NotificationsProvider>
       </AcademicProvider>
     </Suspense>
   );

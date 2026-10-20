@@ -255,53 +255,53 @@ export default function StudentWalletsPage() {
                   </tr>
                 ) : (
                   filteredWallets.map((wallet) => {
-                  const student = resolveStudent(wallet.students);
-                  if (!student) return null;
+                    const student = resolveStudent(wallet.students);
+                    if (!student) return null;
 
-                  return (
-                    <tr key={wallet.id} className="hover:bg-slate-50/50 transition-colors group">
-                      <td className="px-6 py-4">
-                        <p className="text-sm font-bold text-slate-800">
-                          {student.first_name} {student.last_name}
-                        </p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
-                          {student.student_number}
-                        </p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p
-                          className={`text-sm font-black ${
-                            wallet.balance < 2000 ? "text-red-500" : "text-primary-800"
-                          }`}
-                        >
-                          UGX {Number(wallet.balance || 0).toLocaleString()}
-                        </p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="text-xs font-medium text-slate-500">
-                          {wallet.daily_spend_limit
-                            ? `UGX ${Number(wallet.daily_spend_limit).toLocaleString()}`
-                            : "No Limit"}
-                        </p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="text-xs text-slate-400 font-medium">
-                          {wallet.updated_at ? format(new Date(wallet.updated_at), "MMM dd, HH:mm") : "N/A"}
-                        </p>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <button
-                          onClick={() => setShowTopup(wallet)}
-                          className="px-4 py-2 bg-slate-800 text-white rounded-xl text-[10px] font-black uppercase tracking-wider hover:scale-105 transition-all shadow-md opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
-                        >
-                          Top Up
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
+                    return (
+                      <tr key={wallet.id} className="hover:bg-slate-50/50 transition-colors group">
+                        <td className="px-6 py-4">
+                          <p className="text-sm font-bold text-slate-800">
+                            {student.first_name} {student.last_name}
+                          </p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+                            {student.student_number}
+                          </p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p
+                            className={`text-sm font-black ${
+                              wallet.balance < 2000 ? "text-red-500" : "text-primary-800"
+                            }`}
+                          >
+                            UGX {Number(wallet.balance || 0).toLocaleString()}
+                          </p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="text-xs font-medium text-slate-500">
+                            {wallet.daily_spend_limit
+                              ? `UGX ${Number(wallet.daily_spend_limit).toLocaleString()}`
+                              : "No Limit"}
+                          </p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="text-xs text-slate-400 font-medium">
+                            {wallet.updated_at ? format(new Date(wallet.updated_at), "MMM dd, HH:mm") : "N/A"}
+                          </p>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <button
+                            onClick={() => setShowTopup(wallet)}
+                            className="px-4 py-2 bg-slate-800 text-white rounded-xl text-[10px] font-black uppercase tracking-wider hover:scale-105 transition-all shadow-md opacity-100 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100"
+                          >
+                            Top Up
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>

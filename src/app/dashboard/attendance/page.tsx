@@ -62,8 +62,8 @@ const STATUS_CONFIG: Record<AttendanceStatus, { color: string; bg: string; label
     icon: "schedule",
   },
   excused: {
-    color: "bg-[#7c3aed]",
-    bg: "bg-[#f3e8ff]",
+    color: "bg-[var(--violet)]",
+    bg: "bg-[var(--violet-soft)]",
     label: "Excused",
     icon: "verified",
   },
@@ -1153,7 +1153,7 @@ export default function AttendancePage() {
                 {excusedCount > 0 && (
                   <>
                     {" · "}
-                    <span className="font-semibold text-[#7c3aed]">{excusedCount} excused</span>
+                    <span className="font-semibold text-[var(--violet)]">{excusedCount} excused</span>
                   </>
                 )}
               </p>
@@ -1347,7 +1347,7 @@ export default function AttendancePage() {
                               ? "bg-error/10 text-error border-2 border-error/30 hover:bg-error/20"
                               : s === "late"
                                 ? "bg-tertiary/10 text-tertiary border-2 border-tertiary/30 hover:bg-tertiary/20"
-                                : "bg-[#f3e8ff] text-[#7c3aed] border-2 border-[#7c3aed]/30 hover:bg-[#ede3fe]"
+                                : "bg-[var(--violet-soft)] text-[var(--violet)] border-2 border-[var(--violet)]/30 hover:opacity-90"
                         }`}
                       >
                         Mark All {cfg.label}
@@ -1430,8 +1430,8 @@ export default function AttendancePage() {
                   <div className="text-3xl font-bold text-tertiary tabular-nums">{savedSummary.late}</div>
                   <div className="text-sm font-medium text-on-surface-variant">Late</div>
                 </div>
-                <div className="rounded-2xl border border-[#7c3aed]/30 bg-[#f3e8ff] p-4">
-                  <div className="text-3xl font-bold text-[#7c3aed] tabular-nums">{savedSummary.excused}</div>
+                <div className="rounded-2xl border border-[var(--violet)]/30 bg-[var(--violet-soft)] p-4">
+                  <div className="text-3xl font-bold text-[var(--violet)] tabular-nums">{savedSummary.excused}</div>
                   <div className="text-sm font-medium text-on-surface-variant">Excused</div>
                 </div>
               </div>
@@ -1867,8 +1867,9 @@ export default function AttendancePage() {
               )}
 
               <div
-        data-page-action-bar=""
-        className="mobile-sticky-action fixed bottom-[calc(84px+env(safe-area-inset-bottom,0px))] left-0 right-0 p-4 md:relative md:bottom-auto md:p-0 bg-surface/95 md:bg-transparent border-t border-outline-variant md:border-0 z-10">
+                data-page-action-bar=""
+                className="mobile-sticky-action fixed bottom-[calc(84px+env(safe-area-inset-bottom,0px))] left-0 right-0 p-4 md:relative md:bottom-auto md:p-0 bg-surface/95 md:bg-transparent border-t border-outline-variant md:border-0 z-10"
+              >
                 <Button
                   onClick={() => saveAttendance()}
                   disabled={saving}

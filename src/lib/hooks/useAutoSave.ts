@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { logger } from "@/lib/logger";
 
 interface UseAutoSaveOptions<T> {
@@ -9,6 +9,7 @@ interface UseAutoSaveOptions<T> {
   storageKey: string;
   onSave?: (data: T) => void;
   enabled?: boolean;
+  maxAgeMs?: number;
 }
 
 interface SavedState<T> {
@@ -22,8 +23,10 @@ export function useAutoSave<T>({
   storageKey,
   onSave,
   enabled = true,
+  maxAgeMs = 24 * 60 * 60 * 1000,
 }: UseAutoSaveOptions<T>) {
   const lastSavedRef = useRef<string>("");
+  const [storageAvailable, setStorageAvailable] = useState(true);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Save to localStorage
@@ -35,7 +38,13 @@ export function useAutoSave<T>({
           data: dataToSave,
           savedAt: Date.now(),
         };
-        localStorage.setItem(`draft_${storageKey}`, JSON.stringify(state));
+        try {
+          localStorage.setItem(`draft_${storageKey}`, JSON.stringify(state));
+          setStorageAvailable(true);
+        } catch {
+          setStorageAvailable(false);
+          return;
+        }
         lastSavedRef.current = serialized;
         onSave?.(dataToSave);
       }
@@ -49,20 +58,24 @@ export function useAutoSave<T>({
       const stored = localStorage.getItem(`draft_${storageKey}`);
       if (stored) {
         const state: SavedState<T> = JSON.parse(stored);
-        // Return data if less than 24 hours old
-        if (Date.now() - state.savedAt < 24 * 60 * 60 * 1000) {
+        if (Date.now() - state.savedAt < maxAgeMs) {
           return state.data;
         }
       }
     } catch (e) {
+      setStorageAvailable(false);
       logger.error("Failed to load draft:", e);
     }
     return null;
-  }, [storageKey]);
+  }, [storageKey, maxAgeMs]);
 
   // Clear saved draft
   const clearDraft = useCallback(() => {
-    localStorage.removeItem(`draft_${storageKey}`);
+    try {
+      localStorage.removeItem(`draft_${storageKey}`);
+    } catch {
+      setStorageAvailable(false);
+    }
     lastSavedRef.current = "";
   }, [storageKey]);
 
@@ -84,13 +97,14 @@ export function useAutoSave<T>({
   // Save on unmount
   useEffect(() => {
     return () => {
-      saveToStorage(data);
+      if (enabled) saveToStorage(data);
     };
-  }, [data, saveToStorage]);
+  }, [data, saveToStorage, enabled]);
 
   return {
     loadFromStorage,
     clearDraft,
+    storageAvailable,
     lastSaved: lastSavedRef.current ? JSON.parse(lastSavedRef.current) : null,
   };
 }
@@ -113,38 +127,19 @@ interface FieldValidation {
 export function useFieldValidation({ value, rules }: FieldValidation) {
   const errors: string[] = [];
 
-  if (
-    rules.required &&
-    (value === "" || value === null || value === undefined)
-  ) {
+  if (rules.required && (value === "" || value === null || value === undefined)) {
     errors.push(rules.message || "This field is required");
   }
 
-  if (
-    rules.minLength &&
-    typeof value === "string" &&
-    value.length < rules.minLength
-  ) {
-    errors.push(
-      rules.message || `Minimum ${rules.minLength} characters required`,
-    );
+  if (rules.minLength && typeof value === "string" && value.length < rules.minLength) {
+    errors.push(rules.message || `Minimum ${rules.minLength} characters required`);
   }
 
-  if (
-    rules.maxLength &&
-    typeof value === "string" &&
-    value.length > rules.maxLength
-  ) {
-    errors.push(
-      rules.message || `Maximum ${rules.maxLength} characters allowed`,
-    );
+  if (rules.maxLength && typeof value === "string" && value.length > rules.maxLength) {
+    errors.push(rules.message || `Maximum ${rules.maxLength} characters allowed`);
   }
 
-  if (
-    rules.pattern &&
-    typeof value === "string" &&
-    !rules.pattern.test(value)
-  ) {
+  if (rules.pattern && typeof value === "string" && !rules.pattern.test(value)) {
     errors.push(rules.message || "Invalid format");
   }
 

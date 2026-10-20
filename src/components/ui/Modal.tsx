@@ -15,6 +15,8 @@ interface ModalProps {
   className?: string;
   /** Rendered in the header, before the close button (autosave state, badges). */
   headerAction?: React.ReactNode;
+  /** Prevent closing on backdrop click to protect unsaved form entries. */
+  disableBackdropClick?: boolean;
 }
 
 export function Modal({
@@ -26,6 +28,7 @@ export function Modal({
   showClose = true,
   className = "",
   headerAction,
+  disableBackdropClick = false,
 }: ModalProps) {
   const modalRef = useRef<HTMLDivElement>(null);
   const previousActiveElement = useRef<HTMLElement | null>(null);
@@ -89,17 +92,21 @@ export function Modal({
 
   const modalContent = (
     <div
-      className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4"
+      className="fixed inset-0 z-[var(--z-overlay,1000)] flex items-end sm:items-center justify-center overflow-y-auto p-0 sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby={title ? "modal-title" : undefined}
     >
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} aria-hidden="true" />
+      <div
+        className="absolute inset-0 bg-black/50"
+        onClick={disableBackdropClick ? undefined : onClose}
+        aria-hidden="true"
+      />
       <div
         ref={modalRef}
         className={cn(
           "relative w-full bg-[var(--surface)] shadow-2xl border border-[var(--border)] overflow-hidden",
-          "rounded-2xl max-h-[calc(100vh-1.5rem)] sm:max-h-[90vh] my-auto",
+          "rounded-t-2xl sm:rounded-2xl max-h-[calc(100dvh-1rem)] sm:max-h-[90vh] my-0 sm:my-auto",
           "sm:mx-auto",
           sizes[size],
           "animate-slideUpBottomSheet sm:animate-none",

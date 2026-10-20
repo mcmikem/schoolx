@@ -373,7 +373,7 @@ export default function MarketerDashboard() {
         <button
           onClick={fetchData}
           disabled={loading}
-          className="p-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--bg)] text-[var(--t3)] transition-colors disabled:opacity-40"
+          className="tap-44 p-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:bg-[var(--bg)] text-[var(--t3)] transition-colors disabled:opacity-40"
         >
           <span className={`material-symbols-outlined ${loading ? "animate-spin" : ""}`} style={{ fontSize: 18 }}>
             refresh
@@ -582,7 +582,7 @@ function OverviewTab({
                           {s.phone && (
                             <a
                               href={`tel:${s.phone}`}
-                              className="text-[var(--t4)] hover:text-[var(--primary)] transition-colors p-1"
+                              className="tap-44 text-[var(--t4)] hover:text-[var(--primary)] transition-colors p-1"
                               title={`Call ${s.phone}`}
                             >
                               <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
@@ -593,7 +593,7 @@ function OverviewTab({
                           {s.email && (
                             <a
                               href={`mailto:${s.email}`}
-                              className="text-[var(--t4)] hover:text-[var(--primary)] transition-colors p-1"
+                              className="tap-44 text-[var(--t4)] hover:text-[var(--primary)] transition-colors p-1"
                               title={`Email ${s.email}`}
                             >
                               <span className="material-symbols-outlined" style={{ fontSize: 14 }}>
@@ -1501,7 +1501,7 @@ function ResourcesTab() {
               href={r.href}
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 hover:shadow-md hover:border-[var(--primary)]/30 transition-all group"
+              className="tap-44 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 hover:shadow-md hover:border-[var(--primary)]/30 transition-all group"
             >
               <div className="w-9 h-9 rounded-xl flex items-center justify-center mb-3 bg-[var(--red-ink)]/10 text-[var(--violet)] group-hover:scale-110 transition-transform">
                 <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
@@ -1971,7 +1971,7 @@ function EditSchoolModal({
       >
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-['Sora'] text-[15px] font-bold text-[var(--t1)]">Edit School Contact</h3>
-          <button onClick={onClose} className="text-[var(--t4)] hover:text-[var(--t1)] p-1">
+          <button onClick={onClose} className="tap-44 text-[var(--t4)] hover:text-[var(--t1)] p-1">
             <span className="material-symbols-outlined" style={{ fontSize: 18 }}>
               close
             </span>

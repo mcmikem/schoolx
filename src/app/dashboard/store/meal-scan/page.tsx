@@ -308,7 +308,7 @@ export default function MealScanPage() {
             <button
               onClick={startScanner}
               disabled={!selectedRule?.is_enabled || serving}
-              className="w-full border-2 border-dashed border-slate-200 rounded-2xl p-8 text-center hover:bg-slate-50 disabled:opacity-50"
+              className="tap-44 w-full border-2 border-dashed border-slate-200 rounded-2xl p-8 text-center hover:bg-slate-50 disabled:opacity-50"
             >
               <MaterialIcon icon="qr_code_scanner" className="text-4xl text-slate-400 mb-2" />
               <p className="font-bold text-slate-800">Scan student card for {MEAL_LABELS[selectedMeal]}</p>
@@ -364,7 +364,7 @@ export default function MealScanPage() {
           <div className="w-full max-w-md rounded-2xl bg-white overflow-hidden">
             <div className="p-4 border-b border-slate-100 flex items-center justify-between">
               <h3 className="font-semibold text-slate-800">Scan Student Card</h3>
-              <button onClick={stopScanner} className="p-2 rounded hover:bg-slate-100">
+              <button onClick={stopScanner} className="tap-44 p-2 rounded hover:bg-slate-100">
                 <MaterialIcon icon="close" />
               </button>
             </div>

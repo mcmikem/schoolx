@@ -564,19 +564,16 @@ export default function StudentTransfersPanel({
             </div>
             <form onSubmit={onTransferOut} className="p-5">
               <div className="mb-4">
-                <label
-                  htmlFor="transfer-out-student"
-                  className="block text-xs font-semibold uppercase tracking-wider text-[var(--t3)] mb-2"
-                >
-                  Select Student
-                </label>
+                {/* No label here: StudentPicker renders its own. The heading
+                    above already says "Transfer Student Out", so the picker's
+                    label is just "Student" rather than saying it twice. */}
                 {activeStudents.length === 0 ? (
                   <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm text-amber-800">
                     No active students
                   </div>
                 ) : (
                   <StudentPicker
-                    label="Transfer out"
+                    label="Student"
                     students={activeStudents.map((student) => ({
                       id: student.id,
                       name: `${student.first_name} ${student.last_name}`,

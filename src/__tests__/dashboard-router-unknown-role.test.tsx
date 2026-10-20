@@ -133,6 +133,37 @@ describe("DashboardRouter — unrecognised role", () => {
   });
 
   it.each([
+    ["loading", { loading: true }],
+    ["signed out", { user: null }],
+    ["school reconnecting", { school: null, profileDegraded: true }],
+    ["school setup", { school: null }],
+    ["super-admin routing", { user: { id: "user-1", full_name: "Admin", role: "super_admin" } }],
+  ])("preserves hook order when a bursar session enters and leaves %s", async (_label, transition) => {
+    const bursar = { id: "user-1", full_name: "James Bursar", role: "bursar" };
+    setAuth({ user: bursar });
+    const { rerender } = render(<DashboardRouter />);
+    expect(await screen.findByTestId("dashboard-bursar")).toBeInTheDocument();
+
+    setAuth({ user: bursar, ...transition });
+    expect(() => rerender(<DashboardRouter />)).not.toThrow();
+    expect(screen.queryByTestId("dashboard-bursar")).not.toBeInTheDocument();
+
+    setAuth({ user: bursar });
+    expect(() => rerender(<DashboardRouter />)).not.toThrow();
+    expect(await screen.findByTestId("dashboard-bursar")).toBeInTheDocument();
+  });
+
+  it("preserves hook order when initial session loading resolves", async () => {
+    setAuth({ user: null, loading: true, authInitialized: false });
+    const { rerender } = render(<DashboardRouter />);
+    expect(screen.getByTestId("dashboard-skeleton")).toBeInTheDocument();
+
+    setAuth({ user: { id: "user-1", full_name: "James Bursar", role: "bursar" } });
+    expect(() => rerender(<DashboardRouter />)).not.toThrow();
+    expect(await screen.findByTestId("dashboard-bursar")).toBeInTheDocument();
+  });
+
+  it.each([
     ["headmaster", "dashboard-headmaster"],
     ["dean_of_studies", "dashboard-dean"],
     ["bursar", "dashboard-bursar"],

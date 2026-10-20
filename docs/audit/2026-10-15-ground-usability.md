@@ -124,3 +124,19 @@ Complete CBC persistence payloads include the report format and assessment break
 Separate report APIs, grade-entry final scores, class-specific subject allocations, export reconciliation and the A+/A* grading-label policy differences remain open. No existing school records are rewritten by this repair.
 
 Verification: lint and typecheck pass; all 1,495 Jest tests across 122 suites pass, including 163 regression checks. The combined ground-usability, common-page and finance visual browser run passes all 17 checks. CBC phone and print screenshots were visually reviewed; the print table aligns and visibly identifies missing results. Localhost remains running and responds with HTTP 200. These are fixture-based checks, not a sign-off on all 50 scenarios or live school persistence.
+
+## Bursar dashboard redesign
+
+The bursar landing page now prioritizes daily collections, payment channels, a prominent record-payment action and four finance shortcuts. Repeated task/exception panels and the large greeting block are replaced with a compact collection overview, visible searchable receipts, and an arrears follow-up list. The school calendar remains available but starts collapsed. Fee-setup links now open the dedicated fee-structure page instead of an unsupported fees tab.
+
+Receipts can be searched by student, student number, class or reference, with latest/today filters, reset, retry and ledger navigation. The preview sorts before limiting to five rows, retains recorded zeroes and can use joined student details outside the loaded roster. Unknown/loading/failed data is distinguished from zero collections. Labels identify demo figures, school-wide summaries and loaded-record estimates; daily and weekly figures explicitly do not promise reconciled, uncapped totals.
+
+New component tests cover receipt filtering, sorting, empty/error/loading recovery, source boundaries, fee-setup failures and summary availability. Browser checks cover 320px/390px/desktop layouts, horizontal channel alignment, search/reset, ledger and fee-setup/arrears navigation. This redesign does not close S05/S10 persistence/concurrency/full-roster reconciliation requirements and makes no database, authorization or grading-policy changes.
+
+Redesign validation: lint and typecheck pass; all 1,512 unit tests across 124 suites pass. All eight dashboard/finance browser checks pass, and final desktop/phone screenshots were visually reviewed. The live development server is left running; no commit or push is made for this redesign batch.
+
+### Follow-up: dashboard hook-order crash
+
+A reported "Rendered fewer hooks than expected" crash exposed two router memo hooks below loading, signed-out, reconnecting, setup and super-admin early returns. Six new session-transition regression cases failed against the old router, reproducing both fewer-hooks and more-hooks errors. The hooks now run before every early return and safely handle a missing user; existing role eligibility rules and access checks are unchanged. The targeted router/bursar unit run passes all 24 checks. A browser regression now explicitly refreshes the dashboard and returns from the fees page; fresh-page layout checks alone had not exercised the failing session transitions.
+
+Hook-order fix verification: lint, typecheck, 24 targeted unit tests, 163 regression checks and all four bursar browser checks pass, including refresh/back-navigation. The first refresh-test run exceeded the five-second initial-page assertion while the dashboard subsequently rendered normally; its cold-load assertion now allows 15 seconds and still checks for runtime errors. Localhost remains running.

@@ -360,7 +360,6 @@ export default function BehaviorPage() {
               </div>
               <form onSubmit={handleSubmit} className="p-6 space-y-4">
                 <div>
-                  <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Student</label>
                   {students.length === 0 ? (
                     <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-sm text-amber-800">
                       No students available
