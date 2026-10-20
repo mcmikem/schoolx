@@ -10,7 +10,7 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Tabs, TabPanel } from "@/components/ui/Tabs";
 import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/index";
+import { Button, Modal, StatStrip } from "@/components/ui/index";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { getErrorMessage } from "@/lib/validation";
 import { logger } from "@/lib/logger";
@@ -920,19 +920,15 @@ export default function TimetablePage() {
       <div className="p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto space-y-6">
         <PageHeader title="Timetable" subtitle="Class schedule and academic calendar" />
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {[
-            { label: "Slots", value: effectiveSlots.length.toString(), tone: "text-primary" },
-            { label: "Classes", value: classes.length.toString(), tone: "text-secondary" },
-            { label: "Subjects", value: subjects.length.toString(), tone: "text-tertiary" },
-            { label: "Staff", value: teachers.length.toString(), tone: "text-amber-600" },
-          ].map((item) => (
-            <div key={item.label} className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3">
-              <div className="text-xs uppercase tracking-[0.18em] text-[var(--t3)] font-black">{item.label}</div>
-              <div className={`mt-1 text-lg font-bold ${item.tone}`}>{item.value}</div>
-            </div>
-          ))}
-        </div>
+        <StatStrip
+          columns={4}
+          items={[
+            { label: "Slots", value: effectiveSlots.length, tone: "info" },
+            { label: "Classes", value: classes.length },
+            { label: "Subjects", value: subjects.length },
+            { label: "Staff", value: teachers.length, tone: "warning" },
+          ]}
+        />
 
         {/* Main tabs: Class Timetable vs Term Calendar */}
         <div className="border-b border-[var(--border)] overflow-x-auto no-scrollbar">
@@ -1194,119 +1190,111 @@ export default function TimetablePage() {
             )}
           </Card>
 
-          {showEntryModal && selectedSlot && (
-            <div className="fixed inset-0 z-50 flex items-start sm:items-center justify-center overflow-y-auto p-3 sm:p-4">
-              <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
-              <Card className="relative w-full max-w-md max-h-[calc(100vh-1.5rem)] sm:max-h-[calc(100vh-2rem)] overflow-y-auto my-auto">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-lg font-semibold text-[var(--t1)]">Assign Lesson</h2>
-                  <button
-                    onClick={() => {
-                      setShowEntryModal(false);
-                      setConflicts([]);
-                      setRoomValue("");
-                    }}
-                    className="text-[var(--t4)] hover:text-[var(--t1)]"
-                  >
-                    <MaterialIcon icon="close" />
-                  </button>
+          <Modal
+            isOpen={showEntryModal && Boolean(selectedSlot)}
+            onClose={() => {
+              setShowEntryModal(false);
+              setConflicts([]);
+              setRoomValue("");
+            }}
+            title="Assign Lesson"
+            size="md"
+          >
+            {selectedSlot && (
+              <form onSubmit={handleAddEntry} className="space-y-4">
+                <div className="rounded-xl bg-[var(--primary)]/10 p-3">
+                  <p className="mb-1 text-xs font-semibold uppercase text-[var(--primary)]">Schedule Slot</p>
+                  <p className="text-sm font-medium text-[var(--t1)]">
+                    {DAYS.find((d) => d.value === selectedDay)?.full} · {selectedSlot.name} (
+                    {selectedSlot.start_time?.slice(0, 5)} – {selectedSlot.end_time?.slice(0, 5)})
+                  </p>
                 </div>
 
-                <form onSubmit={handleAddEntry} className="space-y-4">
-                  <div className="p-3 bg-[var(--primary)]/10 rounded-xl mb-4">
-                    <p className="text-xs text-[var(--primary)] font-semibold uppercase mb-1">Schedule Slot</p>
-                    <p className="text-sm text-[var(--t1)] font-medium">
-                      {DAYS.find((d) => d.value === selectedDay)?.full} · {selectedSlot.name} (
-                      {selectedSlot.start_time?.slice(0, 5)} – {selectedSlot.end_time?.slice(0, 5)})
-                    </p>
-                  </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-[var(--t2)]">Subject</label>
+                  <select
+                    name="subject_id"
+                    required
+                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] px-4 py-3 text-[var(--on-surface)]"
+                  >
+                    <option value="">Choose subject...</option>
+                    {subjects.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-[var(--t2)]">Subject</label>
-                    <select
-                      name="subject_id"
-                      required
-                      className="w-full px-4 py-3 bg-[var(--surface-container-low)] border border-[var(--border)] rounded-xl text-[var(--on-surface)]"
-                    >
-                      <option value="">Choose subject...</option>
-                      {subjects.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-[var(--t2)]">Teacher</label>
+                  <select
+                    name="teacher_id"
+                    required
+                    onChange={handleTeacherChange}
+                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] px-4 py-3 text-[var(--on-surface)]"
+                  >
+                    <option value="">Select teacher...</option>
+                    {teachers.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.full_name} ({t.role})
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-[var(--t2)]">Teacher</label>
-                    <select
-                      name="teacher_id"
-                      required
-                      onChange={handleTeacherChange}
-                      className="w-full px-4 py-3 bg-[var(--surface-container-low)] border border-[var(--border)] rounded-xl text-[var(--on-surface)]"
-                    >
-                      <option value="">Select teacher...</option>
-                      {teachers.map((t) => (
-                        <option key={t.id} value={t.id}>
-                          {t.full_name} ({t.role})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-[var(--t2)]">Room (optional)</label>
-                    <input
-                      name="room"
-                      value={roomValue}
-                      onChange={(e) => {
-                        setRoomValue(e.target.value);
-                        const teacherSelect = document.querySelector<HTMLSelectElement>('[name="teacher_id"]');
-                        if (teacherSelect?.value && selectedSlot) {
-                          const found = detectConflicts(
-                            teacherSelect.value,
-                            selectedDay,
-                            selectedSlot.order_number ?? selectedSlot.period_number,
-                            selectedSlot.start_time,
-                            selectedSlot.end_time,
-                            e.target.value,
-                          );
-                          setConflicts(found);
-                        }
-                      }}
-                      placeholder="e.g. Lab 3, Room 12"
-                      className="w-full px-4 py-3 bg-[var(--surface-container-low)] border border-[var(--border)] rounded-xl text-[var(--on-surface)]"
-                    />
-                  </div>
-
-                  {/* Conflict warnings */}
-                  {conflicts.length > 0 && (
-                    <div className="space-y-2">
-                      {conflicts.map((c, i) => {
-                        const isWarning = c.startsWith("Warning:");
-                        return (
-                          <div
-                            key={i}
-                            className={`p-3 ${isWarning ? "bg-amber-50 border-amber-200 text-amber-700" : "bg-red-50 border-red-200 text-red-700"} border rounded-xl flex items-start gap-2 text-sm`}
-                          >
-                            <MaterialIcon
-                              icon="warning"
-                              className={`${isWarning ? "text-amber-500" : "text-red-500"} shrink-0 mt-0.5`}
-                            />
-                            <span>{c}</span>
-                          </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-[var(--t2)]">Room (optional)</label>
+                  <input
+                    name="room"
+                    value={roomValue}
+                    onChange={(e) => {
+                      setRoomValue(e.target.value);
+                      const teacherSelect =
+                        e.currentTarget.form?.querySelector<HTMLSelectElement>('[name="teacher_id"]');
+                      if (teacherSelect?.value && selectedSlot) {
+                        const found = detectConflicts(
+                          teacherSelect.value,
+                          selectedDay,
+                          selectedSlot.order_number ?? selectedSlot.period_number,
+                          selectedSlot.start_time,
+                          selectedSlot.end_time,
+                          e.target.value,
                         );
-                      })}
-                    </div>
-                  )}
+                        setConflicts(found);
+                      }
+                    }}
+                    placeholder="e.g. Lab 3, Room 12"
+                    className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] px-4 py-3 text-[var(--on-surface)]"
+                  />
+                </div>
 
-                  <Button type="submit" className="w-full mt-4" disabled={conflicts.length > 0}>
-                    {conflicts.length > 0 ? "Resolve Conflicts First" : "Add to Timetable"}
-                  </Button>
-                </form>
-              </Card>
-            </div>
-          )}
+                {conflicts.length > 0 && (
+                  <div className="space-y-2">
+                    {conflicts.map((c, i) => {
+                      const isWarning = c.startsWith("Warning:");
+                      return (
+                        <div
+                          key={i}
+                          className={`flex items-start gap-2 rounded-xl border p-3 text-sm ${isWarning ? "border-amber-200 bg-amber-50 text-amber-700" : "border-red-200 bg-red-50 text-red-700"}`}
+                        >
+                          <MaterialIcon
+                            icon="warning"
+                            className={`mt-0.5 shrink-0 ${isWarning ? "text-amber-500" : "text-red-500"}`}
+                          />
+                          <span>{c}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <Button type="submit" className="mt-4 w-full" disabled={conflicts.length > 0}>
+                  {conflicts.length > 0 ? "Resolve Conflicts First" : "Add to Timetable"}
+                </Button>
+              </form>
+            )}
+          </Modal>
         </TabPanel>
       </div>
       <ConfirmDialog

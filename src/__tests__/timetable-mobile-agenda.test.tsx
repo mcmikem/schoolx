@@ -64,6 +64,20 @@ jest.mock("@/components/ui/Card", () => ({
   ),
 }));
 jest.mock("@/components/ui/index", () => ({
+  Modal: ({ isOpen, title, children }: { isOpen: boolean; title?: string; children: React.ReactNode }) =>
+    isOpen ? (
+      <div role="dialog">
+        {title && <h2>{title}</h2>}
+        {children}
+      </div>
+    ) : null,
+  StatStrip: ({ items }: { items: { label: string; value: React.ReactNode }[] }) => (
+    <div>
+      {items.map((item) => (
+        <div key={item.label}>{item.value}</div>
+      ))}
+    </div>
+  ),
   Button: ({
     children,
     onClick,
