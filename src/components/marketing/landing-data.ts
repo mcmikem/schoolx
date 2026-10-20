@@ -222,10 +222,10 @@ export const tabContent: Record<
       ["Low attendance", "3", "follow-up before assembly"],
     ],
     bars: [
-      { name: "S.1", value: 78, color: "bg-[#17325F]" },
+      { name: "S.1", value: 78, color: "bg-[var(--bot-navy)]" },
       { name: "S.2", value: 84, color: "bg-[var(--brand-green)]" },
       { name: "S.3", value: 71, color: "bg-[#B86B0C]" },
-      { name: "S.4", value: 88, color: "bg-[#17325F]" },
+      { name: "S.4", value: 88, color: "bg-[var(--bot-navy)]" },
     ],
     actions: [
       {
@@ -271,7 +271,7 @@ export const tabContent: Record<
     ],
     bars: [
       { name: "P.7", value: 92, color: "bg-[var(--brand-green)]" },
-      { name: "S.1", value: 85, color: "bg-[#17325F]" },
+      { name: "S.1", value: 85, color: "bg-[var(--bot-navy)]" },
       { name: "S.2", value: 78, color: "bg-[#B86B0C]" },
       { name: "S.4", value: 95, color: "bg-[var(--brand-green)]" },
     ],
@@ -283,10 +283,10 @@ export const tabContent: Record<
       ["Report cards", "Ready", "S.4 candidates"],
     ],
     bars: [
-      { name: "S.1", value: 78, color: "bg-[#17325F]" },
+      { name: "S.1", value: 78, color: "bg-[var(--bot-navy)]" },
       { name: "S.2", value: 84, color: "bg-[var(--brand-green)]" },
       { name: "S.3", value: 71, color: "bg-[#B86B0C]" },
-      { name: "S.4", value: 88, color: "bg-[#17325F]" },
+      { name: "S.4", value: 88, color: "bg-[var(--bot-navy)]" },
     ],
   },
   4: {

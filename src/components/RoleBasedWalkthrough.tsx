@@ -40,7 +40,7 @@ export default function RoleBasedWalkthrough() {
       className="mx-4 mt-4 flex min-w-0 flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 sm:mx-6 sm:flex-row sm:items-center sm:justify-between"
     >
       <div className="flex min-w-0 items-start gap-3">
-        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[#17325f]">
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[var(--bot-navy-ink)]">
           <MaterialIcon icon="menu_book" size={24} />
         </span>
         <div>
@@ -55,7 +55,7 @@ export default function RoleBasedWalkthrough() {
       <div className="flex shrink-0 items-center gap-2">
         <Link
           href="/dashboard/learn"
-          className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[#17325f] px-4 text-base font-bold text-white"
+          className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-[var(--bot-navy)] px-4 text-base font-bold text-white"
         >
           Learn step by step
           <MaterialIcon icon="arrow_forward" />

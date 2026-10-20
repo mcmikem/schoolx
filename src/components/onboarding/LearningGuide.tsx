@@ -128,7 +128,7 @@ function PaymentPractice() {
           {error}
         </p>
       )}
-      <button type="submit" className="min-h-12 w-full rounded-xl bg-[#17325f] px-4 font-bold text-white">
+      <button type="submit" className="min-h-12 w-full rounded-xl bg-[var(--bot-navy)] px-4 font-bold text-white">
         Save practice receipt
       </button>
       {saved && (
@@ -245,7 +245,7 @@ function GuideSession({ schoolId, userId, track }: { schoolId: string; userId: s
                   type="button"
                   onClick={() => change(item.id, 0)}
                   aria-current={item.id === lesson.id ? "step" : undefined}
-                  className={`flex min-h-14 w-full items-center gap-3 rounded-xl border p-3 text-left text-base ${item.id === lesson.id ? "border-[#17325f] bg-blue-50 font-bold text-[#17325f]" : "border-[var(--border)] text-[var(--t1)]"}`}
+                  className={`flex min-h-14 w-full items-center gap-3 rounded-xl border p-3 text-left text-base ${item.id === lesson.id ? "border-[#17325f] bg-blue-50 font-bold text-[var(--bot-navy-ink)]" : "border-[var(--border)] text-[var(--t1)]"}`}
                 >
                   <span
                     className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[var(--surface-container-low)] text-sm font-bold"
@@ -300,7 +300,7 @@ function GuideSession({ schoolId, userId, track }: { schoolId: string; userId: s
                   {step.example.map((line, index) => (
                     <li key={line} className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-3">
                       <span
-                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-50 text-sm font-bold text-[#17325f]"
+                        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-50 text-sm font-bold text-[var(--bot-navy-ink)]"
                         aria-hidden="true"
                       >
                         {index + 1}
@@ -330,14 +330,14 @@ function GuideSession({ schoolId, userId, track }: { schoolId: string; userId: s
                 <button
                   type="button"
                   onClick={() => change(nextUnread.id, 0)}
-                  className="min-h-12 flex-1 rounded-xl bg-[#17325f] px-4 text-base font-bold text-white"
+                  className="min-h-12 flex-1 rounded-xl bg-[var(--bot-navy)] px-4 text-base font-bold text-white"
                 >
                   Next lesson →
                 </button>
               ) : (
                 <Link
                   href="/dashboard"
-                  className="inline-flex min-h-12 flex-1 items-center justify-center rounded-xl bg-[#17325f] px-4 text-base font-bold text-white"
+                  className="inline-flex min-h-12 flex-1 items-center justify-center rounded-xl bg-[var(--bot-navy)] px-4 text-base font-bold text-white"
                 >
                   All lessons read — go Home
                 </Link>
@@ -351,7 +351,7 @@ function GuideSession({ schoolId, userId, track }: { schoolId: string; userId: s
                     reviewed: [...new Set([...previous.reviewed, lesson.id])],
                   }))
                 }
-                className="min-h-12 min-w-0 flex-1 rounded-xl bg-[#17325f] px-4 text-base font-bold text-white"
+                className="min-h-12 min-w-0 flex-1 rounded-xl bg-[var(--bot-navy)] px-4 text-base font-bold text-white"
               >
                 Mark this lesson as read
               </button>
@@ -359,7 +359,7 @@ function GuideSession({ schoolId, userId, track }: { schoolId: string; userId: s
               <button
                 type="button"
                 onClick={() => change(lesson.id, progress.step + 1)}
-                className="min-h-12 flex-1 rounded-xl bg-[#17325f] px-5 text-base font-bold text-white"
+                className="min-h-12 flex-1 rounded-xl bg-[var(--bot-navy)] px-5 text-base font-bold text-white"
               >
                 Next step <span aria-hidden="true">→</span>
               </button>

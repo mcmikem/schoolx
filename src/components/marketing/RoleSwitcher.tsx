@@ -28,7 +28,7 @@ export function RoleSwitcher() {
               onClick={() => setActiveRole(i)}
               className={`flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition-all duration-200 border ${
                 activeRole === i
-                  ? "bg-[#001F3F] text-white border-[#001F3F] shadow-md"
+                  ? "bg-[var(--primary-navy)] text-white border-[#001F3F] shadow-md"
                   : "bg-white text-slate-600 border-slate-200 hover:border-[#001F3F]/30 hover:text-slate-900"
               }`}
             >

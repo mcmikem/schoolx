@@ -208,7 +208,10 @@ function BursarDashboardContent() {
         }
       />
 
-      <section aria-label="Daily collections" className="overflow-hidden rounded-3xl bg-[#17325f] text-white shadow-sm">
+      <section
+        aria-label="Daily collections"
+        className="overflow-hidden rounded-3xl bg-[var(--bot-navy)] text-white shadow-sm"
+      >
         <div className="grid gap-6 p-5 sm:p-7 lg:grid-cols-[1.1fr_1fr] lg:gap-10">
           <div className="min-w-0">
             <div className="mb-5 flex flex-wrap items-center gap-2 text-xs font-medium text-blue-100">

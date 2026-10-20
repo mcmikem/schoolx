@@ -44,7 +44,7 @@ export function StatStrip() {
   ];
 
   return (
-    <section className="bg-[#001F3F]">
+    <section className="bg-[var(--primary-navy)]">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-2 gap-y-10 gap-x-6 lg:grid-cols-4">
           {stats.map((s) => (

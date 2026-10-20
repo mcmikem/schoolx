@@ -63,14 +63,14 @@ export default function SetupStepHelp({ step }: { step: number }) {
       className="mx-auto mb-6 max-w-lg rounded-2xl border border-blue-200 bg-blue-50 p-4 text-slate-900"
     >
       <div className="flex items-start gap-3">
-        <MaterialIcon icon={help.icon} size={26} className="shrink-0 text-[#17325f]" />
+        <MaterialIcon icon={help.icon} size={26} className="shrink-0 text-[var(--bot-navy-ink)]" />
         <div>
           <h2 className="text-base font-bold leading-snug">{help.title}</h2>
           <p className="mt-2 text-sm leading-relaxed">{help.text}</p>
         </div>
       </div>
       <details className="mt-3 rounded-xl border border-blue-200 bg-white">
-        <summary className="min-h-12 cursor-pointer px-3 py-3 text-base font-semibold text-[#17325f]">
+        <summary className="min-h-12 cursor-pointer px-3 py-3 text-base font-semibold text-[var(--bot-navy-ink)]">
           Show me an example
         </summary>
         <dl className="space-y-3 border-t border-blue-100 p-3">

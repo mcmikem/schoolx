@@ -128,7 +128,6 @@
 [data-theme="dark"] [class*="text-[#102341]"] { color: var(--t1); }
 [data-theme="dark"] [class*="text-[#15803d]"] { color: #6ee7b7; }
 [data-theme="dark"] [class*="text-[#166534]"] { color: #6ee7b7; }
-[data-theme="dark"] [class*="text-[#17325F]"] { color: var(--t1); }
 [data-theme="dark"] [class*="text-[#173f58]"] { color: var(--t1); }
 [data-theme="dark"] [class*="text-[#191c1d]"] { color: var(--t1); }
 [data-theme="dark"] [class*="text-[#19344a]"] { color: var(--t1); }
@@ -201,7 +200,6 @@
 [data-theme="dark"] .to-transparent { --tw-gradient-to: transparent; }
 [data-theme="dark"] .via-transparent { --tw-gradient-via: transparent; }
 /* Extended coverage for previously uncovered hexes (audit 2026-08-28) */
-[data-theme="dark"] [class*="bg-[#001F3F]"] { background-color: var(--surface-container); }
 [data-theme="dark"] [class*="bg-[#002045]"] { background-color: var(--surface-container); }
 [data-theme="dark"] [class*="bg-[#059669]"] { background-color: #0d2c29; }
 [data-theme="dark"] [class*="bg-[#0b1c39]"] { background-color: var(--surface-container-high); }
@@ -210,8 +208,6 @@
 [data-theme="dark"] [class*="bg-[#0f1f3d]"] { background-color: var(--surface); }
 [data-theme="dark"] [class*="bg-[#10b981]"] { background-color: #0d2c29; }
 [data-theme="dark"] [class*="bg-[#163f59]"] { background-color: var(--surface-container-high); }
-[data-theme="dark"] [class*="bg-[#17325F]"] { background-color: var(--surface-container); }
-[data-theme="dark"] [class*="bg-[#17325f]"] { background-color: var(--surface-container); }
 [data-theme="dark"] [class*="bg-[#1f8a70]"] { background-color: #0d2c29; }
 [data-theme="dark"] [class*="bg-[#25D366]"] { background-color: #0d2c29; }
 [data-theme="dark"] [class*="bg-[#42638d]"] { background-color: var(--surface-container-high); }

@@ -244,6 +244,11 @@ button {
   --on-primary: #ffffff;
   --on-secondary: #ffffff;
 
+  /* Signature navy washes used as solid section/button surfaces */
+  --bot-navy: #17325f;
+  --bot-navy-ink: #17325f;
+  --primary-navy: #001f3f;
+
   --surface-brightest: #ffffff;
   --surface-bright: #f9fbff;
   --surface-dim: #d9e3f4;
@@ -559,6 +564,9 @@ button {
   --surface-bright: #1d242e;
   --surface-dim: #141a21;
   --surface-container: #232c36;
+  --bot-navy: #232c36;
+  --bot-navy-ink: #e8ecf1;
+  --primary-navy: #232c36;
   --surface-container-high: #28323d;
   --surface-container-highest: #2d3844;
   --surface-container-low: #1e262f;
