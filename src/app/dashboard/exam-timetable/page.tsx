@@ -9,6 +9,7 @@ import { supabase } from "@/lib/supabase";
 import MaterialIcon from "@/components/MaterialIcon";
 import { logger } from "@/lib/logger";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
+import { StatStrip } from "@/components/ui/index";
 import { canAccess, type UserRole } from "@/lib/roles";
 
 interface ExamSlot {
@@ -273,6 +274,13 @@ export default function ExamTimetablePage() {
     });
   }, [examSlots]);
 
+  const summary = useMemo(() => {
+    const dates = new Set(examSlots.map((slot) => slot.date).filter(Boolean));
+    const classesWithExams = new Set(examSlots.map((slot) => slot.class_id).filter(Boolean));
+    const supervisors = new Set(examSlots.map((slot) => slot.supervisor_id).filter(Boolean));
+    return { days: dates.size, classes: classesWithExams.size, supervisors: supervisors.size };
+  }, [examSlots]);
+
   const groupByDate = useMemo(() => {
     const groups: Record<string, ExamSlot[]> = {};
     sortedSlots.forEach((slot) => {
@@ -340,6 +348,17 @@ export default function ExamTimetablePage() {
           </div>
         </div>
 
+        <StatStrip
+          columns={4}
+          className="mb-5"
+          items={[
+            { label: "Exams", value: examSlots.length },
+            { label: "Exam days", value: summary.days },
+            { label: "Classes", value: summary.classes },
+            { label: "Supervisors", value: summary.supervisors, tone: "info" },
+          ]}
+        />
+
         {loading ? (
           <div className="card" style={{ padding: 40 }}>
             <div className="skeleton" style={{ height: 200 }}></div>
@@ -369,7 +388,40 @@ export default function ExamTimetablePage() {
                   })}
                 </div>
               </div>
-              <div className="overflow-x-auto">
+              <div className="space-y-2 p-3 sm:hidden">
+                {slots.map((slot) => {
+                  const subject = subjects.find((s) => s.id === slot.subject_id);
+                  const classObj = classes.find((c) => c.id === slot.class_id);
+                  const sup = staff.find((s) => s.id === slot.supervisor_id);
+                  return (
+                    <div key={slot.id} className="rounded-xl border border-[var(--border)] p-3">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="truncate font-semibold text-[var(--t1)]">{subject?.name || "Subject"}</p>
+                          <p className="mt-0.5 text-xs text-[var(--t3)]">
+                            {classObj?.name || "All classes"} · {slot.room || "No room"}
+                          </p>
+                        </div>
+                        <span className="shrink-0 rounded-lg bg-[var(--surface-container)] px-2 py-1 text-xs font-bold tabular-nums text-[var(--t2)]">
+                          {slot.start_time}–{slot.end_time}
+                        </span>
+                      </div>
+                      <p className="mt-1.5 text-xs text-[var(--t3)]">Supervisor: {sup?.full_name || "Not assigned"}</p>
+                      {canManageExams && (
+                        <div className="mt-2 flex gap-3 text-xs font-semibold">
+                          <button onClick={() => handleEditExam(slot)} className="text-[var(--primary)]">
+                            Edit
+                          </button>
+                          <button onClick={() => handleDeleteExam(slot.id)} className="text-[var(--red)]">
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="hidden overflow-x-auto sm:block">
                 <table className="tbl">
                   <thead>
                     <tr>
