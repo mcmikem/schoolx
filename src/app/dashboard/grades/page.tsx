@@ -4,6 +4,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState, NoData } from "@/components/EmptyState";
 import { ClassAverageRow } from "@/components/grades/ClassAverageRow";
 import { GradeStatusBadge } from "@/components/grades/GradeStatusBadge";
+import SubmittedSheetsPanel, { type SubmittedSheet } from "@/components/grades/SubmittedSheetsPanel";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { OwlyTrigger } from "@/components/owly/OwlyTrigger";
@@ -54,6 +55,7 @@ import {
   GradeWorkflowStatus,
   getNextGradeWorkflowStatusActions,
   getPrevGradeWorkflowStatusActions,
+  gradeWorkflowRank,
 } from "@/lib/operations";
 import { isClassScopedRole } from "@/lib/roles";
 import { loadSchoolSettings } from "@/lib/school-settings";
@@ -409,6 +411,69 @@ export default function GradesPage() {
   const { data: classStudents, loading: studentsLoading, error: studentsError } = useOfflineStudents(school?.id);
 
   const { data: existingGrades, loading: gradesLoading, error: gradesError } = useOfflineGrades(school?.id);
+
+  /**
+   * The sheets that have been handed in.
+   *
+   * A headmaster does not enter marks -- they are handed them, and the job
+   * is to see what is waiting and to approve or publish it. The Grades page
+   * opened on the mark-entry form for everyone, so the headmaster landed on a
+   * class picker and a subject list (the teacher's job) with no way to see
+   * what had been submitted to them.
+   *
+   * Grouped by class and subject, because that is what a sheet is: one
+   * subject's marks for one class, in this term.
+   */
+  const submittedSheets = useMemo<SubmittedSheet[]>(() => {
+    const bySheet = new Map<string, SubmittedSheet>();
+    for (const grade of (existingGrades ?? []) as Array<Record<string, any>>) {
+      if (grade.term !== currentTerm || grade.academic_year !== academicYear) continue;
+      const classId = grade.class_id as string | undefined;
+      const subjectId = grade.subject_id as string | undefined;
+      if (!classId || !subjectId) continue;
+
+      const key = `${classId}:${subjectId}`;
+      const status = (grade.status || "draft") as GradeWorkflowStatus;
+      const existing = bySheet.get(key);
+      if (!existing) {
+        const classRow = classes.find((c) => c.id === classId);
+        bySheet.set(key, {
+          classId,
+          subjectId,
+          className: classRow ? `${classRow.name}${classRow.stream ? ` ${classRow.stream}` : ""}` : "Class",
+          subjectName:
+            (grade.subjects as { name?: string } | undefined)?.name ||
+            subjects.find((s) => s.id === subjectId)?.name ||
+            "Subject",
+          status,
+          teacherName: staff.find((s) => s.id === grade.recorded_by)?.full_name || "Unknown",
+          markedCount: 1,
+        });
+      } else {
+        if (gradeWorkflowRank(status) > gradeWorkflowRank(existing.status)) existing.status = status;
+        existing.markedCount += 1;
+      }
+    }
+    // The waiting ones first: that is the list the headmaster came for.
+    return [...bySheet.values()].sort((a, b) => {
+      const rank = gradeWorkflowRank(b.status) - gradeWorkflowRank(a.status);
+      if (rank !== 0) return rank;
+      return a.className.localeCompare(b.className);
+    });
+  }, [existingGrades, classes, subjects, staff, currentTerm, academicYear]);
+
+  /** The people who hand work on rather than do it. */
+  const isReviewer = ["headmaster", "school_admin", "admin", "dean_of_studies"].includes(user?.role || "");
+
+  const sheetNextAction = (sheet: SubmittedSheet) => {
+    const next = getNextGradeWorkflowStatusActions(sheet.status, user?.role);
+    const status = next[0];
+    if (!status) return null;
+    return {
+      status,
+      label: status === "approved" ? "Approve" : status === "published" ? "Publish" : "Send",
+    };
+  };
 
   const [inlineEntryMode, setInlineEntryMode] = useState(true);
 
@@ -1138,8 +1203,12 @@ export default function GradesPage() {
     handleSaveGrades("submitted");
   };
 
-  const handleAdvanceWorkflow = async (nextStatus: GradeWorkflowStatus) => {
-    if (!selectedClass || !selectedSubject || !user?.id || existingGrades.length === 0) {
+  const handleAdvanceWorkflow = async (nextStatus: GradeWorkflowStatus, forClassId?: string, forSubjectId?: string) => {
+    // The review list acts on a sheet the headmaster did not open, so the
+    // sheet it is about can be named explicitly.
+    const targetClass = forClassId ?? selectedClass;
+    const targetSubject = forSubjectId ?? selectedSubject;
+    if (!targetClass || !targetSubject || !user?.id) {
       toast.error("Save grades first before changing workflow status");
       return;
     }
@@ -1173,8 +1242,8 @@ export default function GradesPage() {
               Authorization: `Bearer ${token || ""}`,
             },
             body: JSON.stringify({
-              class_id: selectedClass,
-              subject_id: selectedSubject,
+              class_id: targetClass,
+              subject_id: targetSubject,
               next_status: nextStatus,
               term: currentTerm,
               academic_year: academicYear,
@@ -1194,8 +1263,8 @@ export default function GradesPage() {
               user.full_name,
               "update",
               "grades",
-              `Changed grade workflow to ${nextStatus} for class ${selectedClass} subject ${selectedSubject}`,
-              `${selectedClass}:${selectedSubject}:${currentTerm}:${academicYear}`,
+              `Changed grade workflow to ${nextStatus} for class ${targetClass} subject ${targetSubject}`,
+              `${targetClass}:${targetSubject}:${currentTerm}:${academicYear}`,
               { status: submissionStatus },
               { status: nextStatus },
             );
@@ -1514,6 +1583,28 @@ export default function GradesPage() {
             subject, then the marks table -- each screen answers the question
             the previous one raised.
           */}{" "}
+        {/* What has been handed in.
+            A headmaster opens this page to see the work that is waiting for
+            them, not to choose a class. The entry form is still here -- some
+            headmasters mark their own class -- but it is under its own
+            heading, so the two are not confused. */}
+        <SubmittedSheetsPanel
+          sheets={submittedSheets}
+          loading={gradesLoading}
+          heading={isReviewer ? "Submitted for review" : "Your grade sheets"}
+          emptyHint={
+            isReviewer
+              ? "No sheets have been submitted yet. When a teacher sends their marks they appear here, ready to approve."
+              : "You have not entered any marks yet for this term."
+          }
+          nextAction={sheetNextAction}
+          onOpen={(sheet) => {
+            setShowTargetPicker(true);
+            setSelectedClass(sheet.classId);
+            setSelectedSubject(sheet.subjectId);
+          }}
+          onAdvance={(sheet, status) => void handleAdvanceWorkflow(status, sheet.classId, sheet.subjectId)}
+        />
         {/* Class picker — the one thing that has to be right before the
             subject list below means anything.
 
@@ -1521,6 +1612,12 @@ export default function GradesPage() {
             this at all: the marks open on the target that was assigned to
             them, and the "change" link in the context bar brings the
             pickers back for the days they cover for someone else. */}
+        {isReviewer && (
+          <h2 className="mt-6 text-sm font-semibold text-[var(--t1)]">
+            Enter marks
+            <span className="ml-2 font-normal text-[var(--t3)]">for a class yourself</span>
+          </h2>
+        )}
         {!(singleTarget && !showTargetPicker) && (
           <div className="grid grid-cols-1 gap-3">
             <div>

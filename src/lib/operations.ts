@@ -155,6 +155,13 @@ const CREDIT_ADJUSTMENTS = new Set<FinancialAdjustmentType>([
 const TERMINAL_CLASS_NAMES = ["P.7", "P7", "S.6", "S6"];
 const GRADE_STATUS_ORDER: GradeWorkflowStatus[] = ["draft", "submitted", "approved", "published"];
 
+/** How far along the workflow a sheet is. Used to pick the highest status a
+ *  set of grade rows has reached, and to sort what is waiting first. */
+export function gradeWorkflowRank(status: GradeWorkflowStatus | string | null | undefined): number {
+  const index = GRADE_STATUS_ORDER.indexOf(status as GradeWorkflowStatus);
+  return index < 0 ? 0 : index;
+}
+
 export function getNextClassName(name: string): string {
   const match = name.match(/([A-Z]\.?)(\d+)(.*)/);
   if (!match) return name;

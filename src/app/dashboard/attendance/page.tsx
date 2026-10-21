@@ -24,6 +24,7 @@ import { getLocalDateString, notifyDashboardStatsChanged, timeoutFallback, withT
 import { logger } from "@/lib/logger";
 import { offlineDB, useOnlineStatus } from "@/lib/offline";
 import { useOfflineAttendance, useOfflineStudents } from "@/lib/offline-hooks";
+import TodaysMarkingPanel, { type ClassMarkingStatus } from "@/components/attendance/TodaysMarkingPanel";
 import { canAccess, type UserRole } from "@/lib/roles";
 import { getAutomationStatus, toggleAutomation } from "@/lib/sms-automation";
 import { supabase } from "@/lib/supabase";
@@ -238,6 +239,8 @@ export default function AttendancePage() {
   const [searchQuery, setSearchQuery] = useState(() => urlFilters.get("q") || "");
 
   const isClassTeacher = user?.role === "teacher";
+  // The people who are handed the register to check rather than write it.
+  const isReviewer = ["headmaster", "school_admin", "admin", "dean_of_studies"].includes(user?.role || "");
   const isAdmin =
     user?.role === "headmaster" ||
     user?.role === "dean_of_studies" ||
@@ -830,6 +833,46 @@ export default function AttendancePage() {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [focusStudentId]);
 
+  /**
+   * Who has marked today, class by class.
+   *
+   * The register only shows what exists, so a class that has not registered
+   * at all is invisible from the headmaster's desk. A headmaster's first
+   * question in the morning is "who has not marked yet", so this lists every
+   * class -- marked or not.
+   */
+  const todaysMarking = useMemo<ClassMarkingStatus[]>(() => {
+    if (!isReviewer) return [];
+    const markedByClass = new Map<string, { count: number; absent: number }>();
+    for (const row of (offlineAttendance ?? []) as Array<{
+      class_id?: string;
+      student_id?: string;
+      status?: string;
+    }>) {
+      if (!row.class_id) continue;
+      const entry = markedByClass.get(row.class_id) ?? { count: 0, absent: 0 };
+      entry.count += 1;
+      if (row.status === "absent") entry.absent += 1;
+      markedByClass.set(row.class_id, entry);
+    }
+    const pupilsByClass = new Map<string, number>();
+    for (const student of (offlineStudents ?? []) as Array<{ class_id?: string; status?: string }>) {
+      if (!student.class_id) continue;
+      if (student.status && student.status !== "active") continue;
+      pupilsByClass.set(student.class_id, (pupilsByClass.get(student.class_id) ?? 0) + 1);
+    }
+    return filteredClasses.map((cls) => {
+      const entry = markedByClass.get(cls.id);
+      return {
+        classId: cls.id,
+        className: `${cls.name}${cls.stream ? ` ${cls.stream}` : ""}`,
+        marked: entry?.count ?? 0,
+        total: pupilsByClass.get(cls.id) ?? 0,
+        absent: entry?.absent ?? 0,
+      };
+    });
+  }, [isReviewer, offlineAttendance, offlineStudents, filteredClasses]);
+
   const exportAttendance = () => {
     if (!selectedClass || students.length === 0) return;
 
@@ -1177,6 +1220,18 @@ export default function AttendancePage() {
               </div>
             }
           />
+
+          {/* For a headmaster this is the page: who has marked. It sits above
+              the register, not under it -- the register is the teacher's
+              screen, and the headmaster's first question is which class has
+              not registered yet. */}
+          {todaysMarking.length > 0 && (
+            <TodaysMarkingPanel
+              classes={todaysMarking}
+              dateLabel={date}
+              onOpen={(classId) => setSelectedClass(classId)}
+            />
+          )}
 
           {/*
               Only shown once a class is chosen. Before that it reads
@@ -1564,7 +1619,7 @@ export default function AttendancePage() {
                       <ol className="mt-2 space-y-1.5 text-[13px] text-[var(--t2)] list-decimal list-inside">
                         <li>Everyone counts as Present. You only mark the ones who are not there.</li>
                         <li>Tap a pupil who is absent. Tap again to change it to Late or Excused.</li>
-                        <li>Swipe a row right for Present, left for Absent.</li>
+                        <li>Swipe a row left for Present, right for Absent.</li>
                         <li>When you finish, tap Save.</li>
                       </ol>
                     </div>
