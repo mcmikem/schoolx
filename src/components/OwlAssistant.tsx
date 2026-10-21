@@ -3,6 +3,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
+import { OwlEyelids } from "@/components/brand/OwlMascot";
 import { BugReportModal } from "@/components/BugReportButton";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
@@ -637,14 +638,19 @@ export default function OwlAssistant() {
             className="relative transition-transform hover:scale-105 active:scale-95"
             style={{ width: 56, height: 56 }}
           >
-            <Image
-              src="/SkoolMate logos/SchoolMate icon.svg"
-              alt="SkoolMate"
-              width={56}
-              height={56}
-              loading="eager"
-              className="animate-owly-alive rounded-2xl"
-            />
+            {/* The idle float and the blink share one transformed box: a lid
+                drawn outside it would drift off the eyes while the owl bobs. */}
+            <div className="animate-owly-alive relative h-full w-full">
+              <Image
+                src="/SkoolMate logos/SchoolMate icon.svg"
+                alt="SkoolMate"
+                width={56}
+                height={56}
+                loading="eager"
+                className="h-full w-full rounded-2xl"
+              />
+              <OwlEyelids />
+            </div>
             {/* The badge is the only interrupting signal, and it appears only
                 when the user has been round the same page enough times to look
                 stuck. No coloured halo: the owl's idle motion already says it
@@ -789,15 +795,16 @@ export default function OwlAssistant() {
               background: "#0b1c39",
             }}
           >
-            <div className="shrink-0">
+            <div className="relative shrink-0" style={{ width: 36, height: 36 }}>
               <Image
                 src="/SkoolMate logos/SchoolMate icon.svg"
                 alt="SkoolMate"
                 width={36}
                 height={36}
                 loading="eager"
-                className="rounded-xl"
+                className="block h-full w-full rounded-xl"
               />
+              <OwlEyelids />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-white font-bold text-sm leading-tight">Owly Assistant</p>

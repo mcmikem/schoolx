@@ -11,7 +11,30 @@ type OwlMascotProps = {
   label?: string;
   subtitle?: string;
   animated?: boolean;
+  /** Drop the eye lids for a moment now and then. Defaults to `animated`. */
+  blink?: boolean;
 };
+
+/**
+ * The two eye lids, positioned over the owl's eye whites.
+ *
+ * The mascot is an image, so the lids are separate elements laid on top. The
+ * positions are percentages of the artwork's 325 x 324 viewBox, which keeps
+ * them aligned at any size. `OwlAssistant` uses this directly for its launcher,
+ * which draws the image itself.
+ */
+export function OwlEyelids() {
+  return (
+    <>
+      <span
+        className="owly-eyelid"
+        style={{ left: "20.3%", top: "42.3%", width: "27.7%", height: "28%" }}
+        aria-hidden
+      />
+      <span className="owly-eyelid" style={{ left: "52.3%", top: "42.3%", width: "28%", height: "28%" }} aria-hidden />
+    </>
+  );
+}
 
 export default function OwlMascot({
   size = 64,
@@ -22,7 +45,9 @@ export default function OwlMascot({
   label,
   subtitle,
   animated = false,
+  blink,
 }: OwlMascotProps) {
+  const shouldBlink = blink ?? animated;
   return (
     <div className={cn("relative inline-flex items-center justify-center", label ? "gap-3" : "", className)}>
       <div className="relative">
@@ -60,6 +85,7 @@ export default function OwlMascot({
             loading="eager"
             decoding="sync"
           />
+          {shouldBlink && <OwlEyelids />}
         </div>
       </div>
       {label && (

@@ -1970,10 +1970,43 @@ table tr {
   will-change: transform;
 }
 
+/* Owly's blink.
+   Two navy lids sit over the eye whites and drop for a moment every few
+   seconds. The colour matches the owl's own eye ring, so a closed eye reads as
+   a blink rather than a dark blob. The lid stops short of the bottom of the
+   eye: covering it completely erases the eye and the owl looks eyeless, so a
+   white crescent is left underneath, which is how a shut eye reads.
+   Decoration only: no state depends on it. */
+.owly-eyelid {
+  position: absolute;
+  background: #0b1c39;
+  border-radius: 50%;
+  transform: scaleY(0);
+  transform-origin: center top;
+  animation: owly-eyelid-blink 7s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes owly-eyelid-blink {
+  0%,
+  90%,
+  100% {
+    transform: scaleY(0);
+  }
+  92%,
+  94% {
+    transform: scaleY(0.76);
+  }
+  96% {
+    transform: scaleY(0);
+  }
+}
+
 /* Respect the OS-level motion preference. Idle movement is decoration, so it
    stops entirely; the static owl and the badge still communicate everything. */
 @media (prefers-reduced-motion: reduce) {
-  .animate-owly-alive {
+  .animate-owly-alive,
+  .owly-eyelid {
     animation: none;
   }
 }
@@ -2568,6 +2601,7 @@ html.lite .animate-shimmer-wave,
 html.lite .animate-owl-float,
 html.lite .animate-owl-shadow,
 html.lite .animate-owl-blink,
+html.lite .owly-eyelid,
 html.lite .animate-wing-left,
 html.lite .animate-wing-right,
 html.lite .animate-book-bounce,
