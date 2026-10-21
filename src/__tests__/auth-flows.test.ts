@@ -281,7 +281,7 @@ describe("dashboard paints without waiting on the network", () => {
     // Anchor on the *call site* in checkUser, not the fetch itself, which lives
     // inside fetchUserData and is defined earlier in the file.
     const hydrate = src.indexOf("Optimistic profile hydration failed");
-    const reconcile = src.indexOf("await fetchUserData(sessionUser.id)");
+    const reconcile = src.indexOf("await fetchUserData(sessionUser.id, session)");
     expect(reconcile).toBeGreaterThan(-1);
     expect(reconcile).toBeGreaterThan(hydrate);
     const fallbackVerification = src.indexOf(

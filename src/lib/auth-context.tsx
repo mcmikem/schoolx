@@ -134,6 +134,30 @@ function isSlowConnection(): boolean {
 // burning seconds failing the primary format on every single sign-in.
 const LOGIN_FORMAT_KEY_PREFIX = "skoolmate_login_format_v1";
 
+// A device that has already felt a slow link. The Network Information API
+// reports "4g" until it has measured something, so on a brand new phone --
+// exactly the phone that has never logged in -- the API says the connection
+// is fast while the connection is anything but. The sign-in deadline
+// therefore cannot trust it, and a device that has seen a slow link keeps the
+// longer deadline next time.
+const SLOW_DEVICE_KEY = "skoolmate_slow_device_v1";
+
+function wasSlowDevice(): boolean {
+  try {
+    return localStorage.getItem(SLOW_DEVICE_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function rememberSlowDevice(): void {
+  try {
+    localStorage.setItem(SLOW_DEVICE_KEY, "1");
+  } catch {
+    // Private mode: the hint is a nicety, not a requirement.
+  }
+}
+
 function rememberedFormatKey(identifier: string): string {
   const trimmed = identifier.trim();
   const canonical = trimmed.includes("@") ? trimmed.toLowerCase() : buildAuthEmailFromPhone(trimmed);
@@ -200,22 +224,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [school]);
 
   const fetchUserData = useCallback(
-    async (authId: string, retryCount = 0): Promise<{ role: string } | null> => {
+    async (
+      authId: string,
+      knownSession?: { access_token?: string; expires_at?: number } | null,
+      retryCount = 0,
+    ): Promise<{ role: string } | null> => {
       if (authFetchAborted.current || !supabase) return null;
 
+      // Declared out here so the retry below can hand the same session on.
+      let session = knownSession ?? null;
+
       try {
-        // getSession() can return a stale access_token if it hasn't refreshed yet.
-        // Prefer refreshSession() so we always send a current token to /api/auth/me/.
-        // Both calls have 6s timeouts to prevent infinite loading when Supabase hangs.
-        // Reduced dynamically on slow connections (3G/2G) via getConnectionTimeout().
-        let session = (
-          (await Promise.race([
-            supabase.auth.getSession(),
-            new Promise<never>((_, reject) =>
-              setTimeout(() => reject(new Error("getSession timed out")), getConnectionTimeout(6000)),
-            ),
-          ])) as Awaited<ReturnType<typeof supabase.auth.getSession>>
-        ).data.session;
+        // The session the caller already holds is used as it is.
+        //
+        // Asking the auth client for the session here was the single biggest
+        // reason a sign-in took half a minute on a slow phone and then
+        // failed: this function runs INSIDE the library's auth-state
+        // callback, which the library delivers while it still holds its own
+        // storage lock, so getSession() could not get in, waited five
+        // seconds and gave up. The profile was never fetched, the login page
+        // never moved on, and the teacher was told the sign-in had failed
+        // seconds after it had actually worked.
+        if (!session) {
+          session = (
+            (await Promise.race([
+              supabase.auth.getSession(),
+              new Promise<never>((_, reject) =>
+                setTimeout(() => reject(new Error("getSession timed out")), getConnectionTimeout(6000)),
+              ),
+            ])) as Awaited<ReturnType<typeof supabase.auth.getSession>>
+          ).data.session;
+        }
         if (session && session.expires_at && session.expires_at * 1000 < Date.now() + 6000) {
           const { data: refreshed } = (await Promise.race([
             supabase.auth.refreshSession(),
@@ -250,7 +289,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (retryCount < 1 && (res.status === 502 || res.status === 503 || res.status === 504)) {
             logger.warn(`[Auth] Profile fetch got ${res.status}, retrying...`);
             await new Promise((r) => setTimeout(r, 1000));
-            return fetchUserData(authId, retryCount + 1);
+            return fetchUserData(authId, session, retryCount + 1);
           }
           if (res.status === 404) {
             logger.error("[Auth] User profile not found in database for auth_id:", authId);
@@ -275,7 +314,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 ),
               ]).catch(() => null);
               await new Promise((r) => setTimeout(r, 500));
-              return fetchUserData(authId, retryCount + 1);
+              return fetchUserData(authId, session, retryCount + 1);
             }
             logger.warn("[Auth] Profile fetch auth token rejected after refresh — keeping session for degraded login");
             return null;
@@ -343,7 +382,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ) {
           logger.warn("[Auth] Profile fetch network error, retrying...");
           await new Promise((r) => setTimeout(r, 1500));
-          return fetchUserData(authId, retryCount + 1);
+          return fetchUserData(authId, session, retryCount + 1);
         }
         // Never clear the auth state on transient failures — a valid Supabase
         // session exists; the profile endpoint was just unreachable. The caller
@@ -558,7 +597,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
 
           const sessionUser = session.user;
-          const profile = await fetchUserData(sessionUser.id);
+          const profile = await fetchUserData(sessionUser.id, session);
           if (profile) {
             setIsDemo(false);
             setLoading(false);
@@ -779,7 +818,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             try {
               const sessionUser = session?.user;
-              const profile = sessionUser ? await fetchUserData(sessionUser.id) : null;
+              const profile = sessionUser ? await fetchUserData(sessionUser.id, session) : null;
               if (profile) {
                 authCheckedRef.current = true;
                 if (!handlerSafetyFired) {
@@ -911,6 +950,97 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  /**
+   * Wait for a sign-in answer that was still in flight when its deadline
+   * fired.
+   *
+   * The request was never cancelled -- it is still running -- so the session
+   * lands in the client the moment it arrives. Reading the local session is
+   * free (no network) and finds it as soon as it is there. This is the
+   * difference between "the phone took half a minute and then said the
+   * password was wrong" and the same phone taking half a minute and letting
+   * the teacher in.
+   */
+  async function waitForLateSignIn(maxWaitMs: number): Promise<{ role: string } | null> {
+    const deadline = Date.now() + maxWaitMs;
+    while (Date.now() < deadline) {
+      await new Promise((r) => setTimeout(r, 1000));
+      try {
+        const {
+          data: { session },
+        } = await supabase!.auth.getSession();
+        if (session?.user) {
+          return { role: session.user.user_metadata?.role || "admin" };
+        }
+      } catch {
+        // The session is not there yet. Keep waiting.
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Sign in through our own API: one request, and the server works out which
+   * account the number belongs to.
+   *
+   * The client used to guess. Accounts are stored as `256XXXXXXXXX@omuto.org`,
+   * a few legacy ones as `0777777777@omuto.org` or `@omuto.sms`, and most of
+   * them also carry a phone identity -- so the client tried each format in
+   * turn and paid a round trip for every wrong guess. On a slow phone each
+   * guess had its own deadline, and the sign-in failed after half a minute
+   * with the password never actually checked.
+   *
+   * The server can look the number up, so the phone travels once. The
+   * password is used to sign in and is never stored or logged.
+   *
+   * Returns null when the API could not be reached or is not available, so
+   * the caller can fall back to the client-side attempts.
+   */
+  async function apiSignIn(identifier: string, password: string): Promise<{ error: any; role?: string } | null> {
+    let res: Response;
+    try {
+      res = await fetch("/api/auth/signin/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identifier, password }),
+      });
+    } catch {
+      // Our own API is unreachable: offline, a captive portal, or a proxy
+      // that blocks the path. The client-side attempts below still work.
+      return null;
+    }
+
+    let payload: {
+      success?: boolean;
+      data?: { access_token?: string; refresh_token?: string; role?: string };
+      error?: string;
+    } = {};
+    try {
+      payload = await res.json();
+    } catch {
+      // A non-JSON answer is a proxy error page, not a decision.
+    }
+
+    if (res.ok && payload.data?.access_token && payload.data.refresh_token) {
+      const { data, error } = await supabase!.auth.setSession({
+        access_token: payload.data.access_token,
+        refresh_token: payload.data.refresh_token,
+      });
+      if (!error && data.session) {
+        return { error: null, role: payload.data.role || "admin" };
+      }
+      return { error: { message: "Could not start your session. Please try again." } };
+    }
+
+    // The server answered, so it is the authority on this sign-in: it already
+    // tried every identity the number could belong to.
+    if (res.status === 401 || res.status === 400 || res.status === 429 || res.status === 503) {
+      return { error: { message: payload.error || "Invalid phone number or password" } };
+    }
+
+    return null;
+  }
+
   async function signIn(phone: string, password: string) {
     try {
       // Prevent duplicate sign-in attempts (e.g. double-click)
@@ -919,14 +1049,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
       signInLock.current = true;
       // Safety: if a request hangs forever (poor internet), auto-release the
-      // lock after 45s so the user can retry without refreshing the page.
-      // Must exceed the worst-case attempt loop (slow-network timeouts), or a
-      // duplicate submit mid-loop would run a second concurrent loop.
+      // lock so the user can retry without refreshing the page.
+      // Must exceed the whole attempt loop -- the budget is 60s and a timed
+      // out attempt waits for its late answer inside that -- or a duplicate
+      // submit mid-loop would run a second concurrent loop.
       signInLockTimer.current = setTimeout(() => {
         logger.warn("[Auth] signInLock auto-released after timeout");
         signInLock.current = false;
         signInLockTimer.current = null;
-      }, 45000);
+      }, 75000);
+
+      // The fast path: one request, and the server knows the account. If our
+      // own API cannot be reached, the client-side attempts below take over.
+      const viaApi = await apiSignIn(phone, password);
+      if (viaApi) {
+        releaseSignInLock();
+        return viaApi;
+      }
 
       const attempts = buildAuthLoginAttempts(phone);
       // Fast path: try the format that worked last time first. Legacy-format
@@ -944,7 +1083,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // that fires while the real response is still in flight makes the loop
       // try wrong fallback formats, fail, toast "invalid login" — and then the
       // late success still signs the user in seconds later.
-      const attemptTimeoutMs = isSlowConnection() ? 15000 : 8000;
+      //
+      // Eight seconds was too tight for a phone on a slow link: every attempt
+      // timed out, the loop burned through four formats, and the sign-in
+      // failed after half a minute with the password never actually checked.
+      // The deadline is now generous from the start, a device that has felt a
+      // slow link keeps that deadline, and the whole loop is bounded so it
+      // cannot run away.
+      let attemptTimeoutMs = isSlowConnection() || wasSlowDevice() ? 15000 : 10000;
+      // The whole sign-in gets a budget, so a link that is merely slow cannot
+      // turn into an endless wait.
+      const signInBudgetMs = 60000;
+      const signInStartedAt = Date.now();
       let lastError: unknown = null;
       // The first answer Supabase actually checked the password against. Later
       // attempts can be fallback formats that time out on a slow network, and
@@ -1040,6 +1190,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           };
         } catch (attemptError) {
           if (attemptError instanceof Error && attemptError.message === "Login attempt timed out") {
+            // The deadline fired while the request was still in flight. On a
+            // cold project (a phone that has never signed in is usually the
+            // first request after the free-tier instance went to sleep) that
+            // answer lands ten or twenty seconds later -- and it is the
+            // RIGHT answer, because the account is not in the format we just
+            // tried. Throwing the attempt away and moving to the next format
+            // spent the whole budget on requests that were all going to be
+            // too slow, and the sign-in failed after half a minute with the
+            // password never actually checked.
+            //
+            // So: wait for the late answer before trying anything else.
+            rememberSlowDevice();
+            const remaining = signInBudgetMs - (Date.now() - signInStartedAt);
+            if (remaining <= 2000) {
+              lastError = {
+                message: "Connection timed out. Please check your internet and try again.",
+              };
+              break;
+            }
+            const landed = await waitForLateSignIn(Math.min(remaining, 25000));
+            if (landed) {
+              releaseSignInLock();
+              return {
+                error: null,
+                role: landed.role,
+              };
+            }
             lastError = {
               message: "Connection timed out. Please check your internet and try again.",
             };
