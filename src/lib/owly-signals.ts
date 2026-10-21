@@ -38,7 +38,12 @@ export interface OwlySignals extends SuggestionSignals {
  * The write happens once per path, not once per render, so a re-render or a
  * StrictMode double-invoke cannot inflate a count into a false "stuck" verdict.
  */
-export function useOwlySignals(opts: { page?: string; role?: string; online: boolean; userId?: string | null }): OwlySignals {
+export function useOwlySignals(opts: {
+  page?: string;
+  role?: string;
+  online: boolean;
+  userId?: string | null;
+}): OwlySignals {
   const { page, role, online, userId } = opts;
 
   // `null` means "not measured yet", which suppresses the blink for one tick so
@@ -48,11 +53,20 @@ export function useOwlySignals(opts: { page?: string; role?: string; online: boo
   const [isNewUser, setIsNewUser] = useState(false);
 
   // Re-read on identity change: a different user has their own history.
+  //
+  // The ref guard matters here too. Reading `SEEN_KEY` and immediately writing
+  // it means a StrictMode double-invoke (or any remount in the same session)
+  // reads the flag this mount just wrote, decides the user is no longer new,
+  // and silently withholds the one-time welcome.
+  const initialisedFor = useRef<string | null>(null);
   useEffect(() => {
     if (!userId) {
+      initialisedFor.current = null;
       setVisits(EMPTY_VISITS);
       return;
     }
+    if (initialisedFor.current === userId) return;
+    initialisedFor.current = userId;
     const seen = readUserScoped<boolean>(SEEN_KEY, userId);
     setIsNewUser(seen !== true);
     writeUserScoped(SEEN_KEY, userId, true);

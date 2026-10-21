@@ -43,6 +43,9 @@ export const USER_SCOPED_PREFIXES = [
   "skoolmate_recent_pages",
   "assemble_recent_pages",
   "skoolmate_owly_messages_v1",
+  "owly_visits_v1",
+  "owly_seen_v1",
+  "owly_fab_hint_seen_v1",
 ] as const;
 
 /**

@@ -1,7 +1,7 @@
 "use client";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
 import { BugReportModal } from "@/components/BugReportButton";
 import { useRouter } from "next/navigation";
@@ -25,6 +25,7 @@ interface Message {
 }
 
 const STORAGE_KEY = "skoolmate_owly_messages_v1";
+const FAB_HINT_FLAG = "owly_fab_hint_seen_v1";
 const MAX_STORED_MESSAGES = 40;
 const AI_TIMEOUT_MS = 12000;
 
@@ -193,6 +194,9 @@ export default function OwlAssistant() {
   const [walkthroughStep, setWalkthroughStep] = useState(0);
   const [online, setOnline] = useState(true);
   const [fabVisible, setFabVisible] = useState(true);
+  const [dismissedSuggestions, setDismissedSuggestions] = useState<Set<string>>(() => new Set());
+  const [fabHint, setFabHint] = useState(false);
+  const hintInitFor = useRef<string | null>(null);
   const lastScrollY = useRef(0);
   const owly = useOwlySignals({
     page: pathname ?? undefined,
@@ -243,7 +247,8 @@ export default function OwlAssistant() {
 
   useEffect(() => {
     if (open && messagesEndRef.current) {
-      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
+      // Not every environment implements this (older WebViews, tests).
+      messagesEndRef.current.scrollIntoView?.({ behavior: "smooth" });
     }
   }, [messages, open]);
 
@@ -276,6 +281,57 @@ export default function OwlAssistant() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  // One exit path for every way of dismissing Owly. Closing the chat used to
+  // toggle the suggestion popup instead when Owly had something to say, so the
+  // close button opened a second window -- the exact opposite of dismiss.
+  const closeAssistant = useCallback(() => {
+    setOpen(false);
+    setWalkthrough(null);
+    setSuggestionOpen(false);
+  }, []);
+
+  // One-time "Ask Owly" label. The owl icon alone gives a first-time user no
+  // clue that it is a guide, and a badge only appears when Owly has a reason to
+  // speak. This shows the name once, then never again for that user.
+  useEffect(() => {
+    if (!userId) {
+      hintInitFor.current = null;
+      setFabHint(false);
+      return;
+    }
+    // Read once per user, for the same StrictMode reason as the first-run flag.
+    if (hintInitFor.current === userId) return;
+    hintInitFor.current = userId;
+    setFabHint(readUserScoped<boolean>(FAB_HINT_FLAG, userId) !== true);
+  }, [userId]);
+
+  useEffect(() => {
+    if (!open && !suggestionOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") closeAssistant();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, suggestionOpen, closeAssistant]);
+
+  // Tapping the page beside the panel dismisses it. Clicks inside the panel,
+  // the launcher and the walkthrough are ignored so normal use is untouched.
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (event: MouseEvent) => {
+      const target = event.target;
+      if (
+        target instanceof Element &&
+        target.closest("[data-owl-assistant], [data-owl-walkthrough], [data-owl-suggestion]")
+      ) {
+        return;
+      }
+      closeAssistant();
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, [open, closeAssistant]);
 
   const submitMessage = async (raw: string) => {
     const text = raw.trim();
@@ -364,26 +420,69 @@ export default function OwlAssistant() {
 
   // Owly only speaks when it has a reason to. `attention` is the single gate on
   // every interrupting affordance: the blink, the question-mark badge, and the
-  // popup that opens when tapped.
-  const attention = owly.shouldBlink;
-  const currentSuggestion = owly.suggestions[0] ?? null;
+  // popup that opens when tapped. A suggestion the user has waved away stops
+  // nagging for the rest of the session -- but a genuinely urgent one (unsynced
+  // work) is raised again next time the app starts.
+  const currentSuggestion = owly.suggestions.find((s) => !dismissedSuggestions.has(s.id)) ?? null;
+  const attention = !open && currentSuggestion !== null;
   const tour = pickWalkthrough(user?.roles?.length ? user.roles : user?.role ? [user.role] : []);
   const fallbackTour = tour ?? FALLBACK_WALKTHROUGH;
+
+  // Remember that the label has actually been seen, not merely queued: a new
+  // user who arrives with the first-run popup should still meet it next time.
+  useEffect(() => {
+    if (!userId || !fabHint || open || attention) return;
+    writeUserScoped(FAB_HINT_FLAG, userId, true);
+  }, [userId, fabHint, open, attention]);
+
+  const dismissSuggestion = (id: string) => {
+    setDismissedSuggestions((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+    setSuggestionOpen(false);
+    // Do not replace one window with another: a label appearing the moment the
+    // user dismisses a suggestion is the same "it opened something else" feel.
+    setFabHint(false);
+  };
 
   const openWalkthrough = (which: Walkthrough) => {
     setWalkthrough(which);
     setWalkthroughStep(0);
     setOpen(true);
     setSuggestionOpen(false);
+    setFabHint(false);
+  };
+
+  const handleFabClick = () => {
+    // Closing wins over everything. Without this, a blinking Owly turned the X
+    // into "open the suggestion popup", which is how closing the assistant
+    // kept producing another window.
+    if (open) {
+      closeAssistant();
+      return;
+    }
+    if (suggestionOpen) {
+      setSuggestionOpen(false);
+      return;
+    }
+    if (currentSuggestion) {
+      setSuggestionOpen(true);
+      return;
+    }
+    setFabHint(false);
+    setOpen(true);
   };
 
   const handleSuggestionCta = () => {
-    setSuggestionOpen(false);
-    if (currentSuggestion?.id === "first-run") {
+    if (!currentSuggestion) return;
+    dismissSuggestion(currentSuggestion.id);
+    if (currentSuggestion.id === "first-run") {
       openWalkthrough(fallbackTour);
       return;
     }
-    if (currentSuggestion?.href) {
+    if (currentSuggestion.href) {
       router.push(currentSuggestion.href);
       setOpen(false);
       return;
@@ -391,7 +490,7 @@ export default function OwlAssistant() {
     // Everything else is a question for the guide — open the panel with it
     // already typed, so the user presses send rather than retyping.
     setOpen(true);
-    setInput(currentSuggestion?.cta ?? "");
+    setInput(currentSuggestion.cta);
   };
 
   return (
@@ -413,7 +512,7 @@ export default function OwlAssistant() {
             </div>
             <button
               type="button"
-              onClick={() => setSuggestionOpen(false)}
+              onClick={() => dismissSuggestion(currentSuggestion.id)}
               className="tap-44 -m-1 shrink-0 rounded-full p-1 text-[var(--t3)]"
               aria-label="Dismiss suggestion"
             >
@@ -423,7 +522,7 @@ export default function OwlAssistant() {
           <div className="mt-3 flex gap-2">
             <button
               type="button"
-              onClick={() => setSuggestionOpen(false)}
+              onClick={() => dismissSuggestion(currentSuggestion.id)}
               className="min-h-11 flex-1 rounded-xl border border-[var(--border)] text-sm font-semibold text-[var(--t2)]"
             >
               Not now
@@ -439,9 +538,34 @@ export default function OwlAssistant() {
         </div>
       )}
 
+      {/* ── One-time name label ──
+          An unlabelled owl icon is just another floating button. This says what
+          it is the first time a user could see it, then stays out of the way. */}
+      {fabHint && !open && !attention && fabVisible && (
+        <button
+          type="button"
+          onClick={() => {
+            setFabHint(false);
+            setOpen(true);
+          }}
+          className="fixed z-[9990] flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-semibold text-white shadow-xl transition-transform hover:scale-105 active:scale-95 bottom-[calc(var(--mobile-nav-clearance)+74px)] right-4 sm:bottom-[92px] sm:right-6"
+          style={{ background: "#0b1c39" }}
+        >
+          <Image
+            src="/SkoolMate logos/SchoolMate icon.svg"
+            alt=""
+            width={16}
+            height={16}
+            loading="eager"
+            className="rounded"
+          />
+          Ask Owly
+        </button>
+      )}
+
       {/* ── Floating Owly button ── */}
       <button
-        onClick={() => (attention ? setSuggestionOpen((v) => !v) : setOpen((v) => !v))}
+        onClick={handleFabClick}
         data-owl-assistant=""
         aria-hidden={!fabVisible && !open && !attention}
         tabIndex={!fabVisible && !open && !attention ? -1 : undefined}
@@ -450,12 +574,16 @@ export default function OwlAssistant() {
         }`}
         style={{ width: 56, height: 56, background: "none", border: "none", cursor: "pointer", padding: 0 }}
         aria-label={
-          attention
-            ? `Owly has ${owly.suggestions.length} suggestion${owly.suggestions.length === 1 ? "" : "s"}: ${currentSuggestion?.title ?? ""}`
-            : "Ask Owly, your guide"
+          open
+            ? "Close Owly"
+            : attention
+              ? `Owly has a suggestion: ${currentSuggestion?.title ?? ""}`
+              : "Ask Owly, your guide"
         }
-        aria-expanded={open}
-        title={attention ? (currentSuggestion?.title ?? "Owly has a suggestion") : "Owly — your guide"}
+        aria-expanded={open || suggestionOpen}
+        title={
+          open ? "Close Owly" : attention ? (currentSuggestion?.title ?? "Owly has a suggestion") : "Owly — your guide"
+        }
       >
         {open ? (
           <div
@@ -517,7 +645,7 @@ export default function OwlAssistant() {
             </div>
             <button
               type="button"
-              onClick={() => setWalkthrough(null)}
+              onClick={closeAssistant}
               className="tap-44 -m-1 shrink-0 rounded-full p-1 text-white/80"
               aria-label="Close walkthrough"
             >
@@ -565,7 +693,7 @@ export default function OwlAssistant() {
           <div className="flex shrink-0 gap-2 border-t border-[var(--border)] px-4 py-3">
             <button
               type="button"
-              onClick={() => (walkthroughStep === 0 ? setWalkthrough(null) : setWalkthroughStep((n) => n - 1))}
+              onClick={() => (walkthroughStep === 0 ? closeAssistant() : setWalkthroughStep((n) => n - 1))}
               className="min-h-11 rounded-xl border border-[var(--border)] px-4 text-sm font-semibold text-[var(--t2)]"
             >
               Back
@@ -587,7 +715,7 @@ export default function OwlAssistant() {
               ) : isLast ? (
                 <button
                   type="button"
-                  onClick={() => setWalkthrough(null)}
+                  onClick={closeAssistant}
                   className="min-h-11 flex-[2] rounded-xl bg-[var(--green)] text-sm font-bold text-white"
                 >
                   Done
@@ -610,7 +738,7 @@ export default function OwlAssistant() {
       {open && (
         <div
           data-owl-assistant=""
-          className="fixed z-[9989] w-full max-w-[360px] rounded-2xl shadow-2xl flex flex-col overflow-hidden bottom-[calc(var(--mobile-nav-clearance)+82px)] right-4 sm:bottom-[100px] sm:right-6"
+          className="fixed z-[9989] w-[calc(100vw-32px)] max-w-[360px] rounded-2xl shadow-2xl flex flex-col overflow-hidden bottom-[calc(var(--mobile-nav-clearance)+82px)] right-4 sm:bottom-[100px] sm:right-6"
           style={{
             background: "var(--surface, #fff)",
             border: "1px solid var(--border, #e5e7eb)",
