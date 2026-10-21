@@ -160,7 +160,7 @@ button {
   --slate-ink: #64748b;
 
   /* Material-3 role aliases.
-     Call sites (the attendance register, PageGuidance, the fee modals and the
+     Call sites (the attendance register, the Owly triggers, the fee modals and the
      grade badges) were written against M3 role names that never had a variable
      behind them, so those utilities emitted no CSS at all and the elements fell
      back to inherited colour. These alias the M3 roles onto the soft/ink family

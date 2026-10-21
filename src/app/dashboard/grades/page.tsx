@@ -6,6 +6,7 @@ import { ClassAverageRow } from "@/components/grades/ClassAverageRow";
 import { GradeStatusBadge } from "@/components/grades/GradeStatusBadge";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
+import { OwlyTrigger } from "@/components/owly/OwlyTrigger";
 import { useToast } from "@/components/Toast";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { FilterBar } from "@/components/ui/FilterBar";
@@ -235,7 +236,17 @@ export default function GradesPage() {
   const [teacherSubjects, setTeacherSubjects] = useState<{ subject_id: string; class_id: string }[]>([]);
 
   useEffect(() => {
-    if (!user?.id || isDemo) return;
+    if (isDemo) {
+      // Demo teacher: a fixed assignment (P.7 A — English, Mathematics, Science)
+      // so the class/subject pickers are not empty for a teacher session.
+      setTeacherSubjects([
+        { subject_id: "demo-sub-ENG-6", class_id: "13" },
+        { subject_id: "demo-sub-MTC-7", class_id: "13" },
+        { subject_id: "demo-sub-SCI-8", class_id: "13" },
+      ]);
+      return;
+    }
+    if (!user?.id) return;
     const fetchTeacherSubjects = async () => {
       const result = await withTimeout(
         supabase.from("teacher_subjects").select("subject_id, class_id").eq("teacher_id", user.id),
@@ -1608,53 +1619,15 @@ export default function GradesPage() {
             </div>
           </section>
         )}
-        {/* First-run guidance. Shown only until the teacher has entered their
-            first mark, then it gets out of the way — most of our users are
-            not tech-native, so guidance has to be plain and unmissable while
-            it matters, and gone once it doesn't. */}
+        {/* First-run guidance. Owly owns the steps now; the button only stays
+            until the teacher has entered their first mark. */}
         {selectedClass && selectedSubject && Object.keys(marks).length === 0 && (
-          <div className="rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] p-4">
-            <div className="flex items-start gap-3">
-              <MaterialIcon icon="touch_app" className="text-xl text-primary mt-0.5 shrink-0" />
-              <div>
-                <p className="font-bold text-sm text-[var(--t1)]">How to enter marks</p>
-                <ol className="mt-2 space-y-1.5 text-[13px] text-[var(--t2)] list-decimal list-inside">
-                  <li>One row per pupil. Type a mark into the BOT, MOT or EOT box — each is out of 100.</li>
-                  <li>Leave any box empty if you have not assessed that pupil yet, and come back to it later.</li>
-                  <li>
-                    Marks save as you move between boxes. Tap <strong>Save Grades</strong> when you are done.
-                  </li>
-                </ol>
-              </div>
-            </div>
-          </div>
+          <OwlyTrigger guideId="grades" label="How do I enter marks?" />
         )}
-        {/* What the columns mean, said once.
-
-            This used to be repeated verbatim under every numeric header, so a
-            seven-column table carried seven copies of the same sentence and the
-            header row read as a paragraph. It is opt-in now: nothing on screen
-            until asked, so a teacher who already knows is not interrupted. */}
+        {/* The column meanings live in Owly now, so the table header stays a
+            header instead of carrying a paragraph under every column. */}
         {selectedClass && selectedSubject && Object.keys(marks).length === 0 && (
-          <details className="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
-            <summary className="cursor-pointer text-sm font-semibold text-[var(--t1)]">
-              What do BOT, MOT and EOT mean?
-            </summary>
-            <dl className="mt-3 space-y-2 text-[13px] text-[var(--t2)]">
-              <div>
-                <dt className="font-semibold text-[var(--t1)]">BOT, MOT — classwork</dt>
-                <dd>Every test, beginning-of-term, midterm and Saturday mark counts equally.</dd>
-              </div>
-              <div>
-                <dt className="font-semibold text-[var(--t1)]">EOT — end of term</dt>
-                <dd>The end-of-term exam mark. Counts 75% of the subject average.</dd>
-              </div>
-              <div>
-                <dt className="font-semibold text-[var(--t1)]">Average and Grade</dt>
-                <dd>BOT, MOT and EOT are kept as separate marks. The report uses a simple average, not weights.</dd>
-              </div>
-            </dl>
-          </details>
+          <OwlyTrigger guideId="grades-terms" label="What do BOT, MOT and EOT mean?" />
         )}
         {/* Everything below only appears once a class + subject are chosen */}
         {selectedClass && selectedSubject && (
@@ -1879,12 +1852,8 @@ export default function GradesPage() {
         {/* Inline Entry Controls */}
         {tab === "marks" && selectedClass && selectedSubject && filteredStudents.length > 0 && (
           <div className="space-y-4">
-            {!competencyMode && (
-              <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-950">
-                Enter each assessment out of 100. BOT, MOT and EOT are kept as separate marks; the report uses a simple
-                average, not weights.
-              </div>
-            )}
+            {/* The out-of-100 rule is in the Owly guide; repeating it above the
+                table on every visit was one banner too many. */}
             {/* View Mode Toggle & Quick Actions */}
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2">

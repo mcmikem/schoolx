@@ -20,7 +20,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { Card, CardHeader, CardTitle, CardBody } from "@/components/ui/Card";
 import { Tabs, TabPanel } from "@/components/ui/Tabs";
 import Image from "next/image";
-import { PageGuidance } from "@/components/PageGuidance";
+import { OwlyTrigger } from "@/components/owly/OwlyTrigger";
 import { getErrorMessage } from "@/lib/validation";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import MessageComposer from "@/components/messages/MessageComposer";
@@ -1132,16 +1132,7 @@ export default function CommunicationHubPage() {
     <PageErrorBoundary>
       <div className="p-4 sm:p-6 lg:p-8">
         <PageHeader title="Communication Hub" subtitle="Manage all school communications in one place" />
-        <PageGuidance
-          title="How to Use Communication"
-          tips={[
-            { icon: "sms", text: "Send messages: choose Auto, WhatsApp, or SMS for individual, class, or all parents" },
-            { icon: "campaign", text: "Notices: Post announcements visible to selected groups" },
-            { icon: "automation", text: "Automation: Set auto-SMS for attendance, fees, results" },
-            { icon: "drafts", text: "Templates: Save frequent messages for quick sending" },
-            { icon: "analytics", text: "Use Recent Messages to review delivery results and follow up quickly" },
-          ]}
-        />
+        <OwlyTrigger guideId="messages" label="How do I use communication?" className="mb-4" />
         <Tabs tabs={communicationTabs} activeTab={activeTab} onChange={setActiveTab} className="mb-6" />
         <p className="-mt-3 mb-6 text-sm text-[var(--t3)]">{communicationTabHints[activeTab]}</p>
 

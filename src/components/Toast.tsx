@@ -1,6 +1,8 @@
 "use client";
 import React, { createContext, useContext, useState, useCallback, useMemo } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
+import { askOwly } from "@/lib/owly-bus";
+import { DEFAULT_WHATSAPP_ENV, generateSupportWhatsAppLink } from "@/lib/support-contact";
 
 type ToastType = "success" | "error" | "warning" | "info";
 
@@ -120,24 +122,51 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
                 ${colors[toast.type]}
                 border rounded-2xl p-4 shadow-[var(--sh2)]
                 pointer-events-auto
-                flex items-center gap-3
+                flex items-start gap-3
                 animate-slide-up backdrop-blur-sm
               `}
             >
-              <MaterialIcon icon={iconName} className={`flex-shrink-0 ${iconColors[toast.type]}`} size={20} />
-              <p className="text-sm font-medium flex-1 leading-snug">{toast.message}</p>
-              {toast.action && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    toast.action?.onClick();
-                    removeToast(toast.id);
-                  }}
-                  className="px-2.5 py-1 text-xs font-bold rounded-lg bg-[var(--primary)] text-white hover:opacity-90 shrink-0"
-                >
-                  {toast.action.label}
-                </button>
-              )}
+              <MaterialIcon icon={iconName} className={`mt-0.5 flex-shrink-0 ${iconColors[toast.type]}`} size={20} />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium leading-snug">{toast.message}</p>
+                {(toast.action || toast.type === "error") && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {toast.action && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          toast.action?.onClick();
+                          removeToast(toast.id);
+                        }}
+                        className="px-2.5 py-1 text-xs font-bold rounded-lg bg-[var(--primary)] text-white hover:opacity-90 shrink-0"
+                      >
+                        {toast.action.label}
+                      </button>
+                    )}
+                    {toast.type === "error" && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          // Owly explains the cause and the next step; if the
+                          // assistant is not mounted (public pages), fall back
+                          // to a human instead of a dead button.
+                          if (!askOwly({ kind: "error", message: toast.message })) {
+                            window.open(
+                              generateSupportWhatsAppLink({ phone: DEFAULT_WHATSAPP_ENV }),
+                              "_blank",
+                              "noopener,noreferrer",
+                            );
+                          }
+                          removeToast(toast.id);
+                        }}
+                        className="px-2.5 py-1 text-xs font-bold rounded-lg border border-[var(--border)] text-[var(--primary)] hover:bg-[var(--surface-container)] shrink-0"
+                      >
+                        Ask Owly
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
               <button
                 type="button"
                 onClick={() => removeToast(toast.id)}

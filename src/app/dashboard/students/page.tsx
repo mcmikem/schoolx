@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import BulkImport from "@/components/BulkImport";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { PageGuidance } from "@/components/PageGuidance";
+import { OwlyTrigger } from "@/components/owly/OwlyTrigger";
 import { SendSMSModal } from "@/components/SendSMSModal";
 import StudentDetailPanel from "@/components/students/StudentDetailPanel";
 import { useStudentImport } from "@/components/students/StudentImportModal";
@@ -743,15 +743,7 @@ export default function StudentHubPage() {
           </div>
         </PageHeader>
 
-        <PageGuidance
-          title="How to manage students"
-          defaultOpen={false}
-          tips={[
-            { icon: "person_add", text: "Add students one by one or import from a spreadsheet." },
-            { icon: "swap_horiz", text: "Use Transfers when a student moves to another class or school." },
-            { icon: "group", text: "Track at-risk students and manage promotions between classes." },
-          ]}
-        />
+        <OwlyTrigger guideId="students" label="How do I manage students?" className="mb-4" />
 
         <StudentWorkspaceShell
           totalStudents={totalCount}

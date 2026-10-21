@@ -14,7 +14,7 @@ import FeeStats from "@/components/fees/FeeStats";
 import FeeTable, { StudentBalance } from "@/components/fees/FeeTable";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
-import { PageGuidance } from "@/components/PageGuidance";
+import { OwlyTrigger } from "@/components/owly/OwlyTrigger";
 import { useToast } from "@/components/Toast";
 import { FilterBar } from "@/components/ui/FilterBar";
 import { Button } from "@/components/ui/index";
@@ -1935,36 +1935,7 @@ export default function FinanceHubPage() {
           </div>
         </section>
 
-        <PageGuidance
-          // `payments` arrives after the first render, so `defaultOpen` was
-          // captured while it was still empty and the guide stayed expanded over
-          // a school that already has receipts. Remount once the ledger loads.
-          key={payments.length === 0 ? "guidance-empty" : "guidance-populated"}
-          title="How to Manage Fees"
-          defaultOpen={payments.length === 0}
-          tips={[
-            {
-              icon: "account_balance",
-              text: "Create Fee: Set up fee items (Tuition, Development, etc.) per class",
-            },
-            {
-              icon: "payments",
-              text: "Record Payment: Click a student's row to record payment received",
-            },
-            {
-              icon: "receipt",
-              text: "Get Receipt: After recording payment, click to print receipt",
-            },
-            {
-              icon: "sms",
-              text: "Send Reminders: Click 'Auto Fee Reminders' to message parents with balances",
-            },
-            {
-              icon: "tune",
-              text: "Adjustments: Use to add scholarships, fines, or corrections",
-            },
-          ]}
-        />
+        <OwlyTrigger guideId="fees" label="How do I manage fees?" className="mb-4" />
 
         {/*
           One tab row. Balances, Payments and Fee Structure used to be a second

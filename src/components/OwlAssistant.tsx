@@ -10,6 +10,9 @@ import { useOwlySignals } from "@/lib/owly-signals";
 import { FALLBACK_WALKTHROUGH, pickWalkthrough, type Walkthrough } from "@/lib/owly-walkthroughs";
 import { readUserScoped, writeUserScoped } from "@/lib/user-scoped-storage";
 import { answerLocally, getPageHints } from "@/lib/owly-knowledge";
+import { subscribeOwly } from "@/lib/owly-bus";
+import { errorToMessage } from "@/lib/owly-errors";
+import { getGuide, guideToMessage } from "@/lib/owly-guides";
 import { supabase } from "@/lib/supabase";
 import {
   DEFAULT_WHATSAPP_ENV,
@@ -332,6 +335,35 @@ export default function OwlAssistant() {
     document.addEventListener("mousedown", onPointerDown);
     return () => document.removeEventListener("mousedown", onPointerDown);
   }, [open, closeAssistant]);
+
+  // Requests from elsewhere in the app: a page's "How do I…?" button, or a
+  // toast's "Ask Owly" action. Answers are rendered locally, so they arrive
+  // instantly and still work offline.
+  useEffect(() => {
+    const time = () => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    return subscribeOwly((request) => {
+      if (request.kind === "guide") {
+        const guide = getGuide(request.guideId);
+        if (!guide) return;
+        setWalkthrough(null);
+        setSuggestionOpen(false);
+        setFabHint(false);
+        setOpen(true);
+        setMessages((prev) => [...prev, { role: "assistant", text: guideToMessage(guide), time: time() }]);
+        return;
+      }
+      if (request.kind === "error") {
+        setWalkthrough(null);
+        setSuggestionOpen(false);
+        setFabHint(false);
+        setOpen(true);
+        setMessages((prev) => [...prev, { role: "assistant", text: errorToMessage(request.message), time: time() }]);
+        return;
+      }
+      setOpen(true);
+      setInput(request.question);
+    });
+  }, []);
 
   const submitMessage = async (raw: string) => {
     const text = raw.trim();

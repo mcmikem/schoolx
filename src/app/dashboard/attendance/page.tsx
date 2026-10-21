@@ -8,6 +8,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
+import { OwlyTrigger } from "@/components/owly/OwlyTrigger";
 import { useToast } from "@/components/Toast";
 import { Button } from "@/components/ui/index";
 import { Modal } from "@/components/ui/Modal";
@@ -1683,27 +1684,11 @@ export default function AttendancePage() {
                 </div>
               )}
 
-              {/* The gestures, stated. This replaces a once-per-session animation
-                that slid the first row sideways to "demonstrate" the swipe --
-                which taught nothing to a teacher who was not looking, and left
-                everyone else guessing. Three words and two arrows say it once,
-                permanently, and cost no interaction. */}
-              <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border border-[var(--border)] bg-[var(--surface-container-low)] px-3 py-2 text-xs text-[var(--t2)]">
-                <span className="font-semibold text-[var(--t1)]">How to mark:</span>
-                <span className="flex items-center gap-1.5">
-                  <span className="inline-flex h-6 w-10 items-center justify-center rounded-md border border-[var(--border)] bg-[var(--surface)] text-xs font-bold">
-                    Tap
-                  </span>
-                  Present
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <MaterialIcon icon="chevron_right" size={18} className="text-[var(--t3)]" />
-                  Absent
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <MaterialIcon icon="chevron_left" size={18} className="text-[var(--t3)]" />
-                  Late / Excused
-                </span>
+              {/* The gesture legend used to live here as permanent copy. Owly
+                  now owns the explanation; the functional "one pupil at a
+                  time" shortcut stays because it changes the register itself. */}
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <OwlyTrigger guideId="attendance" label="How do I mark attendance?" />
                 <button
                   type="button"
                   onClick={() => setFocusStudentId(visibleStudents[0]?.id ?? null)}

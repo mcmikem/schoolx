@@ -26,7 +26,7 @@ import { logger } from "@/lib/logger";
 import { getErrorMessage } from "@/lib/validation";
 import { isMissingTableColumnError, withTimeout } from "@/lib/hooks/utils";
 import { StaffReview, School } from "@/types";
-import { PageGuidance } from "@/components/PageGuidance";
+import { OwlyTrigger } from "@/components/owly/OwlyTrigger";
 import SmartAdvisor from "@/components/dashboard/SmartAdvisor";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import {
@@ -1537,38 +1537,7 @@ function DirectoryTab({
         )}
       </div>
 
-      <details className="mb-4 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
-        <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-[var(--t2)]">
-          How to Manage Staff
-        </summary>
-        <div className="px-4 pb-4">
-          <PageGuidance
-            title=""
-            tips={[
-              {
-                icon: "person_add",
-                text: "Add Staff: Register teachers and non-teaching staff",
-              },
-              {
-                icon: "school",
-                text: "Assign Subjects: Link teachers to subjects they teach",
-              },
-              {
-                icon: "assignment_ind",
-                text: "Class Teacher: Assign a teacher to lead each class",
-              },
-              {
-                icon: "event_note",
-                text: "Leave Requests: Staff can request time off here",
-              },
-              {
-                icon: "rate_review",
-                text: "Performance: Use Reviews tab to track teacher performance",
-              },
-            ]}
-          />
-        </div>
-      </details>
+      <OwlyTrigger guideId="staff" label="How do I manage staff?" className="mb-4" />
 
       <div className="flex flex-col sm:flex-row gap-4 mb-4">
         <div className="relative flex-1 max-w-sm">
