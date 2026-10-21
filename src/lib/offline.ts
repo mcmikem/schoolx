@@ -1,7 +1,7 @@
 // Offline-first database using IndexedDB
 // This allows the app to work without internet connection
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { logger } from "@/lib/logger";
 
 const DB_NAME = "omuto.org-db";
@@ -40,6 +40,22 @@ export function storeOptions(storeName: string): { keyPath: string; autoIncremen
   if (storeName === "sync_metadata") return { keyPath: "table" };
   if (storeName === "sync_queue") return { keyPath: "id", autoIncrement: true };
   return { keyPath: "id" };
+}
+
+/**
+ * Fired whenever the sync queue changes -- a record queued, pushed or
+ * dropped.
+ *
+ * The queue length is the one number a teacher needs ("is my work safe?"), and
+ * a 30-second poll made it lie: the register said "saved" while the count
+ * still said zero. The writer now announces itself, so the number moves the
+ * moment the work is queued.
+ */
+export const SYNC_QUEUE_EVENT = "skoolmate:sync-queue-changed";
+
+function announceQueueChange() {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event(SYNC_QUEUE_EVENT));
 }
 
 interface OfflineRecord {
@@ -300,6 +316,7 @@ class OfflineDB {
 
       transaction.oncomplete = () => {
         this.queueSync().catch(() => {});
+        announceQueueChange();
         resolve(record);
       };
       transaction.onerror = () => reject(transaction.error);
@@ -395,28 +412,32 @@ class OfflineDB {
 
   // Store data fetched from server into cache
   async cacheFromServer(table: string, data: Record<string, unknown>[]): Promise<void> {
-    const db = await this.ensureDb();
+    try {
+      const db = await this.ensureDb();
 
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction([table, "sync_metadata"], "readwrite");
-      const store = transaction.objectStore(table);
-      const metaStore = transaction.objectStore("sync_metadata");
+      await new Promise<void>((resolve, reject) => {
+        const transaction = db.transaction([table, "sync_metadata"], "readwrite");
+        const store = transaction.objectStore(table);
+        const metaStore = transaction.objectStore("sync_metadata");
 
-      data.forEach((item) => {
-        if (item.id) {
-          store.put(item);
-        }
+        data.forEach((item) => {
+          if (item.id) {
+            store.put(item);
+          }
+        });
+
+        metaStore.put({
+          table,
+          last_synced: Date.now(),
+          record_count: data.length,
+        });
+
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error);
       });
-
-      metaStore.put({
-        table,
-        last_synced: Date.now(),
-        record_count: data.length,
-      });
-
-      transaction.oncomplete = () => resolve();
-      transaction.onerror = () => reject(transaction.error);
-    });
+    } catch (error) {
+      logger.warn(`Could not cache server data for ${table}; server data remains available`, error);
+    }
   }
 
   // Get all cached data from a table (alias for getAll, for clarity)
@@ -532,6 +553,7 @@ class OfflineDB {
           item.synced = true;
           store.put(item);
         }
+        announceQueueChange();
         resolve();
       };
       request.onerror = () => reject(request.error);
@@ -619,7 +641,10 @@ class OfflineDB {
       const store = transaction.objectStore("sync_queue");
       const request = store.delete(id);
 
-      request.onsuccess = () => resolve();
+      request.onsuccess = () => {
+        announceQueueChange();
+        resolve();
+      };
       request.onerror = () => reject(request.error);
     });
   }
@@ -633,14 +658,18 @@ class OfflineDB {
       const store = transaction.objectStore("sync_queue");
       const request = store.clear();
 
-      request.onsuccess = () => resolve();
+      request.onsuccess = () => {
+        announceQueueChange();
+        resolve();
+      };
       request.onerror = () => reject(request.error);
     });
   }
 
   // Ask the browser to fire a background-sync event once the device reconnects.
-  // Fire-and-forget: if Background Sync is unavailable the existing online/10s
-  // poll in OfflineIndicator still covers the queue.
+  // Fire-and-forget: if Background Sync is unavailable, the shared sync store
+  // (src/lib/useSyncStatus.ts) still pushes the queue when the connection
+  // comes back.
   private async queueSync(): Promise<void> {
     try {
       if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return;

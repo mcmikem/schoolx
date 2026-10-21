@@ -7,7 +7,6 @@ import SidebarShell from "@/components/dashboard/SidebarShell";
 import TopBar from "@/components/dashboard/TopBar";
 import TrialBanner from "@/components/dashboard/TrialBanner";
 import ErrorBoundary from "@/components/ErrorBoundary";
-import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { useToast } from "@/components/Toast";
 import { AcademicProvider } from "@/lib/academic-context";
@@ -444,7 +443,6 @@ function DashboardContent({ children }: { children: React.ReactNode }) {
       {showInlineLoading && <TopLoadingBar />}
       {showStuckLoading && <StuckLoadingOverlay />}
       {showWarning && <SessionTimeoutWarning remainingTime={remainingTime} onExtend={extendSession} />}
-      <OfflineIndicator />
       {isTrialExpired && <ExpiredNotice />}
 
       {showOnboarding && !isBillingPath && (

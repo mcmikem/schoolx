@@ -13,6 +13,8 @@ import { canOpenSettingsPage } from "@/lib/role-tab-access";
 import { canAccess, type UserRole } from "@/lib/roles";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/lib/theme-context";
+import { useSyncStatus } from "@/lib/useSyncStatus";
+import { useToast } from "@/components/Toast";
 
 type DashboardNotification = {
   id: string;
@@ -264,12 +266,16 @@ export default function TopBar({ pageTitle, onSignOut }: { pageTitle: string; on
   const path = pathname ?? "";
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
-  const [isOnline, setIsOnline] = useState(typeof navigator !== "undefined" ? navigator.onLine : true);
+  // One sync state for the whole app. This used to keep its own copy of
+  // `navigator.onLine` while the sidebar and a floating overlay kept two more,
+  // and they disagreed about whether the work had been saved.
+  const { isOnline, pendingCount, isSyncing, syncNow } = useSyncStatus();
   const { isOpen, open: openSidebar, close: closeSidebar } = useSidebar();
   const userMenuRef = useRef<HTMLDivElement | null>(null);
   const notifPanelRef = useRef<HTMLDivElement | null>(null);
 
   const { notifications, unreadCount, markAsRead } = useNotifications();
+  const toast = useToast();
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -277,10 +283,6 @@ export default function TopBar({ pageTitle, onSignOut }: { pageTitle: string; on
         setUserMenuOpen(false);
         setNotifOpen(false);
       }
-    }
-
-    function handleOnlineStatus() {
-      setIsOnline(navigator.onLine);
     }
 
     function handlePointerDown(event: MouseEvent) {
@@ -294,13 +296,9 @@ export default function TopBar({ pageTitle, onSignOut }: { pageTitle: string; on
 
     document.addEventListener("mousedown", handlePointerDown);
     document.addEventListener("keydown", handleKeyDown);
-    window.addEventListener("online", handleOnlineStatus);
-    window.addEventListener("offline", handleOnlineStatus);
     return () => {
       document.removeEventListener("mousedown", handlePointerDown);
       document.removeEventListener("keydown", handleKeyDown);
-      window.removeEventListener("online", handleOnlineStatus);
-      window.removeEventListener("offline", handleOnlineStatus);
     };
   }, [userMenuOpen, notifOpen]);
 
@@ -313,6 +311,37 @@ export default function TopBar({ pageTitle, onSignOut }: { pageTitle: string; on
     month: "long",
     year: "numeric",
   });
+
+  /**
+   * The sync chip is the one control a teacher can reach from any screen, so
+   * it does the useful thing rather than only describing the state: with a
+   * connection and work waiting, one tap pushes that work; without a
+   * connection it opens Sync Center, where the queue and its conflicts are
+   * explained.
+   */
+  const handleSyncChipClick = async () => {
+    if (isSyncing) return;
+    if (!isOnline || pendingCount === 0) {
+      router.push("/dashboard/sync-center");
+      return;
+    }
+    try {
+      const result = await syncNow();
+      if (result && result.failed === 0) {
+        toast.success(`Synced ${result.success} change${result.success === 1 ? "" : "s"}`);
+      } else if (result) {
+        toast.error(`${result.failed} change${result.failed === 1 ? "" : "s"} could not sync`, {
+          label: "Details",
+          onClick: () => router.push("/dashboard/sync-center"),
+        });
+      }
+    } catch {
+      toast.error("Could not reach the server. Your work is saved on this device.", {
+        label: "Details",
+        onClick: () => router.push("/dashboard/sync-center"),
+      });
+    }
+  };
 
   return (
     <header
@@ -377,18 +406,55 @@ export default function TopBar({ pageTitle, onSignOut }: { pageTitle: string; on
 
       {/* Right actions */}
       <div className="flex items-center gap-1 sm:gap-2 shrink-0">
-        {/* Sync status indicator */}
-        <div
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[var(--surface-container-low)] border border-[var(--border)] shrink-0 text-xs font-semibold"
-          title={isOnline ? "Connected & Synchronized" : "Offline — Changes saved locally"}
-          role="status"
-          aria-label={isOnline ? "Connected" : "Offline"}
+        {/* Sync status.
+            The number is the message: a teacher needs to know that three
+            records are safe on the phone and not yet on the server, and a
+            green dot alone never says that. Tapping pushes the queue when
+            the connection is there, and opens Sync Center when it is not. */}
+        <button
+          type="button"
+          onClick={handleSyncChipClick}
+          disabled={isSyncing}
+          className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-[var(--surface-container-low)] border border-[var(--border)] shrink-0 text-xs font-semibold min-h-[32px] disabled:opacity-70"
+          title={
+            isSyncing
+              ? "Syncing your saved changes"
+              : pendingCount > 0
+                ? isOnline
+                  ? `${pendingCount} changes waiting to sync — tap to sync now`
+                  : `${pendingCount} changes saved on this device — tap for details`
+                : isOnline
+                  ? "Connected & Synchronized"
+                  : "Offline — changes are saved on this device"
+          }
+          aria-label={
+            isSyncing
+              ? "Syncing your saved changes"
+              : pendingCount > 0
+                ? isOnline
+                  ? `${pendingCount} changes waiting to sync. Tap to sync now.`
+                  : `Offline. ${pendingCount} changes saved on this device. Tap for details.`
+                : isOnline
+                  ? "Connected"
+                  : "Offline"
+          }
         >
-          <span className={`w-2 h-2 rounded-full ${isOnline ? "bg-emerald-500 animate-pulse" : "bg-amber-500"}`} />
-          <span className="hidden xl:inline text-xs text-[var(--t3)] font-medium">
-            {isOnline ? "Online" : "Offline"}
-          </span>
-        </div>
+          <span
+            className={`w-2 h-2 rounded-full shrink-0 ${isOnline ? "bg-emerald-500 animate-pulse" : "bg-amber-500"}`}
+            aria-hidden
+          />
+          {pendingCount > 0 ? (
+            <>
+              <MaterialIcon icon="cloud_upload" style={{ fontSize: 15 }} />
+              <span className="text-[var(--t2)]">{pendingCount}</span>
+              <span className="hidden xl:inline text-xs text-[var(--t3)] font-medium">pending</span>
+            </>
+          ) : (
+            <span className="hidden xl:inline text-xs text-[var(--t3)] font-medium">
+              {isOnline ? (isSyncing ? "Syncing" : "Online") : "Offline"}
+            </span>
+          )}
+        </button>
 
         <div ref={notifPanelRef} className="notif-panel relative">
           <button

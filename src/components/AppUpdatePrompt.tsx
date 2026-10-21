@@ -8,10 +8,10 @@ import { logger } from "@/lib/logger";
  * App-wide "a new build is ready" control.
  *
  * The service worker update flow already existed but its prompt lived inside
- * OfflineIndicator, which only renders in the dashboard layout. That meant
- * parents on the parent portal, and anyone on a public page, could never see it
- * even when a new build was waiting. This component is mounted in the root
- * layout so the prompt is available on every screen.
+ * the dashboard-only offline overlay. That meant parents on the parent portal,
+ * and anyone on a public page, could never see it even when a new build was
+ * waiting. This component is mounted in the root layout so the prompt is
+ * available on every screen.
  *
  * Applying an update needs a full document reload, not router.refresh():
  * refresh() re-fetches server data but keeps running the bundles the page
