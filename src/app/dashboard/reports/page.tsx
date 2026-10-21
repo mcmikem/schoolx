@@ -672,6 +672,7 @@ export default function ReportsPage() {
                 icon="group"
                 title="No students found"
                 description="Try adjusting your search or filter criteria"
+                owlyQuestion="How do I find a student's report card?"
               />
             ) : (
               <div className="space-y-2 max-h-[400px] overflow-y-auto">

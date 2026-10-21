@@ -1271,7 +1271,12 @@ export default function CommunicationHubPage() {
                 <TableSkeleton rows={3} />
               </div>
             ) : notices.length === 0 ? (
-              <EmptyState icon="campaign" title="No notices" description="Post your first notice" />
+              <EmptyState
+                icon="campaign"
+                title="No notices"
+                description="Post your first notice"
+                owlyQuestion="How do I post a notice to parents?"
+              />
             ) : (
               <div className="space-y-4">
                 {notices

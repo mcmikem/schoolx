@@ -1384,6 +1384,7 @@ export default function AttendancePage() {
                   ? "Your administrator hasn't assigned you to a class or subject yet"
                   : "Choose a class to mark attendance"
               }
+              owlyQuestion="How do I mark attendance for a class?"
             />
           ) : loading ? (
             <TableSkeleton rows={5} />
@@ -1398,6 +1399,7 @@ export default function AttendancePage() {
                 icon="group"
                 title="No students in this class"
                 description="Add students to this class first"
+                owlyQuestion="How do I add students to a class?"
               />
             </>
           ) : savedSummary ? (

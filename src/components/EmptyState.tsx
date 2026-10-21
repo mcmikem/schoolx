@@ -4,6 +4,7 @@ import MaterialIcon from "@/components/MaterialIcon";
 import { Button } from "./ui/index";
 import EmptyStateGuide from "@/components/EmptyStateGuide";
 import OwlMascot from "@/components/brand/OwlMascot";
+import { askOwly } from "@/lib/owly-bus";
 
 interface EmptyStateProps {
   icon?: string;
@@ -17,6 +18,8 @@ interface EmptyStateProps {
     label: string;
     onClick: () => void;
   };
+  /** When set, shows an "Ask Owly" action that opens the assistant with this question. */
+  owlyQuestion?: string;
   className?: string;
   module?: string;
 }
@@ -27,6 +30,7 @@ export const EmptyState = memo(function EmptyState({
   description,
   action,
   secondaryAction,
+  owlyQuestion,
   className = "",
   module,
 }: EmptyStateProps) {
@@ -57,7 +61,7 @@ export const EmptyState = memo(function EmptyState({
       {description && (
         <p className="text-[13px] text-[var(--t3)] font-medium max-w-sm mb-8 leading-relaxed">{description}</p>
       )}
-      <div className="flex gap-4">
+      <div className="flex flex-wrap justify-center gap-3">
         {action && (
           <button onClick={action.onClick} className="btn btn-primary shadow-lg shadow-navy/20 tap-effect">
             {action.label}
@@ -66,6 +70,14 @@ export const EmptyState = memo(function EmptyState({
         {secondaryAction && (
           <button onClick={secondaryAction.onClick} className="btn btn-ghost hover:bg-[var(--bg)] tap-effect">
             {secondaryAction.label}
+          </button>
+        )}
+        {owlyQuestion && (
+          <button
+            onClick={() => askOwly({ kind: "ask", question: owlyQuestion })}
+            className="btn btn-ghost hover:bg-[var(--bg)] tap-effect"
+          >
+            Ask Owly
           </button>
         )}
       </div>
@@ -80,6 +92,7 @@ export function NoStudents({ onAdd }: { onAdd: () => void }) {
       title="No students enrolled yet"
       description="Start by adding students to your school. You can add them one by one or import from a spreadsheet."
       action={{ label: "Add Student", onClick: onAdd }}
+      owlyQuestion="How do I add or import students?"
     />
   );
 }
@@ -91,6 +104,7 @@ export function NoClasses({ onAdd }: { onAdd: () => void }) {
       title="No classes created"
       description="Create your first class to start managing attendance, grades, and timetables."
       action={{ label: "Create Class", onClick: onAdd }}
+      owlyQuestion="How do I create classes and put students in them?"
     />
   );
 }
@@ -102,6 +116,7 @@ export function NoPayments({ onAdd }: { onAdd: () => void }) {
       title="No payments recorded"
       description="Record fee payments to track school finances and generate receipts."
       action={{ label: "Record Payment", onClick: onAdd }}
+      owlyQuestion="How do I record a fee payment and give a receipt?"
     />
   );
 }
@@ -121,8 +136,9 @@ export function ErrorState({ onRetry, message = "Something went wrong" }: { onRe
     <EmptyState
       icon="error_outline"
       title={message}
-      description="Please try again or contact support if the problem persists."
+      description="Please try again or ask Owly what this means."
       action={onRetry ? { label: "Try Again", onClick: onRetry } : undefined}
+      secondaryAction={{ label: "Ask Owly", onClick: () => askOwly({ kind: "error", message }) }}
     />
   );
 }

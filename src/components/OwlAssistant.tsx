@@ -186,6 +186,8 @@ export default function OwlAssistant() {
   // before its declaration throws at runtime even when TypeScript cannot see
   // the ordering problem through a closure.
   const userId = user?.id;
+  const rolesRef = useRef<string[]>([]);
+  rolesRef.current = user?.roles?.length ? user.roles : user?.role ? [user.role] : [];
   const [open, setOpen] = useState(false);
   const [bugOpen, setBugOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>(() => loadStoredMessages(userId) ?? [welcomeMessage()]);
@@ -358,6 +360,14 @@ export default function OwlAssistant() {
         setFabHint(false);
         setOpen(true);
         setMessages((prev) => [...prev, { role: "assistant", text: errorToMessage(request.message), time: time() }]);
+        return;
+      }
+      if (request.kind === "tour") {
+        setWalkthrough(pickWalkthrough(rolesRef.current) ?? FALLBACK_WALKTHROUGH);
+        setWalkthroughStep(0);
+        setSuggestionOpen(false);
+        setFabHint(false);
+        setOpen(true);
         return;
       }
       setOpen(true);

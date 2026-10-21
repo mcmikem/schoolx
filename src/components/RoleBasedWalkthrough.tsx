@@ -1,10 +1,11 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
+import OwlMascot from "@/components/brand/OwlMascot";
 import { useAuth } from "@/lib/auth-context";
+import { askOwly } from "@/lib/owly-bus";
 import { readUserScoped, writeUserScoped } from "@/lib/user-scoped-storage";
 
 /**
@@ -16,6 +17,7 @@ const DISMISSED_KEY = "skoolmate_walkthrough_dismissed";
 export default function RoleBasedWalkthrough() {
   const { user, school, isDemo } = useAuth();
   const pathname = usePathname();
+  const router = useRouter();
   const [dismissed, setDismissed] = useState(false);
 
   const userId = user?.id ?? null;
@@ -40,29 +42,32 @@ export default function RoleBasedWalkthrough() {
       className="mx-4 mt-3 flex min-w-0 items-center gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-2.5 sm:mt-4 sm:mx-6 sm:flex-row sm:items-center sm:justify-between sm:p-4"
     >
       <div className="flex min-w-0 items-center gap-3">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-[var(--bot-navy-ink)] sm:h-11 sm:w-11">
-          <MaterialIcon icon="menu_book" size={24} />
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 sm:h-11 sm:w-11">
+          <OwlMascot size={28} animated />
         </span>
         <div className="min-w-0 flex-1">
-          <h2 className="text-sm font-bold text-[var(--t1)] sm:text-base">
-            New to SkoolMate<span className="hidden sm:inline">? Start here.</span>
-          </h2>
+          <h2 className="text-sm font-bold text-[var(--t1)] sm:text-base">New to SkoolMate?</h2>
           <p className="mt-1 hidden text-sm leading-relaxed text-[var(--t2)] sm:block">
             {isDemo
-              ? "Easy steps and pretend records. Learn without changing your school's work."
-              : "Guided steps you can try safely. Nothing here changes your school's records."}
+              ? "Owly can show you around with pretend records. Nothing you try changes real school work."
+              : "Owly can walk you through the tasks your role does most. Nothing changes until you try it."}
           </p>
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-        <Link
-          href="/dashboard/learn"
+        <button
+          type="button"
+          onClick={() => {
+            if (!askOwly({ kind: "tour" })) {
+              router.push("/dashboard/learn/");
+            }
+          }}
           className="inline-flex min-h-10 items-center justify-center gap-1.5 rounded-xl bg-[var(--bot-navy)] px-3 text-sm font-bold text-white sm:min-h-12 sm:gap-2 sm:px-4 sm:text-base"
         >
-          <span className="sm:hidden">Learn</span>
-          <span className="hidden sm:inline">Learn step by step</span>
+          <span className="sm:hidden">Show me</span>
+          <span className="hidden sm:inline">Show me around</span>
           <MaterialIcon icon="arrow_forward" />
-        </Link>
+        </button>
         <button
           type="button"
           onClick={dismiss}

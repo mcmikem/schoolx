@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { EmptyState } from "@/components/EmptyState";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
+import { OwlyHelpLink } from "@/components/owly/OwlyHelpLink";
 import { generateUgandaPrimaryBody, ugandaDocumentShell } from "@/components/reports/ugandaPrimaryReport";
 import { openPrintWindow, printWhenReady, writePrintDocument } from "@/lib/print-window";
 import { suggestClassTeacherRemark, suggestHeadTeacherRemark } from "@/lib/report-remarks";
@@ -1720,6 +1721,10 @@ export default function ReportCardsPage() {
                 Averages use recorded subjects only. Missing or invalid marks show as —. Incomplete reports are
                 provisional: they are not ranked, sent by SMS, or saved as official results.
               </div>
+              <OwlyHelpLink
+                question="Why are some marks missing from this report card?"
+                className="mt-1 text-amber-800"
+              />
             </div>
           </div>
         )}
@@ -2031,6 +2036,7 @@ export default function ReportCardsPage() {
                         ? "Try another name or number, or clear the fee filter."
                         : "Choose a class with students and generate its report cards."
                     }
+                    owlyQuestion="How do I generate report cards for a class?"
                   />
                   {reports.length > 0 && (
                     <Button
@@ -2056,6 +2062,7 @@ export default function ReportCardsPage() {
                 icon="summarize"
                 title="Generate Cards"
                 description="Select a class and click Generate to create report cards with positions, divisions, and comments."
+                owlyQuestion="How do I generate report cards for a class?"
               />
             </CardBody>
           </Card>

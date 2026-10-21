@@ -16,7 +16,8 @@
 export type OwlyRequest =
   | { kind: "guide"; guideId: string }
   | { kind: "error"; message: string; page?: string }
-  | { kind: "ask"; question: string };
+  | { kind: "ask"; question: string }
+  | { kind: "tour" };
 
 type Listener = (request: OwlyRequest) => void;
 

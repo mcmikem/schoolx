@@ -16,7 +16,10 @@ jest.mock("@/lib/auth-context", () => ({
     refreshSchool: jest.fn(),
   }),
 }));
-jest.mock("next/navigation", () => ({ usePathname: () => "/dashboard/setup-wizard" }));
+jest.mock("next/navigation", () => ({
+  usePathname: () => "/dashboard/setup-wizard",
+  useRouter: () => ({ push: jest.fn(), replace: jest.fn(), back: jest.fn() }),
+}));
 jest.mock("@/components/Toast", () => ({
   useToast: () => ({ info: jest.fn(), error: jest.fn(), success: jest.fn() }),
 }));

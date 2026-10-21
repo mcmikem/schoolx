@@ -54,6 +54,17 @@ describe("Owly receives requests from the app", () => {
     expect(document.body.textContent).toContain("Failed to fetch");
   });
 
+  it("opens the walkthrough for the user's role on a tour request", () => {
+    render(<OwlAssistant />);
+
+    act(() => {
+      askOwly({ kind: "tour" });
+    });
+
+    expect(document.querySelector("div[data-owl-walkthrough]")).not.toBeNull();
+    expect(document.body.textContent).toContain("Fees and payments, start to finish");
+  });
+
   it("pre-fills a free-form question", () => {
     render(<OwlAssistant />);
 

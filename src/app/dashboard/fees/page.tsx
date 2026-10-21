@@ -2107,6 +2107,7 @@ export default function FinanceHubPage() {
                   icon="account_balance"
                   title="No student balances"
                   description="Add students and fee structures to see balances"
+                  owlyQuestion="How do I set up fees and record the first payment?"
                 />
               ) : (
                 <>

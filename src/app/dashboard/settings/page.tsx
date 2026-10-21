@@ -30,6 +30,7 @@ import SystemPreferences from "@/components/settings/SystemPreferences";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { type ModuleKey } from "@/lib/modules/catalog";
 import { tabsForRole } from "@/lib/role-tab-access";
+import { OwlyHelpLink } from "@/components/owly/OwlyHelpLink";
 
 interface SchoolSettings {
   sms_notifications: boolean;
@@ -1098,6 +1099,7 @@ export default function SettingsPage() {
                     Use this checklist to ensure your school is fully configured. Items can be completed now or skipped
                     for later. We'll remind you to complete them.
                   </p>
+                  <OwlyHelpLink question="What does the school setup checklist cover?" className="mt-2 text-blue-800" />
                 </div>
               </div>
             </div>
@@ -1214,6 +1216,10 @@ export default function SettingsPage() {
                         <div className="text-sm text-[var(--t3)]">
                           Regular backups are recommended. Cloud backup is available on Premium plans.
                         </div>
+                        <OwlyHelpLink
+                          question="How do backups work, and what is included?"
+                          className="mt-1 text-[var(--t2)]"
+                        />
                       </div>
                     </div>
                   </div>

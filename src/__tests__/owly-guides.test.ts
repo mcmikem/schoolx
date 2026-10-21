@@ -20,6 +20,12 @@ describe("owly guides", () => {
     expect(message).toContain("5. **Adjustments:**");
   });
 
+  it("has a guide for every onboarding help step", () => {
+    ["setup-school", "setup-fees", "setup-grading", "setup-services", "setup-review"].forEach((id) => {
+      expect(getGuide(id)).not.toBeNull();
+    });
+  });
+
   it("every guideId used by a page exists", () => {
     const pages = [
       "src/app/dashboard/fees/page.tsx",

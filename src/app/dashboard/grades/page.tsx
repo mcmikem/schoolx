@@ -2664,6 +2664,7 @@ export default function GradesPage() {
             icon="edit_note"
             title="Select a class and subject"
             description="Choose a class and subject from the pickers above to start entering grades."
+            owlyQuestion="How do I enter marks for a class?"
           />
         )}
         {/* Sticky Action Bar */}

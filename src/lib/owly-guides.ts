@@ -98,6 +98,60 @@ export const OWLY_GUIDES: Record<string, OwlyGuide> = {
       "**Average and grade.** BOT, MOT and EOT are stored separately; the report uses a simple average, not weights.",
     ],
   },
+  "setup-school": {
+    id: "setup-school",
+    title: "Setting up your school",
+    intro: "Use the name and district from your school records, then check the school type and subjects below.",
+    steps: [
+      "**School name:** your school's full name.",
+      "**School type:** Primary, Secondary or Combined.",
+      "**Optional details:** you can add a motto and contacts later.",
+    ],
+    note: "Use the official name on your school records so receipts and report cards match.",
+  },
+  "setup-fees": {
+    id: "setup-fees",
+    title: "Setting up terms and fees",
+    intro: "Read the year, term and class carefully. A fee amount is for one learner, not the whole class.",
+    steps: [
+      "**Example class:** P.3 · Term 1.",
+      "**Example fee:** Tuition: UGX 150,000 per learner.",
+      "**Check dates:** use your school's approved calendar.",
+    ],
+    note: "Use the fee list your school approved. Do not guess amounts.",
+  },
+  "setup-grading": {
+    id: "setup-grading",
+    title: "Setting up grading",
+    intro: "Choose the rules your school actually uses. Ask the headteacher if you do not know a grading setting.",
+    steps: [
+      "**Example mark:** 18 out of 20.",
+      "**Zero:** the learner scored 0.",
+      "**Blank:** no mark entered yet — not zero.",
+    ],
+    note: "A blank is different from a zero. Never enter 0 for a pupil who has not been assessed.",
+  },
+  "setup-services": {
+    id: "setup-services",
+    title: "Choosing school services",
+    intro: "Turn on the school services you need. Do not add boarding details for a day-only school.",
+    steps: [
+      "**Day school:** no dormitory setup needed.",
+      "**Boarding school:** check dormitory names and capacity.",
+      "**Not sure?** Check with your school before continuing.",
+    ],
+  },
+  "setup-review": {
+    id: "setup-review",
+    title: "Checking before you finish",
+    intro: "Read your choices. Setup is not finished until you tap the finish button and the app confirms it.",
+    steps: [
+      "**Check school details:** name, subjects and school type.",
+      "**Check money and dates:** term dates and fee amounts.",
+      "**Finish once:** wait for a success message.",
+    ],
+    note: "If the app does not confirm, do not close the page — try again.",
+  },
 };
 
 /** The guide a page should offer, if any. */
