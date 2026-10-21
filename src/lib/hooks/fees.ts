@@ -681,7 +681,7 @@ export function useFeeStructure(schoolId?: string) {
     }
 
     const cached = getCachedData<FeeStructure[]>(cacheKey);
-    if (cached) {
+    if (cached && cached.length > 0) {
       setFeeStructure(cached);
       setLoading(false);
       return;

@@ -79,16 +79,69 @@ class OfflineDB {
     if (this.initPromise) return this.initPromise;
 
     this.initPromise = new Promise<void>((resolve, reject) => {
-      const request = indexedDB.open(DB_NAME, DB_VERSION);
+      let settled = false;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const finish = (settle: () => void) => {
+        if (settled) return;
+        settled = true;
+        if (timer) clearTimeout(timer);
+        settle();
+      };
+
+      // An IndexedDB upgrade blocks until every other tab/PWA connection on an
+      // older version closes. Without a deadline the open request never fires
+      // onsuccess or onerror, so every caller that reads the cache (students,
+      // fee structure) sits on `loading: true` forever and the screen renders
+      // zeros. Fail fast instead: the callers catch this and load from the
+      // network.
+      timer = setTimeout(() => {
+        finish(() => {
+          this.initPromise = null;
+          reject(new Error("Offline database open timed out"));
+        });
+      }, 4000);
+
+      let request: IDBOpenDBRequest;
+      try {
+        request = indexedDB.open(DB_NAME, DB_VERSION);
+      } catch (error) {
+        finish(() => {
+          this.initPromise = null;
+          reject(error instanceof Error ? error : new Error(String(error)));
+        });
+        return;
+      }
 
       request.onerror = () => {
-        this.initPromise = null;
-        reject(request.error);
+        finish(() => {
+          this.initPromise = null;
+          reject(request.error ?? new Error("Offline database failed to open"));
+        });
+      };
+      request.onblocked = () => {
+        finish(() => {
+          this.initPromise = null;
+          reject(new Error("Offline database upgrade blocked by another open tab"));
+        });
       };
       request.onsuccess = () => {
-        this.db = request.result;
-        this.initPromise = null;
-        resolve();
+        const db = request.result;
+        // Release this connection when another tab wants to upgrade, so a
+        // future deploy cannot deadlock on the open we are holding now.
+        db.onversionchange = () => {
+          db.close();
+          if (this.db === db) this.db = null;
+        };
+        // If the deadline already rejected, do not leak the connection.
+        if (settled) {
+          db.close();
+          return;
+        }
+        finish(() => {
+          this.db = db;
+          this.initPromise = null;
+          resolve();
+        });
       };
 
       request.onupgradeneeded = (event) => {
