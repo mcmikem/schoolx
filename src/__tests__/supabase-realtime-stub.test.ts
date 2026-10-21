@@ -39,11 +39,20 @@ describe("realtime stub", () => {
       () => client.channel("x"),
       () => client.removeChannel(),
       () => client.removeAllChannels(),
-      () => client.setAuth("token"),
       () => client.disconnect(),
     ]) {
       expect(call).toThrow(/Realtime is not bundled/);
     }
+  });
+
+  it("does not refuse setAuth, which the auth library calls on every refresh", () => {
+    // `SupabaseClient` calls setAuth on every auth state change, and the proxy
+    // refreshes an expired token server-side. Refusing here made that an
+    // unhandled rejection that failed the whole render -- every page answered
+    // 500 once the token expired, which is exactly when a teacher comes back
+    // to the app after a break. There is no socket to authorise.
+    const client = new RealtimeClient("wss://example.test");
+    expect(() => client.setAuth("token")).not.toThrow();
   });
 
   it("refuses construction of a channel, which is the thing apps call", () => {

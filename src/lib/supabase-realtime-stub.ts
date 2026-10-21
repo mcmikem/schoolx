@@ -123,8 +123,23 @@ export class RealtimeClient {
   removeAllChannels(..._args: AnyArgs): never {
     refuse();
   }
-  setAuth(..._args: AnyArgs): never {
-    refuse();
+  /**
+   * The auth library's handshake, and the one method here that must NOT
+   * refuse.
+   *
+   * `SupabaseClient` calls `setAuth` on every auth state change -- on every
+   * sign-in, and on every token refresh. The proxy refreshes an expired token
+   * server-side, so this ran there too, and the refusal became an unhandled
+   * rejection that failed the whole render: every page answered 500 once the
+   * access token expired, which is exactly when a teacher opens the app again
+   * after a break.
+   *
+   * Setting the auth token is not a request for a live subscription -- there
+   * is no socket to authenticate -- so there is nothing here to refuse. The
+   * methods that do ask for realtime keep refusing loudly.
+   */
+  setAuth(..._args: AnyArgs): void {
+    // No socket, nothing to authorise.
   }
   disconnect(..._args: AnyArgs): never {
     refuse();

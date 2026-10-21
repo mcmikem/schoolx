@@ -44,12 +44,51 @@ interface StaffMember {
   phone: string;
   email?: string;
   role: string;
+  /** Every hat this person wears, primary first. One hat is the norm; a
+   *  headmaster who also teaches wears two. */
+  roles?: string[];
+  /** The screen they want to land on, when they wear more than one hat. */
+  preferred_dashboard?: string | null;
   subject?: string;
   avatar_url?: string | null;
   is_active: boolean;
   hire_date?: string;
   salary?: number;
 }
+
+/**
+ * The hats a person can wear, in the order they are offered.
+ *
+ * A school in peri-urban or rural Uganda does not have one job per person:
+ * the headmaster teaches, the director of studies teaches, the bursar is
+ * also a parent. The page used to offer a single role, which meant the
+ * headmaster who taught a class could not enter marks for it -- the app
+ * believed he was only a headmaster.
+ */
+const STAFF_ROLE_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: "teacher", label: "Teacher" },
+  { value: "headmaster", label: "Headmaster" },
+  { value: "dean_of_studies", label: "Director of Studies" },
+  { value: "bursar", label: "Bursar" },
+  { value: "secretary", label: "Secretary" },
+  { value: "dorm_master", label: "Dorm Master/Mistress" },
+  { value: "school_admin", label: "Administrator" },
+];
+
+/** The screens a person can choose to land on. Only the ones they hold. */
+const DASHBOARD_FOR_ROLE: Record<string, string> = {
+  teacher: "teacher",
+  headmaster: "headmaster",
+  dean_of_studies: "dean_of_studies",
+  bursar: "bursar",
+  secretary: "secretary",
+  dorm_master: "dorm_master",
+  school_admin: "headmaster",
+};
+
+const ROLE_LABEL: Record<string, string> = Object.fromEntries(
+  STAFF_ROLE_OPTIONS.map((option) => [option.value, option.label]),
+);
 
 interface ClassOption {
   id: string;
@@ -238,6 +277,9 @@ function DirectoryTab({
     phone: "",
     email: "",
     role: "teacher",
+    // Every hat this person wears, primary first. One entry is the norm.
+    roles: ["teacher"] as string[],
+    preferred_dashboard: "",
     subject: "",
     avatar_url: "",
     class_teacher_for: "",
@@ -327,7 +369,22 @@ function DirectoryTab({
 
       // One extra row beyond the page: it proves whether a next page exists even
       // when every count query fails, so pagination can never dead-end on page 1.
-      const [activeCount, inactiveCount, parentCount, rows] = await Promise.all([
+      // The hats each person wears. One extra query for the whole page, and
+      // it is what makes "headmaster who also teaches" visible in the list
+      // rather than a secret in the database.
+      const rolesPromise = withTimeout<Array<{ user_id: string; role: string }> | null>(
+        supabase
+          .from("user_roles")
+          .select("user_id, role")
+          .then((result) => {
+            if (result.error) throw result.error;
+            return (result.data || []) as Array<{ user_id: string; role: string }>;
+          }),
+        8000,
+        null,
+      );
+
+      const [activeCount, inactiveCount, parentCount, rows, roleRows] = await Promise.all([
         countQuery("staff", true),
         countQuery("staff", false),
         countQuery("parents"),
@@ -342,12 +399,26 @@ function DirectoryTab({
           8000,
           null,
         ),
+        rolesPromise,
       ]);
 
       const pageRows = rows || [];
       if (seq !== fetchSeqRef.current) return;
       setHasMore(pageRows.length > itemsPerPage);
-      setStaff(pageRows.slice(0, itemsPerPage));
+
+      // Attach the hats to each person, so a headmaster who also teaches is
+      // shown as both, here and in the editor.
+      const hatsByUser = new Map<string, string[]>();
+      for (const row of roleRows || []) {
+        const list = hatsByUser.get(row.user_id) || [];
+        list.push(row.role);
+        hatsByUser.set(row.user_id, list);
+      }
+      const withHats = pageRows.slice(0, itemsPerPage).map((member) => ({
+        ...member,
+        roles: hatsByUser.get(member.id)?.length ? hatsByUser.get(member.id) : [member.role],
+      }));
+      setStaff(withHats);
       setTabCounts((prev) => ({
         active: typeof activeCount?.count === "number" ? activeCount.count : prev.active,
         inactive: typeof inactiveCount?.count === "number" ? inactiveCount.count : prev.inactive,
@@ -745,6 +816,8 @@ function DirectoryTab({
       phone: member.phone || "",
       email: member.email || "",
       role: member.role || "teacher",
+      roles: member.roles?.length ? [...member.roles] : [member.role || "teacher"],
+      preferred_dashboard: member.preferred_dashboard || "",
       subject: member.subject || "",
       avatar_url: member.avatar_url || "",
       class_teacher_for: classTeacherFor,
@@ -764,10 +837,13 @@ function DirectoryTab({
       const assignedSubjectNames = (subjects || [])
         .filter((subject) => normalizeTeachingAssignments(editAssignments).some((row) => row.subject_id === subject.id))
         .map((subject) => subject.name);
+      // The first hat is the main job: it labels the person, names their
+      // receipts and decides the screen they land on.
+      const primaryRole = editForm.roles[0] || editForm.role;
       const updatePayload = {
         full_name: editForm.full_name,
         phone: editForm.phone.replace(/[^0-9]/g, ""),
-        role: editForm.role,
+        role: primaryRole,
         email: editForm.email || null,
         avatar_url: editForm.avatar_url || null,
         // Only attempt the denormalized subject column when the schema is
@@ -806,6 +882,39 @@ function DirectoryTab({
 
       if (error) throw error;
 
+      // The hats. The profile update above only carries the main job, because
+      // `users.role` is a single column that everything else still reads.
+      // The full set of hats lives in `user_roles`, and one route writes both
+      // together -- a half-applied change would leave the person with the old
+      // permissions on one screen and the new ones on another.
+      if (!isDemo) {
+        try {
+          const {
+            data: { session },
+          } = await supabase.auth.getSession();
+          const token = session?.access_token;
+          const response = await fetch("/api/staff/roles/", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token || ""}`,
+            },
+            body: JSON.stringify({
+              user_id: editingStaff.id,
+              roles: editForm.roles,
+              preferred_dashboard: editForm.preferred_dashboard || null,
+            }),
+          });
+          if (!response.ok) {
+            const data = await response.json().catch(() => null);
+            throw new Error(data?.error || "Could not save the roles");
+          }
+        } catch (rolesError) {
+          logger.error("Error saving staff roles:", rolesError);
+          throw rolesError instanceof Error ? rolesError : new Error("Could not save the roles");
+        }
+      }
+
       if (!isDemo && school?.id) {
         const saveTimeout = (what: string) =>
           ({
@@ -834,7 +943,10 @@ function DirectoryTab({
 
         if (clearSubjectsError) throw clearSubjectsError;
 
-        if (editForm.role === "teacher") {
+        // The teaching assignments belong to the teaching hat. A headmaster
+        // who also teaches must still be able to enter marks for his class,
+        // so this follows the hat and not the main job.
+        if (editForm.roles.includes("teacher")) {
           if (editForm.class_teacher_for) {
             const { error: assignClassError } = await withTimeout(
               supabase
@@ -851,7 +963,7 @@ function DirectoryTab({
           // Subjects persist whenever rows exist — no longer gated on also
           // being class teacher (that gate silently dropped every subject
           // edit for teachers heading no class).
-          if (editForm.role === "teacher") {
+          if (editForm.roles.includes("teacher")) {
             const payload = normalizeTeachingAssignments(editAssignments).map((row) => ({
               teacher_id: editingStaff.id,
               class_id: row.class_id,
@@ -876,12 +988,17 @@ function DirectoryTab({
             ? {
                 ...s,
                 ...editForm,
+                roles: editForm.roles,
+                role: primaryRole,
+                preferred_dashboard: editForm.preferred_dashboard || null,
                 subject: assignedSubjectNames.length > 0 ? assignedSubjectNames.join(", ") : editForm.subject,
               }
             : s,
         ),
       );
-      toast.success("Staff member updated");
+      toast.success(
+        editForm.roles.length > 1 ? `Staff member updated — ${editForm.roles.length} roles` : "Staff member updated",
+      );
       setShowEditModal(false);
       setEditingStaff(null);
     } catch (err: unknown) {
@@ -1406,6 +1523,19 @@ function DirectoryTab({
                   <div className="truncate font-medium text-gray-900">{member.full_name}</div>
                   <div className="flex flex-wrap items-center gap-1.5 mt-1">
                     {getRoleBadge(member.role)}
+                    {/* The other hats. A headmaster who also teaches is both,
+                        and the list should say so rather than making the
+                        reader guess from the marks they can enter. */}
+                    {(member.roles || [])
+                      .filter((role) => role !== member.role)
+                      .map((role) => (
+                        <span
+                          key={role}
+                          className="px-2 py-1 rounded-lg text-xs font-medium bg-[var(--surface-container-high)] text-[var(--t2)]"
+                        >
+                          {ROLE_LABEL[role] || role}
+                        </span>
+                      ))}
                     <span
                       className={`px-2 py-1 rounded-lg text-xs font-medium ${member.is_active ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}
                     >
@@ -1838,23 +1968,72 @@ function DirectoryTab({
               </div>
 
               <div>
-                <label className="text-sm font-medium text-[var(--t1)] mb-2 block">Role</label>
-                <select
-                  value={editForm.role}
-                  onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
-                  className="input"
-                >
-                  <option value="teacher">Teacher</option>
-                  <option value="school_admin">Administrator</option>
-                  <option value="headmaster">Headmaster</option>
-                  <option value="dean_of_studies">Director of Studies</option>
-                  <option value="bursar">Bursar</option>
-                  <option value="secretary">Secretary</option>
-                  <option value="dorm_master">Dorm Master/Mistress</option>
-                </select>
+                <label className="text-sm font-medium text-[var(--t1)] mb-1 block">Roles</label>
+                <p className="text-xs text-[var(--t3)] mb-2">
+                  One person can wear more than one hat. The first one is their main job.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {STAFF_ROLE_OPTIONS.map((option) => {
+                    const index = editForm.roles.indexOf(option.value);
+                    const on = index >= 0;
+                    const isPrimary = on && index === 0;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        aria-pressed={on}
+                        onClick={() => {
+                          if (on) {
+                            // The main job cannot be taken off without another
+                            // one taking its place.
+                            if (isPrimary && editForm.roles.length === 1) return;
+                            const next = editForm.roles.filter((r) => r !== option.value);
+                            setEditForm({ ...editForm, roles: next, role: next[0] });
+                          } else {
+                            const next = [...editForm.roles, option.value];
+                            setEditForm({ ...editForm, roles: next, role: next[0] });
+                          }
+                        }}
+                        className={`min-h-11 rounded-xl border px-3 py-2 text-sm font-semibold transition-colors ${
+                          isPrimary
+                            ? "border-[var(--primary)] bg-[var(--primary)] text-white"
+                            : on
+                              ? "border-[var(--primary)] bg-[var(--primary-50)] text-[var(--primary-700)]"
+                              : "border-[var(--border)] bg-[var(--surface)] text-[var(--t2)]"
+                        }`}
+                      >
+                        {option.label}
+                        {isPrimary ? <span className="ml-1.5 text-[10px] font-black uppercase">Main</span> : null}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
-              {editForm.role === "teacher" && (
+              {editForm.roles.length > 1 && (
+                <div>
+                  <label className="text-sm font-medium text-[var(--t1)] mb-1 block">Which screen do they open?</label>
+                  <p className="text-xs text-[var(--t3)] mb-2">
+                    With more than one hat, this is the screen they land on.
+                  </p>
+                  <select
+                    value={editForm.preferred_dashboard}
+                    onChange={(e) => setEditForm({ ...editForm, preferred_dashboard: e.target.value })}
+                    className="input"
+                  >
+                    <option value="">Their main job</option>
+                    {editForm.roles
+                      .filter((role) => DASHBOARD_FOR_ROLE[role])
+                      .map((role) => (
+                        <option key={role} value={DASHBOARD_FOR_ROLE[role]}>
+                          {ROLE_LABEL[role] || role}
+                        </option>
+                      ))}
+                  </select>
+                </div>
+              )}
+
+              {editForm.roles.includes("teacher") && (
                 <>
                   <div>
                     <label className="text-sm font-medium text-[var(--t1)] mb-2 block">

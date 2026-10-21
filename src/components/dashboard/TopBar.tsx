@@ -13,8 +13,29 @@ import { canOpenSettingsPage } from "@/lib/role-tab-access";
 import { canAccess, type UserRole } from "@/lib/roles";
 import { supabase } from "@/lib/supabase";
 import { useTheme } from "@/lib/theme-context";
+import { logger } from "@/lib/logger";
 import { useSyncStatus } from "@/lib/useSyncStatus";
 import { useToast } from "@/components/Toast";
+
+/** The dashboard each role lands on, and what to call it in a list. */
+const DASHBOARD_FOR_ROLE: Record<string, string> = {
+  teacher: "teacher",
+  headmaster: "headmaster",
+  dean_of_studies: "dean_of_studies",
+  bursar: "bursar",
+  secretary: "secretary",
+  dorm_master: "dorm_master",
+  school_admin: "headmaster",
+};
+
+const DASHBOARD_LABEL: Record<string, string> = {
+  teacher: "Teacher",
+  headmaster: "Headmaster",
+  dean_of_studies: "Director of Studies",
+  bursar: "Bursar",
+  secretary: "Secretary",
+  dorm_master: "Dorm Master/Mistress",
+};
 
 type DashboardNotification = {
   id: string;
@@ -217,6 +238,31 @@ function UserMenu({ open, onClose, onSignOut }: { open: boolean; onClose: () => 
   const { user, school } = useAuth();
   const schoolName = school?.name || "School";
 
+  /**
+   * The screens this person can land on.
+   *
+   * A headmaster who also teaches has two hats and two dashboards, and the
+   * app has to pick one when they sign in. It used to pick for them, every
+   * time, and there was no way to change it -- so a headmaster who wanted to
+   * enter marks for their class had to sign out and back in as a teacher.
+   */
+  const switchableScreens =
+    (user?.roles?.length ?? 0) > 1 ? (user?.roles ?? []).filter((role) => DASHBOARD_FOR_ROLE[role]) : [];
+
+  const switchScreen = async (role: string) => {
+    try {
+      const { supabase } = await import("@/lib/supabase");
+      const { error } = await supabase.from("users").update({ preferred_dashboard: role }).eq("id", user!.id);
+      if (error) throw error;
+      onClose();
+      // The dashboard is chosen on the way in, so the change has to land
+      // before the next screen is drawn.
+      window.location.reload();
+    } catch (switchError) {
+      logger.error("[TopBar] Could not switch the dashboard", switchError);
+    }
+  };
+
   if (!open) return null;
 
   return (
@@ -227,6 +273,30 @@ function UserMenu({ open, onClose, onSignOut }: { open: boolean; onClose: () => 
         </div>
         <div className="text-xs text-[var(--t3)] truncate">{user?.role?.replace("_", " ") || "User"}</div>
       </div>
+      {switchableScreens.length > 1 && (
+        <>
+          <p className="px-4 pt-3 text-[11px] font-black uppercase tracking-[0.14em] text-[var(--t3)]">Open as</p>
+          {switchableScreens.map((role) => (
+            <button
+              key={role}
+              type="button"
+              onClick={() => void switchScreen(role)}
+              className={`w-full flex items-center gap-2 px-4 py-[10px] text-[13px] text-left transition-colors ${
+                user?.preferred_dashboard === role
+                  ? "font-bold text-[var(--primary)] bg-[var(--primary-50)]"
+                  : "text-[var(--t2)] hover:bg-[var(--bg)]"
+              }`}
+            >
+              <MaterialIcon icon="dashboard" style={{ fontSize: 16 }} />
+              {DASHBOARD_LABEL[role] || role}
+              {user?.preferred_dashboard === role ? (
+                <span className="ml-auto text-[10px] font-black uppercase">Now</span>
+              ) : null}
+            </button>
+          ))}
+          <div className="border-t border-[var(--border)]" />
+        </>
+      )}
       <Link
         href="/dashboard/learn"
         onClick={onClose}
