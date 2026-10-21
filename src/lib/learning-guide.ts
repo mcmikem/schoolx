@@ -1,3 +1,5 @@
+import type { OnboardingVideoKey } from "@/lib/onboarding-videos";
+
 export type LearningTrack = "school" | "teacher" | "bursar" | "basics";
 export interface LearningStep {
   title: string;
@@ -12,6 +14,12 @@ export interface LearningLesson {
   icon: string;
   href?: string;
   action?: string;
+  /**
+   * Optional short clip of this job on the real screen. The text lesson stays
+   * the default -- a teacher on a metered connection is never pushed to
+   * download video they did not ask for.
+   */
+  video?: OnboardingVideoKey;
   steps: LearningStep[];
 }
 export const TRACK_LABELS: Record<LearningTrack, string> = {
@@ -175,6 +183,7 @@ const teacher: LearningLesson[] = [
     id: "teacher-attendance",
     title: "Mark who came to school",
     icon: "how_to_reg",
+    video: "attendance",
     href: "/dashboard/attendance",
     action: "Open attendance",
     steps: [
@@ -205,6 +214,7 @@ const teacher: LearningLesson[] = [
     id: "teacher-marks",
     title: "Enter marks without guessing",
     icon: "edit",
+    video: "marks",
     href: "/dashboard/grades",
     action: "Open marks",
     steps: [

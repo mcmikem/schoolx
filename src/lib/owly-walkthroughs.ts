@@ -18,9 +18,16 @@
  * walkthrough never dead-ends a user on a 404.
  */
 
+import type { OnboardingVideoKey } from "@/lib/onboarding-videos";
+
 export interface WalkthroughStep {
   /** Route to send the user to. Omitted for steps done in place. */
   href?: string;
+  /**
+   * Optional short video for this step. Teachers who would rather watch than
+   * read get the same job shown on screen; the text stays for everyone else.
+   */
+  video?: OnboardingVideoKey;
   /** Imperative, second person, one sentence. */
   title: string;
   /** How to do it. */
@@ -50,18 +57,21 @@ export const WALKTHROUGHS: Record<string, Walkthrough> = {
     steps: [
       {
         href: "/dashboard/attendance",
+        video: "attendance",
         title: "Take the register",
         how: "Open Attendance. Pick your class. Tap a pupil to mark Present. Swipe right for Absent. Swipe left for Late. If the list is hard to tap, use One pupil at a time.",
         done: "Each pupil's row shows a colour. The numbers at the top count Present, Absent and Late.",
       },
       {
         href: "/dashboard/grades",
+        video: "marks",
         title: "Enter marks for your subject",
         how: "Open Grades. Pick the class and your subject. Type each pupil's mark. Move to the next box and it saves.",
         done: "The mark stays in the box. The pupil's total and grade appear next to their name.",
       },
       {
         href: "/dashboard/homework",
+        video: "tests",
         title: "Set homework",
         how: "Open Homework. Pick the class and subject. Write the task. Choose the date it is due.",
         done: "The homework appears in the list. You can see how many pupils have handed it in.",

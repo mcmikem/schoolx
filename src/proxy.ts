@@ -191,6 +191,10 @@ function applySecurityHeaders(response: NextResponse) {
   }
   const connectSrc = `connect-src ${connectSrcParts.join(" ")}`;
 
+  // Media (the short onboarding clips) is served from Supabase storage.
+  const mediaSrcParts = ["'self'", "blob:", "https://*.supabase.co", "https://*.supabase.in"];
+  const mediaSrc = `media-src ${mediaSrcParts.join(" ")}`;
+
   const cspDirectives = [
     "default-src 'self'",
     scriptSrc,
@@ -200,7 +204,7 @@ function applySecurityHeaders(response: NextResponse) {
     connectSrc,
     "frame-src https://www.google.com/recaptcha/ https://recaptcha.google.com/recaptcha/",
     "worker-src 'self' blob:",
-    "media-src 'self'",
+    mediaSrc,
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",

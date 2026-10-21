@@ -360,6 +360,68 @@ export const DEMO_SUBJECTS: DemoSubject[] = [
   },
 ];
 
+export const DEMO_HOMEWORK: {
+  id: string;
+  school_id: string;
+  title: string;
+  description: string;
+  subject_id: string;
+  class_id: string;
+  due_date: string;
+  marks: number;
+  created_by: string;
+  academic_year: string;
+  term: number;
+  subjects?: { name: string; code: string } | null;
+  classes?: { name: string } | null;
+}[] = [
+  {
+    id: "demo-hw-1",
+    school_id: DEMO_SCHOOL_ID,
+    title: "Fractions practice set",
+    description: "Exercise 4B, questions 1-10. Show all working in your book.",
+    subject_id: "demo-sub-MTC-7",
+    class_id: "13",
+    due_date: "2026-10-23",
+    marks: 10,
+    created_by: "demo-user",
+    academic_year: "2026",
+    term: 3,
+    subjects: { name: "Mathematics", code: "MTC" },
+    classes: { name: "P.7 A" },
+  },
+  {
+    id: "demo-hw-2",
+    school_id: DEMO_SCHOOL_ID,
+    title: "Comprehension: The Generous Crow",
+    description: "Read the passage and answer questions 1-8 in full sentences.",
+    subject_id: "demo-sub-ENG-6",
+    class_id: "13",
+    due_date: "2026-10-22",
+    marks: 20,
+    created_by: "demo-user",
+    academic_year: "2026",
+    term: 3,
+    subjects: { name: "English", code: "ENG" },
+    classes: { name: "P.7 A" },
+  },
+  {
+    id: "demo-hw-3",
+    school_id: DEMO_SCHOOL_ID,
+    title: "Plants and their uses",
+    description: "Draw and label three useful plants found near your home.",
+    subject_id: "demo-sub-SCI-8",
+    class_id: "13",
+    due_date: "2026-10-24",
+    marks: 10,
+    created_by: "demo-user",
+    academic_year: "2026",
+    term: 3,
+    subjects: { name: "Integrated Science", code: "SCI" },
+    classes: { name: "P.7 A" },
+  },
+];
+
 export const DEMO_STUDENTS: DemoStudent[] = [
   // P.1 students (8)
   {
@@ -2729,6 +2791,63 @@ export const DEMO_FEE_PAYMENTS: DemoFeePayment[] = [
     paid_by: "James Okello",
     notes: "Full tuition",
     payment_date: "2025-01-28",
+  },
+  // Balance-settling payments (payment plan completions) so the demo shows a
+  // mix of cleared, part-paid and owing pupils like a real school mid-term.
+  {
+    id: "31",
+    student_id: "2",
+    fee_id: "1",
+    amount_paid: 740000,
+    payment_method: "mobile_money",
+    payment_reference: "MM260210035",
+    paid_by: "Patrick Ochen",
+    notes: "Plan balance paid in full",
+    payment_date: "2025-02-10",
+  },
+  {
+    id: "32",
+    student_id: "3",
+    fee_id: "1",
+    amount_paid: 450000,
+    payment_method: "bank",
+    payment_reference: "BNK260212036",
+    paid_by: "Grace Tumusiime",
+    notes: "Plan balance paid in full",
+    payment_date: "2025-02-12",
+  },
+  {
+    id: "33",
+    student_id: "10",
+    fee_id: "1",
+    amount_paid: 850000,
+    payment_method: "mobile_money",
+    payment_reference: "MM260213037",
+    paid_by: "Robert Mugisha",
+    notes: "Term fees cleared",
+    payment_date: "2025-02-13",
+  },
+  {
+    id: "34",
+    student_id: "16",
+    fee_id: "1",
+    amount_paid: 400000,
+    payment_method: "cash",
+    payment_reference: null,
+    paid_by: "Grace Tumusiime",
+    notes: "Balance on collection day",
+    payment_date: "2025-02-17",
+  },
+  {
+    id: "35",
+    student_id: "21",
+    fee_id: "1",
+    amount_paid: 790000,
+    payment_method: "mobile_money",
+    payment_reference: "MM260218038",
+    paid_by: "Patrick Ochen",
+    notes: "Term fees cleared",
+    payment_date: "2025-02-18",
   },
 ];
 

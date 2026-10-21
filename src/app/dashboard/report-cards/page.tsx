@@ -13,6 +13,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { useToast } from "@/components/Toast";
 import { Card, CardBody } from "@/components/ui/Card";
 import { Button } from "@/components/ui/index";
+import { VideoLessonButton } from "@/components/onboarding/VideoLesson";
 import { PageHeader } from "@/components/ui/PageHeader";
 import PersonInitials from "@/components/ui/PersonInitials";
 import SearchField from "@/components/ui/SearchField";
@@ -1563,6 +1564,7 @@ export default function ReportCardsPage() {
         <MaterialIcon icon="bolt" style={{ fontSize: "18px" }} />
         Generate Now
       </Button>
+      <VideoLessonButton lesson="comments" label="Watch how comments are written" />
     </div>
   );
 

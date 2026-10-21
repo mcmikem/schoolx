@@ -3,6 +3,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
+import { VideoLessonButton } from "@/components/onboarding/VideoLesson";
 import { OwlEyelids } from "@/components/brand/OwlMascot";
 import { BugReportModal } from "@/components/BugReportButton";
 import { useRouter } from "next/navigation";
@@ -717,6 +718,11 @@ export default function OwlAssistant() {
                 <div>
                   <h3 className="text-lg font-bold leading-snug text-[var(--t1)]">{step.title}</h3>
                   <p className="mt-2 text-sm leading-relaxed text-[var(--t2)]">{step.how}</p>
+                  {step.video ? (
+                    <div className="mt-3">
+                      <VideoLessonButton lesson={step.video} label="Watch it instead" />
+                    </div>
+                  ) : null}
                   <div className="mt-4 rounded-xl p-3" style={{ background: "var(--green-soft, #dcfce7)" }}>
                     <p className="flex items-start gap-2 text-sm font-semibold leading-relaxed text-[var(--on-surface)]">
                       <MaterialIcon icon="check_circle" size={18} className="mt-0.5 shrink-0" />

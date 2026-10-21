@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import MaterialIcon from "@/components/MaterialIcon";
+import { VideoLessonButton } from "@/components/onboarding/VideoLesson";
 import { formatCurrency } from "@/lib/currency";
 import { toLocalDateString } from "@/lib/date-utils";
 import {
@@ -282,6 +283,11 @@ function GuideSession({ schoolId, userId, track }: { schoolId: string; userId: s
             {step.title}
           </h2>
           <p className="mt-3 text-base leading-relaxed text-[var(--t2)]">{step.instruction}</p>
+          {lesson.video ? (
+            <div className="mt-4">
+              <VideoLessonButton lesson={lesson.video} label="Watch this job on screen" />
+            </div>
+          ) : null}
           <div
             aria-label="Practice example"
             className="my-5 rounded-2xl border-2 border-dashed border-slate-300 bg-slate-50 p-4 text-base text-slate-900"

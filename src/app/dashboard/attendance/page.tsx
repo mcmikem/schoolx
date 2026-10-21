@@ -9,6 +9,7 @@ import { EmptyState } from "@/components/EmptyState";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { OwlyTrigger } from "@/components/owly/OwlyTrigger";
+import { VideoLessonButton } from "@/components/onboarding/VideoLesson";
 import { useToast } from "@/components/Toast";
 import { Button } from "@/components/ui/index";
 import { Modal } from "@/components/ui/Modal";
@@ -1011,6 +1012,7 @@ export default function AttendancePage() {
                       Notify Parents ({absentCount})
                     </Button>
                   )}
+                  <VideoLessonButton lesson="attendance" />
                   <Button
                     onClick={() => saveAttendance()}
                     disabled={saving || !selectedClass || !hasAttendanceRecords}

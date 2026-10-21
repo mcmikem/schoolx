@@ -7,6 +7,7 @@ import { GradeStatusBadge } from "@/components/grades/GradeStatusBadge";
 import MaterialIcon from "@/components/MaterialIcon";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
 import { OwlyTrigger } from "@/components/owly/OwlyTrigger";
+import { VideoLessonButton } from "@/components/onboarding/VideoLesson";
 import { useToast } from "@/components/Toast";
 import { Card, CardBody, CardHeader, CardTitle } from "@/components/ui/Card";
 import { FilterBar } from "@/components/ui/FilterBar";
@@ -1622,7 +1623,10 @@ export default function GradesPage() {
         {/* First-run guidance. Owly owns the steps now; the button only stays
             until the teacher has entered their first mark. */}
         {selectedClass && selectedSubject && Object.keys(marks).length === 0 && (
-          <OwlyTrigger guideId="grades" label="How do I enter marks?" />
+          <div className="flex flex-wrap items-center gap-2">
+            <OwlyTrigger guideId="grades" label="How do I enter marks?" />
+            <VideoLessonButton lesson="marks" />
+          </div>
         )}
         {/* The column meanings live in Owly now, so the table header stays a
             header instead of carrying a paragraph under every column. */}

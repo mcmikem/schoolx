@@ -1,11 +1,13 @@
 "use client";
 import { PageErrorBoundary } from "@/components/PageErrorBoundary";
+import { VideoLessonButton } from "@/components/onboarding/VideoLesson";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { useAcademic } from "@/lib/academic-context";
 import { useClasses, useSubjects } from "@/lib/hooks";
 import { useToast } from "@/components/Toast";
+import { DEMO_HOMEWORK } from "@/lib/demo-data";
 import { useFormDraft } from "@/lib/useAutoSave";
 import { supabase } from "@/lib/supabase";
 import { isTimeoutResult, withTimeout, timeoutFallback } from "@/lib/hooks/utils";
@@ -21,7 +23,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { duplicateHomeworkDraft, parseHomeworkDueDate, type Homework, type HomeworkDraft } from "@/lib/homework";
 
 export default function HomeworkPage() {
-  const { school, user } = useAuth();
+  const { school, user, isDemo } = useAuth();
   const { academicYear, currentTerm } = useAcademic();
   const toast = useToast();
   const { classes } = useClasses(school?.id);
@@ -118,6 +120,13 @@ export default function HomeworkPage() {
     setLoading(true);
     setHomeworkError(null);
     try {
+      if (isDemo) {
+        // Demo mode: show the fixed class-test set without touching the DB.
+        const rows = selectedClass ? DEMO_HOMEWORK.filter((h) => h.class_id === selectedClass) : DEMO_HOMEWORK;
+        setHomework(rows as unknown as typeof homework);
+        setLoading(false);
+        return;
+      }
       let query = supabase
         .from("homework")
         .select("*, subjects(name, code), classes(name)")
@@ -245,6 +254,7 @@ export default function HomeworkPage() {
             <MaterialIcon icon="add" className="text-lg" />
             Add class test
           </button>
+          <VideoLessonButton lesson="tests" label="Watch how" className="self-start" />
         </div>
 
         <div

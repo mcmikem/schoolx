@@ -23,7 +23,8 @@ export default function LearnPage() {
         }
       />
       <p className="text-base leading-relaxed text-[var(--t2)]">
-        Learn with pretend records before using your school’s real records. No videos are needed.
+        Learn with pretend records before using your school’s real records. Read the steps, or watch a short clip of the
+        job.
       </p>
       {user?.id && school?.id ? (
         <LearningGuide
